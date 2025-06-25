@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	coreconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
@@ -61,7 +62,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // NewK8sController 构建 K8sController

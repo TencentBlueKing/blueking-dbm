@@ -54,7 +54,7 @@ class MongoAutofixFlow(object):
         flow_parameter = self.get_public_data()
         bk_cloud_id = self.autofix_info["bk_cloud_id"]
         cluster_id = self.autofix_info["cluster_ids"][0]
-        cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         flow_parameter["db_version"] = cluster_info.major_version
         config = cluster_info.get_config()
         shards = cluster_info.get_shards()
@@ -146,7 +146,7 @@ class MongoAutofixFlow(object):
         for mongod in self.autofix_info["mongod_list"]:
             instances = []
             for cluster_id in cluster_ids:
-                cluster_info = MongoRepository().fetch_one_cluster(withDomain=True, id=cluster_id)
+                cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=cluster_id)
                 flow_parameter["db_version"] = cluster_info.major_version
                 for member in cluster_info.get_shards()[0].members:
                     if mongod["ip"] == member.ip:

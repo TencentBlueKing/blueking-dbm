@@ -92,29 +92,40 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=SyncMediumSerializer)
     def sync_medium(self, request, *args, **kwargs):
+        def package_key(pkg):
+            if isinstance(pkg, Package):
+                return f"{pkg.db_type}-{pkg.pkg_type}-{pkg.name}-{pkg.version}"
+            return f"{pkg['db_type']}-{pkg['pkg_type']}-{pkg['name']}-{pkg['version']}"
+
         data = self.params_validate(self.get_serializer_class())
         db_type, sync_medium_infos = data["db_type"], data["sync_medium_infos"]
+
+        if not sync_medium_infos:
+            return Response()
+
         # 获取原来介质的优先级信息
         old_packages = Package.objects.filter(db_type=db_type)
-        old_package_persist: Dict[str, Tuple[int, bool]] = {
-            f"{package.pkg_type}-{package.name}-{package.version}": (package.priority, package.enable)
-            for package in old_packages
-        }
+        old_package_map: Dict[str, Tuple[int, bool]] = {f"{package_key(pkg)}": pkg for pkg in old_packages}
         # 更新新介质的优先级和启用信息，如果没有在原来介质中存在，则默认为0和启用
+        update_packages, create_packages = [], []
         for info in sync_medium_infos:
             if info.get("pkg_type") not in PackageType.get_values():
-                logger.warning(
-                    f"pkg type({info.get('pkg_type')}) not in PackageType Enum, ignore",
-                )
+                logger.warning(f"pkg type({info.get('pkg_type')}) not in PackageType Enum, ignore")
                 continue
-            persistent_info = old_package_persist.get(
-                f"{info['pkg_type']}-{info['name']}-{info['version']}", (0, True)
-            )
-            info["priority"], info["enable"] = persistent_info[0], persistent_info[1]
-        # 按照DBType进行原子更新：先删除存量介质信息，然后在更新介质信息
+
+            pkg_key = package_key(info)
+            if pkg_key in old_package_map:
+                old_package_map[pkg_key].__dict__.update(info)
+                update_packages.append(old_package_map[pkg_key])
+            else:
+                info.update(priority=0, enable=True)
+                create_packages.append(Package(**info))
+
+        # 按照DBType进行原子更新
+        update_fields = list(sync_medium_infos[0].keys())
         with atomic():
-            old_packages.delete()
-            Package.objects.bulk_create([Package(**info) for info in sync_medium_infos])
+            Package.objects.bulk_update(update_packages, fields=update_fields)
+            Package.objects.bulk_create(create_packages)
 
         return Response()
 

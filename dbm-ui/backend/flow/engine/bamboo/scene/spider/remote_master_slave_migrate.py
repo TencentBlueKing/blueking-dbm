@@ -408,17 +408,11 @@ class TendbClusterMigrateRemoteFlow(object):
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     bk_biz_id=self.data["bk_biz_id"],
                     instances=instances,
-                    departs=[
-                        DeployPeripheralToolsDepart.MySQLTableChecksum,
-                        DeployPeripheralToolsDepart.MySQLRotateBinlog,
-                        DeployPeripheralToolsDepart.MySQLDBBackup,
-                        DeployPeripheralToolsDepart.MySQLMonitor,
-                    ],
                     with_actuator=False,
-                    with_collect_sysinfo=False,
                     with_bk_plugin=False,
-                    with_instance_standardize=False,
+                    with_collect_sysinfo=False,
                     with_cc_standardize=False,
+                    with_instance_standardize=False,
                 )
             )
 
@@ -494,6 +488,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     act_component_code=MySQLCheckSumTicketComponent.code,
                     kwargs=asdict(
                         MysqlCheckSumKwargs(
+                            uid=self.data["uid"],
                             bk_biz_id=cluster_class.bk_biz_id,
                             created_by=self.data["created_by"],
                             checksum_info=checksum_info,

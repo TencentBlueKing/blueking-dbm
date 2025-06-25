@@ -248,6 +248,7 @@ BEGIN
     SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = username AND host = ip) INTO @user_host_exists;
     IF NOT @user_host_exists THEN
         -- 用户不存在, 直接创建, 只使用新版本密码, 传入的密码是密文
+        -- 只有 spider 1 会拿到 5.5, 其他的都 > 5.7. 所以也是兼容的
         IF SUBSTRING_INDEX(@@version, ".", 2) < 5.7 THEN
             SET @create_user_sql = CONCAT("GRANT USAGE ON *.* TO '", username, "'@'", ip, "' IDENTIFIED BY PASSWORD '", psw, "'");
             PREPARE stmt FROM @create_user_sql;

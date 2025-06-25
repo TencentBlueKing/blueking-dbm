@@ -160,6 +160,12 @@ class Ticket(AuditedModel):
         self.config = self.config or {}
         return self.config.get("context", {})
 
+    @property
+    def msg_config(self):
+        """单据通知配置"""
+        self.config = self.config or {}
+        return self.config.get("msg_config", {})
+
     def set_status(self, status):
         self.status = status
         self.save()
@@ -224,6 +230,30 @@ class Ticket(AuditedModel):
             next_flows = next_flows.exclude(flow_type__in=[FlowType.BK_ITSM, FlowType.PAUSE])
 
         return next_flows.first()
+
+    def add_related_ticket(self, related_ticket: Union[int, "Ticket"], desc: str = "", done: bool = False):
+        """
+        将一个单据关联另一个单据
+        :param related_ticket: 关联单据
+        :param desc: 流程描述
+        :param done: 当前单据是否完成
+        """
+        # 将关联单据的ID转换为Ticket对象
+        if isinstance(related_ticket, (str, int)):
+            related_ticket = Ticket.objects.get(id=related_ticket)
+        if not isinstance(related_ticket, Ticket):
+            raise TypeError(_("关联单据类型错误，请保证类型为int,str或Ticket"))
+        # 对原单据动态插入一个描述flow，关联这个回收单
+        desc = desc or TicketType.get_choice_label(related_ticket.ticket_type)
+        # 如果当前单据未完成，则新建的flow状态需要时pending，否则会影响current_flow方法的判断
+        flow_status = TicketFlowStatus.PENDING if not done else TicketFlowStatus.SUCCEEDED
+        Flow.objects.create(
+            ticket=self,
+            flow_type=FlowType.DELIVERY.value,
+            details={"related_ticket": related_ticket.id},
+            flow_alias=desc,
+            status=flow_status,
+        )
 
     @classmethod
     def create_ticket(
@@ -306,13 +336,7 @@ class Ticket(AuditedModel):
         )
 
         # 对原单据动态插入一个描述flow，关联这个回收单
-        Flow.objects.create(
-            ticket=revoke_ticket,
-            flow_type=FlowType.DELIVERY.value,
-            details={"related_ticket": recycle_ticket.id},
-            flow_alias=TicketType.get_choice_label(ticket_type),
-            status=TicketFlowStatus.SUCCEEDED.value,
-        )
+        revoke_ticket.add_related_ticket(recycle_ticket, done=True)
 
     @classmethod
     def create_ticket_from_bk_monitor(cls, callback_data):
@@ -426,8 +450,8 @@ class ClusterOperateRecordManager(models.Manager):
             .exclude(flow__ticket_id__in=exclude_ticket_ids)
         )
 
-    def get_cluster_operations(self, cluster_id, **kwargs):
-        """集群上的正在运行的操作列表"""
+    def get_cluster_active_operations(self, cluster_id, **kwargs):
+        """集群上的正在运行任务的操作列表"""
         return [r.summary for r in self.filter_actives(cluster_id, **kwargs)]
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):

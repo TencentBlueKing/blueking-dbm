@@ -34,11 +34,10 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type KafkaModel from '@services/model/kafka/kafka';
-  import type KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import KafkaModel from '@services/model/kafka/kafka';
+  import KafkaMachineModel from '@services/model/kafka/kafka-machine';
   import { getKafkaNodeList } from '@services/source/kafka';
   import { createTicket } from '@services/source/ticket';
 
@@ -51,11 +50,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<KafkaNodeModel>;
-
   interface Props {
     data: KafkaModel;
-    nodeList?: TNodeInfo['nodeList'];
+    machineList?: KafkaMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
@@ -65,7 +62,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    nodeList: () => [],
+    machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -80,11 +77,11 @@
   ];
 
   const nodeStatusListRef = ref();
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     broker: {
+      hostList: [],
       label: 'Broker',
       minHost: 1,
-      nodeList: [],
       originalNodeList: [],
       // 缩容后的目标容量
       // targetDisk: 0,
@@ -100,7 +97,7 @@
   const nodeType = ref('broker');
 
   const fetchListNode = () => {
-    const brokerOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const brokerOriginalNodeList: TShrinkNode['originalNodeList'] = [];
 
     isLoading.value = true;
     getKafkaNodeList({
@@ -120,6 +117,7 @@
 
         nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
         nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        console.log('nodeInfoMap', nodeInfoMap);
       })
       .finally(() => {
         isLoading.value = false;
@@ -130,19 +128,25 @@
 
   // 默认选中的缩容节点
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const brokerNodeList: TNodeInfo['nodeList'] = [];
+      const brokerHostList: TShrinkNode['hostList'] = [];
 
       let brokerShrinkDisk = 0;
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isBroker) {
-          brokerShrinkDisk += nodeItem.disk;
-          brokerNodeList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isBroker) {
+          brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
+          brokerHostList.push({
+            alive: machineItem.host_info?.alive || 0,
+            bk_cloud_id: machineItem.bk_cloud_id,
+            bk_disk: machineItem.host_info.bk_disk,
+            bk_host_id: machineItem.bk_host_id,
+            ip: machineItem.ip,
+          });
         }
       });
-      nodeInfoMap.broker.nodeList = brokerNodeList;
+      nodeInfoMap.broker.hostList = brokerHostList;
       nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
     },
     {
@@ -151,9 +155,9 @@
   );
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
-    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
-    nodeInfoMap[nodeType.value].nodeList = nodeList;
+  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
+    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
+    nodeInfoMap[nodeType.value].hostList = hostList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
   };
 
@@ -193,8 +197,8 @@
           headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
-              nodeList.map((hostItem) => ({
+            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
+              hostList.map((hostItem) => ({
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
@@ -212,7 +216,7 @@
                   });
                   return results;
                 },
-                {} as Record<string, TNodeInfo>,
+                {} as Record<string, TShrinkNode>,
               );
 
             createTicket({
@@ -222,7 +226,7 @@
                 ext_info: generateExtInfo(),
                 ip_source: 'resource_pool',
                 old_nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.nodeList),
+                  broker: fomatHost(nodeInfoMap.broker.hostList),
                 },
               },
               ticket_type: TicketTypes.KAFKA_SHRINK,
@@ -233,7 +237,9 @@
             });
           },
           subTitle: renderSubTitle,
-          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
+          title: t('确认缩容【name】集群', {
+            name: props.data.cluster_name,
+          }),
         });
       });
     },

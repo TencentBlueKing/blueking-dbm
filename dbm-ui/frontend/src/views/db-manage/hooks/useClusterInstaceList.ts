@@ -23,6 +23,7 @@ const dataSourceMap = {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: getMongoInstancesList,
   [ClusterTypes.PULSAR]: getPulsarInstanceList,
   [ClusterTypes.REDIS]: getRedisInstances,
+  [ClusterTypes.REDIS_CLUSTER]: getRedisInstances,
   [ClusterTypes.REDIS_INSTANCE]: getRedisInstances,
   [ClusterTypes.RIAK]: getRiakInstanceList,
   [ClusterTypes.SQLSERVER_HA]: getSqlServerHaInstanceList,

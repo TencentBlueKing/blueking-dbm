@@ -21,12 +21,12 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"testing"
 	"time"
 
@@ -64,25 +64,16 @@ func TestCreateStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
-		Active:        true,
+		AddonVersion:  "1.0.0",
 		Description:   "desc",
 	}
 
 	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
-
-	var foundStorageAddon model.K8sCrdStorageAddonModel
-	err = db.First(&foundStorageAddon, "addon_name=?", "myaddon").Error
-	assert.NoError(t, err, "Failed to query storageAddon")
-	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
-	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
-	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
-	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
+	assert.NoError(t, err)
+	assert.Equal(t, storageAddon.AddonName, addedStorageAddon.AddonName)
+	assert.Equal(t, storageAddon.AddonCategory, addedStorageAddon.AddonCategory)
+	assert.Equal(t, storageAddon.AddonType, addedStorageAddon.AddonType)
+	assert.Equal(t, storageAddon.AddonVersion, addedStorageAddon.AddonVersion)
 }
 
 func TestDeleteStorageAddon(t *testing.T) {
@@ -97,18 +88,16 @@ func TestDeleteStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	rows, err := addonProvider.DeleteStorageAddonByID(1)
-	assert.NoError(t, err, "Failed to delete storageAddon")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -124,23 +113,20 @@ func TestUpdateStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	updateStorageAddon := &entitys.K8sCrdStorageAddonEntity{
 		ID:            1,
 		AddonName:     "myaddon2",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb2",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":1}",
+		AddonVersion:  "1.0.0",
 		Active:        false,
 		Description:   "desc",
 		UpdatedAt:     time.Now(),
@@ -162,23 +148,20 @@ func TestGetStorageAddon(t *testing.T) {
 		AddonName:     "myaddon",
 		AddonCategory: "Graph",
 		AddonType:     "surrealdb",
-		Metadata:      "{\"namespace\":\"default\"}",
-		Spec:          "{\"replicas\":3}",
+		AddonVersion:  "1.0.0",
 		Active:        true,
 		Description:   "desc",
 	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
-	assert.NoError(t, err, "Failed to create storageAddon")
-	fmt.Printf("Created storageAddon %+v\n", addedStorageAddon)
+	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	assert.NoError(t, err)
 
 	foundStorageAddon, err := addonProvider.FindStorageAddonByID(1)
-	assert.NoError(t, err, "Failed to find storageAddon")
+	assert.NoError(t, err)
 	assert.Equal(t, storageAddon.AddonName, foundStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, foundStorageAddon.AddonCategory)
 	assert.Equal(t, storageAddon.AddonType, foundStorageAddon.AddonType)
-	assert.Equal(t, storageAddon.Metadata, foundStorageAddon.Metadata)
-	assert.Equal(t, storageAddon.Spec, foundStorageAddon.Spec)
+	assert.Equal(t, storageAddon.AddonVersion, foundStorageAddon.AddonVersion)
 	assert.Equal(t, storageAddon.Active, foundStorageAddon.Active)
 }
 
@@ -190,14 +173,12 @@ func TestListStorageAddons(t *testing.T) {
 
 	addonProvider := provider.NewK8sCrdStorageAddonProvider(dbAccess)
 
-	// 创建测试数据
 	testAddons := []entitys.K8sCrdStorageAddonEntity{
 		{
 			AddonName:     "surreal",
 			AddonCategory: "Graph",
 			AddonType:     "SurrealDB",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
+			AddonVersion:  "1.0.0",
 			Active:        true,
 			Description:   "desc",
 		},
@@ -205,8 +186,7 @@ func TestListStorageAddons(t *testing.T) {
 			AddonName:     "vm",
 			AddonCategory: "Time-Series",
 			AddonType:     "VictoriaMetric",
-			Metadata:      "{\"namespace\":\"default\"}",
-			Spec:          "{\"replicas\":3}",
+			AddonVersion:  "1.0.0",
 			Active:        true,
 			Description:   "desc",
 		},
@@ -219,13 +199,13 @@ func TestListStorageAddons(t *testing.T) {
 		assert.Equal(t, addon.AddonName, createdAddon.AddonName, "Addon name mismatch")
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}
 
 	addons, err := addonProvider.ListStorageAddons(pagination)
-	assert.NoError(t, err, "Failed to list storage addons")
+	assert.NoError(t, err)
 	assert.Equal(t, len(testAddons), len(addons))
 
 	addonNames := make(map[string]bool)

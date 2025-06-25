@@ -3,6 +3,8 @@ package peripheraltools
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/define"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
@@ -26,7 +28,7 @@ func (c *InitCommonConfig) Run() (err error) {
 		return err
 	}
 
-	err = os.MkdirAll(reverseapi.DefaultCommonConfigDir, 0777)
+	err = os.MkdirAll(define.DefaultCommonConfigDir, 0777)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -52,7 +54,7 @@ func (c *InitCommonConfig) Run() (err error) {
 	if cu.Uid == "0" {
 		_, err = osutil.ExecShellCommand(
 			false,
-			fmt.Sprintf(`chown -R mysql %s`, reverseapi.DefaultCommonConfigDir),
+			fmt.Sprintf(`chown -R mysql %s`, define.DefaultCommonConfigDir),
 		)
 		if err != nil {
 			logger.Error(err.Error())
@@ -64,7 +66,7 @@ func (c *InitCommonConfig) Run() (err error) {
 }
 
 func (c *InitCommonConfig) initNginx() (err error) {
-	fp := filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName)
+	fp := filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName)
 	f, err := os.OpenFile(fp, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		logger.Error(err.Error())
@@ -86,7 +88,7 @@ func (c *InitCommonConfig) initNginx() (err error) {
 }
 
 func (c *InitCommonConfig) initInstanceInfo() (err error) {
-	fp := filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultInstanceInfoFileName)
+	fp := filepath.Join(define.DefaultCommonConfigDir, define.DefaultInstanceInfoFileName)
 	f, err := os.OpenFile(fp, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		logger.Error(err.Error())
@@ -96,8 +98,8 @@ func (c *InitCommonConfig) initInstanceInfo() (err error) {
 		_ = f.Close()
 	}()
 
-	rvApi := reverseapi.NewReverseApiWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs...)
-	data, _, err := rvApi.MySQL.ListInstanceInfo()
+	apiCore := reverseapi.NewCoreWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs...)
+	data, _, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

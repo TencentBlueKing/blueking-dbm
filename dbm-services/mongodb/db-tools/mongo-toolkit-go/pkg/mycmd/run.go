@@ -83,3 +83,66 @@ func RunCmdByBash(cmd, outFile string, dealPidMethod DealLocalCmdPid,
 	opts := []string{"-c", cmd}
 	return RunCmd("bash", opts, outFile, dealPidMethod, timeout)
 }
+
+/* RunCmdV2 参数:
+ * outFile: 不为空,则将标准输出结果打印到outFile中; 为空,则将标准输出结果打印到标准输出中;
+ * errFile: 不为空,则将标准错误结果打印到errFile中; 为空,则将标准错误结果打印到标准错误中;
+ * dealPidMethod: 不为空,则将命令pid传给dealPidMethod.DealProcessPid()函数;
+ * exitCode https://stackoverflow.com/questions/10385551/get-exit-code-go
+ */
+func RunCmdV2(cmd string, opts []string,
+	outFile string, errFile string,
+	dealPidMethod DealLocalCmdPid, timeout time.Duration) (exitCode int, err error) {
+	exitCode = defaultExitCode
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	cmdCtx := exec.CommandContext(ctx, cmd, opts...)
+
+	var outFileHandler *os.File
+	var errFileHandler *os.File
+
+	// 如果outFile不为空，则将标准输出结果打印到outFile中
+	outFileHandler, err = os.Create(outFile)
+	if err != nil {
+		err = errors.Wrap(err, "CreateFile")
+		return
+	}
+	defer outFileHandler.Close()
+	cmdCtx.Stdout = outFileHandler
+
+	// 如果errFile不为空，则将标准错误结果打印到errFile中
+	if errFile == outFile {
+		cmdCtx.Stderr = outFileHandler
+	} else {
+		errFileHandler, err = os.Create(errFile)
+		if err != nil {
+			err = errors.Wrap(err, "CreateFile")
+			return
+		}
+		defer errFileHandler.Close()
+		cmdCtx.Stderr = errFileHandler
+	}
+
+	if err = cmdCtx.Start(); err != nil {
+		err = errors.Wrap(err, "Start")
+		return
+	}
+
+	if dealPidMethod != nil {
+		dealPidMethod.DealProcessPid(cmdCtx.Process.Pid)
+	}
+
+	if err = cmdCtx.Wait(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitCode = exitError.Sys().(syscall.WaitStatus).ExitStatus()
+		} else {
+			exitCode = defaultExitCode
+		}
+	} else {
+		ws := cmdCtx.ProcessState.Sys().(syscall.WaitStatus)
+		exitCode = ws.ExitStatus()
+	}
+
+	return
+}

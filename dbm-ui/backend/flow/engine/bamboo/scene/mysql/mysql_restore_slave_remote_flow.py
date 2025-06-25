@@ -392,7 +392,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                     with_actuator=False,
                     with_bk_plugin=False,
-                    with_backup_client=False,
                     with_instance_standardize=False,
                     with_cc_standardize=False,
                     with_collect_sysinfo=False,
@@ -783,7 +782,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     with_instance_standardize=False,
                     with_bk_plugin=False,
                     with_actuator=False,
-                    with_deploy_binary=False,
                 )
             )
 

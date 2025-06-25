@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,7 +59,7 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 }
 
 // initConfig init config
-func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
+func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("rocksdb physical dumper config missed")
 	}
@@ -107,7 +108,7 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	}
 
 	// set the base config
-	p.checkpointDir = filepath.Join(p.cnf.Public.BackupDir, "MyRocks_checkpoint")
+	p.checkpointDir = filepath.Join(p.cnf.Public.BackupDir, "MyRocks_checkpoint", strconv.Itoa(p.cnf.Public.MysqlPort))
 	p.rocksdbCmd = filepath.Join("bin", cst.ToolMyrocksHotbackup)
 	BackupTool = cst.ToolMyrocksHotbackup
 	return nil

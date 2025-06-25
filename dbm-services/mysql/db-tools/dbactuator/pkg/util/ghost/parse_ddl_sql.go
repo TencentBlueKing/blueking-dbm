@@ -12,7 +12,6 @@ package ghost
 
 import (
 	"fmt"
-	"io"
 
 	"vitess.io/vitess/go/vt/sqlparser"
 )
@@ -141,25 +140,7 @@ func ParseSQLFile(fileContent string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokens := parser.NewStringTokenizer(fileContent)
-	// Split content into individual statements
-	statements := make([]string, 0)
-
-	// Parse each statement
-	for {
-		var stmt sqlparser.Statement
-		stmt, err = sqlparser.ParseNext(tokens)
-		if err != nil {
-			if err == io.EOF {
-				return statements, nil
-			}
-			return nil, fmt.Errorf("failed to parse SQL statement: %w", err)
-		}
-		// Convert statement back to string and append to results
-		buf := sqlparser.NewTrackedBuffer(nil)
-		stmt.Format(buf)
-		statements = append(statements, buf.String())
-	}
+	return parser.SplitStatementToPieces(fileContent)
 }
 
 // ParseSqlSchemaInfo 解析SQL dbname tbname

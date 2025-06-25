@@ -1,5 +1,7 @@
 package entity
 
+import "k8s.io/apimachinery/pkg/api/resource"
+
 // ResourceQuota 定义资源配额结构
 type ResourceQuota struct {
 	Request Resource `json:"request,omitempty"`
@@ -8,6 +10,6 @@ type ResourceQuota struct {
 
 // Resource defines the CPU and memory requests and limits for a Kubernetes component.
 type Resource struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
+	CPU    resource.Quantity `json:"cpu,omitempty"`
+	Memory resource.Quantity `json:"memory,omitempty"`
 }

@@ -26,7 +26,7 @@ def get_spider_real_version(package_name: str) -> str:
     @param  package_name: 介质包名称 例子：mariadb-10.3.7-linux-x86_64-tspider-3.7.8-gcs.tar.gz
     获取到的真实版本为：3.7.8
     """
-    return package_name.split("-")[-2]
+    return package_name.split("-")[5].replace(".tar.gz", "")
 
 
 def get_proxy_real_version(package_name: str) -> str:

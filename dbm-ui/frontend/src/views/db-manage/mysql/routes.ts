@@ -138,37 +138,84 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
 
 const singleRoutes: RouteRecordRaw[] = [
   {
-    path: 'single-cluster-list',
-    name: 'DatabaseTendbsingle',
+    path: 'tendbsingle',
+    name: 'tendbsingle',
     meta: {
       fullscreen: true,
       navName: t('MySQL单节点_集群管理'),
       skeleton: 'clusterList',
     },
-    component: () => import('@views/db-manage/mysql/single-cluster-list/Index.vue'),
+    redirect: {
+      name: 'DatabaseTendbsingle',
+    },
+    component: () => import('@views/db-manage/mysql/Index.vue'),
+    children: [
+      {
+        path: 'list/:clusterId?',
+        name: 'DatabaseTendbsingle',
+        meta: {
+          fullscreen: true,
+          navName: t('MySQL单节点_集群管理'),
+          skeleton: 'clusterList',
+        },
+        component: () => import('@/views/db-manage/mysql/single-cluster-list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'tendbsingleDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('MySQL单节点_集群详情'),
+        },
+        component: () => import('@views/db-manage/mysql/single-cluster-detail/Index.vue'),
+      },
+    ],
   },
 ];
 
 const haRoutes: RouteRecordRaw[] = [
   {
-    path: 'ha-cluster-list',
-    name: 'DatabaseTendbha',
+    path: 'tendbha',
+    name: 'tendbha',
     meta: {
       fullscreen: true,
       navName: t('MySQL主从集群_集群管理'),
       skeleton: 'clusterList',
     },
-    component: () => import('@views/db-manage/mysql/ha-cluster-list/Index.vue'),
-  },
-  {
-    path: 'ha-instance-list',
-    name: 'DatabaseTendbhaInstance',
-    meta: {
-      fullscreen: true,
-      navName: t('MySQL主从集群_实例视图'),
-      skeleton: 'clusterList',
+    redirect: {
+      name: 'DatabaseTendbha',
     },
-    component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
+    component: () => import('@views/db-manage/mysql/Index.vue'),
+    children: [
+      {
+        path: 'list/:clusterId?',
+        name: 'DatabaseTendbha',
+        meta: {
+          fullscreen: true,
+          navName: t('MySQL主从集群_集群管理'),
+          skeleton: 'clusterList',
+        },
+        component: () => import('@views/db-manage/mysql/ha-cluster-list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'tendbHaDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('MySQL主从集群_集群详情'),
+        },
+        component: () => import('@views/db-manage/mysql/ha-cluster-detail/Index.vue'),
+      },
+      {
+        path: 'instance-list',
+        name: 'DatabaseTendbhaInstance',
+        meta: {
+          fullscreen: true,
+          navName: t('MySQL主从集群_实例视图'),
+        },
+        component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
+      },
+    ],
   },
 ];
 
@@ -301,6 +348,7 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
   if (controller.tendbha) {
     renderRoutes.children?.push(...haRoutes);
   }
+
   if (controller.toolbox) {
     renderRoutes.children?.push(...mysqlToolboxRouters);
   }

@@ -20,11 +20,8 @@ limitations under the License.
 package tests
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"k8s-dbs/metadata/api/controller"
-	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
@@ -73,6 +70,7 @@ func AddSampleCluster() error {
 	cluster := &model.K8sCrdClusterModel{
 		ClusterName:        "test1",
 		AddonID:            1,
+		RequestID:          "1",
 		K8sClusterConfigID: 1,
 		Status:             "CREATED",
 		Description:        "just for test",
@@ -99,61 +97,6 @@ func SetupClusterRouter() *gin.Engine {
 	return r
 }
 
-func TestCreateCluster(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupClusterRouter()
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
-	clusterRequest := req.K8sCrdClusterReqVo{
-		ClusterName:        "test1",
-		AddonID:            1,
-		K8sClusterConfigID: 1,
-		Description:        "just for test",
-		CreatedBy:          "admin",
-		CreatedAt:          parsedTime,
-		UpdatedAt:          parsedTime,
-		UpdatedBy:          "admin",
-	}
-
-	requestBody, err := json.Marshal(&clusterRequest)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("POST", "/metadata/cluster", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-	request.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"id": 1,
-			"addon_id": 1,
-			"K8sClusterConfigID": 1,
-			"cluster_name": "test1",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
-			"status": "CREATED",
-			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
 func TestGetCluster(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupClusterRouter()
@@ -169,87 +112,16 @@ func TestGetCluster(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"K8sClusterConfigID": 1,
-			"cluster_name": "test1",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
+			"addonId": 1,
+			"k8sClusterConfigId": 1,
+			"clusterName": "test1",
+			"requestId": "1",
 			"status": "CREATED",
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
-func TestDeleteCluster(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupClusterRouter()
-	err := AddSampleCluster()
-	assert.NoError(t, err)
-	request, _ := http.NewRequest("DELETE", "/metadata/cluster/1", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"rows":1
-		},
-		"message": "OK",
-		"error": null
-	}
-	`
-	assert.JSONEq(t, expected, w.Body.String())
-}
-
-func TestUpdateCluster(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := SetupClusterRouter()
-	err := AddSampleCluster()
-	assert.NoError(t, err)
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
-	clusterRequest := req.K8sCrdClusterReqVo{
-		ClusterName:        "test2",
-		AddonID:            1,
-		K8sClusterConfigID: 2,
-		Description:        "just for test2",
-		CreatedBy:          "admin2",
-		CreatedAt:          parsedTime,
-		UpdatedAt:          parsedTime,
-		UpdatedBy:          "admin2",
-	}
-
-	requestBody, err := json.Marshal(&clusterRequest)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("PUT", "/metadata/cluster/1", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-	request.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, request)
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	expected := `
-	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"rows":1
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null

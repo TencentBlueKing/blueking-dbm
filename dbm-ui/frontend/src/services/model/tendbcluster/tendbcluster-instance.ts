@@ -16,10 +16,16 @@ import { ClusterTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export default class TendbInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  bk_disk: number;
   bk_host_id: number;
+  bk_idc_city_name: string;
+  bk_mem: number;
   bk_os_name: string;
   bk_rack_id: number;
   bk_sub_zone: string;
@@ -34,6 +40,7 @@ export default class TendbInstance {
   host_info: HostInfo;
   id: number;
   instance_address: string;
+  instance_name: string;
   ip: string;
   machine_type: string;
   master_domain: string;
@@ -59,6 +66,10 @@ export default class TendbInstance {
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_mem = payload.bk_mem || 0;
+    this.bk_disk = payload.bk_disk || 0;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
@@ -66,6 +77,7 @@ export default class TendbInstance {
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.instance_name = payload.instance_name;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
@@ -85,5 +97,17 @@ export default class TendbInstance {
 
   get isNew() {
     return isRecentDays(this.create_at, 24 * 3);
+  }
+
+  get roleDisplay() {
+    const roleMap = {
+      remote_master: 'RemoteDB',
+      remote_slave: 'RemoteDR',
+      spider_master: 'Spider Master',
+      spider_mnt: t('运维节点'),
+      spider_slave: 'Spider Slave',
+    };
+
+    return roleMap[this.role as keyof typeof roleMap];
   }
 }

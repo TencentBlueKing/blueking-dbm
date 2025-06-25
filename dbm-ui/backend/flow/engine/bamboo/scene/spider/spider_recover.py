@@ -86,7 +86,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
                 cluster_id=cluster["cluster_id"],
                 start_time=str2datetime(backup_info["backup_time"]),
                 end_time=str2datetime(cluster["rollback_time"]),
-                binlog_info=backup_info["binlog_info"],
+                backup_info=backup_info,
             )
             if "query_binlog_error" in binlog_result.keys():
                 raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
@@ -200,7 +200,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
                 cluster_id=cluster["cluster_id"],
                 start_time=str2datetime(backup_info["backup_time"]),
                 end_time=str2datetime(cluster["rollback_time"]),
-                binlog_info=backup_info["binlog_info"],
+                backup_info=backup_info,
             )
             if "query_binlog_error" in binlog_result.keys():
                 raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])

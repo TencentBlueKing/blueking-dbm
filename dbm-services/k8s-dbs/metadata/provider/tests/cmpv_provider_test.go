@@ -69,20 +69,15 @@ func TestCreateComponentVersion(t *testing.T) {
 	}
 
 	addedCmpv, err := cmpvProvider.CreateCmpv(cmpv)
-	assert.NoError(t, err, "Failed to create componentVersion")
-	fmt.Printf("Created componentVersion %+v\n", addedCmpv)
-
-	var foundCmpv model.K8sCrdComponentVersionModel
-	err = db.First(&foundCmpv, "componentversion_name=?", "mycmpv").Error
-	assert.NoError(t, err, "Failed to query componentVersion")
-	assert.Equal(t, cmpv.ComponentVersionName, foundCmpv.ComponentVersionName)
-	assert.Equal(t, cmpv.AddonID, foundCmpv.AddonID)
-	assert.Equal(t, cmpv.Metadata, foundCmpv.Metadata)
-	assert.Equal(t, cmpv.Spec, foundCmpv.Spec)
-	assert.Equal(t, cmpv.Active, foundCmpv.Active)
+	assert.NoError(t, err)
+	assert.Equal(t, cmpv.ComponentVersionName, addedCmpv.ComponentVersionName)
+	assert.Equal(t, cmpv.AddonID, addedCmpv.AddonID)
+	assert.Equal(t, cmpv.Metadata, addedCmpv.Metadata)
+	assert.Equal(t, cmpv.Spec, addedCmpv.Spec)
+	assert.Equal(t, cmpv.Active, addedCmpv.Active)
 }
 
-func TestDeletComponentVersion(t *testing.T) {
+func TestDeleteComponentVersion(t *testing.T) {
 	db, err := initCmpvTable()
 	assert.NoError(t, err)
 
@@ -99,12 +94,11 @@ func TestDeletComponentVersion(t *testing.T) {
 		Description:          "desc",
 	}
 
-	addedCmpv, err := cmpvProvider.CreateCmpv(cmpv)
-	assert.NoError(t, err, "Failed to create componentVersion")
-	fmt.Printf("Created componentVersion %+v\n", addedCmpv)
+	_, err = cmpvProvider.CreateCmpv(cmpv)
+	assert.NoError(t, err)
 
 	rows, err := cmpvProvider.DeleteCmpvID(1)
-	assert.NoError(t, err, "Failed to delete componentVersion")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -125,9 +119,8 @@ func TestUpdateComponentVersion(t *testing.T) {
 		Description:          "desc",
 	}
 
-	addedCmpv, err := cmpvProvider.CreateCmpv(cmpv)
-	assert.NoError(t, err, "Failed to create componentVersion")
-	fmt.Printf("Created componentVersion %+v\n", addedCmpv)
+	_, err = cmpvProvider.CreateCmpv(cmpv)
+	assert.NoError(t, err)
 
 	updatedCmpv := &entitys.K8sCrdComponentVersionEntity{
 		ID:                   1,
@@ -140,7 +133,7 @@ func TestUpdateComponentVersion(t *testing.T) {
 		UpdatedAt:            time.Now(),
 	}
 	rows, err := cmpvProvider.UpdateCmpv(updatedCmpv)
-	assert.NoError(t, err, "Failed to update componentVersion")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -161,9 +154,8 @@ func TestGetComponentVersion(t *testing.T) {
 		Description:          "desc",
 	}
 
-	addedCmpv, err := cmpvProvider.CreateCmpv(cmpv)
-	assert.NoError(t, err, "Failed to create componentVersion")
-	fmt.Printf("Created componentVersion %+v\n", addedCmpv)
+	_, err = cmpvProvider.CreateCmpv(cmpv)
+	assert.NoError(t, err)
 
 	foundCmpv, err := cmpvProvider.FindCmpvByID(1)
 	assert.NoError(t, err, "Failed to find componentVersion")

@@ -46,6 +46,8 @@ class ErrorCode(object):
     EXTERNAL_PROXY_CODE = "18"
     CONFIGURATION_CODE = "20"
     DB_DIRTY_POOL_CODE = "21"
+    PROXY_PASS_CODE = "31"
+    PROXY_PASS_REVERSE_API_CODE = "32"
 
 
 class AppBaseException(Exception):

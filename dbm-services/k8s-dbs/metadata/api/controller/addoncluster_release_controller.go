@@ -22,6 +22,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
@@ -62,12 +63,12 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterReleaseByParam get addon cluster release by its Param.
 func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
-	releaseNameParam := ctx.Param("release_name")
+	releaseNameParam := ctx.Param("releaseName")
 	namespaceParam := ctx.Param("namespace")
 	if releaseNameParam == "" || namespaceParam == "" {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("cluster_name 参数不能为空")))
@@ -94,5 +95,5 @@ func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
 		return
 	}
 	respVo.ChartValues = chartValues
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }

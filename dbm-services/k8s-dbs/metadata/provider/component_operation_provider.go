@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -32,7 +32,7 @@ import (
 // ComponentOperationProvider 定义 component operation 业务逻辑层访问接口
 type ComponentOperationProvider interface {
 	CreateComponentOperation(entity *entitys.ComponentOperationEntity) (*entitys.ComponentOperationEntity, error)
-	ListComponentOperations(pagination utils.Pagination) ([]entitys.ComponentOperationEntity, error)
+	ListComponentOperations(pagination entity.Pagination) ([]entitys.ComponentOperationEntity, error)
 }
 
 // ComponentOperationProviderImpl ComponentOperationProvider 具体实现
@@ -65,7 +65,7 @@ func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entity
 }
 
 // ListComponentOperations 获取 component operation 列表
-func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination utils.Pagination) (
+func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination entity.Pagination) (
 	[]entitys.ComponentOperationEntity,
 	error,
 ) {

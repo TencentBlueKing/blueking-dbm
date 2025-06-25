@@ -84,3 +84,11 @@ const (
 	ForeverBackupType = "forever_backup"
 	BackupClient      = "/usr/local/bin/backup_client"
 )
+
+// payload format
+const (
+	// PayloadFormatRaw raw
+	PayloadFormatRaw = "raw"
+	// PayloadFormatBase64 base64
+	PayloadFormatBase64 = "base64"
+)

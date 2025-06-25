@@ -33,10 +33,14 @@ type TPs struct {
 }
 
 // GetHostByID ZooKeeper中获取特定ID的broker信息
-func GetHostByID(conn *zk.Conn, id string) (string, error) {
+func GetHostByID(conn *zk.Conn, id string, root string) (string, error) {
 	// 构造ZooKeeper中broker信息的路径
-	path := fmt.Sprintf("/brokers/ids/%s", id)
-
+	var path string
+	if root == "/" {
+		path = fmt.Sprintf("/brokers/ids/%s", id)
+	} else {
+		path = fmt.Sprintf("%s/brokers/ids/%s", root, id)
+	}
 	// 从ZooKeeper获取broker信息
 	data, _, err := conn.Get(path)
 	if err != nil {
@@ -79,10 +83,16 @@ func GetHostByID(conn *zk.Conn, id string) (string, error) {
 }
 
 // GetBrokerIds TODO
-func GetBrokerIds(conn *zk.Conn) ([]string, error) {
+func GetBrokerIds(conn *zk.Conn, root string) ([]string, error) {
 	// zk: ls /brokers/ids
 	// output: [0,1,2]
-	ids, _, err := conn.Children("/brokers/ids")
+	var path string
+	if root == "/" {
+		path = "/brokers/ids"
+	} else {
+		path = fmt.Sprintf("%s/brokers/ids", root)
+	}
+	ids, _, err := conn.Children(path)
 	if err != nil {
 		logger.Error("Get broker ids failed, %s", err)
 		return ids, err
@@ -93,11 +103,11 @@ func GetBrokerIds(conn *zk.Conn) ([]string, error) {
 }
 
 // GetBrokerIDByHost 根据host返回brokerid, brokerhost -> 0
-func GetBrokerIDByHost(conn *zk.Conn, host string) (string, error) {
+func GetBrokerIDByHost(conn *zk.Conn, host string, root string) (string, error) {
 	logger.Info("Getting broker id of host ...")
 
 	// Retrieve all broker IDs from ZooKeeper.
-	ids, err := GetBrokerIds(conn)
+	ids, err := GetBrokerIds(conn, root)
 	if err != nil {
 		logger.Error("Can't get broker ids, %s", err)
 		return "", err // Return the error if we can't get the broker IDs.
@@ -110,7 +120,7 @@ func GetBrokerIDByHost(conn *zk.Conn, host string) (string, error) {
 
 	// Iterate over the broker IDs to find a matching host.
 	for _, kfid := range ids {
-		kfHost, err := GetHostByID(conn, kfid)
+		kfHost, err := GetHostByID(conn, kfid, root)
 		if err != nil {
 			// Log the error and continue checking the next ID.
 			logger.Error("Can't get host by id, %s", err)
@@ -134,8 +144,8 @@ func PickRandom(arr []string) string {
 }
 
 // GenReassignmentJSON TODO
-func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
-	idsArr, _ := GetBrokerIds(conn)
+func GenReassignmentJSON(conn *zk.Conn, zkHost string, root string, xBrokerIds []string) error {
+	idsArr, _ := GetBrokerIds(conn, root)
 	logger.Info("idsArr %v", idsArr)
 	tempArr := make([]string, len(idsArr))
 	copy(tempArr, idsArr)
@@ -150,6 +160,8 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 	tempIds := strings.Join(tempArr[:], ",")
 
 	planJSONFile := cst.PlanJSONFile
+	// 127.0.0.1:2181/xxxx
+	zk := zkHost + root
 	extraCmd := fmt.Sprintf("%s --topics-to-move-json-file %s/topic.json --generate --zookeeper %s --broker-list %s >%s",
 		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, tempIds, planJSONFile)
 
@@ -210,11 +222,12 @@ func GenReassignmentJSON(conn *zk.Conn, zk string, xBrokerIds []string) error {
 }
 
 // GenReplaceReassignmentJSON TODO
-func GenReplaceReassignmentJSON(conn *zk.Conn, zk string, oldBrokerIds, newBrokerIds []string) error {
+func GenReplaceReassignmentJSON(conn *zk.Conn, zkHost string, root string, oldBrokerIds, newBrokerIds []string) error {
 	// all brokers id
-	idsArr, _ := GetBrokerIds(conn)
+	idsArr, _ := GetBrokerIds(conn, root)
 	ids := strings.Join(idsArr[:], ",")
 	planJSONFile := cst.PlanJSONFile
+	zk := zkHost + root
 	extraCmd := fmt.Sprintf("%s --topics-to-move-json-file %s/topic.json --generate --zookeeper %s --broker-list %s >%s",
 		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, ids, planJSONFile)
 

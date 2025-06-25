@@ -3,7 +3,8 @@ package rotatebinlog
 import (
 	"bytes"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi"
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"fmt"
 	"os/exec"
@@ -14,8 +15,8 @@ import (
 )
 
 func (c *MySQLRotateBinlogComp) GenerateRuntimeConfig() (err error) {
-	nginxAddrs, err := reverseapi.ReadNginxProxyAddrs(
-		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultNginxProxyAddrsFileName),
+	nginxAddrs, err := pkg.ReadNginxProxyAddrs(
+		filepath.Join(define.DefaultCommonConfigDir, define.DefaultNginxProxyAddrsFileName),
 	)
 	if err != nil {
 		logger.Error(err.Error())

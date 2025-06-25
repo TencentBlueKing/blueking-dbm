@@ -284,12 +284,13 @@ class UpgradeRemoteFlow(object):
                         data=copy.deepcopy(self.data),
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=cluster_class.bk_biz_id,
-                        # ips=[node["master"]["ip"], node["slave"]["ip"]],
-                        instances=instances,
-                        with_bk_plugin=False,
-                        with_actuator=False,
-                        with_instance_standardize=False,
                         departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
+                        instances=instances,
+                        with_actuator=False,
+                        with_bk_plugin=False,
+                        with_collect_sysinfo=False,
+                        with_cc_standardize=False,
+                        with_instance_standardize=False,
                     )
                 )
                 surrounding_sub_pipeline.add_act(
@@ -317,10 +318,11 @@ class UpgradeRemoteFlow(object):
                         bk_biz_id=cluster_class.bk_biz_id,
                         instances=instances,
                         with_actuator=False,
+                        with_bk_plugin=False,
+                        with_backup_client=False,
                         with_collect_sysinfo=False,
                         with_instance_standardize=False,
                         with_cc_standardize=False,
-                        with_bk_plugin=False,
                     )
                 )
                 re_surrounding_sub_pipeline.add_act(

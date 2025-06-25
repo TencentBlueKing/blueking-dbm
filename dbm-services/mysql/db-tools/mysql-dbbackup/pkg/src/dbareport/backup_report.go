@@ -233,7 +233,17 @@ func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, e
 // ReportToLocalBackup 写入本地 infodba_schema.local_backup_report 表
 // indexFilePath 是全路径
 // 内存是传进来的，不是内部读取 indexFilePath
-func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *IndexContent) error {
+func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
+	var err error
+	var metaInfo = &IndexContent{}
+	if buf, err := os.ReadFile(indexFilePath); err != nil {
+		return err
+	} else {
+		if err = json.Unmarshal(buf, metaInfo); err != nil {
+			return errors.WithMessagef(err, "unmarshal metaInfo %s", indexFilePath)
+		}
+	}
+
 	logger.Log.Infof("write backup result to local_backup_report for %d", r.cfg.Public.MysqlPort)
 	db, err := mysqlconn.InitConn(&r.cfg.Public)
 	if err != nil {
@@ -335,7 +345,6 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 // report backup to db
 // report backup to log file
 func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload bool) error {
-	var err error
 	var metaInfo = &IndexContent{}
 	if buf, err := os.ReadFile(indexFilePath); err != nil {
 		return err
@@ -392,10 +401,6 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	metaInfo.FileList = fileListSimple
 	Report().Result.Println(metaInfo)
 
-	if err = r.ReportToLocalBackup(indexFilePath, metaInfo); err != nil {
-		logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err)
-		// return err
-	}
 	if err2 != nil {
 		return err2
 	}

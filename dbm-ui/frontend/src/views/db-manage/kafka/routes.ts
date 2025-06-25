@@ -39,13 +39,22 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/kafka/apply/Index.vue'),
       // },
       {
-        path: 'list',
+        path: 'list/:clusterId?',
         name: 'KafkaList',
         meta: {
           fullscreen: true,
           navName: t('Kafka_集群管理'),
         },
         component: () => import('@views/db-manage/kafka/list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'KafkaDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('Kafka_集群详情'),
+        },
+        component: () => import('@views/db-manage/kafka/detail/Index.vue'),
       },
     ],
   },

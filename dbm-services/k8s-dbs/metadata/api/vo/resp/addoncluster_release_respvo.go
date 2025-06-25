@@ -26,16 +26,16 @@ import (
 // AddonClusterReleaseRespVo addon cluster release 定义
 type AddonClusterReleaseRespVo struct {
 	ID                 uint64                 `json:"id"`
-	RepoName           string                 `json:"repo_name"`
-	RepoRepository     string                 `json:"repo_repository"`
-	ChartVersion       string                 `json:"chart_version"`
-	ChartName          string                 `json:"chart_name"`
+	RepoName           string                 `json:"repoName"`
+	RepoRepository     string                 `json:"repoRepository"`
+	ChartVersion       string                 `json:"chartVersion"`
+	ChartName          string                 `json:"chartName"`
 	Namespace          string                 `json:"namespace"`
-	K8sClusterConfigID uint64                 `json:"k8s_cluster_config_id"`
-	ReleaseName        string                 `json:"release_name"`
-	ChartValues        map[string]interface{} `json:"chart_values"`
-	CreatedBy          string                 `json:"created_by"`
-	CreatedAt          time.Time              `json:"created_at"`
-	UpdatedBy          string                 `json:"updated_by"`
-	UpdatedAt          time.Time              `json:"updated_at"`
+	K8sClusterConfigID uint64                 `json:"k8sClusterConfigId"`
+	ReleaseName        string                 `json:"releaseName"`
+	ChartValues        map[string]interface{} `json:"chartValues"`
+	CreatedBy          string                 `json:"createdBy"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	UpdatedBy          string                 `json:"updatedBy"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
 }

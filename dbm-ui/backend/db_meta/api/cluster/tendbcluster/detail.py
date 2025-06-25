@@ -33,7 +33,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         spider_entry_group = Group(node_id=entry_group_id, group_name=entry_group_name)
         __, spider_entry_group = graph.add_node(spider_entry, to_group=spider_entry_group)
 
-        graph.add_line(source=spider_entry_group, target=spider_group, label=LineLabel.Access)
+        graph.add_line(source=spider_entry_group, target=spider_group, label=LineLabel.Bind)
 
         return spider_insts, spider_group
 
@@ -77,10 +77,6 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         entry_group_id=_("spider_slave_entry_bind"),
         entry_group_name=_("访问入口（从）"),
     )
-
-    # 建立spider_master和spider_slave之间的关系
-    if spider_master_group and spider_slave_group:
-        graph.add_line(source=spider_master_group, target=spider_slave_group, label=LineLabel.Access)
 
     # 按master/slave组分片数排序
     remote_db_group, remote_dr_group = add_remote_nodes(cluster)

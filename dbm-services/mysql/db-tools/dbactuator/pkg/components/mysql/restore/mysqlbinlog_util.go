@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
@@ -99,7 +99,7 @@ func (b *MySQLBinlogUtil) BuildArgs() ([]string, error) {
 	if b.NotWriteBinlog {
 		b.cmdArgs = append(b.cmdArgs, "--disable-log-bin")
 	}
-	if b.IdempotentMode && mysqlbinlogHasOpt(b.binlogCmd, "--idempotent") == nil {
+	if b.IdempotentMode && mysqlcomm.MysqlbinlogHasOpt(b.binlogCmd, "--idempotent") == nil {
 		b.cmdArgs = append(b.cmdArgs, "--idempotent")
 	}
 
@@ -176,34 +176,4 @@ func (b *MySQLBinlogUtil) SetCmdPath(cmdPath string) {
 }
 func (b *MySQLBinlogUtil) SetWorkDir(workDir string) {
 	b.workDir = workDir
-}
-
-// mysqlbinlogHasOpt return nil if option exists
-func mysqlbinlogHasOpt(binlogCmd string, option string) error {
-	outStr, errStr, err := cmutil.ExecCommand(false, "", binlogCmd, "--help")
-	if err != nil {
-		return err
-	}
-	if strings.Contains(errStr, "unknown option") {
-		return errors.Errorf("mysqlbinlog %s has no option %s", binlogCmd, option)
-	}
-	if strings.Contains(outStr, option) {
-		return nil
-	}
-	return errors.Errorf("check option error for %s %s", binlogCmd, option)
-}
-
-// mysqlCliHasOpt test mysql client has option or not
-func mysqlCliHasOpt(mysqlCmd string, option string) error {
-	outStr, errStr, err := cmutil.ExecCommand(false, "", mysqlCmd, "--help")
-	if err != nil {
-		return err
-	}
-	if strings.Contains(errStr, "unknown option") {
-		return errors.Errorf("mysql %s has no option %s", mysqlCmd, option)
-	}
-	if strings.Contains(outStr, option) {
-		return nil
-	}
-	return errors.Errorf("check option error for %s %s", mysqlCmd, option)
 }

@@ -48,6 +48,9 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
                 if not ins.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
                     res = remove_departs(res, DeployPeripheralToolsDepart.MySQLDBBackup)
 
+        if m.machine_type == MachineType.SINGLE:
+            res = remove_departs(res, DeployPeripheralToolsDepart.MySQLTableChecksum)
+
         self.logger.info("{} departs: {}".format(ip, res))
         return res
 

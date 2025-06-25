@@ -15,6 +15,7 @@ from backend.flow.engine.bamboo.scene.kafka.kafka_disable_flow import KafkaDisab
 from backend.flow.engine.bamboo.scene.kafka.kafka_enable_flow import KafkaEnableFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_fake_apply_flow import KafkaFakeApplyFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_machine_clear_flow import ClearKafkaMachineFlow
+from backend.flow.engine.bamboo.scene.kafka.kafka_rebalance_flow import KafkaRebalanceFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_reboot_flow import KafkaRebootFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_replace_flow import KafkaReplaceFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_scale_up_flow import KafkaScaleUpFlow
@@ -96,3 +97,10 @@ class KafkaController(BaseController):
         """
         flow = ClearKafkaMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
+
+    def kafka_rebalance_scene(self):
+        """
+        kafka再平衡
+        """
+        flow = KafkaRebalanceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.rebalance_kafka_flow()

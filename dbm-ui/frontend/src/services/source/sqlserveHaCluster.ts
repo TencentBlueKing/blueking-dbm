@@ -14,15 +14,12 @@
 import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
 import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-detail';
 import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+import SqlserverMachineModel from '@services/model/sqlserver/sqlserver-machine';
 import type { ListBase, ResourceTopo } from '@services/types';
-
-import { useGlobalBizs } from '@stores';
 
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
+const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sqlserver_ha_resources`;
 
 /**
  * 获取集群列表
@@ -38,7 +35,7 @@ export function getHaClusterList(params: {
   offset?: number;
   sys_mode?: 'mirrorin' | 'always_on';
 }) {
-  return http.get<ListBase<SqlServerHaModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerHaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
       (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
@@ -51,7 +48,7 @@ export function getHaClusterList(params: {
  */
 export function getHaClusterWholeList() {
   return http
-    .get<ListBase<SqlServerHaModel[]>>(`${path}/`, {
+    .get<ListBase<SqlServerHaModel[]>>(`${getRootPath()}/`, {
       limit: -1,
       offset: 0,
     })
@@ -67,7 +64,7 @@ export function getHaClusterWholeList() {
  */
 export function getHaClusterDetail(params: { id: number }) {
   return http
-    .get<SqlServerHaClusterDetailModel>(`${path}/${params.id}/`)
+    .get<SqlServerHaClusterDetailModel>(`${getRootPath()}/${params.id}/`)
     .then((data) => new SqlServerHaClusterDetailModel(data));
 }
 
@@ -75,34 +72,40 @@ export function getHaClusterDetail(params: { id: number }) {
  * 获取集群拓扑
  */
 export function getHaClusterTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportSqlServerHaClusterToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportSqlServerHaInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
  * 获取集群实例列表
  */
 export function getSqlServerInstanceList(params: {
-  bk_biz_id?: number;
   cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
   limit?: number;
   offset?: number;
+  port?: number;
   role?: string;
+  status?: string;
 }) {
-  return http.get<ListBase<SqlServerHaInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerHaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new SqlServerHaInstanceModel(item)),
   }));
@@ -112,13 +115,33 @@ export function getSqlServerInstanceList(params: {
  * 获取集群实例详情
  */
 export function retrieveSqlserverHaInstance(params: {
-  bk_biz_id: number;
   cluster_id?: number;
   dbType: string;
-  instance_address: string;
-  type: string;
+  instance?: string;
+  type?: string;
 }) {
   return http
-    .get<SqlServerHaInstanceModel>(`${path}/retrieve_instance/`, params)
+    .get<SqlServerHaInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
     .then((res) => new SqlServerHaInstanceModel(res));
+}
+
+/**
+ * 查询主机列表
+ */
+export function getMachineList(params: {
+  bk_agent_id?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
+}) {
+  return http.get<ListBase<SqlserverMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new SqlserverMachineModel(item)),
+  }));
 }

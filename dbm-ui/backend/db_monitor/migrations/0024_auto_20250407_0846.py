@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_monitor.models import MySQLAutofixTicketStatus
+
 
 class Migration(migrations.Migration):
 
@@ -14,17 +16,7 @@ class Migration(migrations.Migration):
             model_name="mysqlautofixtodo",
             name="inplace_ticket_status",
             field=models.CharField(
-                choices=[
-                    ("UNSUBMITTED", "未提交"),
-                    ("SKIPPED", "跳过"),
-                    ("PENDING", "等待中"),
-                    ("RUNNING", "执行中"),
-                    ("SUCCEEDED", "成功"),
-                    ("FAILED", "失败"),
-                    ("REVOKED", "撤销"),
-                    ("TERMINATED", "终止"),
-                    ("TIMEOUT", "等待超时"),
-                ],
+                choices=MySQLAutofixTicketStatus.get_choices(),
                 default="UNSUBMITTED",
                 max_length=64,
             ),
@@ -33,17 +25,7 @@ class Migration(migrations.Migration):
             model_name="mysqlautofixtodo",
             name="replace_ticket_status",
             field=models.CharField(
-                choices=[
-                    ("UNSUBMITTED", "未提交"),
-                    ("SKIPPED", "跳过"),
-                    ("PENDING", "等待中"),
-                    ("RUNNING", "执行中"),
-                    ("SUCCEEDED", "成功"),
-                    ("FAILED", "失败"),
-                    ("REVOKED", "撤销"),
-                    ("TERMINATED", "终止"),
-                    ("TIMEOUT", "等待超时"),
-                ],
+                choices=MySQLAutofixTicketStatus.get_choices(),
                 default="UNSUBMITTED",
                 max_length=64,
             ),

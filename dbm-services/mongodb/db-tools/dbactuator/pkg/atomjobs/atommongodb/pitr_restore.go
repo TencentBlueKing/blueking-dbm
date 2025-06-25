@@ -3,13 +3,12 @@ package atommongodb
 import (
 	"context"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
@@ -116,7 +115,8 @@ func (s *pitrRecoverJob) dropConfigDb() error {
 	rsOp := common.NewRsOp()
 	conf, err := rsOp.GetRsConf(inst)
 	if err != nil {
-		return errors.Wrap(err, "GetRsConf")
+		s.runtime.Logger.Info("not replica set mode, skip drop config")
+		return nil
 	}
 
 	if !conf.Config.Configsvr {
@@ -218,7 +218,7 @@ func (s *pitrRecoverJob) doPitrRecover() error {
 		os.Chdir(wd)
 		pitr.SendProcessLog(logChan, fmt.Sprintf("start to restore incr file %s ", file.FileName))
 		if err = pitr.DoMongoRestoreINCR(s.MongoRestoreBin, s.MongoInst,
-			full, incrList, s.param.recvoerTimeUnix, s.param.Dir, idx); err != nil {
+			full, incrList, s.param.recvoerTimeUnix, s.param.Dir, idx, logChan); err != nil {
 			err = errors.Wrap(err, fmt.Sprintf("DoMongoRestoreINCR %s", file.FileName))
 			goto end
 		}
@@ -284,14 +284,14 @@ func (s *pitrRecoverJob) checkVersion() error {
 	if err != nil {
 		return errors.Wrap(err, "GetMongoServerVersion")
 	}
-	// Set Tools Path
-	s.MongoRestoreBin, err = consts.GetMongorestoreBin(version)
+
+	log.Printf("get version %v err %v", version, err)
+	s.MongoRestoreBin, err = pitr.GetMongoRestoreBin(version)
 	if err != nil {
-		return errors.Wrap(err, "get mongodump")
+		pitr.ExitFailed("get mongoRestoreBin failed, err: %v", err)
+		os.Exit(1)
 	}
-	if !util.FileExists(s.MongoRestoreBin) {
-		return errors.Errorf("mongorestore not exists, path:%s", s.MongoRestoreBin)
-	}
+
 	return nil
 }
 

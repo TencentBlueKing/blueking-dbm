@@ -62,7 +62,19 @@ export function getEsTableFields() {
 /**
  * 获取实例列表
  */
-export function getEsInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
+export function getEsInstanceList(params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
+}) {
   return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new EsInstanceModel(item)),
@@ -72,7 +84,7 @@ export function getEsInstanceList(params: { bk_biz_id: number } & Record<string,
 /**
  * 获取实例详情
  */
-export function retrieveEsInstance(params: { bk_biz_id: number }) {
+export function retrieveEsInstance(params: { cluster_id?: number; dbType: string; instance?: string; type?: string }) {
   return http.get<ListBase<EsModel[]>>(`${path}/retrieve_instance/`, params);
 }
 

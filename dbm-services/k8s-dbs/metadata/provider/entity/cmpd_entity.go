@@ -24,15 +24,15 @@ import "time"
 // K8sCrdComponentDefinitionEntity cmpd entity 定义
 type K8sCrdComponentDefinitionEntity struct {
 	ID                      uint64    `json:"id"`
-	AddonID                 uint64    `json:"addon_id"`
-	ComponentDefinitionName string    `json:"componentdefinition_name"`
-	DefaultVersion          string    `json:"default_version"`
+	AddonID                 uint64    `json:"addonId"`
+	ComponentDefinitionName string    `json:"cmpdName"`
+	DefaultVersion          string    `json:"defaultVersion"`
 	Metadata                string    `json:"metadata"`
 	Spec                    string    `json:"spec"`
 	Active                  bool      `json:"active"`
 	Description             string    `json:"description"`
-	CreatedBy               string    `json:"created_by"`
-	CreatedAt               time.Time `json:"created_at"`
-	UpdatedBy               string    `json:"updated_by"`
-	UpdatedAt               time.Time `json:"updated_at"`
+	CreatedBy               string    `json:"createdBy"`
+	CreatedAt               time.Time `json:"createdAt"`
+	UpdatedBy               string    `json:"updatedBy"`
+	UpdatedAt               time.Time `json:"updatedAt"`
 }

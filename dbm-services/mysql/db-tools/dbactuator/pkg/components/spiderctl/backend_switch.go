@@ -428,6 +428,12 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 		logger.Error("get file lock failed %s", err.Error())
 		return err
 	}
+	defer func() {
+		if uerr := r.fdLock.Unlock(); uerr != nil {
+			logger.Error("unlock file lock failed %s", uerr.Error())
+			return
+		}
+	}()
 	logger.Info("the switching operation will be performed")
 	defer func() {
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
@@ -441,10 +447,6 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 				return
 			}
 			if ferr := r.flushrouting(); ferr != nil {
-				return
-			}
-			if uerr := r.fdLock.Unlock(); uerr != nil {
-				logger.Error("unlock file lock failed %s", uerr.Error())
 				return
 			}
 			logger.Info("flush rollback route successfully~")

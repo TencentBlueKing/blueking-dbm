@@ -26,16 +26,16 @@ import (
 // ComponentOperationEntity represents the entity of component definition
 type ComponentOperationEntity struct {
 	ID               uint64                    `json:"id"`
-	AddonType        string                    `json:"addon_type"`
-	AddonVersion     string                    `json:"addon_version"`
-	ComponentName    string                    `json:"component_name"`
-	ComponentVersion string                    `json:"component_version"`
-	OperationID      uint64                    `json:"operation_id"`
+	AddonType        string                    `json:"addonType"`
+	AddonVersion     string                    `json:"addonVersion"`
+	ComponentName    string                    `json:"componentName"`
+	ComponentVersion string                    `json:"componentVersion"`
+	OperationID      uint64                    `json:"operationId"`
 	Operation        OperationDefinitionEntity `json:"operation"`
 	Active           bool                      `json:"active"`
 	Description      string                    `json:"description"`
-	CreatedBy        string                    `json:"created_by"`
-	CreatedAt        time.Time                 `json:"created_at"` //nolint:lll
-	UpdatedBy        string                    `json:"updated_by"`
-	UpdatedAt        time.Time                 `json:"updated_at"` //nolint:lll
+	CreatedBy        string                    `json:"createdBy"`
+	CreatedAt        time.Time                 `json:"createdAt"`
+	UpdatedBy        string                    `json:"updatedBy"`
+	UpdatedAt        time.Time                 `json:"updatedAt"`
 }

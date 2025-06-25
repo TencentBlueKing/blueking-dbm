@@ -59,6 +59,17 @@ func GetSingleGlobalVar(variableName string, dbh *sql.DB) (val string, err error
 	return varValue, nil
 }
 
+// GetSingleGlobalVarWithConn get single global variable
+func GetSingleGlobalVarWithConn(variableName string, dbc *sqlx.Conn) (val string, err error) {
+	var varName, varValue string
+	sqlStr := fmt.Sprintf("show global variables like '%s'", variableName)
+	row := dbc.QueryRowContext(context.Background(), sqlStr)
+	if err = row.Scan(&varName, &varValue); err != nil {
+		return "", err
+	}
+	return varValue, nil
+}
+
 // SetGlobalVarAndReturnOrigin set global and return origin value
 func SetGlobalVarAndReturnOrigin(variableName, varValue string, dbh *sql.DB) (originVal string, err error) {
 	originValue, err := GetSingleGlobalVar(variableName, dbh)

@@ -427,6 +427,7 @@ class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
 
 @dataclass()
 class MysqlCheckSumKwargs:
+    uid: int
     bk_biz_id: int
     created_by: str
     checksum_info: dict = None

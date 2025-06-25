@@ -44,8 +44,6 @@
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { retrieveSqlserverHaInstance } from '@services/source/sqlserveHaCluster';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import BaseInfo from './components/BaseInfo.vue';
@@ -60,7 +58,6 @@
 
   const props = defineProps<Props>();
 
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const activePanel = ref('info');
@@ -84,10 +81,9 @@
     () => {
       if (props.instanceData) {
         retrieveSqlserverHaInstanceRun({
-          bk_biz_id: globalBizsStore.currentBizId,
           cluster_id: props.instanceData.clusterId,
           dbType: DBTypes.SQLSERVER,
-          instance_address: props.instanceData.instanceAddress,
+          instance: props.instanceData.instanceAddress,
           type: ClusterTypes.SQLSERVER_HA,
         });
       }

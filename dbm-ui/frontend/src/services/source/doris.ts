@@ -60,12 +60,16 @@ export function getDorisTableFields() {
  */
 export function getDorisInstanceList(params: {
   cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
   instance_address?: string;
   ip?: string;
   limit?: number;
   offset?: number;
-  port?: string;
+  port?: number;
   role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<DorisInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -76,7 +80,12 @@ export function getDorisInstanceList(params: {
 /**
  * 获取实例详情
  */
-export function retrieveDorisInstance(params: { bk_biz_id: number }) {
+export function retrieveDorisInstance(params: {
+  cluster_id?: number;
+  dbType: string;
+  instance?: string;
+  type?: string;
+}) {
   return http.get<ListBase<DorisModel[]>>(`${getRootPath()}/retrieve_instance/`, params);
 }
 

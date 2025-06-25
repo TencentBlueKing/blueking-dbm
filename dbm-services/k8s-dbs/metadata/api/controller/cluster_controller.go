@@ -20,9 +20,11 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
+	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
 	"strconv"
 
@@ -58,5 +60,26 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
+}
+
+// ListCluster retrieves a clusters by params and pagination.
+func (c *ClusterController) ListCluster(ctx *gin.Context) {
+	pagination, err := metahelper.BuildPagination(ctx)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	params := metahelper.BuildPageParams(ctx)
+	clusterEntities, _, err := c.clusterProvider.ListCluster(params, pagination)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	var data []resp.K8sCrdClusterRespVo
+	if err := copier.Copy(&data, clusterEntities); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }

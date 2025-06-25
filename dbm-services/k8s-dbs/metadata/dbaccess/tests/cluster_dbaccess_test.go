@@ -21,6 +21,7 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
@@ -64,17 +65,12 @@ func TestCreateCluster(t *testing.T) {
 		Description:        "desc",
 	}
 
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
-
-	var foundCluster model.K8sCrdClusterModel
-	err = db.First(&foundCluster, "cluster_name=?", "mycluster").Error
-	assert.NoError(t, err, "Failed to query cluster")
-	assert.Equal(t, cluster.ClusterName, foundCluster.ClusterName)
-	assert.Equal(t, cluster.Namespace, foundCluster.Namespace)
-	assert.Equal(t, cluster.Status, foundCluster.Status)
-	assert.Equal(t, cluster.AddonID, foundCluster.AddonID)
+	added, err := dbAccess.Create(cluster)
+	assert.NoError(t, err)
+	assert.Equal(t, cluster.ClusterName, added.ClusterName)
+	assert.Equal(t, cluster.Namespace, added.Namespace)
+	assert.Equal(t, cluster.Status, added.Status)
+	assert.Equal(t, cluster.AddonID, added.AddonID)
 }
 
 func TestDeleteCluster(t *testing.T) {
@@ -90,12 +86,11 @@ func TestDeleteCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -112,9 +107,8 @@ func TestUpdateCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	newCluster := &model.K8sCrdClusterModel{
 		ID:          1,
@@ -125,7 +119,7 @@ func TestUpdateCluster(t *testing.T) {
 		UpdatedAt:   time.Now(),
 	}
 	rows, err := dbAccess.Update(newCluster)
-	assert.NoError(t, err, "Failed to update cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -142,12 +136,11 @@ func TestGetCluster(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	findCluster, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to find cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
 	assert.Equal(t, cluster.Status, findCluster.Status)
@@ -167,9 +160,8 @@ func TestGetClusterByParams(t *testing.T) {
 		Status:             "Enable",
 		Description:        "desc",
 	}
-	addedCluster, err := dbAccess.Create(cluster)
-	assert.NoError(t, err, "Failed to create cluster")
-	fmt.Printf("Created cluster %+v\n", addedCluster)
+	_, err = dbAccess.Create(cluster)
+	assert.NoError(t, err)
 
 	params := map[string]interface{}{
 		"k8s_cluster_config_id": 1,
@@ -177,9 +169,53 @@ func TestGetClusterByParams(t *testing.T) {
 		"namespace":             "default",
 	}
 	findCluster, err := dbAccess.FindByParams(params)
-	assert.NoError(t, err, "Failed to find cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
 	assert.Equal(t, cluster.Status, findCluster.Status)
 	assert.Equal(t, cluster.AddonID, findCluster.AddonID)
+}
+
+func TestListCluster(t *testing.T) {
+	db, err := initClusterTable()
+	assert.NoError(t, err)
+
+	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
+	cluster := []model.K8sCrdClusterModel{
+		{
+			ClusterName:        "mycluster1",
+			Namespace:          "default",
+			K8sClusterConfigID: 1,
+			RequestID:          "1",
+			Status:             "Running",
+			Description:        "desc",
+		},
+		{
+			ClusterName:        "mycluster2",
+			Namespace:          "default",
+			K8sClusterConfigID: 2,
+			RequestID:          "2",
+			Status:             "Running",
+			Description:        "desc",
+		},
+	}
+	for _, clusterModel := range cluster {
+		_, err = dbAccess.Create(&clusterModel)
+		assert.NoError(t, err)
+	}
+
+	params := map[string]interface{}{
+		"namespace": "default",
+		"status":    "Running",
+	}
+
+	pagination := entity.Pagination{
+		Page:  0,
+		Limit: 10,
+	}
+
+	clusterList, rows, err := dbAccess.ListByPage(params, &pagination)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), rows)
+	assert.Equal(t, len(clusterList), len(clusterList))
 }

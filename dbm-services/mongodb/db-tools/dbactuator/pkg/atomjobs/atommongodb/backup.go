@@ -5,18 +5,19 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/dbmon/config"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/backupsys"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/report"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/logical"
+	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -91,7 +92,6 @@ func (s *backupJob) Run() error {
 	default:
 		return errors.Errorf("backupType %s not implemented", s.ConfParams.BackupType)
 	}
-	return nil
 }
 
 // getBackupPath return path Like /data/dbbak
@@ -276,7 +276,7 @@ func (s *backupJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	}
 
-	s.ReportFilePath, _, _ = consts.GetMongoBackupReportPath()
+	s.ReportFilePath, _, _ = dbmonconsts.GetMongoBackupReportPath()
 	if err := report.PrepareReportPath(s.ReportFilePath); err != nil {
 		return errors.Wrap(err, "PrepareReportPath")
 	}
@@ -295,32 +295,12 @@ func (s *backupJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 		return errors.Wrap(err, "GetMongoServerVersion")
 	}
 	// Set Tools Path
-	s.MongoDump, err = consts.GetMongodumpBin(version)
+	s.MongoDump, err = pitr.GetMongoDumpBin(version)
 	if err != nil {
 		return errors.Wrap(err, "get mongodump")
 	}
 	if !util.FileExists(s.MongoDump) {
 		return errors.Errorf("mongodump not exists, path:%s", s.MongoDump)
-	}
-	return nil
-}
-
-// checkParams 校验参数
-func (s *backupJob) checkParams() error {
-	// 校验配置参数
-	validate := validator.New()
-	if err := validate.Struct(s.ConfParams); err != nil {
-		return fmt.Errorf("validate parameters of deleteUser fail, error:%s", err)
-	}
-
-	if s.ConfParams.BackupType == backupTypePhysical {
-		err := errors.New("not implemented")
-		return err
-	} else if s.ConfParams.BackupType == backupTypeLogical {
-		// todo
-	} else {
-		err := errors.Errorf("bad BackupType:%s", s.ConfParams.BackupType)
-		return err
 	}
 	return nil
 }

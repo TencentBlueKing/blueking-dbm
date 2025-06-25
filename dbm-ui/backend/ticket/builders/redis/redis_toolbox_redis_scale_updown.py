@@ -54,7 +54,7 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         group_num = serializers.IntegerField(help_text=_("部署机器组数"))
         db_version = serializers.CharField(help_text=_("版本号"))
         capacity = serializers.FloatField(help_text=_("当前容量需求"))
-        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+        future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
@@ -63,6 +63,11 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         )
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
         old_nodes = OldNodesSerializer(help_text=_("下架机器"))
+
+        def validate(self, attr):
+            if attr["shard_num"] % attr["group_num"] != 0:
+                raise serializers.ValidationError(_("所选方案分片数不能整除机器组数"))
+            return attr
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
@@ -105,7 +110,7 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
             if id__cluster_type[info["cluster_id"]] == ClusterType.TendisPredixyTendisplusCluster.value:
 
                 shutdown_master_hosts, shutdown_slave_hosts = get_tendisplus_shutdown_hosts(
-                    info["cluster_id"], info["group_num"]
+                    info["cluster_id"], info["group_num"], info["update_mode"]
                 )
                 info.update(
                     {"shutdown_master_hosts": shutdown_master_hosts, "shutdown_slave_hosts": shutdown_slave_hosts}

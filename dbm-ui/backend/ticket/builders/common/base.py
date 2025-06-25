@@ -36,6 +36,7 @@ from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
+from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.utils.basic import get_target_items_from_details
 
 
@@ -162,6 +163,26 @@ class SkipToRepresentationMixin(object):
         return instance
 
 
+class ParamValidateSerializerMixin(object):
+    """所有单据的公共校校验入口"""
+
+    validator = None
+
+    def validated_params(self, attrs):
+        ticket_type = self.context["ticket_type"]
+        ticket_flow_builder = builders.BuilderFactory.registry[ticket_type]
+        if hasattr(ticket_flow_builder.inner_flow_builder, "validator"):
+            self.validator = ticket_flow_builder.inner_flow_builder.validator
+
+        if not self.validator:
+            return attrs
+
+        errors = self.validator(attrs)
+        if errors:
+            raise TicketParamsVerifyException(errors=errors, ticket_type=self.context["ticket_type"])
+        return attrs
+
+
 class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
@@ -279,6 +300,8 @@ class CommonValidate(object):
 
         if len(domain) > MAX_DOMAIN_LEN_LIMIT:
             raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
+        if Cluster.objects.filter(immute_domain=domain).exists():
+            raise serializers.ValidationError(_("该域名已被其他集群使用, 请重新设置域名"))
 
     @classmethod
     def validate_generate_domain(cls, cluster_domain_prefix, cluster_name, db_app_abbr):

@@ -71,16 +71,17 @@ func AddSampleCd() error {
 	parsedTime, _ := time.Parse(layout, addDateTime)
 
 	cd := &model.K8sCrdClusterDefinitionModel{
-		AddonID:               1,
-		ClusterDefinitionName: "surrealdb",
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":1}",
-		Active:                true,
-		Description:           "just for test",
-		CreatedBy:             "admin",
-		CreatedAt:             parsedTime,
-		UpdatedAt:             parsedTime,
-		UpdatedBy:             "admin",
+		AddonID:            1,
+		CdName:             "surrealdb",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Active:             true,
+		Description:        "just for test",
+		CreatedBy:          "admin",
+		CreatedAt:          parsedTime,
+		UpdatedAt:          parsedTime,
+		UpdatedBy:          "admin",
 	}
 	added, _ := dbAccess.Create(cd)
 	fmt.Printf("Created cd %+v\n", added)
@@ -113,15 +114,16 @@ func TestCreateCd(t *testing.T) {
 	assert.NoError(t, err)
 
 	cdRequest := req.K8sCrdCdReqVo{
-		AddonID:               1,
-		ClusterDefinitionName: "surrealdb",
-		Metadata:              "{\"namespace\":\"default\"}",
-		Spec:                  "{\"replicas\":1}",
-		Description:           "just for test",
-		CreatedBy:             "admin",
-		CreatedAt:             parsedTime,
-		UpdatedAt:             parsedTime,
-		UpdatedBy:             "admin",
+		AddonID:            1,
+		CdName:             "surrealdb",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Description:        "just for test",
+		CreatedBy:          "admin",
+		CreatedAt:          parsedTime,
+		UpdatedAt:          parsedTime,
+		UpdatedBy:          "admin",
 	}
 
 	requestBody, err := json.Marshal(&cdRequest)
@@ -140,16 +142,17 @@ func TestCreateCd(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"clusterdefinition_name": "surrealdb",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
+			"addonId": 1,
+			"cdName": "surrealdb",
+			"recommendedVersion": "1.0.0",
+			"topologies": "{}",
+			"releases": "{}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T12:00:00Z",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T12:00:00Z"
 		},
 		"message": "OK",
 		"error": null
@@ -173,16 +176,17 @@ func TestGetCd(t *testing.T) {
 		"code": 200,
 		"data": {
 			"id": 1,
-			"addon_id": 1,
-			"clusterdefinition_name": "surrealdb",
-			"metadata": "{\"namespace\":\"default\"}",
-			"spec": "{\"replicas\":1}",
+			"addonId": 1,
+			"cdName": "surrealdb",
+			"recommendedVersion": "1.0.0",
+			"topologies": "{}",
+			"releases": "{}",
 			"active": true,
 			"description": "just for test",
-			"created_by": "admin",
-			"created_at": "2025-01-01T20:00:00+08:00",
-			"updated_by": "admin",
-			"updated_at": "2025-01-01T20:00:00+08:00"
+			"createdBy": "admin",
+			"createdAt": "2025-01-01T20:00:00+08:00",
+			"updatedBy": "admin",
+			"updatedAt": "2025-01-01T20:00:00+08:00"
 		},
 		"message": "OK",
 		"error": null
@@ -227,15 +231,16 @@ func TestUpdateCd(t *testing.T) {
 	assert.NoError(t, err)
 
 	cdRequest := req.K8sCrdCdReqVo{
-		AddonID:               1,
-		ClusterDefinitionName: "surrealdb2",
-		Metadata:              "{\"namespace\":\"default2\"}",
-		Spec:                  "{\"replicas\":2}",
-		Description:           "just for test2",
-		CreatedBy:             "admin2",
-		CreatedAt:             parsedTime,
-		UpdatedAt:             parsedTime,
-		UpdatedBy:             "admin2",
+		AddonID:            1,
+		CdName:             "surrealdb2",
+		RecommendedVersion: "1.0.0",
+		Topologies:         "{}",
+		Releases:           "{}",
+		Description:        "just for test2",
+		CreatedBy:          "admin2",
+		CreatedAt:          parsedTime,
+		UpdatedAt:          parsedTime,
+		UpdatedBy:          "admin2",
 	}
 
 	requestBody, err := json.Marshal(&cdRequest)

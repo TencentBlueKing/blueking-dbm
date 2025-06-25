@@ -36,11 +36,6 @@
           style="color: #2dcb56">
           {{ selectNodeDiskTotal }}
         </span>
-        <!-- <span
-          class="number"
-          style="color: #63656e">
-          {{ targetDisk }}
-        </span> -->
       </I18nT>
       <BkButton
         style="width: 64px"
@@ -57,18 +52,22 @@
     </template>
   </BkDialog>
 </template>
-<script
-  setup
-  lang="tsx"
-  generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | DorisNodeModel">
+<script lang="tsx">
+  interface IModleValue {
+    bk_host_id: number;
+    cpu: number;
+    disk: number;
+    ip: string;
+    mem: number;
+    node_count: number;
+    role?: string;
+    role_set?: string[];
+    status: number;
+  }
+</script>
+<script setup lang="tsx" generic="T extends IModleValue">
   import { computed, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import DorisNodeModel from '@services/model/doris/doris-node';
-  import EsNodeModel from '@services/model/es/es-node';
-  import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
@@ -76,29 +75,31 @@
 
   import type { TShrinkNode } from '../Index.vue';
 
-  interface Props {
+  export interface Props {
     isShow: boolean;
     minHost: number;
-    modelValue: TShrinkNode<T>['nodeList'];
-    originalNodeList: TShrinkNode<T>['nodeList'];
+    modelValue: TShrinkNode['hostList'];
+    originalNodeList: TShrinkNode['originalNodeList'];
   }
 
-  interface Emits {
-    (e: 'change', value: Props['modelValue']): void;
+  export interface Emits {
+    (e: 'change', value: TShrinkNode['originalNodeList']): void;
     (e: 'update:isShow', value: boolean): void;
   }
+
+  type IRowData = TShrinkNode['originalNodeList'][number];
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const checkedNodeMap = shallowRef<Record<number, Props['modelValue'][0]>>({});
+  const checkedNodeMap = shallowRef<Record<number, IRowData>>({});
   const selectNodeDiskTotal = computed(() =>
     Object.values(checkedNodeMap.value).reduce((result, item) => result + item.disk, 0),
   );
 
-  const checkNodeDisable = (node: Props['modelValue'][0]) => {
+  const checkNodeDisable = (node: IRowData) => {
     const options = {
       disabled: false,
       tooltips: {
@@ -132,7 +133,7 @@
           onChange={handleSelectAll}
         />
       ),
-      render: ({ data }: { data: Props['modelValue'][0] }) => {
+      render: ({ data }: { data: IRowData }) => {
         const disabledInfo = checkNodeDisable(data);
         return (
           <span v-bk-tooltips={disabledInfo.tooltips}>
@@ -157,32 +158,32 @@
     },
     {
       label: t('类型'),
-      render: ({ data }: { data: Props['modelValue'][0] }) => {
-        if (data instanceof HdfsNodeModel) {
+      render: ({ data }: { data: IRowData }) => {
+        if (data.role_set && data.role_set.length > 1) {
           return <RenderClusterRole data={data.role_set} />;
         }
-        return <RenderClusterRole data={[data.role]} />;
+        return <RenderClusterRole data={[data.role || '']} />;
       },
       width: 300,
     },
     {
       label: t('Agent状态'),
-      render: ({ data }: { data: Props['modelValue'][0] }) => <RenderHostStatus data={data.status} />,
+      render: ({ data }: { data: IRowData }) => <RenderHostStatus data={data.status} />,
     },
     {
       field: 'cpu',
       label: 'CPU',
-      render: ({ data }: { data: Props['modelValue'][0] }) => (data.cpu ? `${data.cpu} ${t('核')}` : '--'),
+      render: ({ data }: { data: IRowData }) => (data.cpu ? `${data.cpu} ${t('核')}` : '--'),
     },
     {
       field: 'mem',
       label: t('内存_MB'),
-      render: ({ data }: { data: Props['modelValue'][0] }) => data.mem || '--',
+      render: ({ data }: { data: IRowData }) => data.mem || '--',
     },
     {
       field: 'disk',
       label: t('磁盘_GB'),
-      render: ({ data }: { data: Props['modelValue'][0] }) => data.disk || '--',
+      render: ({ data }: { data: IRowData }) => data.disk || '--',
     },
   ];
 
@@ -204,7 +205,7 @@
 
   // 全选（不能全部选中，留最小数量）
   const handleSelectAll = (checked: boolean) => {
-    const checkedMap = {} as Record<number, Props['modelValue'][0]>;
+    const checkedMap = {} as Record<number, IRowData>;
     if (checked) {
       props.originalNodeList.slice(0, props.originalNodeList.length - props.minHost).forEach((nodeItem) => {
         checkedMap[nodeItem.bk_host_id] = nodeItem;
@@ -214,7 +215,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: Props['modelValue'][0]) => {
+  const handleRowClick = (event: MouseEvent, data: IRowData) => {
     if (checkNodeDisable(data).disabled) {
       return;
     }

@@ -61,7 +61,9 @@ type AgentConfig struct {
 	// instance city for detect, value 0 allowed, so required tag could not assign
 	CityID int `yaml:"city_id"`
 	// instance campus for detect
-	Campus string `yaml:"campus"`
+	Campus    string `yaml:"campus"`
+	HashMod   int    `yaml:"hash_mod"`
+	HashValue int    `yaml:"hash_value"`
 	// cloud id for agent, value 0 allowed, so required tag could not assign
 	CloudID int `yaml:"cloud_id"`
 	// fetch cmdb instance's interval(second)

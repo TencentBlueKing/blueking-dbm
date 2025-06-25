@@ -111,6 +111,7 @@
 
   defineOptions({
     name: ClusterTypes.MONGO_REPLICA_SET,
+    inheritAttrs: false,
   });
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

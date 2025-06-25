@@ -16,6 +16,7 @@ from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.consts import ROLLBACK_DB_TAIL, STAGE_DB_HEADER, SYSTEM_DBS
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
 
 
 def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = None) -> List:
@@ -40,6 +41,16 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
         if not i.cluster.exists():
             continue
 
+        cluster_obj = i.cluster.first()
+        cluster_config = get_cluster_config(
+            cluster_obj.immute_domain,
+            cluster_obj.major_version,
+            cluster_obj.db_module_id,
+            cluster_obj.cluster_type,
+            str(cluster_obj.bk_biz_id),
+        )
+        engine = get_engine_from_bk_mysql_config(cluster_config)
+
         res.append(
             {
                 "bk_biz_id": i.bk_biz_id,
@@ -56,6 +67,7 @@ def checksum_config(bk_cloud_id: int, ip: str, port_list: Optional[List[int]] = 
                 "api_url": "http://127.0.0.1:9999",
                 "user": usermap["monitor_user"],
                 "password": usermap["monitor_pwd"],
+                "enable": engine.lower() not in ["rocksdb", "tokudb"],
             }
         )
 

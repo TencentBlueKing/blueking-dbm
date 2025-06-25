@@ -1,14 +1,17 @@
 module dbm-services/mongodb/db-tools/mongo-toolkit-go
 
-go 1.21
+go 1.21.0
+
+toolchain go1.24.3
 
 require (
+	github.com/gofrs/flock v0.12.1
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/cobra v0.0.3
 	go.mongodb.org/mongo-driver v1.10.6
-	golang.org/x/sys v0.6.0
+	golang.org/x/sys v0.22.0
 )
 
 // 1.10.6是最后一个支持<v3.6的版本
@@ -22,7 +25,6 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect

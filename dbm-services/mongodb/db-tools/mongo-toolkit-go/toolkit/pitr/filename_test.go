@@ -18,6 +18,9 @@ func TestV1(t *testing.T) {
 		{"mongodump-dba-theotest-INCR-1.1.1.1-27017-2025040116-7-20250402000208-oplog.rs.bson", nil},
 		{"mongodump-dba-theotest-FULL-1.1.1.1-27017-2025040116-20250401165507.archive", nil},
 		{"mongodump-dba-theotest-FULL-1.1.1.1-27017-2025040116-20250401165507.archive.gz", nil},
+		{"mongodump-dba-theotest-FULL-1.1.1.1-27017-2025040116-20250401165507.archive.zst", nil},
+		{"mongodump-dba-theotest-FULL-1.1.1.1-27017-2025040116-20250401165507.archive.zstd", nil},
+		{"mongodump-dba-theotest-INCR-1.1.1.1-27017-2025040116-7-20250402000208-oplog.rs.bson.zst", nil},
 	}
 
 	for _, v := range tests {

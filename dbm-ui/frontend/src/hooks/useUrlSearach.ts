@@ -27,7 +27,7 @@ export const useUrlSearch = () => {
     );
   };
 
-  const appendSearchParams = (params: Record<string, any>) => {
+  const appendSearchParams = (params: Record<string, any>, localtion = true) => {
     const curSearchParams = new URLSearchParams(window.location.search);
     Object.keys(params).forEach((key) => {
       if (curSearchParams.has(key)) {
@@ -36,20 +36,53 @@ export const useUrlSearch = () => {
         curSearchParams.append(key, params[key]);
       }
     });
-    window.history.replaceState({}, '', `?${curSearchParams.toString()}`);
+    if (localtion) {
+      window.history.replaceState({}, '', `?${curSearchParams.toString()}`);
+    }
+    return Array.from(curSearchParams.keys()).reduce(
+      (result, key) => ({
+        ...result,
+        [key]: curSearchParams.get(key) || '',
+      }),
+      {} as Record<string, string>,
+    );
   };
 
-  const removeSearchParam = (paramKey: string | Array<string>) => {
+  const removeSearchParam = (paramKey: string | Array<string>, localtion = true) => {
     const keyList = Array.isArray(paramKey) ? paramKey : [paramKey];
     const curSearchParams = new URLSearchParams(window.location.search);
     keyList.forEach((key) => {
       curSearchParams.delete(key);
     });
-    window.history.replaceState({}, '', `?${curSearchParams.toString()}`);
+    if (localtion) {
+      window.history.replaceState({}, '', `?${curSearchParams.toString()}`);
+    }
+    return Array.from(curSearchParams.keys()).reduce(
+      (result, key) => ({
+        ...result,
+        [key]: curSearchParams.get(key) || '',
+      }),
+      {} as Record<string, string>,
+    );
   };
 
-  const replaceSearchParams = (params: Record<string, any>) => {
-    window.history.replaceState({}, '', `?${buildURLParams(params)}`);
+  const replaceSearchParams = (params: Record<string, any>, localtion = true) => {
+    const privateParams = getSearchParams();
+
+    // 全部替换时忽略 __ 开头的并且是__结尾的 key, 此类可以作为页面状态存储用
+    Object.keys(privateParams).forEach((key) => {
+      if (/^__(.+)__$/.test(key)) {
+        return;
+      }
+      delete privateParams[key];
+    });
+
+    const latestParams = Object.assign({}, params, privateParams);
+
+    if (localtion) {
+      window.history.replaceState({}, '', `?${buildURLParams(latestParams)}`);
+    }
+    return latestParams;
   };
 
   return {

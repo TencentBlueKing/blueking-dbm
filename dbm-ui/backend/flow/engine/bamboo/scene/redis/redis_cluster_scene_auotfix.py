@@ -542,8 +542,8 @@ class RedisClusterAutoFixSceneFlow(object):
             # 刷新slave域名 在《新节点加入集群》节点修改
 
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
+        old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
         if sub_kwargs.cluster["cluster_type"] != ClusterType.RedisInstance.value:
-            old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
             sub_pipeline.add_act(
                 act_name=_("提交Redis下架单-{}".format(old_slaves)),
                 act_component_code=RedisTicketComponent.code,

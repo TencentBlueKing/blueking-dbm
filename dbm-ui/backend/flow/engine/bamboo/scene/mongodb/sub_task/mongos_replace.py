@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser
+from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
@@ -30,6 +30,7 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.plugins.components.collections.name_service.name_service import ExecNameServiceOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.name_service.name_service_dataclass import TransDataKwargs
@@ -202,6 +203,20 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     )
 
     if not info["down"]:
+        # 老实例关闭 dbmon
+        kwargs_delete_dbmon = sub_sub_get_kwargs.get_dbmon_operation_kwargs(
+            node_info=sub_sub_get_kwargs.payload["mongos_nodes"][0], operation_type=MongoInstanceDbmonType.DeleteDbmon
+        )
+        sub_sub_pipeline.add_act(
+            act_name=_(
+                "MongoDB-{}:{}-删除dbmon".format(
+                    sub_sub_get_kwargs.payload["mongos_nodes"][0]["ip"],
+                    str(sub_sub_get_kwargs.payload["mongos_nodes"][0]["port"]),
+                )
+            ),
+            act_component_code=MongoFastExecScriptComponent.code,
+            kwargs=kwargs_delete_dbmon,
+        )
         # 下架老实例
         kwargs = sub_sub_get_kwargs.get_mongo_deinstall_kwargs(
             node_info=sub_sub_get_kwargs.payload["mongos_nodes"][0],

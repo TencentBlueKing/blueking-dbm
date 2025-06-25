@@ -156,6 +156,7 @@ func getTaskDoneReason(fullPath string, taskInfo *backupsys.TaskInfo) *deleteRea
 
 // getModTimeReason 按照文件的修改时间判断是否可以删除.
 func getModTimeReason(fileInfo os.FileInfo, r *BackupFileName) *deleteReason {
+	_ = r
 	modTimeReason := deleteReason{Flag: deleteReasonFlagNone, Reason: "mTime"}
 	if fileInfo.ModTime().Before(time.Now().Add(-MaxSaveTime)) {
 		modTimeReason.Flag = deleteReasonFlagTrue
@@ -195,7 +196,7 @@ func NewBackupMetaV2(dir string, conn *mymongo.MongoHost) (*BackupMetaV2, error)
 	m.ConnInfo = new(mymongo.MongoHost)
 	*m.ConnInfo = *conn
 
-	if false == TestFileWriteable(m.GetMetaFileName()) {
+	if !TestFileWriteable(m.GetMetaFileName()) {
 		return nil, fmt.Errorf("write %s err", m.GetMetaFileName())
 	}
 	return m, nil

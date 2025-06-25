@@ -20,8 +20,8 @@ limitations under the License.
 package dbaccess
 
 import (
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -30,7 +30,7 @@ import (
 // ClusterOperationDbAccess 定义 cluster operation 元数据的数据库访问接口
 type ClusterOperationDbAccess interface {
 	Create(model *models.ClusterOperationModel) (*models.ClusterOperationModel, error)
-	ListByPage(pagination utils.Pagination) ([]models.ClusterOperationModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.ClusterOperationModel, int64, error)
 }
 
 // ClusterOperationDbAccessImpl ClusterOperationDbAccess 的具体实现
@@ -47,17 +47,11 @@ func (c *ClusterOperationDbAccessImpl) Create(model *models.ClusterOperationMode
 		slog.Error("Create cluster operation error", "error", err)
 		return nil, err
 	}
-	var addedModel models.ClusterOperationModel
-	if err := c.db.First(&addedModel, "addon_type = ? and addon_version= ? and operation_id= ?",
-		model.AddonType, model.AddonVersion, model.OperationID).Error; err != nil {
-		slog.Error("Find cluster operation error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // ListByPage 分页查询 cluster operation 元数据接口实现
-func (c *ClusterOperationDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (c *ClusterOperationDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.ClusterOperationModel,
 	int64,
 	error,

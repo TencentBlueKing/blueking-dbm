@@ -1,6 +1,6 @@
 import re
 from abc import abstractmethod
-from typing import List, Union
+from typing import List, Optional, Union
 
 from rest_framework import serializers
 
@@ -31,7 +31,7 @@ class MongoNode:
     # s is StorageInstance | ProxyInstance
     @classmethod
     def from_instance(cls, s: Union[ProxyInstance, StorageInstance], with_domain: bool = False):
-        # withDomain: 默认为False. 取域名需要多查一次db.
+        # with_domain: 默认为False. 取域名需要多查一次db.
         # meta_role: ProxyInstance的instance_role属性值为"proxy". 这里改为 mongos
         meta_role = MongoDBClusterRole.Mongos.value if s.instance_role == InstanceType.PROXY.value else s.instance_role
         domain = None
@@ -131,6 +131,7 @@ class MongoDBCluster:
     region: str
     cluster_type: str
     cluster_id: str
+    tags: List[str] = None
 
     def __init__(
         self,
@@ -143,6 +144,7 @@ class MongoDBCluster:
         immute_domain: str = None,
         app: str = None,
         region: str = None,
+        tags: List[str] = None,
     ):
         self.cluster_id = cluster_id
         self.name = name
@@ -153,6 +155,7 @@ class MongoDBCluster:
         self.bk_cloud_id = bk_cloud_id
         self.app = app
         self.region = region
+        self.tags = tags
 
     @abstractmethod
     def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
@@ -211,6 +214,7 @@ class ReplicaSetCluster(MongoDBCluster):
         app: str = None,
         region: str = None,
         shard: ReplicaSet = None,
+        tags: List[str] = None,
     ):
         super().__init__(
             bk_cloud_id,
@@ -222,6 +226,7 @@ class ReplicaSetCluster(MongoDBCluster):
             immute_domain,
             app,
             region,
+            tags,
         )
         self.shard = shard
 
@@ -273,6 +278,7 @@ class ShardedCluster(MongoDBCluster):
         shards: List[ReplicaSet] = None,
         mongos: List[MongoNode] = None,
         configsvr: ReplicaSet = None,
+        tags: List[str] = None,
     ):
         super().__init__(
             bk_cloud_id,
@@ -284,6 +290,7 @@ class ShardedCluster(MongoDBCluster):
             immute_domain,
             app,
             region,
+            tags,
         )
         self.shards = shards
         self.mongos = mongos
@@ -376,10 +383,13 @@ class MongoRepository:
             raise Exception("bad cluster_type {}".format(conf["cluster_type"]))
 
     @classmethod
-    def fetch_many_cluster(cls, with_domain: bool, **kwargs):
+    def fetch_many_cluster(cls, with_domain: bool = False, with_tags: bool = False, **kwargs):
         # with_domain 是否: 获取复制集和mongos的域名，赋值在MongoNode的domain属性上
         rows: List[MongoDBCluster] = []
         v = Cluster.objects.filter(**kwargs)
+        if with_tags:
+            v = v.prefetch_related("tags")
+
         for i in v:
             if i.cluster_type == ClusterType.MongoReplicaSet.value:
                 # MongoReplicaSet 只有一个Set
@@ -399,6 +409,7 @@ class MongoRepository:
                     app=None,  # app和bk_biz_id是1-1的关系，有一个就够了
                     shard=shard,
                     region=i.region,
+                    tags=i.tags.all() if with_tags else None,
                 )
 
                 rows.append(row)
@@ -435,25 +446,37 @@ class MongoRepository:
                     shards=shards,
                     configsvr=configsvr,
                     region=i.region,
+                    tags=i.tags.all() if with_tags else None,
                 )
                 rows.append(row)
 
         return rows
 
     @classmethod
-    def fetch_one_cluster(cls, withDomain: bool, **kwargs) -> MongoDBCluster:
-        rows = cls.fetch_many_cluster(withDomain, **kwargs)
-        if len(rows) > 0:
-            return rows[0]
-        return None
+    def fetch_one_cluster(
+        cls, with_domain: bool = False, with_tags: bool = False, **kwargs
+    ) -> Optional[MongoDBCluster]:
+        """
+        Fetch a single MongoDB cluster based on the provided filters.
+        Returns None if no cluster is found.
+
+        Args:
+            with_domain: Whether to include domain information
+            with_tags: Whether to include cluster tags
+            **kwargs: Additional filters to apply
+
+        Returns:
+            MongoDBCluster or None: The first matching cluster, or None if no matches
+        """
+        rows = cls.fetch_many_cluster(with_domain, with_tags, **kwargs)
+        return rows[0] if rows else None
 
     @classmethod
-    def fetch_many_cluster_dict(cls, withDomain: bool = False, **kwargs) -> dict[int, MongoDBCluster]:
-        clusters = cls.fetch_many_cluster(withDomain, **kwargs)
-        clusters_map = {}
-        for cluster in clusters:
-            clusters_map[cluster.cluster_id] = cluster
-        return clusters_map
+    def fetch_many_cluster_dict(
+        cls, with_domain: bool = False, with_tags: bool = False, **kwargs
+    ) -> dict[int, MongoDBCluster]:
+        clusters = cls.fetch_many_cluster(with_domain, with_tags, **kwargs)
+        return {cluster.cluster_id: cluster for cluster in clusters}
 
     @staticmethod
     def get_cluster_id_by_host(hosts: List, bk_cloud_id: int) -> List[int]:
@@ -683,7 +706,7 @@ class MongoNodeWithLabel(object):
         if not cluster_id_list:
             return instance_list
 
-        clusters = MongoRepository.fetch_many_cluster_dict(withDomain=False, id__in=cluster_id_list)
+        clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
         for cluster in clusters.values():
             for member in cluster.get_mongos():
                 if member.ip in iplist:

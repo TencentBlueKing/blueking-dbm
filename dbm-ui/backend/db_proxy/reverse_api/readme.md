@@ -1,11 +1,10 @@
 # 用途
-* _dbm_ 提供只读 _api_
-* _db_ 机器调用 _api_ 查询必要的信息
+* _dbm_ 提供客户端来源受管控的读/写 _api_
+* _db_ 机器查询必要的信息
+* _db_ 机器以同步方式上报关键信息
 
 # 限制
-1. 只提供查询功能
-2. _http method_ 必须为 _GET_
-3. _api_ 只有一个可选参数 _port: int | [int]_
+1. _api_ 只有一个可选参数 _port: int | [int]_
 
 # 实现
 
@@ -61,9 +60,7 @@ class MySQLReverseApiView(BaseReverseApiView):
 ## 框架限制
 1. _api_ 服务方法的 `bk_cloud_id, ip` 参数由框架自动生成
 2. _ip_ 必须已注册在 _dbm_ 中才允许调用
-3. 只开发 _http GET_
 
 ## 开发规则
-1. 不要在代码中提供写能力
-2. 不要故意违反 `bk_cloud_id, ip` 的数据可见性限制
-3. 尽可能减少每一个 _api_ 返回的数据, 多实现专用 _api_
+1. 不要故意违反 `bk_cloud_id, ip` 的数据可见性限制
+2. 尽可能减少每一个 _api_ 返回的数据, 多实现专用 _api_

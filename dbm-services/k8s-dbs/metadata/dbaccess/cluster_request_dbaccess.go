@@ -20,9 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
+	"errors"
 	"fmt"
+	"k8s-dbs/common/entity"
+	mconst "k8s-dbs/metadata/constant"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -34,12 +36,32 @@ type ClusterRequestRecordDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.ClusterRequestRecordModel, error)
 	Update(model *models.ClusterRequestRecordModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
+	FindByParams(params map[string]interface{}) ([]models.ClusterRequestRecordModel, error)
 }
 
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
 type ClusterRequestRecordDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindByParams 通过参数查询
+func (k *ClusterRequestRecordDbAccessImpl) FindByParams(params map[string]interface{}) (
+	[]models.ClusterRequestRecordModel,
+	error,
+) {
+	var recordModels []models.ClusterRequestRecordModel
+	if err := k.db.
+		Where(params).
+		Limit(mconst.MaxFetchSize).
+		Find(&recordModels).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []models.ClusterRequestRecordModel{}, nil
+		}
+		slog.Error("failed to find by params", "error", err)
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+	return recordModels, nil
 }
 
 // Create 创建元数据接口实现
@@ -50,12 +72,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Create(model *models.ClusterRequestRe
 		slog.Error("Create request error", "error", err)
 		return nil, err
 	}
-	var addedRequest models.ClusterRequestRecordModel
-	if err := k.db.First(&addedRequest, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find request error", "error", err)
-		return nil, err
-	}
-	return &addedRequest, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
@@ -90,7 +107,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Update(model *models.ClusterRequestRe
 }
 
 // ListByPage 分页查询元数据接口实现
-func (k *ClusterRequestRecordDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *ClusterRequestRecordDbAccessImpl) ListByPage(_ entity.Pagination) (
 	[]models.ClusterRequestRecordModel,
 	int64,
 	error,

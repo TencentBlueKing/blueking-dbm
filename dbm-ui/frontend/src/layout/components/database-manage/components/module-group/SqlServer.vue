@@ -11,7 +11,7 @@
             :cluster-type="ClusterTypes.SQLSERVER_HA"
             role="cluster" />
         </template>
-        <BkMenuItem key="SqlServerHaClusterList">
+        <BkMenuItem key="SqlServerHaCluster">
           <span
             v-overflow-tips.right
             class="text-overflow">

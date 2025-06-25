@@ -6,6 +6,8 @@ spec:
   compatibilityRules:
     - releases:
         - frontend-2.2.1
+        - frontend-2.3.0
+        - frontend-2.4.1
       compDefs:
         - rw-frontend-{{ .Chart.Version}}
   releases:
@@ -13,3 +15,11 @@ spec:
       serviceVersion: 2.2.1
       images:
         frontend: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+    - name: frontend-2.3.0
+      serviceVersion: 2.3.0
+      images:
+        frontend: docker.risingwave.com/risingwavelabs/risingwave:v2.3.0
+    - name: frontend-2.4.1
+      serviceVersion: 2.4.1
+      images:
+        frontend: docker.risingwave.com/risingwavelabs/risingwave:v2.4.1

@@ -97,6 +97,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	// 检查 进程是否存在，存在： 发送消息LoginTimeout
 	// Port被别的进程占用，此处算是误告，但问题不大，反正都需要人工处理.
 	using, err := checkPortInUse(svrItem.Port)
+	logger.Debug(fmt.Sprintf("checkPortInUse %d return using:%v, err: %v", svrItem.Port, using, err))
 	if err != nil {
 		logger.Info(fmt.Sprintf("checkPortInUse took %0.1f seconds, err: %v", elapsedTime, err))
 	}
@@ -189,7 +190,7 @@ func checkPortInUse(port int) (bool, error) {
 		return false, err
 	}
 	idx := slices.IndexFunc(tcpRows, func(row linuxproc.NetTcp) bool {
-		return row.LocalPort == port
+		return row.LocalPort == port && row.St == linuxproc.LISTEN
 	})
 
 	return idx >= 0, nil

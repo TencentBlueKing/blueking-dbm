@@ -73,5 +73,11 @@ class CommonHostDBMeta:
     instance_port: str
 
 
+# 定义不同组件额外需要的host标签结构
+@dataclass
+class MongoDBHostDBMeta:
+    shard: str
+
+
 # 集群状态数据缓存key
 CACHE_CLUSTER_STATS = "cluster_stats"

@@ -232,7 +232,7 @@ class RiakClusterApplyFlow(object):
             }
         )
         config = resp["content"]
-        bucket_types = config["bucket_types"].split(",")
+        bucket_types = config["bucket_types"].split(",") if config["bucket_types"] else []
         cluster = {
             "distributed_cookie": config["distributed_cookie"],
             "bucket_types": bucket_types,

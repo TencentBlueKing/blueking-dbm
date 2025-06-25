@@ -11,7 +11,7 @@
   import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    data: TicketModel;
+    data: Pick<TicketModel, 'status' | 'statusText'>;
     small?: boolean;
   }
 

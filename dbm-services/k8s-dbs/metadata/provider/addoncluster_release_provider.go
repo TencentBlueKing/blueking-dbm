@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -36,7 +36,7 @@ type AddonClusterReleaseProvider interface {
 	FindClusterReleaseByID(id uint64) (*entitys.AddonClusterReleaseEntity, error)
 	FindByParams(params map[string]interface{}) (*entitys.AddonClusterReleaseEntity, error)
 	UpdateClusterRelease(entity *entitys.AddonClusterReleaseEntity) (uint64, error)
-	ListClusterReleases(pagination utils.Pagination) ([]entitys.AddonClusterReleaseEntity, error)
+	ListClusterReleases(pagination entity.Pagination) ([]entitys.AddonClusterReleaseEntity, error)
 }
 
 // AddonClusterReleaseProviderImpl AddonClusterReleaseProvider 具体实现
@@ -128,7 +128,7 @@ func (a *AddonClusterReleaseProviderImpl) UpdateClusterRelease(entity *entitys.A
 }
 
 // ListClusterReleases 获取 addon cluster release 列表
-func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination utils.Pagination) (
+func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination entity.Pagination) (
 	[]entitys.AddonClusterReleaseEntity,
 	error,
 ) {

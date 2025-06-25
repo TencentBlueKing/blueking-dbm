@@ -21,10 +21,10 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +55,6 @@ func TestListOpDef(t *testing.T) {
 
 	dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
 
-	// 创建测试数据
 	testOpDefs := []model.OperationDefinitionModel{
 		{
 			OperationName:   "CreateCluster",
@@ -86,18 +85,18 @@ func TestListOpDef(t *testing.T) {
 	for _, opDef := range testOpDefs {
 		createdDef, err := dbAccess.Create(&opDef)
 		assert.NoError(t, err, "Failed to create operation definition: %v", createdDef.OperationName)
-		assert.Equal(t, opDef.OperationName, createdDef.OperationName, "operation name mismatch")
+		assert.Equal(t, opDef.OperationName, createdDef.OperationName)
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}
 
 	opDefs, rows, err := dbAccess.ListByPage(pagination)
-	assert.NoError(t, err, "Failed to list")
-	assert.Equal(t, int64(4), rows, "Expected total rows to be 4")
-	assert.Equal(t, len(testOpDefs), len(opDefs), "Expected number to match")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(4), rows)
+	assert.Equal(t, len(testOpDefs), len(opDefs))
 
 	opDefNames := make(map[string]bool)
 	for _, opDef := range opDefs {

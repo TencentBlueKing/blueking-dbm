@@ -42,7 +42,7 @@ def mongos_get_resource_spec(cluster_id: int, mongos_list: list) -> dict:
     for mongos in all_mongos:
         if mongos.machine.ip in [host["ip"] for host in mongos_list]:
             continue
-        if health_mongos_sub_zone.get(str(mongos.machine.bk_sub_zone_id)):
+        if not health_mongos_sub_zone.get(str(mongos.machine.bk_sub_zone_id)):
             health_mongos_sub_zone[str(mongos.machine.bk_sub_zone_id)] = 0
         health_mongos_sub_zone[str(mongos.machine.bk_sub_zone_id)] += 1
     #  健康mongos在每个园区的机器数量占所有健康mongos的数量的百分比

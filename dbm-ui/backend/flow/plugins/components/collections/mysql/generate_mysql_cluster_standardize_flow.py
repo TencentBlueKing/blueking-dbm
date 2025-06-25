@@ -14,8 +14,8 @@ from pipeline.component_framework.component import Component
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import FlowType, TicketType
-from backend.ticket.models import Flow, Ticket
+from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
 
 
 class GenerateMySQLClusterStandardizeFlowService(BaseService):
@@ -66,12 +66,8 @@ class GenerateMySQLClusterStandardizeFlowService(BaseService):
         )
 
         if "uid" in global_data:
-            Flow.objects.create(
-                ticket=Ticket.objects.get(id=global_data["uid"]),
-                flow_type=FlowType.DELIVERY,
-                details={"related_ticket": standardize_ticket.id},
-                flow_alias=_("MySQL 集群标准化"),
-            )
+            ticket = Ticket.objects.get(id=global_data["uid"])
+            ticket.add_related_ticket(standardize_ticket, desc=_("MySQL 集群标准化"))
 
 
 class GenerateMySQLClusterStandardizeFlowComponent(Component):

@@ -14,111 +14,78 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
-from backend.constants import IP_PORT_DIVIDER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
 
 
-class RemoteNodePrivRecoverService(BaseService):
+class RemoteDbPrivRecoverService(BaseService):
     """
     定点回档结束后对remotedb节点进行权限恢复
     """
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        self.log_info(_("传入参数:{}").format(kwargs))
+        self.log_debug(_("传入参数:{}").format(kwargs))
         spider_instance_list = kwargs["spider_instance_list"]
         bk_cloud_id = kwargs["bk_cloud_id"]
         instance_version = str(kwargs["instance_version"])
-        # 查询出所有spider的权限
-        results = DRSApi.rpc(
-            {
-                "addresses": spider_instance_list,
-                "cmds": ["select * from mysql.servers"],
-                "force": False,
-                "bk_cloud_id": bk_cloud_id,
-            }
-        )
-        remote_instances = {}
-        remote_instances_create_user = {}
-        # 在所有spider/spider_slave获取权限
-        self.log_info(_("获取spider权限"))
-        for res in results:
-            if res["error_msg"]:
-                self.log_info("execute sql error {}".format(res["error_msg"]))
-                return False
+        instance = kwargs["instance"]
+        remote_node_user = kwargs["remote_node_user"]
+        grant_sqls = []
+        create_user_sqls = []
+        for one_ip in spider_instance_list:
+            #  区分8.0 和其他版本. 8.0 先删除账号，再执行create，再执行grant
+            if instance_version.startswith("8."):
+                grant_sql = [
+                    ("ALTER USER '{}'@'{}' IDENTIFIED WITH mysql_native_password BY '{}'").format(
+                        remote_node_user["Username"], one_ip, remote_node_user["Password"]
+                    ),
+                    ("GRANT ALL PRIVILEGES ON *.* TO '{}'@'{}' WITH GRANT OPTION").format(
+                        remote_node_user["Username"], one_ip
+                    ),
+                ]
+                create_user_sqls.append(
+                    "create user '{}'@'{}' IDENTIFIED BY '{}'".format(
+                        remote_node_user["Username"], one_ip, remote_node_user["Password"]
+                    )
+                )
             else:
-                if len(res["cmd_results"][0]["table_data"]) == 0:
-                    self.log_info("null privileges {}".format(res["address"]))
-                else:
-                    for one_priv in res["cmd_results"][0]["table_data"]:
-                        instance_ip, instance_port = str(res["address"]).split(IP_PORT_DIVIDER)
-                        #  区分8.0 和其他版本. 8.0 先删除账号，再执行create，再执行grant
-                        create_user_sql = ("create user '{}'@'{}' IDENTIFIED BY '{}'").format(
-                            one_priv["Username"], instance_ip, one_priv["Password"]
-                        )
-                        if instance_version.startswith("8."):
-                            grant_sql = [
-                                ("ALTER USER '{}'@'{}' IDENTIFIED WITH mysql_native_password BY '{}'").format(
-                                    one_priv["Username"], instance_ip, one_priv["Password"]
-                                ),
-                                ("GRANT ALL PRIVILEGES ON *.* TO '{}'@'{}' WITH GRANT OPTION").format(
-                                    one_priv["Username"], instance_ip
-                                ),
-                            ]
-                        else:
-                            grant_sql = [
-                                (
-                                    "GRANT ALL PRIVILEGES ON *.* TO '{}'@'{}' " "IDENTIFIED BY '{}' WITH GRANT OPTION"
-                                ).format(one_priv["Username"], instance_ip, one_priv["Password"])
-                            ]
-
-                        remote_instance = "{}{}{}".format(one_priv["Host"], IP_PORT_DIVIDER, one_priv["Port"])
-                        if remote_instance in remote_instances_create_user.keys():
-                            remote_instances_create_user[remote_instance].append(create_user_sql)
-                        else:
-                            remote_instances_create_user[remote_instance] = [create_user_sql]
-
-                        if remote_instance in remote_instances.keys():
-                            remote_instances[remote_instance].extend(grant_sql)
-                        else:
-                            remote_instances[remote_instance] = grant_sql
+                grant_sql = [
+                    ("GRANT ALL PRIVILEGES ON *.* TO '{}'@'{}' " "IDENTIFIED BY '{}' WITH GRANT OPTION").format(
+                        remote_node_user["Username"], one_ip, remote_node_user["Password"]
+                    )
+                ]
+            grant_sqls.extend(grant_sql)
 
         #  在每个remotedb 执行上授权
-        self.log_info(_("remotedb执行授权"))
+        self.log_info(_("{}remotedb执行授权".format(instance)))
         if instance_version.startswith("8."):
-            for instance, grant_sqls in remote_instances_create_user.items():
-                logger.debug(instance)
-                logger.debug(grant_sqls)
-                DRSApi.rpc(
-                    {
-                        "addresses": [instance],
-                        "cmds": grant_sqls,
-                        "force": False,
-                        "bk_cloud_id": bk_cloud_id,
-                    }
-                )
-
-        for instance, grant_sqls in remote_instances.items():
-            logger.debug(instance)
-            logger.debug(grant_sqls)
-            grants_results = DRSApi.rpc(
+            self.log_debug(create_user_sqls)
+            DRSApi.rpc(
                 {
                     "addresses": [instance],
-                    "cmds": grant_sqls,
+                    "cmds": create_user_sqls,
                     "force": False,
                     "bk_cloud_id": bk_cloud_id,
                 }
             )
-            for res in grants_results:
-                if res["error_msg"]:
-                    self.log_info("execute sql error {}".format(res["error_msg"]))
-                    return False
+        self.log_debug(grant_sqls)
+        grants_results = DRSApi.rpc(
+            {
+                "addresses": [instance],
+                "cmds": grant_sqls,
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if grants_results[0]["error_msg"]:
+            self.log_info("execute sql error {}".format(grants_results[0]["error_msg"]))
+            return False
         return True
 
 
-class RemoteNodePrivRecoverComponent(Component):
+class RemoteDbPrivRecoverComponent(Component):
     name = __name__
-    code = "remote_node_privilege_recover"
-    bound_service = RemoteNodePrivRecoverService
+    code = "remotedb_privilege_recover"
+    bound_service = RemoteDbPrivRecoverService

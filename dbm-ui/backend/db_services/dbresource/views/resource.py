@@ -23,7 +23,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.dbresource.client import DBResourceApi
-from backend.components.uwork.client import UWORKApi
+from backend.components.hcm.client import HCMApi
+from backend.components.xwork.client import XworkApi
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
@@ -36,8 +37,9 @@ from backend.db_services.dbresource.constants import (
 from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
-from backend.db_services.dbresource.serializers import (
+from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
     AppendHostLabelSerializer,
+    CheckFaultHostsSerializer,
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
     ListCvmDeviceClassSerializer,
@@ -58,7 +60,6 @@ from backend.db_services.dbresource.serializers import (
     SpecCostEstimateSerializer,
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
-    UworkIpsSerializer,
 )
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType, ModeType
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
@@ -101,6 +102,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "query_dba_hosts",
             "resource_import_urls",
             "get_os_types",
+            "check_fault_hosts",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
@@ -485,18 +487,23 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         return Response(ResourceHandler.spec_cost_estimate(**data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询故障主机信息"),
-        query_serializer=UworkIpsSerializer(),
+        operation_summary=_("查询故障主机信息(检查uwork/xwork单)"),
+        request_body=CheckFaultHostsSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["GET"], serializer_class=UworkIpsSerializer)
-    def check_uwork_ips(self, request):
-        if not env.UWORK_APIGW_DOMAIN:
-            return Response({"results": []})
-        ip_list = self.params_validate(self.get_serializer_class())["ips"]
-        results = UWORKApi.uwork_list(params={"serverIpList": ip_list})
-        uwork_list = [result["serverIp"] for result in results]
-        return Response({"results": uwork_list})
+    @action(detail=False, methods=["POST"], serializer_class=CheckFaultHostsSerializer)
+    def check_fault_hosts(self, request):
+        data = self.params_validate(self.get_serializer_class())
+
+        host_ip__id_map = {host["ip"]: host["bk_host_id"] for host in data["hosts"]}
+        uwork_infos_map = HCMApi.check_host_has_uwork(list(host_ip__id_map.keys()))
+        xwork_infos_map = XworkApi.check_xwork_list(host_ip__id_map)
+
+        fault_host_infos = {
+            bk_host_id: {"xwork": xwork_infos_map.get(bk_host_id, {}), "uwork": uwork_infos_map.get(bk_host_id, {})}
+            for bk_host_id in host_ip__id_map.values()
+        }
+        return Response(fault_host_infos)
 
     @common_swagger_auto_schema(
         operation_summary=_("追加主机标签"),

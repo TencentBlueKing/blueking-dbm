@@ -1,15 +1,19 @@
 <template>
   <BkDropdown
-    @hide="() => (isCopyDropdown = false)"
-    @show="() => (isCopyDropdown = true)">
-    <BkButton
-      class="w-86"
-      :class="{ active: isCopyDropdown }">
-      {{ t('复制') }}
-      <DbIcon
-        class="ml-4"
-        type="up-big" />
-    </BkButton>
+    :popover-options="{
+      clickContentAutoHide: true,
+      hideIgnoreReference: true,
+    }">
+    <template #default="{ popoverShow }">
+      <BkButton
+        class="w-86"
+        :class="{ active: popoverShow }">
+        {{ t('复制') }}
+        <DbIcon
+          class="ml-4"
+          type="up-big" />
+      </BkButton>
+    </template>
     <template #content>
       <BkDropdownMenu class="dropdown-menu-with-button cluster-ip-copy">
         <BkDropdownItem>
@@ -50,15 +54,13 @@
 
   import { execCopy } from '@utils';
 
-  interface Props {
+  export interface Props<T> {
     selected: T[];
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
 
   const { t } = useI18n();
-
-  const isCopyDropdown = ref(false);
 
   /**
    * 复制已选集群 IP

@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ type K8sCrdClusterDefinitionDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdClusterDefinitionModel, error)
 	Update(model *models.K8sCrdClusterDefinitionModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sCrdClusterDefinitionModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sCrdClusterDefinitionModel, int64, error)
 }
 
 // K8sCrdClusterDefinitionDbAccessImpl K8sCrdClusterDefinitionDbAccess 的具体实现
@@ -44,17 +44,14 @@ type K8sCrdClusterDefinitionDbAccessImpl struct {
 
 // Create 创建 cd 元数据接口实现
 func (k *K8sCrdClusterDefinitionDbAccessImpl) Create(model *models.K8sCrdClusterDefinitionModel) (
-	*models.K8sCrdClusterDefinitionModel, error) {
+	*models.K8sCrdClusterDefinitionModel,
+	error,
+) {
 	if err := k.db.Create(model).Error; err != nil {
 		slog.Error("Create clusterdefinition error", "error", err)
 		return nil, err
 	}
-	var created models.K8sCrdClusterDefinitionModel
-	if err := k.db.First(&created, "clusterdefinition_name = ?", model.ClusterDefinitionName).Error; err != nil {
-		slog.Error("Find clusterdefinition error", "error", err)
-		return nil, err
-	}
-	return &created, nil
+	return model, nil
 }
 
 // DeleteByID 删除 cd 元数据接口实现
@@ -89,7 +86,7 @@ func (k *K8sCrdClusterDefinitionDbAccessImpl) Update(model *models.K8sCrdCluster
 }
 
 // ListByPage 分页查询 cd 元数据接口实现
-func (k *K8sCrdClusterDefinitionDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *K8sCrdClusterDefinitionDbAccessImpl) ListByPage(_ entity.Pagination) (
 	[]models.K8sCrdClusterDefinitionModel,
 	int64,
 	error,

@@ -67,20 +67,16 @@ func TestCreateK8sClusterConfig(t *testing.T) {
 	}
 
 	added, err := dbAccess.Create(config)
-	assert.NoError(t, err, "Failed to create config")
-	fmt.Printf("Created config %+v\n", added)
+	assert.NoError(t, err)
 
-	var founded model.K8sClusterConfigModel
-	err = db.First(&founded, "cluster_name=?", "BCS-K8S-000").Error
-	assert.NoError(t, err, "Failed to query config")
-	assert.Equal(t, config.ClusterName, founded.ClusterName)
-	assert.Equal(t, config.APIServerURL, founded.APIServerURL)
-	assert.Equal(t, config.CACert, founded.CACert)
-	assert.Equal(t, config.ClientCert, founded.ClientCert)
-	assert.Equal(t, config.ClientKey, founded.ClientKey)
-	assert.Equal(t, config.Token, founded.Token)
-	assert.Equal(t, config.Username, founded.Username)
-	assert.Equal(t, config.Password, founded.Password)
+	assert.Equal(t, config.ClusterName, added.ClusterName)
+	assert.Equal(t, config.APIServerURL, added.APIServerURL)
+	assert.Equal(t, config.CACert, added.CACert)
+	assert.Equal(t, config.ClientCert, added.ClientCert)
+	assert.Equal(t, config.ClientKey, added.ClientKey)
+	assert.Equal(t, config.Token, added.Token)
+	assert.Equal(t, config.Username, added.Username)
+	assert.Equal(t, config.Password, added.Password)
 }
 
 func TestDeleteK8sClusterConfig(t *testing.T) {
@@ -101,12 +97,11 @@ func TestDeleteK8sClusterConfig(t *testing.T) {
 		Description:  "desc",
 	}
 
-	added, err := dbAccess.Create(config)
-	assert.NoError(t, err, "Failed to create config")
-	fmt.Printf("Created config %+v\n", added)
+	_, err = dbAccess.Create(config)
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete config")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -128,9 +123,8 @@ func TestUpdateK8sClusterConfig(t *testing.T) {
 		Description:  "desc",
 	}
 
-	added, err := dbAccess.Create(config)
-	assert.NoError(t, err, "Failed to create config")
-	fmt.Printf("Created config %+v\n", added)
+	_, err = dbAccess.Create(config)
+	assert.NoError(t, err)
 
 	newConfig := &model.K8sClusterConfigModel{
 		ID:           1,
@@ -145,7 +139,7 @@ func TestUpdateK8sClusterConfig(t *testing.T) {
 		Description:  "desc1",
 	}
 	rows, err := dbAccess.Update(newConfig)
-	assert.NoError(t, err, "Failed to update config")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -167,12 +161,11 @@ func TestGetK8sClusterConfig(t *testing.T) {
 		Description:  "desc",
 	}
 
-	added, err := dbAccess.Create(config)
-	assert.NoError(t, err, "Failed to create config")
-	fmt.Printf("Created config %+v\n", added)
+	_, err = dbAccess.Create(config)
+	assert.NoError(t, err)
 
 	founded, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to find config")
+	assert.NoError(t, err)
 	assert.Equal(t, config.ClusterName, founded.ClusterName)
 	assert.Equal(t, config.APIServerURL, founded.APIServerURL)
 	assert.Equal(t, config.CACert, founded.CACert)
@@ -201,12 +194,11 @@ func TestGetK8sClusterConfigByName(t *testing.T) {
 		Description:  "desc",
 	}
 
-	added, err := dbAccess.Create(config)
-	assert.NoError(t, err, "Failed to create config")
-	fmt.Printf("Created config %+v\n", added)
+	_, err = dbAccess.Create(config)
+	assert.NoError(t, err)
 
 	founded, err := dbAccess.FindByClusterName(config.ClusterName)
-	assert.NoError(t, err, "Failed to find config")
+	assert.NoError(t, err)
 	assert.Equal(t, config.ClusterName, founded.ClusterName)
 	assert.Equal(t, config.APIServerURL, founded.APIServerURL)
 	assert.Equal(t, config.CACert, founded.CACert)

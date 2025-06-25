@@ -5,7 +5,11 @@ import { ClusterTypes } from '@common/const';
 export default class RiakInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  bk_disk: number;
   bk_host_id: number;
+  bk_idc_city_name: string;
+  bk_mem: number;
   bk_os_name: string;
   bk_rack_id: number;
   bk_sub_zone: string;
@@ -20,6 +24,7 @@ export default class RiakInstance {
   host_info: HostInfo;
   id: number;
   instance_address: string;
+  instance_name: string;
   ip: string;
   master_domain: string;
   port: number;
@@ -45,9 +50,14 @@ export default class RiakInstance {
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_mem = payload.bk_mem || 0;
+    this.bk_disk = payload.bk_disk || 0;
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
+    this.instance_name = payload.instance_name;
     this.ip = payload.ip;
     this.master_domain = payload.master_domain;
     this.port = payload.port;

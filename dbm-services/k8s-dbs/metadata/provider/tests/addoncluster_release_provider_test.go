@@ -21,12 +21,12 @@ package tests
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,7 +69,7 @@ func TestCreateRelease(t *testing.T) {
 	}
 
 	addedRelease, err := releaseProvider.CreateClusterRelease(release)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 	assert.Equal(t, addedRelease.ReleaseName, release.ReleaseName)
 	assert.Equal(t, addedRelease.Namespace, release.Namespace)
 	assert.Equal(t, addedRelease.K8sClusterConfigID, release.K8sClusterConfigID)
@@ -93,10 +93,10 @@ func TestDeleteClusterRelease(t *testing.T) {
 	}
 
 	_, err = releaseProvider.CreateClusterRelease(release)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	rows, err := releaseProvider.DeleteClusterReleaseByID(1)
-	assert.NoError(t, err, "Failed to delete")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -119,7 +119,7 @@ func TestUpdateClusterRelease(t *testing.T) {
 	}
 
 	_, err = releaseProvider.CreateClusterRelease(release)
-	assert.NoError(t, err, "Failed to create")
+	assert.NoError(t, err)
 
 	updateRelease := &entitys.AddonClusterReleaseEntity{
 		ID:                 1,
@@ -134,7 +134,7 @@ func TestUpdateClusterRelease(t *testing.T) {
 		CreatedBy:          "test-user2",
 	}
 	rows, err := releaseProvider.UpdateClusterRelease(updateRelease)
-	assert.NoError(t, err, "Failed to update")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -173,13 +173,13 @@ func TestListClusterRelease(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	pagination := utils.Pagination{
+	pagination := entity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}
 
 	releaseList, err := releaseProvider.ListClusterReleases(pagination)
-	assert.NoError(t, err, "Failed to list storage addons")
+	assert.NoError(t, err)
 	assert.Equal(t, len(releases), len(releaseList))
 
 	releaseNames := make(map[string]bool)
@@ -211,9 +211,8 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 		CreatedBy:          "alex",
 	}
 
-	addedCluster, err := releaseProvider.CreateClusterRelease(release)
-	assert.NoError(t, err, "Failed to create addon cluster release")
-	fmt.Printf("Created addon cluster release %+v\n", addedCluster)
+	_, err = releaseProvider.CreateClusterRelease(release)
+	assert.NoError(t, err)
 
 	params := map[string]interface{}{
 		"k8s_cluster_config_id": 1,
@@ -221,7 +220,7 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 		"namespace":             "test-namespace",
 	}
 	foundClusterRelease, err := releaseProvider.FindByParams(params)
-	assert.NoError(t, err, "Failed to find addon cluster release")
+	assert.NoError(t, err)
 	assert.Equal(t, release.RepoName, foundClusterRelease.RepoName)
 	assert.Equal(t, release.RepoRepository, foundClusterRelease.RepoRepository)
 	assert.Equal(t, release.ChartVersion, foundClusterRelease.ChartVersion)

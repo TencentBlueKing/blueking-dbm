@@ -23,11 +23,11 @@ import "time"
 
 // K8sCrdComponentReqVo represents the request data structure of component meta.
 type K8sCrdComponentReqVo struct {
-	CrdClusterID  uint64    `json:"crd_cluster_id" binding:"required"`
-	ComponentName string    `json:"component_name" binding:"required"`
+	CrdClusterID  uint64    `json:"crdClusterId" binding:"required"`
+	ComponentName string    `json:"componentName" binding:"required"`
 	Description   string    `json:"description" binding:"required"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedBy     string    `json:"createdBy" binding:"required"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

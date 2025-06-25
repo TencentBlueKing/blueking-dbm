@@ -33,7 +33,7 @@ type HttpBodyParseCB func([]byte) (interface{}, error)
 // APIServerResponse response info from remote api server
 type APIServerResponse struct {
 	Code int             `json:"code"`
-	Msg  string          `json:"msg"`
+	Msg  string          `json:"message"`
 	Data json.RawMessage `json:"data"`
 }
 

@@ -49,11 +49,15 @@
             v-if="!item.cluster.id"
             :placeholder="t('自动生成')" />
           <EditableBlock
-            v-else-if="item.cluster.id && !item.cluster.readonly_host"
+            v-else-if="item.cluster.id && !item.cluster.readonly_host.length"
             :placeholder="t('无只读主机')" />
-          <EditableBlock
-            v-else
-            v-model="item.cluster.readonly_host.ip" />
+          <EditableBlock v-else>
+            <div
+              v-for="host in item.cluster.readonly_host"
+              :key="host.ip">
+              {{ host.ip }}
+            </div>
+          </EditableBlock>
         </EditableColumn>
         <CurrentVersionColumn :cluster="item.cluster" />
         <TargetVersionColumn
@@ -147,7 +151,7 @@
       master_domain: string;
       master_host: IHostData;
       package_version: string;
-      readonly_host: IHostData;
+      readonly_host: IHostData[];
       related_clusters: {
         id: number;
         master_domain: string;
@@ -155,7 +159,7 @@
       slave_host: IHostData;
     };
     new_master_slave_host: IHostData[];
-    new_readonly_host: IHostData;
+    new_readonly_host: IHostData[];
     target_version: {
       charset: string;
       new_db_module_id: number;
@@ -195,13 +199,13 @@
       master_domain: '',
       master_host: initHostData(),
       package_version: '',
-      readonly_host: initHostData(),
+      readonly_host: [],
       readonly_slaves: [],
       related_clusters: [],
       slave_host: initHostData(),
     },
     new_master_slave_host: data.new_master_slave_host || ([] as IHostData[]),
-    new_readonly_host: data.new_readonly_host || initHostData(),
+    new_readonly_host: data.new_readonly_host || [],
     target_version: data.target_version || {
       charset: '',
       new_db_module_id: 0,
@@ -312,7 +316,7 @@
                   ip: item.display_info.old_master_slave[0],
                 },
                 package_version: item.display_info.current_package,
-                readonly_host: item.read_only_slaves[0].old_slave,
+                readonly_host: item.read_only_slaves.map((item) => item.old_slave),
                 related_clusters: [],
                 slave_host: {
                   bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -322,7 +326,7 @@
                 },
               },
               new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
-              new_readonly_host: item.read_only_slaves[0].new_slave,
+              new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
               target_version: {
                 charset: item.display_info.charset,
                 new_db_module_id: item.new_db_module_id,
@@ -353,7 +357,7 @@
               master_domain: item.master_domain,
               master_host: item.masters[0],
               package_version: item.masters[0]?.version || '',
-              readonly_host: item.slaves.filter((item) => !item.is_stand_by)[0],
+              readonly_host: item.slaves.filter((item) => !item.is_stand_by),
               related_clusters: [],
               slave_host: item.slaves.filter((item) => item.is_stand_by)[0],
             },
@@ -387,13 +391,11 @@
             },
             new_db_module_id: item.target_version.new_db_module_id,
             pkg_id: item.target_version.pkg_id,
-            read_only_slaves: item.cluster.readonly_host
-              ? [
-                  {
-                    new_slave: item.new_readonly_host,
-                    old_slave: item.cluster.readonly_host,
-                  },
-                ]
+            read_only_slaves: item.cluster.readonly_host.length
+              ? item.cluster.readonly_host.map((host, index) => ({
+                  new_slave: item.new_readonly_host[index],
+                  old_slave: host,
+                }))
               : [],
             resource_spec: {
               new_master: {

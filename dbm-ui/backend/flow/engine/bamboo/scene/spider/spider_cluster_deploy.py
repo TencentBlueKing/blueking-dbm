@@ -25,7 +25,11 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_repl_by_manual_input_sub_flow,
     init_machine_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
+    ALLDEPARTS,
+    DeployPeripheralToolsDepart,
+    remove_departs,
+)
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -495,19 +499,6 @@ class TenDBClusterApplyFlow(object):
             ]
         )
 
-        acts_list = []
-        for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]:
-            exec_act_kwargs.exec_ip = ip_info["ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("部署mysql-crond"),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(exec_act_kwargs),
-                }
-            )
-        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
-
         # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
         acts_list = []
         for mysql_ip in self.data["mysql_ip_list"]:
@@ -642,10 +633,11 @@ class TenDBClusterApplyFlow(object):
                 with_collect_sysinfo=False,
                 with_backup_client=True,
                 with_instance_standardize=False,
-                departs=[
-                    DeployPeripheralToolsDepart.DBAToolKit,
-                    DeployPeripheralToolsDepart.MySQLCrond,
-                ],
+                departs=remove_departs(
+                    ALLDEPARTS,
+                    DeployPeripheralToolsDepart.MySQLMonitor,
+                    DeployPeripheralToolsDepart.MySQLTableChecksum,
+                ),
             )
         )
 

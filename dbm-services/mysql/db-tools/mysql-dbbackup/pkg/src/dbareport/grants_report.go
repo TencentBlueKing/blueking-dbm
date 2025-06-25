@@ -10,14 +10,16 @@ package dbareport
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 func reportGrants(privFilePath string, reportDir string, port int) error {
-	reportFile := filepath.Join(reportDir, fmt.Sprintf("grants_report_%d.priv", port))
-	_ = os.Remove(reportFile)
+	// 直接覆盖或者 rm 后再 copy，可能会日志采集不了
+	filesRemove := filepath.Join(reportDir, "grants_report*.priv")
+	cmutil.RemoveFileMatch(filesRemove, true)
+	reportFile := filepath.Join(reportDir, fmt.Sprintf("grants_report_%d_%d.priv", port, time.Now().Weekday()))
 	return cmutil.OSCopyFile(privFilePath, reportFile)
 }

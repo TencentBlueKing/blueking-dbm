@@ -2,15 +2,16 @@ package monitor
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
+	"time"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"fmt"
-	"path/filepath"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

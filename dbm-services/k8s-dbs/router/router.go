@@ -24,9 +24,7 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"k8s-dbs/common/api"
-	"k8s-dbs/core/api/controller"
 	"k8s-dbs/core/provider"
-	metacontroller "k8s-dbs/metadata/api/controller"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log"
@@ -67,6 +65,8 @@ func NewRouter(db *gorm.DB) *Router {
 
 	buildClusterRouter(db, router)
 
+	buildComponentRouter(db, router)
+
 	buildMetaRouter(db, router)
 
 	buildK8sClusterRouter(db, router)
@@ -76,346 +76,115 @@ func NewRouter(db *gorm.DB) *Router {
 	return &Router{Engine: router}
 }
 
-// buildMetaRouter 元数据路由构建
-func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
-	metaRouter := router.Group(basePath + "/metadata")
-	{
-		buildAddonMetaRouter(db, metaRouter)
-
-		buildCdMetaRouter(db, metaRouter)
-
-		buildCmpdMetaRouter(db, metaRouter)
-
-		buildCmpvMetaRouter(db, metaRouter)
-
-		buildClusterMetaRouter(db, metaRouter)
-
-		buildOpsMetaRouter(db, metaRouter)
-
-		buildComponentMetaRouter(db, metaRouter)
-
-		buildClusterConfigMetaRouter(db, metaRouter)
-
-		buildOperationMetaRouter(db, metaRouter)
-
-		buildClusterOpMetaRouter(db, metaRouter)
-
-		buildComponentOpMetaRouter(db, metaRouter)
-
-		buildClusterHelmRepoMetaRouter(db, metaRouter)
-
-		buildAddonHelmRepoMetaRouter(db, metaRouter)
-
-		buildClusterReleaseMetaRouter(db, metaRouter)
-	}
+// CoreAPIProviders 封装 core api providers
+type CoreAPIProviders struct {
+	ClusterMetaProvider         metaprovider.K8sCrdClusterProvider
+	ClusterDefinitionProvider   metaprovider.K8sCrdClusterDefinitionProvider
+	ComponentMetaProvider       metaprovider.K8sCrdComponentProvider
+	ComponentDefinitionProvider metaprovider.K8sCrdCmpdProvider
+	ComponentVersionProvider    metaprovider.K8sCrdCmpvProvider
+	ClusterConfigProvider       metaprovider.K8sClusterConfigProvider
+	RequestRecordProvider       metaprovider.ClusterRequestRecordProvider
+	ClusterReleaseProvider      metaprovider.AddonClusterReleaseProvider
+	HelmRepoProvider            metaprovider.AddonClusterHelmRepoProvider
+	AddonMetaProvider           metaprovider.K8sCrdStorageAddonProvider
 }
 
-// buildClusterConfigMetaRouter clusterConfigMeta 管理路由构建
-func buildClusterConfigMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
-	k8sClusterConfigMetaGroup := metaRouter.Group("/k8s_cluster_config")
-	{
-		k8sClusterConfigMetaGroup.GET("/id/:id", k8sClusterConfigController.GetK8sClusterConfigByID)
-		k8sClusterConfigMetaGroup.GET("/name/:cluster_name", k8sClusterConfigController.GetK8sClusterConfigByName)
-		k8sClusterConfigMetaGroup.DELETE("/:id", k8sClusterConfigController.DeleteK8sClusterConfig)
-		k8sClusterConfigMetaGroup.POST("", k8sClusterConfigController.CreateK8sClusterConfig)
-		k8sClusterConfigMetaGroup.PUT("/:id", k8sClusterConfigController.UpdateK8sClusterConfig)
-	}
-}
-
-// buildClusterReleaseMetaRouter clusterReleaseMeta 管理路由构建
-func buildClusterReleaseMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	addonClusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
-	addonClusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
-	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
-	k8sClusterConfigMetaGroup := metaRouter.Group("/cluster_release")
-	{
-		k8sClusterConfigMetaGroup.GET("/id/:id", clusterReleaseController.GetClusterRelease)
-		k8sClusterConfigMetaGroup.GET("/name/:release_name/namespace/:namespace",
-			clusterReleaseController.GetClusterReleaseByParam)
-	}
-}
-
-// buildComponentMetaRouter componentMeta 管理路由构建
-func buildComponentMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
-	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
-	componentMetaController := metacontroller.NewComponentController(componentMetaProvider)
-	componentMetaGroup := metaRouter.Group("/component")
-	{
-		componentMetaGroup.GET("/:id", componentMetaController.GetComponent)
-	}
-}
-
-// buildOpsMetaRouter opsRequestMeta 管理路由构建
-func buildOpsMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	opsMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	opsMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsMetaDbAccess)
-	opsMetaController := metacontroller.NewOpsController(opsMetaProvider)
-	opsMetaGroup := metaRouter.Group("/metadata/ops")
-	{
-		opsMetaGroup.GET("/:id", opsMetaController.GetOps)
-	}
-}
-
-// buildClusterMetaRouter clusterMeta 管理路由构建
-func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+// buildCoreAPIProviders 构建 core api providers
+func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
-	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
-	clusterMetaGroup := metaRouter.Group("/metadata/cluster")
-	{
-		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
-	}
-}
 
-// buildCmpvMetaRouter cmpv 元数据管理路由构建
-func buildCmpvMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cmpvMetaDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
-	cmpvMetaProvider := metaprovider.NewK8sCrdCmpvProvider(cmpvMetaDbAccess)
-	cmpvMetaController := metacontroller.NewCmpvController(cmpvMetaProvider)
-	cmpvMetaGroup := metaRouter.Group("/metadata/cmpv")
-	{
-		cmpvMetaGroup.GET("/:id", cmpvMetaController.GetCmpv)
-		cmpvMetaGroup.DELETE("/:id", cmpvMetaController.DeleteCmpv)
-		cmpvMetaGroup.POST("", cmpvMetaController.CreateCmpv)
-		cmpvMetaGroup.PUT("/:id", cmpvMetaController.UpdateCmpv)
-	}
-}
+	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
+	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
 
-// buildCmpdMetaRouter cmpd 元数据管理路由构建
-func buildCmpdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cmpdMetaDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
-	cmpdMetaProvider := metaprovider.NewK8sCrdCmpdProvider(cmpdMetaDbAccess)
-	cmpdMetaController := metacontroller.NewCmpdController(cmpdMetaProvider)
-	cmpdMetaGroup := metaRouter.Group("/metadata/cmpd")
-	{
-		cmpdMetaGroup.GET("/:id", cmpdMetaController.GetCmpd)
-		cmpdMetaGroup.DELETE("/:id", cmpdMetaController.DeleteCmpd)
-		cmpdMetaGroup.POST("", cmpdMetaController.CreateCmpd)
-		cmpdMetaGroup.PUT("/:id", cmpdMetaController.UpdateCmpd)
-	}
-}
+	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
+	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
 
-// buildCdMetaRouter cd 元数据管理路由构建
-func buildCdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cdMetaDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
-	cdMetaProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(cdMetaDbAccess)
-	cdMetaController := metacontroller.NewCdController(cdMetaProvider)
-	cdMetaGroup := metaRouter.Group("/metadata/cd")
-	{
-		cdMetaGroup.GET("/:id", cdMetaController.GetCd)
-		cdMetaGroup.DELETE("/:id", cdMetaController.DeleteCd)
-		cdMetaGroup.POST("", cdMetaController.CreateCd)
-		cdMetaGroup.PUT("/:id", cdMetaController.UpdateCd)
-	}
-}
+	componentDefinitionDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
+	componentDefinitionProvider := metaprovider.NewK8sCrdCmpdProvider(componentDefinitionDbAccess)
 
-// buildAddonMetaRouter addon 元数据管理路由构建
-func buildAddonMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
+	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
+	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
+
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
+	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
+
+	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
+	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
+
+	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
+	helmRepoProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
+
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
-	addonMetaController := metacontroller.NewAddonController(addonMetaProvider)
-	addonMetaGroup := metaRouter.Group("/metadata/addon")
-	{
-		addonMetaGroup.GET("", addonMetaController.ListAddons)
-		addonMetaGroup.GET("/:id", addonMetaController.GetAddon)
-		addonMetaGroup.DELETE("/:id", addonMetaController.DeleteAddon)
-		addonMetaGroup.POST("", addonMetaController.CreateAddon)
-		addonMetaGroup.PUT("/:id", addonMetaController.UpdateAddon)
-	}
+
+	return &CoreAPIProviders{
+		ClusterMetaProvider:         clusterMetaProvider,
+		ClusterDefinitionProvider:   clusterDefinitionProvider,
+		ComponentMetaProvider:       componentMetaProvider,
+		ComponentDefinitionProvider: componentDefinitionProvider,
+		ComponentVersionProvider:    componentVersionProvider,
+		ClusterConfigProvider:       k8sClusterConfigProvider,
+		RequestRecordProvider:       requestRecordProvider,
+		ClusterReleaseProvider:      clusterReleaseProvider,
+		HelmRepoProvider:            helmRepoProvider,
+		AddonMetaProvider:           addonMetaProvider,
+	}, nil
 }
 
-// buildOperationMetaRouter operation definition 管理路由构建
-func buildOperationMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	metaDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewOperationDefinitionProvider(metaDbAccess)
-	metaController := metacontroller.NewOperationDefinitionController(metaProvider)
-	addonMetaGroup := metaRouter.Group("/operation_definition")
-	{
-		addonMetaGroup.GET("", metaController.ListOperationDefinitions)
-		addonMetaGroup.POST("", metaController.CreateOperationDefinition)
-	}
-}
-
-// buildClusterOpMetaRouter cluster operation 管理路由构建
-func buildClusterOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	clusterOpDbAccess := metadbaccess.NewClusterOperationDbAccess(db)
-	opDefDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewClusterOperationProvider(clusterOpDbAccess, opDefDbAccess)
-	metaController := metacontroller.NewClusterOperationController(metaProvider)
-	addonMetaGroup := metaRouter.Group("/cluster_operation")
-	{
-		addonMetaGroup.GET("", metaController.ListClusterOperations)
-		addonMetaGroup.POST("", metaController.CreateClusterOperation)
-	}
-}
-
-// buildComponentOpMetaRouter component operation 管理路由构建
-func buildComponentOpMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	componentOpDbAccess := metadbaccess.NewComponentOperationDbAccess(db)
-	opDefDbAccess := metadbaccess.NewOperationDefinitionDbAccess(db)
-	metaProvider := metaprovider.NewComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
-	metaController := metacontroller.NewComponentOperationController(metaProvider)
-	addonMetaGroup := metaRouter.Group("/component_operation")
-	{
-		addonMetaGroup.GET("", metaController.ListComponentOperations)
-		addonMetaGroup.POST("", metaController.CreateComponentOperation)
-	}
-}
-
-// buildClusterHelmRepoMetaRouter Helm repository 管理路由构建
-func buildClusterHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	dbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
-	metaProvider := metaprovider.NewAddonClusterHelmRepoProvider(dbAccess)
-	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
-	repoMetaGroup := metaRouter.Group("/addoncluster_helm_repo")
-	{
-		repoMetaGroup.GET("", metaController.GetClusterHelmRepoByID)
-		repoMetaGroup.POST("", metaController.CreateClusterHelmRepo)
-	}
-}
-
-// buildAddonHelmRepoMetaRouter addon Helm repository 管理路由构建
-func buildAddonHelmRepoMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	dbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
-	metaProvider := metaprovider.NewAddonHelmRepoProvider(dbAccess)
-	metaController := metacontroller.NewAddonHelmRepoController(metaProvider)
-	repoMetaGroup := metaRouter.Group("/addon_helm_repo")
-	{
-		repoMetaGroup.GET("", metaController.GetAddonHelmRepoByID)
-		repoMetaGroup.POST("", metaController.CreateAddonHelmRepo)
-	}
-}
-
-// buildClusterRouter cluster 管理路由构建
-func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
-	clusterController := initClusterController(db)
-	clusterGroup := router.Group(basePath + "/cluster")
-	{
-
-		clusterGroup.POST("/create", clusterController.CreateCluster)
-		clusterGroup.POST("/update", clusterController.UpdateCluster)
-		clusterGroup.POST("/delete", clusterController.DeleteCluster)
-		clusterGroup.POST("/describe", clusterController.DescribeCluster)
-		clusterGroup.POST("/status", clusterController.GetClusterStatus)
-
-	}
-
-	componentGroup := router.Group(basePath + "/component")
-	{
-		componentGroup.POST("/describe", clusterController.DescribeComponent)
-	}
-
-	opsRequestGroup := router.Group(basePath + "/opsRequest")
-	{
-		opsRequestGroup.POST("/vscaling", clusterController.VerticalScaling)
-		opsRequestGroup.POST("/hscaling", clusterController.HorizontalScaling)
-		opsRequestGroup.POST("/start", clusterController.StartCluster)
-		opsRequestGroup.POST("/stop", clusterController.StopCluster)
-		opsRequestGroup.POST("/restart", clusterController.RestartCluster)
-		opsRequestGroup.POST("/upgrade", clusterController.UpgradeCluster)
-		opsRequestGroup.POST("/vexpansion", clusterController.VolumeExpansion)
-		opsRequestGroup.POST("/expose", clusterController.ExposeCluster)
-		opsRequestGroup.POST("/describe", clusterController.DescribeOpsRequest)
-		opsRequestGroup.POST("/status", clusterController.GetOpsRequestStatus)
-	}
-}
-
-// buildK8sClusterRouter k8s集群管理路由构建
-func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
-	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
-
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-
-	k8cClusterProvider := provider.NewK8sProvider(requestRecordProvider, k8sClusterConfigProvider)
-
-	k8sClusterController := controller.NewK8sController(k8cClusterProvider)
-	k8sClusterGroup := router.Group(basePath + "/k8s_cluster")
-	{
-		k8sClusterGroup.POST("/namespace", k8sClusterController.CreateNamespace)
-	}
-}
-
-// buildAddonRouter 存储插件管理路由构建
-func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
-	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
-
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-
-	addonHelmRepoDbAccess := metadbaccess.NewAddonHelmRepoDbAccess(db)
-	addonHelmRepoProvider := metaprovider.NewAddonHelmRepoProvider(addonHelmRepoDbAccess)
-
-	addonProvider := provider.NewAddonProvider(requestRecordProvider, k8sClusterConfigProvider, addonHelmRepoProvider)
-
-	addonController := controller.NewAddonController(addonProvider)
-	addonGroup := router.Group(basePath + "/addon")
-	{
-		addonGroup.POST("/deploy", addonController.DeployAddon)
-	}
-}
-
-// buildService 总路由规则构建
-func buildService(db *gorm.DB) (*provider.ClusterProvider, *provider.OpsRequestProvider) {
-	clusterDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
-	componentDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
-	componentDefinitionDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
-	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
-	opsReqDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
-	clusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
-	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
-
-	clusterProvider := metaprovider.NewK8sCrdClusterProvider(clusterDbAccess)
-	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
-	componentProvider := metaprovider.NewK8sCrdComponentProvider(componentDbAccess)
-	componentDefinitionProvider := metaprovider.NewK8sCrdCmpdProvider(componentDefinitionDbAccess)
-	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
-	opsReqProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsReqDbAccess)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
-	clusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(clusterReleaseDbAccess)
-	helmRepoMetaProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
-
-	clusterService, err := provider.NewClusterProviderBuilder().
-		WithClusterMetaProvider(clusterProvider).
-		WithComponentMetaProvider(componentProvider).
-		WithCdMetaProvider(clusterDefinitionProvider).
-		WithCmpdMetaProvider(componentDefinitionProvider).
-		WithCmpvMetaProvider(componentVersionProvider).
-		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
-		WithReqRecordProvider(requestRecordProvider).
-		WithClusterHelmRepoProvider(helmRepoMetaProvider).
-		WithReleaseMetaProvider(clusterReleaseProvider).Build()
+// BuildClusterProvider 构建 ClusterProvider
+func BuildClusterProvider(db *gorm.DB) *provider.ClusterProvider {
+	coreAPIProviders, err := buildCoreAPIProviders(db)
 	if err != nil {
-		slog.Error("build cluster provider error", "error", err.Error())
+		slog.Error("build common providers error", "error", err)
 		panic(err)
 	}
+
+	clusterProvider, err := provider.NewClusterProviderBuilder().
+		WithClusterMetaProvider(coreAPIProviders.ClusterMetaProvider).
+		WithComponentMetaProvider(coreAPIProviders.ComponentMetaProvider).
+		WithCdMetaProvider(coreAPIProviders.ClusterDefinitionProvider).
+		WithCmpdMetaProvider(coreAPIProviders.ComponentDefinitionProvider).
+		WithCmpvMetaProvider(coreAPIProviders.ComponentVersionProvider).
+		WithClusterConfigMetaProvider(coreAPIProviders.ClusterConfigProvider).
+		WithReqRecordProvider(coreAPIProviders.RequestRecordProvider).
+		WithClusterHelmRepoProvider(coreAPIProviders.HelmRepoProvider).
+		WithReleaseMetaProvider(coreAPIProviders.ClusterReleaseProvider).
+		WithAddonMetaProvider(coreAPIProviders.AddonMetaProvider).
+		Build()
+	if err != nil {
+		slog.Error("build cluster provider error", "error", err)
+		panic(err)
+	}
+	return clusterProvider
+}
+
+// BuildOpsRequestProvider 构建 OpsRequestProvider
+func BuildOpsRequestProvider(db *gorm.DB, clusterProvider *provider.ClusterProvider) *provider.OpsRequestProvider {
+	coreAPIProviders, err := buildCoreAPIProviders(db)
+	if err != nil {
+		slog.Error("build common providers error", "error", err)
+		panic(err)
+	}
+
+	opsRequestMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
 
 	opsReqService, err := provider.NewOpsReqProviderBuilder().
-		WithopsRequestMetaProvider(opsReqProvider).
-		WithClusterMetaProvider(clusterProvider).
-		WithClusterConfigMetaProvider(k8sClusterConfigProvider).
-		WithReqRecordProvider(requestRecordProvider).
-		WithReleaseMetaProvider(clusterReleaseProvider).
-		WithClusterProvider(clusterService).Build()
+		WithopsRequestMetaProvider(opsRequestMetaProvider).
+		WithClusterMetaProvider(coreAPIProviders.ClusterMetaProvider).
+		WithClusterConfigMetaProvider(coreAPIProviders.ClusterConfigProvider).
+		WithReqRecordProvider(coreAPIProviders.RequestRecordProvider).
+		WithReleaseMetaProvider(coreAPIProviders.ClusterReleaseProvider).
+		WithClusterProvider(clusterProvider).Build()
 	if err != nil {
-		slog.Error("build ops request provider error", "error", err.Error())
+		slog.Error("build ops request provider error", "error", err)
 		panic(err)
 	}
 
-	return clusterService, opsReqService
-}
-
-// initClusterController 初始化 ClusterController
-func initClusterController(db *gorm.DB) *controller.ClusterController {
-	return controller.NewClusterController(buildService(db))
+	return opsReqService
 }

@@ -22,9 +22,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import ClusterTab from '@components/cluster-tab/Index.vue';
+  import { ClusterTypes } from '@common/const';
 
-  import { ClusterTypes } from '@/common/const';
+  import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import Content from './components/Content.vue';
 

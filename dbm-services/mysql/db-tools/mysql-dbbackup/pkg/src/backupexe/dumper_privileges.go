@@ -38,7 +38,7 @@ type DumperGrant struct {
 	backupEndTime   time.Time
 }
 
-func (d *DumperGrant) initConfig(mysqlVerStr string) error {
+func (d *DumperGrant) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if d.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}

@@ -1,7 +1,7 @@
 export MYSQL_HOST="localhost"
 export MYSQL_PORT=3306
 export MYSQL_USER="root"
-export MYSQL_PASSWORD="root"
+export MYSQL_PASSWORD="TestPwd123"
 export MYSQL_DBNAME="bkbase_dbs"
 export MYSQL_TLSMODE=false
 export MYSQL_MAX_OPEN_CONN=10

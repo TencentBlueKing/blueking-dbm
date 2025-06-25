@@ -116,7 +116,7 @@
 
 <style lang="less">
   .cluster-tag-list-box {
-    display: flex;
+    display: inline-flex;
     align-items: center;
 
     &:hover {

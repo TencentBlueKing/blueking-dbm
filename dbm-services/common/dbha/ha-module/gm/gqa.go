@@ -1,7 +1,11 @@
 package gm
 
 import (
+	"dbm-services/common/dbha/ha-module/util"
+	"dbm-services/common/dbha/hadb-api/model"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
@@ -81,6 +85,11 @@ func (gqa *GQA) PreProcess(instance DoubleCheckInstanceInfo) []dbutil.DataBaseSw
 		gqa.HaDBClient.ReportHaLogRough(gqa.Conf.GMConf.LocalIP, instance.db.GetApp(), ip, port, "gqa", errInfo)
 		return nil
 	}
+	if len(cmdbInfos) == 0 {
+		log.Logger.Debugf("gqa get instance nil")
+		return nil
+	}
+
 	return cmdbInfos
 }
 
@@ -92,26 +101,66 @@ func (gqa *GQA) PushInstance2Next(ins dbutil.DataBaseSwitch) {
 
 // Process decide whether instance allow next switch
 func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
-	gmIP := gqa.Conf.GMConf.LocalIP
-	if nil == cmdbInfos {
-		log.Logger.Debugf("no instance neeed to process, skip")
+	if len(cmdbInfos) == 0 {
+		log.Logger.Debugf("no instance needed to process, skip")
 		return
 	}
 
-	for _, instanceInfo := range cmdbInfos {
-		ip, port := instanceInfo.GetAddress()
-		log.Logger.Infof("gqa handle instance. ip:%s, port:%d", ip, port)
+	var (
+		masterCheckFailed atomic.Bool
+		checkResults      sync.Map
+		masterWg          sync.WaitGroup
+	)
 
-		if instanceInfo.GetStatus() != constvar.RUNNING && instanceInfo.GetStatus() != constvar.AVAILABLE {
-			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
-				fmt.Sprintf("status:%s not equal RUNNING or AVAILABLE", instanceInfo.GetStatus()))
-			continue
+	log.Logger.Debugf("gqa process instance")
+	for _, instance := range cmdbInfos {
+		log.Logger.Infof("insert ha_switch_queue. info:{%s}", instance.ShowSwitchInstanceInfo())
+		err := gqa.InsertSwitchQueue(instance)
+		if err != nil {
+			switchFail := "insert switch queue failed. err:" + err.Error()
+			log.Logger.Errorf("%s, info{%s}", err.Error(), instance.ShowSwitchInstanceInfo())
+			monitor.MonitorSendSwitch(instance, switchFail, false)
+			return
 		}
 
-		// query instance and proxy info
+		if instance.GetRole() == constvar.TenDBClusterStorageMaster {
+			masterWg.Add(1)
+			go func(ins dbutil.DataBaseSwitch) {
+				defer masterWg.Done()
+				ip, port := ins.GetAddress()
+				log.Logger.Infof("gqa check tendbcluster storage. ip:%s, port:%d", ip, port)
+				ok, err := ins.CheckSwitch()
+				if !ok {
+					checkResults.Store(ins, err)
+					gqa.HaDBClient.ReportHaLogRough(gqa.Conf.GMConf.LocalIP, instance.GetApp(), ip, port,
+						"gqa", err.Error())
+					masterCheckFailed.Store(true)
+				}
+			}(instance)
+		}
+	}
+	masterWg.Wait()
+
+	failed := masterCheckFailed.Load()
+	if failed {
+		log.Logger.Errorf("not all instances pre-check ok")
+	}
+
+	for _, instance := range cmdbInfos {
+		ip, port := instance.GetAddress()
+		if instance.GetRole() == constvar.TenDBClusterStorageMaster {
+			if err, ok := checkResults.Load(instance); ok && err != nil {
+				instance.SetInfo(constvar.GQACheckKey, err)
+			} else if failed {
+				instance.SetInfo(constvar.GQACheckKey,
+					fmt.Errorf("other instances under this ip not satisfy switch"))
+			}
+		}
+
+		log.Logger.Infof("gqa handle instance. ip:%s, port:%d", ip, port)
 		log.Logger.Infof("start switch. ip:%s, port:%d, cluster_Type:%s, app:%s",
-			ip, port, instanceInfo.GetClusterType(), instanceInfo.GetApp())
-		gqa.PushInstance2Next(instanceInfo)
+			ip, port, instance.GetClusterType(), instance.GetApp())
+		gqa.PushInstance2Next(instance)
 	}
 }
 
@@ -171,5 +220,53 @@ func (gqa *GQA) delaySwitch(instance dbutil.DataBaseSwitch) error {
 	// 	return err
 	// }
 	gqa.gdm.InstanceSwitchDone(ip, port, instance.GetClusterType())
+	return nil
+}
+
+// InsertSwitchQueue insert switch info to ha_switch_queue
+func (gqa *GQA) InsertSwitchQueue(instance dbutil.DataBaseSwitch) error {
+	log.Logger.Debugf("switch instance info:%#v", instance)
+	ip, port := instance.GetAddress()
+	confirmTime := time.Now()
+	if ok, value := instance.GetInfo(constvar.DoubleCheckTimeKey); ok {
+		if t, ok := value.(time.Time); ok {
+			confirmTime = t
+		}
+	}
+	doubleCheckInfo := "unknown"
+	if ok, value := instance.GetInfo(constvar.DoubleCheckInfoKey); ok {
+		doubleCheckInfo = value.(string)
+	}
+
+	currentTime := time.Now()
+	req := &client.SwitchQueueRequest{
+		DBCloudToken: gqa.Conf.DBConf.HADB.BKConf.BkToken,
+		BKCloudID:    gqa.Conf.GetCloudId(),
+		Name:         constvar.InsertSwitchQueue,
+		SetArgs: &model.HASwitchQueue{
+			CheckID:          instance.GetDoubleCheckId(),
+			IP:               ip,
+			Port:             port,
+			IdcID:            instance.GetIdcID(),
+			App:              instance.GetApp(),
+			ConfirmCheckTime: &confirmTime,
+			DbType:           instance.GetMetaType(),
+			CloudID:          gqa.Conf.GetCloudId(),
+			Cluster:          instance.GetCluster(),
+			Status:           constvar.SwitchStart,
+			SwitchStartTime:  &currentTime,
+			DbRole:           instance.GetRole(),
+			ConfirmResult:    doubleCheckInfo,
+			SwitchHashID: util.GenerateHash(fmt.Sprintf("%#%d", ip, port),
+				int64(max(300, gqa.Conf.GMConf.ReportInterval))),
+		},
+	}
+
+	uid, err := gqa.HaDBClient.InsertSwitchQueue(req)
+	if err != nil {
+		log.Logger.Errorf("insert switch queue failed. err:%s", err.Error())
+		return err
+	}
+	instance.SetSwitchUid(uid)
 	return nil
 }

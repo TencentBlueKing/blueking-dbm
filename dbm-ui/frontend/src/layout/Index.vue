@@ -33,7 +33,9 @@
       </div>
     </template>
     <template #menu>
-      <component :is="renderMenuCom" />
+      <div class="db-navigation-side-menu">
+        <component :is="renderMenuCom" />
+      </div>
     </template>
     <div class="db-navigation-content-header">
       <slot name="content-header" />
@@ -184,6 +186,7 @@
       'inspectionReportGlobal',
       'DbaManage',
       'AlarmEventsGlobal',
+      'ServiceStatus',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;

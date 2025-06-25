@@ -25,13 +25,13 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div
-        v-show="nodeInfoMap.datanode.nodeList.length > 0"
+        v-show="nodeInfoMap.datanode.oldHostList.length > 0"
         class="item">
         <div class="item-label">DataNode</div>
         <HostReplace
           ref="datanodeRef"
           v-model:host-list="nodeInfoMap.datanode.hostList"
-          v-model:node-list="nodeInfoMap.datanode.nodeList"
+          v-model:old-host-list="nodeInfoMap.datanode.oldHostList"
           v-model:resource-spec="nodeInfoMap.datanode.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -62,11 +62,9 @@
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import HdfsModel from '@services/model/hdfs/hdfs';
+  import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
   import { createTicket } from '@services/source/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -74,11 +72,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<HdfsNodeModel>;
-
   interface Props {
     data: HdfsModel;
-    nodeList: TNodeInfo['nodeList'];
+    machineList: HdfsMachineModel[];
   }
 
   interface Emits {
@@ -94,17 +90,16 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const datanodeRef = ref();
 
   const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     datanode: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         spec_id: 0,
@@ -117,28 +112,28 @@
 
   const isEmpty = computed(() => {
     const { datanode } = nodeInfoMap;
-    return datanode.nodeList.length < 1;
+    return datanode.oldHostList.length < 1;
   });
 
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const datanodeList: TNodeInfo['nodeList'] = [];
+      const datanodeList: TReplaceNode['oldHostList'] = [];
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isDataNode) {
-          datanodeList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isDataNode) {
+          datanodeList.push(machineItem);
         }
       });
 
-      nodeInfoMap.datanode.nodeList = datanodeList;
+      nodeInfoMap.datanode.oldHostList = datanodeList;
     },
     {
       immediate: true,
     },
   );
 
-  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -173,7 +168,7 @@
               }
               return Object.values(nodeInfoMap).reduce((result, nodeData) => {
                 if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.nodeList.length;
+                  return result + nodeData.oldHostList.length;
                 }
                 return result;
               }, 0);
@@ -207,7 +202,7 @@
                 }
 
                 createTicket({
-                  bk_biz_id: currentBizId,
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
                   details: {
                     cluster_id: props.data.id,
                     ip_source: 'resource_pool',

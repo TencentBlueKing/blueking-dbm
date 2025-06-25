@@ -20,10 +20,10 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -36,7 +36,7 @@ type AddonClusterHelmRepoProvider interface {
 	FindHelmRepoByID(id uint64) (*entitys.AddonClusterHelmRepoEntity, error)
 	FindByParams(params map[string]interface{}) (*entitys.AddonClusterHelmRepoEntity, error)
 	UpdateHelmRepo(entity *entitys.AddonClusterHelmRepoEntity) (uint64, error)
-	ListHelmRepos(pagination utils.Pagination) ([]entitys.AddonClusterHelmRepoEntity, error)
+	ListHelmRepos(pagination entity.Pagination) ([]entitys.AddonClusterHelmRepoEntity, error)
 }
 
 // AddonClusterHelmRepoProviderImpl AddonClusterHelmRepoProvider 具体实现
@@ -128,7 +128,7 @@ func (a *AddonClusterHelmRepoProviderImpl) UpdateHelmRepo(entity *entitys.AddonC
 }
 
 // ListHelmRepos 分页查询
-func (a *AddonClusterHelmRepoProviderImpl) ListHelmRepos(pagination utils.Pagination) (
+func (a *AddonClusterHelmRepoProviderImpl) ListHelmRepos(pagination entity.Pagination) (
 	[]entitys.AddonClusterHelmRepoEntity,
 	error,
 ) {

@@ -44,8 +44,6 @@
   import { getBuiltinLabels } from '@services/source/systemSettings';
   import { listTag } from '@services/source/tag';
 
-  import type { ClusterModel, ISupportClusterType } from '@views/db-manage/common/cluster-table-column/types';
-
   import KeyValueMode from './components/key-value-mode/Index.vue';
   import TextMode from './components/TextMode.vue';
 
@@ -71,7 +69,7 @@
 
   interface Props {
     allowKeyValueEmpty?: boolean;
-    data?: ClusterModel<ISupportClusterType>['tags'];
+    data?: { id: number; key: string; value: string }[];
   }
 
   const props = withDefaults(defineProps<Props>(), {

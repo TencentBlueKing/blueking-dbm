@@ -669,6 +669,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
             "domain": build_q_for_domain_by_instance(query_params),
             "instance": build_q_for_instance_filter(query_params),
+            "version": Q(version__in=query_params.get("version", "").split(",")),
         }
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)

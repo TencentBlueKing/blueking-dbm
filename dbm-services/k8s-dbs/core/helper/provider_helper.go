@@ -22,7 +22,7 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
-	"k8s-dbs/common/utils"
+	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	metaprovider "k8s-dbs/metadata/provider"
 	providerentity "k8s-dbs/metadata/provider/entity"
@@ -50,7 +50,7 @@ func CreateRequestRecord(
 	}
 
 	requestRecord := &providerentity.ClusterRequestRecordEntity{
-		RequestID:     utils.RequestID(),
+		RequestID:     util.RequestID(),
 		RequestType:   requestType,
 		RequestParams: string(serializedRequest),
 	}

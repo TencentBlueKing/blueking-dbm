@@ -2,14 +2,14 @@ package mysql
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
-
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -95,6 +95,12 @@ func (c *PtTableChecksumComp) Precheck() (err error) {
 		}
 	}
 
+	err = c.checkSlaveStatus()
+	if err != nil {
+		logger.Error("slave status check failed: %s", err.Error())
+		return err
+	}
+
 	c.tools, err = tools.NewToolSetWithPick(tools.ToolMysqlTableChecksum, tools.ToolPtTableChecksum)
 	if err != nil {
 		logger.Error("init toolset failed: %s", err.Error())
@@ -174,8 +180,52 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 	return nil
 }
 
-// DoChecksum 执行校验
 func (c *PtTableChecksumComp) DoChecksum() (err error) {
+	errCh1 := make(chan error)
+	errCh2 := make(chan error)
+	doneCh := make(chan bool)
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-doneCh:
+				return
+			case <-ticker.C:
+				err := c.checkSlaveStatus()
+				if err != nil {
+					errCh1 <- err
+				}
+			}
+		}
+	}()
+
+	time.Sleep(6 * time.Second) // 稍微暂停下, 确保检查循环真的起来了
+
+	go func() {
+		errCh2 <- c.doChecksum()
+	}()
+
+	for {
+		select {
+		case err := <-errCh1:
+			logger.Error("slave status check failed: %s", err.Error())
+			doneCh <- true
+			return err
+		case err := <-errCh2:
+			doneCh <- true
+			if err != nil {
+				logger.Error("pt table checksum check failed: %s", err.Error())
+				return err
+			}
+			return nil
+		default:
+		}
+	}
+}
+
+// DoChecksum 执行校验
+func (c *PtTableChecksumComp) doChecksum() (err error) {
 	mysqlTableChecksumPath, err := c.tools.Get(tools.ToolMysqlTableChecksum)
 	if err != nil {
 		logger.Error("get %s failed: %s", tools.ToolMysqlTableChecksum, err.Error())
@@ -200,6 +250,36 @@ func (c *PtTableChecksumComp) DoChecksum() (err error) {
 	}
 
 	fmt.Println(components.WrapperOutputString(strings.TrimSpace(stdout.String())))
+	return nil
+}
+
+func (c *PtTableChecksumComp) checkSlaveStatus() (err error) {
+	for _, slave := range c.Params.Slaves {
+		db, err := native.InsObject{
+			Host: slave.Ip,
+			Port: slave.Port,
+			User: c.Params.MasterAccessSlaveUser,
+			Pwd:  c.Params.MasterAccessSlavePassword,
+		}.Conn()
+		if err != nil {
+			return err
+		}
+
+		slaveStatus, err := db.ShowSlaveStatus()
+		if err != nil {
+			return err
+		}
+
+		if !slaveStatus.ReplSyncIsOk() {
+			return fmt.Errorf(
+				"[%s:%d] replication status is abnormal ,IO Thread: %s,SQL Thread:%s",
+				slave.Ip,
+				slave.Port,
+				slaveStatus.SlaveIORunning,
+				slaveStatus.SlaveSQLRunning,
+			)
+		}
+	}
 	return nil
 }
 

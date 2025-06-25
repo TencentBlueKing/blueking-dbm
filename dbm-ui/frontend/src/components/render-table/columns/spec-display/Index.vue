@@ -42,7 +42,7 @@
   import SpecPanel from './Panel.vue';
 
   interface Props {
-    data?: {
+    data: {
       count?: number;
       cpu: {
         max: number;
@@ -70,8 +70,7 @@
     placeholder?: string;
   }
 
-  withDefaults(defineProps<Props>(), {
-    data: undefined,
+  const props = withDefaults(defineProps<Props>(), {
     hideQps: true,
     isIgnoreCounts: false,
     isLoading: false,

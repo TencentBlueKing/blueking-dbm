@@ -22,7 +22,13 @@
 <script setup lang="ts">
   interface Props {
     currentValue: number;
+    /**
+     * 单位
+     */
     numUnit?: string;
+    /**
+     * 是否展示百分数
+     */
     showRate?: boolean;
     targetValue: number;
   }
@@ -35,11 +41,12 @@
   const diffInfo = computed(() => {
     const { currentValue, showRate, targetValue } = props;
 
-    const diff = targetValue - currentValue;
+    const diff = Number(Math.round(targetValue - currentValue).toFixed(2));
     let rate = '0';
     if (diff !== 0 && currentValue > 0 && showRate) {
-      rate = ((diff / currentValue) * 100).toFixed(2);
+      rate = Math.round((diff / currentValue) * 100).toFixed(2);
     }
+    // 负数
     if (diff < 0) {
       return {
         isPositive: false,
@@ -47,6 +54,7 @@
         rate,
       };
     }
+    // 非负数
     return {
       isPositive: true,
       num: `+${diff}`,

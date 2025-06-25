@@ -37,6 +37,11 @@ type SpiderStorageSwitch struct {
 // CheckSwitch check slave before switch
 func (ins *SpiderStorageSwitch) CheckSwitch() (bool, error) {
 	var err error
+
+	if ins.GetStatus() != constvar.RUNNING && ins.GetStatus() != constvar.AVAILABLE {
+		return false, fmt.Errorf("instance status is %s, not equal RUNNING or AVAILABLE", ins.GetStatus())
+	}
+
 	if ins.Role == constvar.TenDBClusterStorageSlave {
 		ins.ReportLogs(constvar.InfoResult, "instance is slave, skip switch check")
 		return false, nil
@@ -46,11 +51,11 @@ func (ins *SpiderStorageSwitch) CheckSwitch() (bool, error) {
 		log.Logger.Infof("check slave status. info{%s}", ins.ShowSwitchInstanceInfo())
 		if ins.StandBySlave == (dbutil.SlaveInfo{}) {
 			ins.ReportLogs(constvar.FailResult, "no slave info found")
-			return false, err
+			return false, fmt.Errorf("no slave info found")
 		}
 		if ins.StandBySlave.Status == constvar.UNAVAILABLE {
 			ins.ReportLogs(constvar.FailResult, "standby slave's status is unavailable")
-			return false, err
+			return false, fmt.Errorf("standby slave's status is unavailable")
 		}
 		ins.SetInfo(constvar.SlaveIpKey, ins.StandBySlave.Ip)
 		ins.SetInfo(constvar.SlavePortKey, ins.StandBySlave.Port)

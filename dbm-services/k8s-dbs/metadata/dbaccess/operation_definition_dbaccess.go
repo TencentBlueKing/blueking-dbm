@@ -20,8 +20,8 @@ limitations under the License.
 package dbaccess
 
 import (
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -31,7 +31,7 @@ import (
 type OperationDefinitionDbAccess interface {
 	Create(model *models.OperationDefinitionModel) (*models.OperationDefinitionModel, error)
 	FindByID(id uint64) (*models.OperationDefinitionModel, error)
-	ListByPage(pagination utils.Pagination) ([]models.OperationDefinitionModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.OperationDefinitionModel, int64, error)
 }
 
 // OperationDefinitionDbAccessImpl OperationDefinitionDbAccess 的具体实现
@@ -69,7 +69,7 @@ func (o *OperationDefinitionDbAccessImpl) Create(model *models.OperationDefiniti
 }
 
 // ListByPage 分页查询 operation definition 元数据接口实现
-func (o *OperationDefinitionDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (o *OperationDefinitionDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.OperationDefinitionModel,
 	int64,
 	error,

@@ -23,17 +23,17 @@ import "time"
 
 // K8sClusterConfigReqVo represents the request data structure of k8sClusterConfig meta.
 type K8sClusterConfigReqVo struct {
-	ClusterName  string    `json:"cluster_name"`
-	APIServerURL string    `json:"api_server_url"`
-	CACert       string    `json:"ca_cert"`
-	ClientCert   string    `json:"client_cert"`
-	ClientKey    string    `json:"client_key"`
-	Token        string    `json:"token"`
-	Username     string    `json:"username"`
-	Password     string    `json:"password"`
+	ClusterName  string    `json:"clusterName" binding:"required"`
+	APIServerURL string    `json:"apiServerUrl" binding:"required"`
+	CACert       string    `json:"caCert" binding:"required"`
+	ClientCert   string    `json:"clientCert" binding:"required"`
+	ClientKey    string    `json:"clientKey" binding:"required"`
+	Token        string    `json:"token" binding:"required"`
+	Username     string    `json:"username" binding:"required"`
+	Password     string    `json:"password" binding:"required"`
 	Description  string    `json:"description" binding:"required"`
-	CreatedBy    string    `json:"created_by"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedBy    string    `json:"updated_by"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedBy    string    `json:"createdBy" binding:"required"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedBy    string    `json:"updatedBy"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }

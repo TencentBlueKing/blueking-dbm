@@ -33,7 +33,7 @@ class _BKBaseApi(BaseApi):
             description=_("数据上报"),
         )
 
-    def data_desensitization(self, text, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+    def data_desensitization(self, user, text, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
         """
         敏感信息识别，并把敏感信息转为*
         """
@@ -57,10 +57,12 @@ class _BKBaseApi(BaseApi):
                         # 填入可选参数，也可不填入，保持为空即按默认配置检测
                         "input_config": "1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
                         "is_masked": "yes",
-                        # 必填参数
+                        # 必填参数，暂时去掉bk_app_secret
+                        # "bk_app_secret": env.SECRET_KEY,
                         "bk_app_code": env.APP_CODE,
-                        "bk_app_secret": env.SECRET_KEY,
                         "biz_name": f"{app['bk_biz_name']}(#{app['bk_biz_id']})",
+                        # 额外参数
+                        "extra_info": {"username": user},
                     },
                 },
             }

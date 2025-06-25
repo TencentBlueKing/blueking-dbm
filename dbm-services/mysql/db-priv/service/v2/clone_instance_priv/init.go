@@ -4,6 +4,7 @@ import (
 	"dbm-services/mysql/priv-service/service"
 	"encoding/json"
 	"log/slog"
+	"os"
 )
 
 type CloneInstancePrivPara struct {
@@ -24,7 +25,7 @@ func (c *CloneInstancePrivPara) Json() string {
 }
 
 func (c *CloneInstancePrivPara) Init() {
-	c.logger = slog.Default().With(
+	c.logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: true})).With(
 		"handler", "clone instance priv v2",
 		"uid", c.Uid,
 		"node_id", c.NodeId,

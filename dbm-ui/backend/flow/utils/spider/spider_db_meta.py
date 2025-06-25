@@ -286,6 +286,9 @@ class SpiderDBMeta(object):
             #     slave_storage.status=InstanceStatus.RUNNING.value
             #     slave_storage.save()
 
+    def tendb_modify_cluster_phase(self):
+        Cluster.objects.filter(id=self.cluster["cluster_id"]).update(phase=self.cluster["cluster_phase"])
+
     def tendb_modify_storage_status(self):
         StorageInstance.objects.filter(id__in=self.cluster["storage_ids"]).update(
             status=self.cluster["storage_status"]

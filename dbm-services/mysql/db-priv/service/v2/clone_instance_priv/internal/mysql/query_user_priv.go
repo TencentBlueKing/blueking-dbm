@@ -95,17 +95,13 @@ func queryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 	)
 	if err != nil {
 		logger.Error(
-			"query mysql user priv",
-			slog.String("address", address),
-			slog.String("error", err.Error()),
+			fmt.Sprintf("query mysql user priv, address: %s, err: %s", address, err.Error()),
 		)
 		return nil, err
 	}
 	if drsRes[0].ErrorMsg != "" {
 		logger.Error(
-			"query mysql user priv",
-			slog.String("address", address),
-			slog.String("error", drsRes[0].ErrorMsg),
+			fmt.Sprintf("query mysql user priv, address: %s, err: %s", address, drsRes[0].ErrorMsg),
 		)
 		return nil, errors.New(drsRes[0].ErrorMsg)
 	}
@@ -113,10 +109,7 @@ func queryUserPriv(bkCloudId int64, address string, userList []string, withShowC
 	for _, cr := range drsRes[0].CmdResults {
 		if cr.ErrorMsg != "" {
 			logger.Error(
-				"query mysql user priv",
-				slog.String("address", address),
-				slog.String("error", cr.ErrorMsg),
-				slog.String("cmd", cr.Cmd),
+				fmt.Sprintf("query mysql user priv, address: %s,cmd: %s, err: %s", address, cr.Cmd, cr.ErrorMsg),
 			)
 			err = errors.Join(err, errors.New(cr.ErrorMsg))
 			continue

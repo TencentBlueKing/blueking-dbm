@@ -11,7 +11,7 @@ func TestParseTs(t *testing.T) {
 lastTS(1576576893 2345)
 `
 	var buf = bytes.NewBuffer([]byte(input1))
-	first, last, err := ParseTs(*buf)
+	first, last, err := ParseTs(buf)
 	if err != nil {
 		t.Errorf("first %+v second %+v err %v", first, last, err)
 	}

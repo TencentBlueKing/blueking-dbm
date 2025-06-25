@@ -237,7 +237,7 @@
       field: 'topo',
       label: t('业务模块'),
       minWidth: 200,
-      render: ({ data }: { data: RowData }) => (data.topo.length ? data.topo[0] : '--'),
+      render: ({ data }: { data: RowData }) => (data.topo && data.topo.length ? data.topo[0] : '--'),
     },
     {
       field: 'operator',
@@ -356,7 +356,7 @@
       [t('来源 IP')]: item.remote_ip,
       [t('连接数（ESTAB）')]: item.establish,
       [t('连接数（ALL）')]: item.all_connections,
-      [t('业务模块')]: item.topo[0] || '',
+      [t('业务模块')]: item.topo && item.topo.length ? item.topo[0] : '',
       [t('主要负责人')]: item.operator,
       [t('备份负责人')]: item.bak_operator,
     }));

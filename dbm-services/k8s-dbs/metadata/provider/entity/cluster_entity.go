@@ -25,16 +25,17 @@ import (
 
 // K8sCrdClusterEntity cluster entity 定义
 type K8sCrdClusterEntity struct {
-	ID                 uint64    `json:"id"`
-	AddonID            uint64    `json:"addon_id"`
-	K8sClusterConfigID uint64    `json:"k8s_cluster_config_id"`
-	RequestID          string    `json:"request_id"`
-	ClusterName        string    `json:"cluster_name"`
-	Namespace          string    `json:"namespace"`
-	Status             string    `json:"status"`
-	Description        string    `json:"description"`
-	CreatedBy          string    `json:"created_by"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedBy          string    `json:"updated_by"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID                  uint64    `json:"id"`
+	AddonID             uint64    `json:"addonId"`
+	AddonClusterVersion string    `json:"addonClusterVersion"`
+	K8sClusterConfigID  uint64    `json:"k8sClusterConfigId"`
+	RequestID           string    `json:"requestId"`
+	ClusterName         string    `json:"clusterName"`
+	Namespace           string    `json:"namespace"`
+	Status              string    `json:"status"`
+	Description         string    `json:"description"`
+	CreatedBy           string    `json:"createdBy"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedBy           string    `json:"updatedBy"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }

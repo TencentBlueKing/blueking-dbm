@@ -25,7 +25,7 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div
-        v-show="nodeInfoMap.hot.nodeList.length > 0"
+        v-show="nodeInfoMap.hot.oldHostList.length > 0"
         class="replace-item">
         <div class="item-label">
           {{ t('热节点') }}
@@ -33,7 +33,7 @@
         <HostReplace
           ref="hotRef"
           v-model:host-list="nodeInfoMap.hot.hostList"
-          v-model:node-list="nodeInfoMap.hot.nodeList"
+          v-model:old-host-list="nodeInfoMap.hot.oldHostList"
           v-model:resource-spec="nodeInfoMap.hot.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -46,7 +46,7 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.cold.nodeList.length > 0"
+        v-show="nodeInfoMap.cold.oldHostList.length > 0"
         class="replace-item">
         <div class="item-label">
           {{ t('冷节点') }}
@@ -54,7 +54,7 @@
         <HostReplace
           ref="coldRef"
           v-model:host-list="nodeInfoMap.cold.hostList"
-          v-model:node-list="nodeInfoMap.cold.nodeList"
+          v-model:old-host-list="nodeInfoMap.cold.oldHostList"
           v-model:resource-spec="nodeInfoMap.cold.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -67,7 +67,7 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.observer.nodeList.length > 0"
+        v-show="nodeInfoMap.observer.oldHostList.length > 0"
         class="replace-item">
         <div class="item-label">
           {{ t('Observer节点') }}
@@ -75,7 +75,7 @@
         <HostReplace
           ref="observerRef"
           v-model:host-list="nodeInfoMap.observer.hostList"
-          v-model:node-list="nodeInfoMap.observer.nodeList"
+          v-model:old-host-list="nodeInfoMap.observer.oldHostList"
           v-model:resource-spec="nodeInfoMap.observer.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -88,7 +88,7 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.follower.nodeList.length > 0"
+        v-show="nodeInfoMap.follower.oldHostList.length > 0"
         class="replace-item">
         <div class="item-label">
           {{ t('Follower节点') }}
@@ -96,7 +96,7 @@
         <HostReplace
           ref="followerRef"
           v-model:host-list="nodeInfoMap.follower.hostList"
-          v-model:node-list="nodeInfoMap.follower.nodeList"
+          v-model:old-host-list="nodeInfoMap.follower.oldHostList"
           v-model:resource-spec="nodeInfoMap.follower.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -130,13 +130,11 @@
   import { useI18n } from 'vue-i18n';
 
   import DorisModel from '@services/model/doris/doris';
-  import DorisNodeModel from '@services/model/doris/doris-node';
+  import DorisMachineModel from '@services/model/doris/doris-machine';
   import { createTicket } from '@services/source/ticket';
   import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -144,11 +142,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<DorisNodeModel>;
-
   interface Props {
     data: DorisModel;
-    nodeList: TNodeInfo['nodeList'];
+    machineList: DorisMachineModel[];
   }
 
   interface Emits {
@@ -164,7 +160,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>
+  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -173,11 +169,11 @@
       {} as Record<number, boolean>,
     );
 
-  const generateNodeInfo = (values: Pick<TNodeInfo, 'role' | 'specMachineType'>): TNodeInfo => ({
+  const generateNodeInfo = (values: Pick<TReplaceNode, 'role' | 'specMachineType'>): TReplaceNode => ({
     ...values,
     clusterId: props.data.id,
     hostList: [],
-    nodeList: [],
+    oldHostList: [],
     resourceSpec: {
       count: 0,
       spec_id: 0,
@@ -185,7 +181,6 @@
     specClusterType: ClusterTypes.DORIS,
   });
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -195,7 +190,7 @@
   const followerRef = ref<ComponentExposed<typeof HostReplace>>();
   const ipSource = ref('resource_pool');
 
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     cold: generateNodeInfo({
       role: 'doris_backend_cold',
       specMachineType: 'doris_backend',
@@ -217,37 +212,37 @@
   const isEmpty = computed(() => {
     const { cold, follower, hot, observer } = nodeInfoMap;
     return (
-      hot.nodeList.length < 1 &&
-      cold.nodeList.length < 1 &&
-      observer.nodeList.length < 1 &&
-      follower.nodeList.length < 1
+      hot.oldHostList.length < 1 &&
+      cold.oldHostList.length < 1 &&
+      observer.oldHostList.length < 1 &&
+      follower.oldHostList.length < 1
     );
   });
 
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const hotList: TNodeInfo['nodeList'] = [];
-      const coldList: TNodeInfo['nodeList'] = [];
-      const observerList: TNodeInfo['nodeList'] = [];
-      const followerList: TNodeInfo['nodeList'] = [];
+      const hotList: TReplaceNode['oldHostList'] = [];
+      const coldList: TReplaceNode['oldHostList'] = [];
+      const observerList: TReplaceNode['oldHostList'] = [];
+      const followerList: TReplaceNode['oldHostList'] = [];
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isHot) {
-          hotList.push(nodeItem);
-        } else if (nodeItem.isCold) {
-          coldList.push(nodeItem);
-        } else if (nodeItem.isObserver) {
-          observerList.push(nodeItem);
-        } else if (nodeItem.isFollower) {
-          followerList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isHot) {
+          hotList.push(machineItem);
+        } else if (machineItem.isCold) {
+          coldList.push(machineItem);
+        } else if (machineItem.isObserver) {
+          observerList.push(machineItem);
+        } else if (machineItem.isFollower) {
+          followerList.push(machineItem);
         }
       });
 
-      nodeInfoMap.hot.nodeList = hotList;
-      nodeInfoMap.cold.nodeList = coldList;
-      nodeInfoMap.observer.nodeList = observerList;
-      nodeInfoMap.follower.nodeList = followerList;
+      nodeInfoMap.hot.oldHostList = hotList;
+      nodeInfoMap.cold.oldHostList = coldList;
+      nodeInfoMap.observer.oldHostList = observerList;
+      nodeInfoMap.follower.oldHostList = followerList;
     },
     {
       immediate: true,
@@ -272,7 +267,7 @@
     return false;
   };
 
-  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -324,7 +319,7 @@
               }
               return Object.values(nodeInfoMap).reduce((result, nodeData) => {
                 if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.nodeList.length;
+                  return result + nodeData.oldHostList.length;
                 }
                 return result;
               }, 0);
@@ -392,7 +387,7 @@
                   });
                 }
                 createTicket({
-                  bk_biz_id: currentBizId,
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
                   details: {
                     cluster_id: props.data.id,
                     ip_source: 'resource_pool',
@@ -416,7 +411,9 @@
                   });
               },
               subTitle,
-              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+              title: t('确认替换n台节点IP', {
+                n: getReplaceNodeNums(),
+              }),
             });
           },
           () => reject('error'),

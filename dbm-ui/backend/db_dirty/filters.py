@@ -46,6 +46,7 @@ class MachineEventFilter(filters.FilterSet):
 
 
 class DirtyMachinePoolFilter(filters.FilterSet):
+    bk_host_ids = filters.CharFilter(field_name="bk_host_id", method="filter_host_ids", label=_("过滤主机ID"))
     ips = filters.CharFilter(field_name="ip", method="filter_ips", label=_("过滤IP"))
     city = filters.CharFilter(field_name="city", lookup_expr="icontains", label=_("城市"))
     sub_zone = filters.CharFilter(field_name="sub_zone", lookup_expr="icontains", label=_("园区"))
@@ -57,6 +58,9 @@ class DirtyMachinePoolFilter(filters.FilterSet):
 
     def filter_ips(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
+
+    def filter_host_ids(self, queryset, name, value):
+        return queryset.filter(bk_host_id__in=value.split(","))
 
     class Meta:
         model = DirtyMachine

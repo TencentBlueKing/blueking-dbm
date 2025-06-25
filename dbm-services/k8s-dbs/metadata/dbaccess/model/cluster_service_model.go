@@ -27,19 +27,19 @@ import (
 // K8sClusterServiceModel represents the database model of cluster service
 type K8sClusterServiceModel struct {
 	ID            uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	CrdClusterID  uint64    `gorm:"not null;column:crd_cluster_id" json:"crd_cluster_id"`
-	ComponentName string    `gorm:"type:varchar(32);not null;column:component_name" json:"component_name"`
-	ServiceName   string    `gorm:"type:varchar(32);not null;column:service_name" json:"service_name"`
-	ServiceType   string    `gorm:"type:varchar(32);not null;column:service_type" json:"service_type"`
+	CrdClusterID  uint64    `gorm:"not null;column:crd_cluster_id" json:"crdClusterId"`
+	ComponentName string    `gorm:"type:varchar(32);not null;column:component_name" json:"componentName"`
+	ServiceName   string    `gorm:"type:varchar(32);not null;column:service_name" json:"serviceName"`
+	ServiceType   string    `gorm:"type:varchar(32);not null;column:service_type" json:"serviceType"`
 	Annotations   string    `gorm:"type:varchar(512);column:annotations" json:"annotations"`
-	InternalAddrs string    `gorm:"type:varchar(255);column:internal_addrs" json:"internal_addrs"`
-	ExternalAddrs string    `gorm:"type:varchar(255);column:external_addrs" json:"external_addrs"`
+	InternalAddrs string    `gorm:"type:varchar(255);column:internal_addrs" json:"internalAddrs"`
+	ExternalAddrs string    `gorm:"type:varchar(255);column:external_addrs" json:"externalAddrs"`
 	Domains       string    `gorm:"type:varchar(255);column:domains" json:"domains"`
 	Description   string    `gorm:"size:100;column:description" json:"description"`
-	CreatedBy     string    `gorm:"size:50;not null;column:created_by" json:"created_by"`
-	CreatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"created_at"` //nolint:lll
-	UpdatedBy     string    `gorm:"size:50;not null;column:updated_by" json:"updated_by"`
-	UpdatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updated_at"` //nolint:lll
+	CreatedBy     string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy     string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt     time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

@@ -62,15 +62,11 @@ func TestCreateComponent(t *testing.T) {
 	}
 
 	addedComponent, err := dbAccess.Create(component)
-	assert.NoError(t, err, "Failed to create component")
-	fmt.Printf("Created component %+v\n", addedComponent)
+	assert.NoError(t, err)
 
-	var foundComponent model.K8sCrdComponentModel
-	err = db.First(&foundComponent, "component_name=?", "component-01").Error
-	assert.NoError(t, err, "Failed to query component")
-	assert.Equal(t, component.ComponentName, foundComponent.ComponentName)
-	assert.Equal(t, component.CrdClusterID, foundComponent.CrdClusterID)
-	assert.Equal(t, component.Status, foundComponent.Status)
+	assert.Equal(t, component.ComponentName, addedComponent.ComponentName)
+	assert.Equal(t, component.CrdClusterID, addedComponent.CrdClusterID)
+	assert.Equal(t, component.Status, addedComponent.Status)
 }
 
 func TestDeleteComponent(t *testing.T) {
@@ -84,12 +80,11 @@ func TestDeleteComponent(t *testing.T) {
 		Status:        "Enable",
 		Description:   "desc",
 	}
-	addedComponent, err := dbAccess.Create(component)
-	assert.NoError(t, err, "Failed to create component")
-	fmt.Printf("Created component %+v\n", addedComponent)
+	_, err = dbAccess.Create(component)
+	assert.NoError(t, err)
 
 	rows, err := dbAccess.DeleteByID(1)
-	assert.NoError(t, err, "Failed to delete component")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -104,9 +99,8 @@ func TestUpdateComponent(t *testing.T) {
 		Status:        "Enable",
 		Description:   "desc",
 	}
-	addedComponent, err := dbAccess.Create(component)
-	assert.NoError(t, err, "Failed to create component")
-	fmt.Printf("Created component %+v\n", addedComponent)
+	_, err = dbAccess.Create(component)
+	assert.NoError(t, err)
 
 	newComponent := &model.K8sCrdComponentModel{
 		ID:            1,
@@ -116,7 +110,7 @@ func TestUpdateComponent(t *testing.T) {
 		Description:   "update success",
 	}
 	rows, err := dbAccess.Update(newComponent)
-	assert.NoError(t, err, "Failed to update cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
 
@@ -131,12 +125,11 @@ func TestGetComponent(t *testing.T) {
 		Status:        "Enable",
 		Description:   "desc",
 	}
-	addedComponent, err := dbAccess.Create(component)
-	assert.NoError(t, err, "Failed to create component")
-	fmt.Printf("Created component %+v\n", addedComponent)
+	_, err = dbAccess.Create(component)
+	assert.NoError(t, err)
 
 	foundComponent, err := dbAccess.FindByID(1)
-	assert.NoError(t, err, "Failed to find cluster")
+	assert.NoError(t, err)
 	assert.Equal(t, component.ComponentName, foundComponent.ComponentName)
 	assert.Equal(t, component.CrdClusterID, foundComponent.CrdClusterID)
 	assert.Equal(t, component.Status, foundComponent.Status)

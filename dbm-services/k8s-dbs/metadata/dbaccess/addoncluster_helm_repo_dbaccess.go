@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"errors"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ type AddonClusterHelmRepoDbAccess interface {
 	FindByID(id uint64) (*models.AddonClusterHelmRepoModel, error)
 	FindByParams(params map[string]interface{}) (*models.AddonClusterHelmRepoModel, error)
 	Update(model *models.AddonClusterHelmRepoModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.AddonClusterHelmRepoModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.AddonClusterHelmRepoModel, int64, error)
 }
 
 // AddonClusterHelmRepoDbAccessImpl AddonClusterHelmRepoDbAccess 的具体实现
@@ -45,19 +45,14 @@ type AddonClusterHelmRepoDbAccessImpl struct {
 
 // Create 创建接口实现
 func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *models.AddonClusterHelmRepoModel) (
-	*models.AddonClusterHelmRepoModel, error,
+	*models.AddonClusterHelmRepoModel,
+	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
 		slog.Error("Create model error", "error", err)
 		return nil, err
 	}
-	var addedModel models.AddonClusterHelmRepoModel
-	if err := a.db.First(&addedModel, "chart_name = ? and chart_version = ? and repo_name = ?",
-		model.ChartName, model.ChartVersion, model.RepoName).Error; err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // DeleteByID 删除接口实现
@@ -114,7 +109,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) Update(model *models.AddonClusterHelm
 }
 
 // ListByPage 分页查询接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.AddonClusterHelmRepoModel,
 	int64,
 	error,

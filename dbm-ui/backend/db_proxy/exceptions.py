@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from backend.exceptions import AppBaseException
+from backend.exceptions import AppBaseException, ErrorCode
 
 
 class ProxyPassBaseException(AppBaseException):
-    MODULE_CODE = "31"
+    MODULE_CODE = ErrorCode.PROXY_PASS_CODE

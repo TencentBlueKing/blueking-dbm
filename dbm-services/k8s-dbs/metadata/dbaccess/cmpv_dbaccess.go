@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	"fmt"
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ type K8sCrdCmpvDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdComponentVersionModel, error)
 	Update(model *models.K8sCrdComponentVersionModel) (uint64, error)
-	ListByPage(pagination utils.Pagination) ([]models.K8sCrdComponentVersionModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.K8sCrdComponentVersionModel, int64, error)
 }
 
 // K8sCrdComponentVersionDbAccessImpl K8sCrdCmpvDbAccess 的具体实现
@@ -90,7 +90,7 @@ func (k *K8sCrdComponentVersionDbAccessImpl) Update(cmpvModel *models.K8sCrdComp
 }
 
 // ListByPage 分页查询元数据接口实现
-func (k *K8sCrdComponentVersionDbAccessImpl) ListByPage(_ utils.Pagination) (
+func (k *K8sCrdComponentVersionDbAccessImpl) ListByPage(_ entity.Pagination) (
 	[]models.K8sCrdComponentVersionModel,
 	int64,
 	error,

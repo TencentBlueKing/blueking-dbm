@@ -16,21 +16,25 @@ from rest_framework.response import Response
 from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_monitor.models import Dashboard
-from backend.db_monitor.serializers import DashboardUrlSerializer, GetDashboardSerializer
-from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
+from backend.db_monitor.serializers import (
+    DashboardUrlSerializer,
+    GetBusinessDashboardSerializer,
+    GetDashboardSerializer,
+)
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 
 from .. import constants
+from ..constants import DashboardType
 
 
 class MonitorGrafanaViewSet(viewsets.SystemViewSet):
-    def _get_custom_permissions(self):
-        if self.action == "get_dashboard":
-            if self.request.query_params["cluster_type"] == ClusterType.Influxdb:
-                return [InstanceDetailPermission()]
-            else:
-                return [ClusterDetailPermission()]
+
+    action_permission_map = {
+        ("get_dashboard",): [ClusterDetailPermission()],
+        ("get_business_dashboard",): [DBManagePermission()],
+    }
 
     @common_swagger_auto_schema(
         operation_summary=_("查询内嵌仪表盘地址"),
@@ -48,9 +52,36 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
 
         # instance = StorageInstance.objects.filter(id=instance_id).last()
 
-        dashes = Dashboard.objects.filter(org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type)
+        dashes = Dashboard.objects.filter(
+            org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type, type=DashboardType.CLUSTER
+        )
         if dashes.exists():
             dash_urls = [{"view": dash.view, "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
+            url = dash_urls[0]["url"]
+        else:
+            dash_urls, url = [], "#"
+
+        return Response({"url": url, "urls": dash_urls})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询业务仪表盘地址"),
+        query_serializer=GetBusinessDashboardSerializer,
+        responses={status.HTTP_200_OK: DashboardUrlSerializer},
+        tags=[constants.SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetBusinessDashboardSerializer, pagination_class=None)
+    def get_business_dashboard(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_biz_id = validated_data.get("bk_biz_id")
+        dashes = Dashboard.objects.filter(
+            org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, type=DashboardType.BUSINESS
+        )
+
+        if dashes.exists():
+            dash_urls = [
+                {"view": dash.view, "url": dash.get_business_url(bk_biz_id), "db_type": dash.db_type}
+                for dash in dashes
+            ]
             url = dash_urls[0]["url"]
         else:
             dash_urls, url = [], "#"

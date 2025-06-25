@@ -11,16 +11,18 @@ specific language governing permissions and limitations under the License.
 import gzip
 import io
 import json
+from collections import defaultdict
 from dataclasses import asdict
 
 from django.db import models
+from django.db.models import Q
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
 from backend.components.hcm.client import HCMApi
-from backend.constants import CommonHostDBMeta
+from backend.constants import CommonHostDBMeta, MongoDBHostDBMeta
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.exceptions import HostDoseNotExistInCmdbException
 from backend.db_meta.models import AppCache, BKCity
@@ -68,6 +70,7 @@ class Machine(AuditedModel):
         storages = self.storageinstance_set.order_by("-create_at").all()
 
         host_labels = []
+        context = defaultdict(dict)
 
         def compress_dbm_meta_content(dbm_meta: dict) -> str:
             """
@@ -83,6 +86,16 @@ class Machine(AuditedModel):
             # 将压缩后的字节转换为Base64编码的字符串
             base64_encoded_str = base64_encode(compressed_data)
             return base64_encoded_str
+
+        def dbm_meta_label_context(ctx):
+            from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+
+            # 提前查询一些上下文，用于标签信息补充
+            if self.cluster_type == ClusterType.MongoShardedCluster:
+                __, shard_map = MongoDBListRetrieveResource.query_storage_shard(Q(machine__bk_host_id=self.bk_host_id))
+                ctx.update(shard_map=shard_map)
+
+        dbm_meta_label_context(context)
 
         for proxy in proxies:
             for cluster in proxy.cluster.all():
@@ -123,19 +136,21 @@ class Machine(AuditedModel):
                 continue
 
             for cluster in storage.cluster.all():
-                host_labels.append(
-                    asdict(
-                        CommonHostDBMeta(
-                            app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                            appid=str(cluster.bk_biz_id),
-                            cluster_domain=cluster.immute_domain,
-                            cluster_type=cluster.cluster_type,
-                            db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-                            instance_role=storage.instance_role,
-                            instance_port=str(storage.port),
-                        )
+                common_label = asdict(
+                    CommonHostDBMeta(
+                        app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
+                        appid=str(cluster.bk_biz_id),
+                        cluster_domain=cluster.immute_domain,
+                        cluster_type=cluster.cluster_type,
+                        db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+                        instance_role=storage.instance_role,
+                        instance_port=str(storage.port),
                     )
                 )
+                if storage.cluster_type == ClusterType.MongoShardedCluster:
+                    mongodb_label = asdict(MongoDBHostDBMeta(shard=context["shard_map"].get(storage.id)))
+                    common_label.update(mongodb_label)
+                host_labels.append(common_label)
 
         return {"version": "v2", "content": compress_dbm_meta_content({"common": {}, "custom": host_labels})}
 

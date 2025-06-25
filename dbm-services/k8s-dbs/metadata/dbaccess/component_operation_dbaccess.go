@@ -20,8 +20,8 @@ limitations under the License.
 package dbaccess
 
 import (
+	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"k8s-dbs/metadata/utils"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -30,7 +30,7 @@ import (
 // ComponentOperationDbAccess 定义 component operation 元数据的数据库访问接口
 type ComponentOperationDbAccess interface {
 	Create(model *models.ComponentOperationModel) (*models.ComponentOperationModel, error)
-	ListByPage(pagination utils.Pagination) ([]models.ComponentOperationModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]models.ComponentOperationModel, int64, error)
 }
 
 // ComponentOperationDbAccessImpl ComponentOperationDbAccess 的具体实现
@@ -60,7 +60,7 @@ func (c *ComponentOperationDbAccessImpl) Create(model *models.ComponentOperation
 }
 
 // ListByPage 分页查询 component operation 元数据接口实现
-func (c *ComponentOperationDbAccessImpl) ListByPage(pagination utils.Pagination) (
+func (c *ComponentOperationDbAccessImpl) ListByPage(pagination entity.Pagination) (
 	[]models.ComponentOperationModel,
 	int64,
 	error,

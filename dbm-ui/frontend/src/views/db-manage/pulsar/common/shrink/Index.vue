@@ -40,8 +40,8 @@
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type PulsarModel from '@services/model/pulsar/pulsar';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import PulsarModel from '@services/model/pulsar/pulsar';
+  import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
   import { getPulsarNodeList } from '@services/source/pulsar';
   import { createTicket } from '@services/source/ticket';
 
@@ -54,11 +54,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<PulsarNodeModel>;
-
   interface Props {
     data: PulsarModel;
-    nodeList?: TNodeInfo['nodeList'];
+    machineList?: PulsarMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
@@ -68,7 +66,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    nodeList: () => [],
+    machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -87,11 +85,11 @@
   ];
 
   const nodeStatusListRef = ref();
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     bookkeeper: {
+      hostList: [],
       label: 'Bookkeeper',
       minHost: 2,
-      nodeList: [],
       originalNodeList: [],
       // targetDisk: 0,
       shrinkDisk: 0,
@@ -99,9 +97,9 @@
       totalDisk: 0,
     },
     broker: {
+      hostList: [],
       label: 'Broker',
       minHost: 1,
-      nodeList: [],
       originalNodeList: [],
       // 缩容后的目标容量
       // targetDisk: 0,
@@ -155,31 +153,43 @@
 
   // 默认选中的缩容节点
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const bookkeeperNodeList: TNodeInfo['nodeList'] = [];
-      const brokerNodeList: TNodeInfo['nodeList'] = [];
+      const bookkeeperHostList: TShrinkNode['hostList'] = [];
+      const brokerHostList: TShrinkNode['hostList'] = [];
 
       let bookkeeperShrinkDisk = 0;
       let brokerShrinkDisk = 0;
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isBookkeeper) {
-          bookkeeperShrinkDisk += nodeItem.disk;
-          bookkeeperNodeList.push(nodeItem);
-        } else if (nodeItem.isBroker) {
-          brokerShrinkDisk += nodeItem.disk;
-          brokerNodeList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isBookkeeper) {
+          bookkeeperShrinkDisk += machineItem.host_info?.bk_disk || 0;
+          bookkeeperHostList.push({
+            alive: machineItem.host_info?.alive || 0,
+            bk_cloud_id: machineItem.bk_cloud_id,
+            bk_disk: machineItem.host_info.bk_disk,
+            bk_host_id: machineItem.bk_host_id,
+            ip: machineItem.ip,
+          });
+        } else if (machineItem.isBroker) {
+          brokerShrinkDisk += machineItem.host_info?.bk_disk || 0;
+          brokerHostList.push({
+            alive: machineItem.host_info?.alive || 0,
+            bk_cloud_id: machineItem.bk_cloud_id,
+            bk_disk: machineItem.host_info.bk_disk,
+            bk_host_id: machineItem.bk_host_id,
+            ip: machineItem.ip,
+          });
         }
       });
-      nodeInfoMap.bookkeeper.nodeList = bookkeeperNodeList;
+      nodeInfoMap.bookkeeper.hostList = bookkeeperHostList;
       nodeInfoMap.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
-      nodeInfoMap.broker.nodeList = brokerNodeList;
+      nodeInfoMap.broker.hostList = brokerHostList;
       nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
 
-      if (bookkeeperNodeList.length) {
+      if (bookkeeperHostList.length) {
         nodeType.value = 'bookkeeper';
-      } else if (brokerNodeList.length) {
+      } else if (brokerHostList.length) {
         nodeType.value = 'broker';
       }
     },
@@ -189,9 +199,9 @@
   );
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
-    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
-    nodeInfoMap[nodeType.value].nodeList = nodeList;
+  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
+    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
+    nodeInfoMap[nodeType.value].hostList = hostList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
   };
 
@@ -231,8 +241,8 @@
           headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
-              nodeList.map((hostItem) => ({
+            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
+              hostList.map((hostItem) => ({
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
@@ -250,7 +260,7 @@
                   });
                   return results;
                 },
-                {} as Record<string, TNodeInfo>,
+                {} as Record<string, TShrinkNode>,
               );
 
             createTicket({
@@ -260,8 +270,8 @@
                 ext_info: generateExtInfo(),
                 ip_source: 'resource_pool',
                 old_nodes: {
-                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.nodeList),
-                  broker: fomatHost(nodeInfoMap.broker.nodeList),
+                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
+                  broker: fomatHost(nodeInfoMap.broker.hostList),
                 },
               },
               ticket_type: TicketTypes.PULSAR_SHRINK,
@@ -272,7 +282,9 @@
             });
           },
           subTitle: renderSubTitle,
-          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
+          title: t('确认缩容【name】集群', {
+            name: props.data.cluster_name,
+          }),
         });
       });
     },

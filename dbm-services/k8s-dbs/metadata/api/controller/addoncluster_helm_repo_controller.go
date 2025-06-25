@@ -21,6 +21,7 @@ package controller
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/api/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -63,7 +64,7 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateClusterHelmRepo create cluster helm repo
@@ -88,16 +89,16 @@ func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterHelmRepoByParam get addon cluster helm repo by its Param.
 func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) {
-	chartName := ctx.Param("chart_name")
-	chartVersion := ctx.Param("chart_version")
+	chartName := ctx.Param("chartName")
+	chartVersion := ctx.Param("chartVersion")
 	if chartName == "" || chartVersion == "" {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr,
-			fmt.Errorf("chart_name 或 chart_version 参数不能为空")))
+			fmt.Errorf("chartName 或 chartVersion 参数不能为空")))
 		return
 	}
 	params := map[string]interface{}{
@@ -114,5 +115,5 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) 
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, "OK")
+	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }

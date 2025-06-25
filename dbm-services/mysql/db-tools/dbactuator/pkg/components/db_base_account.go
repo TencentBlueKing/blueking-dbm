@@ -51,6 +51,12 @@ var monitorUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", 
 	"SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE"}
 var monitorAccessallPriv = []string{"SELECT,INSERT,DELETE"}
 
+// spider4.x
+var backupUserPrivSpider40 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT",
+	"SHOW VIEW", "TRIGGER", "EVENT", "SUPER", "CONNECTION ADMIN", "EXECUTE"} // SUPER is deprecated
+var monitorUserPrivSpider40 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "SUPER", "CONNECTION ADMIN",
+	"REPLICATION CLIENT", "SHOW VIEW", "EVENT", "TRIGGER", "CREATE TABLESPACE"} // SUPER is deprecated
+
 // MySQLAccountPrivs TODO
 type MySQLAccountPrivs struct {
 	User       string
@@ -140,14 +146,26 @@ type MySQLMonitorAccount struct {
 }
 
 // GetAccountPrivs TODO
-func (m MySQLMonitorAccount) GetAccountPrivs(grantHosts ...string) MySQLAccountPrivs {
+// 如果是 spider4.x  grant 需要添加CONNECTION ADMIN 权限
+func (m MySQLMonitorAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
+	// dufault priv
+	privs := monitorUserPriv
+
+	// if spider4.x , privs = monitorUserPrivSpider40
+	var isSpider40 = cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") &&
+		strings.Contains(ver, "tspider")
+	logger.Info("spider version %s >=4.0: %t", ver, isSpider40)
+	if isSpider40 {
+		privs = monitorUserPrivSpider40
+	}
+
 	p := MySQLAccountPrivs{
 		User:   m.MonitorUser,
 		PassWd: m.MonitorPwd,
 		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
-				Privs:  monitorUserPriv,
+				Privs:  privs,
 			},
 			{
 				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
@@ -168,7 +186,17 @@ type MySQLMonitorAccessAllAccount struct {
 }
 
 // GetAccountPrivs TODO
-func (m MySQLMonitorAccessAllAccount) GetAccountPrivs(grantHosts ...string) MySQLAccountPrivs {
+// 如果是 spider4.x  grant 需要添加CONNECTION ADMIN 权限
+func (m MySQLMonitorAccessAllAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
+
+	sysPrivs := []string{"SUPER"}
+	var isSpider40 = cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") &&
+		strings.Contains(ver, "tspider")
+	logger.Info("spider version %s >=4.0: %t", ver, isSpider40)
+	if isSpider40 {
+		sysPrivs = append(sysPrivs, "CONNECTION ADMIN")
+	}
+
 	p := MySQLAccountPrivs{
 		User:   m.MonitorAccessAllUser,
 		PassWd: m.MonitorAccessAllPwd,
@@ -179,7 +207,7 @@ func (m MySQLMonitorAccessAllAccount) GetAccountPrivs(grantHosts ...string) MySQ
 			},
 			{
 				Object: "*.*",
-				Privs:  []string{"SUPER"},
+				Privs:  sysPrivs,
 			},
 		},
 		AccessObjects: []string{"%"},
@@ -221,10 +249,16 @@ type MySQLDbBackupAccount struct {
 
 // GetAccountPrivs 获取备份语句
 // 如果是 mysql 8.0，grant 需要 BACKUP_ADMIN 权限
+// 如果是 spider4.x  grant 需要添加CONNECTION ADMIN 权限
 func (m MySQLDbBackupAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
 	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(ver, "tspider")
 	logger.Info("mysql version %s >=8.0: %t", ver, isMysql80)
+
+	var isSpider40 = cmutil.SpiderVersionParse(ver) >= cmutil.SpiderVersionParse("tspider-4.0.0") &&
+		strings.Contains(ver, "tspider")
+	logger.Info("spider version %s >=4.0: %t", ver, isSpider40)
+
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},
 		{
@@ -235,6 +269,15 @@ func (m MySQLDbBackupAccount) GetAccountPrivs(ver string, grantHosts ...string) 
 	if isMysql80 {
 		privPairs = []PrivPari{
 			{Object: "*.*", Privs: backupUserPriv80},
+			{
+				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
+				Privs:  allPriv,
+			},
+		}
+	}
+	if isSpider40 {
+		privPairs = []PrivPari{
+			{Object: "*.*", Privs: backupUserPrivSpider40},
 			{
 				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
 				Privs:  allPriv,

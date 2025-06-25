@@ -65,55 +65,93 @@ const routes: RouteRecordRaw[] = [
       navName: t('集群管理'),
     },
     redirect: {
-      name: 'MongoDBReplicaSetList',
+      name: 'MongoDBReplicaSet',
     },
     component: () => import('@views/db-manage/mongodb/Index.vue'),
     children: [
       {
-        path: 'replica-set-list',
-        name: 'MongoDBReplicaSetList',
+        path: 'replica-set',
+        name: 'MongoDBReplicaSet',
         meta: {
           fullscreen: true,
           navName: t('【MongoDB】副本集集群管理'),
         },
-        component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
-      },
-      {
-        path: 'replica-set-instance-list',
-        name: 'mongodbReplicaSetInstanceList',
-        meta: {
-          fullscreen: true,
-          navName: t('【MongoDB】副本集集群实例视图'),
+        redirect: {
+          name: 'MongoDBReplicaSetList',
         },
-        component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
+        component: () => import('@views/db-manage/mongodb/Index.vue'),
+        children: [
+          {
+            path: 'list/:clusterId?',
+            name: 'MongoDBReplicaSetList',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】副本集集群管理'),
+            },
+            component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
+          },
+          {
+            path: 'detail/:clusterId',
+            name: 'MongoDBReplicaSetDetail',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】副本集详细'),
+            },
+            component: () => import('@views/db-manage/mongodb/replica-set-detail/Index.vue'),
+          },
+          {
+            path: 'instance-list',
+            name: 'mongodbReplicaSetInstanceList',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】副本集集群实例视图'),
+            },
+            component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+          },
+        ],
       },
       {
-        path: 'shared-cluster-list',
-        name: 'MongoDBSharedClusterList',
+        path: 'shared-cluster',
+        name: 'MongoDBSharedCluster',
         meta: {
           fullscreen: true,
           navName: t('【MongoDB】分片集群管理'),
         },
-        component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
-      },
-      // {
-      //   name: 'mongodbInstance',
-      //   path: 'mongodb-instance',
-      //   meta: {
-      //     navName: t('【MongoDB】实例视图'),
-      //     fullscreen: true,
-      //   },
-      //   component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
-      // },
-      {
-        path: 'share-cluster-instance-list',
-        name: 'mongodbShareClusterInstanceList',
-        meta: {
-          fullscreen: true,
-          navName: t('【MongoDB】分片集群实例视图'),
+        redirect: {
+          name: 'MongoDBSharedClusterList',
         },
-        component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
+        component: () => import('@views/db-manage/mongodb/Index.vue'),
+        children: [
+          {
+            path: 'list/:clusterId?',
+            name: 'MongoDBSharedClusterList',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】分片集群管理'),
+            },
+            component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
+          },
+          {
+            path: 'detail/:clusterId',
+            name: 'MongoDBSharedClusterDetail',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】分片集群详情'),
+            },
+            component: () => import('@views/db-manage/mongodb/shared-cluster-detail/Index.vue'),
+          },
+          {
+            path: 'instance-list',
+            name: 'mongodbShareClusterInstanceList',
+            meta: {
+              fullscreen: true,
+              navName: t('【MongoDB】分片集群实例视图'),
+            },
+            component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+          },
+        ],
       },
+
       {
         path: 'permission',
         name: 'MongodbPermission',

@@ -21,7 +21,11 @@ from backend.components import BKLogApi, BKMonitorV3Api, CCApi
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
-from backend.db_meta.models.cluster_monitor import INSTANCE_BKLOG_PLUGINS, INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
+from backend.db_meta.models.cluster_monitor import (
+    INSTANCE_BKLOG_PLUGINS,
+    INSTANCE_MONITOR_PLUGINS,
+    get_monitor_set_name,
+)
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
 from backend.db_monitor.utils import create_bklog_collector
 from backend.db_services.cmdb.biz import (
@@ -73,7 +77,7 @@ class CcManage(object):
             ).first()
             if app_monitor_topo is None:
                 # 集群拓扑不存在则创建
-                bk_set_name = SET_NAME_TEMPLATE.format(db_type=db_type, monitor_plugin_name=monitor_plugin["name"])
+                bk_set_name = get_monitor_set_name(db_type=db_type, monitor_plugin_name=monitor_plugin["name"])
                 bk_set_id = get_or_create_set_with_name(self.hosting_biz_id, bk_set_name)
                 app_monitor_topo, created = AppMonitorTopo.objects.update_or_create(
                     defaults={

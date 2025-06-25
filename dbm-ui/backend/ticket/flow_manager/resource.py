@@ -279,6 +279,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                     bk_cloud_id=bk_cloud_id,
                     group_count=group_count,
                     affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
+                    labels=role_spec.get("labels", []),
                     location_spec=role_spec.get("location_spec"),
                 )
             )

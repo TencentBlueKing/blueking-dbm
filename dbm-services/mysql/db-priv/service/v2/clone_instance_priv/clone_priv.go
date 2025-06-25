@@ -3,6 +3,7 @@ package clone_instance_priv
 import (
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service/v2/internal"
+	"fmt"
 	"log/slog"
 )
 
@@ -24,9 +25,7 @@ func (c *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 	}
 
 	c.logger.Info(
-		"",
-		slog.Any("system users", c.SystemUsers),
-		slog.String("machine type", c.Source.MachineType),
+		fmt.Sprintf("system users: %v, machine type: %s", c.SystemUsers, c.Source.MachineType),
 	)
 
 	if c.Source.MachineType == internal.MachineTypeProxy {

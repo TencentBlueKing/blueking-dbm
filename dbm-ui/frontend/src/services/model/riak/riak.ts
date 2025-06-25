@@ -13,14 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
 import { Affinity, affinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
 import ClusterBase from '../_clusterBase';
-import type ClusterSpec from '../resource-spec/cluster-sepc';
 
 export default class Riak extends ClusterBase {
   static RIAK_CLUSTER_DESTROY = 'RIAK_CLUSTER_DESTROY';
@@ -57,7 +56,7 @@ export default class Riak extends ClusterBase {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
-  cluster_spec: ClusterSpec;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_subzons: string[];
   cluster_time_zone: string;

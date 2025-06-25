@@ -49,4 +49,12 @@ const (
 	KafkaMaxHeap = 30720
 	// Kafka64GB 单位MB
 	Kafka64GB = 61440
+	// TopicListFilePath topic列表文件路径
+	TopicListFilePath = "./topic_list.txt"
+	// DoneFile 完成文件路径
+	DoneFile = "./done.list"
+	// ReassignJSONFile 重新分配JSON文件路径
+	ReassignJSONFile = DefaultKafkaEnv + "/reassign.json"
+	// ThrottleFile 	限流文件
+	ThrottleFile = "./throttle_rate.txt"
 )

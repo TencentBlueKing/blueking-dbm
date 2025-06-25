@@ -64,7 +64,7 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 
 	var newBrokerIds []string
 	for _, broker := range newBrokers {
-		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
+		id, err := kafkautil.GetBrokerIDByHost(conn, broker, zkPath)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
@@ -75,7 +75,7 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 
 	var oldBrokerIds []string
 	for _, broker := range oldBrokers {
-		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
+		id, err := kafkautil.GetBrokerIDByHost(conn, broker, zkPath)
 		if err != nil {
 			logger.Error("cant get %s broker id, %v", broker, err)
 			return err
@@ -102,7 +102,7 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 
 	// 生成分区副本重分配的计划并写入 JSON 文件
 	logger.Info("Creating plan.json file")
-	err = kafkautil.GenReplaceReassignmentJSON(conn, zkHost, oldBrokerIds, newBrokerIds)
+	err = kafkautil.GenReplaceReassignmentJSON(conn, zkHost, zkPath, oldBrokerIds, newBrokerIds)
 	if err != nil {
 		logger.Error("Create plan.json failed %s", err)
 		return err
@@ -125,7 +125,12 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 	var id string
 	// 连接到 Zookeeper
-	zkHost := d.Params.ZookeeperIP + ":2181"
+	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
+	logger.Info("zkHost,zkPath: %s, %s", zkHost, zkPath)
+	if err != nil {
+		logger.Error("Cant get zookeeper.connect: %s", err)
+		return err
+	}
 	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
 	if err != nil {
 		logger.Error("Connect zk failed, %s", err)
@@ -135,7 +140,7 @@ func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 	// 获取要缩容的 broker 的 ID
 	var excludeIds []string
 	for _, broker := range d.Params.ExcludeBrokers {
-		id, err = kafkautil.GetBrokerIDByHost(conn, broker)
+		id, err = kafkautil.GetBrokerIDByHost(conn, broker, zkPath)
 		if err != nil {
 			logger.Error("cant get %s broker id, %s", broker, err)
 			continue
@@ -165,7 +170,7 @@ func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 	}
 	// 生成分区副本重分配的计划并写入 JSON 文件
 	logger.Info("Creating plan.json file")
-	err = kafkautil.GenReassignmentJSON(conn, zkHost, excludeIds)
+	err = kafkautil.GenReassignmentJSON(conn, zkHost, zkPath, excludeIds)
 	if err != nil {
 		logger.Error("Create plan.json failed %s", err)
 		return err
@@ -174,7 +179,8 @@ func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 	// 执行分区副本重分配
 	logger.Info("Execute the plan")
 	planJSONFile := cst.PlanJSONFile
-	err = kafkautil.DoReassignPartitions(zkHost, planJSONFile)
+	zkStr := zkHost + zkPath
+	err = kafkautil.DoReassignPartitions(zkStr, planJSONFile)
 	if err != nil {
 		logger.Error("Execute partitions reassignment failed %s", err)
 		return err
@@ -188,8 +194,13 @@ func (d *DecomBrokerComp) DoDecomBrokers() (err error) {
 func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 	// 定义最大重试次数为864次
 	const MaxRetry = 864
-	count := 0                                                         // 初始化计数器
-	zkHost := d.Params.ZookeeperIP + ":2181"                           // 构建Zookeeper的连接字符串
+	count := 0 // 初始化计数器
+	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
+	logger.Info("zkHost,zkPath: %s, %s", zkHost, zkPath)
+	if err != nil {
+		logger.Error("Cant get zookeeper.connect: %s", err)
+		return err
+	}
 	jsonFile := cst.PlanJSONFile                                       // 搬迁计划文件
 	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv) // Kafka主题配置文件
 
@@ -205,7 +216,8 @@ func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 		}
 
 		// 调用kafkautil.CheckReassignPartitions来检查搬迁进度
-		out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
+		zkStr := zkHost + zkPath
+		out, err := kafkautil.CheckReassignPartitions(zkStr, jsonFile)
 		if err != nil {
 			// 如果检查失败，记录错误并返回
 			logger.Error("检查partition搬迁进度失败 %v", err)

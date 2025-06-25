@@ -25,13 +25,13 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div
-        v-show="nodeInfoMap.bookkeeper.nodeList.length > 0"
+        v-show="nodeInfoMap.bookkeeper.oldHostList.length > 0"
         class="item">
         <div class="item-label">Bookkeeper</div>
         <HostReplace
           ref="BookkeeperRef"
           v-model:host-list="nodeInfoMap.bookkeeper.hostList"
-          v-model:node-list="nodeInfoMap.bookkeeper.nodeList"
+          v-model:old-host-list="nodeInfoMap.bookkeeper.oldHostList"
           v-model:resource-spec="nodeInfoMap.bookkeeper.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -44,13 +44,13 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.broker.nodeList.length > 0"
+        v-show="nodeInfoMap.broker.oldHostList.length > 0"
         class="item">
         <div class="item-label">Broker</div>
         <HostReplace
           ref="brokerRef"
           v-model:host-list="nodeInfoMap.broker.hostList"
-          v-model:node-list="nodeInfoMap.broker.nodeList"
+          v-model:old-host-list="nodeInfoMap.broker.oldHostList"
           v-model:resource-spec="nodeInfoMap.broker.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -63,13 +63,13 @@
           @remove-node="handleRemoveNode" />
       </div>
       <div
-        v-show="nodeInfoMap.zookeeper.nodeList.length > 0"
+        v-show="nodeInfoMap.zookeeper.oldHostList.length > 0"
         class="item">
         <div class="item-label">Zookeeper</div>
         <HostReplace
           ref="zookeeperRef"
           v-model:host-list="nodeInfoMap.zookeeper.hostList"
-          v-model:node-list="nodeInfoMap.zookeeper.nodeList"
+          v-model:old-host-list="nodeInfoMap.zookeeper.oldHostList"
           v-model:resource-spec="nodeInfoMap.zookeeper.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
@@ -101,11 +101,9 @@
   import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type PulsarModel from '@services/model/pulsar/pulsar';
-  import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
+  import PulsarModel from '@services/model/pulsar/pulsar';
+  import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
   import { createTicket } from '@services/source/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -113,11 +111,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TReplaceNode<PulsarNodeModel>;
-
   interface Props {
     data: PulsarModel;
-    nodeList: TNodeInfo['nodeList'];
+    machineList: PulsarMachineModel[];
   }
 
   interface Emits {
@@ -133,7 +129,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>
+  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -142,7 +138,6 @@
       {} as Record<number, boolean>,
     );
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const BookkeeperRef = ref();
@@ -150,11 +145,11 @@
   const zookeeperRef = ref();
 
   const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     bookkeeper: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         spec_id: 0,
@@ -166,7 +161,7 @@
     broker: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 0,
         spec_id: 0,
@@ -178,7 +173,7 @@
     zookeeper: {
       clusterId: props.data.id,
       hostList: [],
-      nodeList: [],
+      oldHostList: [],
       resourceSpec: {
         count: 3,
         spec_id: 0,
@@ -191,17 +186,17 @@
 
   const isEmpty = computed(() => {
     const { bookkeeper, broker, zookeeper } = nodeInfoMap;
-    return bookkeeper.nodeList.length < 1 && broker.nodeList.length < 1 && zookeeper.nodeList.length < 1;
+    return bookkeeper.oldHostList.length < 1 && broker.oldHostList.length < 1 && zookeeper.oldHostList.length < 1;
   });
 
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const bookkeeperList: TNodeInfo['nodeList'] = [];
-      const brokerList: TNodeInfo['nodeList'] = [];
-      const zookeeperList: TNodeInfo['nodeList'] = [];
+      const bookkeeperList: TReplaceNode['oldHostList'] = [];
+      const brokerList: TReplaceNode['oldHostList'] = [];
+      const zookeeperList: TReplaceNode['oldHostList'] = [];
 
-      props.nodeList.forEach((nodeItem) => {
+      props.machineList.forEach((nodeItem) => {
         if (nodeItem.isBookkeeper) {
           bookkeeperList.push(nodeItem);
         } else if (nodeItem.isBroker) {
@@ -211,9 +206,9 @@
         }
       });
 
-      nodeInfoMap.bookkeeper.nodeList = bookkeeperList;
-      nodeInfoMap.broker.nodeList = brokerList;
-      nodeInfoMap.zookeeper.nodeList = zookeeperList;
+      nodeInfoMap.bookkeeper.oldHostList = bookkeeperList;
+      nodeInfoMap.broker.oldHostList = brokerList;
+      nodeInfoMap.zookeeper.oldHostList = zookeeperList;
     },
     {
       immediate: true,
@@ -221,7 +216,7 @@
   );
 
   // 节点主机互斥
-  const bookkeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+  const bookkeeperDisableHostMethod = (hostData: TReplaceNode['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
     if (brokerHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
@@ -233,7 +228,7 @@
     return false;
   };
   // 节点主机互斥
-  const brokerDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+  const brokerDisableHostMethod = (hostData: TReplaceNode['hostList'][0]) => {
     const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
     if (bookkeeperHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
@@ -245,7 +240,7 @@
     return false;
   };
   // 节点主机互斥
-  const zookeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
+  const zookeeperDisableHostMethod = (hostData: TReplaceNode['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
     if (brokerHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
@@ -257,7 +252,7 @@
     return false;
   };
 
-  const handleRemoveNode = (node: PulsarNodeModel) => {
+  const handleRemoveNode = (node: TReplaceNode['oldHostList'][number]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -299,7 +294,7 @@
               }
               return Object.values(nodeInfoMap).reduce((result, nodeData) => {
                 if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.nodeList.length;
+                  return result + nodeData.oldHostList.length;
                 }
                 return result;
               }, 0);
@@ -315,7 +310,7 @@
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
-                  const formatHost = (hostList: TNodeInfo['hostList'] = []) => {
+                  const formatHost = (hostList: TReplaceNode['hostList'] = []) => {
                     const hosts = hostList.map((hostItem) => ({
                       bk_biz_id: hostItem.dedicated_biz,
                       bk_cloud_id: hostItem.bk_cloud_id,
@@ -345,7 +340,7 @@
                   });
                 }
                 createTicket({
-                  bk_biz_id: currentBizId,
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
                   details: {
                     cluster_id: props.data.id,
                     ip_source: 'resource_pool',

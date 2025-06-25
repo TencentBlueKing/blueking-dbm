@@ -35,7 +35,7 @@ type PhysicalDumper struct {
 	tmpDisableSlaveMultiThreads bool
 }
 
-func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
+func (p *PhysicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if p.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}
@@ -286,6 +286,9 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInf
 			"cannot read binlog position, err: %s", err.Error())
 		//return err
 	} else {
+		if metaInfo.BinlogInfo.ShowMasterStatus == nil {
+			metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
+		}
 		metaInfo.BinlogInfo.ShowMasterStatus = masterStatus
 		metaInfo.BinlogInfo.ShowMasterStatus.MasterHost = cnf.Public.MysqlHost
 		metaInfo.BinlogInfo.ShowMasterStatus.MasterPort = cnf.Public.MysqlPort

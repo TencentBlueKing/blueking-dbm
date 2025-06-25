@@ -204,3 +204,6 @@ INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, defaul
 
 # 反向查询接口禁用安全检查
 DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=False)
+
+# 反向上报接口 kafka broker
+REVERSE_REPORT_KAFKA_BROKER = get_type_env(key="REVERSE_REPORT_KAFKA_BROKER", _type=str, default=":9092")

@@ -20,6 +20,7 @@ var roundStartStr = "_dba_fake_round_start"
 var dailyStr = "_dba_fake_daily"
 
 func (r *Checker) Run() error {
+	slog.Info("run mode", slog.String("mode", string(r.Mode)))
 	stackDepth := 0
 
 RunCheckLabel:
@@ -31,9 +32,43 @@ RunCheckLabel:
 		return err
 	}
 
+	if r.Mode == config.GeneralMode {
+		if stackDepth == 1 {
+			err := r.writeFakeResult(dailyStr, dailyStr)
+			if err != nil {
+				slog.Error("write daily fake", slog.String("error", err.Error()))
+				return err
+			}
+			slog.Info("write daily fake success")
+		}
+
+		if !config.ChecksumConfig.Enable {
+			slog.Info("general checksum disabled")
+			return nil
+		}
+	}
+
+	isEmptyResultTbl, err := r.isEmptyResultTbl()
+	if err != nil {
+		return err
+	}
+	if r.Mode == config.GeneralMode && isEmptyResultTbl {
+		slog.Info("result table is empty")
+		err := r.writeFakeResult(roundStartStr, roundStartStr)
+		if err != nil {
+			slog.Error("write round start", slog.String("error", err.Error()))
+			return err
+		}
+		slog.Info("round start")
+	}
+
+	// ------- 跑校验 -------
 	output, err, pterr := r.run()
 	if err != nil {
 		return err
+	}
+	if output == nil {
+		return fmt.Errorf("output is nil")
 	}
 
 	if r.Mode == config.GeneralMode {
@@ -48,34 +83,12 @@ RunCheckLabel:
 		}
 		slog.Info("run in general mode delete 10 days ago history")
 
-		err = r.writeFakeResult(dailyStr, dailyStr)
-		if err != nil {
-			slog.Error("write daily fake", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("write daily fake success")
-
-		isEmptyResultTbl, err := r.isEmptyResultTbl()
-		if err != nil {
-			return err
-		}
-		if isEmptyResultTbl {
-			err := r.writeFakeResult(roundStartStr, roundStartStr)
-			if err != nil {
-				slog.Error("write round start", slog.String("error", err.Error()))
-				return err
-			}
-			slog.Info("round start")
-		}
-
 		// 校验摘要是空的, 有两种可能
 		// 1. 应用过滤器后, 没有库表需要校验
 		// 2. checksum 中有所有库表的校验结果, 这一轮轮空了
 		if len(output.Summaries) == 0 {
-			slog.Info("run got empty summary")
-
 			var cnt int
-			err := r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
+			err = r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
 			if err != nil {
 				slog.Error("query result table rows count", slog.String("error", err.Error()))
 				return err

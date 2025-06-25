@@ -1,17 +1,19 @@
 package exporter
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi"
-	"dbm-services/common/reverseapi/define/mysql"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 type PushCnfComp struct {
@@ -20,9 +22,10 @@ type PushCnfComp struct {
 }
 
 type PushCnfParams struct {
-	IP          string `json:"ip"`
-	PortList    []int  `json:"port_list"`
-	MachineType string `json:"machine_type"`
+	IP           string `json:"ip"`
+	PortList     []int  `json:"port_list"`
+	MachineType  string `json:"machine_type"`
+	InstanceRole string `json:"instance_role"`
 }
 
 func (c *PushCnfComp) Run() (err error) {
@@ -74,7 +77,8 @@ func (c *PushCnfComp) generateMySQLExporterCnf(ip string, port int) (err error) 
 		makeCnfFilePath(port),
 		ip, port,
 		c.GeneralParam.RuntimeAccountParam.MonitorUser,
-		c.GeneralParam.RuntimeAccountParam.MonitorPwd)
+		c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+		c.Params.InstanceRole)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -114,23 +118,25 @@ func (c *PushCnfComp) Example() interface{} {
 }
 
 type exporterConfig struct {
-	Ip          string `json:"ip"`
-	Port        int    `json:"port"`
-	User        string `json:"user"`
-	Password    string `json:"password"`
-	MachineType string `json:"machine_type"`
+	Ip           string `json:"ip"`
+	Port         int    `json:"port"`
+	User         string `json:"user"`
+	Password     string `json:"password"`
+	MachineType  string `json:"machine_type"`
+	InstanceRole string `json:"instance_role"`
 }
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
-	rvApi := reverseapi.NewReverseApiWithAddr(bkCloudId, nginxAddrs...)
-	data, err := rvApi.MySQL.ExporterConfig(ports...)
+	apiCore := reverseapi.NewCoreWithAddr(bkCloudId, nginxAddrs...)
+	data, err := reversemysqlapi.ExporterConfig(apiCore, ports...)
+
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 	logger.Info("exporter config: %s", string(data))
 
-	b, l, err := rvApi.MySQL.ListInstanceInfo()
+	b, l, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -138,7 +144,7 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 
 	isSpiderMaster := false
 	if l == "proxy" {
-		var pis []mysql.ProxyInstanceInfo
+		var pis []reversemysqldef.ProxyInstanceInfo
 		err = json.Unmarshal(b, &pis)
 		if err != nil {
 			logger.Error(err.Error())
@@ -211,7 +217,7 @@ func genOneProxy(cfg *exporterConfig) error {
 
 func genOneMySQL(cfg *exporterConfig) error {
 	fp := fmt.Sprintf("/etc/exporter_%d.cnf", cfg.Port)
-	err := util.CreateExporterConf(fp, cfg.Ip, cfg.Port, cfg.User, cfg.Password)
+	err := util.CreateExporterConf(fp, cfg.Ip, cfg.Port, cfg.User, cfg.Password, cfg.InstanceRole)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

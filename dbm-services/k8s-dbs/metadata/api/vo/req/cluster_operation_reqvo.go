@@ -23,12 +23,12 @@ import "time"
 
 // ClusterOperationReqVo represents the ReqVo structure of cluster operation.
 type ClusterOperationReqVo struct {
-	AddonType    string    `json:"addon_type" binding:"required"`
-	AddonVersion string    `json:"addon_version" binding:"required"`
-	OperationID  uint64    `json:"operation_id" binding:"required"`
+	AddonType    string    `json:"addonType" binding:"required"`
+	AddonVersion string    `json:"addonVersion" binding:"required"`
+	OperationID  uint64    `json:"operationId" binding:"required"`
 	Description  string    `json:"description" binding:"required"`
-	CreatedBy    string    `json:"created_by"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedBy    string    `json:"updated_by"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedBy    string    `json:"createdBy" binding:"required"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedBy    string    `json:"updatedBy"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }

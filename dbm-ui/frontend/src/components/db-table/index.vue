@@ -26,6 +26,7 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :remote-pagination="remotePagination"
+        :settings="settings"
         show-overflow
         :show-settings="showSettings"
         v-bind="$attrs"
@@ -36,7 +37,7 @@
         <BkTableColumn
           v-if="columns.length < 1 && selectable"
           fixed="left"
-          width="80">
+          width="70">
           <template #header>
             <div class="db-table-select-cell">
               <div
@@ -114,6 +115,11 @@
               @refresh="fetchListData" />
           </slot>
         </template>
+        <template
+          v-if="slots.setting"
+          #setting>
+          <slot name="setting" />
+        </template>
       </BkTable>
     </BkLoading>
   </div>
@@ -121,8 +127,9 @@
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef } from 'vue';
+  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
   import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
@@ -156,6 +163,11 @@
     remoteSort?: boolean;
     // 是否开启远程分页
     selectable?: boolean;
+    settings?: {
+      checked?: string[];
+      disabled?: string[];
+      size?: string;
+    };
     // 是否开启跨页全选
     showSelectAllPage?: boolean;
     showSettings?: boolean;
@@ -168,6 +180,13 @@
     (e: 'clearSearch'): void;
     (e: 'selection', key: string[], list: any[]): void;
     (e: 'selection', key: number[], list: any[]): void;
+  }
+
+  export interface Slots {
+    default: () => VNode;
+    empty: () => VNode;
+    expandRow: () => VNode;
+    setting: () => VNode;
   }
 
   export interface Exposes {
@@ -194,13 +213,14 @@
     remotePagination: true,
     remoteSort: false,
     selectable: false,
+    settings: undefined,
     showSelectAllPage: true,
     showSettings: false,
     sortType: 'default',
   });
 
   const emits = defineEmits<Emits>();
-
+  const slots = defineSlots<Slots>();
   // defineOptions({
   //   inheritAttrs: false,
   // });
@@ -285,9 +305,10 @@
         </span>
       );
     },
-    width: 80,
+    width: 70,
   });
 
+  const router = useRouter();
   const { t } = useI18n();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
@@ -419,7 +440,9 @@
           }
 
           if (!props.fixedPagination && props.releateUrlQuery) {
-            replaceSearchParams(params);
+            router.replace({
+              query: replaceSearchParams(params, false),
+            });
           }
           if (!isPaginationChangeFetch) {
             isPaginationChangeFetch = false;
@@ -716,6 +739,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    width: 64px;
 
     .db-table-whole-check {
       position: relative;

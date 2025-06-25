@@ -101,9 +101,13 @@
 
   import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
 
+  import { BizSettingKeys } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
-  const DATABASE_MANAGE_MENU = 'DATABASE_MANAGE_MENU';
+  const modelValue = defineModel<string[]>({
+    default: [],
+  });
 
   const { t } = useI18n();
 
@@ -188,10 +192,6 @@
     {} as Record<string, ValueOf<typeof configMap>[number]>,
   );
 
-  const modelValue = defineModel<string[]>({
-    default: [],
-  });
-
   const isShow = ref(false);
   const isSubmiting = ref(false);
   const selectList = ref<string[]>([]);
@@ -210,12 +210,14 @@
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        key: DATABASE_MANAGE_MENU,
+        key: BizSettingKeys.DATABASE_MANAGE_MENU,
       },
     ],
     onSuccess(data) {
       modelValue.value =
-        data[DATABASE_MANAGE_MENU] && data[DATABASE_MANAGE_MENU].length > 0 ? data[DATABASE_MANAGE_MENU] : ['mysql'];
+        data[BizSettingKeys.DATABASE_MANAGE_MENU] && data[BizSettingKeys.DATABASE_MANAGE_MENU].length > 0
+          ? data[BizSettingKeys.DATABASE_MANAGE_MENU]
+          : ['mysql'];
     },
   });
 
@@ -237,8 +239,8 @@
     isShow.value = false;
     updateBizSetting({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      key: DATABASE_MANAGE_MENU,
-      value: [...selectList.value],
+      key: BizSettingKeys.DATABASE_MANAGE_MENU,
+      value: selectList.value,
     })
       .then(() => {
         modelValue.value = [...selectList.value];

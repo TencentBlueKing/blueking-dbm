@@ -45,7 +45,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     _dummy, entry_group = graph.add_node(entry)
 
     # 访问入口 ---> NameNode节点，关系为：访问
-    graph.add_line(source=entry_group, target=nn_group, label=LineLabel.Access)
+    graph.add_line(source=entry_group, target=nn_group, label=LineLabel.Bind)
 
     # NameNode节点 ---> ZK节点组, 关系为：读写
     graph.add_line(source=nn_group, target=zk_group, label=LineLabel.ReadWrite)

@@ -42,13 +42,17 @@ class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             proxy = SpecSerializer(help_text=_("申请proxy资源"))
             backend_group = SpecSerializer(help_text=_("申请redis主从资源"))
 
+        cluster_spec = serializers.JSONField(help_text=_("当前后端规格"), required=False)
+        cluster_stats = serializers.JSONField(help_text=_("当前使用率"), required=False)
+        proxy = serializers.JSONField(help_text=_("当前proxy规格和数量"), required=False)
+        machine_pair_cnt = serializers.IntegerField(help_text=_("集群ID"), required=False)
         src_cluster = serializers.IntegerField(help_text=_("集群ID"))
         current_spec_id = serializers.IntegerField(help_text=_("当前规格ID"))
         current_shard_num = serializers.IntegerField(help_text=_("当前分片数"))
         cluster_shard_num = serializers.IntegerField(help_text=_("目标分片数"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
         capacity = serializers.FloatField(help_text=_("当前容量需求"))
-        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+        future_capacity = serializers.FloatField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM

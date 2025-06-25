@@ -73,10 +73,7 @@
 
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
-
-  import { convertStorageUnits } from '@utils';
 
   import TableGroupContent from '../components/TableGroupContent.vue';
 
@@ -97,13 +94,8 @@
 
   const getCurrentColunms = (data: RowData) => [
     {
-      render: () => {
-        if (_.isEmpty(data.display_info?.cluster_stats)) {
-          return '--';
-        }
-        return <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />;
-      },
-      title: t('当前容量'),
+      render: () => (data.display_info?.cluster_capacity ? `${data.display_info.cluster_capacity} G` : '--'),
+      title: t('容量'),
     },
     {
       render: () => {
@@ -135,36 +127,28 @@
     },
     {
       render: () => data.display_info?.cluster_shard_num || '--',
-      title: t('分片数'),
+      title: t('集群分片数'),
     },
   ];
 
   const getTargetColunms = (data: RowData) => [
     {
       render: () => {
-        if (_.isEmpty(data.display_info?.cluster_stats)) {
+        if (!data.future_capacity) {
           return '--';
         }
-        const { total = 0, used = 0 } = data.display_info.cluster_stats;
-        const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B');
-        const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB');
-        const stats = {
-          in_use: Number(((used / targetTotal) * 100).toFixed(2)),
-          total: targetTotal,
-          used,
-        };
         return (
           <>
-            <ClusterCapacityUsageRate clusterStats={stats} />
+            {`${data.future_capacity} G`}
             <ValueDiff
-              currentValue={currentValue}
+              currentValue={data.display_info.cluster_capacity}
               num-unit='G'
               targetValue={data.future_capacity}
             />
           </>
         );
       },
-      title: t('目标容量'),
+      title: t('容量'),
     },
     {
       render: () => {
@@ -180,16 +164,58 @@
       title: t('资源规格'),
     },
     {
-      render: () => data.group_num,
+      render: () => {
+        if (!data.group_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.group_num}
+            <ValueDiff
+              currentValue={data.display_info.machine_pair_cnt}
+              show-rate={false}
+              targetValue={data.group_num}
+            />
+          </>
+        );
+      },
       title: t('机器组数'),
     },
     {
-      render: () => data.group_num * 2,
+      render: () => {
+        if (!data.group_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.group_num * 2}
+            <ValueDiff
+              currentValue={data.display_info.machine_pair_cnt * 2}
+              show-rate={false}
+              targetValue={data.group_num * 2}
+            />
+          </>
+        );
+      },
       title: t('机器数量'),
     },
     {
-      render: () => data.shard_num,
-      title: t('分片数'),
+      render: () => {
+        if (!data.shard_num) {
+          return '--';
+        }
+        return (
+          <>
+            {data.shard_num}
+            <ValueDiff
+              currentValue={data.display_info?.cluster_shard_num || 0}
+              show-rate={false}
+              targetValue={data.shard_num}
+            />
+          </>
+        );
+      },
+      title: t('集群分片数'),
     },
     {
       render: () => {

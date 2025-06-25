@@ -9,6 +9,7 @@
 package config
 
 import (
+	"dbm-services/common/reverseapi/define"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,15 +17,14 @@ import (
 	"path/filepath"
 	"slices"
 
-	"dbm-services/common/reverseapi"
 	meta "dbm-services/common/reverseapi/define/mysql"
 )
 
 // GetSelfInfo 获取本实例信息
 func GetSelfInfo(host string, port int) (sii *meta.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
-		reverseapi.DefaultCommonConfigDir,
-		reverseapi.DefaultInstanceInfoFileName,
+		define.DefaultCommonConfigDir,
+		define.DefaultInstanceInfoFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {

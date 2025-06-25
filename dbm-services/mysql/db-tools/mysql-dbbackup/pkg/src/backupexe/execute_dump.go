@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
@@ -38,6 +39,12 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if err != nil {
 		return nil, err
 	}
+	logBinDisabled := false
+	if logBinStr, err := mysqlconn.GetSingleGlobalVar("log_bin", db); err == nil {
+		if logBin, err := cmutil.ToBoolExtE(logBinStr); err == nil {
+			logBinDisabled = !logBin
+		}
+	}
 	mysqlVersion, isOfficial := util.VersionParser(versionStr)
 	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
@@ -46,7 +53,7 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if err != nil {
 		return nil, err
 	}
-	if err := dumper.initConfig(versionStr); err != nil {
+	if err := dumper.initConfig(versionStr, logBinDisabled); err != nil {
 		return nil, err
 	}
 	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {

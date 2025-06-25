@@ -63,6 +63,7 @@ from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
 from backend.flow.views.kafka_machine_clear import KafkaMachineClearApiView
+from backend.flow.views.kafka_rebalance import RebalanceKafkaSceneApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
@@ -416,6 +417,7 @@ urlpatterns = [
     url(r"^scene/shrink_kafka$", ShrinkKafkaSceneApiView.as_view()),
     url(r"^scene/replace_kafka$", ReplaceKafkaSceneApiView.as_view()),
     url(r"^scene/reboot_kafka$", RebootKafkaSceneApiView.as_view()),
+    url(r"^scene/rebalance_kafka$", RebalanceKafkaSceneApiView.as_view()),
     url(r"^scene/kafka_machine_clear$", KafkaMachineClearApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
     url(r"^scene/fake_install_es$", FakeInstallEsSceneApiView.as_view()),

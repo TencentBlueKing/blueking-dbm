@@ -38,7 +38,7 @@ func TestParseSQLFile(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, ss, 2)
 	require.Equal(t, "alter table t1 add column c1 int(11) not null default ''", ss[0])
-	require.Equal(t, "alter table db1.t3 add column addr varchar(100)", ss[1])
+	require.Equal(t, "alter table db1.t3 add addr varchar(100)", ss[1])
 }
 
 func TestParseTable(t *testing.T) {

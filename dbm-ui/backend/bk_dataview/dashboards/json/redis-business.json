@@ -1,0 +1,1027 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "BlueKing Monitor TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "BlueKing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.4.10"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max(proxy cpu)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 136
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sum(proxy qps)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 126
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max(proxy qps)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "节点最大流量"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 119
+              },
+              {
+                "id": "unit",
+                "value": "binBps"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "节点最大单核cpu"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "单核cpu",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "max(max_over_time(bkmonitor:dbm_system:cpu_detail:usage{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"proxy\"}[$step])) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "总qps",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "max_over_time(sum by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\", cluster_type=~\"Twemproxy.*\"}[2m]))\n[$step:2m])",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "max proxy qps",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "max(max_over_time(avg by (cluster_domain,instance) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\", cluster_type=~\"Twemproxy.*\"}[2m]))\n[$step:2m])) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "avg proxy qps",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "D",
+          "source": "max_over_time(avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\", cluster_type=~\"Twemproxy.*\"}[2m]))\n[$step:2m])",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "conn",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "E",
+          "source": "max(max_over_time(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_connections_curr{app=\"$app\", cluster_type=~\"Twemproxy.*\"}[$step])) by (cluster_domain) ",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "",
+              "expression": "a / b",
+              "functions": []
+            }
+          ],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "节点最大平均延迟",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain",
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "twemproxy_cmdstat_usec_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_type",
+                  "method": "reg",
+                  "value": [
+                    "Twemproxy.*"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_twemproxy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cluster_domain",
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "twemproxy_cmdstat_calls_total",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_type",
+                  "method": "reg",
+                  "value": [
+                    "Twemproxy.*"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "F",
+          "source": "max(avg by (cluster_domain, instance) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"Twemproxy.*\"}[2m])) / avg by (cluster_domain, instance) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"Twemproxy.*\"}[2m]))) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "最大单机流量",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "G",
+          "source": "max(max by (ip,cluster_domain) (max_over_time(bkmonitor:dbm_system:net:speed_sent{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"proxy\"}[1m])) \n+\nmax by (ip,cluster_domain) (max_over_time(bkmonitor:dbm_system:net:speed_recv{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"proxy\"}[1m]))) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        }
+      ],
+      "title": "Proxy节点",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "cluster_domain",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": false,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "Time 5": true,
+              "Time 6": true,
+              "Time 7": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time 1": 0,
+              "Time 2": 3,
+              "Time 3": 5,
+              "Time 4": 7,
+              "Time 5": 9,
+              "Time 6": 11,
+              "Value #A": 2,
+              "Value #B": 4,
+              "Value #C": 6,
+              "Value #D": 8,
+              "Value #E": 10,
+              "Value #F": 12,
+              "cluster_domain": 1
+            },
+            "renameByName": {
+              "Time 1": "当前时间",
+              "Value #A": "节点最大单核cpu",
+              "Value #B": "集群总qps",
+              "Value #C": "节点平均qps",
+              "Value #D": "节点最大qps",
+              "Value #E": "节点最大连接数",
+              "Value #F": "节点最大平均延迟",
+              "Value #G": "节点最大流量",
+              "cluster_domain": ""
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max(proxy cpu)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 136
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sum(proxy qps)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 126
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max(proxy qps)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 118
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "avg(proxy qps)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 122
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "当前时间"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 139
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cluster_domain"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 239
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 21,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 0,
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "节点最大单核cpu"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "单核cpu",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "max(max_over_time(bkmonitor:dbm_system:cpu_detail:usage{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"redis_master\"}[$step])) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "单核cpu",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "max(max_over_time(bkmonitor:dbm_system:cpu_summary:usage{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"redis_master\"}[$step])) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "单核cpu",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "sgame"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "max(max_over_time(bkmonitor:dbm_system:mem:pct_used{app=\"$app\", cluster_type=~\"Twemproxy.*\", instance_role=\"redis_master\"}[$step])) by (cluster_domain)",
+          "step": "",
+          "type": "instant"
+        }
+      ],
+      "title": "Redis节点",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "cluster_domain",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time 1": false,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "Time 5": true,
+              "Time 6": true,
+              "Time 7": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time 1": 0,
+              "Time 2": 3,
+              "Time 3": 5,
+              "Time 4": 7,
+              "Time 5": 9,
+              "Time 6": 11,
+              "Time 7": 13,
+              "Value #A": 2,
+              "Value #B": 6,
+              "Value #C": 8,
+              "Value #D": 10,
+              "Value #E": 12,
+              "Value #F": 14,
+              "Value #G": 4,
+              "cluster_domain": 1
+            },
+            "renameByName": {
+              "Time 1": "当前时间",
+              "Value #A": "节点最大单核cpu",
+              "Value #B": "最大cpu",
+              "Value #C": "最大内存利用率",
+              "Value #D": "节点最大qps",
+              "Value #E": "节点最大连接数",
+              "Value #F": "节点最大平均延迟",
+              "Value #G": "节点最高Cpu",
+              "cluster_domain": ""
+            }
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "redis",
+    "business"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "sgame",
+          "value": "sgame"
+        },
+        "description": "sgame",
+        "hide": 0,
+        "label": "app",
+        "name": "app",
+        "options": [
+          {
+            "selected": true,
+            "text": "sgame",
+            "value": "sgame"
+          }
+        ],
+        "query": "sgame",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "selected": false,
+          "text": "2m",
+          "value": "2m"
+        },
+        "description": "",
+        "hide": 0,
+        "label": "interval",
+        "name": "step",
+        "options": [
+          {
+            "selected": true,
+            "text": "2m",
+            "value": "2m"
+          }
+        ],
+        "query": "2m",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Redis集群",
+  "uid": "cekgif5q1yps0a",
+  "version": 20,
+  "weekStart": ""
+}

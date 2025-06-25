@@ -20,8 +20,10 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
+from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import (
     DEFAULT_CONFIG_CONFIRM,
@@ -100,6 +102,86 @@ class ActKwargs:
             InstanceRole.MONGO_M10.value,
             InstanceRole.MONGO_BACKUP.value,
         ]
+
+    def check_instance_domain(self, cluster_id: int, cluster_type: str, ip: str, port: int, domain: str):
+        """检查instance和域名是否匹配"""
+
+        # cluster 是否存在
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+        except Exception as e:
+            raise ValueError("get cluster:{} info fail, error:{}".format(str(cluster_id), e))
+        # ip port 是否属于这个集群
+        if cluster_type == ClusterType.MongoShardedCluster.value:
+            try:
+                instance = cluster.proxyinstance_set.get(machine__ip=ip, port=port)
+            except Exception as e:
+                raise ValueError(
+                    "get instance:{}:{} of cluster:{}  info fail, error:{}".format(ip, str(port), str(cluster_id), e)
+                )
+        elif cluster_type == ClusterType.MongoReplicaSet.value:
+            try:
+                instance = cluster.storageinstance_set.get(machine__ip=ip, port=port)
+            except Exception as e:
+                raise ValueError(
+                    "get instance:{}:{} of cluster:{}  info fail, error:{}".format(ip, str(port), str(cluster_id), e)
+                )
+        # ip port 与域名是否对应
+        try:
+            dns_entry = instance.bind_entry.get(cluster_entry_type=ClusterEntryType.DNS).entry
+        except Exception as e:
+            raise ValueError(
+                "get dns entry of instance:{}:{} of cluster:{}  info fail, error:{}".format(
+                    ip, str(port), str(cluster_id), e
+                )
+            )
+        if dns_entry != domain:
+            raise ValueError(
+                "the domain:{} not match dns entry:{} of instance:{}:{} of cluster:{}".format(
+                    domain, dns_entry, ip, str(port), str(cluster_id)
+                )
+            )
+
+    def replace_check_instance_domain(self):
+        """整机替换检查instance和域名是否匹配"""
+
+        # instance信息
+        all_instances = []
+        # 副本集实例
+        for replicaset in self.payload["infos"][ClusterType.MongoReplicaSet.value]:
+            ip = replicaset["ip"]
+            for instance in replicaset["instances"]:
+                all_instances.append(
+                    {
+                        "cluster_id": instance["cluster_id"],
+                        "ip": ip,
+                        "port": instance["port"],
+                        "domain": instance["domain"],
+                        "cluster_type": ClusterType.MongoReplicaSet.value,
+                    }
+                )
+        # 分片集群实例
+        for cluster in self.payload["infos"][ClusterType.MongoShardedCluster.value]:
+            for mongos in cluster["mongos"]:
+                ip = mongos["ip"]
+                for instance in mongos["instances"]:
+                    all_instances.append(
+                        {
+                            "cluster_id": instance["cluster_id"],
+                            "ip": ip,
+                            "port": instance["port"],
+                            "domain": instance["domain"],
+                            "cluster_type": ClusterType.MongoShardedCluster.value,
+                        }
+                    )
+        for instance in all_instances:
+            self.check_instance_domain(
+                cluster_id=instance["cluster_id"],
+                cluster_type=instance["cluster_type"],
+                ip=instance["ip"],
+                port=instance["port"],
+                domain=instance["domain"],
+            )
 
     def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
         """获取一些全局的参数配置"""
@@ -854,7 +936,7 @@ class ActKwargs:
         """创建/删除用户获取cluster信息"""
 
         # 获取集群信息
-        cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         bk_cloud_id = cluster_info.bk_cloud_id
         self.cluster_type = cluster_info.cluster_type
         exec_ip: str = None
@@ -981,7 +1063,7 @@ class ActKwargs:
         hosts = set()
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
-            cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+            cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
             if not cluster_info:
                 raise ValueError("cluster_id:{} not found".format(cluster_id))
 
@@ -1012,7 +1094,7 @@ class ActKwargs:
     def get_cluster_info_deinstall(self, cluster_id: int):
         """卸载流程获取cluster信息"""
 
-        cluster_info = MongoRepository().fetch_one_cluster(withDomain=True, id=cluster_id)
+        cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=cluster_id)
         self.payload["cluster_type"] = cluster_info.cluster_type
         self.payload["set_id"] = cluster_info.name
         self.payload["cluster_name"] = cluster_info.name
@@ -1315,7 +1397,7 @@ class ActKwargs:
     def get_config_set_name_replace(cluster_id) -> str:
         """获取分片集群的configDB的set_id"""
 
-        return MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id).get_config().set_name
+        return MongoRepository().fetch_one_cluster(id=cluster_id).get_config().set_name
 
     def calc_param_replace(self, info: dict, instance_num: int):
         """ "计算参数"""
@@ -1900,7 +1982,7 @@ class ActKwargs:
         hosts = set()
         bk_cloud_id: int = None
         for cluster_id in self.payload["cluster_ids"]:
-            cluster_info = MongoRepository().fetch_one_cluster(withDomain=False, id=cluster_id)
+            cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
             if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
                 shard = cluster_info.get_shards()[0]
                 bk_cloud_id = shard.members[0].bk_cloud_id

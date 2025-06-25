@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"encoding/json"
 	"fmt"
@@ -75,8 +76,8 @@ jobs_config: {{ .InstallPath }}/jobs-config.yaml`,
 		nginxAddrs := viper.GetStringSlice("nginx-address")
 		bkCloudId := viper.GetInt("bk-cloud-id")
 
-		rvApi := reverseapi.NewReverseApiWithAddr(int64(bkCloudId), nginxAddrs...)
-		data, err := rvApi.MySQL.CrondConfig()
+		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		data, err := reversemysqlapi.CrondConfig(apiCore)
 		if err != nil {
 			return err
 		}

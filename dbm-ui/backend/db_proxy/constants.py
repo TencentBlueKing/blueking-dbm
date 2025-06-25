@@ -26,6 +26,8 @@ JOB_INSTANCE_EXPIRE_TIME = 5 * 60
 DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
 # 定义云区域proxy缓存过期时间为1天
 DB_CLOUD_PROXY_EXPIRE_TIME = 1 * 24 * 60 * 60
+# 定义machine缓存过期时间为1天
+DB_CLOUD_MACHINE_EXPIRE_TIME = 1 * 24 * 60 * 60
 
 
 class ExtensionType(str, StructuredEnum):

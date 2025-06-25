@@ -26,7 +26,7 @@ func NewBackupMeta(dir string, backupType string, conn *mymongo.MongoHost, lastR
 	m.ConnInfo = conn
 	m.LastResult = lastResult
 
-	if false == TestFileWriteable(m.GetMetaFileName()) {
+	if !TestFileWriteable(m.GetMetaFileName()) {
 		return nil, fmt.Errorf("write %s err", m.GetMetaFileName())
 	}
 	return m, nil

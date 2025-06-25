@@ -10,7 +10,7 @@
           <!-- prettier-ignore -->
           <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
         </template>
-        <BkMenuItem key="DatabaseRedisList">
+        <BkMenuItem key="redisCluster">
           <span
             v-overflow-tips.right
             class="text-overflow">
@@ -42,7 +42,7 @@
           <!-- prettier-ignore -->
           <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
         </template>
-        <BkMenuItem key="DatabaseRedisHaList">
+        <BkMenuItem key="DatabaseRedisHa">
           <span
             v-overflow-tips.right
             class="text-overflow">

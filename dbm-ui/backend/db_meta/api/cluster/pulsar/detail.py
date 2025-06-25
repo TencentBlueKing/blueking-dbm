@@ -38,7 +38,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     _dummy, entry_group = graph.add_node(entry)
 
     # 访问入口 ----> broker节点，关系为：访问
-    graph.add_line(source=entry_group, target=broker_group, label=LineLabel.Access)
+    graph.add_line(source=entry_group, target=broker_group, label=LineLabel.Bind)
 
     # broker节点 ----> zk节点，关系为：读写
     graph.add_line(source=broker_group, target=zk_group, label=LineLabel.ReadWrite)

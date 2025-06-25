@@ -32,7 +32,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     master_entry_group = Group(node_id="master_bind_entry_group", group_name=_("访问入口（主）"))
     graph.add_node(master_entry, to_group=master_entry_group)
     # 主访问入口 --> master
-    graph.add_line(source=master_entry_group, target=master_group, label=LineLabel.Access)
+    graph.add_line(source=master_entry_group, target=master_group, label=LineLabel.Bind)
 
     # 获得slave节点组
     slaves, slave_group = graph.add_instance_nodes(

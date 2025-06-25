@@ -44,7 +44,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         _dummy, entry_group = graph.add_node(entry)
 
         # 访问入口 ---> Follower节点，关系为：访问
-        graph.add_line(source=entry_group, target=follower_group, label=LineLabel.Access)
+        graph.add_line(source=entry_group, target=follower_group, label=LineLabel.Bind)
         # Follower节点 ---> Observer/冷/热节点，关系为：访问
         if observer_group:
             graph.add_line(source=follower_group, target=observer_group, label=LineLabel.Access)

@@ -8,5 +8,5 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .get_instance_admin_password import get_instance_admin_password
+from .admin_password import admin_password
 from .list_instance_info import list_instance_info

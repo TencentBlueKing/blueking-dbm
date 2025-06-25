@@ -30,9 +30,9 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
-from .enums import AutofixStatus
+from .enums import AutofixItem, AutofixStatus
 from .message import get_ticket_heplers, send_msg_2_qywx
-from .models import RedisAutofixCore
+from .models import RedisAutofixCore, RedisAutofixCtl
 
 logger = logging.getLogger("root")
 
@@ -53,7 +53,50 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             continue
 
+        # 忽略自愈，支持按集群名配置
+        if will_ignore_autofix_by_domain(cluster):
+            cluster.status_version = _("ignore_by_ctl:{}".format(get_random_string(12)))
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+            continue
+
         generate_single_autofix_ticket(cluster)
+
+
+# 增加支持忽略自愈控制
+def will_ignore_autofix_by_domain(cluster: RedisAutofixCore):
+    ignore_domains = []
+    try:
+        ctl_item = RedisAutofixCtl.objects.filter(
+            ctl_name=AutofixItem.IGNORE_DOMAINS.value, bk_biz_id=cluster.bk_biz_id
+        ).get()
+        if ctl_item:
+            ignore_domains = json.loads(ctl_item.ctl_value)
+    except RedisAutofixCtl.DoesNotExist:
+        RedisAutofixCtl.objects.create(
+            bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
+            ctl_value=json.dumps("[]"),
+            ctl_name=AutofixItem.IGNORE_DOMAINS.value,
+        ).save()
+        return False
+    # 在忽略自愈的对象里边，直接返回就是
+    if cluster.immute_domain in ignore_domains:
+        logger.info(
+            "cluster_autofix_ignore {}, admin confied ignore domains {}/{} ".format(
+                cluster.immute_domain, cluster.immute_domain, ignore_domains
+            )
+        )
+        msgs, title = {}, _("{} - 🥸忽略自愈🥸".format(cluster.immute_domain))
+        msgs[_("BKID")] = cluster.bk_biz_id
+        msgs[_("集群类型")] = cluster.cluster_type
+        msgs[_("故障机S")] = json.dumps(cluster.fault_machines)
+        msgs[_("配置列表")] = _("配置了忽略自愈的集群列表: {} ".format(json.dumps(ignore_domains)))
+        send_msg_2_qywx(title, msgs)
+        return True
+    # 默认发起自愈
+    return False
 
 
 # 独立出来

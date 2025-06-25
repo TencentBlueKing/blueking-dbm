@@ -75,6 +75,10 @@
   };
 </script>
 <style lang="less">
+  .dbm-cluster-role-status {
+    display: inline-block;
+  }
+
   .dbm-cluster-role-status-panel {
     line-height: 24px;
     color: #63656e;

@@ -21,21 +21,21 @@ package constant
 
 // These constants define all supported cluster-level or component-level operation types
 const (
-	CreateCluster = "CreateCluster"
-	DeleteCluster = "DeleteCluster"
-	UpdateCluster = "UpdateCluster"
-
-	StartCluster   = "StartCluster"
-	StopCluster    = "StopCluster"
-	RestartCluster = "RestartCluster"
-	StartComp      = "StartComponent"
-	StopComp       = "StopComponent"
-	RestartComp    = "RestartComponent"
-	VScaling       = "VerticalScaling"
-	HScaling       = "HorizontalScaling"
-	VExpansion     = "VolumeExpansion"
-	UpgradeComp    = "UpgradeComp"
-	ExposeService  = "ExposeService"
+	CreateCluster        = "CreateCluster"
+	DeleteCluster        = "DeleteCluster"
+	UpdateCluster        = "UpdateCluster"
+	PartialUpdateCluster = "PartialUpdateCluster"
+	StartCluster         = "StartCluster"
+	StopCluster          = "StopCluster"
+	RestartCluster       = "RestartCluster"
+	StartComp            = "StartComponent"
+	StopComp             = "StopComponent"
+	RestartComp          = "RestartComponent"
+	VScaling             = "VerticalScaling"
+	HScaling             = "HorizontalScaling"
+	VExpansion           = "VolumeExpansion"
+	UpgradeComp          = "UpgradeComp"
+	ExposeService        = "ExposeService"
 
 	CreateK8sNs = "CreateK8sNamespace"
 )

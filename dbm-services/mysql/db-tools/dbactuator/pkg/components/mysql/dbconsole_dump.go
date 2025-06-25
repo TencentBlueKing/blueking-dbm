@@ -115,20 +115,17 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	}
 	logger.Info("计算的理想磁盘是%v", f)
 	rootDir := f.MountPoint
-
 	conn, err := native.InsObject{
 		Host: host,
 		Port: port,
 		User: user,
 		Pwd:  pwd,
 	}.Conn()
-
 	defer func() {
 		if conn != nil {
 			conn.Close()
 		}
 	}()
-
 	version, err := conn.SelectVersion()
 	if err != nil {
 		logger.Error("get version failed %s", err.Error())
@@ -137,11 +134,18 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	sysDbs := computil.GetGcsSystemDatabases(version)
 	c.isSpider = strings.Contains(version, "tdbctl")
 	tbls := c.Params.DumpDetail.Tables
-	if len(tbls) <= 0 {
+	if len(tbls) == 0 {
 		tbls = []string{"*"}
 	}
 	logger.Info("ignore: %v, tbls: %v", c.Params.DumpDetail.TablesIgnore, tbls)
-	if len(c.Params.DumpDetail.TablesIgnore) <= 0 /*&& !(len(tbls) == 1 && tbls[0] == "*")*/ {
+	// 首先前提是限制了输入的database 不允许通配
+	// 如参数的database 一定是 [db1,db2] 类似的具体db
+	switch {
+	// 如参数是 ignore_tables:[], tables:[*]
+	case len(c.Params.DumpDetail.TablesIgnore) == 0 && (tbls[0] == "*"):
+		c.realTables = []string{"*"}
+	// 如参数是 ignore_tables:[], tables:[t1,t2]
+	case len(c.Params.DumpDetail.TablesIgnore) == 0 && !(tbls[0] == "*"):
 		dbTablefiler, err = db_table_filter.NewFilter(c.Params.DumpDetail.Databases, tbls, nil, nil)
 		if err != nil {
 			return err
@@ -151,7 +155,8 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 		if err != nil {
 			return err
 		}
-	} else if len(c.Params.DumpDetail.TablesIgnore) > 0 {
+	// 如参数是 ignore_tables:[t1]
+	case len(c.Params.DumpDetail.TablesIgnore) > 0:
 		dbTablefiler, err = db_table_filter.NewFilter(
 			c.Params.DumpDetail.Databases, tbls,
 			nil, c.Params.DumpDetail.TablesIgnore,
@@ -165,29 +170,30 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 			return err
 		}
 
-		res, err := dbTablefiler.GetExcludeTables(host, port, user, pwd)
-		if err != nil {
-			return err
+		res, errx := dbTablefiler.GetExcludeTables(host, port, user, pwd)
+		if errx != nil {
+			return errx
 		}
 		for k, v := range res {
 			for _, tb := range v {
 				c.realIgnoreTables = append(c.realIgnoreTables, fmt.Sprintf("%s.%s", k, tb))
 			}
 		}
-	} else {
+	default:
 		logger.Error("unexpected input")
 	}
+
 	logger.Info("special tables %v", c.realTables)
 	logger.Info("ignore tables %v", c.realIgnoreTables)
 
-	if len(c.realTables) <= 0 {
+	if len(c.realTables) == 0 {
 		return fmt.Errorf("none tables should be backup")
 	}
 	// ignore sys dbs
 	c.dbs = slices.DeleteFunc(c.Params.DumpDetail.Databases, func(s string) bool {
 		return slices.Contains(sysDbs, s)
 	})
-	if len(c.dbs) <= 0 {
+	if len(c.dbs) == 0 {
 		return fmt.Errorf("not found any databases need to dump")
 	}
 	// check database exist
@@ -195,11 +201,10 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	if err != nil {
 		return err
 	}
-
 	for _, db := range c.dbs {
 		var errs []error
 		if !slices.Contains(realDbs, db) {
-			errs = append(errs, fmt.Errorf("%s not found \n", db))
+			errs = append(errs, fmt.Errorf("%s not found", db))
 		}
 		if len(errs) >= 1 {
 			return errors.Join(errs...)
@@ -222,10 +227,10 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	c.backupDir = path.Join(rootDir, "dbm_console_dump")
 	if !osutil.FileExist(c.backupDir) {
 		logger.Warn("backupdir: %s不存在", c.backupDir)
-		stdOut, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir -p %s && chown mysql:mysql %s",
+		stdOut, serr := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir -p %s && chown mysql:mysql %s",
 			c.backupDir, c.backupDir))
-		if err != nil {
-			return fmt.Errorf("mkdir %s failed,stdout:%s,err:%w", c.backupDir, stdOut, err)
+		if serr != nil {
+			return fmt.Errorf("mkdir %s failed,stdout:%s,err:%w", c.backupDir, stdOut, serr)
 		}
 	}
 	return err
@@ -251,11 +256,12 @@ func (c *DbConsoleDumpComp) Run() (err error) {
 		dumpOption.GtidPurgedOff = true
 	}
 
-	if len(c.realTables) > 0 && len(c.dbs) > 1 {
-		err = fmt.Errorf("mysqldump only support one database if --tables not empty")
-		logger.Error(err.Error())
-		return err
-	}
+	// 实际dump 实现的方法是按单库来导出的，无需该检查
+	// if len(c.realTables) > 0 && len(c.dbs) > 1 {
+	// 	err = fmt.Errorf("mysqldump only support one database if --tables not empty")
+	// 	logger.Error(err.Error())
+	// 	return err
+	// }
 
 	dumper = mysqlutil.MySQLDumper{
 		DumpDir:         c.backupDir,

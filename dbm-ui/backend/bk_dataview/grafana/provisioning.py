@@ -162,7 +162,7 @@ class SimpleProvisioning(BaseProvisioning):
             datasource_type, tpl_uid = cls.get_obj_datasource_type_uid(tpl)
             if datasource_type:
                 dashboard["templating"]["list"][tpl_index]["datasource"]["uid"] = tpl_uid
-            # 隐藏掉 app（业务）选择器
+            # 集群监控视图，隐藏掉 app（业务）选择器
             if tpl["name"] == "app":
                 dashboard["templating"]["list"][tpl_index]["hide"] = 2
 

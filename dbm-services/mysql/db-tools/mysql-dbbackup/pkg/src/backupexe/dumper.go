@@ -21,7 +21,7 @@ import (
 
 // Dumper TODO
 type Dumper interface {
-	initConfig(mysqlVersion string) error
+	initConfig(mysqlVersion string, logBinDisabled bool) error
 	Execute(ctx context.Context) error
 	PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error
 }

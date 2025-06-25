@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -27,11 +28,12 @@ import (
 	metaconst "k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/provider"
 	entitys "k8s-dbs/metadata/provider/entity"
-	"k8s-dbs/metadata/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+
+	commconst "k8s-dbs/common/api/constant"
 )
 
 // AddonController manages metadata for addons.
@@ -52,7 +54,7 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
 	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
-	pagination := utils.Pagination{Limit: fetchSize}
+	pagination := commentity.Pagination{Limit: fetchSize}
 	addons, err := a.addonProvider.ListStorageAddons(pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
@@ -63,7 +65,7 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAddon retrieves an addon by its ID.
@@ -84,7 +86,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateAddon creates a new addon.
@@ -109,7 +111,7 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, "OK")
+	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // UpdateAddon updates an existing addon.
@@ -136,7 +138,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteAddon deletes an addon by its ID.
@@ -152,5 +154,5 @@ func (a *AddonController) DeleteAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, "OK")
+	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

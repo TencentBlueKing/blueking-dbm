@@ -111,6 +111,7 @@
   </EditableColumn>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -222,7 +223,7 @@
     },
   );
 
-  const disableDate = (date?: Date | number) => Boolean(date && date.valueOf() > Date.now());
+  const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
 
   const hanldeBackupTypeChange = () => {
     restoreTime.value = '';

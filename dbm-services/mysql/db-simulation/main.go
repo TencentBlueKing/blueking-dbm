@@ -114,6 +114,7 @@ func apiLogger(c *gin.Context) {
 			Path:        c.Request.URL.Path,
 			SourceIP:    c.Request.RemoteAddr,
 			RequestBody: string(body),
+			ResponeBody: "{}",
 			CreateTime:  time.Now(),
 			UpdateTime:  time.Now(),
 		})
@@ -152,6 +153,7 @@ func returnRessponeMiddleware(c *gin.Context) {
 	}
 	if lo.IsNotEmpty(rp.RequestID) {
 		if err := model.UpdateTbRequestLog(rp.RequestID, map[string]interface{}{
+			"response_body": blw.body.String(),
 			"response_code": statusCode,
 			"update_time":   time.Now()}); err != nil {
 			logger.Warn("update request response failed %s", err.Error())

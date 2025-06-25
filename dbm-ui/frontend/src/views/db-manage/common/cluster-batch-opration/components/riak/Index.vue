@@ -45,6 +45,7 @@
 
   defineOptions({
     name: ClusterTypes.RIAK,
+    inheritAttrs: false,
   });
 
   const props = defineProps<Props>();

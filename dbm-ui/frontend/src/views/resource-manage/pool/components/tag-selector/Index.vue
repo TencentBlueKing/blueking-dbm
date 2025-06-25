@@ -127,17 +127,17 @@
       {
         trigger: 'blur',
         validator: (value: string) => {
-          validateLoading.value = true;
+          // validateLoading.value = true;
           return validateTag({
             bk_biz_id: props.bkBizId,
             tags: [{ key: 'dbresource', value }],
-          })
-            .then((existData) => {
-              return existData.length > 0 ? t('标签已存在') : true;
-            })
-            .finally(() => {
-              validateLoading.value = false;
-            });
+            type: 'resource',
+          }).then((existData) => {
+            return existData.length > 0 ? t('标签已存在') : true;
+          });
+          // .finally(() => {
+          //   validateLoading.value = false;
+          // });
         },
       },
     ],

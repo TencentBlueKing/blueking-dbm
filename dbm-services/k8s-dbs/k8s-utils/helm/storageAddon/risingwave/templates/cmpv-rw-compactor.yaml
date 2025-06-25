@@ -6,6 +6,8 @@ spec:
   compatibilityRules:
     - releases:
         - compactor-2.2.1
+        - compactor-2.3.0
+        - compactor-2.4.1
       compDefs:
         - rw-compactor-{{ .Chart.Version}}
   releases:
@@ -13,3 +15,11 @@ spec:
       serviceVersion: 2.2.1
       images:
         compactor: docker.risingwave.com/risingwavelabs/risingwave:v2.2.1
+    - name: compactor-2.3.0
+      serviceVersion: 2.3.0
+      images:
+        compactor: docker.risingwave.com/risingwavelabs/risingwave:v2.3.0
+    - name: compactor-2.4.1
+      serviceVersion: 2.4.1
+      images:
+        compactor: docker.risingwave.com/risingwavelabs/risingwave:v2.4.1

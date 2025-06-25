@@ -7,6 +7,8 @@ spec:
     - releases:
         - vmstorage-1.93.10
         - vmstorage-1.115.0
+        - vmstorage-1.118.0
+        - vmstorage-1.119.0
       compDefs:
         - {{ include "victoriametrics-storage.cmpdName" . }}
   releases:
@@ -18,4 +20,11 @@ spec:
       serviceVersion: 1.115.0
       images:
         vmstorage: victoriametrics/vmstorage:v1.115.0-cluster
-
+    - name: vmstorage-1.118.0
+      serviceVersion: 1.118.0
+      images:
+        vmstorage: victoriametrics/vmstorage:v1.118.0-cluster
+    - name: vmstorage-1.119.0
+      serviceVersion: 1.119.0
+      images:
+        vmstorage: victoriametrics/vmstorage:v1.119.0-cluster

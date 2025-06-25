@@ -623,7 +623,8 @@ var MycnfItemsMap = map[string]string{
 }
 
 // CreateExporterConf 简单写一个根据端口号生成exporter文件的方法
-func CreateExporterConf(fileName string, host string, port int, user string, password string) (err error) {
+func CreateExporterConf(fileName string, host string, port int, user string, password string,
+	instanceRole string) (err error) {
 	cnfPath := fmt.Sprintf("%s", fileName)
 	cfg := ini.Empty()
 
@@ -635,6 +636,13 @@ func CreateExporterConf(fileName string, host string, port int, user string, pas
 	exporterSection.NewKey("password", password)
 	exporterSection.NewKey("host", host)
 	exporterSection.NewKey("port", strconv.Itoa(port))
+
+	if instanceRole != "" {
+		labelSection, _ := cfg.NewSection("label")
+		labelSection.NewKey("instance_role", instanceRole)
+	}
+
+	// cfg.NewSection("label")
 	err = cfg.SaveTo(cnfPath)
 	if err != nil {
 		return err

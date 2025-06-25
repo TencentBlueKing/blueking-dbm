@@ -127,7 +127,19 @@ export function getTendbclusterListByBizId(params: {
 /**
  * 获取集群实例列表
  */
-export function getTendbclusterInstanceList(params: Record<string, any>) {
+export function getTendbclusterInstanceList(params: {
+  cluster_id?: number;
+  cluster_type?: string;
+  domain?: string;
+  extra?: number;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
+}) {
   return http.get<ListBase<TendbclusterInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
     ...res,
     results: res.results.map((data) => new TendbclusterInstanceModel(data)),
@@ -189,7 +201,7 @@ export function getTendbclusterMachineList(params: {
 /**
  * 获取 spider 实例详情
  */
-export const getTendbclusterInstanceDetail = (params: { cluster_id: number; instance_address: string }) =>
+export const getTendbclusterInstanceDetail = (params: { cluster_id: number; instance?: string }) =>
   http.get<TendbclusterInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
 
 /**

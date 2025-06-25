@@ -39,13 +39,22 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/pulsar/apply/index.vue'),
       // },
       {
-        path: 'list',
+        path: 'list/:clusterId?',
         name: 'PulsarList',
         meta: {
           fullscreen: true,
           navName: t('Pulsar集群管理'),
         },
-        component: () => import('@views/db-manage/pulsar/list/Index.vue'),
+        component: () => import('@/views/db-manage/pulsar/list/Index.vue'),
+      },
+      {
+        path: 'detail/:clusterId',
+        name: 'PulsarDetail',
+        meta: {
+          fullscreen: true,
+          navName: t('Pulsar集群详情'),
+        },
+        component: () => import('@views/db-manage/pulsar/detail/Index.vue'),
       },
     ],
   },

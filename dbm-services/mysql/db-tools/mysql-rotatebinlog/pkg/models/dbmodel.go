@@ -204,7 +204,7 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 	return nil
 }
 
-// HandleSwitchRole 如果该实例发生切换，从slave变成master, 补录binlog
+// HandleSwitchRole 如果该实例发生切换，从slave变成master, 补录24小时的 binlog
 func (m *BinlogFileModel) HandleSwitchRole(backupEnable bool, db *sqlx.DB) error {
 	m.autoTime()
 	if m.BackupStatusInfo == "" {

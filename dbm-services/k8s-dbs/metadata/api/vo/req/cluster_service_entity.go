@@ -25,17 +25,17 @@ import (
 
 // K8sClusterServiceReqVo represents the request data structure of cluster service meta.
 type K8sClusterServiceReqVo struct {
-	CrdClusterID  uint64    `json:"crd_cluster_id"`
-	ComponentName string    `json:"component_name"`
-	ServiceName   string    `json:"service_name"`
-	ServiceType   string    `json:"service_type"`
-	Annotations   string    `json:"annotations"`
-	InternalAddrs string    `json:"internal_addrs"`
-	ExternalAddrs string    `json:"external_addrs"`
-	Domains       string    `json:"domains"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"created_by"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedBy     string    `json:"updated_by"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CrdClusterID  uint64    `json:"crdClusterId" binding:"required"`
+	ComponentName string    `json:"componentName" binding:"required"`
+	ServiceName   string    `json:"serviceName" binding:"required"`
+	ServiceType   string    `json:"serviceType" binding:"required"`
+	Annotations   string    `json:"annotations" binding:"required"`
+	InternalAddrs string    `json:"internalAddrs" binding:"required"`
+	ExternalAddrs string    `json:"externalAddrs" binding:"required"`
+	Domains       string    `json:"domains" binding:"required"`
+	Description   string    `json:"description" binding:"required"`
+	CreatedBy     string    `json:"createdBy" binding:"required"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }

@@ -35,9 +35,9 @@ var ResourceInGlobal = map[string]struct{}{
 }
 
 const (
-	AddonDefaultNamespace   = "kb-system"
-	HelmRepoDownloadTimeout = 30 * time.Second
-	HelmDriver              = "secrets"
+	AddonDefaultNamespace = "kb-system"
+	HelmOperationTimeout  = 30 * time.Second
+	HelmDriver            = "secrets"
 )
 
 const (

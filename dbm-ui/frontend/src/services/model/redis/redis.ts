@@ -50,6 +50,7 @@ export default class Redis extends ClusterBase {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  city: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_capacity: number;
@@ -107,6 +108,7 @@ export default class Redis extends ClusterBase {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.city = payload.city;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
@@ -188,7 +190,7 @@ export default class Redis extends ClusterBase {
   }
 
   get masterDomainDisplayName() {
-    const port = this.proxy[0]?.port;
+    const port = this.cluster_type === ClusterTypes.REDIS_INSTANCE ? this.redis_master[0]?.port : this.proxy[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
     return displayName;
   }

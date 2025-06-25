@@ -37,8 +37,8 @@
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
-  import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import HdfsModel from '@services/model/hdfs/hdfs';
+  import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
   import { getHdfsNodeList } from '@services/source/hdfs';
   import { createTicket } from '@services/source/ticket';
 
@@ -51,11 +51,9 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<HdfsNodeModel>;
-
   interface Props {
     data: HdfsModel;
-    nodeList?: TNodeInfo['nodeList'];
+    machineList?: HdfsMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
@@ -65,7 +63,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    nodeList: () => [],
+    machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
@@ -80,12 +78,12 @@
   ];
 
   const nodeStatusListRef = ref();
-  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     datanode: {
+      hostList: [],
       label: 'DataNode',
       // 最小主机数
       minHost: 2,
-      nodeList: [],
       originalNodeList: [],
       // 缩容后的目标容量
       // targetDisk: 0,
@@ -101,7 +99,7 @@
   const nodeType = ref('datanode');
 
   const fetchListNode = () => {
-    const datanodeOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const datanodeOriginalNodeList: TShrinkNode['originalNodeList'] = [];
 
     isLoading.value = true;
     getHdfsNodeList({
@@ -131,19 +129,25 @@
 
   // 默认选中的缩容节点
   watch(
-    () => props.nodeList,
+    () => props.machineList,
     () => {
-      const datanodeList: TNodeInfo['nodeList'] = [];
+      const datanodeList: TShrinkNode['hostList'] = [];
 
       let datanodeShrinkDisk = 0;
 
-      props.nodeList.forEach((nodeItem) => {
-        if (nodeItem.isDataNode) {
-          datanodeShrinkDisk += nodeItem.disk;
-          datanodeList.push(nodeItem);
+      props.machineList.forEach((machineItem) => {
+        if (machineItem.isDataNode) {
+          datanodeShrinkDisk += machineItem.host_info?.bk_disk || 0;
+          datanodeList.push({
+            alive: machineItem.host_info?.alive || 0,
+            bk_cloud_id: machineItem.bk_cloud_id,
+            bk_disk: machineItem.host_info.bk_disk,
+            bk_host_id: machineItem.bk_host_id,
+            ip: machineItem.ip,
+          });
         }
       });
-      nodeInfoMap.datanode.nodeList = datanodeList;
+      nodeInfoMap.datanode.hostList = datanodeList;
       nodeInfoMap.datanode.shrinkDisk = datanodeShrinkDisk;
     },
     {
@@ -152,9 +156,9 @@
   );
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
-    const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
-    nodeInfoMap[nodeType.value].nodeList = nodeList;
+  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
+    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
+    nodeInfoMap[nodeType.value].hostList = hostList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
   };
 
@@ -194,8 +198,8 @@
           headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
-              nodeList.map((hostItem) => ({
+            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
+              hostList.map((hostItem) => ({
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
@@ -213,7 +217,7 @@
                   });
                   return results;
                 },
-                {} as Record<string, TNodeInfo>,
+                {} as Record<string, TShrinkNode>,
               );
 
             createTicket({
@@ -223,7 +227,7 @@
                 ext_info: generateExtInfo(),
                 ip_source: 'resource_pool',
                 old_nodes: {
-                  [nodeType.value]: fomatHost(nodeInfoMap.datanode.nodeList),
+                  [nodeType.value]: fomatHost(nodeInfoMap.datanode.hostList),
                 },
               },
               ticket_type: TicketTypes.HDFS_SHRINK,

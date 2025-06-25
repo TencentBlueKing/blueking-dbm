@@ -78,7 +78,7 @@
   import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
 
-  import { InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const';
+  import { BizSettingKeys, InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -240,7 +240,8 @@
         },
       );
 
-      const isBizSettingEmpty = _.isEmpty(bizSetting.value) || _.isEmpty(bizSetting.value.NOTIFY_CONFIG);
+      const isBizSettingEmpty =
+        _.isEmpty(bizSetting.value) || _.isEmpty(bizSetting.value[BizSettingKeys.NOTIFY_CONFIG]);
       const list: DataRow[] = [];
 
       NoticeTicketTypeList.forEach(([status, statusText]) => {
@@ -252,7 +253,7 @@
             }
           });
         } else {
-          const statusBizSetting = bizSetting.value!.NOTIFY_CONFIG[status];
+          const statusBizSetting = bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status];
           Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
             initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
           });
@@ -280,7 +281,7 @@
   const getData = () => {
     runGetBizSettingList({
       bk_biz_id: bizId,
-      key: 'NOTIFY_CONFIG',
+      key: BizSettingKeys.NOTIFY_CONFIG,
     });
     runGetAlarmGroupNotifyList({
       bk_biz_id: bizId,
@@ -290,7 +291,7 @@
   const handleSave = () => {
     runUpdateBizSetting({
       bk_biz_id: bizId,
-      key: 'NOTIFY_CONFIG',
+      key: BizSettingKeys.NOTIFY_CONFIG,
       value: dataList.value.reduce<TicketNoticeSetting>((prevMap, dataItem) => {
         const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>(
           (prevMap, [key, value]) => {
@@ -320,7 +321,7 @@
   const handleReset = () => {
     runResetBizSetting({
       bk_biz_id: bizId,
-      key: 'NOTIFY_CONFIG',
+      key: BizSettingKeys.NOTIFY_CONFIG,
       value: NoticeTicketTypeList.reduce<TicketNoticeSetting>(
         (prevSettingMap, [status]) =>
           Object.assign({}, prevSettingMap, {

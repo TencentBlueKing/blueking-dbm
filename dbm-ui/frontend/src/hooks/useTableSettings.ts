@@ -28,7 +28,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   const userProfileStore = useUserProfile();
 
   // 获取用户配置的表头信息
-  const settings = shallowRef<{ checked?: string[]; disabled?: string[]; size?: string }>();
+  const settings = shallowRef<Settings>();
   settings.value = {
     checked: userProfileStore.profile[key]?.checked || defaultSettings.checked,
     disabled: defaultSettings.disabled,

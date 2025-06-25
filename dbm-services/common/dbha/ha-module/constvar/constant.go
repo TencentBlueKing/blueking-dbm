@@ -447,6 +447,8 @@ const (
 	NewMasterHost = "new_master_host"
 	//NewMasterPort new master's port
 	NewMasterPort = "new_master_port"
+	//GQACheckKey gqa use to set gqa check info
+	GQACheckKey = "gqa_check"
 )
 
 // checksum sql

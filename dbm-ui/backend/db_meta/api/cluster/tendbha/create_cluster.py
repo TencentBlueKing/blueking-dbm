@@ -12,7 +12,7 @@ import logging
 from typing import List, Optional
 
 from django.db import transaction
-from django.utils.translation import ungettext as _
+from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta import request_validator

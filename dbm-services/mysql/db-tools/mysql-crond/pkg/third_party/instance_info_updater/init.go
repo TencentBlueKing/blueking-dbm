@@ -2,6 +2,8 @@ package instance_info_updater
 
 import (
 	"dbm-services/common/reverseapi"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/define"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
@@ -42,14 +44,15 @@ func updater() error {
 }
 
 func Updater() error {
-	rvApi, err := reverseapi.NewReverseApi(int64(*config.RuntimeConfig.BkCloudID))
+	apiCore, err := reverseapi.NewCore(int64(*config.RuntimeConfig.BkCloudID))
 	if err != nil {
-		slog.Error("create reverse api", slog.String("err", err.Error()))
+		slog.Error("create api core", slog.String("err", err.Error()))
 		return err
 	}
 
 	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
-	info, layer, err := rvApi.MySQL.ListInstanceInfo()
+
+	info, layer, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		slog.Error("list instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "list instance info failed")
@@ -61,7 +64,7 @@ func Updater() error {
 	)
 
 	f, err := os.OpenFile(
-		filepath.Join(reverseapi.DefaultCommonConfigDir, reverseapi.DefaultInstanceInfoFileName),
+		filepath.Join(define.DefaultCommonConfigDir, define.DefaultInstanceInfoFileName),
 		os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0777,
 	)
 	if err != nil {

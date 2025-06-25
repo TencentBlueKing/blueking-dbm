@@ -41,7 +41,7 @@ type LogicalDumper struct {
 	backupEndTime   time.Time
 }
 
-func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
+func (l *LogicalDumper) initConfig(mysqlVerStr string, logBinDisabled bool) error {
 	if l.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}
@@ -214,12 +214,6 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 // PrepareBackupMetaInfo prepare the backup result of Logical Backup
 // mydumper 备份完成后，解析 metadata 文件
 func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
-		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
-	}
-	if metaInfo.BinlogInfo.ShowMasterStatus == nil {
-		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{}
-	}
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")
 	metadata, err := parseMydumperMetadata(metaFileName)
 	if err != nil {
