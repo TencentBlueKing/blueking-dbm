@@ -69,6 +69,7 @@ export default class TendbCluster extends ClusterBase {
   db_module_id: number;
   db_module_name: string;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
   major_version: string;
@@ -77,6 +78,8 @@ export default class TendbCluster extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     tendb_spider_slave_destroy: boolean;
+    tendbcluster_add_clb: boolean;
+    tendbcluster_clb_bind_domain: boolean;
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
     tendbcluster_edit: boolean;
@@ -123,6 +126,7 @@ export default class TendbCluster extends ClusterBase {
     this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
+    this.dns_to_clb = payload.dns_to_clb;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
@@ -173,6 +177,10 @@ export default class TendbCluster extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 
   get isStarting() {

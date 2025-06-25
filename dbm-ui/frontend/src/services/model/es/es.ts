@@ -72,6 +72,7 @@ export default class Es extends ClusterBase {
   db_module_id: number;
   db_module_name: number;
   disaster_tolerance_level: Affinity;
+  dns_to_clb: boolean;
   domain: string;
   es_client: Array<ClusterListNode>;
   es_datanode_cold: Array<ClusterListNode>;
@@ -84,7 +85,10 @@ export default class Es extends ClusterBase {
   permission: {
     access_entry_edit: boolean;
     es_access_entry_view: boolean;
+    es_create_clb: boolean;
+    es_create_polaris: boolean;
     es_destroy: boolean;
+    es_dns_bind_clb: boolean;
     es_edit: boolean;
     es_enable_disable: boolean;
     es_reboot: boolean;
@@ -116,6 +120,7 @@ export default class Es extends ClusterBase {
     this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
+    this.dns_to_clb = payload.dns_to_clb;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
@@ -162,6 +167,14 @@ export default class Es extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
+  }
+
+  get isOnlinePolaris() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
   }
 
   get isStarting() {
