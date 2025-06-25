@@ -23,7 +23,9 @@
         {{ t('复制所有 IP') }}
       </BkButton>
     </div>
-    <div v-show="viewType === 'table'">
+    <div
+      v-show="viewType === 'table'"
+      style="height: 100%">
       <ViewTable :cluster-role-node-group="clusterRoleNodeGroup" />
     </div>
     <ViewTopo
@@ -62,12 +64,14 @@
   const viewType = ref('table');
 
   const handleNotAliveHostIp = () => {
-    const ipList = _.flatten(Object.values(props.clusterRoleNodeGroup)).reduce<string[]>((result, item) => {
-      if (item.status === ClusterInstStatusKeys.UNAVAILABLE) {
-        result.push(item.instance);
-      }
-      return result;
-    }, []);
+    const ipList = _.uniq(
+      _.flatten(Object.values(props.clusterRoleNodeGroup)).reduce<string[]>((result, item) => {
+        if (item.status === ClusterInstStatusKeys.UNAVAILABLE) {
+          result.push(item.instance);
+        }
+        return result;
+      }, []),
+    );
 
     if (ipList.length < 1) {
       messageWarn(t('没有可复制 IP'));
@@ -83,7 +87,7 @@
   };
 
   const handleAllHostIp = () => {
-    const ipList = _.flatten(Object.values(props.clusterRoleNodeGroup)).map((item) => item.ip);
+    const ipList = _.uniq(_.flatten(Object.values(props.clusterRoleNodeGroup)).map((item) => item.ip));
     if (ipList.length < 1) {
       messageWarn(t('没有可复制 IP'));
       return;

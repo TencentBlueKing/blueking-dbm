@@ -142,6 +142,7 @@
       'TicketNoticeSetting',
     ],
     [menuEnum.databaseManage]: [
+      'DbManage',
       'MysqlManage',
       'EsManage',
       'HdfsManage',
@@ -244,7 +245,6 @@
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
-    console.log('handleCollapse');
   };
 
   const handleMenuChange = (type: string) => {
