@@ -22,44 +22,40 @@
  * SOFTWARE.
  */
 
-package config
+package mysql
 
-var Cfg Configuration
-
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
+type Option interface {
+	apply(*mySqlOptions)
 }
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+type mySqlOptions struct {
+	user           string
+	password       string
+	reportInterval int
 }
 
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+var defaultMySqlOptions = mySqlOptions{}
+
+type funcMySqlOptions struct {
+	f func(opt *mySqlOptions)
 }
 
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
+func (fdo *funcMySqlOptions) apply(opt *mySqlOptions) {
+	fdo.f(opt)
 }
 
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
+func OptionUser(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.user = val
+		},
+	}
+}
+
+func OptionReportInterval(val int) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.reportInterval = val
+		},
+	}
 }

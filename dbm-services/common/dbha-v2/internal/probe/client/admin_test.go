@@ -75,11 +75,6 @@ func connectAdminServer(ctx context.Context) error {
 				logger.Fatal("make admin client failed, errmsg(%v)", err)
 			}
 
-			err = cli.Connect()
-			if err != nil {
-				logger.Fatal("admin client connect the remote server failed, errmsg(%v)", err)
-			}
-
 			adminClients = append(adminClients, cli)
 
 			select {

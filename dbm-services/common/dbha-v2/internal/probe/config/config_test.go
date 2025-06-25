@@ -22,44 +22,27 @@
  * SOFTWARE.
  */
 
-package config
+package config_test
 
-var Cfg Configuration
+import (
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"os"
+	"testing"
 
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
-}
+	"k8s.io/apimachinery/pkg/util/yaml"
+)
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
+var configFile = "../../../configs/probe.yaml"
 
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
+func TestConfig(t *testing.T) {
+	content, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Error(err)
+	}
 
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
-}
+	if err := yaml.Unmarshal(content, &config.Cfg); err != nil {
+		t.Error(err)
+	}
 
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
+	t.Logf("probe config:%v", config.Cfg)
 }

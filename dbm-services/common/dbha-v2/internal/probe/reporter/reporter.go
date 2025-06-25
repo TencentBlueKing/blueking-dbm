@@ -24,5 +24,60 @@
 
 package reporter
 
+import (
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/client"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+)
+
 type Reporter struct {
+	ClientId string
+	recvCli  *client.ReceiverClient
+	adminCli *client.AdminClient
+}
+
+func (r *Reporter) CreateClients(ctx context.Context) error {
+	receiver, err := client.NewReceiverClient(ctx, config.Cfg.Receiver.Endpoints, r.ClientId)
+	if err != nil {
+		return err
+	}
+
+	admin, err := client.NewAdminClient(ctx, config.Cfg.Admin.Endpoints, r.ClientId)
+	if err != nil {
+		return err
+	}
+
+	r.recvCli = receiver
+	r.adminCli = admin
+
+	return nil
+}
+
+func (r *Reporter) PostToReceiver(data []byte) error {
+	if r.recvCli == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "receiver client is invalid(nil)")
+	}
+
+	return r.recvCli.SendMessage(data)
+}
+
+func (r *Reporter) PostToAdmin() error {
+	if r.adminCli == nil {
+		return gerrors.Newf(gerrors.InvalidParameter, "admin client is invalid(nil)")
+	}
+
+	return nil
+}
+
+func (r *Reporter) Close() {
+	if r.recvCli != nil {
+		r.recvCli.Close()
+		r.recvCli = nil
+	}
+
+	if r.adminCli != nil {
+		r.adminCli.Close()
+		r.adminCli = nil
+	}
 }

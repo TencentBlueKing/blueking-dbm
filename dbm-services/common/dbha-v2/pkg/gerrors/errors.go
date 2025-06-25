@@ -24,6 +24,8 @@
 
 package gerrors
 
+import "fmt"
+
 // Code dbha global error code type
 type Code int
 
@@ -34,6 +36,7 @@ const (
 	Success
 	Timeout
 	Exited
+	NotFound
 	NotExists
 	NetException
 	NetConnectionBroken
@@ -52,6 +55,12 @@ type Error struct {
 
 // New create a internal error.
 func New(c Code, msg string) *Error {
+	return &Error{code: c, message: msg}
+}
+
+// Newf create a internal error with format.
+func Newf(c Code, format string, args ...interface{}) *Error {
+	msg := fmt.Sprintf(format, args...)
 	return &Error{code: c, message: msg}
 }
 

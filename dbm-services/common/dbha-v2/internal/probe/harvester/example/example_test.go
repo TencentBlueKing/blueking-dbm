@@ -22,44 +22,32 @@
  * SOFTWARE.
  */
 
-package config
+package example_test
 
-var Cfg Configuration
+import (
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
+	"testing"
+)
 
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
-}
+func TestExample(t *testing.T) {
+	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
+	ctx := context.Background()
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
+	harvestC, err := exp.Harvest(ctx)
 
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
+	if err != nil {
+		t.Errorf("harvest db status failed, errmsg(%v)", err)
+	}
 
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
-}
+	for {
+		select {
+		case <-ctx.Done():
+			return
 
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
+		case data := <-harvestC:
+			t.Logf("data:%v", data.Data)
+			return
+		}
+	}
 }

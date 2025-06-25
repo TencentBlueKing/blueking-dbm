@@ -22,44 +22,4 @@
  * SOFTWARE.
  */
 
-package config
-
-var Cfg Configuration
-
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
-}
-
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
-
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
-}
-
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
-}
-
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
-}
+package redis_test

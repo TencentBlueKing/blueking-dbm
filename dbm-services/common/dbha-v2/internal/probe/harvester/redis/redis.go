@@ -22,44 +22,46 @@
  * SOFTWARE.
  */
 
-package config
+package redis
 
-var Cfg Configuration
+import (
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+)
 
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
+const (
+	Name    = "redis"
+	Version = "v1.0.0"
+)
+
+type Redis struct {
+	opts *redisOptions
 }
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+func NewRedis(opts ...Option) *Redis {
+	redisOpt := defaultRedisOptions
+
+	for _, opt := range opts {
+		opt.apply(&redisOpt)
+	}
+
+	return &Redis{
+		opts: &redisOpt,
+	}
 }
 
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+func (r *Redis) Name() (string, error) {
+	return Name, nil
 }
 
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
+func (r *Redis) Version() (string, error) {
+	return Version, nil
 }
 
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
+func (r *Redis) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
+	return nil, nil
+}
+
+func (r *Redis) Close() error {
+	return nil
 }

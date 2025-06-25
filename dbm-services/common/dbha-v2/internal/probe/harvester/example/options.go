@@ -22,44 +22,46 @@
  * SOFTWARE.
  */
 
-package config
+package example
 
-var Cfg Configuration
-
-// LogConfig log configuration
-type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
+type Option interface {
+	apply(*exampleOptions)
 }
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+type exampleOptions struct {
+	dbType         string
+	reportInterval int
 }
 
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+var defaultExampleOptions = exampleOptions{
+	dbType:         "",
+	reportInterval: 0,
 }
 
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string `yaml:"name"`
-	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
-	ReportInterval int    `yaml:"reportInterval"`
+type funcExampleOptions struct {
+	f func(opt *exampleOptions)
 }
 
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string            `yaml:"name"`
-	Version   string            `yaml:"version"`
-	Admin     AdminService      `yaml:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"`
-	Log       LogConfig         `yaml:"log"`
+func (fdo *funcExampleOptions) apply(opt *exampleOptions) {
+	fdo.f(opt)
+}
+
+func newFuncExampleOption(f func(*exampleOptions)) *funcExampleOptions {
+	return &funcExampleOptions{f: f}
+}
+
+func ExampleOptionDbType(db string) *funcExampleOptions {
+	return &funcExampleOptions{
+		f: func(opt *exampleOptions) {
+			opt.dbType = db
+		},
+	}
+}
+
+func ExampleOptionReportInterval(val int) *funcExampleOptions {
+	return &funcExampleOptions{
+		f: func(opt *exampleOptions) {
+			opt.reportInterval = val
+		},
+	}
 }
