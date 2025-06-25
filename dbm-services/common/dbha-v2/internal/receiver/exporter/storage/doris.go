@@ -22,30 +22,58 @@
  * SOFTWARE.
  */
 
-package main
+package storage
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
 	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+const NameDoris = "doris"
+
+type DorisOption interface {
+	apply(*dorisOptions)
+}
+
+type dorisOptions struct {
+	endpoints     []string
+	user          string
+	password      string
+	timeoutSecond int
+}
+
+type funcDorisOption struct {
+	do func(*dorisOptions)
+}
+
+func (f *funcDorisOption) apply(opt *dorisOptions) {
+	f.do(opt)
+}
+
+func DorisOptionTimeout(second int) *funcDorisOption {
+	return &funcDorisOption{
+		do: func(opt *dorisOptions) {
+			opt.timeoutSecond = second
+		},
+	}
+}
+
+func NewDoris(endpoints []string, user, password string, opts ...DorisOption) (*Doris, error) {
+
+	doris := &Doris{opts: &dorisOptions{}}
+
+	for _, opt := range opts {
+		opt.apply(doris.opts)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
+	return doris, nil
+}
 
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
+type Doris struct {
+	opts *dorisOptions
+}
 
+func (d *Doris) Save(data interface{}) error {
+
+	logger.Debug("doris exporter save:%v", data)
+	return nil
 }

@@ -22,30 +22,46 @@
  * SOFTWARE.
  */
 
-package main
+package example
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
+type Option interface {
+	apply(*exampleOptions)
+}
 
-	"github.com/spf13/cobra"
-)
+type exampleOptions struct {
+	dbType         string
+	reportInterval int
+}
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+var defaultExampleOptions = exampleOptions{
+	dbType:         "",
+	reportInterval: 0,
+}
+
+type funcExampleOptions struct {
+	f func(opt *exampleOptions)
+}
+
+func (fdo *funcExampleOptions) apply(opt *exampleOptions) {
+	fdo.f(opt)
+}
+
+func newFuncExampleOption(f func(*exampleOptions)) *funcExampleOptions {
+	return &funcExampleOptions{f: f}
+}
+
+func ExampleOptionDbType(db string) *funcExampleOptions {
+	return &funcExampleOptions{
+		f: func(opt *exampleOptions) {
+			opt.dbType = db
+		},
 	}
+}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
+func ExampleOptionReportInterval(val int) *funcExampleOptions {
+	return &funcExampleOptions{
+		f: func(opt *exampleOptions) {
+			opt.reportInterval = val
+		},
 	}
-
 }

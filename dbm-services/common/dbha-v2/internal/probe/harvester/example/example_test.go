@@ -22,30 +22,32 @@
  * SOFTWARE.
  */
 
-package main
+package example_test
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
+	"testing"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+func TestExample(t *testing.T) {
+	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
+	ctx := context.Background()
+
+	harvestC, err := exp.Harvest(ctx)
+
+	if err != nil {
+		t.Errorf("harvest db status failed, errmsg(%v)", err)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
+	for {
+		select {
+		case <-ctx.Done():
+			return
 
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
+		case data := <-harvestC:
+			t.Logf("data:%v", data.Data)
+			return
+		}
 	}
-
 }

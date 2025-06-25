@@ -26,42 +26,109 @@ package probe
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/internal/probe/reporter"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"encoding/json"
+	"sync"
+	"time"
 )
 
 // Probe probe main framework
 type Probe struct {
-	ClientId string
-	recvCli  *client.ReceiverClient
-	adminCli *client.AdminClient
+	*reporter.Reporter
+	plugins []plugin.Plugin
+	quit    chan struct{}
+	wg      sync.WaitGroup
 }
 
-func (p *Probe) Run(ctx context.Context) error {
-	receiver, err := client.NewReceiverClient(ctx, config.Cfg.Receiver.Endpoints, p.ClientId)
-	if err != nil {
-		return err
-	}
+func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
+	name, _ := plug.Name()
 
-	admin, err := client.NewAdminClient(ctx, config.Cfg.Admin.Endpoints, p.ClientId)
-	if err != nil {
-		return err
-	}
-
-	p.recvCli = receiver
-	p.adminCli = admin
-
-	if err = p.recvCli.Run(); err != nil {
-		return err
-	}
-	/*
-		if err = p.adminCli.Run(); err != nil {
-			//return err
+	defer func() {
+		if err := plug.Close(); err != nil {
+			logger.Error("exit harvester plugin(%s) failed, errmsg(%v)", name, err)
 		}
-	*/
-	select {
-	case <-ctx.Done():
+	}()
+
+	eventC, err := plug.Harvest(ctx)
+	if err != nil {
+		logger.Warn("start harvester plugin(%s) failed, errmsg(%v)", name, err)
+		return
+	}
+
+	for {
+		select {
+		case <-p.quit:
+			return
+
+		case <-ctx.Done():
+			return
+
+		case data := <-eventC:
+			dataEncoded, err := json.Marshal(data)
+			if err != nil {
+				logger.Warn("encode data to json failed, plugin(%s), errmsg(%v)", name, err)
+				continue
+			}
+
+			if err := p.Reporter.PostToReceiver(dataEncoded); err != nil {
+				logger.Warn("post data to receiver failed, plugin(%s), errmsg(%v)", name, err)
+			}
+		}
+	}
+}
+
+func (p *Probe) loadPlugins(ctx context.Context) error {
+	if p.plugins == nil {
+		p.plugins = make([]plugin.Plugin, 20)
+	}
+
+	for _, cfg := range config.Cfg.Harvester {
+		plug, err := harvester.NewPlugin(cfg)
+		if err != nil {
+			logger.Warn("create a new harvester plugin(%s) failed, errmsg(%v)", cfg.Name, err)
+			continue
+		}
+
+		p.wg.Add(1)
+		go func() {
+			defer p.wg.Done()
+			p.runPlugin(ctx, plug)
+		}()
 	}
 
 	return nil
+}
+
+func (p *Probe) Run(ctx context.Context) error {
+	p.quit = make(chan struct{})
+
+	if err := p.Reporter.CreateClients(ctx); err != nil {
+		return err
+	}
+
+	if err := p.loadPlugins(ctx); err != nil {
+		return err
+	}
+
+	// event loop
+	for {
+		select {
+		case <-p.quit:
+			return nil
+
+		default:
+			// Avoid having all goroutines asleep.
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
+func (p *Probe) Close() {
+	if p.quit != nil {
+		close(p.quit) // Notify all goroutines exited.
+	}
 }

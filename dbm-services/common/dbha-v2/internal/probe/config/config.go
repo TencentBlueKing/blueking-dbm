@@ -28,29 +28,38 @@ var Cfg Configuration
 
 // LogConfig log configuration
 type LogConfig struct {
-	Path      string `yaml:"path"`
-	Level     string `yaml:"level"`
-	FileCount int    `yaml:"fileCount"`
-	FileSize  int    `yaml:"fileSize"`
+	Path      string `yaml:"path"      mapstructure:"path"`
+	Level     string `yaml:"level"     mapstructure:"level"`
+	FileCount int    `yaml:"fileCount" mapstructure:"fileCount"`
+	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
 // AdminService admin service configuration
 type AdminService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+	Endpoints    string `yaml:"endpoints"    mapstructure:"endpoints"`
+	SyncInterval int    `yaml:"syncInterval" mapstructure:"syncInterval"`
 }
 
 // ReceiverService receiver service configuration
 type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"`
+	Endpoints    string `yaml:"endpoints"     mapstructure:"endpoints"`
+	SyncInterval int    `yaml:"syncInterval"  mapstructure:"syncInterval"`
+}
+
+// HarvesterConfig harvester's config
+type HarvesterConfig struct {
+	Name           string `yaml:"name"            mapstructure:"name"`
+	User           string `yaml:"user"            mapstructure:"user"`
+	Password       string `yaml:"password"        mapstructure:"password"`
+	ReportInterval int    `yaml:"reportInterval"  mapstructure:"reportInterval"`
 }
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name     string          `yaml:"name"`
-	Version  string          `yaml:"version"`
-	Receiver ReceiverService `yaml:"receiver"`
-	Admin    AdminService    `yaml:"admin"`
-	Log      LogConfig       `yaml:"log"`
+	Name      string            `yaml:"name"        mapstructure:"name"`
+	Version   string            `yaml:"version"     mapstructure:"version"`
+	Admin     AdminService      `yaml:"admin"       mapstructure:"admin"`
+	Receiver  ReceiverService   `yaml:"receiver"    mapstructure:"receiver"`
+	Harvester []HarvesterConfig `yaml:"harvester"   mapstructure:"harvester"`
+	Log       LogConfig         `yaml:"log"         mapstructure:"log"`
 }
