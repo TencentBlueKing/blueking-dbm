@@ -153,6 +153,7 @@
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      role: '',
       ...data.master,
     },
     slave: {

@@ -64,6 +64,7 @@
     cluster_id: number;
     ip: string;
     master_domain: string;
+    role: string;
   }>({
     required: true,
   });
@@ -75,14 +76,19 @@
 
   const rules = [
     {
-      message: t('目标主机输入格式有误'),
+      message: t('IP 格式不符合IPv4标准'),
       trigger: 'blur',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Master IP'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
     },
   ];
 
@@ -98,6 +104,7 @@
           cluster_id: item.related_clusters?.[0]?.id || 0,
           ip: item.ip,
           master_domain: item.related_clusters?.[0]?.immute_domain || '',
+          role: item.instance_role,
         };
       }
     },
@@ -115,6 +122,7 @@
       cluster_id: 0,
       ip: value,
       master_domain: '',
+      role: '',
     };
   };
 

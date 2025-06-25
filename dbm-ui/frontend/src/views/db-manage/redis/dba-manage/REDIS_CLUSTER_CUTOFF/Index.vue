@@ -52,12 +52,9 @@
           <EditableColumn
             :label="t('所属业务')"
             :min-width="150">
-            <EditableBlock v-if="item.host.bk_biz_id">
-              {{ getBizInfoById(item.host.bk_biz_id)?.name || item.host.bk_biz_id }}
+            <EditableBlock :placeholder="t('自动生成')">
+              {{ getBizInfoById(item.host.bk_biz_id)?.name || '' }}
             </EditableBlock>
-            <EditableBlock
-              v-else
-              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"

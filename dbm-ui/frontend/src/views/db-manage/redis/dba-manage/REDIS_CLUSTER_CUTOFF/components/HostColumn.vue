@@ -78,12 +78,12 @@
     {
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'blur',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
 
