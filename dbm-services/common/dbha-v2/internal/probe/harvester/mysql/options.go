@@ -22,30 +22,40 @@
  * SOFTWARE.
  */
 
-package main
+package mysql
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
+type Option interface {
+	apply(*mySqlOptions)
+}
 
-	"github.com/spf13/cobra"
-)
+type mySqlOptions struct {
+	user           string
+	password       string
+	reportInterval int
+}
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+var defaultMySqlOptions = mySqlOptions{}
+
+type funcMySqlOptions struct {
+	f func(opt *mySqlOptions)
+}
+
+func (fdo *funcMySqlOptions) apply(opt *mySqlOptions) {
+	fdo.f(opt)
+}
+
+func OptionUser(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.user = val
+		},
 	}
+}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
+func OptionReportInterval(val int) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.reportInterval = val
+		},
 	}
-
 }

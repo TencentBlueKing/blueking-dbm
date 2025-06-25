@@ -75,11 +75,6 @@ func connectReceiverServer(ctx context.Context) error {
 				logger.Fatal("make receiver client failed. errmsg(%v)", err)
 			}
 
-			err = cli.Connect()
-			if err != nil {
-				logger.Fatal("receiver client run failed. errmsg(%v)", err)
-			}
-
 			if err != nil {
 				logger.Fatal("create receiver client failed. errmsg(%v)", err)
 			}

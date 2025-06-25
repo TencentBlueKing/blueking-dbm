@@ -1,6 +1,5 @@
 /**
- * MIT License
- *
+ * MIT License *
  * Copyright (c) 2023 腾讯蓝鲸
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,12 +26,28 @@ package probe
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/reporter"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func setupGracefulShutdown(p *Probe) {
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigC
+		logger.Info("shutdown probe")
+		p.Close()
+		os.Exit(0)
+	}()
+}
 
 // Run run probe
 func Run(cmd *cobra.Command, args []string) error {
@@ -66,8 +81,16 @@ func Run(cmd *cobra.Command, args []string) error {
 	logger.Debug("probe config. %v", config.Cfg)
 
 	clientId := uuid.New()
-	p := &Probe{ClientId: clientId.String()}
+
+	p := &Probe{
+		Reporter: &reporter.Reporter{
+			ClientId: clientId.String(),
+		},
+	}
+
 	ctx := context.Background()
+
+	setupGracefulShutdown(p)
 
 	return p.Run(ctx)
 }

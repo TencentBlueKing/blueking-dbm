@@ -22,30 +22,30 @@
  * SOFTWARE.
  */
 
-package main
+package redis
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
+type Option interface {
+	apply(*redisOptions)
+}
 
-	"github.com/spf13/cobra"
-)
+type redisOptions struct {
+	reportInterval int
+}
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+var defaultRedisOptions = redisOptions{}
+
+type funcRedisOptions struct {
+	f func(*redisOptions)
+}
+
+func (fdo *funcRedisOptions) apply(opt *redisOptions) {
+	fdo.f(opt)
+}
+
+func OptionReportInterval(val int) *funcRedisOptions {
+	return &funcRedisOptions{
+		f: func(opt *redisOptions) {
+			opt.reportInterval = val
+		},
 	}
-
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
-
 }

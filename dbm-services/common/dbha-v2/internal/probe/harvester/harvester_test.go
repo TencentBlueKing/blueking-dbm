@@ -43,7 +43,7 @@ func TestPlugins(t *testing.T) {
 		wg.Add(1)
 		go func(ctx context.Context, p plugin.Plugin) {
 			defer wg.Done()
-			dataC, err := p.Harvest(ctx, nil)
+			dataC, err := p.Harvest(ctx)
 			if err != nil {
 				t.Errorf("harvest failed, errmsg:%v", err)
 			}

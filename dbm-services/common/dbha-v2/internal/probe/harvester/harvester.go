@@ -25,13 +25,27 @@
 package harvester
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"strings"
 )
 
-// Harvesters all database harvester plugins.
-var Plugins []plugin.Plugin
+func NewPlugin(cfg config.HarvesterConfig) (plugin.Plugin, error) {
 
-func init() {
-	Plugins = append(Plugins, &example.Example{})
+	var target plugin.Plugin
+
+	switch strings.ToLower(cfg.Name) {
+	case strings.ToLower(mysql.Name):
+		target = mysql.NewMySql(mysql.OptionReportInterval(cfg.ReportInterval))
+		break
+
+	case strings.ToLower(redis.Name):
+		target = redis.NewRedis(redis.OptionReportInterval(cfg.ReportInterval))
+		break
+	}
+
+	return target, gerrors.Newf(gerrors.NotFound, "plugin(%s) is invalid", cfg.Name)
 }

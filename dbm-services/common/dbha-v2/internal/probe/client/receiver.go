@@ -92,13 +92,13 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	return r, nil
 }
 
-func (r *ReceiverClient) connect() error {
-	r.mutex.Lock()
+func (r *ReceiverClient) createStream() error {
+	r.mutex.RLock()
 	if r.closed {
-		r.mutex.Unlock()
+		r.mutex.RUnlock()
 		return gerrors.New(gerrors.Failure, "the grpc client is closed")
 	}
-	r.mutex.Unlock()
+	r.mutex.RUnlock()
 
 	stream, err := r.client.PushData(r.ctx)
 	if err != nil {
@@ -154,7 +154,7 @@ func (r *ReceiverClient) handleDisconnect() {
 
 	// retry
 	logger.Info("receiver client attempting to reconnect...")
-	err := r.connect()
+	err := r.createStream()
 	if err != nil {
 		logger.Warn("receiver client reconnect failed. errmsg(%v)", err)
 		r.wg.Add(1)
@@ -230,11 +230,14 @@ func (r *ReceiverClient) register() error {
 	msg := &proto.ReceiverRequest{}
 
 	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
 	if r.stream == nil {
-		return gerrors.New(gerrors.NetConnectionBroken, "receiver stream is invalid(nil)")
+		r.mutex.RUnlock()
+		if err := r.createStream(); err != nil {
+			return err
+		}
+		r.mutex.RLock()
 	}
+	defer r.mutex.RUnlock()
 
 	if err := r.stream.Send(msg); err != nil {
 		if err == io.EOF {
@@ -249,31 +252,25 @@ func (r *ReceiverClient) register() error {
 
 func (r *ReceiverClient) SendMessage(content []byte) error {
 	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
 	if r.closed {
+		r.mutex.RUnlock()
 		return gerrors.New(gerrors.NetConnectionBroken, "client is closed")
 	}
 
 	if r.stream == nil {
-		return gerrors.New(gerrors.NetConnectionBroken, "stream is invalid(nil)")
+		r.mutex.RUnlock()
+		if err := r.createStream(); err != nil {
+			return err
+		}
+		r.mutex.RLock()
 	}
+	defer r.mutex.RUnlock()
 
 	msg := &proto.ReceiverRequest{
 		Payload: content,
 	}
 
 	return r.stream.Send(msg)
-}
-
-func (r *ReceiverClient) Connect() error {
-	err := r.connect()
-	if err != nil {
-		logger.Error("failed to connect the remote server. errmsg(%v)", err)
-		return err
-	}
-
-	return nil
 }
 
 func (r *ReceiverClient) Close() {
