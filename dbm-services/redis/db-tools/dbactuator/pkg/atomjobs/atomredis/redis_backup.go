@@ -793,9 +793,10 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 	}
 	util.LocalDirChownMysql(task.BackupDir)
 
-	beforeVerify, _ := task.Cli.TendisSSDBinlogSize()
-	mylog.Logger.Info("fish backup with binlogPos: %+v; beforeVerify binlogPos: %+v", binlogsizeRet, beforeVerify)
 	for i := 0; i < 60; i++ {
+		beforeVerify, _ := task.Cli.TendisSSDBinlogSize()
+		mylog.Logger.Info("before backup with binlogPos: %+v ==> (keep-binlog: %d); ",
+			beforeVerify, beforeVerify.EndSeq-beforeVerify.FirstSeq)
 		if beforeVerify.EndSeq-beforeVerify.FirstSeq < 0 { // {FirstSeq:2521252165 EndSeq:2521252164}
 			mylog.Logger.Warn("waiting backup beforeVerify binlogPos: %+v", beforeVerify)
 			time.Sleep(time.Second * 2)
