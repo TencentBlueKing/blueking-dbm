@@ -80,17 +80,12 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'blur',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -133,7 +128,7 @@
         queryCluster({
           cluster_type: queryClusterTypes[DBTypes.REDIS].join(','),
           db_type: DBTypes.REDIS,
-          master_domain: modelValue.value.master_domain,
+          exact_domain: modelValue.value.master_domain,
         });
       }
     },

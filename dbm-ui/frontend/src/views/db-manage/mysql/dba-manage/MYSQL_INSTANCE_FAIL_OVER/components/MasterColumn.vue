@@ -66,6 +66,7 @@
     ip: string;
     master_domain: string;
     port: number;
+    role: string;
   }>({
     required: true,
   });
@@ -79,12 +80,17 @@
     {
       message: t('目标实例输入格式有误'),
       trigger: 'blur',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.bk_host_id),
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('非 Master 实例'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
     },
   ];
 
@@ -102,6 +108,7 @@
           ip: item.ip,
           master_domain: item.master_domain,
           port: item.port,
+          role: item.role,
         };
       }
     },
@@ -121,6 +128,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
     };
   };
 
@@ -136,7 +144,6 @@
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
           instance_address: modelValue.value.instance_address,
-          role: 'backend_master',
         });
       }
     },

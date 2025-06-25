@@ -123,25 +123,13 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { useGlobalBizs } from '@/stores';
-
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import MasterColumn, { type IValue } from './components/MasterColumn.vue';
   import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -165,6 +153,7 @@
       cluster_id: 0,
       ip: '',
       master_domain: '',
+      role: '',
       ...data.master,
     },
     slave: {

@@ -120,31 +120,15 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useGlobalBizs } from '@/stores';
 
   import MasterColumn, { type IValue } from './components/MasterColumn.vue';
   import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      instance_address: string;
-      ip: string;
-      master_domain: string;
-      port: number;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      instance_address: string;
-      ip: string;
-      port: number;
-    };
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -170,6 +154,7 @@
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
       ...data.master,
     },
     slave: {
