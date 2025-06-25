@@ -71,6 +71,10 @@ class DBDirtyMachineHandler(object):
         elif source == PoolType.Fault and target == PoolType.Recycle:
             message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToRecycle, operator, remark=remark)
+        # 资源池 ---> 故障池：这个是用于资源池自身巡检发现故障主机调用转移接口
+        elif source == PoolType.Resource and target == PoolType.Fault:
+            message = _("主机转移成功！")
+            MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToFault, operator, remark=remark)
         else:
             raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
 

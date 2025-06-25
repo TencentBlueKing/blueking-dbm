@@ -426,7 +426,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 我的申请
         results[CountType.MY_APPROVE] = tickets.filter(creator=user).count()
         # 我的已办
-        results[CountType.DONE] = tickets.filter(todo_of_ticket__done_by=user).distinct().count()
+        results[CountType.DONE] = tickets.filter(todo_of_ticket__done_by=user).values("pk").distinct().count()
 
         return Response(results)
 

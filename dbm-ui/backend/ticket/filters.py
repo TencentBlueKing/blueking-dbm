@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus
-from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket
+from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
 class TicketListFilter(filters.FilterSet):
@@ -48,35 +48,42 @@ class TicketListFilter(filters.FilterSet):
     def filter_todo(self, queryset, name, value):
         user = self.request.user.username
         if value == "running":
-            todo_filter = Q(
-                Q(todo_of_ticket__operators__contains=user) | Q(todo_of_ticket__helpers__contains=user),
-                todo_of_ticket__status__in=TODO_RUNNING_STATUS,
+            subquery = Todo.objects.filter(
+                Q(operators__contains=user) | Q(helpers__contains=user),
+                status__in=TODO_RUNNING_STATUS,
+                ticket_id=OuterRef("id"),
             )
+            todo_filter = Exists(subquery)
         else:
             todo_filter = Q(todo_of_ticket__done_by=user)
-        return queryset.filter(todo_filter).distinct()
+        return queryset.filter(todo_filter)
 
     def filter_is_assist(self, queryset, name, value):
         user = self.request.user.username
         # 根据 value 的值选择不同的字段
         field = "helpers" if value else "operators"
-        todo_filter = Q(**{f"todo_of_ticket__{field}__contains": user}, todo_of_ticket__status__in=TODO_RUNNING_STATUS)
-        return queryset.filter(todo_filter).distinct()
+        subquery = Todo.objects.filter(
+            **{f"{field}__contains": user}, status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id")
+        )
+        todo_filter = Exists(subquery)
+        return queryset.filter(todo_filter)
 
     def filter_status(self, queryset, name, value):
         status = value.split(",")
         status_filter = Q()
         # 如果有待确认，则解析为：running + 包含正在运行的todo
         if TicketStatus.INNER_TODO in status:
-            status_filter |= Q(status=TicketStatus.RUNNING, todo_of_ticket__status__in=TODO_RUNNING_STATUS)
+            subquery = Todo.objects.filter(status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id"))
+            status_filter |= Q(status=TicketStatus.RUNNING) & Q(Exists(subquery))
             status.remove(TicketStatus.INNER_TODO.value)
         # 如果有待执行，则解析为：running + 不包含正在运行的todo
         if TicketStatus.RUNNING in status:
-            status_filter |= Q(status=TicketStatus.RUNNING) & ~Q(todo_of_ticket__status__in=TODO_RUNNING_STATUS)
+            subquery = Todo.objects.filter(status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id"))
+            status_filter |= Q(status=TicketStatus.RUNNING) & ~Q(Exists(subquery))
             status.remove(TicketStatus.RUNNING.value)
         # 其他状态，直接in即可
         status_filter |= Q(status__in=status)
-        return queryset.filter(status_filter).distinct()
+        return queryset.filter(status_filter)
 
     def order_ticket(self, queryset, name, value):
         return queryset.order_by(value)
