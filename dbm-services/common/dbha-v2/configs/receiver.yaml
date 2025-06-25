@@ -9,6 +9,12 @@ discovery:
   user: root
   password: 1234567890
 
+exporter:
+  - name: doris
+    endpoints: 127.0.0.1:9030
+    user: root
+    password: 123456
+
 log:
   path: /var/log/dbha/receiver.log
   level: debug

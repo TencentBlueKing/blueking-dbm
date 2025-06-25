@@ -22,30 +22,4 @@
  * SOFTWARE.
  */
 
-package main
-
-import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
-
-}
+package redis_test

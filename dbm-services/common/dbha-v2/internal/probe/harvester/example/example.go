@@ -41,9 +41,21 @@ type ExampleData struct {
 }
 
 type Example struct {
-	// NOTE: Must include UnimplementedPlugin.
+	// NOTE: Must include UnimplementedMethod
 	plugin.UnimplementedMethod
 	wg sync.WaitGroup
+}
+
+func NewExample(opts ...Option) *Example {
+	expOpts := defaultExampleOptions
+
+	for _, opt := range opts {
+		opt.apply(&expOpts)
+	}
+
+	logger.Info("expOpts:%v", expOpts)
+
+	return &Example{}
 }
 
 func (e *Example) Name() (string, error) {
@@ -54,7 +66,7 @@ func (e *Example) Version() (string, error) {
 	return "v1.0.0", nil
 }
 
-func (e *Example) Harvest(ctx context.Context, opt *plugin.Options) (chan *plugin.HarvestData, error) {
+func (e *Example) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
 	// NOTE: Do not block Harvest method.
 
 	dataC := make(chan *plugin.HarvestData, 1024)

@@ -43,6 +43,7 @@ func main() {
 	rootCmd.PersistentFlags().StringVarP(&probe.ConfigFilePath, "config", "c", "./etc/probe.yaml", "")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 	rootCmd.AddCommand(probe.VersionCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed to start probe. errmsg(%s)", err.Error())
 		return

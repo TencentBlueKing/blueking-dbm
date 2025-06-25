@@ -96,13 +96,13 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 	return r, nil
 }
 
-func (a *AdminClient) connect() error {
-	a.mutex.Lock()
+func (a *AdminClient) createStream() error {
+	a.mutex.RLock()
 	if a.closed {
-		a.mutex.Unlock()
+		a.mutex.RUnlock()
 		return gerrors.New(gerrors.Failure, "admin client is closed")
 	}
-	a.mutex.Unlock()
+	a.mutex.RUnlock()
 
 	stream, err := a.client.WatchConfig(a.ctx)
 	if err != nil {
@@ -160,7 +160,7 @@ func (a *AdminClient) handleDisconnect() {
 
 	// retry
 	logger.Info("admin client attempting to reconnect...")
-	err := a.connect()
+	err := a.createStream()
 	if err != nil {
 		logger.Warn("admin client reconnect failed. errmsg(%v)", err)
 		a.wg.Add(1)
@@ -249,16 +249,20 @@ func (a *AdminClient) HeartbeatRequest(req *proto.HeartbeatRequest) (*proto.Hear
 
 func (a *AdminClient) WatchConfigRequest(req *proto.ProbeConfigRequest) (chan *proto.ProbeConfigResponse, error) {
 	a.mutex.RLock()
-	defer a.mutex.RUnlock()
-
 	if a.closed {
+		a.mutex.RUnlock()
 		return nil, gerrors.New(gerrors.NetConnectionBroken, "admin client is closed")
 	}
 
 	if a.stream == nil {
-		return nil, gerrors.New(gerrors.Failure, "admin client stream is invalid(nil)")
+		a.mutex.RUnlock()
+		if err := a.createStream(); err != nil {
+			return nil, err
+		}
+		a.mutex.RLock()
 	}
 
+	defer a.mutex.RUnlock()
 	err := a.stream.Send(req)
 	if err != nil {
 		msg := fmt.Sprintf("admin client stream send request failed, errmsg(%v)", err)
@@ -266,16 +270,6 @@ func (a *AdminClient) WatchConfigRequest(req *proto.ProbeConfigRequest) (chan *p
 	}
 
 	return a.respC, nil
-}
-
-func (a *AdminClient) Connect() error {
-	err := a.connect()
-	if err != nil {
-		logger.Error("admin client connect the remote server failed. errmsg(%v)", err)
-		return err
-	}
-
-	return nil
 }
 
 func (a *AdminClient) Close() {

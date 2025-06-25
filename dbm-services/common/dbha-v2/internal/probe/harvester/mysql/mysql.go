@@ -22,30 +22,45 @@
  * SOFTWARE.
  */
 
-package main
+package mysql
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+const (
+	Name    = "mysql"
+	Version = "v1.0.0"
+)
+
+type MySql struct {
+	// NOTE: Must include UnimplementedMethod
+	plugin.UnimplementedMethod
+}
+
+func NewMySql(opts ...Option) *MySql {
+	mySqlOpts := defaultMySqlOptions
+
+	for _, opt := range opts {
+		opt.apply(&mySqlOpts)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
+	return &MySql{}
+}
 
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
-	}
+func (m *MySql) Name() (string, error) {
+	return Name, nil
+}
 
+func (m *MySql) Version() (string, error) {
+	return Version, nil
+}
+
+func (m *MySql) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
+	return nil, nil
+}
+
+func (m *MySql) Close() error {
+	return nil
 }

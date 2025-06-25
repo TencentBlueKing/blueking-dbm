@@ -22,30 +22,46 @@
  * SOFTWARE.
  */
 
-package main
+package redis
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
+	"context"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 )
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "receiver",
-		Short:        "DBHA Receiver Server",
-		SilenceUsage: true,
-		RunE:         receiver.Run,
+const (
+	Name    = "redis"
+	Version = "v1.0.0"
+)
+
+type Redis struct {
+	opts *redisOptions
+}
+
+func NewRedis(opts ...Option) *Redis {
+	redisOpt := defaultRedisOptions
+
+	for _, opt := range opts {
+		opt.apply(&redisOpt)
 	}
 
-	rootCmd.PersistentFlags().StringVarP(&receiver.ConfigFilePath, "config", "c", "./etc/receiver.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(receiver.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
-		return
+	return &Redis{
+		opts: &redisOpt,
 	}
+}
 
+func (r *Redis) Name() (string, error) {
+	return Name, nil
+}
+
+func (r *Redis) Version() (string, error) {
+	return Version, nil
+}
+
+func (r *Redis) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
+	return nil, nil
+}
+
+func (r *Redis) Close() error {
+	return nil
 }
