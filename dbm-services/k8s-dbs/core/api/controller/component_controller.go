@@ -21,9 +21,14 @@ package controller
 
 import (
 	coreconst "k8s-dbs/common/api/constant"
+	reqvo "k8s-dbs/core/api/vo/req"
+	respvo "k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
+	pventity "k8s-dbs/core/provider/entity"
+
+	"github.com/jinzhu/copier"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,4 +59,37 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
+}
+
+// GetComponentLinks 获取组件链接信息
+func (c *ComponentController) GetComponentLinks(ctx *gin.Context) {
+	var svcReq reqvo.K8sSvcReqVo
+	if err := ctx.ShouldBindJSON(&svcReq); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		return
+	}
+	var svcEntity pventity.K8sSvcEntity
+	if err := copier.Copy(&svcEntity, &svcReq); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		return
+	}
+	internalServices, err := c.componentProvider.GetComponentInternalSvc(&svcEntity)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		return
+	}
+	externalServices, err := c.componentProvider.GetComponentExternalSvc(&svcEntity)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		return
+	}
+	data := respvo.K8sSvcRespVo{
+		K8sClusterName:      svcReq.K8sClusterName,
+		ClusterName:         svcReq.ClusterName,
+		Namespace:           svcReq.Namespace,
+		ComponentName:       svcReq.ComponentName,
+		InternalServiceInfo: internalServices,
+		ExternalServiceInfo: externalServices,
+	}
+	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }

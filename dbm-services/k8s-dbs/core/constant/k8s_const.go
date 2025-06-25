@@ -19,23 +19,9 @@ limitations under the License.
 
 package constant
 
-const APIVersion = "apps.kubeblocks.io/v1alpha1"
-const DataProAPIVersion = "dataprotection.kubeblocks.io/v1alpha1"
-const DefaultUserName = "admin"
-
+// k8s service 类型
 const (
-	DefaultRepoName       = "mapleleaf"
-	DefaultRepoRepository = ""
+	LoadBalancer = "LoadBalancer"
+	ClusterIP    = "ClusterIP"
+	NodePort     = "NodePort"
 )
-
-// KubeBlocks_Labels
-const (
-	InstanceName  = "app.kubernetes.io/instance"
-	ComponentName = "apps.kubeblocks.io/component-name"
-	PodName       = "apps.kubeblocks.io/pod-name"
-	ManagedBy     = "app.kubernetes.io/managed-by"
-	ServiceType   = "dbs_k8s_service_type"
-)
-
-// Kubeblocks kb 常量
-const Kubeblocks = "kubeblocks"

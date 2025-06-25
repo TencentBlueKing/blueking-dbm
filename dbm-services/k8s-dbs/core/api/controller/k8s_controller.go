@@ -65,8 +65,8 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
-// PodLogs 获取 pod 日志详情
-func (k *K8sController) PodLogs(ctx *gin.Context) {
+// GetPodLogs 获取 pod 日志详情
+func (k *K8sController) GetPodLogs(ctx *gin.Context) {
 	var logReq reqvo.K8sPodLogReqVo
 	if err := ctx.ShouldBindJSON(&logReq); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))

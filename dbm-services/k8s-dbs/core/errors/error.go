@@ -49,7 +49,6 @@ const (
 
 // 存储集群管理操作异常
 const (
-	DescribeComponentError    = 1532200
 	DescribeClusterError      = 1532201
 	CreateClusterError        = 1532202
 	DeleteClusterError        = 1532203
@@ -83,6 +82,12 @@ const (
 	UpgradeAddonError   = 1532402
 )
 
+// 集群 component 操作异常
+const (
+	DescribeComponentError = 1532500
+	GetComponentSvcError   = 1532501
+)
+
 // 定义错误码对于的message
 var codeTag = map[int]string{
 	// 纳管系统内置异常
@@ -100,7 +105,6 @@ var codeTag = map[int]string{
 	DeleteMetaDataErr:  "删除元数据失败",
 
 	// 存储集群操作异常
-	DescribeComponentError:    "查询组件失败",
 	DescribeClusterError:      "查询集群失败",
 	CreateClusterError:        "创建集群失败",
 	DeleteClusterError:        "删除集群失败",
@@ -128,6 +132,10 @@ var codeTag = map[int]string{
 	InstallAddonError:   "插件安装失败",
 	UninstallAddonError: "插件卸载失败",
 	UpgradeAddonError:   "插件更新失败",
+
+	// 组件操作异常
+	DescribeComponentError: "查询组件失败",
+	GetComponentSvcError:   "查询组件服务信息失败",
 }
 
 // NewGlobalError Create a new custom error instantiation

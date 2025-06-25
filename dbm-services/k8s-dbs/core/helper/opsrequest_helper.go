@@ -527,6 +527,7 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 		return nil, fmt.Errorf("转换对象为 Unstructured 类型失败: %v", err)
 	}
 	crd := &entity.CustomResourceDefinition{
+		Labels:               request.Metadata.Labels,
 		Namespace:            request.Metadata.Namespace,
 		ResourceType:         coreconst.Expose,
 		ResourceName:         objectName,

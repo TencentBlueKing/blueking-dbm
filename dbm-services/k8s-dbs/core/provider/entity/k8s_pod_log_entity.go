@@ -19,7 +19,7 @@ limitations under the License.
 
 package entity
 
-// K8sPodLogEntity k8s 的 pod 日志请求
+// K8sPodLogEntity k8s pod 日志 entity
 type K8sPodLogEntity struct {
 	K8sClusterName string `json:"k8sClusterName" binding:"required"`
 	ClusterName    string `json:"clusterName" binding:"required"`

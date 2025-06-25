@@ -17,25 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package entity
 
-const APIVersion = "apps.kubeblocks.io/v1alpha1"
-const DataProAPIVersion = "dataprotection.kubeblocks.io/v1alpha1"
-const DefaultUserName = "admin"
-
-const (
-	DefaultRepoName       = "mapleleaf"
-	DefaultRepoRepository = ""
-)
-
-// KubeBlocks_Labels
-const (
-	InstanceName  = "app.kubernetes.io/instance"
-	ComponentName = "apps.kubeblocks.io/component-name"
-	PodName       = "apps.kubeblocks.io/pod-name"
-	ManagedBy     = "app.kubernetes.io/managed-by"
-	ServiceType   = "dbs_k8s_service_type"
-)
-
-// Kubeblocks kb 常量
-const Kubeblocks = "kubeblocks"
+// K8sSvcEntity k8s svc entity
+type K8sSvcEntity struct {
+	K8sClusterName string `json:"k8sClusterName" binding:"required"`
+	ClusterName    string `json:"clusterName" binding:"required"`
+	Namespace      string `json:"namespace" binding:"required"`
+	ComponentName  string `json:"componentName" binding:"required"`
+}

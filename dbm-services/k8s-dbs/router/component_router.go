@@ -35,7 +35,7 @@ func buildComponentRouter(db *gorm.DB, router *gin.Engine) {
 	clusterGroup := router.Group(basePath + "/component")
 	{
 		clusterGroup.POST("/describe", componentController.DescribeComponent)
-
+		clusterGroup.POST("/service/describe", componentController.GetComponentLinks)
 	}
 }
 

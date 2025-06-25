@@ -20,13 +20,19 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"fmt"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
+	pventity "k8s-dbs/core/provider/entity"
 	metaprovider "k8s-dbs/metadata/provider"
+	"log/slog"
 	"slices"
+	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	corev1 "k8s.io/api/core/v1"
@@ -109,6 +115,144 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	}
 
 	return componentDetail, nil
+}
+
+// GetComponentInternalSvc 获取组件的内部服务链接
+func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *pventity.K8sSvcEntity) (
+	[]coreentity.K8sInternalSvcInfo,
+	error,
+) {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(svcEntity.K8sClusterName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+	}
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
+	}
+	namespace := svcEntity.Namespace
+	labelSelector := mapToLabelSelector(map[string]string{
+		coreconst.InstanceName:  svcEntity.ClusterName,
+		coreconst.ComponentName: svcEntity.ComponentName,
+		coreconst.ManagedBy:     coreconst.Kubeblocks,
+	})
+	labelSelector += ",dbs_k8s_service_type!=LoadBalancer"
+	clusterIPServices, err := k8sClient.ClientSet.CoreV1().Services(namespace).
+		List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+	if err != nil {
+		slog.Error("failed to list k8s services",
+			"namespace", namespace, "labelSelector", labelSelector, "err", err.Error())
+		return nil, err
+	}
+	if clusterIPServices == nil {
+		slog.Warn("clusterIPServices is empty",
+			"namespace", namespace, "labelSelector", labelSelector)
+		return []coreentity.K8sInternalSvcInfo{}, nil
+	}
+	k8sSvcInfos := c.convertInternalSvc(clusterIPServices)
+	return k8sSvcInfos, nil
+}
+
+// GetComponentExternalSvc 获取组件的外部服务链接
+func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEntity) (
+	[]coreentity.K8sExternalSvcInfo,
+	error,
+) {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(svcEntity.K8sClusterName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+	}
+	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
+	}
+	namespace := svcEntity.Namespace
+	labelSelector := mapToLabelSelector(map[string]string{
+		coreconst.InstanceName:  svcEntity.ClusterName,
+		coreconst.ManagedBy:     coreconst.Kubeblocks,
+		coreconst.ComponentName: svcEntity.ComponentName,
+		coreconst.ServiceType:   coreconst.LoadBalancer,
+	})
+	lbServices, err := k8sClient.ClientSet.CoreV1().Services(namespace).
+		List(context.TODO(), metav1.ListOptions{
+			LabelSelector: labelSelector,
+		})
+	if err != nil {
+		slog.Error("failed to list k8s services",
+			"namespace", namespace, "labelSelector", labelSelector, "err", err.Error())
+		return nil, err
+	}
+	if lbServices == nil {
+		slog.Warn("lbServices is empty",
+			"namespace", namespace, "labelSelector", labelSelector)
+		return []coreentity.K8sExternalSvcInfo{}, nil
+	}
+	k8sSvcInfos := c.convertExternalSvc(lbServices)
+	return k8sSvcInfos, nil
+}
+
+// mapToLabelSelector 将 map[string]string 转换为 Label Selector 字符串
+func mapToLabelSelector(labels map[string]string) string {
+	var selectorParts []string
+	for key, value := range labels {
+		selectorParts = append(selectorParts, fmt.Sprintf("%s=%s", key, value))
+	}
+	return strings.Join(selectorParts, ",")
+}
+
+// convertInternalSvc 转换 clusterIP 为 K8sInternalSvcInfo
+func (c *ComponentProvider) convertInternalSvc(clusterIPServices *corev1.ServiceList) []coreentity.K8sInternalSvcInfo {
+	var k8sSvcInfos []coreentity.K8sInternalSvcInfo
+	for _, service := range clusterIPServices.Items {
+		fqdn := fmt.Sprintf("%s.%s.svc.cluster.local", service.Namespace, service.Namespace)
+		var ports []coreentity.PortInfo
+		for _, port := range service.Spec.Ports {
+			fullAddr := fmt.Sprintf("%s:%d", fqdn, port.Port)
+			ports = append(ports, coreentity.PortInfo{
+				Port:     port.Port,
+				Protocol: string(port.Protocol),
+				FullAddr: fullAddr,
+			})
+		}
+		k8sSvcInfos = append(k8sSvcInfos, coreentity.K8sInternalSvcInfo{
+			Name:      service.Name,
+			Namespace: service.Namespace,
+			FQDN:      fqdn,
+			Ports:     ports,
+		})
+	}
+	return k8sSvcInfos
+}
+
+// convertInternalSvc 转换 LoadBalancer 为 K8sExternalSvcInfo
+func (c *ComponentProvider) convertExternalSvc(lbServices *corev1.ServiceList) []coreentity.K8sExternalSvcInfo {
+	var k8sSvcInfos []coreentity.K8sExternalSvcInfo
+	for _, service := range lbServices.Items {
+		if len(service.Status.LoadBalancer.Ingress) == 0 {
+			slog.Warn("service LoadBalancer Ingress is empty",
+				"serviceName", service.Name, "namespace", service.Namespace)
+			continue
+		}
+		ingress := service.Status.LoadBalancer.Ingress[0]
+		var externalPorts []coreentity.ExternalPort
+		for _, port := range service.Spec.Ports {
+			fullAddr := fmt.Sprintf("%s:%d", ingress.IP, port.Port)
+			externalPorts = append(externalPorts, coreentity.ExternalPort{
+				Port:     port.Port,
+				Protocol: string(port.Protocol),
+				FullAddr: fullAddr,
+			})
+		}
+		k8sSvcInfos = append(k8sSvcInfos, coreentity.K8sExternalSvcInfo{
+			Name:      service.Name,
+			Namespace: service.Namespace,
+			Hostname:  ingress.IP,
+			Ports:     externalPorts,
+		})
+	}
+	return k8sSvcInfos
 }
 
 // NewComponentProvider 创建 ComponentProvider 实例
