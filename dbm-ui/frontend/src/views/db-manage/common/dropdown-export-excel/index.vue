@@ -42,6 +42,11 @@
   import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
   import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
   import { exportMongodbClusterToExcel, exportMongodbInstanceToExcel } from '@services/source/mongodb';
+  import { exportOracleHaClusterToExcel, exportOracleHaInstanceToExcel } from '@services/source/oracleHaCluster';
+  import {
+    exportOracleSingleClusterToExcel,
+    exportOracleSingleInstanceToExcel,
+  } from '@services/source/oracleSingleCluster';
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportRiakClusterToExcel, exportRiakInstanceToExcel } from '@services/source/riak';
@@ -71,7 +76,9 @@
       | 'mongodb'
       | 'sqlserver_ha'
       | 'sqlserver_single'
-      | 'doris';
+      | 'doris'
+      | 'oracle_single_none'
+      | 'oracle_primary_standby';
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -109,6 +116,14 @@
     mongodb: {
       cluster: exportMongodbClusterToExcel,
       instance: exportMongodbInstanceToExcel,
+    },
+    oracle_primary_standby: {
+      cluster: exportOracleHaClusterToExcel,
+      instance: exportOracleHaInstanceToExcel,
+    },
+    oracle_single_none: {
+      cluster: exportOracleSingleClusterToExcel,
+      instance: exportOracleSingleInstanceToExcel,
     },
     pulsar: {
       cluster: exportPulsarClusterToExcel,

@@ -97,6 +97,7 @@
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
+          :db-types="DBTypes.MYSQL"
           :model-value="currentFileContent"
           readonly
           :title="selectFileName" />
@@ -115,6 +116,8 @@
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
   import { getSQLFilename } from '@utils';
+
+  import { DBTypes } from '@/common/const';
 
   interface Props {
     ticketDetail: TicketModel<Mysql.ImportSqlFile>;

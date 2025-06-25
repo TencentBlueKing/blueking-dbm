@@ -78,9 +78,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    messageList: () => [],
+    // messageList: () => [],
     readonly: false,
-    syntaxChecking: false,
+    // syntaxChecking: false,
   });
   const emits = defineEmits<Emits>();
 

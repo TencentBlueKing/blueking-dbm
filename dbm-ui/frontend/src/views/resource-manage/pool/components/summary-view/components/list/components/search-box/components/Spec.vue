@@ -47,7 +47,7 @@
 
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import { DBTypeInfos, DBTypes, type InfoItem } from '@common/const';
+  import { type DBInfoItem, DBTypeInfos, DBTypes } from '@common/const';
 
   interface Props {
     model: Record<string, string>;
@@ -69,7 +69,7 @@
   const dbType = ref('');
   const machineType = ref('');
   const specIdList = ref<string[]>([]);
-  const clusterMachineList = ref<InfoItem['machineList']>([]);
+  const clusterMachineList = ref<DBInfoItem['machineList']>([]);
 
   // const isDbTypeDisabled = computed(() => !!props.model.db_type && props.model.db_type !== 'PUBLIC');
 

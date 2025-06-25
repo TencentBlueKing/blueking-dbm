@@ -68,7 +68,8 @@
     | ClusterTypes.TENDBCLUSTER
     | ClusterTypes.TENDBHA
     | ClusterTypes.REDIS_INSTANCE
-    | ClusterTypes.SQLSERVER_HA;
+    | ClusterTypes.SQLSERVER_HA
+    | ClusterTypes.ORACLE_PRIMARY_STANDBY;
 
   export const copyDomain = (data: ClusterModel<ISupportClusterType>['slaveEntryList']) => {
     const copyList = _.uniq(data.map(({ entry }) => entry));

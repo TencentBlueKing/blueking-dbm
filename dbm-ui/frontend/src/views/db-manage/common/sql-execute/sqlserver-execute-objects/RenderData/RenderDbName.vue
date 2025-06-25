@@ -43,14 +43,14 @@
     getValue: () => Promise<string[]>;
   }
 
+  const modelValue = defineModel<string[]>({
+    default: () => [],
+  });
+
   const { t } = useI18n();
 
   const instanceKey = random();
   tagMemo[instanceKey] = [];
-
-  const modelValue = defineModel<string[]>({
-    default: () => [],
-  });
 
   const disabledTagMap = {
     model: true,

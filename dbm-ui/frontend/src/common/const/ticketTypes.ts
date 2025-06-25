@@ -192,6 +192,10 @@ export enum TicketTypes {
 }
 
 export enum TicketTypes {
+  ORACLE_EXEC_SCRIPT_APPLY = 'ORACLE_EXEC_SCRIPT_APPLY', // oracle SQL变更执行'
+}
+
+export enum TicketTypes {
   ES_APPLY = 'ES_APPLY',
   ES_CREATE_CLB = 'ES_CREATE_CLB', // 启用clb
   ES_CREATE_POLARIS = 'ES_CREATE_POLARIS', // 启用北极星
