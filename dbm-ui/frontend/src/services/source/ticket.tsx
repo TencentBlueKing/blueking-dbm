@@ -316,6 +316,7 @@ export function createTicketFlowConfig(params: {
   bk_biz_id: number;
   cluster_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{
@@ -327,10 +328,11 @@ export function createTicketFlowConfig(params: {
  * 修改可编辑的单据流程规则
  */
 export function updateTicketFlowConfig(params: {
-  bk_biz_id?: number;
+  bk_biz_id: number;
   cluster_ids?: number[];
   config_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{

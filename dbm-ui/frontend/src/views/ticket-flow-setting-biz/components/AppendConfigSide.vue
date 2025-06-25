@@ -27,6 +27,12 @@
           ref="targetRef"
           v-model="targetData" />
       </BkFormItem>
+      <BkFormItem :label="t('备注')">
+        <BkInput
+          v-model="remark"
+          :maxlength="500"
+          type="textarea" />
+      </BkFormItem>
     </DbForm>
     <template #footer>
       <BkButton
@@ -83,6 +89,7 @@
 
   const formRef = ref();
   const targetRef = ref<InstanceType<typeof RenderTarget>>();
+  const remark = ref('');
 
   const targetData = computed(() => ({
     bizId: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
@@ -127,6 +134,7 @@
         need_itsm: false,
         need_manual_confirm: props.data.configs.need_manual_confirm,
       },
+      remark: remark.value,
       ticket_types: [props.data.ticket_type],
     };
     if (props.isEdit) {
