@@ -76,7 +76,6 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </div>
-
             <div v-db-console="'es.clusterManage.scaleUp'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -100,6 +99,63 @@
                   text
                   @click="handleShowShrink(data)">
                   {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_create_clb"
+                  :resource="data.id"
+                  text
+                  @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlinePolaris"
+              v-db-console="'common.polaris'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_create_polaris"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_create_polaris"
+                  :resource="data.id"
+                  text
+                  @click="() => handleAddPolaris({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                  {{ t('启用接入层负载均衡（北极星）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLB"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="es_dns_bind_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.es_dns_bind_clb"
+                  :resource="data.id"
+                  text
+                  @click="
+                    () =>
+                      handleBindOrUnbindClb(
+                        { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                        data.dns_to_clb,
+                      )
+                  ">
+                  {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
@@ -161,7 +217,25 @@
           :label="t('访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
+          @refresh="fetchTableData">
+          <template #append="{ data }">
+            <div
+              v-if="data.isOnlineCLB"
+              class="ml-4">
+              <ClusterEntryPanel
+                :cluster-id="data.id"
+                entry-type="clb" />
+            </div>
+            <div
+              v-if="data.isOnlinePolaris"
+              class="ml-4">
+              <ClusterEntryPanel
+                :cluster-id="data.id"
+                entry-type="polaris"
+                :panel-width="418" />
+            </div>
+          </template>
+        </MasterDomainColumn>
       </template>
       <template #role>
         <RoleColumn
@@ -269,6 +343,7 @@
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
@@ -276,7 +351,7 @@
     RoleColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useAddClb, useAddPolaris, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterDetail from '@views/db-manage/elastic-search/common/cluster-detail/Index.vue';
@@ -292,6 +367,19 @@
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.ES, {
     onSuccess: () => fetchTableData(),
   });
+  const { handleAddClb } = useAddClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleAddPolaris } = useAddPolaris<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.ES);
+
   const {
     clusterDetailClose: handleDetailClose,
     clusterId,
