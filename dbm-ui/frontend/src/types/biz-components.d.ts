@@ -27,6 +27,7 @@ declare module 'vue' {
     EditableTimePicker: typeof import('@components/editable-table/Index.vue').TimePicker;
     FunController: typeof import('@components/function-controller/FunController.vue').default;
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
+    NewFeatureGuide: typeof import('@components/new-feature-guide/Index.vue').default;
     OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
