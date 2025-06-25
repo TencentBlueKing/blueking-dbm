@@ -94,6 +94,7 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     region = serializers.CharField(help_text=_("区域"), required=False)
     name = serializers.CharField(help_text=_("名称"), required=False)
     version = serializers.CharField(help_text=_("版本"), required=False)
+    extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
