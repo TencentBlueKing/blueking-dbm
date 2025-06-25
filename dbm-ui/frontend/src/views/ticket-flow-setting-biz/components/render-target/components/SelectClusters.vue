@@ -9,11 +9,14 @@
       }"
       :clearable="false"
       collapse-tags
+      :filter-option="handleSearch"
       filterable
       :input-search="false"
       multiple
       multiple-mode="tag"
-      @change="handleChange">
+      :search-placeholder="t('输入域名（多域名以换行、空格、竖线、; 分隔，回车完成输入）')"
+      @change="handleChange"
+      @search-change="handleSearchChange">
       <BkOption
         v-for="item in clusterList"
         :key="item.id"
@@ -43,6 +46,7 @@
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
   import { DBTypes, queryClusterTypes } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
@@ -83,6 +87,9 @@
     manual: true,
   });
 
+  // 过滤项
+  const filterOption = ref<ServiceReturnType<typeof queryAllTypeCluster>>([]);
+
   watch(
     () => props.bizId,
     () => {
@@ -108,6 +115,33 @@
   const handleRemove = () => {
     emits('remove');
   };
+
+  const handleSearch = (keyword: string, data: { label: string }) =>
+    keyword.split(batchSplitRegex).includes(data.label);
+
+  const handleSearchChange = (keyword: string) => {
+    const clusters = keyword.split(batchSplitRegex);
+    filterOption.value = (clusterList.value || []).filter((item) => clusters.includes(item.immute_domain));
+  };
+
+  // Enter 触发提交
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.isComposing) {
+      // 跳过输入法复合事件
+      return;
+    }
+    if (event.code === 'Enter') {
+      handleChange(filterOption.value.map((item) => item.id));
+    }
+  };
+
+  onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+  });
 
   defineExpose<Exposes>({
     getValue() {

@@ -8,6 +8,11 @@ export default class TicketFlowDescribe {
     immute_domain: string;
   }[];
   configs: {
+    expire_config: {
+      flow_todo_expire: number;
+      inner_flow_expire: number;
+      itsm_expire: number;
+    }
     need_itsm: boolean;
     need_manual_confirm: boolean;
   };
@@ -20,26 +25,39 @@ export default class TicketFlowDescribe {
     biz_ticket_config_set: boolean;
     ticket_config_set: boolean;
   };
+  remark: string;
   ticket_type: string;
   ticket_type_display: string;
   update_at: string;
   updater: string;
 
   constructor(payload = {} as TicketFlowDescribe) {
-    this.bk_biz_id = payload.bk_biz_id;
+    this.bk_biz_id = payload.bk_biz_id || 0;
     this.cluster_ids = payload.cluster_ids || [];
     this.clusters = payload.clusters || [];
-    this.configs = payload.configs;
-    this.creator = payload.creator;
-    this.editable = payload.editable;
+    this.configs = payload.configs || {
+      expire_config: {
+        flow_todo_expire: -1,
+        inner_flow_expire: -1,
+        itsm_expire: -1
+      },
+      need_itsm: true,
+      need_manual_confirm: true
+    };
+    this.creator = payload.creator || '';
+    this.editable = payload.editable || false;
     this.flow_desc = payload.flow_desc || [];
-    this.group = payload.group;
-    this.id = payload.id;
-    this.permission = payload.permission;
-    this.ticket_type = payload.ticket_type;
-    this.ticket_type_display = payload.ticket_type_display;
-    this.update_at = payload.update_at;
-    this.updater = payload.updater;
+    this.group = payload.group || '';
+    this.id = payload.id || 0;
+    this.permission = payload.permission || {
+      biz_ticket_config_set: false,
+      ticket_config_set: false
+    };
+    this.remark = payload.remark || ''
+    this.ticket_type = payload.ticket_type || '';
+    this.ticket_type_display = payload.ticket_type_display || '';
+    this.update_at = payload.update_at || '';
+    this.updater = payload.updater || '';
   }
 
   // 集群列表
