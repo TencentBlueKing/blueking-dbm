@@ -131,7 +131,6 @@
             {t('主访问入口')}
             {tableData.value.length === 0 ? null : (
               <BatchEdit
-                v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}
                 appName={props.formdata.details.db_app_abbr}
                 moduleAliasName={props.moduleAliasName}
                 onChange={handleBatchEditDomains}

@@ -20,6 +20,7 @@
     trigger="manual"
     :width="540">
     <i
+      v-bk-tooltips="t('快捷编辑_可通过换行分隔_快速编辑多个域名')"
       class="db-icon-bulk-edit batch-edit__trigger"
       @click="() => (state.isShow = true)" />
     <template #content>

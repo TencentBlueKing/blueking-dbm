@@ -23,10 +23,10 @@
     <InfoItem :label="t('DB模块名')">
       {{ ticketDetails.details.db_module_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群ID')">
+    <InfoItem :label="t('集群名称')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群名称')">
+    <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
     <InfoItem :label="t('管控区域')">
