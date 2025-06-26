@@ -86,7 +86,7 @@ var switchTypeMap = map[bool]opv1.ExposeSwitch{
 //	error - 错误信息(如果有)
 func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
 	objectName := util.ResourceName("ops-vscaling-", OpsNameSuffixLength)
-	verticalScalingList := []opv1.VerticalScaling{}
+	var verticalScalingList []opv1.VerticalScaling
 	for _, comp := range request.ComponentList {
 		err := checkResourceFromComp(comp)
 		if err != nil {
@@ -515,19 +515,18 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 			podSelect[newKey] = value
 		}
 	}
+
 	opsService, err := createOpsService(request, podSelect)
 	if err != nil {
 		return nil, err
 	}
 
 	opsRequest := createExposeOpsRequest(request, opsService, objectName)
-
 	unstructuredClusterDef, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&opsRequest)
 	if err != nil {
 		return nil, fmt.Errorf("转换对象为 Unstructured 类型失败: %v", err)
 	}
 	crd := &entity.CustomResourceDefinition{
-		Labels:               request.Metadata.Labels,
 		Namespace:            request.Metadata.Namespace,
 		ResourceType:         coreconst.Expose,
 		ResourceName:         objectName,
