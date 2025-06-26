@@ -4,10 +4,12 @@ import type { DetailBase, SpecInfo } from '../common';
 
 export interface HaApply extends DetailBase {
   bk_cloud_id: number;
+  bk_cloud_name: string;
   charset: string;
   city_code: string;
   city_name: string;
   cluster_count: number;
+  db_app_abbr: string;
   db_module_id: number;
   db_module_name: string;
   db_version: string;
