@@ -370,6 +370,7 @@ class TicketFlowsConfig(AuditedModel):
     ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
     editable = models.BooleanField(_("是否支持用户配置"), default=True)
     configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
+    remark = models.CharField(_("备注"), max_length=LEN_L_LONG, default=None, null=True)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程配置(TicketFlowsConfig)")
