@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import inspect
 from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
+from django.http import QueryDict
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -34,7 +36,7 @@ from backend.iam_app.handlers.drf_perm.ticket import (
 )
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import fetch_cluster_ids
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin, fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
     TICKET_FINISHED_STATUS_SET,
@@ -47,7 +49,7 @@ from backend.ticket.constants import (
     TodoStatus,
 )
 from backend.ticket.contexts import TicketContext
-from backend.ticket.exceptions import TicketDuplicationException
+from backend.ticket.exceptions import TicketDuplicationException, TicketParamsVerifyException
 from backend.ticket.filters import ClusterOpRecordListFilter, InstanceOpRecordListFilter, TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
@@ -92,10 +94,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     filter_class = TicketListFilter
     pagination_class = AuditedLimitOffsetPagination
 
+    # 暂存单据信息
+    tmp_ticket = None
+
     def _get_custom_permissions(self):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
+        if self.action == "batch_create_ticket":
+            return create_ticket_permission(self.request.data["tickets"][0]["ticket_type"], batch=True)
         if self.action == "batch_approval":
             return [BatchApprovalPermission()]
         # 创建敏感单据，只允许通过jwt校验的用户访问(warning: 这个网关接口授权需谨慎)
@@ -146,6 +153,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return queryset.prefetch_related("todo_of_ticket")
 
     def get_serializer_context(self):
+        if self.action == "batch_create_ticket":
+            mutable_data = QueryDict("", mutable=True)
+            mutable_data.update(self.tmp_ticket)
+            self.request._request.POST = mutable_data  # 更改为 POST
+            self.request._full_data = mutable_data
+
         context = super(TicketViewSet, self).get_serializer_context()
         if self.action == "retrieve":
             context["ticket_ctx"] = TicketContext(ticket=self.get_object())
@@ -247,6 +260,47 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=_("批量创建单据"),
+        responses={status.HTTP_200_OK: TicketSerializer(label=_("批量创建单据"))},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False)
+    def batch_create_ticket(self, request, *args, **kwargs):
+        tickets = request.data.get("tickets", [])
+
+        # 校验单据
+        errors = []
+        for ticket in tickets:
+            try:
+                mixin_instance = ParamValidateSerializerMixin()
+                mixin_instance.context = {"ticket_type": ticket["ticket_type"]}
+                mixin_instance.validated_params(ticket["details"])
+            except TicketParamsVerifyException as e:
+                errors.extend(e.errors)
+
+        if errors:
+            raise TicketParamsVerifyException(errors=errors, ticket_type=tickets[0]["ticket_type"])
+
+        # 批量创建单据
+        ticket_datas = []
+        for ticket in tickets:
+            try:
+                self.tmp_ticket = ticket
+                # 获取 create_ticket 方法需要的参数名
+                create_ticket_params = inspect.signature(Ticket.create_ticket).parameters
+                # 使用字典表达式过滤掉不在方法参数中的键
+                filtered_ticket = {k: v for k, v in ticket.items() if k in create_ticket_params}
+
+                filtered_ticket["creator"] = request.user.username
+                obj = Ticket.create_ticket(**filtered_ticket)
+                serializer = self.get_serializer(instance=obj)
+                ticket_datas.append(serializer.data)
+            except Exception as e:
+                errors.append(e)
+                raise TicketParamsVerifyException(errors=errors, ticket_type=tickets[0]["ticket_type"])
+        return Response(ticket_datas)
 
     @common_swagger_auto_schema(
         operation_summary=_("创建单据(允许创建敏感单据)"),

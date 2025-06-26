@@ -10,13 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
-from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, StorageInstance
+from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
@@ -79,12 +78,5 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
-        # mysql单节点没有proxy信息
-        storage_queryset = (
-            StorageInstance.objects.select_related("machine")
-            .prefetch_related("cluster")
-            .annotate(role=F("instance_inner_role"))
-            .filter(query_filters)
-        )
         instance_queryset = storage_queryset.values(*inst_fields).order_by("-create_at")
         return instance_queryset

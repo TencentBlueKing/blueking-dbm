@@ -8,6 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext as _
+
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 MAX_DB_MODULE_LIMIT = 63
 MAX_DB_APP_ABBR_LIMIT = 63
+
+
+class ModuleCountType(str, StructuredEnum):
+    """module统计类型"""
+
+    CLUSTER = EnumField("cluster", _("集群"))
+    INSTANCE = EnumField("instance", _("实例"))
+    MACHINE = EnumField("machine", _("主机"))

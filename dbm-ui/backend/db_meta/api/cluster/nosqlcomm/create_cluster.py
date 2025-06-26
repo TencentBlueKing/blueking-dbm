@@ -21,7 +21,6 @@ from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import AccessLayer, ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
-from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 from ....exceptions import (
@@ -59,6 +58,7 @@ def create_twemproxy_cluster(
     2. proxy 不能有已绑定的后端
     3. 必须只有 1 个 master
     """
+    from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
     ip_port_storages = {"{}{}{}".format(s["ip"], IP_PORT_DIVIDER, s["port"]): s for s in storages}
 

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -16,14 +15,15 @@ from rest_framework import serializers
 from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_dirty.models import DirtyMachine
-from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.db_services.dbbase.constants import ResourceType
-from backend.db_services.dbbase.resources.serializers import ListClusterEntriesSLZ, ListResourceSLZ
+from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, ResourceType
+from backend.db_services.dbbase.resources.serializers import ListClusterEntriesSLZ, ListMachineSLZ, ListResourceSLZ
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.flow.consts import SqlserverSyncMode
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
@@ -289,3 +289,81 @@ class AddClusterTagKeysSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
     tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+
+
+class QueryGlobalClusterSerializer(ListResourceSLZ):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+
+    # mysql过滤
+    master_domain = serializers.CharField(required=False)
+    slave_domain = serializers.CharField(required=False)
+    # spider过滤
+    spider_slave_exist = serializers.BooleanField(required=False)
+    # mongodb过滤
+    domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
+    # sqlserver过滤
+    sys_mode = serializers.ChoiceField(help_text=_("模块类型"), choices=SqlserverSyncMode.get_choices(), required=False)
+
+
+class QueryGlobalMachineSerializer(ListMachineSLZ):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+
+    # redis过滤
+    add_role_count = serializers.BooleanField(required=False)
+    # tendbcluster过滤
+    spider_role = serializers.ChoiceField(
+        help_text=_("spider角色"), choices=TenDBClusterSpiderRole.get_choices(), required=False
+    )
+    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块(逗号分割)"))
+
+
+class QueryGlobalInstanceSerializer(serializers.Serializer):
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块(逗号分割)"))
+
+    # mongodb过滤
+    exact_ip = serializers.CharField(help_text=_("精确IP查询"), required=False)
+    # influxdb过滤
+    group_id = serializers.CharField(help_text=_("分组ID"), required=False)
+
+    # ListInstancesSerializer
+    domain = serializers.CharField(help_text=_("域名"), required=False)
+    status = serializers.CharField(help_text=_("状态"), required=False)
+    role = serializers.CharField(help_text=_("角色"), required=False)
+    cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
+    cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
+
+    # InstanceAddressSerializer
+    instance_address = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
+    ip = serializers.CharField(help_text=_("IP"), required=False)
+    port = serializers.CharField(help_text=_("端口"), required=False)
+
+    def to_internal_value(self, data):
+
+        all_ports_valid = True
+        data = super().to_internal_value(data)
+        """获取根据address获取ip和port，优先考虑从address获取"""
+        if "instance_address" not in data:
+            return data
+
+        instance_address = data["instance_address"]
+        # 用于分隔IP地址和端口号的部分
+        parts = instance_address.split(",")
+        for part in parts:
+            if IP_PORT_DIVIDER in part:
+                # 存在端口号,进行验证
+                ip, port = part.split(IP_PORT_DIVIDER, maxsplit=1)
+                if not port.isdigit():
+                    # 非法端口
+                    all_ports_valid = False
+                    break
+
+        if not all_ports_valid:
+            pass
+        # 如果所有端口都有效，则将instance_address保存到data字典
+        data.update({"instance": instance_address})
+        return data

@@ -249,6 +249,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "status",
             "create_at",
             "shard",
+            "bk_biz_id",
             "cluster__id",
             "version",
             "cluster__cluster_type",
