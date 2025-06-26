@@ -20,9 +20,6 @@
     <InfoItem :label="t('业务英文名')">
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
-    <InfoItem :label="t('集群ID')">
-      {{ ticketDetails.details.cluster_id || '--' }}
-    </InfoItem>
     <InfoItem :label="t('集群名称')">
       {{ ticketDetails.details.cluster_name || '--' }}
     </InfoItem>
@@ -71,8 +68,8 @@
       </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
-    <InfoItem :label="t('ShardSvr资源规格')">
-      <SpecDetailPopover
+    <!-- <InfoItem :label="t('ShardSvr资源规格')">
+      <BkPopover
         v-if="shardSvrSpec"
         :data="shardSvrSpec"
         placement="top">
@@ -83,6 +80,40 @@
         </span>
       </SpecDetailPopover>
       <span v-else>--</span>
+    </InfoItem> -->
+    <InfoItem
+      :label="t('ShardSvr 部署方案')"
+      style="flex: 1 0 100%">
+      <BkTable :data="[shardSvrSpec]">
+        <BkTableColumn
+          field="spec_name"
+          :label="t('规格')">
+        </BkTableColumn>
+        <BkTableColumn
+          field="machine_pair"
+          :label="t('每个 Shard 节点数')">
+          <template #default="{data}: {data: Props['ticketDetails']['details']['resource_spec']['mongodb']}">
+            {{ data.count / ticketDetails.details.shard_machine_group }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="cluster_shard_num"
+          :label="t('集群 Shard 数')">
+          <template #default>
+            {{ ticketDetails.details.shard_num }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="cluster_shard_num"
+          :label="t('机器组数')">
+          <template #default>
+            {{ ticketDetails.details.shard_machine_group }}
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
+    <InfoItem :label="t('每台主机 oplog 容量占比')">
+      {{ ticketDetails.details.oplog_percent ? `${ticketDetails.details.oplog_percent} %` : '--' }}
     </InfoItem>
   </InfoList>
 </template>
@@ -97,7 +128,7 @@
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import RegionRequirements from '../components/RegionRequirements.vue';
+  import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ShardApply>;

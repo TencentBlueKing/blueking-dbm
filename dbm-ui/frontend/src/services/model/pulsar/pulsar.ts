@@ -66,7 +66,6 @@ export default class Pulsar extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -101,7 +100,6 @@ export default class Pulsar extends ClusterBase {
   pulsar_bookkeeper: ClusterListNode[];
   pulsar_broker: ClusterListNode[];
   pulsar_zookeeper: ClusterListNode[];
-  region: string;
   status: string;
   update_at: string;
   updater: string;
@@ -113,7 +111,6 @@ export default class Pulsar extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
@@ -136,7 +133,6 @@ export default class Pulsar extends ClusterBase {
     this.pulsar_broker = payload.pulsar_broker || [];
     this.pulsar_zookeeper = payload.pulsar_zookeeper || [];
     this.permission = payload.permission || {};
-    this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
