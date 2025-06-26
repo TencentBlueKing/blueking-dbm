@@ -234,7 +234,7 @@
 
   const props = defineProps<Props>();
 
-  const fetchClusterMachineList = useClusterMachineList(ClusterTypes.DORIS);
+  const fetchClusterMachineList = useClusterMachineList(ClusterTypes.ES);
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
