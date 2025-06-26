@@ -148,7 +148,7 @@
             </div>
           </BkFormItem>
           <BkFormItem
-            :label="t('每台主机oplog容量占比')"
+            :label="t('每台主机 oplog 容量占比')"
             property="details.oplog_percent"
             required>
             <BkInput
@@ -207,10 +207,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { Mongodb } from '@services/model/ticket/ticket';
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
   import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
@@ -219,7 +220,7 @@
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Common.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -258,6 +259,46 @@
   const route = useRoute();
   const router = useRouter();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Mongodb.ReplicasetApply>(TicketTypes.MONGODB_REPLICASET_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formData, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formData.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        cluster_type: details.cluster_type,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        ip_source: details.ip_source,
+        node_count: details.node_count,
+        node_replica_count: details.node_replica_count,
+        oplog_percent: details.oplog_percent,
+        replica_count: details.replica_count,
+        replica_sets: details.replica_sets,
+        start_port: details.start_port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = {
+          count: details.resource_spec.mongo_machine_set.count,
+          spec_id: details.resource_spec.mongo_machine_set.spec_id,
+        };
+        const subzoneIds = details.resource_spec!.mongo_machine_set.location_spec.sub_zone_ids || [];
+        Object.assign(formData.details, {
+          resource_spec: resourceSpec,
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+        });
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
@@ -375,7 +416,7 @@
         resource_spec: {
           mongo_machine_set: {
             count: details.node_count,
-            spec_id: details.resource_spec.spec_id,
+            // spec_id: details.resource_spec.spec_id,
             ...specRef.value!.getData(),
             ...regionRequirementsRef.value!.getValue(),
           },

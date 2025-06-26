@@ -59,7 +59,6 @@ export default class Redis extends ClusterBase {
   cluster_shard_num: number;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -101,7 +100,6 @@ export default class Redis extends ClusterBase {
   proxy: ClusterListNode[];
   redis_master: ({ seg_range: string } & ClusterListNode)[];
   redis_slave: ({ seg_range: string } & ClusterListNode)[];
-  region: string;
   slave_domain: string;
   status: string;
   update_at: string;
@@ -114,7 +112,6 @@ export default class Redis extends ClusterBase {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.city = payload.city;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
@@ -145,7 +142,6 @@ export default class Redis extends ClusterBase {
     this.proxy = payload.proxy || [];
     this.redis_master = payload.redis_master || [];
     this.redis_slave = payload.redis_slave || [];
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;
