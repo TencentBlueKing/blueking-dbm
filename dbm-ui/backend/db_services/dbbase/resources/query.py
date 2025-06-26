@@ -391,8 +391,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param filter_params_map: 过滤参数map
         @param filter_func_map: 过滤函数map，每个函数必须接受query_params和cluster、proxy、storage三个query参数
         """
-
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
         proxy_queryset = ProxyInstance.objects.filter(query_filters)
         storage_queryset = StorageInstance.objects.filter(query_filters)
 
@@ -517,11 +518,13 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
         cluster_entry_map = defaultdict(dict)
         # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        # 提取所需的字段和构建映射
         db_module_names_map = {
             module["db_module_id"]: module["db_module_name"]
-            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types).values(
-                "db_module_id", "db_module_name"
-            )
+            for module in db_module_queryset.values("db_module_id", "db_module_name")
         }
 
         # 获取redis集群DB模块的映射信息
@@ -539,8 +542,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
         # 获取云区域信息和业务信息
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
-
+        try:
+            biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        except AppCache.DoesNotExist:
+            biz_info = None
         # 将集群的查询结果序列化为集群字典信息
         clusters: List[Dict[str, Any]] = []
         # 获取集群统计信息，只需要获取一次
@@ -621,7 +626,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "slave_domain": cluster_entry_map_value.get("slave_domain", ""),
             "cluster_entry": cluster_entry,
             "bk_biz_id": cluster.bk_biz_id,
-            "bk_biz_name": biz_info.bk_biz_name,
+            "bk_biz_name": "" if biz_info is None else biz_info.bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
@@ -655,7 +660,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
 
         # 定义内置的过滤参数map
         inner_filter_params_map = {
@@ -664,6 +671,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
+            # 所属DB模块
+            "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "region": Q(region=query_params.get("region")),
             "role": Q(role__in=query_params.get("role", "").split(",")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
@@ -699,17 +708,22 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 查询云区域信息
         cloud = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            db_module_queryset = db_module_queryset.filter(bk_biz_id=bk_biz_id)
+        # 提取所需的字段和构建映射
         db_module_names_map = {
-            module.db_module_id: module.alias_name
-            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+            module["db_module_id"]: module["db_module_name"]
+            for module in db_module_queryset.values("db_module_id", "db_module_name")
         }
+
         # 将实例的查询结果序列化为实例字典信息
         instance_infos = [
             cls._to_instance_representation(inst, cluster_entry_map, db_module_names_map, cloud_info=cloud, **kwargs)
             for inst in instances
         ]
         # 特例：如果有extra参数，则补充额外实例信息
-        if query_params.get("extra"):
+        if query_params.get("extra") and bk_biz_id is not None:
             cls._fill_instance_extra_info(bk_biz_id, instance_infos, **kwargs)
 
         return instance_infos
@@ -742,6 +756,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "port",
             "status",
             "create_at",
+            "bk_biz_id",
             "cluster__id",
             "version",
             "cluster__cluster_type",
@@ -821,6 +836,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "status": instance["status"],
             "create_at": datetime2str(instance["create_at"]),
             "spec_config": instance["machine__spec_config"],
+            "bk_biz_id": instance["bk_biz_id"],
         }
 
     @classmethod
@@ -841,7 +857,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        query_filters = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        query_filters = Q(cluster_type__in=cls.cluster_types)
+        if bk_biz_id is not None:
+            query_filters &= Q(bk_biz_id=bk_biz_id)
         # 定义内置的过滤参数map
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
@@ -872,6 +890,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 Q(storageinstance__cluster__status=query_params.get("cluster_status"))
                 | Q(proxyinstance__cluster__status=query_params.get("cluster_status"))
             ),
+            # 所属DB模块
+            "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "creator": Q(creator__icontains=query_params.get("creator")),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
@@ -952,6 +972,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_rack_id": machine.bk_rack_id,
             "bk_svr_device_cls_name": machine.bk_svr_device_cls_name,
             "host_info": host_id_info_map.get(machine.bk_host_id, {}),
+            "bk_biz_id": machine.bk_biz_id,
+            "db_module_id": machine.db_module_id,
         }
         machine_info.update(cls._get_machine_extra_info(machine))
         return machine_info

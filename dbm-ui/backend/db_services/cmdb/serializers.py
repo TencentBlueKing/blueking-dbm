@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
-from backend.db_services.cmdb.constants import MAX_DB_APP_ABBR_LIMIT, MAX_DB_MODULE_LIMIT
+from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_services.cmdb.constants import MAX_DB_APP_ABBR_LIMIT, MAX_DB_MODULE_LIMIT, ModuleCountType
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
@@ -80,3 +80,23 @@ class ListNodesSerializer(TopoSerializer):
     page = serializers.IntegerField(help_text=_("页数"))
     module_id = serializers.IntegerField(help_text=_("模块ID"), required=False)
     set_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+
+
+class ListBIZModulesSLZ(serializers.Serializer):
+    cluster_type = serializers.CharField(help_text=_("集群类型(逗号分隔)"))
+    bk_biz_name = serializers.CharField(help_text=_("业务名称"), required=False)
+    module_name = serializers.CharField(help_text=_("模块名称"), required=False)
+    count_type = serializers.ChoiceField(choices=ModuleCountType.get_choices(), default=ModuleCountType.CLUSTER.value)
+    role = serializers.ChoiceField(help_text=_("实例角色"), choices=InstanceRole.get_choices(), required=False)
+
+
+class BIZModuleSLZ(serializers.Serializer):
+    class ModuleInstanceCountSLZ(serializers.Serializer):
+        module_name = serializers.CharField(help_text=_("模块名"))
+        module_id = serializers.IntegerField(help_text=_("模块ID"))
+        count = serializers.IntegerField(help_text=_("实例数量"))
+
+    bk_biz_name = serializers.CharField(help_text=_("业务名"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    count = serializers.IntegerField(help_text=_("实例数量"))
+    modules = serializers.ListField(help_text=_("模块信息"), child=ModuleInstanceCountSLZ())
