@@ -45,10 +45,10 @@ const getFormData = (type: string) => ({
       backend: {
         affinity: '',
         count: 0,
-        location_spec: {
-          city: '',
-          sub_zone_ids: [],
-        },
+        // location_spec: {
+        //   city: '',
+        //   sub_zone_ids: [],
+        // },
         spec_id: '' as string | number,
       },
       proxy: {
@@ -57,10 +57,10 @@ const getFormData = (type: string) => ({
       },
       single: {
         count: 0,
-        location_spec: {
-          city: '',
-          sub_zone_ids: [],
-        },
+        // location_spec: {
+        //   city: '',
+        //   sub_zone_ids: [],
+        // },
         spec_id: '' as string | number,
       },
     },

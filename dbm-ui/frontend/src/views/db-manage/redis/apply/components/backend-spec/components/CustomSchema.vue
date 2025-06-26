@@ -80,7 +80,7 @@
   }
 
   interface ModelValue {
-    count: number;
+    count: number | string;
     spec_id: number | string;
   }
 
@@ -101,7 +101,7 @@
   const { t } = useI18n();
 
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
-  const shardNum = ref(1);
+  const shardNum = ref<string | number>('');
 
   const countMin = computed(() => {
     if (
@@ -113,7 +113,7 @@
     }
     return 1;
   });
-  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value || '');
+  const clusterShardNum = computed(() => Number(modelValue.value.count) * Number(shardNum.value) || '');
 
   const totalCapcity = computed(() => {
     const data = specSelectorRef.value?.getData();
@@ -123,7 +123,7 @@
       return '';
     }
 
-    return count * getSpecCapacity(data) || '';
+    return Number(count) * getSpecCapacity(data) || '';
   });
 
   const getSpecCapacity = (resourceSpec: ReturnType<ComponentExposed<typeof SpecSelector>['getData']>) => {
@@ -144,7 +144,7 @@
       return {
         cluster_capacity: totalCapcity.value || 0,
         cluster_shard_num: Number(clusterShardNum.value),
-        machine_pair: modelValue.value.count,
+        machine_pair: Number(modelValue.value.count),
         spec_name: specData?.spec_name || '',
       };
     },

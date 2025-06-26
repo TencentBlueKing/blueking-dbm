@@ -85,7 +85,7 @@
 
   interface ModelValue {
     capacity: number | string;
-    count: number;
+    count: number | string;
     future_capacity: number | string;
     spec_id: number | '';
   }
@@ -328,7 +328,7 @@
     }
 
     :deep(.spec-radio) {
-      display: flex;
+      display: flex !important;
       max-width: 100%;
 
       .bk-radio-input {

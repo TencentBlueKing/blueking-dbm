@@ -57,7 +57,6 @@ export default class OracleSingleCluster extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -78,7 +77,6 @@ export default class OracleSingleCluster extends ClusterBase {
   phase: string;
   phase_name: string;
   primaries: ClusterListNode[];
-  region: string;
   slave_domain: string;
   status: string;
   sync_mode: string;
@@ -91,7 +89,6 @@ export default class OracleSingleCluster extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -102,6 +99,7 @@ export default class OracleSingleCluster extends ClusterBase {
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
+    this.phase_name = payload.phase_name;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -112,8 +110,6 @@ export default class OracleSingleCluster extends ClusterBase {
     this.operations = payload.operations;
     this.permission = payload.permission || {};
     this.phase = payload.phase;
-    this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.primaries = payload.primaries;
