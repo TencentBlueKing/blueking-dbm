@@ -35,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -170,11 +171,10 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEn
 	}
 	namespace := svcEntity.Namespace
 	labelSelector := mapToLabelSelector(map[string]string{
-		coreconst.InstanceName:  svcEntity.ClusterName,
-		coreconst.ManagedBy:     coreconst.Kubeblocks,
-		coreconst.ComponentName: svcEntity.ComponentName,
-		coreconst.ServiceType:   coreconst.LoadBalancer,
+		coreconst.InstanceName: svcEntity.ClusterName,
+		coreconst.ManagedBy:    coreconst.Kubeblocks,
 	})
+
 	lbServices, err := k8sClient.ClientSet.CoreV1().Services(namespace).
 		List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
@@ -189,7 +189,12 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEn
 			"namespace", namespace, "labelSelector", labelSelector)
 		return []coreentity.K8sExternalSvcInfo{}, nil
 	}
-	k8sSvcInfos := c.convertExternalSvc(lbServices)
+	svcSelector := map[string]string{
+		coreconst.InstanceName:  svcEntity.ClusterName,
+		coreconst.ManagedBy:     coreconst.Kubeblocks,
+		coreconst.ComponentName: svcEntity.ComponentName,
+	}
+	k8sSvcInfos := c.convertExternalSvc(lbServices, svcSelector)
 	return k8sSvcInfos, nil
 }
 
@@ -227,9 +232,15 @@ func (c *ComponentProvider) convertInternalSvc(clusterIPServices *corev1.Service
 }
 
 // convertInternalSvc 转换 LoadBalancer 为 K8sExternalSvcInfo
-func (c *ComponentProvider) convertExternalSvc(lbServices *corev1.ServiceList) []coreentity.K8sExternalSvcInfo {
+func (c *ComponentProvider) convertExternalSvc(
+	lbServices *corev1.ServiceList,
+	svcSelector map[string]string,
+) []coreentity.K8sExternalSvcInfo {
 	var k8sSvcInfos []coreentity.K8sExternalSvcInfo
 	for _, service := range lbServices.Items {
+		if !cmp.Equal(service.Spec.Selector, svcSelector) {
+			continue
+		}
 		if len(service.Status.LoadBalancer.Ingress) == 0 {
 			slog.Warn("service LoadBalancer Ingress is empty",
 				"serviceName", service.Name, "namespace", service.Namespace)

@@ -86,7 +86,7 @@ var switchTypeMap = map[bool]opv1.ExposeSwitch{
 //	error - 错误信息(如果有)
 func CreateVerticalScalingObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
 	objectName := util.ResourceName("ops-vscaling-", OpsNameSuffixLength)
-	verticalScalingList := []opv1.VerticalScaling{}
+	var verticalScalingList []opv1.VerticalScaling
 	for _, comp := range request.ComponentList {
 		err := checkResourceFromComp(comp)
 		if err != nil {
