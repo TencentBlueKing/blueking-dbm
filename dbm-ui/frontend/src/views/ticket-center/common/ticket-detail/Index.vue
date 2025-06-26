@@ -138,6 +138,8 @@
     font-size: 12px;
 
     .db-card {
+      box-shadow: unset;
+
       .db-card__content {
         padding-left: 116px;
         overflow: hidden;

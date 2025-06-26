@@ -118,6 +118,7 @@
     () => props.ticketDetails,
     () => {
       getTemplateDetail({
+        biz_id: props.ticketDetails.bk_biz_id,
         id: props.ticketDetails.details.config_id,
       });
     },
