@@ -690,7 +690,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
             )
 
-            # 这里区分是standby还是普通salve添加域名
+            # 这里区分是standby还是普通slave添加域名
             if target_slave.is_stand_by:
                 domain_map = get_standby_dns(cluster_model.id)
                 domain_add_list = []

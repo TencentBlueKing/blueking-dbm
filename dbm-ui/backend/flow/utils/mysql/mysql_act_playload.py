@@ -2474,14 +2474,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
         )
-
+        if self.cluster.get("dump_center"):
+            self.account["admin_user"] = self.cluster["random_account"]
+            self.account["admin_pwd"] = self.cluster["random_password"]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.MysqlDumpData.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "host": kwargs["ip"],
+                    "host": self.cluster["ip"],
                     "port": self.cluster["port"],
                     "charset": self.ticket_data["charset"],
                     "dump_detail": {

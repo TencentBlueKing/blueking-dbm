@@ -121,6 +121,10 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 		User: user,
 		Pwd:  pwd,
 	}.Conn()
+	if err != nil {
+		logger.Error("connect to %s:%d failed,err:%s", host, port, err.Error())
+		return err
+	}
 	defer func() {
 		if conn != nil {
 			conn.Close()
