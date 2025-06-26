@@ -132,7 +132,6 @@
     () => {
       if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryMachine({
-          cluster_type: queryClusterTypes[DBTypes.REDIS].join(','),
           db_type: DBTypes.REDIS,
           ip: modelValue.value.ip,
         });
