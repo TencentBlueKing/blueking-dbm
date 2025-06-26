@@ -146,7 +146,7 @@ class Ticket(AuditedModel):
     @property
     def iframe_url(self):
         """iframe 单据链接，目前仅用在itsm表单"""
-        return f"{env.BK_SAAS_HOST}/sub/ticket/{self.id}"
+        return f"{env.BK_SAAS_HOST}/ticket/{self.id}"
 
     @property
     def helpers(self):
@@ -546,8 +546,10 @@ class ClusterOperateRecord(AuditedModel):
     @classmethod
     def get_cluster_records_map(cls, cluster_ids: List[int]):
         """获取集群与操作记录之间的映射关系"""
-        records = cls.objects.select_related("ticket", "flow").filter(
-            cluster_id__in=cluster_ids, ticket__status__in=TICKET_RUNNING_STATUS_SET
+        records = (
+            cls.objects.select_related("ticket", "flow")
+            .filter(cluster_id__in=cluster_ids, ticket__status__in=TICKET_RUNNING_STATUS_SET)
+            .order_by("-update_at")
         )
         cluster_operate_records_map: Dict[int, List] = defaultdict(list)
         for record in records:

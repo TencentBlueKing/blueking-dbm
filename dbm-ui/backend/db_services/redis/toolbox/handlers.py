@@ -314,6 +314,9 @@ class ToolboxHandler(ClusterServiceHandler):
                 }
             )
 
+            if not resp["info"]:
+                return {}
+
             cc_map = defaultdict(dict)
             # 补充主备负责人信息
             for host in resp["info"]:

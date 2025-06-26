@@ -80,8 +80,13 @@ class SearchResourceTreeSLZ(serializers.Serializer):
 
 class InstanceAddressSerializer(serializers.Serializer):
     instance = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
+    instance_address = serializers.CharField(help_text=_("实例地址(ip:port-兼容字段)"), required=False)
     ip = serializers.CharField(help_text=_("IP"), required=False)
     port = serializers.CharField(help_text=_("端口"), required=False)
+
+    def to_internal_value(self, data):
+        data["instance"] = data.get("instance") or data.get("instance_address", "")
+        return super().to_internal_value(data)
 
 
 class ListInstancesSerializer(InstanceAddressSerializer):

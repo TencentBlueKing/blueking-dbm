@@ -14,7 +14,6 @@ import logging
 from collections import defaultdict
 from typing import Dict, List
 
-from celery.schedules import crontab
 from django.utils.translation import ugettext as _
 from jinja2 import Environment
 
@@ -23,7 +22,6 @@ from backend.components import JobApi
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
 from backend.db_meta.models import Machine
-from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_proxy import nginxconf_tpl
 from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
@@ -34,7 +32,6 @@ from backend.utils.redis import RedisConn
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute="*/1"))
 def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 
