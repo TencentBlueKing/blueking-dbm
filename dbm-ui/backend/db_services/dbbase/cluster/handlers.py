@@ -554,3 +554,25 @@ def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
         handler = ClusterServiceHandler(bk_biz_id)
 
     return handler
+
+
+def retrieve_resources(self, request, serializer_class, resource_method_name):
+    """
+    通用方法来处理不同资源类型的请求。
+    """
+    from backend.db_services.dbbase.constants import DB_RESOURCE_MAP
+
+    query_params = self.params_validate(serializer_class)
+    bk_biz_id = query_params.pop("bk_biz_id", None)
+    db_type = query_params.pop("db_type", None)
+    RetrieveResource = DB_RESOURCE_MAP[db_type]
+
+    # 为 MySQL 和 SQLServer 设置集群类型
+    if db_type in [DBType.MySQL.value, DBType.Sqlserver.value]:
+        RetrieveResource.cluster_types = ClusterType.db_type_cluster_types_map().get(db_type)
+
+    # 动态调用资源方法获取数据
+    resource_method = getattr(RetrieveResource, resource_method_name)
+    data = self.paginator.paginate_list(request, bk_biz_id, resource_method, query_params)
+
+    return self.get_paginated_response(data)
