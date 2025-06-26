@@ -95,9 +95,9 @@
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
     [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: TicketTypes.MONGODB_REDUCE_SHARD_NODES, // 缩容 Shard 节点数
     [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS,
-    // [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
+    [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
-    // [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
+    [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
     [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权

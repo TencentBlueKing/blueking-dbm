@@ -220,7 +220,7 @@
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Common.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
 
@@ -300,9 +300,13 @@
             },
           });
         }, {});
+        const subzoneIds = details.resource_spec!.mongo_config.location_spec.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
-          sub_zone_ids: details.resource_spec!.mongo_config.location_spec.sub_zone_ids || [],
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },
@@ -472,7 +476,7 @@
         resource_spec: {
           mongo_config: {
             count: mongoConfig.count,
-            spec_id: mongoConfig.spec_id,
+            // spec_id: mongoConfig.spec_id,
             ...mongoCofigSpecRef.value!.getData(),
             ...regionAndDisasterParams,
           },

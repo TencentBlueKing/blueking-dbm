@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes, PipelineStatus, TicketTypes } from '@common/const';
+import { Affinity, ClusterTypes, mongodbAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -173,7 +173,7 @@ export default class Mongodb extends ClusterBase {
   }
 
   get disasterToleranceLevelName() {
-    return affinityMap[this.disaster_tolerance_level];
+    return mongodbAffinityMap[this.disaster_tolerance_level];
   }
 
   get entryAccess() {
