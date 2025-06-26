@@ -30,7 +30,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
+
+	respvo "k8s-dbs/metadata/api/vo/resp"
 )
+
+var queryParamsMapping = map[string]string{
+	"createdBy":    "created_by",
+	"updatedBy":    "updated_by",
+	"bkBizID":      "bk_biz_id",
+	"namespace":    "namespace",
+	"clusterName":  "cluster_name",
+	"clusterAlias": "cluster_alias",
+}
 
 // ClusterController manages metadata for cluster.
 type ClusterController struct {
@@ -71,15 +82,31 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		return
 	}
 	params := metahelper.BuildPageParams(ctx)
-	clusterEntities, _, err := c.clusterProvider.ListCluster(params, pagination)
+	params = mapParamsWithMapping(params, queryParamsMapping)
+	clusterEntities, count, err := c.clusterProvider.ListCluster(params, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
-		return
 	}
 	var data []resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, clusterEntities); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	var responseData = respvo.PageResult{
+		Count:  count,
+		Result: data,
+	}
+	entity.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+// mapParamsWithMapping 按照 mapping 映射来重新构建请求 map
+func mapParamsWithMapping(rawParams map[string]interface{}, mapping map[string]string) map[string]interface{} {
+	mappedParams := make(map[string]interface{})
+	for rawKey, value := range rawParams {
+		if newKey, exists := mapping[rawKey]; exists {
+			mappedParams[newKey] = value
+		}
+		// 如果 rawKey 不在 mapping 中，则忽略该字段
+	}
+	return mappedParams
 }

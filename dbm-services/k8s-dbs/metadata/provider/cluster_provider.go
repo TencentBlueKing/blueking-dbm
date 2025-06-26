@@ -125,7 +125,7 @@ func (k *K8sCrlClusterProviderImpl) ListCluster(
 	params map[string]interface{},
 	pagination *entity.Pagination,
 ) ([]entitys.K8sCrdClusterEntity, uint64, error) {
-	clusterModels, _, err := k.dbAccess.ListByPage(params, pagination)
+	clusterModels, count, err := k.dbAccess.ListByPage(params, pagination)
 	if err != nil {
 		slog.Error("Failed to list cluster", "error", err)
 		return nil, 0, err
@@ -135,7 +135,7 @@ func (k *K8sCrlClusterProviderImpl) ListCluster(
 		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, 0, err
 	}
-	return clusterEntities, uint64(len(clusterEntities)), nil
+	return clusterEntities, count, nil
 }
 
 // NewK8sCrdClusterProvider 创建 K8sCrdClusterProvider 接口实现实例

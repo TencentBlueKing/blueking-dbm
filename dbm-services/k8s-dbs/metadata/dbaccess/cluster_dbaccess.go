@@ -109,11 +109,24 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 	pagination *entity.Pagination,
 ) ([]models.K8sCrdClusterModel, uint64, error) {
 	var clusterModels []models.K8sCrdClusterModel
-	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where(params).Find(&clusterModels).Error; err != nil {
+	var count int64
+	if err := k.db.Model(&models.K8sCrdClusterModel{}).Where(params).Count(&count).Error; err != nil {
+		slog.Error("Count cluster models error", "error", err.Error())
+		return nil, 0, err
+	}
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := k.db.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Where(params).
+		Order("created_at DESC").
+		Find(&clusterModels).
+		Error; err != nil {
 		slog.Error("List cluster models error", "error", err.Error())
 		return nil, 0, err
 	}
-	return clusterModels, uint64(len(clusterModels)), nil
+
+	return clusterModels, uint64(count), nil
 }
 
 // NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例
