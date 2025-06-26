@@ -194,12 +194,16 @@
     {
       content: t('注意！集群操作已移到此处，助您更快触达'),
       entry: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper') as HTMLElement;
-        fixZIndexEle.style.zIndex = 'unset !important';
+        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
+        if (fixZIndexEle) {
+          (fixZIndexEle as HTMLElement).style.zIndex = 'unset !important';
+        }
       },
       leave: () => {
-        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper') as HTMLElement;
-        fixZIndexEle.style.zIndex = '';
+        const fixZIndexEle = rootRef.value!.querySelector('.vxe-table--fixed-left-wrapper');
+        if (fixZIndexEle) {
+          (fixZIndexEle as HTMLElement).style.zIndex = '';
+        }
       },
       target: '.cluster-list-column-operation-btn',
       title: t('温馨提示'),
