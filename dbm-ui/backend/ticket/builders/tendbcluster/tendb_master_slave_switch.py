@@ -46,6 +46,17 @@ class TendbMasterSlaveSwitchDetailSerializer(TendbBaseOperateDetailSerializer):
 class TendbMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_remote_switch_scene
 
+    def format_ticket_data(self):
+        # 格式化主机信息
+        for info in self.ticket_data["infos"]:
+            for switch_tuple in info["switch_tuples"]:
+                for role in ["master", "slave"]:
+                    ip_address = switch_tuple[role]["ip"]
+                    # 如果有端口，则只保留地址部分
+                    if ":" in ip_address:
+                        ip_address = ip_address.split(":")[0]
+                    switch_tuple[role]["ip"] = ip_address
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH)
 class TendbMasterSlaveSwitchFlowBuilder(BaseTendbTicketFlowBuilder):

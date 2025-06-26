@@ -154,7 +154,7 @@ class MySQLBaseOperateDetailSerializer(
 
     def validate_slave_is_stand_by(self, attrs):
         """校验从库的is_stand_by标志必须为true"""
-        slave_insts = [f"{info['slave_ip']['ip']}" for info in attrs["infos"]]
+        slave_insts = [f"{info['slave_ip']['ip'].split(':')[0]}" for info in attrs["infos"]]
         CommonValidate.validate_slave_is_stand_by(slave_insts)
 
     def validated_cluster_latest_backup(self, cluster_ids, backup_source, backup_type=None):

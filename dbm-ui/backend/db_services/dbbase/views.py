@@ -26,7 +26,7 @@ from backend.components import BKBaseApi, DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, Tag
-from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler, retrieve_resources
 from backend.db_services.dbbase.cluster.serializers import (
     BatchCheckClusterDbsSerializer,
     CheckClusterDbsResponseSerializer,
@@ -35,6 +35,7 @@ from backend.db_services.dbbase.cluster.serializers import (
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
 from backend.db_services.dbbase.resources import register
+from backend.db_services.dbbase.resources.pagination import ResourceLimitOffsetPagination
 from backend.db_services.dbbase.resources.query import ListRetrieveResource, ResourceList
 from backend.db_services.dbbase.resources.serializers import ClusterSLZ
 from backend.db_services.dbbase.serializers import (
@@ -54,6 +55,9 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
+    QueryGlobalClusterSerializer,
+    QueryGlobalInstanceSerializer,
+    QueryGlobalMachineSerializer,
     RemoveClusterTagKeysSerializer,
     ResourceAdministrationSerializer,
     UpdateClusterAliasSerializer,
@@ -69,6 +73,7 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import (
     ClusterDBConsolePermission,
     ClusterEditPermission,
+    ClusterListPermission,
     ClusterWebconsolePermission,
 )
 
@@ -100,6 +105,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "remove_cluster_tag_keys",
             "add_cluster_tag_keys",
         ): [ClusterEditPermission()],
+        (
+            "get_global_cluster",
+            "get_global_machine",
+            "get_global_instance",
+        ): [ClusterListPermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -557,3 +567,51 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             through.objects.bulk_create(add_tags)
 
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型获取集群信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalClusterSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalClusterSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalClusterSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def get_global_cluster(self, request, *args, **kwargs):
+        return retrieve_resources(self, request, QueryGlobalClusterSerializer, "_list_clusters")
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型获取实例信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalInstanceSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalInstanceSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalInstanceSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def get_global_instance(self, request, *args, **kwargs):
+        return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "_list_instances")
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型获取机器信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalMachineSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalMachineSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalMachineSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def get_global_machine(self, request, *args, **kwargs):
+        return retrieve_resources(self, request, self.get_serializer_class(), "_list_machines")
