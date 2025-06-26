@@ -21,9 +21,10 @@ from backend.db_proxy.reverse_api.exceptions import SyncReportEventValidationExc
 
 
 def sync_report(bk_cloud_id: int, ip: str, port_list: List[int], data: List):
+    kafka_opts = env.REVERSE_REPORT_KAFKA_OPTIONS
     with sr.lock:
         if sr.producers is None:
-            sr.producers = [KafkaProducer(bootstrap_servers=env.REVERSE_REPORT_KAFKA_BROKER) for i in range(5)]
+            sr.producers = [KafkaProducer(api_version=(0, 11), **kafka_opts) for i in range(5)]
 
     vd = SyncReportEventSerializer(data=data, many=True)
     if not vd.is_valid():

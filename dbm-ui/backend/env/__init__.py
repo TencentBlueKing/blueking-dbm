@@ -205,5 +205,11 @@ INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, defaul
 # 反向查询接口禁用安全检查
 DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=False)
 
-# 反向上报接口 kafka broker
-REVERSE_REPORT_KAFKA_BROKER = get_type_env(key="REVERSE_REPORT_KAFKA_BROKER", _type=str, default=":9092")
+# 反向上报接口 kafka 参数
+# DBM 带鉴权的连接串
+# export REVERSE_REPORT_KAFKA_OPTIONS=bootstrap_servers=:9092, \
+# sasl_mechanism=SCRAM-SHA-512,security_protocol=SASL_PLAINTEXT, \
+# sasl_plain_username=kafka_user,sasl_plain_password=kafka_pass
+REVERSE_REPORT_KAFKA_OPTIONS = get_type_env(
+    key="REVERSE_REPORT_KAFKA_OPTIONS", _type=dict, default={"bootstrap_servers": ":9092"}
+)
