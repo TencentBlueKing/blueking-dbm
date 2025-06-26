@@ -173,12 +173,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import type { Influxdb } from '@services/model/ticket/ticket';
   import { checkHost } from '@services/source/ipchooser';
-  import type { BizItem } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { DBTypes, OSTypes } from '@common/const';
+  import { Affinity, DBTypes, OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -189,16 +190,73 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/BigData.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
-  import { getInitFormdata } from './common/base';
   import GroupItem from './components/GroupItem.vue';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const getInitFormdata = () => ({
+    bk_biz_id: '',
+    details: {
+      bk_cloud_id: 0,
+      city_code: '',
+      db_app_abbr: '',
+      db_version: '',
+      disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
+      group_id: '',
+      ip_source: 'resource_pool',
+      nodes: {
+        influxdb: [] as HostInfo[],
+      },
+      port: 8080,
+      resource_spec: {
+        influxdb: {
+          count: 1,
+          spec_id: '',
+        },
+      },
+      sub_zone_ids: [] as number[],
+    },
+    remark: '',
+    ticket_type: TicketTypes.INFLUXDB_APPLY,
+  });
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
 
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+
+  useTicketDetail<Influxdb.Apply>(TicketTypes.INFLUXDB_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+
+      Object.assign(formdata, {
+        bk_biz_id: ticketDetail.bk_biz_id,
+        remark: ticketDetail.remark,
+      });
+      Object.assign(formdata.details, {
+        bk_cloud_id: details.bk_cloud_id,
+        city_code: details.city_code,
+        db_version: details.db_version,
+        disaster_tolerance_level: details.disaster_tolerance_level,
+        group_id: details.group_id,
+        ip_source: details.ip_source,
+        port: details.port,
+      });
+
+      if (details.ip_source === 'resource_pool') {
+        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
+          return Object.assign(prev, {
+            [specType]: {
+              count: specInfo.count,
+              spec_id: specInfo.spec_id,
+            },
+          });
+        }, {});
+        Object.assign(formdata.details.resource_spec, resourceSpec);
+      }
+    },
+  });
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
 
