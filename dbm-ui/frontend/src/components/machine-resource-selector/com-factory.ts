@@ -1,8 +1,7 @@
-import { ClusterTypes, DBTypes, queryClusterTypes } from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 export default {
   [ClusterTypes.REDIS]: {
-    cluster_type: queryClusterTypes[DBTypes.REDIS].join(','),
     db_type: DBTypes.REDIS,
   },
   [ClusterTypes.TENDBCLUSTER]: {
