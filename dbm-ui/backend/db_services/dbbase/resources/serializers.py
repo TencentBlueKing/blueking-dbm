@@ -83,6 +83,33 @@ class InstanceAddressSerializer(serializers.Serializer):
     ip = serializers.CharField(help_text=_("IP"), required=False)
     port = serializers.CharField(help_text=_("端口"), required=False)
 
+    def to_internal_value(self, data):
+        from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+
+        all_ports_valid = True
+
+        """获取根据instance获取ip和port，优先考虑从instance获取"""
+        if "instance" not in data:
+            return data
+
+        instance_address = data["instance"]
+        # 用于分隔IP地址和端口号的部分
+        parts = instance_address.split(",")
+        for part in parts:
+            if IP_PORT_DIVIDER in part:
+                # 存在端口号,进行验证
+                ip, port = part.split(IP_PORT_DIVIDER, maxsplit=1)
+                if not port.isdigit():
+                    # 非法端口
+                    all_ports_valid = False
+                    break
+
+        if not all_ports_valid:
+            pass
+        # 如果所有端口都有效，则将instance_address保存到data字典
+        data.update({"instance": instance_address})
+        return data
+
 
 class ListInstancesSerializer(InstanceAddressSerializer):
     domain = serializers.CharField(help_text=_("域名"), required=False)

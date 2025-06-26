@@ -10,7 +10,25 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.db_dirty.constants import PoolType
+from backend.db_services.bigdata.doris.query import DorisListRetrieveResource
+from backend.db_services.bigdata.es.query import ESListRetrieveResource
+from backend.db_services.bigdata.hdfs.query import HDFSListRetrieveResource
+from backend.db_services.bigdata.influxdb.query import InfluxDBListRetrieveResource
+from backend.db_services.bigdata.kafka.query import KafkaListRetrieveResource
+from backend.db_services.bigdata.pulsar.query import PulsarListRetrieveResource
+from backend.db_services.bigdata.riak.query import RiakListRetrieveResource
+from backend.db_services.bigdata.vm.query import VMListRetrieveResource
+from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+from backend.db_services.mysql.resources.tendbcluster.query import (
+    ListRetrieveResource as TendDBClusterRetrieveResource,
+)
+from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource as TendDBHAHaRetrieveResource
+from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
+from backend.db_services.sqlserver.resources.sqlserver_ha.query import (
+    ListRetrieveResource as SqlserverHARetrieveResource,
+)
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 ES_DEFAULT_PORT = 9200
@@ -48,3 +66,20 @@ class ResourceType(str, StructuredEnum):
 
     SPOTTY_HOST = EnumField("spotty_host", _("污点主机"))
     RESOURCE_RECORD = EnumField("resource_record", _("资源操作记录"))
+
+
+DB_RESOURCE_MAP = {
+    DBType.TenDBCluster.value: TendDBClusterRetrieveResource,
+    DBType.MySQL.value: TendDBHAHaRetrieveResource,
+    DBType.Redis.value: RedisListRetrieveResource,
+    DBType.MongoDB.value: MongoDBListRetrieveResource,
+    DBType.Kafka.value: KafkaListRetrieveResource,
+    DBType.Hdfs.value: HDFSListRetrieveResource,
+    DBType.Es.value: ESListRetrieveResource,
+    DBType.Pulsar.value: PulsarListRetrieveResource,
+    DBType.InfluxDB.value: InfluxDBListRetrieveResource,
+    DBType.Riak.value: RiakListRetrieveResource,
+    DBType.Sqlserver.value: SqlserverHARetrieveResource,
+    DBType.Doris.value: DorisListRetrieveResource,
+    DBType.Vm.value: VMListRetrieveResource,
+}

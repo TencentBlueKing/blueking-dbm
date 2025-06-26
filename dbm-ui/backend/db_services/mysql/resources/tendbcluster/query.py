@@ -178,6 +178,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "inst_port",
             "status",
             "create_at",
+            "bk_biz_id",
             "machine__bk_host_id",
             "machine__spec_config",
             "machine__ip",
