@@ -538,7 +538,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },
@@ -560,7 +560,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },

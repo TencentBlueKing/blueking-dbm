@@ -93,7 +93,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: t('Slave 实例'),
-            role: 'slave',
+            role: 'backend_slave',
           },
         },
       },
