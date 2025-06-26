@@ -35,8 +35,9 @@
             v-for="(item, index) in formData.tableData"
             :key="index">
             <InstanceColumn
+              ref="instanceColumnRef"
               v-model="item.instance"
-              :after-input="(data: RedisInstanceModel) => afterInput(data, index)"
+              :after-input="(data: InstanceInfos) => afterInput(data, index)"
               :selected="selected"
               :tab-list-config="tabListConfig"
               @batch-edit="handleInstanceSelectChange" />
@@ -98,6 +99,7 @@
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
   import { queryMachineInstancePair } from '@services/source/redisToolbox';
+  import type { InstanceInfos } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -109,13 +111,13 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import InstanceColumn from '@views/db-manage/redis/common/toolbox-field/instance-column/Index.vue';
   import MigrateFormItems, {
     ArchitectureType,
     MigrateType,
   } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
 
   import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  import InstanceColumn from './components/InstanceColumn.vue';
 
   interface IHostData {
     bk_biz_id: number;
@@ -128,9 +130,9 @@
   interface IDataRow {
     current_versions: string[];
     instance: {
+      bk_host_id: number;
       cluster_id: number;
       cluster_type: string;
-      id: number;
       instance_address: string;
       master_domain: string;
       spec_config: RedisInstanceModel['spec_config'];
@@ -143,6 +145,7 @@
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+  const instanceColumnRef = useTemplateRef<Array<InstanceType<typeof InstanceColumn>>>('instanceColumnRef');
 
   // 单据克隆
   useTicketDetail<Redis.MigrateCluster>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, {
@@ -155,10 +158,11 @@
             instance: {
               instance_address: infoItem.display_info.instance,
             } as IDataRow['instance'],
-            // master: infoItem.old_nodes.master[0],
-            // slave: infoItem.old_nodes.slave[0],
           }),
         ),
+      });
+      nextTick(() => {
+        instanceColumnRef.value!.map((item) => item.inputManualChange());
       });
     },
   });
@@ -206,9 +210,9 @@
     current_versions: values?.current_versions || [],
     instance: Object.assign(
       {
+        bk_host_id: 0,
         cluster_id: 0,
         cluster_type: '',
-        id: 0,
         instance_address: '',
         master_domain: '',
         spec_config: {} as RedisInstanceModel['spec_config'],
@@ -324,10 +328,20 @@
       }) as unknown as Record<ClusterTypes, PanelListType>,
   );
 
-  const selected = computed(() => formData.tableData.filter((item) => item.instance.id).map((item) => item.instance));
+  const selected = computed(() =>
+    formData.tableData.filter((item) => item.instance.bk_host_id).map((item) => item.instance),
+  );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
-  const getMasterSlaveInstaceMap = async (data: RedisInstanceModel[]) => {
+  const getMasterSlaveInstaceMap = async (
+    data: {
+      bk_cloud_id: number;
+      bk_host_id: number;
+      instance_address: string;
+      ip: string;
+      port: number;
+    }[],
+  ) => {
     const slaveInstanceMap = await queryMachineInstancePair({
       instances: data.map((item) => item.instance_address),
     });
@@ -384,9 +398,9 @@
         newList.push(
           createRowData({
             instance: {
+              bk_host_id: item.bk_host_id,
               cluster_id: item.cluster_id,
               cluster_type: item.cluster_type,
-              id: item.id,
               instance_address: item.instance_address,
               master_domain: item.master_domain,
               spec_config: item.spec_config,
@@ -418,16 +432,16 @@
     });
   };
 
-  const afterInput = async (data: RedisInstanceModel, index: number) => {
+  const afterInput = async (data: InstanceInfos, index: number) => {
     const masterSlaveInstaceMap = await getMasterSlaveInstaceMap([data]);
     const { instance_address: instance } = data;
     if (!selectedMap.value[instance]) {
       const { slave } = masterSlaveInstaceMap[data.instance_address];
       formData.tableData[index] = createRowData({
         instance: {
+          bk_host_id: data.bk_host_id,
           cluster_id: data.cluster_id,
           cluster_type: data.cluster_type,
-          id: data.id,
           instance_address: data.instance_address,
           master_domain: data.master_domain,
           spec_config: data.spec_config,

@@ -30,6 +30,7 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <InstanceColumn
+            ref="instanceColumnRef"
             v-model="item.instance"
             :selected="selected"
             @batch-edit="handleInstanceBatchEdit" />
@@ -99,15 +100,16 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import InstanceColumn from '@views/db-manage/redis/common/toolbox-field/instance-column/Index.vue';
+
+  import InstanceColumn from './components/InstanceColumn.vue';
 
   interface RowData {
     instance: {
       bk_cloud_id: number;
+      bk_host_id: number;
       cluster_id: number;
       cluster_type: string;
       cluster_type_name: string;
-      id: number;
       instance_address: string;
       master_domain: string;
     };
@@ -117,6 +119,7 @@
 
   const formRef = useTemplateRef('form');
   const tableRef = useTemplateRef('table');
+  const instanceColumnRef = useTemplateRef<Array<InstanceType<typeof InstanceColumn>>>('instanceColumnRef');
 
   useTicketDetail<Redis.HotKeyAnalyse>(TicketTypes.REDIS_HOT_KEY_ANALYSIS, {
     onSuccess(ticketDetail) {
@@ -135,6 +138,9 @@
           ),
         ),
       });
+      nextTick(() => {
+        instanceColumnRef.value!.map((item) => item.inputManualChange());
+      });
     },
   });
 
@@ -142,10 +148,10 @@
     instance: Object.assign(
       {
         bk_cloud_id: 0,
+        bk_host_id: 0,
         cluster_id: 0,
         cluster_type: '',
         cluster_type_name: '',
-        id: 0,
         instance_address: '',
         master_domain: '',
       },
@@ -166,7 +172,9 @@
 
   const formData = reactive(defaultData());
 
-  const selected = computed(() => formData.tableData.filter((item) => item.instance.id).map((item) => item.instance));
+  const selected = computed(() =>
+    formData.tableData.filter((item) => item.instance.bk_host_id).map((item) => item.instance),
+  );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
@@ -185,7 +193,15 @@
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
-            instance: item,
+            instance: {
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
+              cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
+              instance_address: item.instance_address,
+              master_domain: item.master_domain,
+            },
           }),
         );
       }
