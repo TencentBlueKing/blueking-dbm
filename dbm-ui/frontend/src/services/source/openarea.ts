@@ -83,9 +83,9 @@ export const getPreview = function (params: {
 };
 
 // 开区模板详情
-export const getDetail = function (params: { id: number }) {
+export const getDetail = function (params: { biz_id?: number; id: number }) {
   return http
-    .get<OpenareaTemplateModel>(`${path}/${window.PROJECT_CONFIG.BIZ_ID}/openarea/${params.id}/`)
+    .get<OpenareaTemplateModel>(`${path}/${params.biz_id || window.PROJECT_CONFIG.BIZ_ID}/openarea/${params.id}/`)
     .then((data) => new OpenareaTemplateModel(data));
 };
 
