@@ -220,7 +220,7 @@
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import EstimatedCost from '@views/db-manage/common/apply-items/EstimatedCost.vue';
-  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Common.vue';
+  import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import DomainTable from './components/DomainTable.vue';
@@ -284,17 +284,17 @@
       });
 
       if (details.ip_source === 'resource_pool') {
-        const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
-          return Object.assign(prev, {
-            [specType]: {
-              count: specInfo.count,
-              spec_id: specInfo.spec_id,
-            },
-          });
-        }, {});
+        const resourceSpec = {
+          count: details.resource_spec.mongo_machine_set.count,
+          spec_id: details.resource_spec.mongo_machine_set.spec_id,
+        };
+        const subzoneIds = details.resource_spec!.mongo_machine_set.location_spec.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
-          sub_zone_ids: details.resource_spec!.mongo_machine_set.location_spec.sub_zone_ids || [],
+          sub_zone_ids: subzoneIds,
+        });
+        nextTick(() => {
+          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },
@@ -416,7 +416,7 @@
         resource_spec: {
           mongo_machine_set: {
             count: details.node_count,
-            spec_id: details.resource_spec.spec_id,
+            // spec_id: details.resource_spec.spec_id,
             ...specRef.value!.getData(),
             ...regionRequirementsRef.value!.getValue(),
           },

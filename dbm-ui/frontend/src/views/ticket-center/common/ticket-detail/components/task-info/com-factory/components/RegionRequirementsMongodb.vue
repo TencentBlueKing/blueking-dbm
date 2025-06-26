@@ -7,9 +7,7 @@
     <InfoItem :label="t('地域')">
       {{ cityName }}
     </InfoItem>
-    <InfoItem
-      v-if="showSubZone"
-      :label="t('园区')">
+    <InfoItem :label="t('园区')">
       {{ subZonesText }}
     </InfoItem>
   </InfoList>
@@ -21,7 +19,7 @@
 
   import { getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
 
-  import { Affinity, affinityMap } from '@common/const';
+  import { Affinity, mongodbAffinityMap } from '@common/const';
 
   import InfoList, { Item as InfoItem } from './info-list/Index.vue';
 
@@ -47,11 +45,8 @@
 
   const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
   const { sub_zone_ids: subZoneIds } = locationSpec;
-  const showSubZone =
-    [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH].includes(affinity as Affinity) ||
-    (affinity === Affinity.NONE && subZoneIds && subZoneIds.length > 0);
 
-  const affinityText = affinityMap[affinity as Affinity];
+  const affinityText = mongodbAffinityMap[affinity as Affinity] || '--';
 
   const cityName = ref('--');
   const subZonesText = ref('--');

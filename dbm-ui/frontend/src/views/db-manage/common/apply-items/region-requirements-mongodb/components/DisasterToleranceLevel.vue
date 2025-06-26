@@ -13,6 +13,7 @@
 
 <template>
   <BkFormItem
+    class="apply-item-disaster-tolerance-level-mongodb"
     :label="t('容灾要求')"
     property="details.disaster_tolerance_level"
     required>
@@ -21,7 +22,11 @@
         v-for="item in radioDataList"
         :key="item.value"
         :label="item.value">
-        {{ item.label }}
+        <span
+          v-bk-tooltips="item.description"
+          class="disaster-tolerance-level-description">
+          {{ item.label }}
+        </span>
       </BkRadio>
     </BkRadioGroup>
   </BkFormItem>
@@ -32,15 +37,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { Affinity, affinityMap } from '@common/const';
-
-  interface Props {
-    type?: 'common' | 'bigdata' | 'single';
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    type: 'common',
-  });
+  import { Affinity, mongodbAffinityMap } from '@common/const';
 
   const modelValue = defineModel<string>({
     required: true,
@@ -50,30 +47,39 @@
 
   const { t } = useI18n();
 
-  const getAffinityItem = (key: string) => {
-    return {
-      label: affinityMap[key as Affinity],
-      value: key,
-    };
+  const descriptionMap: Record<string, string> = {
+    [Affinity.CROS_SUBZONE]: t('mongos、同一副本集主机必须分布在不同园区'),
+    [Affinity.CROSS_RACK]: t('不限制主机所在园区，但mongos、同一副本集主机必须分布在不同机架'),
+    [Affinity.MAJORITY_ELECTION_DISTRI]: t('mongos、同一副本集主机至少跨 2 个园区，且同一园区时必须分布在不同机架'),
+    [Affinity.NONE]: t('主机分布无任何约束'),
+    [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('主机必须部署在指定园区内，且mongos、同一副本集主机必须分布在不同机架'),
   };
 
-  let radioDataList: {
-    label: string;
-    value: string;
-  }[] = [];
+  const getAffinityItem = (key: string) => ({
+    description: descriptionMap[key],
+    label: mongodbAffinityMap[key as Affinity],
+    value: key,
+  });
 
-  if (props.type === 'single') {
-    radioDataList = [Affinity.NONE].map((key) => getAffinityItem(key));
-  } else {
-    const defaultAffinityList =
-      props.type === 'bigdata'
-        ? [Affinity.MAX_EACH_ZONE_EQUAL]
-        : [Affinity.CROS_SUBZONE, Affinity.SAME_SUBZONE_CROSS_SWTICH, Affinity.CROSS_RACK];
-    const radioAffinityList = systemAffinityList.some(
-      (systemAffinityItem) => systemAffinityItem.value === Affinity.NONE,
-    )
-      ? [...defaultAffinityList, Affinity.NONE]
-      : defaultAffinityList;
-    radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
-  }
+  let radioDataList: ReturnType<typeof getAffinityItem>[] = [];
+
+  const defaultAffinityList = [
+    Affinity.CROS_SUBZONE,
+    Affinity.MAJORITY_ELECTION_DISTRI,
+    Affinity.SAME_SUBZONE_CROSS_SWTICH,
+    Affinity.CROSS_RACK,
+  ];
+  const radioAffinityList = systemAffinityList.some((systemAffinityItem) => systemAffinityItem.value === Affinity.NONE)
+    ? [...defaultAffinityList, Affinity.NONE]
+    : defaultAffinityList;
+  radioDataList = radioAffinityList.map((key) => getAffinityItem(key));
 </script>
+
+<style lang="less">
+  .apply-item-disaster-tolerance-level-mongodb {
+    .disaster-tolerance-level-description {
+      cursor: pointer;
+      border-bottom: 1px dashed #979ba5;
+    }
+  }
+</style>

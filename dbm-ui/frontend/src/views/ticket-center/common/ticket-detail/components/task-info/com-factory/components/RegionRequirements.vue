@@ -46,7 +46,7 @@
   const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
   const { sub_zone_ids: subZoneIds } = locationSpec;
 
-  const affinityText = affinityMap[affinity as Affinity];
+  const affinityText = affinityMap[affinity as Affinity] || '--';
 
   const cityName = ref('--');
   const subZonesText = ref('--');

@@ -136,12 +136,12 @@
     {
       message: t('请先选择所属业务'),
       trigger: 'blur',
-      validator: () => props.bizId,
+      validator: () => Boolean(props.bizId),
     },
     {
       message: t('DB模块名不能为空'),
       trigger: 'blur',
-      validator: (value: number) => value,
+      validator: (value: number) => Boolean(value),
     },
     {
       message: t('需要绑定数据库相关配置'),
