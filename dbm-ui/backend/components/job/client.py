@@ -24,6 +24,7 @@ class _JobApi(BaseApi):
             method="POST",
             url="fast_execute_script/",
             description=_("快速执行脚本"),
+            before_request=self.__format_fast_execute_script,
         )
         self.fast_transfer_file = self.generate_data_api(
             method="POST",
@@ -70,6 +71,12 @@ class _JobApi(BaseApi):
             url="get_account_list/",
             description=_("查询账号列表"),
         )
+
+    @staticmethod
+    def __format_fast_execute_script(params):
+        # 截断task_name，太长会有平台限制
+        params["task_name"] = params.get("task_name", "fast_execute_script")[:100]
+        return params
 
 
 JobApi = _JobApi()

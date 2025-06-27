@@ -125,7 +125,7 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 tendbclusterspiderext__spider_role=info["reduce_spider_role"]
             ).count()
 
-            if not info.get("spider_reduced_to_count"):
+            if info.get("spider_reduced_to_count") is None:
                 info["spider_reduced_to_count"] = spider_node_count - len(info["old_nodes"]["spider_reduced_hosts"])
 
             spider_reduced_to_count = info["spider_reduced_to_count"]

@@ -55,7 +55,8 @@ class TicketListFilter(filters.FilterSet):
             )
             todo_filter = Exists(subquery)
         else:
-            todo_filter = Q(todo_of_ticket__done_by=user)
+            subquery = Todo.objects.filter(done_by=user, ticket_id=OuterRef("id"))
+            todo_filter = Exists(subquery)
         return queryset.filter(todo_filter)
 
     def filter_is_assist(self, queryset, name, value):
