@@ -94,6 +94,12 @@ func (job *RedisClusterForget) Run() (err error) {
 		return
 	}
 
+	forgetNodes := make(map[string]bool)
+	for _, node := range job.params.ForgetList {
+		forgetAddr := fmt.Sprintf("%s:%d", node.IP, node.Port)
+		forgetNodes[forgetAddr] = true
+	}
+
 	for _, node := range job.params.ForgetList {
 		forgetAddr := fmt.Sprintf("%s:%d", node.IP, node.Port)
 		if _, ok := clusterNodes[forgetAddr]; !ok {
@@ -109,6 +115,18 @@ func (job *RedisClusterForget) Run() (err error) {
 				job.runtime.Logger.Error("err try forget node:{%s} role is master , but has slot asigned {%s}",
 					forgetAddr, forgetDetail.SlotSrcStr)
 				return fmt.Errorf("ErrNotAllowedMasterWithSlot:{%s}{%s}", forgetAddr, forgetDetail.SlotSrcStr)
+			}
+			// 检查是否有slave，需要先断开复制关系。 否则slave在执行forget的时候会报错：Can't forget my master!
+			// 另外要判断slave是否也会forget，否则会产生游离节点
+			slaves, _ := job.DisconnectSlaves(forgetDetail)
+			if slaves != nil {
+				for _, slave := range slaves {
+					if _, ok := forgetNodes[slave.Addr]; !ok {
+						job.runtime.Logger.Warn("master %s have slave %s not in forget nodes",
+							forgetDetail.Addr, slave.Addr)
+					}
+				}
+
 			}
 		}
 		job.runtime.Logger.Info("try 2 forget node:%s role:%s,cluster's detail :%+v",
@@ -153,6 +171,39 @@ func (job *RedisClusterForget) tryGetClusterNodesInfo() (
 		return
 	}
 	return nil, fmt.Errorf("can't connection cluster :%+v", err)
+}
+
+// DisconnectSlaves 与自身的slave实例进行断连行为
+func (job *RedisClusterForget) DisconnectSlaves(fnode *myredis.ClusterNodeData) (
+	slaveNodes []*myredis.ClusterNodeData, err error) {
+	clusterConn, err := myredis.NewRedisClientWithTimeout(fnode.Addr,
+		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+	if err != nil {
+		job.runtime.Logger.Warn("connect cluster node %s failed:%+v", fnode.Addr, err)
+		return
+	}
+	defer clusterConn.Close()
+
+	slaveNodes, err = clusterConn.GetAllSlaveNodesByMasterAddr(fnode.Addr)
+	if err != nil {
+		job.runtime.Logger.Warn("get node:%s slaves failed:%+v", fnode.Addr, err)
+		return
+	}
+	if slaveNodes == nil {
+		return
+	}
+	for _, slave := range slaveNodes {
+		slaveConn, err := myredis.NewRedisClientWithTimeout(slave.Addr,
+			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+		if err != nil {
+			job.runtime.Logger.Warn("connect cluster node %s failed:%+v", slave.Addr, err)
+			continue
+		}
+		defer slaveConn.Close()
+
+		slaveConn.SlaveOf("no", "one")
+	}
+	return
 }
 
 // clusterForgetNode 为了将节点从群集中彻底删除，必须将 CLUSTER FORGET 命令发送到所有其余节点，无论他们是Master/Slave。
