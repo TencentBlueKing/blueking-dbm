@@ -1,14 +1,15 @@
 package reverseapi
 
 import (
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/internal/core"
-	"dbm-services/common/reverseapi/pkg"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg"
 
 	"github.com/pkg/errors"
 )

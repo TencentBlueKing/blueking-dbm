@@ -10,6 +10,8 @@ type ISyncReportEvent interface {
 	EventType() string
 	EventCreateTimeStamp() time.Time
 	BkBizId() int64
+	// MarshalJSON 上报的 json 主体
+	MarshalJSON() ([]byte, error)
 }
 
 type SyncReportErrDetail[T ISyncReportEvent] struct {

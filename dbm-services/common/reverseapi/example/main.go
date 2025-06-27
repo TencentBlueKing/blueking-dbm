@@ -1,15 +1,16 @@
 package main
 
 import (
-	reversecommonapi "dbm-services/common/reverseapi/apis/common"
-	reversecommondef "dbm-services/common/reverseapi/define/common"
-	"dbm-services/common/reverseapi/internal/core"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	reversecommonapi "dbm-services/common/reverseapi/apis/common"
+	reversecommondef "dbm-services/common/reverseapi/define/common"
+	"dbm-services/common/reverseapi/internal/core"
 )
 
 type demoEvent struct {
@@ -37,6 +38,10 @@ func (c *demoEvent) BkBizId() int64 {
 func (c *demoEvent) String() string {
 	b, _ := json.Marshal(c)
 	return string(b)
+}
+
+func (c *demoEvent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c)
 }
 
 func main() {

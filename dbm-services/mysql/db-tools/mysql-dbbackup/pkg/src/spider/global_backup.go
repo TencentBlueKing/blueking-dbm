@@ -185,8 +185,9 @@ func migrateBackupSchema(mysqlErr cmutil.MySQLError, db *sqlx.DB) error {
 	} else {
 		logger.Log.Error("migrateBackupSchema with err code:", mysqlErr.Code, mysqlErr.Raw)
 	}
-	logger.Log.Infof("init global_backup: %v", sqlList)
+	logger.Log.Infof("init global_backup(isSpider:%v, isTdbctl:%v): %v", isSpider, isTdbctl, sqlList)
 	for _, sqlStr := range sqlList {
+		logger.Log.Info("run migrate sql: ", sqlStr)
 		if _, err := db.Exec(sqlStr); err != nil {
 			if strings.Contains(sqlStr, "ddl_execute_by_ctl") { // 忽略错误
 				continue

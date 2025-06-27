@@ -32,6 +32,8 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
+	"dbm-services/common/reverseapi"
+	reapi "dbm-services/common/reverseapi/apis/common"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/assets"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -221,6 +223,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 }
 
 func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
+
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
@@ -248,11 +251,34 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
 	}
-	err = logReport.ReportBackupStatus("Begin")
+	reportCore, err := reverseapi.NewCore(0)
 	if err != nil {
-		logger.Log.Error("report begin failed: ", err)
 		return err
 	}
+	statusReport, err := dbareport.NewMysqlBackupStatusEvent(cnf,
+		dbareport.BackupStatus{
+			BackupId:        cnf.Public.BackupId,
+			BillId:          cnf.Public.BillId,
+			ClusterId:       cnf.Public.MysqlPort,
+			ClusterDomain:   cnf.Public.ClusterAddress,
+			BackupHost:      cnf.Public.MysqlHost,
+			BackupPort:      cnf.Public.MysqlPort,
+			MysqlRole:       cnf.Public.MysqlRole,
+			BackupType:      cnf.Public.BackupType,
+			IsFullBackup:    cast.ToBool(cnf.Public.IsFullBackup),
+			ShardValue:      cnf.Public.ShardValue,
+			DataSchemaGrant: cnf.Public.DataSchemaGrant,
+			Status:          "",
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Begin")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
+	}
+
 	logger.Log.Info("parse config file: end")
 	if cnf.Public.DataSchemaGrant == cst.BackupNone {
 		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)
@@ -276,10 +302,8 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	// check slave status
 
 	// execute backup
-	err = logReport.ReportBackupStatus("Backup")
-	if err != nil {
-		logger.Log.Error("report backup failed: ", err)
-		return err
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Running")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	var sshClient *sshgo.Client
 	if cnf.BackupToRemote.EnableRemote {
@@ -306,6 +330,9 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort, indexFilePath)
 
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Tarball")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
+	}
 	if cnf.BackupToRemote.EnableRemote {
 		if err = runBackupToRemote(cnf, indexFilePath, logReport, sshClient); err != nil {
 			return err
@@ -317,10 +344,8 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 		}
 	}
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	err = logReport.ReportBackupStatus("Success")
-	if err != nil {
-		logger.Log.Error("report success failed: ", err)
-		return err
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Success")); reportErr != nil {
+		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
 	return nil
@@ -520,7 +545,7 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 func backupTarAndUpload(
 	cnf *config.BackupConfig,
 	indexFilePath string,
-	logReport *dbareport.BackupLogReport) error {
+	logReport *dbareport.BackupLogReport) (err error) {
 
 	metaInfo := &dbareport.IndexContent{}
 	if buf, err := os.ReadFile(indexFilePath); err != nil {
@@ -535,11 +560,6 @@ func backupTarAndUpload(
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)
 	cnf.Public.BackupType = metaInfo.BackupType
 
-	err := logReport.ReportBackupStatus("Tar")
-	if err != nil {
-		logger.Log.Error("report tar failed: ", err)
-		return err
-	}
 	// build regex used for package
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {
 		return err
@@ -567,11 +587,6 @@ func backupTarAndUpload(
 			logger.Log.Error("Failed to tar the backup file, error: ", tarErr)
 			return tarErr
 		}
-	}
-	// report backup info to dba
-	logger.Log.Info("report backup info: begin")
-	if err = logReport.ReportBackupStatus("Report"); err != nil {
-		return err
 	}
 	// 只有 standby 实例 才需要上报（非 standby 默认是不 report, 不 upload）
 	if cnf.BackupClient.EnableBackupClient == "yes" {

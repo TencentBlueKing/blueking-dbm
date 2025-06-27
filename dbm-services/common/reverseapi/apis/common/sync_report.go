@@ -1,23 +1,24 @@
 package common
 
 import (
-	"dbm-services/common/reverseapi/define/common"
-	"dbm-services/common/reverseapi/internal/core"
 	"encoding/json"
 	"time"
+
+	"dbm-services/common/reverseapi/define/common"
+	"dbm-services/common/reverseapi/internal/core"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 type innerEvent struct {
-	PayLoad              common.ISyncReportEvent
-	BkBizId              int64
-	ClusterType          string
-	EventType            string
-	EventCreateTimestamp time.Time
-	EventUUID            string    `json:"event_uuid"`
-	EventReportTimestamp time.Time `json:"event_report_timestamp"`
+	PayLoad              common.ISyncReportEvent `json:"payload"`
+	BkBizId              int64                   `json:"bk_biz_id"`
+	ClusterType          string                  `json:"cluster_type"`
+	EventType            string                  `json:"event_type"`
+	EventCreateTimestamp time.Time               `json:"event_create_timestamp"`
+	EventUUID            string                  `json:"event_uuid"`
+	EventReportTimestamp time.Time               `json:"event_report_timestamp"`
 }
 
 func (i *innerEvent) MarshalJSON() ([]byte, error) {
@@ -30,7 +31,7 @@ func (i *innerEvent) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// 在 event 平级注入内置字段
 	payloadMap["bk_biz_id"] = i.BkBizId
 	payloadMap["cluster_type"] = i.ClusterType
 	payloadMap["event_type"] = i.EventType

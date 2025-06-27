@@ -16,15 +16,17 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 
+	reapi "dbm-services/common/reverseapi/apis/common"
+
 	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/reverseapi"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -167,8 +169,6 @@ func (r *BackupLogReport) ReportBackupStatus(status string) error {
 	nBackupStatus.Status = status
 	nBackupStatus.BillId = r.cfg.Public.BillId
 	nBackupStatus.ClusterId = r.cfg.Public.ClusterId
-	currentTime := time.Now().Format("2006-01-02 15:04:05")
-	nBackupStatus.ReportTime = currentTime
 
 	statusJson, err := json.Marshal(nBackupStatus)
 	if err != nil {
@@ -357,7 +357,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		// index file 里面不会包含自身信息(如 task_id)
 		metaInfo.AddIndexFileItem(indexFilePath)
 	}
-	var err2 error // 是否备份上传出错
+	var uploadErr error // 是否备份上传出错
 	if upload {
 		// 上传、上报备份文件
 		for _, f := range metaInfo.FileList {
@@ -365,7 +365,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			var taskId string
 			var err22 error
 			if taskId, err22 = r.ExecuteBackupClient(filePath); err22 != nil {
-				err2 = errs.Join(err2, err22)
+				uploadErr = errs.Join(uploadErr, err22)
 				taskId = ""
 			}
 			f.TaskId = taskId
@@ -401,8 +401,19 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	metaInfo.FileList = fileListSimple
 	Report().Result.Println(metaInfo)
 
-	if err2 != nil {
-		return err2
+	if uploadErr != nil {
+		return uploadErr
+	}
+
+	reportCore, err := reverseapi.NewCore(int64(metaInfo.BkCloudId))
+	if err != nil {
+		return err
+	}
+	ev := &MysqlBackupResultEvent{metaInfo: metaInfo}
+	if resp, reportErr := reapi.SyncReport(reportCore, ev); reportErr != nil {
+		return reportErr
+	} else {
+		logger.Log.Infof("report backup result success, resp: %s", string(resp))
 	}
 
 	privFile := strings.Replace(indexFilePath, ".index", ".priv", 1)
