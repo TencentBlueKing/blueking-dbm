@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
+
 from django.db.models import CharField, F, Q, Value
 from django.db.models.functions import Concat
 
 from backend.configuration.models import DBAdministrator
+from backend.constants import DOMAIN_PATTERN
 from backend.db_dirty.models import DirtyMachine
 from backend.db_dirty.serializers import ListMachinePoolSerializer
 from backend.db_meta.enums import ClusterType
@@ -96,6 +99,10 @@ class QSearchHandler(object):
                 domain, _ = keyword.split(":")
             except ValueError:
                 domain, _ = keyword, None
+
+            # 如果不是有效的域名，则直接将整个字符串作为域名
+            if not re.compile(DOMAIN_PATTERN).match(domain):
+                domain = keyword
 
             if self.filter_type == FilterType.EXACT.value:
                 domains.append(domain)

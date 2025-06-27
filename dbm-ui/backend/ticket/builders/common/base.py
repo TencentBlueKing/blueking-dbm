@@ -21,6 +21,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, PLAT_BIZ_ID, AffinityEnum
+from backend.constants import DOMAIN_PATTERN
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
@@ -186,7 +187,7 @@ class ParamValidateSerializerMixin(object):
 class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 
-    domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
+    domain_pattern = re.compile(DOMAIN_PATTERN)
 
     @classmethod
     def validate_destroy_temporary_cluster_ids(cls, cluster_ids):
