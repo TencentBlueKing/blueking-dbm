@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 ha_gm_conf_template = """
 log_conf:
-  log_path: "./log"
+  log_path: "./log/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
   log_maxbackups: 1000
@@ -154,7 +154,7 @@ ssh:
 
 ha_agent_conf_template = """
 log_conf:
-  log_path: "./log"
+  log_path: "./log/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
   log_maxbackups: 1000
@@ -303,6 +303,7 @@ mv $path/dbha/{{dbha_type}} $path/dbha/old_{{dbha_type}}
 
 # 准备相关文件
 mkdir -p $path/dbha/{{dbha_type}};
+mkdir -p $path/dbha/{{dbha_type}}/log;
 cp /data/install/{{dbha_conf}} $path/dbha/{{dbha_type}};
 cp /data/install/dbha $path/dbha/{{dbha_type}};
 chmod -R 777 $path/dbha;
@@ -317,23 +318,28 @@ ps -ef | grep dbha;
 echo "----------------------------------------------------------------";
 
 # 增加定期拉起任务
-dbha_cron="$path/dbha/{{dbha_type}}/cron.sh";
+dbha_cron="$path/dbha/{{dbha_type}}/check_agent_alive.sh";
 echo -e "
-# 检查进程是否存在
-is_process_running() {
-    ps aux | grep {{dbha_conf}} | grep -v grep | awk '{print \$2}' > /dev/null
+#!/bin/sh
+LOG="/var/log/dbha_watchdog.log"
+
+cd $path/dbha/{{dbha_type}} || {
+  echo "$(date) [ERROR] dbha work directory not exist" >> $LOG
+  exit 1
 }
-if ! is_process_running; then
-    echo "Process {{dbha_type}} is not running. Restarting..."
-    cd /usr/local/bkdb/dbha/{{dbha_type}}
-    # 启动进程的命令
-    nohup ./dbha -config_file=ha-{{dbha_type}}.conf -type={{dbha_type}} -> dbha-apply.log 2>&1 &
-    echo "Process {{dbha_type}} restarted successfully."
+
+if ! ps -ef|grep "dbha -config_file={{dbha_conf}}"|grep -v grep; then
+  echo "$(date) [ERROR] dbha process not found" >> $LOG
+  if nohup ./dbha -config_file={{dbha_conf}} -type={{dbha_type}} - >> runtime.log 2>&1 & then
+    echo "$(date) [OK] restart ok PID:$!" >> $LOG
+  else
+    echo "$(date) [FAIL] restart failed" >> $LOG
+  fi
 fi
 " > $dbha_cron
 
 chmod +x $dbha_cron;
-(crontab -l ; echo "* * * * * $dbha_cron") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+(crontab -l ; echo "*/3 * * * * $dbha_cron > /dev/null 2>&1") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 """
 
 dbha_stop_script_template = """

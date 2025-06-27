@@ -2,10 +2,11 @@ SHELL := /bin/bash
 BASE_DIR = $(shell pwd)
 VERSION = $(shell git describe --tags --always --dirty)
 GITHASH = $(shell git rev-parse --short HEAD)
+BUILDTIME = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 APPNAME = dbha
 GOOS ?= linux
-BUILD_FLAG = " -X main.version=${VERSION} -X main.githash=${GITHASH} "
-BUILD_MINI_FLAG = " -s -w -X main.version=${VERSION} -X main.githash=${GITHASH} "
+BUILD_FLAG = " -X main.version=${VERSION} -X main.githash=${GITHASH} -X main.buildTime=${BUILDTIME}"
+BUILD_MINI_FLAG = " -s -w -X main.version=${VERSION} -X main.githash=${GITHASH} -X main.buildTime=${BUILDTIME}"
 
 .PHONY: build mini clean gotool image
 
