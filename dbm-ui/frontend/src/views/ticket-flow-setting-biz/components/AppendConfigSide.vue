@@ -30,7 +30,9 @@
       <BkFormItem :label="t('备注')">
         <BkInput
           v-model="remark"
+          :autosize="{ minRows: 2, maxRows: 10 }"
           :maxlength="500"
+          :resize="false"
           type="textarea" />
       </BkFormItem>
     </DbForm>
@@ -116,6 +118,10 @@
       emits('success');
     },
   });
+
+  watch(()=>props.data.remark, ()=>{
+    remark.value = props.data.remark || ''
+  })
 
   const handleClose = async () => {
     window.changeConfirm = true;
