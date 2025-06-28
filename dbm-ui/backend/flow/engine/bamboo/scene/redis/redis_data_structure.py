@@ -290,7 +290,7 @@ class RedisDataStructureFlow(object):
                 \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\"}</ctx>"
                 """
             redis_pipeline.add_act(
-                act_name=_("获取磁盘使用情况: {}").format(ip_list),
+                act_name=_("获取磁盘使用情况: {}").format(ip_list[:3]),
                 act_component_code=ExecuteShellScriptComponent.code,
                 kwargs=asdict(first_act_kwargs),
                 write_payload_var="disk_used",
