@@ -34,7 +34,14 @@
       <CapacityCell
         v-else
         :data="localTargetInfo"
-        :origin-data="originTargetInfo" />
+        :origin-data="originTargetInfo">
+        <div class="item">
+          <div class="item-title">{{ t('变更方式') }}：</div>
+          <div class="item-content">
+            <span>{{ !modelValue.update_mode ? '--' : modelValue.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更') }}</span>
+          </div>
+        </div>
+      </CapacityCell>
     </div>
   </EditableColumn>
   <ClusterTargetPlan
