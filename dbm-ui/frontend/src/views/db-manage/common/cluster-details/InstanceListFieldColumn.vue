@@ -70,7 +70,7 @@
   <BkTableColumn
     field="bk_os_name"
     :min-width="250"
-    :title="t('机型')">
+    :title="t('操作系统')">
     <template #default="{ data }: { data: IColumnData }">
       <RouterLink
         v-if="data.bk_os_name"
@@ -88,6 +88,14 @@
         {{ data.bk_os_name }}
       </RouterLink>
       <span v-else>--</span>
+    </template>
+  </BkTableColumn>
+  <BkTableColumn
+    field="bk_svr_device_cls_name"
+    :min-width="250"
+    :title="t('机型')">
+    <template #default="{ data }: { data: IColumnData }">
+      {{ data.bk_svr_device_cls_name || '--' }}
     </template>
   </BkTableColumn>
   <BkTableColumn
