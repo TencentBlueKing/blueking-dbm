@@ -19,11 +19,5 @@ limitations under the License.
 
 package constant
 
-const (
-	DefaultFetchSizeStr = "10"
-	DefaultPageStr      = "1"
-	DefaultFetchSize    = 50
-	MaxFetchSize        = 100
-	ParamsPage          = "page"
-	ParamsLimit         = "limit"
-)
+const DefaultPage = 1
+const DefaultPageLimit = 10

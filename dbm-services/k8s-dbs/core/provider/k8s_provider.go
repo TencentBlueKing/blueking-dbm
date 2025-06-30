@@ -24,6 +24,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s-dbs/common/entity"
 	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -41,7 +42,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const MaxPodLogLines = 1000
+const MaxPodLogLines = 2000
+const MaxPodLogSize = 5 * 1024 * 1024
 
 // K8sProvider K8sProvider 结构体
 type K8sProvider struct {
@@ -107,17 +109,20 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 }
 
 // GetPodLog 获取 pod 日志
-func (k *K8sProvider) GetPodLog(entity *pventity.K8sPodLogEntity) ([]coreentity.K8sLog, error) {
+func (k *K8sProvider) GetPodLog(
+	entity *pventity.K8sPodLogEntity,
+	pagination *entity.Pagination,
+) ([]coreentity.K8sLog, uint64, error) {
 	// 1. 获取集群配置
 	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get k8sClusterConfig for cluster %q: %w", entity.K8sClusterName, err)
+		return nil, 0, fmt.Errorf("failed to get k8sClusterConfig for cluster %q: %w", entity.K8sClusterName, err)
 	}
 
 	// 2. 创建 Kubernetes Client
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
+		return nil, 0, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
 	}
 
 	// 3. 构造日志选项
@@ -125,14 +130,16 @@ func (k *K8sProvider) GetPodLog(entity *pventity.K8sPodLogEntity) ([]coreentity.
 		Container:  entity.Container,
 		Follow:     false,
 		Timestamps: true,
-		TailLines:  commutil.Int64Ptr(MaxPodLogLines), // 限制日志行数，避免内存溢出
+		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
+		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
 	}
 
 	// 4. 获取日志流
 	podLogReq := k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).GetLogs(entity.PodName, logOptions)
 	stream, err := podLogReq.Stream(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("failed to stream logs for pod %q in namespace %q: %w", entity.PodName, entity.Namespace, err)
+		return nil, 0, fmt.Errorf("failed to stream logs for pod %q in namespace %q: %w",
+			entity.PodName, entity.Namespace, err)
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
@@ -143,12 +150,21 @@ func (k *K8sProvider) GetPodLog(entity *pventity.K8sPodLogEntity) ([]coreentity.
 			)
 		}
 	}()
+
 	logs, err := k.readK8sPodLog(stream)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
+	count := uint64(len(logs))
+	if pagination == nil {
+		return logs, count, nil
+	}
+	logs, err = commutil.Paginate(pagination, logs)
+	if err != nil {
+		return nil, 0, err
+	}
+	return logs, count, nil
 
-	return logs, nil
 }
 
 func (k *K8sProvider) buildQuotaFromCreated(

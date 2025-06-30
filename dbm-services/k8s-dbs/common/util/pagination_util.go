@@ -17,13 +17,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package util
 
-const (
-	DefaultFetchSizeStr = "10"
-	DefaultPageStr      = "1"
-	DefaultFetchSize    = 50
-	MaxFetchSize        = 100
-	ParamsPage          = "page"
-	ParamsLimit         = "limit"
+import (
+	"k8s-dbs/common/constant"
+	"k8s-dbs/common/entity"
 )
+
+// Paginate 服务端分页查询
+func Paginate[T any](
+	pagination *entity.Pagination,
+	data []T,
+) ([]T, error) {
+	page := pagination.Page
+	limit := pagination.Limit
+	if page < 1 {
+		page = constant.DefaultPage
+	}
+	if limit < 1 {
+		limit = constant.DefaultPageLimit
+	}
+	start := (page - 1) * limit
+	if start >= len(data) {
+		return []T{}, nil
+	}
+	end := start + limit
+	if end > len(data) {
+		end = len(data)
+	}
+	return data[start:end], nil
+}

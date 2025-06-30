@@ -20,10 +20,11 @@ limitations under the License.
 package controller
 
 import (
-	coreconst "k8s-dbs/common/api/constant"
+	coreconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
+	metahelper "k8s-dbs/metadata/helper"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -33,6 +34,8 @@ import (
 	respvo "k8s-dbs/core/api/vo/resp"
 
 	pventity "k8s-dbs/core/provider/entity"
+
+	metarespvo "k8s-dbs/metadata/api/vo/resp"
 )
 
 // K8sController k8s 集群管理 controller
@@ -77,7 +80,7 @@ func (k *K8sController) GetPodLogs(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
 		return
 	}
-	logs, err := k.k8sProvider.GetPodLog(&podLogEntity)
+	logs, _, err := k.k8sProvider.GetPodLog(&podLogEntity, nil)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
 		return
@@ -91,6 +94,36 @@ func (k *K8sController) GetPodLogs(ctx *gin.Context) {
 		Container:      logReq.Container,
 	}
 	entity.SuccessResponse(ctx, data, coreconst.Success)
+}
+
+// ListPodLogs 获取 pod 日志分页结果
+func (k *K8sController) ListPodLogs(ctx *gin.Context) {
+	pagination, err := metahelper.BuildPagination(ctx)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	var logReq reqvo.K8sPodLogReqVo
+	if err := ctx.ShouldBindJSON(&logReq); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+	var podLogEntity pventity.K8sPodLogEntity
+	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+	logs, count, err := k.k8sProvider.GetPodLog(&podLogEntity, pagination)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		return
+	}
+
+	var responseData = metarespvo.PageResult{
+		Count:  count,
+		Result: logs,
+	}
+	entity.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // NewK8sController 构建 K8sController

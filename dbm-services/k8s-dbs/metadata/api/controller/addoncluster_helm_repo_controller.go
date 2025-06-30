@@ -21,7 +21,7 @@ package controller
 
 import (
 	"fmt"
-	commconst "k8s-dbs/common/api/constant"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"

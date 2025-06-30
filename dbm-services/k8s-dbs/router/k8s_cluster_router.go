@@ -39,7 +39,8 @@ func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
 	}
 	{
 		podGroup := k8sClusterGroup.Group("/pod")
-		podGroup.POST("/logs", k8sClusterController.GetPodLogs)
+		podGroup.POST("/logs/full", k8sClusterController.GetPodLogs)
+		podGroup.POST("/logs/search", k8sClusterController.ListPodLogs)
 	}
 }
 

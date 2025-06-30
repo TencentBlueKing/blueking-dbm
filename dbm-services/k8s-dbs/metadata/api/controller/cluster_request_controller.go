@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/resp"
@@ -27,8 +28,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-
-	commconst "k8s-dbs/common/api/constant"
 )
 
 // ClusterRequestRecordController manages metadata for addons.
