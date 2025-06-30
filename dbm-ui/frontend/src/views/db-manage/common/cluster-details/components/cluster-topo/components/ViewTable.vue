@@ -12,7 +12,9 @@
         </PopoverCopy>
       </div>
       <div class="host-box">
-        <ScrollFaker>
+        <ScrollFaker
+          ref="scrollContent"
+          @scroll="handleContentScroller">
           <div style="padding: 0 12px">
             <div
               v-for="nodeItem in clusterRoleNodeGroup[groupName]"
@@ -68,6 +70,7 @@
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import PopoverCopy from '@components/popover-copy/Index.vue';
+  import ScrollFaker from '@components/scroll-faker/Index.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
@@ -85,6 +88,8 @@
   const { getSearchParams } = useUrlSearch();
 
   const serachInstacnce = getSearchParams().instance || '';
+
+  const scrollContentRef = useTemplateRef<InstanceType<typeof ScrollFaker>[]>('scrollContent');
 
   const handleCopyHost = (nodeList: ClusterListNode[]) => {
     const ipList = _.uniq(nodeList.map((item) => item.ip));
@@ -115,6 +120,12 @@
         n: instanceList.length,
       }),
     );
+  };
+
+  const handleContentScroller = (event: Event, payload: { left: number; top: number }) => {
+    scrollContentRef.value!.forEach((item) => {
+      item.scrollTo(payload.left, payload.top);
+    });
   };
 </script>
 <style lang="less">

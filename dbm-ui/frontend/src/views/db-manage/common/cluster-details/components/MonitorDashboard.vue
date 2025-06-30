@@ -22,7 +22,10 @@
         <i
           v-bk-tooltips="screenIcon.text"
           class="action-btn"
-          :class="[screenIcon.icon]"
+          :class="{
+            [screenIcon.icon]: true,
+            'mr-20': isFullscreen,
+          }"
           @click.stop="toggle" />
       </div>
       <BkException
@@ -67,6 +70,16 @@
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
+
+  watch(isFullscreen, (val) => {
+    if (val) {
+      offsettop.value = '46px';
+    } else {
+      setTimeout(() => {
+        offsettop.value = `${iframeContainerRef.value?.getBoundingClientRect().top || 0}px`;
+      });
+    }
+  });
 
   onMounted(() => {
     setTimeout(() => {

@@ -10,7 +10,9 @@
       {{ data.master_domain }}
     </InfoItem>
     <InfoItem :label="t('标签')">
-      <ClusterTag :data="data" />
+      <ClusterTag
+        :data="data"
+        @success="handleSuccess" />
     </InfoItem>
     <InfoItem :label="t('容量使用率')">
       <ClusterStatsCell
