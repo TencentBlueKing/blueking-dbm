@@ -75,7 +75,7 @@ class _JobApi(BaseApi):
     @staticmethod
     def __format_fast_execute_script(params):
         # 截断task_name，太长会有平台限制
-        params["task_name"] = params.get("task_name", "fast_execute_script")[:100]
+        params["task_name"] = params.get("task_name", "dbm_fast_execute_script")[:100]
         return params
 
 
