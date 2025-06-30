@@ -68,7 +68,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
             if (locale.value === 'en') {
               return (
                 <span>
-                  You have already submitted a
+                  The system has detected that a similar ticket has already been submitted
                   <a
                     href={route.href}
                     target='_blank'>
@@ -82,7 +82,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
 
             return (
               <span>
-                你已提交过包含相同目标集群的
+                系统检测到已提交过包含相同集群的同类
                 <a
                   href={route.href}
                   target='_blank'>
