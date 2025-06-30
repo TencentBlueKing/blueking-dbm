@@ -42,7 +42,7 @@
           :data="data">
           <BkButton
             class="ml-4"
-            :disabled="Boolean(data.operationTicketId)"
+            :disabled="!data.isOffline"
             size="small"
             @click="handleResetCluster">
             {{ t('重置') }}
