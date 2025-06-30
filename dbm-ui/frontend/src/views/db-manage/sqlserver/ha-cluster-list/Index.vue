@@ -72,7 +72,7 @@
             <div v-db-console="'sqlserver.haClusterList.reset'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
-                  :disabled="Boolean(data.operationTicketId)"
+                  :disabled="!data.isOffline"
                   text
                   @click="handleResetCluster(data)">
                   {{ t('重置') }}
