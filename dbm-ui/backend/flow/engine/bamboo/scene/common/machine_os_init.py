@@ -297,13 +297,15 @@ class ImportResourceInitStepFlow(object):
 
         # 已下架主机处理，检查回收主机不能存在元数据
         host_ids = [host["bk_host_id"] for host in self.data["recycle_hosts"]]
+        hosting_biz = self.data["recycle_hosts"][0]["bk_biz_id"]
         exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True)
         if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and exist_hosts:
             raise InvalidOperationException(_("流程校验不通过，存在元数据主机: {}").format(exist_hosts))
 
         kwargs = InitCheckForResourceKwargs(
             ips=self.data["sa_check_ips"],
-            bk_biz_id=self.data["bk_biz_id"],
+            # 这里的业务ID是主机所在真实的业务ID，一批主机所属的业务ID相同任取一个
+            bk_biz_id=hosting_biz,
             account_name=WINDOW_ADMIN_USER_FOR_CHECK
             if self.data["db_type"] == DBType.Sqlserver
             else LINUX_ADMIN_USER_FOR_CHECK,

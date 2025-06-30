@@ -573,9 +573,9 @@ class FlowType(str, StructuredEnum):
     BK_ITSM = EnumField("BK_ITSM", _("单据审批"))
     # 内建执行流程
     INNER_FLOW = EnumField("INNER_FLOW", _("生产部署"))
-    # 内建快速执行流程
+    # 内建快速执行流程 TODO: 暂未使用
     QUICK_INNER_FLOW = EnumField("QUICK_INNER_FLOW", _("快速执行"))
-    # 内建结果忽略执行流程
+    # 内建结果忽略执行流程 TODO: 暂未使用
     IGNORE_RESULT_INNER_FLOW = EnumField("IGNORE_RESULT_INNER_FLOW", _("结果忽略执行"))
     # 暂停节点
     PAUSE = EnumField("PAUSE", _("人工确认"))

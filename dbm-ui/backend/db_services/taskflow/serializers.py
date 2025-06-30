@@ -15,15 +15,19 @@ from rest_framework import serializers
 from backend.db_meta.models import AppCache
 from backend.flow.consts import PipelineStatus
 from backend.flow.models import FlowTree
+from backend.ticket.constants import TicketType
+from backend.ticket.models import Flow
 from backend.utils.time import calculate_cost_time
 
 
 class FlowTaskSerializer(serializers.ModelSerializer):
     ticket_type_display = serializers.SerializerMethodField(help_text=_("单据类型名称"))
+    flow_alias = serializers.SerializerMethodField(help_text=_("任务别名"))
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
     bk_biz_name = serializers.SerializerMethodField(help_text=_("业务名"))
 
     _biz_name_map = None
+    _flow_alias_map = None
 
     @property
     def biz_name_map(self):
@@ -32,12 +36,24 @@ class FlowTaskSerializer(serializers.ModelSerializer):
             self._biz_name_map = {int(bk_biz_id): biz["bk_biz_name"] for bk_biz_id, biz in bizs.items()}
         return self._biz_name_map
 
+    @property
+    def flow_alias_map(self):
+        if self._flow_alias_map is None:
+            if type(self.instance) is list:
+                root_ids = [flow.root_id for flow in self.instance]
+            else:
+                root_ids = [self.instance.root_id]
+            flow = Flow.objects.filter(flow_obj_id__in=root_ids).values("flow_obj_id", "flow_alias")
+            self._flow_alias_map = {flow["flow_obj_id"]: flow["flow_alias"] for flow in flow}
+        return self._flow_alias_map
+
     class Meta:
         model = FlowTree
         fields = (
             "root_id",
             "ticket_type",
             "ticket_type_display",
+            "flow_alias",
             "status",
             "uid",
             "created_by",
@@ -49,7 +65,7 @@ class FlowTaskSerializer(serializers.ModelSerializer):
         )
 
     def get_ticket_type_display(self, obj):
-        return obj.get_ticket_type_display()
+        return TicketType.get_choice_label(obj.ticket_type)
 
     def get_cost_time(self, obj):
         if obj.status in [PipelineStatus.READY, PipelineStatus.RUNNING]:
@@ -58,6 +74,9 @@ class FlowTaskSerializer(serializers.ModelSerializer):
 
     def get_bk_biz_name(self, obj):
         return self.biz_name_map.get(obj.bk_biz_id) or obj.bk_biz_id
+
+    def get_flow_alias(self, obj):
+        return self.flow_alias_map.get(obj.root_id)
 
 
 class NodeSerializer(serializers.Serializer):

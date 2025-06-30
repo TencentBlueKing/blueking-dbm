@@ -40,9 +40,8 @@ class MachineIdleCheckParamBuilder(FlowParamBuilder):
         hosts = self.ticket_data["recycle_hosts"]
         self.ticket_data.update(
             {
+                "bk_biz_id": self.ticket.bk_biz_id,
                 "ticket_id": self.ticket.id,
-                # 这里的业务ID是主机所在真实的业务ID，一批主机所属的业务ID相同任取一个
-                "bk_biz_id": hosts[0]["bk_biz_id"],
                 "sa_check_ips": [recycle["ip"] for recycle in hosts],
                 "operator": self.ticket.creator,
                 "db_type": self.ticket_data["group"],
