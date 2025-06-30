@@ -20,19 +20,13 @@
       @request-success="handleRequestSuceess"
       @selection="handleSelection"
       @setting-change="handleTableSettings">
-      <slot name="operation" />
+      <slot
+        :key="tableRef?.loading"
+        name="operation" />
       <slot name="masterDomain" />
       <ClusterAliasColumn
         :cluster-type="clusterType"
         @refresh="handleRefresh" />
-      <!-- <slot name="clusterName">
-      <ClusterNameColumn
-        :cluster-type="clusterType"
-        :get-table-instance="getTableInstance"
-        :is-filter="isFilter"
-        :selected-list="selected"
-        @refresh="handleRefresh" />
-    </slot> -->
       <slot name="slaveDomain" />
       <slot name="clusterTag">
         <ClusterTagColumn
@@ -272,6 +266,12 @@
         .vxe-cell,
         .bk-button.bk-button-primary.is-text {
           color: #c4c6cc !important;
+        }
+      }
+
+      &.is-selected-row {
+        td {
+          background: #ebf2ff !important;
         }
       }
     }

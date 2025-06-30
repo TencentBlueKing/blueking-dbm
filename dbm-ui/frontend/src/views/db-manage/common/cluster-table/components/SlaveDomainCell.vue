@@ -30,7 +30,7 @@
       placement="top"
       theme="light">
       <BkTag>
-        <I18nT keypath="共n个">{{ data.slaveList.length }}</I18nT>
+        <I18nT keypath="共n个">{{ data.slaveEntryList.length }}</I18nT>
       </BkTag>
       <template #content>
         <div style="max-height: 280px; overflow: scroll">

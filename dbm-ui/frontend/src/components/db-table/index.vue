@@ -22,7 +22,6 @@
         :key="tableKey"
         ref="bkTableRef"
         :columns="localColumns"
-        :data="tableData.results"
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :remote-pagination="remotePagination"
@@ -429,6 +428,15 @@
       props
         .dataSource(params, payload)
         .then((data) => {
+          bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
+          data.results.length > 20 &&
+            setTimeout(() => {
+              bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
+              data.results.length > 50 &&
+                setTimeout(() => {
+                  bkTableRef.value.getVxeTableInstance().loadData(data.results);
+                }, 3000);
+            }, 1500);
           tableData.value = data;
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
@@ -461,7 +469,6 @@
         })
         .finally(() => {
           isLoading.value = false;
-          emits('requestFinished', tableData.value.results);
         });
     });
   };

@@ -17,7 +17,9 @@
       {{ clbEntry.target_details[0]?.clb_domain }}
     </InfoItem>
     <InfoItem :label="t('标签')">
-      <ClusterTag :data="data" />
+      <ClusterTag
+        :data="data"
+        @success="handleSuccess" />
     </InfoItem>
     <InfoItem
       v-if="polarisEntry && polarisEntry.target_details[0]"

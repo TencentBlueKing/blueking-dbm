@@ -244,7 +244,7 @@
   );
 
   const copyFieldData = (data: IColumnData[], field: 'ip' | 'instance_address') => {
-    const result = data.map((item) => item[field]) || [];
+    const result = _.uniq(data.map((item) => item[field]) || []);
 
     if (result.length < 1) {
       messageWarn(t('没有可复制数据'));
