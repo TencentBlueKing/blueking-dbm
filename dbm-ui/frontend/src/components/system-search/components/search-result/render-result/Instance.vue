@@ -56,7 +56,7 @@
   };
 
   const handleGo = (data: Props['data'][number]) => {
-    systemSearchCache.appendItem(data.name);
+    systemSearchCache.appendItem(getMatchText(data));
 
     handleRedirect(
       data.cluster_type,
