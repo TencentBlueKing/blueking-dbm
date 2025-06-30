@@ -13,13 +13,26 @@
 
 <template>
   <BkTable
+    :cell-class-name="generateCellClass"
     :data="tableData"
     :merge-cells="mergeCells"
     :show-overflow="false">
     <BkTableColumn
       field="ip"
       :label="t('目标主机')"
-      :min-width="150" />
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-if="data?.hostInfo?.master_ip">
+          <p>{{ t('关联 Slave') }}</p>
+          <p>-- {{ data.ip }}</p>
+        </div>
+        <div
+          v-else>
+          <p>{{ data.ip || '--' }}</p>
+        </div>
+      </template>
+    </BkTableColumn>
     <BkTableColumn
       field="role"
       :label="t('角色类型')"
@@ -75,6 +88,7 @@
   interface RowData {
     cluster_domain: string;
     cluster_id: number;
+    hostInfo: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_slave'][0];
     ip: string;
     role: string;
     spec_config: SpecInfo;
@@ -84,6 +98,13 @@
   const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
   const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
+
+  const generateCellClass = ({ columnIndex, row }: { columnIndex: number; row: RowData, }) => {
+    if (row.hostInfo?.master_ip && columnIndex === 0) {
+      return 'related-slave'
+    }
+    return ''
+  };
 
   watch(
     () => props.ticketDetails.details,
@@ -96,26 +117,27 @@
       const extIps: string[] = [];
 
       const generateData = (
-        list: Props['ticketDetails']['details']['infos'][0]['old_nodes']['redis_master'],
-        role: keyof Props['ticketDetails']['details']['infos'][0]['old_nodes'],
+        list:  Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
+        role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
         clusterIds: number[],
       ) => {
         if (list?.length) {
-          _.uniqBy(list, 'ip').forEach((hostItem) => {
+          _.uniqBy(list, 'ip').forEach((hostInfo) => {
             const clusterInfo = clusters[clusterIds[0]];
-            const specId = hostItem?.spec_id || hostItem?.master_spec_id;
+            const specId = hostInfo?.spec_id || hostInfo?.master_spec_id;
             if (!specs[specId]) {
-              extIps.push(hostItem.ip);
+              extIps.push(hostInfo.ip);
             }
-            if (!ipInfoMap[hostItem.ip]) {
+            if (!ipInfoMap[hostInfo.ip]) {
               Object.assign(ipInfoMap, {
-                [hostItem.ip]: {
+                [hostInfo.ip]: {
                   cluster_domain: clusterInfo.immute_domain,
                   cluster_id: clusterInfo.id,
-                  ip: hostItem.ip,
+                  hostInfo,
+                  ip: hostInfo.ip,
                   role,
                   spec_config: specs[specId],
-                  spec_id: specId,
+                  spec_id: specId
                 },
               });
             }
@@ -150,10 +172,15 @@
     },
   );
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .visible-icon {
     font-size: 16px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .related-slave {
+    color: #979ba5 !important;
+    background: #fafbfd !important;
   }
 </style>

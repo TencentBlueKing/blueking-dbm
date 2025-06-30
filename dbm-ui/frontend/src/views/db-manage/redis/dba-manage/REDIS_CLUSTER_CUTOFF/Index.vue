@@ -34,6 +34,9 @@
           :key="index">
           <HostColumn
             v-model="item.host"
+            :selected="selected"
+            :selected-map="selectedMap"
+            @append="(slave) => handleAppend(slave, index)"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
@@ -56,6 +59,7 @@
               {{ getBizInfoById(item.host.bk_biz_id)?.name || '' }}
             </EditableBlock>
           </EditableColumn>
+          <SpecColumn v-model="item.host.spec_config" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -87,6 +91,7 @@
 <script lang="ts" setup>
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { useBatchCreateTicket } from '@hooks';
@@ -99,20 +104,12 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SpecColumn from '@views/db-manage/redis/REDIS_CLUSTER_CUTOFF/components/SpecColumn.vue';
 
   import HostColumn, { type IValue } from './components/HostColumn.vue';
 
   interface RowData {
-    host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-      role: string;
-      spec_id: number;
-    };
+    host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -128,17 +125,16 @@
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    host: {
+    host: Object.assign({
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_id: 0,
+      cluster_ids: [] as number[],
       ip: '',
       master_domain: '',
       role: '',
-      spec_id: 0,
-      ...data.host,
-    },
+      spec_config: {} as RowData['host']['spec_config'],
+    }, data.host),
   });
 
   const defaultData = () => ({
@@ -167,20 +163,7 @@
     ip_source: 'resource_pool';
   }
 
-  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
-    infos: {
-      bk_cloud_id: number;
-      cluster_ids: number[];
-      proxy: TicketDetail['infos'][0]['redis_master'];
-      redis_master: {
-        bk_host_id: number;
-        ip: string;
-        spec_id: number;
-      }[];
-      redis_slave: TicketDetail['infos'][0]['redis_master'];
-    }[];
-    ip_source: 'resource_pool';
-  }>(TicketTypes.REDIS_CLUSTER_CUTOFF);
+  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<TicketDetail>(TicketTypes.REDIS_CLUSTER_CUTOFF);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -194,10 +177,22 @@
         infos: [
           {
             bk_cloud_id: item.host.bk_cloud_id,
-            cluster_ids: [item.host.cluster_id],
-            proxy: item.host.role === 'proxy' ? [item.host] : [],
-            redis_master: item.host.role === 'redis_master' ? [item.host] : [],
-            redis_slave: item.host.role === 'redis_slave' ? [item.host] : [],
+            cluster_ids: item.host.cluster_ids,
+            proxy: item.host.role === 'proxy' ? [{
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
+              spec_id: item.host.spec_config.id
+            }] : [],
+            redis_master: item.host.role === 'redis_master' ? [{
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
+              spec_id: item.host.spec_config.id
+            }] : [],
+            redis_slave: item.host.role === 'redis_slave' ? [{
+              bk_host_id: item.host.bk_host_id,
+              ip: item.host.ip,
+              spec_id: item.host.spec_config.id
+            }] : [],
           },
         ],
         ip_source: 'resource_pool',
@@ -224,6 +219,18 @@
       return acc;
     }, []);
     formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+  };
+
+  const handleAppend = (slave: RowData['host'], index: number) => {
+    if (!selectedMap.value[slave.ip]) {
+      formData.tableData.splice(
+        index + 1,
+        0,
+        createTableRow({
+          host: slave
+        }),
+      );
+    }
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

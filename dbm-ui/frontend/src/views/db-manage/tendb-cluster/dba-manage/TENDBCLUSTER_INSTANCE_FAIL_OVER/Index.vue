@@ -103,6 +103,7 @@
 <script lang="ts" setup>
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { OperaObejctType } from '@services/types';
@@ -120,7 +121,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
+
   import { useGlobalBizs } from '@/stores';
 
   import MasterColumn, { type IValue } from './components/MasterColumn.vue';

@@ -62,7 +62,7 @@
           max: 1,
           min: 0,
         },
-        name: '--',
+        name: '',
         qps: {
           max: 1,
           min: 0,

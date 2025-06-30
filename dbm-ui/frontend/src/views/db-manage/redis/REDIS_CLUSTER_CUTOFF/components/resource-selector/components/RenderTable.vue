@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="cluster-resource-selector-render-table">
+  <div class="resource-selector-render-table">
     <DbSearchSelect
       v-model="searchSelectValue"
       class="mb-12"
@@ -20,30 +20,32 @@
     <DbTable
       ref="table"
       :data-source="dataSource"
-      :height="580"
-      ignore-biz
-      primary-key="id"
+      :height="550"
+      primary-key="ip"
       selectable
       :selected="selected"
       show-select-all-page
       @column-filter="handleFilter"
       @selection="handleSelect">
       <BkTableColumn
-        field="master_domain"
-        :label="t('目标集群')"
-        :min-width="240" />
-      <BkTableColumn
-        field="cluster_type_name"
-        :label="t('集群类型')"
+        field="ip"
+        label="IP"
         :min-width="120" />
       <BkTableColumn
-        field="phase"
-        :filter="filterOption.status"
-        :label="t('状态')"
+        field="instance_role"
+        :filter="filterOption.instance_role"
+        :label="t('角色类型')"
+        :min-width="120" />
+        <BkTableColumn
+        field="bk_cloud_name"
+        :label="t('云区域')"
+        :min-width="100" />
+      <BkTableColumn
+        :label="t('Agent 状态')"
         :min-width="120">
         <template #default="{ data }">
           <DbStatus
-            v-if="data.phase === 'online'"
+            v-if="data.host_info?.alive === 1"
             theme="success">
             {{ t('正常') }}
           </DbStatus>
@@ -55,12 +57,9 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        :label="t('所属业务')"
-        :min-width="120">
-        <template #default="{ data }">
-          {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
-        </template>
-      </BkTableColumn>
+        field="cluster_type_name"
+        :label="t('架构类型')"
+        :min-width="120" />
     </DbTable>
   </div>
 </template>
@@ -68,33 +67,32 @@
   import type { SearchSelect } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getGlobalCluster } from '@services/source/dbbase';
-
-  import { useGlobalBizs } from '@stores';
+  import { getRedisMachineList } from '@services/source/redis';
 
   import { getSearchSelectorParams } from '@utils';
 
+  import { type TopoTreeNode } from './TopoTree.vue';
+
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
-  type Parameters = ServiceParameters<typeof getGlobalCluster>;
-  export type IValue = ServiceReturnType<typeof getGlobalCluster>['results'][0];
+  type Parameters = ServiceParameters<typeof getRedisMachineList>;
+  export type IValue = ServiceReturnType<typeof getRedisMachineList>['results'][0];
 
   interface Props {
-    params: Parameters;
+    node?: TopoTreeNode;
   }
 
   const props = defineProps<Props>();
 
-  const selected = defineModel<IValue[]>('selected', {
+  const selected = defineModel<Partial<IValue>[]>('selected', {
     required: true,
   });
 
   const { t } = useI18n();
-  const { getBizInfoById } = useGlobalBizs();
 
   const searchSelectData = [
     {
-      id: 'master_domain',
-      name: t('域名'),
+      id: 'ip',
+      name: 'IP',
     },
   ];
 
@@ -103,20 +101,24 @@
     {
       checked: string[];
       key: string;
-      list: { text: string; value: string }[];
+      list: { text: string; value: string | number }[];
     }
   > = {
-    status: {
+    instance_role: {
       checked: [],
-      key: 'status',
+      key: 'instance_role',
       list: [
         {
-          text: t('正常'),
-          value: 'running',
+          text: 'redis_master',
+          value: 'redis_master',
         },
         {
-          text: t('异常'),
-          value: 'unavailable',
+          text: 'redis_slave',
+          value: 'redis_slave',
+        },
+        {
+          text: 'proxy',
+          value: 'proxy',
         },
       ],
     },
@@ -126,13 +128,15 @@
   const dbTableRef = useTemplateRef('table');
 
   watchEffect(() => {
-    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), props.params);
+    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), {
+      cluster_ids: props.node?.obj === 'cluster' ? `${props.node.id}` : undefined
+    });
   });
 
   const dataSource = (params: Parameters) =>
-    getGlobalCluster({
-      ...props.params,
+    getRedisMachineList({
       ...params,
+      cluster_ids: props.node?.obj === 'cluster' ? `${props.node.id}` : undefined
     });
 
   const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
@@ -147,7 +151,7 @@
 </script>
 
 <style lang="less">
-  .cluster-resource-selector-render-table {
+  .resource-selector-render-table {
     padding: 24px;
 
     .bk-table-body {
