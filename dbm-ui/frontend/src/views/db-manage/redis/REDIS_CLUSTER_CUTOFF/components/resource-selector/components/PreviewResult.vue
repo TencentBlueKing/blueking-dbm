@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <div class="instance-selector-preview-result">
+  <div class="resource-selector-preview-result">
     <div class="header">
-      <span>{{ $t('结果预览') }}</span>
-      <BkDropdown class="result__dropdown">
-        <i class="db-icon-more result__trigger" />
+      <span>{{ t('结果预览') }}</span>
+      <BkDropdown class="result-dropdown">
+        <DbIcon type="bk-dbm-icon db-icon-more result-trigger" />
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleClear">
-              {{ $t('清空所有') }}
+              {{ t('清空所有') }}
             </BkDropdownItem>
-            <BkDropdownItem @click="handleCopyInstances">
-              {{ $t('复制所有实例') }}
+            <BkDropdownItem @click="handleCopy">
+              {{ t('复制所有 IP') }}
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -32,106 +32,72 @@
     <BkException
       v-if="isEmpty"
       class="mt-50"
-      :description="$t('暂无数据_请从左侧添加对象')"
+      :description="t('暂无数据_请从左侧添加对象')"
       scene="part"
       type="empty" />
     <div
       v-else
-      class="result-wrapper">
-      <template
-        v-for="key in keys"
-        :key="key">
+      class="result-wrapper db-scroll-y">
         <CollapseMini
-          v-if="lastValues[key].length > 0"
+          v-if="selected.length > 0"
           collapse
-          :count="lastValues[key].length"
-          :title="textMap[key]">
+          :count="selected.length">
           <div
-            v-for="(item, index) of lastValues[key]"
-            :key="item.ip"
+            v-for="item of selected"
+            :key="item.bk_host_id"
             class="result-item">
             <span
               v-overflow-tips
               class="text-overflow">
-              {{ item.ip }}
-              <span class="result-item-role">({{ item.role }})</span>
+              {{ item.ip }} <span style="color: #C4C6CC;">({{ item.instance_role }})</span>
             </span>
             <DbIcon
               type="close result-item-remove"
-              @click="handleRemove(key, index)" />
+              @click="() => handleRemove(item as IValue)" />
           </div>
         </CollapseMini>
-      </template>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy } from '@hooks';
-
-  import { messageWarn } from '@utils';
-
-  import { textMap } from '../../common/utils';
-  import type { InstanceSelectorValues } from '../../Index.vue';
+  import { execCopy, messageWarn } from '@utils';
 
   import CollapseMini from './CollapseMini.vue';
+  import { type IValue } from './RenderTable.vue';
 
-  interface Props {
-    lastValues: InstanceSelectorValues;
-  }
-
-  type Keys = keyof InstanceSelectorValues;
-
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const selected = defineModel<IValue[]>('selected', {
+    required: true,
+  });
 
   const { t } = useI18n();
-  const copy = useCopy();
 
-  const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => !keys.value.some((key) => props.lastValues[key].length > 0));
+  const isEmpty = computed(() => selected.value.length === 0);
 
   const handleClear = () => {
-    emits('change', {
-      idleHosts: [],
-    });
+    selected.value = [];
   };
 
-  const handleRemove = (key: Keys, index: number) => {
-    const target = props.lastValues[key];
-    target.splice(index, 1);
-    emits('change', {
-      ...props.lastValues,
-      [key]: target,
-    });
+  const handleRemove = (item: IValue) => {
+    selected.value = selected.value.filter((cur) => cur.ip !== item.ip);
   };
 
-  /**
-   * 复制集群域名
-   */
-  const handleCopyInstances = () => {
+  const handleCopy = () => {
     if (isEmpty.value) {
-      messageWarn(t('没有可复制实例'));
+      messageWarn(t('没有可复制 IP'));
       return;
     }
 
-    const instances = [];
-    for (const key of keys.value) {
-      instances.push(...props.lastValues[key]);
-    }
-    copy(instances.map((item) => item.ip).join('\n'));
+    const copyData = selected.value.map((item) => item.ip);
+    execCopy(copyData.join('\n'), t('复制成功，共n条', { n: copyData.length }));
   };
 </script>
 <style lang="less">
-  .instance-selector-preview-result {
+  .resource-selector-preview-result {
     display: flex;
     height: 100%;
-    max-height: 625px;
+    max-height: 732px;
     padding: 12px 24px;
     overflow: hidden;
     font-size: @font-size-mini;
@@ -140,7 +106,7 @@
 
     .header {
       display: flex;
-      padding-bottom: 16px;
+      padding: 16px 0;
       align-items: center;
 
       > span {
@@ -149,12 +115,12 @@
         color: @title-color;
       }
 
-      .result__dropdown {
+      .result-dropdown {
         font-size: 0;
         line-height: 20px;
       }
 
-      .result__trigger {
+      .result-trigger {
         display: block;
         font-size: 18px;
         color: @gray-color;
@@ -202,11 +168,5 @@
         }
       }
     }
-  }
-
-  .result-item-role {
-    margin-left: 8px;
-    font-size: 12px;
-    color: #c4c6cc;
   }
 </style>

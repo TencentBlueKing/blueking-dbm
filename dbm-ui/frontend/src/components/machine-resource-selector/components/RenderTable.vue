@@ -20,7 +20,7 @@
     <DbTable
       ref="table"
       :data-source="dataSource"
-      :height="640"
+      :height="580"
       ignore-biz
       primary-key="ip"
       selectable

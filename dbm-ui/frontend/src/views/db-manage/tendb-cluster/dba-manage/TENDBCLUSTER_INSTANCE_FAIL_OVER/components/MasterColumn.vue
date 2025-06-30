@@ -31,7 +31,7 @@
     <EditableInput
       v-model="modelValue.instance_address"
       :placeholder="t('请输入如: 192.168.10.2:1000')"
-      @change="handleInputChange" />
+      @change="handleChange" />
   </EditableColumn>
   <InstanceResourceSelector
     v-model:is-show="showSelector"
@@ -118,7 +118,7 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,

@@ -31,7 +31,7 @@
     <EditableInput
       v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
-      @change="handleInputChange" />
+      @change="handleChange" />
   </EditableColumn>
   <ClusterResourceSelector
     v-model:is-show="showSelector"
@@ -108,7 +108,7 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,
