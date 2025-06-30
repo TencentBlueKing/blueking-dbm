@@ -93,6 +93,7 @@ export default defineConfig(({ mode }) => {
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
       exclude: ['@blueking/tdesign-ui/vue3/index.es.min.js'],
+      // include: ['@rolldown/pluginutils/dist/index.js'],
     },
     server: {
       strictPort: true,
