@@ -23,8 +23,12 @@ import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
+	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/api/vo/resp"
+	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
+
+	respvo "k8s-dbs/metadata/api/vo/resp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -42,17 +46,23 @@ func NewClusterRequestRecordController(
 	return &ClusterRequestRecordController{clusterRequestProvider}
 }
 
-// GetRecordsByCluster 根据集群名称来获取对应的集群操作记录.
-func (k *ClusterRequestRecordController) GetRecordsByCluster(ctx *gin.Context) {
-	k8sClusterName := ctx.Query("k8sClusterName")
-	clusterName := ctx.Query("clusterName")
-	namespace := ctx.Query("namespace")
-	params := map[string]interface{}{
-		"k8s_cluster_name": k8sClusterName,
-		"cluster_name":     clusterName,
-		"namespace":        namespace,
+// ListClusterRecords 根据 k8s_cluster_name, cluster_name, namespace 分页检索集群操作记录.
+func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
+	pagination, err := metahelper.BuildPagination(ctx)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 	}
-	records, err := k.clusterRequestProvider.FindRecordsByParams(params)
+	var searchReqVo req.ClusterRequestRecordSearch
+	if err := ctx.ShouldBindJSON(&searchReqVo); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		return
+	}
+	params := map[string]interface{}{
+		"k8s_cluster_name": searchReqVo.K8sClusterName,
+		"cluster_name":     searchReqVo.ClusterName,
+		"namespace":        searchReqVo.NameSpace,
+	}
+	records, count, err := k.clusterRequestProvider.ListRecords(params, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
@@ -62,5 +72,9 @@ func (k *ClusterRequestRecordController) GetRecordsByCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	var responseData = respvo.PageResult{
+		Count:  count,
+		Result: data,
+	}
+	entity.SuccessResponse(ctx, responseData, commconst.Success)
 }

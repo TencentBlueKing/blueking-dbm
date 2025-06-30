@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
@@ -35,11 +36,33 @@ type ClusterRequestRecordProvider interface {
 	FindRequestRecordByID(id uint64) (*entitys.ClusterRequestRecordEntity, error)
 	UpdateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (uint64, error)
 	FindRecordsByParams(params map[string]interface{}) ([]entitys.ClusterRequestRecordEntity, error)
+	ListRecords(params map[string]interface{},
+		pagination *entity.Pagination,
+	) ([]entitys.ClusterRequestRecordEntity, uint64, error)
 }
 
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
 type ClusterRequestRecordProviderImpl struct {
 	dbAccess dbaccess.ClusterRequestRecordDbAccess
+}
+
+// ListRecords 查询 record 列表
+func (k *ClusterRequestRecordProviderImpl) ListRecords(
+	params map[string]interface{},
+	pagination *entity.Pagination,
+) ([]entitys.ClusterRequestRecordEntity, uint64, error) {
+	recordModels, count, err := k.dbAccess.ListByPage(params, pagination)
+	if err != nil {
+		slog.Error("Failed to list record", "error", err)
+		return nil, 0, err
+	}
+	var recordEntities []entitys.ClusterRequestRecordEntity
+	if err := copier.Copy(&recordEntities, recordModels); err != nil {
+		slog.Error("Failed to copy model to copied model", "error", err)
+		return nil, 0, err
+	}
+	return recordEntities, count, nil
+
 }
 
 // FindRecordsByParams 通过参数查询 request record

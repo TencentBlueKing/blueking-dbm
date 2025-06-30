@@ -83,7 +83,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	}
 	params := metahelper.BuildPageParams(ctx)
 	params = mapParamsWithMapping(params, queryParamsMapping)
-	clusterEntities, count, err := c.clusterProvider.ListCluster(params, pagination)
+	clusterEntities, count, err := c.clusterProvider.ListClusters(params, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 	}

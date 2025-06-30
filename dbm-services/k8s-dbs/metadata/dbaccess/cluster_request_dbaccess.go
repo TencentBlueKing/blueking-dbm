@@ -36,7 +36,11 @@ type ClusterRequestRecordDbAccess interface {
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.ClusterRequestRecordModel, error)
 	Update(model *models.ClusterRequestRecordModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.ClusterRequestRecordModel, int64, error)
+	ListByPage(params map[string]interface{}, pagination *entity.Pagination) (
+		[]models.ClusterRequestRecordModel,
+		uint64,
+		error,
+	)
 	FindByParams(params map[string]interface{}) ([]models.ClusterRequestRecordModel, error)
 }
 
@@ -107,12 +111,30 @@ func (k *ClusterRequestRecordDbAccessImpl) Update(model *models.ClusterRequestRe
 }
 
 // ListByPage 分页查询元数据接口实现
-func (k *ClusterRequestRecordDbAccessImpl) ListByPage(_ entity.Pagination) (
+func (k *ClusterRequestRecordDbAccessImpl) ListByPage(params map[string]interface{}, pagination *entity.Pagination) (
 	[]models.ClusterRequestRecordModel,
-	int64,
+	uint64,
 	error,
 ) {
-	return nil, 0, fmt.Errorf("not implemented yet")
+	var recordModels []models.ClusterRequestRecordModel
+	var count int64
+	if err := k.db.Model(&models.ClusterRequestRecordModel{}).Where(params).Count(&count).Error; err != nil {
+		slog.Error("Count models error", "error", err.Error())
+		return nil, 0, err
+	}
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := k.db.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Where(params).
+		Order("created_at DESC").
+		Find(&recordModels).
+		Error; err != nil {
+		slog.Error("List models error", "error", err.Error())
+		return nil, 0, err
+	}
+
+	return recordModels, uint64(count), nil
 }
 
 // NewClusterRequestRecordDbAccess 创建 ClusterRequestRecordDbAccess 接口实现实例

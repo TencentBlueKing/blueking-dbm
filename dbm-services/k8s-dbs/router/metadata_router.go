@@ -287,6 +287,6 @@ func buildRequestRecordRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 
 	metaGroup := metaRouter.Group("/cluster_request_record")
 	{
-		metaGroup.GET("", metaController.GetRecordsByCluster)
+		metaGroup.POST("/search", metaController.ListClusterRecords)
 	}
 }

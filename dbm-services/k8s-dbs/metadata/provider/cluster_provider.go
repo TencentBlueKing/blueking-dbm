@@ -36,7 +36,7 @@ type K8sCrdClusterProvider interface {
 	FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error)
 	FindByParams(params map[string]interface{}) (*entitys.K8sCrdClusterEntity, error)
 	UpdateCluster(entity *entitys.K8sCrdClusterEntity) (uint64, error)
-	ListCluster(params map[string]interface{},
+	ListClusters(params map[string]interface{},
 		pagination *entity.Pagination,
 	) ([]entitys.K8sCrdClusterEntity, uint64, error)
 }
@@ -120,8 +120,8 @@ func (k *K8sCrlClusterProviderImpl) UpdateCluster(entity *entitys.K8sCrdClusterE
 	return rows, nil
 }
 
-// ListCluster 查询 cluster 列表
-func (k *K8sCrlClusterProviderImpl) ListCluster(
+// ListClusters 查询 cluster 列表
+func (k *K8sCrlClusterProviderImpl) ListClusters(
 	params map[string]interface{},
 	pagination *entity.Pagination,
 ) ([]entitys.K8sCrdClusterEntity, uint64, error) {
