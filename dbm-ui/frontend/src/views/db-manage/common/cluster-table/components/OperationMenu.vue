@@ -22,6 +22,9 @@
     default: () => void;
   }
 
+  type Emits = (e: 'show') => void;
+
+  const emits = defineEmits<Emits>();
   defineSlots<Slots>();
 
   let tippyIns: Instance;
@@ -46,6 +49,7 @@
       onShow() {
         isActive.value = true;
         isShowPopMenu.value = true;
+        emits('show');
       },
       placement: 'bottom-start',
       popperOptions: {
@@ -77,6 +81,12 @@
 <style lang="less">
   tr.vxe-body--row {
     &:hover {
+      .cluster-list-column-operation-btn {
+        display: flex;
+      }
+    }
+
+    &.is-selected-row {
       .cluster-list-column-operation-btn {
         display: flex;
       }

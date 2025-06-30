@@ -91,6 +91,7 @@
   </BkLoading>
 </template>
 <script lang="ts">
+  import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -185,6 +186,12 @@
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
   const isLoading = computed(() => !isFixedTab.value && isPanelLoading.value);
 
+  const calcTabContentHeight = _.throttle(() => {
+    if (rootRef.value) {
+      tabcontentheight.value = `${window.innerHeight - rootRef.value.getBoundingClientRect().top - 42}px`;
+    }
+  }, 60);
+
   watch(
     route,
     () => {
@@ -217,10 +224,12 @@
   };
 
   onMounted(() => {
-    tabcontentheight.value = `${window.innerHeight - rootRef.value!.getBoundingClientRect().top - 42}px`;
+    calcTabContentHeight();
+    window.addEventListener('resize', calcTabContentHeight);
   });
 
   onBeforeUnmount(() => {
+    window.removeEventListener('resize', calcTabContentHeight);
     // 延后执行
     setTimeout(() => {
       router.replace({

@@ -26,7 +26,7 @@
       :quick-close="false"
       :show-mask="false"
       :title="t('手动配置域名 DNS 记录')"
-      :width="548"
+      :width="560"
       @closed="() => (isShow = false)">
       <BkLoading :loading="loading">
         <BkTable
@@ -41,6 +41,7 @@
             :label="t('访问入口')"
             :width="300">
             <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
+              {{ rowData.cluster_entry_type }}
               <template v-if="['master_entry', 'proxy_entry'].includes(rowData.role)">
                 <BkTag
                   v-if="rowData.cluster_entry_type === 'polaris'"
@@ -50,7 +51,7 @@
                   {{ t('北极星') }}
                 </BkTag>
                 <BkTag
-                  v-else-if="rowData.cluster_entry_type === 'clb'"
+                  v-else-if="['clb', 'clbDns'].includes(rowData.cluster_entry_type)"
                   class="entry-clb-tag"
                   size="small"
                   theme="success">
@@ -213,10 +214,6 @@
   .cluster-domain-dns-relation {
     .bk-modal-footer {
       display: none;
-    }
-
-    .entry-config-table-box {
-      max-height: fit-content;
     }
 
     .entry-clb-tag {

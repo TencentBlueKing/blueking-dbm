@@ -2,12 +2,12 @@ import _ from 'lodash';
 import { getCurrentInstance, onBeforeUnmount, onMounted, type Ref } from 'vue';
 
 export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDivElement | null>) => {
-  let isResizeing = false;
+  const isResizeing = ref(false);
 
   const currentInstance = getCurrentInstance();
 
   const handleMousedown = (event: MouseEvent) => {
-    isResizeing = true;
+    isResizeing.value = true;
 
     const rootEle = rootRef.value as HTMLDivElement;
     const rootWidth = rootEle.getBoundingClientRect().width;
@@ -15,7 +15,7 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
     const startClientX = event.clientX;
 
     const handleMouseMove = _.throttle((event: MouseEvent) => {
-      if (!isResizeing) {
+      if (!isResizeing.value) {
         return;
       }
       const resizeWidth = Math.max(rootWidth + startClientX - event.clientX, currentInstance?.props.minWidth as number);
@@ -25,7 +25,7 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
     }, 60);
 
     const handleMouseUp = () => {
-      isResizeing = false;
+      isResizeing.value = false;
 
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -58,4 +58,8 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
   onBeforeUnmount(() => {
     resizeHandleRef.value!.removeEventListener('mousedown', handleMousedown);
   });
+
+  return {
+    resizing: isResizeing,
+  };
 };
