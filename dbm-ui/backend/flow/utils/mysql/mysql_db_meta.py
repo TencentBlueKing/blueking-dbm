@@ -259,6 +259,18 @@ class MySQLDBMeta(object):
                 slave_domain=self.cluster["slave_domain"],
             )
 
+    def mysql_single_change_cluster_info(self):
+        """
+        TendbSingle 重建处理元数据步骤之三：切换实例，修改集群从节点域名指向新从节点
+        """
+        with atomic():
+            api.cluster.tendbha.switch_single(
+                cluster_id=self.cluster["cluster_id"],
+                target_slave_ip=self.cluster["new_orphan_ip"],
+                source_slave_ip=self.cluster["orphan_ip"],
+                domains=self.cluster["domains"],
+            )
+
     def mysql_restore_remove_old_slave(self):
         """
         SLAVE 重建处理元数据步骤之四：卸载实例，删除旧实例节点。删除完毕检查机器下是否存在实力，不存在则转移就ip到空闲模块
@@ -1031,6 +1043,70 @@ class MySQLDBMeta(object):
                 bk_cloud_id=self.ticket_data["bk_cloud_id"],
                 port_list=self.cluster["cluster_ports"],
             )
+        return True
+
+    def migrate_single_add_instance(self):
+        """
+        logdb成对迁移：安装新节点，添加实例元数据，关联到集群，转移机器模块
+        """
+        mysql_pkg = Package.get_latest_package(
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        )
+
+        machines = [
+            {
+                "ip": self.cluster["new_orphan_ip"],
+                "bk_biz_id": int(self.bk_biz_id),
+                "machine_type": MachineType.SINGLE.value,
+                "spec_config": self.ticket_data["resource_spec"]["orphan"],
+                "spec_id": self.ticket_data["resource_spec"]["orphan"]["id"],
+            },
+        ]
+        storage_instances = []
+        for storage_port in self.cluster["cluster_ports"]:
+            storage_instances.append(
+                {
+                    "ip": self.cluster["new_orphan_ip"],
+                    "port": int(storage_port),
+                    "instance_role": InstanceRole.ORPHAN.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "phase": InstancePhase.TRANS_STAGE.value,
+                }
+            )
+
+        cluster_list = []
+        clusterid_list = []
+        for cluster_id in self.ticket_data["cluster_ids"]:
+            cluster_model = Cluster.objects.get(id=cluster_id)
+            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value)
+            cluster_list.append(
+                {
+                    "ip": self.cluster["new_orphan_ip"],
+                    "port": master.port,
+                    "cluster_id": cluster_model.id,
+                }
+            )
+            clusterid_list.append(cluster_model.id)
+        with atomic():
+            api.machine.create(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
+            )
+            machines_objs = Machine.objects.filter(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                ip__in=[self.cluster["new_orphan_ip"]],
+            )
+            machines_objs.update(db_module_id=self.ticket_data["db_module_id"])
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances,
+                creator=self.ticket_data["created_by"],
+                time_zone=self.ticket_data["time_zone"],
+                status=InstanceStatus.RESTORING,
+            )
+            api.cluster.tendbha.cluster_add_storage(cluster_list)
+            # 转移模块，实例ID注册服务
+            clusters = Cluster.objects.filter(id__in=clusterid_list)
+            MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(storage_objs)
         return True
 
     def migrate_cluster_add_tuple(self):

@@ -1615,3 +1615,9 @@ class ExecuteShellScriptUser(str, StructuredEnum):
 class OracleDBActuatorActionEnum(str, StructuredEnum):
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
+
+
+class TendbSingleRestoreEnum(str, StructuredEnum):
+    RemoteBackupAndNewest = EnumField("remote_backup_newest", _("remote_backup_newest"))
+    LocalBackupAndSchema = EnumField("local_backup_and_schema", _("local_backup_and_schema"))
+    LocalBackupAndData = EnumField("local_backup_and_data", _("local_backup_and_data"))

@@ -2020,6 +2020,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         tendb 恢复remote实例
         """
+        recover_grants = self.cluster.get("recover_grants", False)
         logger.info(self.cluster["backupinfo"])
         index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
@@ -2043,6 +2044,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "socket": None,
                         "charset": self.cluster["charset"],
                         "options": "",
+                    },
+                    "recover_opt": {
+                        "recover_grants": recover_grants,
                     },
                     "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
                     "change_master": self.cluster["change_master"],
