@@ -13,5 +13,5 @@ from .decommission import decommission, decommission_precheck
 from .detail import scan_cluster
 from .storage_tuple import add_storage_tuple, remove_storage_tuple
 from .switch_proxy import add_proxy, reduce_proxy
-from .switch_slave import add_slave, remove_slave, switch_slave
+from .switch_slave import add_slave, remove_slave, switch_single, switch_slave
 from .switch_storage import change_proxy_storage_entry, change_storage_cluster_entry, switch_storage
