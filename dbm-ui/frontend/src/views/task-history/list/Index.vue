@@ -67,7 +67,7 @@
         }"
         :label="t('任务类型')">
         <template #default="{data}: {data: TaskFlowModel}">
-          {{ data.ticket_type_display || '--' }}
+          {{ data.ticketTypeDisplay || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
