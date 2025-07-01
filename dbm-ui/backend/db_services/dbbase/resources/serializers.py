@@ -100,6 +100,8 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     name = serializers.CharField(help_text=_("名称"), required=False)
     version = serializers.CharField(help_text=_("版本"), required=False)
     extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
+    # spider额外参数
+    spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
