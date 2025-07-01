@@ -80,12 +80,7 @@
 </script>
 <style lang="less">
   tr.vxe-body--row {
-    &:hover {
-      .cluster-list-column-operation-btn {
-        display: flex;
-      }
-    }
-
+    &.row--hover,
     &.is-selected-row {
       .cluster-list-column-operation-btn {
         display: flex;

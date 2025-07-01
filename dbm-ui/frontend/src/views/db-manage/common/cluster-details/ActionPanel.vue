@@ -192,6 +192,30 @@
     }
   }, 60);
 
+  const {
+    data: monitorPanelList,
+    loading: isPanelLoading,
+    run: fetchMonitorUrls,
+  } = useRequest(getMonitorUrls, {
+    manual: true,
+  });
+
+  watch(
+    () => props.clusterData,
+    () => {
+      if (props.clusterData) {
+        fetchMonitorUrls({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterData.id,
+          cluster_type: props.clusterData.cluster_type,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   watch(
     route,
     () => {
@@ -202,16 +226,6 @@
       immediate: true,
     },
   );
-
-  const { data: monitorPanelList, loading: isPanelLoading } = useRequest(getMonitorUrls, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_id: props.clusterData.id,
-        cluster_type: props.clusterData.cluster_type,
-      },
-    ],
-  });
 
   const handlePanelChange = (value: string) => {
     router.replace({
