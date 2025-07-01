@@ -10,6 +10,7 @@
       :row-config="{
         useKey: true,
         keyField: 'id',
+        isHover: true,
       }"
       v-bind="$attrs"
       :scroll-y="{ enabled: true, gt: 0 }"
