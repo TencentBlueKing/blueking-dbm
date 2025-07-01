@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="redis-cluster-cutoff">
     <BkAlert
       class="mb-20"
       closable
@@ -35,15 +35,18 @@
           <HostColumn
             v-model="item.host"
             :selected="selected"
-            :selected-map="selectedMap"
-            @append="(slave) => handleAppend(slave, index)"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
             :min-width="150">
-            <EditableBlock
-              v-model="item.host.role"
-              :placeholder="t('自动生成')" />
+            <div style="flex: 1">
+              <EditableBlock
+                v-model="item.host.role"
+                :placeholder="t('自动生成')" />
+              <EditableBlock v-if="item.host.related_slave?.bk_host_id" class="related-cell">
+                redis_slave
+              </EditableBlock>
+            </div>
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
@@ -52,7 +55,7 @@
               v-model="item.host.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <SpecColumn v-model="item.host.spec_config" />
+          <SpecColumn v-model="item.host" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -83,7 +86,6 @@
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
-  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -117,7 +119,7 @@
     },
   ];
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: { host?: Partial<RowData['host']> } = {}) => ({
     host: Object.assign({
       bk_biz_id: 0,
       bk_cloud_id: 0,
@@ -126,7 +128,7 @@
       ip: '',
       master_domain: '',
       role: '',
-      spec_config: {} as RowData['host']['spec_config'],
+      spec_config: {} as RowData['host']['spec_config']
     }, data.host),
   });
 
@@ -151,19 +153,20 @@
         const dataList: RowData[] = [];
         const checkMap: Record<string, boolean> = {};
         const generateData = (
-          list: { ip: string }[],
+          list: { ip: string, master_ip: string }[],
         ) => {
           if (list?.length) {
             list.forEach((item) => {
-              if (!checkMap[item.ip]) {
+              const ip = item.master_ip || item.ip;
+              if (!checkMap[ip]) {
                 dataList.push(
                   createTableRow({
                     host: {
-                      ip: item.ip,
+                      ip,
                     },
                   }),
                 );
-                checkMap[item.ip] = true;
+                checkMap[ip] = true;
               }
             });
           }
@@ -226,7 +229,7 @@
           [item.host.role]: [...list, spec],
         });
         if (item.host.role === 'redis_master') {
-          const deleteSlaveIp = item.host.slave_ip;
+          const deleteSlaveIp = item.host.related_slave?.ip;
           if (deleteSlaveIp) {
             needDeleteSlaves.push(deleteSlaveIp);
           }
@@ -266,18 +269,6 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleAppend = (slave: RowData['host'], index: number) => {
-    if (!selectedMap.value[slave.ip]) {
-      formData.tableData.splice(
-        index + 1,
-        0,
-        createTableRow({
-          host: slave
-        }),
-      );
-    }
-  };
-
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
@@ -297,3 +288,10 @@
     }
   };
 </script>
+<style lang="less">
+.redis-cluster-cutoff {
+  .related-cell {
+    border-top: 1px solid #DCDEE5;
+  }
+}
+</style> 

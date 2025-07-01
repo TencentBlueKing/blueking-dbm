@@ -28,17 +28,23 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <EditableBlock
-      v-if="modelValue?.master_ip"
-      class="related-slave">
-      <p>{{ t('关联 Slave') }}</p>
-      <p>-- {{ modelValue.ip }}</p>
-    </EditableBlock>
-    <EditableInput
-      v-else
-      v-model="modelValue.ip"
-      :placeholder="t('请输入如: 192.168.10.2')"
-      @change="handleChange" />
+    <div
+      :class="{
+        'has-related': Boolean(modelValue.related_slave?.bk_host_id),
+      }"
+      style="flex: 1">
+      <EditableInput
+        v-model="modelValue.ip"
+        :placeholder="t('请输入如: 192.168.10.2')"
+        @change="handleChange" />
+      <BkLoading
+        v-if="modelValue.related_slave?.bk_host_id"
+        class="related-slave"
+        :loading="relatedLoading">
+        <p>{{ t('关联 Slave') }}</p>
+        <p>-- {{ modelValue.related_slave?.ip }}</p>
+      </BkLoading>
+    </div>
   </EditableColumn>
   <ResourceSelector
     v-model:is-show="showSelector"
@@ -46,7 +52,6 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -67,15 +72,13 @@
   interface Props {
     selected: {
       ip: string;
-      role: string;
+      related_slave?: {
+        ip: string;
+      }
     }[];
-    selectedMap: Record<string, boolean>
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-    (e: 'append', data: typeof modelValue.value): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
@@ -88,9 +91,12 @@
     cluster_ids: number[];
     ip: string;
     master_domain: string;
-    master_ip?: string;// 关联的主库ip，仅当role=redis_slave时存在
+    related_slave?: {
+      bk_host_id: number;
+      ip: string;
+      spec_config: SpecInfo;
+    }; // 关联的从库ip，仅当role=redis_master时存在
     role: string;
-    slave_ip?: string; // 关联的从库ip，仅当role=redis_master时存在
     spec_config: SpecInfo;
   }>({
     required: true,
@@ -101,6 +107,9 @@
   const showSelector = ref(false);
   const dataList = shallowRef<IValue[]>([]);
 
+  // 铺平获取关联的从库ip，用于校验
+  const allIps = computed(() => props.selected.flatMap((item) => [item.ip, item.related_slave?.ip].filter(Boolean)))
+
   const rules = [
     {
       message: t('IP 格式不符合IPv4标准'),
@@ -110,7 +119,7 @@
     {
       message: t('IP 重复'),
       trigger: 'blur',
-      validator: (value: string) => !value ||props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || allIps.value.filter((ip) => ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
@@ -118,6 +127,20 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
+
+  const { loading: relatedLoading, run: queryRelatedSlave } = useRequest(queryMasterSlavePairs, {
+    manual: true,
+    onSuccess: (data) => {
+      const [{ slaves }] = data.filter((cur)=>cur.master_ip===modelValue.value.ip);
+      if (slaves) {
+        modelValue.value.related_slave = {
+          bk_host_id: slaves.bk_host_id,
+          ip: slaves.ip,
+          spec_config: slaves.spec_config
+        };
+      }
+    },
+  });
 
   const { loading, run: queryMachine } = useRequest(checkInstance, {
     manual: true,
@@ -135,39 +158,10 @@
           role: item.role,
           spec_config: item.spec_config
         };
-        if (cluster?.id && item.role !== 'proxy') {
-          queryMasterSlavePairs({
-            bk_biz_id: item.bk_biz_id,
+        if (item.role === 'redis_master') {
+          queryRelatedSlave({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: cluster.id
-          }).then(data=>{
-            // 若当前输入的ip为slave
-            if (item.role === 'redis_slave') {
-              const [{ master_ip: masterIp }] = data.filter((cur)=>cur.slave_ip===item.ip);
-              if (!masterIp) {
-                return
-              }
-              // 并且对应的master已经录入表格
-              if (props.selectedMap[masterIp]) {
-                modelValue.value.master_ip = masterIp;
-              }
-              return
-            }
-
-            // 若当前输入的ip为master
-            // 并且找到对应的主从关系则追加slave
-            if (item.role === 'redis_master') {
-              const [{ slave_ip: slaveIp }] = data.filter((cur)=>cur.master_ip===item.ip);
-              if (!slaveIp) {
-                return
-              }
-              modelValue.value.slave_ip = slaveIp;
-              emits('append', Object.assign(_.cloneDeep(modelValue.value), {
-                ip: slaveIp,
-                master_ip: item.ip,
-                role: 'redis_slave',
-                spec_config: item.spec_config
-              }))
-            }
           })
         }
       }
@@ -209,15 +203,6 @@
       immediate: true,
     },
   );
-
-  watch(()=>props.selected, ()=>{
-    if (props.selected.length > dataList.value.length) {
-      dataList.value = props.selected.map(item=>({
-        instance_role: item.role,
-        ip: item.ip,
-      })) as IValue[];
-    }
-  })
 </script>
 <style lang="less" scoped>
   .batch-host-select {
@@ -228,6 +213,8 @@
 
   .related-slave {
     height: 40px;
+    padding: 0 8px;
+    line-height: 18px;
     color: #979ba5;
     background: #fafbfd;
   }
