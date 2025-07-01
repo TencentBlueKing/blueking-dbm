@@ -233,7 +233,7 @@ func TestListCluster(t *testing.T) {
 		Limit: 10,
 	}
 
-	clusterList, rows, err := clusterProvider.ListCluster(params, &pagination)
+	clusterList, rows, err := clusterProvider.ListClusters(params, &pagination)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(2), rows)
 	assert.Equal(t, len(clusterList), len(clusterList))
