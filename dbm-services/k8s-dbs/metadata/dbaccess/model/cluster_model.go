@@ -32,7 +32,12 @@ type K8sCrdClusterModel struct {
 	K8sClusterConfigID  uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
 	RequestID           string    `gorm:"not null;column:request_id" json:"requestId"`
 	ClusterName         string    `gorm:"size:32;not null;column:cluster_name" json:"clusterName"`
+	ClusterAlias        string    `gorm:"size:32;not null;column:cluster_alias" json:"clusterAlias"`
 	Namespace           string    `gorm:"size:32;not null;column:namespace" json:"namespace"`
+	BkBizID             uint64    `gorm:"not null;column:bk_biz_id" json:"bkBizId"`
+	BkBizName           string    `gorm:"size:128;not null;column:bk_biz_name" json:"bkBizName"`
+	BkAppAbbr           string    `gorm:"size:128;not null;column:bk_app_abbr" json:"bkAppAbbr"`
+	BkAppCode           string    `gorm:"size:128;not null;column:bk_app_code" json:"bkAppCode"`
 	Status              string    `gorm:"size:32;column:status" json:"status"`
 	Description         string    `gorm:"size:100;column:description" json:"description"`
 	CreatedBy           string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`

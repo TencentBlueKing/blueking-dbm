@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
+	coreentity "k8s-dbs/core/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	providerentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
@@ -76,4 +77,32 @@ func BuildHelmActionConfig(
 			namespace, err)
 	}
 	return actionConfig, nil
+}
+
+// SaveAuditLog 记录审计日志
+func SaveAuditLog(
+	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+	request *coreentity.Request,
+	requestType string,
+) (*providerentity.ClusterRequestRecordEntity, error) {
+	requestBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("serialization request failed: %v", err)
+	}
+
+	requestRecord := &providerentity.ClusterRequestRecordEntity{
+		K8sClusterName: request.K8sClusterName,
+		ClusterName:    request.ClusterName,
+		NameSpace:      request.Namespace,
+		RequestID:      util.RequestID(),
+		RequestType:    requestType,
+		RequestParams:  string(requestBytes),
+		CreatedBy:      request.BKAuth.BkUserName,
+	}
+
+	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request entity: %w", err)
+	}
+	return addedRequestRecord, nil
 }

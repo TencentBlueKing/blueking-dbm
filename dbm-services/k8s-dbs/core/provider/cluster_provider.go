@@ -23,7 +23,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
@@ -214,7 +213,7 @@ func InstanceSetGVR() schema.GroupVersionResource {
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	// 记录 request record
-	addedRequestEntity, err := c.createRequestEntity(request, coreconst.CreateCluster)
+	addedRequestEntity, err := corehelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.CreateCluster)
 	if err != nil {
 		return fmt.Errorf("failed to create request entity: %w", err)
 	}
@@ -231,21 +230,12 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
 	}
 
-	if err = verifyAddonExists(request, k8sClient); err != nil {
-		return fmt.Errorf("addon verification failed for cluster %q: %w", request.ClusterName, err)
+	if err = c.saveClusterMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID); err != nil {
+		slog.Error("failed to save cluster meta data", "err", err)
+		return err
 	}
 
-	// 记录 cluster 和 component 元数据
-	addedClusterEntity, err := c.createClusterEntity(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create cluster entity: %w", err)
-	}
-
-	_, err = c.createComponentEntity(request, addedClusterEntity.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create component entity for cluster %q: %w", request.ClusterName, err)
-	}
-
+	// 安装 cluster
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
 		slog.Error("failed to install helm release", "error", err)
@@ -278,9 +268,30 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	return nil
 }
 
+// saveClusterMetaData 记录集群元数据
+func (c *ClusterProvider) saveClusterMetaData(
+	request *coreentity.Request,
+	requestID string,
+	k8sClusterConfigID uint64,
+) error {
+	// 记录 cluster 元数据
+	addedClusterEntity, err := c.createClusterEntity(request, requestID, k8sClusterConfigID)
+	if err != nil {
+		return err
+	}
+
+	clusterID := addedClusterEntity.ID
+	// 记录 component 元数据
+	_, err = c.createComponentEntity(request, clusterID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpdateCluster 更新集群
 func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
-	_, err := c.createRequestEntity(request, coreconst.PartialUpdateCluster)
+	_, err := corehelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
 	if err != nil {
 		slog.Error("failed to create request record", "error", err)
 		return err
@@ -337,7 +348,7 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 
 // PartialUpdateCluster 局部更新集群
 func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) error {
-	_, err := c.createRequestEntity(request, coreconst.PartialUpdateCluster)
+	_, err := corehelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
 	if err != nil {
 		slog.Error("failed to create request record", "error", err)
 		return err
@@ -394,7 +405,7 @@ func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) erro
 
 // DeleteCluster 删除集群
 func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
-	_, err := c.createRequestEntity(request, coreconst.DeleteCluster)
+	_, err := corehelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.DeleteCluster)
 	if err != nil {
 		return err
 	}
@@ -462,32 +473,6 @@ func (c *ClusterProvider) GetClusterStatus(request *coreentity.Request) (*coreen
 	return dataResponse.ClusterStatus, nil
 }
 
-// createRequestEntity Save the request instance
-func (c *ClusterProvider) createRequestEntity(
-	request *coreentity.Request,
-	requestType string,
-) (*provderentity.ClusterRequestRecordEntity, error) {
-	requestBytes, err := json.Marshal(request)
-	if err != nil {
-		return nil, fmt.Errorf("serialization request failed: %v", err)
-	}
-
-	requestRecord := &provderentity.ClusterRequestRecordEntity{
-		K8sClusterName: request.K8sClusterName,
-		ClusterName:    request.ClusterName,
-		NameSpace:      request.Namespace,
-		RequestID:      util.RequestID(),
-		RequestType:    requestType,
-		RequestParams:  string(requestBytes),
-	}
-
-	addedRequestRecord, err := c.reqRecordProvider.CreateRequestRecord(requestRecord)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request entity: %w", err)
-	}
-	return addedRequestRecord, nil
-}
-
 // createClusterEntity Save and return the cluster instance
 func (c *ClusterProvider) createClusterEntity(
 	request *coreentity.Request,
@@ -506,21 +491,28 @@ func (c *ClusterProvider) createClusterEntity(
 	if len(storageAddon) != 1 {
 		errMsg := fmt.Sprintf("expected 1 storage addon, found %d", len(storageAddon))
 		slog.Error("failed to get storage addon", "error", errMsg)
-		return nil, errors.New(errMsg)
+		return nil, err
 	}
+
 	clusterEntity := &provderentity.K8sCrdClusterEntity{
 		AddonID:             storageAddon[0].ID,
 		AddonClusterVersion: request.AddonClusterVersion,
 		ClusterName:         request.ClusterName,
+		ClusterAlias:        request.ClusterAlias,
 		Namespace:           request.Namespace,
 		RequestID:           requestID,
 		K8sClusterConfigID:  k8sClusterConfigID,
+		BkBizID:             request.BkBizID,
+		BkBizName:           request.BkBizName,
+		BkAppAbbr:           request.BkAppAbbr,
+		BkAppCode:           request.BKAuth.BkAppCode,
+		CreatedBy:           request.BKAuth.BkUserName,
 	}
 	addedClusterEntity, err := c.clusterMetaProvider.CreateCluster(clusterEntity)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create cluster entity: %w", err)
+		slog.Error("failed to create cluster entity", "error", err)
+		return nil, err
 	}
-
 	return addedClusterEntity, nil
 }
 
@@ -535,6 +527,7 @@ func (c *ClusterProvider) createComponentEntity(
 		componentEntity := &provderentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
+			CreatedBy:     request.BKAuth.BkUserName,
 		}
 		_, err := c.componentMetaProvider.CreateComponent(componentEntity)
 		if err != nil {
@@ -543,19 +536,6 @@ func (c *ClusterProvider) createComponentEntity(
 		compEntityList = append(compEntityList, componentEntity)
 	}
 	return compEntityList, nil
-}
-
-// verifyAddonExists Determine whether the Addon of the storage cluster exists
-func verifyAddonExists(request *coreentity.Request, k8sClient *coreclient.K8sClient) error {
-	targetChartFullName := request.StorageAddonType + "-" + request.StorageAddonVersion
-	isCreated, err := coreclient.StorageAddonIsCreated(k8sClient, targetChartFullName)
-	if err != nil {
-		return fmt.Errorf("failed to verify existence of storage addon chart %q: %w", targetChartFullName, err)
-	}
-	if !isCreated {
-		return fmt.Errorf("storage addon chart %q does not exist", targetChartFullName)
-	}
-	return nil
 }
 
 // getClusterDataResp Get cluster details
@@ -636,11 +616,15 @@ func (c *ClusterProvider) installHelmRelease(
 		slog.Error("failed to get helm repo", "error", err)
 		return nil, err
 	}
+	addonClusterVersion := request.AddonClusterVersion
+	if addonClusterVersion == "" {
+		addonClusterVersion = request.StorageAddonVersion
+	}
 	install := action.NewInstall(actionConfig)
 	install.ReleaseName = request.ClusterName
 	install.Namespace = request.Namespace
 	install.RepoURL = helmRepo.RepoRepository
-	install.Version = request.AddonClusterVersion
+	install.Version = addonClusterVersion
 	install.Timeout = clientconst.HelmOperationTimeout
 	install.CreateNamespace = true
 	install.Wait = true

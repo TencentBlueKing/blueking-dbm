@@ -38,6 +38,7 @@ type ClusterResponseData struct {
 // Metadata the metadata of request and response
 type Metadata struct {
 	ClusterName         string            `json:"clusterName,omitempty"`
+	ClusterAlias        string            `json:"clusterAlias,omitempty"`
 	ComponentName       string            `json:"componentName,omitempty"`
 	OpsRequestName      string            `json:"opsRequestName,omitempty"`
 	Namespace           string            `json:"namespace,omitempty"`

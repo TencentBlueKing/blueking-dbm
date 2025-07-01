@@ -29,7 +29,12 @@ type K8sCrdClusterRespVo struct {
 	K8sClusterConfigID  uint64    `json:"k8sClusterConfigId"`
 	RequestID           string    `json:"requestId"`
 	ClusterName         string    `json:"clusterName"`
+	ClusterAlias        string    `json:"clusterAlias"`
 	Namespace           string    `json:"namespace"`
+	BkBizID             uint64    `json:"bkBizId"`
+	BkBizName           string    `json:"bkBizName"`
+	BkAppAbbr           string    `json:"bkAppAbbr"`
+	BkAppCode           string    `json:"bkAppCode"`
 	Status              string    `json:"status"`
 	Description         string    `json:"description"`
 	CreatedBy           string    `json:"createdBy"`

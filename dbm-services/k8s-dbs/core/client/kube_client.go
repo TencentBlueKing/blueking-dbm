@@ -166,8 +166,8 @@ func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstr
 	return list, nil
 }
 
-// StorageAddonIsCreated 检查 addon 是否已安装
-func StorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bool, error) {
+// CheckStorageAddonIsCreated 检查 addon 是否已安装
+func CheckStorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bool, error) {
 	// init helm client
 	actionConfig, err := k8sClient.BuildHelmConfig(constants.AddonDefaultNamespace)
 	if err != nil {

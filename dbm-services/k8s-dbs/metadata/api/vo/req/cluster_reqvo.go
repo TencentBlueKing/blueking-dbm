@@ -28,6 +28,12 @@ type K8sCrdClusterReqVo struct {
 	K8sClusterConfigID  uint64    `json:"k8sClusterConfigId" binding:"required"`
 	RequestID           string    `json:"requestId" binding:"required"`
 	ClusterName         string    `json:"clusterName" binding:"required"`
+	ClusterAlias        string    `json:"clusterAlias"`
+	Namespace           string    `json:"namespace"`
+	BkBizID             uint64    `json:"bkBizId"`
+	BkBizName           string    `json:"bkBizName"`
+	BkAppAbbr           string    `json:"bkAppAbbr"`
+	BkAppCode           string    `json:"bkAppCode"`
 	Description         string    `json:"description" binding:"required"`
 	CreatedBy           string    `json:"createdBy" binding:"required"`
 	CreatedAt           time.Time `json:"createdAt"`
