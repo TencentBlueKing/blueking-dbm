@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DRSApi
+from backend.components import DBPrivManagerApi, DRSApi
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
@@ -36,8 +36,11 @@ class AddTempUserForClusterService(BaseService):
     """
 
     @staticmethod
-    def mysql_pwd(pwd):
-        """MySQL 4.1+ 的PASSWORD函数实现(SHA1双重哈希)"""
+    def mysql_pwd(pwd) -> str:
+        """
+        MySQL 4.1+ 的PASSWORD函数实现(SHA1双重哈希)
+        @param pwd: 密码字符串
+        """
         if isinstance(pwd, str):
             pwd = pwd.encode("utf-8")
 
@@ -49,8 +52,85 @@ class AddTempUserForClusterService(BaseService):
         # 添加MySQL的'*'前缀
         return "*" + hash2.upper()
 
+    def __add_account_for_privilege_api(
+        self, bk_biz_id, bk_cloud_id, job_root_id, created_by, failed_instance, priv_role
+    ) -> bool:
+        """
+        添加临时账号的内置方法
+        通过privilege api去添加临时账号
+        这里用于出现“infodba_schema.dba_grant does not exist”类型异常的重试方式
+        @param bk_biz_id: 业务id
+        @param bk_cloud_id: 云区域id
+        @param job_root_id: flow id
+        @param created_by: 申请者
+        @param failed_instance: 添加失败的实例，字符串格式"ip:port"
+        @param priv_role: 添加失败的实例的授权角色，对应PrivRole类型
+        """
+        param = {
+            "bk_cloud_id": bk_cloud_id,
+            "bk_biz_id": int(bk_biz_id),
+            "operator": created_by,
+            "user": generate_mysql_tmp_user(job_root_id),
+            "psw": job_root_id,
+            "hosts": ["localhost", failed_instance.split(":")[0]],
+            "dbname": "%",
+            "dml_ddl_priv": "",
+            "global_priv": "all privileges",
+            "address": failed_instance,
+            "role": priv_role,
+        }
+        try:
+            DBPrivManagerApi.add_priv_without_account_rule(param)
+            self.log_info(_("在[{}]重试创建添加账号成功").format(param["address"]))
+        except Exception as e:  # pylint: disable=broad-except
+            self.log_error(_("[{}]重试添加用户接口异常，相关信息: {}").format(param["address"], e))
+            return False
+
+        return True
+
+    def __add_account_for_drs(self, cluster: Cluster, instance_list: list, user: str, pwd: str) -> (list, list):
+        """
+        添加临时账号的内置方法
+        通过访问drs_api去调用存储过程dba_grant, 以此来添加临时账号
+        @param cluster: 集群信息实例
+        @param instance_list: 待授权实例列表，每个列表格式{"instance":"ip:port"...}
+        @param user: 待添加账号
+        @param pwd: 待添加密码
+        """
+        # 定义not_running状态的表
+        not_running_status_instances = []
+        # 定义传输参数列表
+        payloads = []
+        for i in instance_list:
+            payloads.append(
+                {
+                    "addresses": [i["instance"]],
+                    "cmds": self.__create_add_priv_cmds(i, user, pwd),
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                }
+            )
+            if i["cmdb_status"] != InstanceStatus.RUNNING:
+                not_running_status_instances.append(i["instance"])
+
+        # 调用批量接口执行
+        resp = DRSApi.mysql_complex_rpc(
+            {
+                "payloads": payloads,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+        return resp, not_running_status_instances
+
     @staticmethod
-    def __create_add_priv_cmds(instance, user, pwd_hash):
+    def __create_add_priv_cmds(instance: dict, user: str, pwd_hash: str) -> list:
+        """
+        拼接临时账号的授权的
+        通过dba_grant存储授权，提高授权效率
+        每个临时账号给本地ip和localhost生成账号，同时给ALL PRIVILEGES和GRANT OPTION权限
+        @param instance: 待授权实例，格式{"instance":"ip:port"...}
+        @param user: 待添加账号
+        @param pwd_hash: 密文
+        """
         if instance["priv_role"] == PrivRole.TDBCTL.value:
             # 这里做差异化处理，如果是中控节点，拼接专属的授权语句
             return [
@@ -71,40 +151,49 @@ class AddTempUserForClusterService(BaseService):
             f"""GRANT ALL PRIVILEGES ON *.* TO '{user}'@'localhost' WITH GRANT OPTION""",
         ]
 
-    def create_temp_user_for_cluster(self, cluster: Cluster, user, pwd, ticket_type: TicketType):
+    def create_temp_user_for_cluster(
+        self, cluster: Cluster, user: str, pwd: str, ticket_type: TicketType, job_root_id: str
+    ) -> bool:
+        """
+        按照集群维度并发处理实例授权逻辑
+        通过mysql_complex_rpc并发接口，拼接授权密码，异常达到并发效果，提高效率
+        @param cluster: 集群信息实例
+        @param user: 待添加账号
+        @param pwd: 密码
+        @param ticket_type: 触发此逻辑的单据类型
+        @param job_root_id: 触发此逻辑的任务flow id
+        """
         # 获取每套集群的所有需要添加临时的账号
         instance_list = get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type)
-        # 定义not_running状态的表
-        not_running_status_instances = []
-        # 定义传输参数列表
-        payloads = []
         # 标记位
         is_add_success = True
 
-        # 按照集群维护并发提交权限添加
-        for i in instance_list:
-
-            payloads.append(
-                {
-                    "addresses": [i["instance"]],
-                    "cmds": self.__create_add_priv_cmds(i, user, pwd),
-                    "bk_cloud_id": cluster.bk_cloud_id,
-                }
-            )
-            if i["cmdb_status"] != InstanceStatus.RUNNING:
-                not_running_status_instances.append(i["instance"])
-
-        # 调用批量接口执行
-        resp = DRSApi.mysql_complex_rpc(
-            {
-                "payloads": payloads,
-                "bk_cloud_id": cluster.bk_cloud_id,
-            }
+        # 按照集群维度，并发提交权限添加
+        resp, not_running_status_instances = self.__add_account_for_drs(
+            cluster=cluster, instance_list=instance_list, user=user, pwd=pwd
         )
+
+        # 遍历判断每个实例的授权结果
         for result in resp:
             if result["error_msg"]:
                 # 出现执行异常，判断实例状态以及自定义表
                 self.log_error(_("在[{}]创建临时添加账号失败:[{}]").format(result["address"], result["error_msg"]))
+                # 如果出现异常，通过privilege api接口重新尝试加一次
+                self.log_info("retry via privilege_api ...")
+                if self.__add_account_for_privilege_api(
+                    bk_biz_id=cluster.bk_biz_id,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    failed_instance=result["address"],
+                    priv_role=[item["priv_role"] for item in instance_list if item["instance"] == result["address"]][
+                        0
+                    ],
+                    created_by=job_root_id,
+                    job_root_id=job_root_id,
+                ):
+                    # 重试成功跳过
+                    self.log_info("retry successful")
+                    continue
+
                 if result["address"] in not_running_status_instances and ticket_type not in TICKET_TYPE_SENSITIVE_LIST:
                     # 如果是非running状态，默认标记warning信息，但不作异常处理
                     self.log_warning(_("[{} 在dbm平台状态非running ,忽略]".format(result["address"])))
@@ -138,6 +227,7 @@ class AddTempUserForClusterService(BaseService):
                 user=generate_mysql_tmp_user(global_data["job_root_id"]),
                 pwd=pwd_hash,
                 ticket_type=global_data.get("ticket_type", "test"),
+                job_root_id=global_data["job_root_id"],
             ):
                 # 如果授权不成功
                 err_num = err_num + 1
