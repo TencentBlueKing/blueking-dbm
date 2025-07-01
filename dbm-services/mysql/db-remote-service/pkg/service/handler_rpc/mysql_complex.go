@@ -59,6 +59,9 @@ func MySQLComplexHandler(c *gin.Context) {
 		if postReq.QueryTimeout <= 0 {
 			postReq.QueryTimeout = 600
 		}
+		if postReq.Charset == "" {
+			postReq.Charset = "default"
+		}
 
 		dupAddrs := findDuplicateAddresses(postReq.Addresses)
 

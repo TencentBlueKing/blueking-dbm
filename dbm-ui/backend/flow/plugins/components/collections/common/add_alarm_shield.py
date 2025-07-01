@@ -21,13 +21,18 @@ logger = logging.getLogger("flow")
 
 
 class AddAlarmShieldService(BaseService):
+    """
+    输出上下文 alarm_shield_id : int
+    """
+
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
 
         bk_biz_id = global_data["bk_biz_id"]
 
-        data = {
+        shield_param = {
             "category": "dimension",
             "begin_time": kwargs["begin_time"],
             "end_time": kwargs["end_time"],
@@ -45,7 +50,7 @@ class AddAlarmShieldService(BaseService):
 
         dimensions = kwargs["dimensions"]
         for dim in dimensions:
-            data["dimension_config"]["dimension_conditions"].append(
+            shield_param["dimension_config"]["dimension_conditions"].append(
                 {
                     "condition": "and",
                     "key": dim["name"],
@@ -55,11 +60,16 @@ class AddAlarmShieldService(BaseService):
                 }
             )
 
-        data.update({"description": self.format_shield_description(bk_biz_id, description=data["description"])})
-        logger.info(json.dumps(data))
+        shield_param.update(
+            {"description": self.format_shield_description(bk_biz_id, description=shield_param["description"])}
+        )
+        logger.info("alarm shield param: {}".format(json.dumps(shield_param)))
 
-        BKMonitorV3Api.add_shield(data)
+        res = BKMonitorV3Api.add_shield(shield_param)
+        logger.info("alarm shield {} created".format(res))
 
+        trans_data.alarm_shield_id = res["id"]
+        data.outputs["trans_data"] = trans_data
         return True
 
     @staticmethod

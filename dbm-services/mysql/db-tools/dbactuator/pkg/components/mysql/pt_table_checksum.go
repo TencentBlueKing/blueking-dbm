@@ -254,6 +254,13 @@ func (c *PtTableChecksumComp) doChecksum() (err error) {
 }
 
 func (c *PtTableChecksumComp) checkSlaveStatus() (err error) {
+	var dbCollection []*native.DbWorker
+	defer func() {
+		for _, db := range dbCollection {
+			db.Close()
+		}
+	}()
+
 	for _, slave := range c.Params.Slaves {
 		db, err := native.InsObject{
 			Host: slave.Ip,
@@ -264,6 +271,7 @@ func (c *PtTableChecksumComp) checkSlaveStatus() (err error) {
 		if err != nil {
 			return err
 		}
+		dbCollection = append(dbCollection, db)
 
 		slaveStatus, err := db.ShowSlaveStatus()
 		if err != nil {

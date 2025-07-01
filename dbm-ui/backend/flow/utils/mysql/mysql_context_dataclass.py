@@ -64,6 +64,7 @@ class ClusterInfoContext:
     max_open_file: dict = field(default_factory=dict)
     system_info: dict = field(default_factory=dict)
     time_zone_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
 
     @staticmethod
     def get_sync_info_var_name() -> str:
