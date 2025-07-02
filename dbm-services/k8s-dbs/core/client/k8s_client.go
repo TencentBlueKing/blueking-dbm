@@ -26,6 +26,8 @@ import (
 	entitys "k8s-dbs/metadata/provider/entity"
 	"log"
 
+	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"
+
 	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -39,6 +41,7 @@ type K8sClient struct {
 	RestConfig    *rest.Config
 	ClientSet     *kubernetes.Clientset
 	DynamicClient dynamic.Interface
+	MetricsClient *metricsclientset.Clientset
 }
 
 // NewK8sClient 创建 k8s 客户端实例
@@ -58,10 +61,15 @@ func NewK8sClient(k8sConfig *entitys.K8sClusterConfigEntity) (*K8sClient, error)
 	if err != nil {
 		return nil, err
 	}
+	metricsClientSet, err := metricsclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
 	k8sClient := K8sClient{
 		RestConfig:    config,
 		ClientSet:     clientSet,
 		DynamicClient: dynamicClient,
+		MetricsClient: metricsClientSet,
 	}
 	err = k8sClient.VerifyConnection()
 	if err != nil {

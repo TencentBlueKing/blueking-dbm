@@ -22,22 +22,31 @@ package provider
 import (
 	"context"
 	"fmt"
+	commonutil "k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
+	coreerrors "k8s-dbs/core/errors"
 	pventity "k8s-dbs/core/provider/entity"
+	coreutil "k8s-dbs/core/util"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"slices"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ComponentProvider 组件管理核心服务
@@ -64,47 +73,25 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 			coreconst.ComponentName: request.ComponentName,
 		},
 	}
+
 	podList, err := coreclient.ListCRD(k8sClient, crd)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list pods for component %s: %w", request.ComponentName, err)
+	}
+	if len(podList.Items) == 0 {
+		return nil, fmt.Errorf("no pods found for component %s in namespace %s", request.ComponentName, request.Namespace)
 	}
 
-	if podList.Items != nil && len(podList.Items) == 0 {
-		return nil, fmt.Errorf("the pod of the component %s currently being queried is empty", request.ComponentName)
+	pods, err := extractPodsInfo(k8sClient, podList)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract pod details: %w", err)
 	}
 
-	var pods []coreentity.Pod
-	var env []corev1.EnvVar
-	for _, item := range podList.Items {
-		// Try converting Unstructured to Pod type
-		pod := &corev1.Pod{}
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod)
-		if err != nil {
-			return nil, fmt.Errorf("cannot be converted to Pod format, raw data will be displayed: %v", err)
-		}
-		var role string
-		if podRole, exits := pod.Labels["kubeblocks.io/role"]; exits {
-			role = podRole
-		}
-		pods = append(pods, coreentity.Pod{
-			PodName:     pod.Name,
-			Status:      pod.Status.Phase,
-			Node:        pod.Spec.NodeName,
-			Role:        role,
-			CreatedTime: pod.CreationTimestamp.String(),
-		})
-		if env == nil {
-			env = pod.Spec.Containers[0].Env
-		}
-
+	envVars, err := extractEnvVars(podList)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract env vars: %w", err)
 	}
-
-	// Remove kb specific environment variables
-	env = slices.DeleteFunc(env, func(envVar corev1.EnvVar) bool {
-		_, exists := clientconst.KbEnvVar[envVar.Name]
-		return exists
-	})
-
+	envVars = filterOutKbEnvVars(envVars)
 	componentDetail := &coreentity.ComponentDetail{
 		Metadata: coreentity.Metadata{
 			ClusterName:   crd.Labels[coreconst.InstanceName],
@@ -112,10 +99,158 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 			ComponentName: crd.Labels[coreconst.ComponentName],
 		},
 		Pods: pods,
-		Env:  env,
+		Env:  envVars,
+	}
+	return componentDetail, nil
+}
+
+// convertUnstructuredToPod 将 Unstructured 对象转换为 Pod 类型
+func convertUnstructuredToPod(item unstructured.Unstructured) (*corev1.Pod, error) {
+	pod := &corev1.Pod{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod); err != nil {
+		return nil, fmt.Errorf("cannot convert to Pod format: %w", err)
+	}
+	return pod, nil
+}
+
+// getPodRole 从 Pod 的标签中提取角色信息
+func getPodRole(pod *corev1.Pod) string {
+	if role, exists := pod.Labels["kubeblocks.io/role"]; exists {
+		return role
+	}
+	return "" // 默认为空字符串
+}
+
+// extractPodsInfo 从 Pod 列表中提取 Pod 信息
+func extractPodsInfo(
+	k8sClient *coreclient.K8sClient,
+	podList *unstructured.UnstructuredList,
+) ([]coreentity.Pod, error) {
+	var pods []coreentity.Pod
+
+	for _, item := range podList.Items {
+		pod, err := convertUnstructuredToPod(item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
+		}
+
+		resourceQuota, err := getPodResourceQuota(k8sClient, pod)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract resource quota for pod %s: %w", pod.Name, err)
+		}
+
+		usage, err := getPodResourceUsage(k8sClient, pod, resourceQuota)
+		if err != nil {
+			return nil, err
+		}
+
+		pods = append(pods, coreentity.Pod{
+			PodName:       pod.Name,
+			Status:        pod.Status.Phase,
+			Node:          pod.Spec.NodeName,
+			Role:          getPodRole(pod),
+			ResourceQuota: resourceQuota,
+			ResourceUsage: usage,
+			CreatedTime:   pod.CreationTimestamp.String(),
+		})
 	}
 
-	return componentDetail, nil
+	return pods, nil
+}
+
+// getPodStorageCapacity 获取 pod 存储容量大小，单位：GB
+func getPodStorageCapacity(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
+	volumes := pod.Spec.Volumes
+	if len(volumes) == 0 {
+		return nil, nil
+	}
+	var pvcName string
+	for _, volume := range volumes {
+		// 只取第一个
+		if volume.PersistentVolumeClaim != nil {
+			pvcName = volume.PersistentVolumeClaim.ClaimName
+			break
+		}
+	}
+	if pvcName == "" {
+		return nil, nil
+	}
+	ctx, cancel := context.WithTimeoutCause(
+		context.Background(),
+		coreconst.K8sAPIServerTimeout,
+		coreerrors.NewGlobalError(coreerrors.K8sAPIServerTimeoutError, fmt.Errorf("获取 PVC %s 超时", pvcName)),
+	)
+	defer cancel()
+
+	pvc, err := k8sClient.ClientSet.CoreV1().PersistentVolumeClaims(pod.Namespace).Get(
+		ctx,
+		pvcName,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			slog.Error("获取 PVC 超时", "pvcName", pvcName, "podName", pod.Name, "error", err)
+		} else {
+			slog.Error("获取 PVC 失败", "pvcName", pvcName, "podName", pod.Name, "error", err)
+		}
+		return nil, err
+	}
+	capacity, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
+	if !ok {
+		return nil, nil
+	}
+	storageSize := coreentity.StorageSize(coreutil.ConvertMemoryToGB(&capacity))
+	return &storageSize, nil
+}
+
+// extractEnvVars 从 Pod 列表中提取环境变量（仅取第一个容器的 Env）
+func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, error) {
+	if len(podList.Items) == 0 {
+		return nil, fmt.Errorf("pod list is empty")
+	}
+	// 只取第一个 Pod 的第一个容器的 Env（根据你的业务逻辑调整）
+	firstPod := podList.Items[0]
+	pod, err := convertUnstructuredToPod(firstPod)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", firstPod.GetName(), err)
+	}
+
+	if len(pod.Spec.Containers) == 0 {
+		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
+	}
+	return pod.Spec.Containers[0].Env, nil
+}
+
+// getPodResourceQuota 从 Pod 的容器中提取资源请求和限制
+func getPodResourceQuota(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
+	if len(pod.Spec.Containers) == 0 {
+		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
+	}
+	container := pod.Spec.Containers[0]
+	requestMemory := container.Resources.Requests.Memory()
+	requestCPU := container.Resources.Requests.Cpu()
+	limitMemory := container.Resources.Limits.Memory()
+	limitCPU := container.Resources.Limits.Cpu()
+	storage, _ := getPodStorageCapacity(k8sClient, pod)
+	return &coreentity.PodResourceQuota{
+		Request: &coreentity.QuotaSummary{
+			CPU:    commonutil.Float64Ptr(coreutil.ConvertCPUToCores(requestCPU)),
+			Memory: commonutil.Float64Ptr(coreutil.ConvertMemoryToGB(requestMemory)),
+		},
+		Limit: &coreentity.QuotaSummary{
+			CPU:    commonutil.Float64Ptr(coreutil.ConvertCPUToCores(limitCPU)),
+			Memory: commonutil.Float64Ptr(coreutil.ConvertMemoryToGB(limitMemory)),
+		},
+		Storage: storage,
+	}, nil
+}
+
+// filterOutKbEnvVars 过滤掉 KB 特定的环境变量
+func filterOutKbEnvVars(envVars []corev1.EnvVar) []corev1.EnvVar {
+	return slices.DeleteFunc(envVars, func(envVar corev1.EnvVar) bool {
+		_, exists := clientconst.KbEnvVar[envVar.Name]
+		return exists
+	})
 }
 
 // GetComponentInternalSvc 获取组件的内部服务链接
@@ -166,6 +301,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEn
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -264,6 +400,47 @@ func (c *ComponentProvider) convertExternalSvc(
 		})
 	}
 	return k8sSvcInfos
+}
+
+func getPodResourceUsage(
+	k8sClient *coreclient.K8sClient,
+	pod *corev1.Pod,
+	resourceQuota *coreentity.PodResourceQuota,
+) (*coreentity.PodResourceUsage, error) {
+	podMetrics, err := k8sClient.MetricsClient.
+		MetricsV1beta1().PodMetricses(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	var totalCPU resource.Quantity
+	var totalMemory resource.Quantity
+	for _, container := range podMetrics.Containers {
+		totalCPU.Add(*container.Usage.Cpu())
+		totalMemory.Add(*container.Usage.Memory())
+	}
+
+	totalCPUCore := coreutil.ConvertCPUToCores(&totalCPU)
+	totalMemoryGB := coreutil.ConvertMemoryToGB(&totalMemory)
+
+	totalCPUCore = coreutil.RoundToDecimal(totalCPUCore, 3)
+	totalMemoryGB = coreutil.RoundToDecimal(totalMemoryGB, 3)
+
+	cpuUtilization := totalCPUCore / *resourceQuota.Request.CPU * 100
+	cpuUtilization = coreutil.RoundToDecimal(cpuUtilization, 3)
+
+	memoryUtilization := totalMemoryGB / *resourceQuota.Request.Memory * 100
+	memoryUtilization = coreutil.RoundToDecimal(memoryUtilization, 3)
+
+	return &coreentity.PodResourceUsage{
+		QuotaSummary: &coreentity.QuotaSummary{
+			CPU:     &totalCPUCore,
+			Memory:  &totalMemoryGB,
+			Storage: nil, // 待补充
+		},
+		CPUPercent:     &cpuUtilization,
+		MemoryPercent:  &memoryUtilization,
+		StoragePercent: nil, // 待补充
+	}, nil
 }
 
 // NewComponentProvider 创建 ComponentProvider 实例

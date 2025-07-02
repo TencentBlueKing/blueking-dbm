@@ -508,6 +508,7 @@ func (c *ClusterProvider) createClusterEntity(
 		BkAppAbbr:           request.BkAppAbbr,
 		BkAppCode:           request.BKAuth.BkAppCode,
 		CreatedBy:           request.BKAuth.BkUserName,
+		UpdatedBy:           request.BKAuth.BkUserName,
 	}
 	addedClusterEntity, err := c.clusterMetaProvider.CreateCluster(clusterEntity)
 	if err != nil {

@@ -21,6 +21,7 @@ require (
 	k8s.io/apimachinery v0.31.1
 	k8s.io/cli-runtime v0.31.1
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/metrics v0.29.2
 )
 
 require (

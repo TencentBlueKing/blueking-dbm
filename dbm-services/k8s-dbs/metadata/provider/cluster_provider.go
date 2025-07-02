@@ -79,22 +79,20 @@ func (k *K8sCrlClusterProviderImpl) DeleteClusterByID(id uint64) (uint64, error)
 func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error) {
 	clusterModel, err := k.clusterDbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
+		slog.Error("Failed to find clusterModel By ID", "ID", id, "error", err)
 		return nil, err
 	}
 	clusterEntity := entitys.K8sCrdClusterEntity{}
 	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
 	}
 	addonModel, err := k.addonDbAccess.FindByID(clusterModel.AddonID)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
+		slog.Error("Failed to find addonModel By ID", "ID", clusterModel.AddonID, "error", err)
 		return nil, err
 	}
 	addonEntity := entitys.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(&addonEntity, addonModel); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
 	}
 	clusterEntity.AddonInfo = addonEntity
@@ -105,22 +103,20 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 func (k *K8sCrlClusterProviderImpl) FindByParams(params map[string]interface{}) (*entitys.K8sCrdClusterEntity, error) {
 	clusterModel, err := k.clusterDbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
+		slog.Error("Failed to find clusterModel by params", "params", params, "error", err)
 		return nil, err
 	}
 	clusterEntity := entitys.K8sCrdClusterEntity{}
 	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
 	}
 	addonModel, err := k.addonDbAccess.FindByID(clusterModel.AddonID)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
+		slog.Error("Failed to find addonModel by ID", "ID", clusterModel.AddonID, "error", err)
 		return nil, err
 	}
 	addonEntity := entitys.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(&addonEntity, addonModel); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
 	}
 	clusterEntity.AddonInfo = addonEntity

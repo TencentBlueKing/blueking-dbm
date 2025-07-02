@@ -17,15 +17,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package util
 
-import "time"
+import (
+	"math"
 
-// k8s service 类型
-const (
-	LoadBalancer = "LoadBalancer"
-	ClusterIP    = "ClusterIP"
-	NodePort     = "NodePort"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-const K8sAPIServerTimeout = 60 * time.Second
+// ConvertCPUToCores 将资源量转换为以 core 为单位的 float64 值
+func ConvertCPUToCores(cpu *resource.Quantity) float64 {
+	return float64(cpu.MilliValue()) / 1000.0
+}
+
+// ConvertMemoryToGB 将资源量转换为以 GB 为单位的 float64 值
+func ConvertMemoryToGB(memory *resource.Quantity) float64 {
+	return float64(memory.Value()) / (1024.0 * 1024.0 * 1024.0)
+}
+
+// RoundToDecimal 将浮点数四舍五入到指定小数位
+func RoundToDecimal(val float64, decimalPlaces int) float64 {
+	shift := math.Pow(10, float64(decimalPlaces))
+	return math.Round(val*shift) / shift
+}

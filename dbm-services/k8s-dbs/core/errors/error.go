@@ -70,9 +70,10 @@ const (
 
 // k8s 集群管理操作异常
 const (
-	CreateK8sNsError = 1532300
-	DeleteK8sNsError = 1532301
-	GetPodLogError   = 1532302
+	CreateK8sNsError         = 1532300
+	DeleteK8sNsError         = 1532301
+	GetPodLogError           = 1532302
+	K8sAPIServerTimeoutError = 1532303
 )
 
 // addon 管理操作异常
@@ -124,9 +125,10 @@ var codeTag = map[int]string{
 	PartialUpdateClusterError: "局部更新集群失败",
 
 	// k8s apiserver 调用异常
-	CreateK8sNsError: "创建命名空间失败",
-	DeleteK8sNsError: "删除命名空间失败",
-	GetPodLogError:   "获取 Pod 日志失败",
+	CreateK8sNsError:         "创建命名空间失败",
+	DeleteK8sNsError:         "删除命名空间失败",
+	GetPodLogError:           "获取 Pod 日志失败",
+	K8sAPIServerTimeoutError: "K8s API Server 请求超时",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",
