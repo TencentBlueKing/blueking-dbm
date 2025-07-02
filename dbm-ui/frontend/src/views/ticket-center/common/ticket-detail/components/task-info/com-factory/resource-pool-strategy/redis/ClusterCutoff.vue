@@ -13,6 +13,7 @@
 
 <template>
   <BkTable
+    border
     :data="tableData"
     :merge-cells="mergeCells"
     :row-class-name="generateRowClass"
@@ -123,7 +124,7 @@
   const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
 
-  const generateRowClass = ({ row }: { row: RowData, }) => {
+  const generateRowClass = ({ row }: { row: RowData }) => {
     if (row.related_slave_ip) {
       return 'related-slave-row'
     }

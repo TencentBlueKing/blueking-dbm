@@ -214,7 +214,7 @@
         proxy: [],
         redis_master: [],
         redis_slave: [],
-      } as unknown as TicketDetail['infos'][0];
+      };
       sameRows.forEach((item) => {
         const spec = {
           bk_host_id: item.host.bk_host_id,
@@ -223,7 +223,7 @@
         };
         const list = info[
           item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
-        ] as TicketDetail['infos'][0]['redis_master'];
+        ];
         _.merge(info, {
           [item.host.role]: [...list, spec],
         });
