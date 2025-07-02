@@ -2,7 +2,7 @@
   <ConsoleInput
     ref="consoleInputRef"
     :cluster="cluster"
-    :ext-params="{
+    :options="{
       charset,
       timezone,
     }"

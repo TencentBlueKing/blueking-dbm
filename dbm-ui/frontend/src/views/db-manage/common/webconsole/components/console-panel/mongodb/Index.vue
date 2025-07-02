@@ -3,7 +3,7 @@
     ref="consoleInputRef"
     :check-line-break="checkLineBreak"
     :cluster="cluster"
-    :ext-params="{
+    :options="{
       session_time: sessionTime,
     }"
     :pre-check="preCheck">
