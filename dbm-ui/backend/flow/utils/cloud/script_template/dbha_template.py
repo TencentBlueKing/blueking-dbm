@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 ha_gm_conf_template = """
 log_conf:
-  log_path: "./log/log"
+  log_path: "./logs/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
   log_maxbackups: 1000
@@ -154,7 +154,7 @@ ssh:
 
 ha_agent_conf_template = """
 log_conf:
-  log_path: "./log/log"
+  log_path: "./logs/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
   log_maxbackups: 1000
@@ -303,7 +303,7 @@ mv $path/dbha/{{dbha_type}} $path/dbha/old_{{dbha_type}}
 
 # 准备相关文件
 mkdir -p $path/dbha/{{dbha_type}};
-mkdir -p $path/dbha/{{dbha_type}}/log;
+mkdir -p $path/dbha/{{dbha_type}}/logs;
 cp /data/install/{{dbha_conf}} $path/dbha/{{dbha_type}};
 cp /data/install/dbha $path/dbha/{{dbha_type}};
 chmod -R 777 $path/dbha;
@@ -324,16 +324,16 @@ echo -e "
 LOG="/var/log/dbha_watchdog.log"
 
 cd $path/dbha/{{dbha_type}} || {
-  echo "$(date) [ERROR] dbha work directory not exist" >> $LOG
+  echo "\$\(date\) [ERROR] dbha work directory not exist" >> \$LOG
   exit 1
 }
 
-if ! ps -ef|grep "dbha -config_file={{dbha_conf}}"|grep -v grep; then
-  echo "$(date) [ERROR] dbha process not found" >> $LOG
-  if nohup ./dbha -config_file={{dbha_conf}} -type={{dbha_type}} - >> runtime.log 2>&1 & then
-    echo "$(date) [OK] restart ok PID:$!" >> $LOG
+if ! ps -ef|grep 'dbha -config_file={{dbha_conf}}'|grep -v grep; then
+  echo "\$\(date\) [ERROR] dbha process not found" >> \$LOG
+  if nohup ./dbha -config_file={{dbha_conf}} -type={{dbha_type}} - >> dbha-apply.log 2>&1 & then
+    echo "\$\(date\) [OK] restart ok PID:\$!" >> \$LOG
   else
-    echo "$(date) [FAIL] restart failed" >> $LOG
+    echo "\$\(date\) [FAIL] restart failed" >> \$LOG
   fi
 fi
 " > $dbha_cron
