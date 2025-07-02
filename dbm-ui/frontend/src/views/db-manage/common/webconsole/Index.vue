@@ -11,7 +11,7 @@
         @remove-tab="handleClickClearScreen" />
       <RawSwitcher
         v-if="dbType === DBTypes.REDIS"
-        v-model="isRaw" />
+        v-model="raw" />
       <TimeZone
         v-if="[DBTypes.MYSQL, DBTypes.TENDBCLUSTER].includes(dbType)"
         v-model="timezone" />
@@ -42,7 +42,7 @@
           ref="consolePanelRef"
           :charset="charset"
           :cluster="clusterInfo"
-          :raw="isRaw"
+          :raw="raw"
           :style="currentFontConfig"
           :timezone="timezone" />
       </KeepAlive>
@@ -82,12 +82,10 @@
   import UsageHelp from './components/usage-help/Index.vue';
 
   interface Props {
-    dbType?: DBTypes;
+    dbType: DBTypes;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    dbType: DBTypes.MYSQL,
-  });
+  defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -106,7 +104,7 @@
     fontSize: '12px',
     lineHeight: '20px',
   });
-  const isRaw = ref(props.dbType === DBTypes.REDIS ? false : undefined);
+  const raw = ref(false);
   const timezone = ref('+08:00');
   const charset = ref('default');
   const isFullScreen = ref(false);
