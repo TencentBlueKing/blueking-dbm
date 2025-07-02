@@ -497,6 +497,7 @@ func (c *ClusterProvider) createClusterEntity(
 	clusterEntity := &provderentity.K8sCrdClusterEntity{
 		AddonID:             storageAddon[0].ID,
 		AddonClusterVersion: request.AddonClusterVersion,
+		TopoName:            request.TopoName,
 		ClusterName:         request.ClusterName,
 		ClusterAlias:        request.ClusterAlias,
 		Namespace:           request.Namespace,

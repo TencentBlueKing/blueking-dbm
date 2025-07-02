@@ -23,10 +23,10 @@ import "k8s-dbs/core/entity"
 
 // K8sPodLogRespVo k8s 的 pod 日志请求返回
 type K8sPodLogRespVo struct {
-	K8sClusterName string          `json:"k8sClusterName" binding:"required"`
-	ClusterName    string          `json:"clusterName" binding:"required"`
-	Namespace      string          `json:"namespace" binding:"required"`
-	PodName        string          `json:"podName" binding:"required"`
-	Container      string          `json:"container,omitempty"`
-	Logs           []entity.K8sLog `json:"logs,omitempty"`
+	K8sClusterName string           `json:"k8sClusterName" binding:"required"`
+	ClusterName    string           `json:"clusterName" binding:"required"`
+	Namespace      string           `json:"namespace" binding:"required"`
+	PodName        string           `json:"podName" binding:"required"`
+	Container      string           `json:"container,omitempty"`
+	Logs           []*entity.K8sLog `json:"logs,omitempty"`
 }

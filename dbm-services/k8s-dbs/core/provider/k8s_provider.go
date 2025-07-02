@@ -112,7 +112,7 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 func (k *K8sProvider) GetPodLog(
 	entity *pventity.K8sPodLogEntity,
 	pagination *entity.Pagination,
-) ([]coreentity.K8sLog, uint64, error) {
+) ([]*coreentity.K8sLog, uint64, error) {
 	// 1. 获取集群配置
 	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
 	if err != nil {
@@ -235,8 +235,8 @@ func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) cor
 	return ns
 }
 
-func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]coreentity.K8sLog, error) {
-	var k8sLogEntries []coreentity.K8sLog
+func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog, error) {
+	var k8sLogEntries []*coreentity.K8sLog
 	scanner := bufio.NewScanner(stream)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -252,7 +252,7 @@ func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]coreentity.K8sLog, 
 		if err != nil {
 			continue
 		}
-		k8sLogEntries = append(k8sLogEntries, coreentity.K8sLog{
+		k8sLogEntries = append(k8sLogEntries, &coreentity.K8sLog{
 			Timestamp: timestamp,
 			Message:   message,
 		})

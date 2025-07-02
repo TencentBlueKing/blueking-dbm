@@ -32,7 +32,7 @@ import (
 // OperationDefinitionProvider 定义 operation definition 业务逻辑层访问接口
 type OperationDefinitionProvider interface {
 	CreateOperationDefinition(entity *entitys.OperationDefinitionEntity) (*entitys.OperationDefinitionEntity, error)
-	ListOperationDefinitions(pagination entity.Pagination) ([]entitys.OperationDefinitionEntity, error)
+	ListOperationDefinitions(pagination entity.Pagination) ([]*entitys.OperationDefinitionEntity, error)
 }
 
 // OperationDefinitionProviderImpl OperationDefinitionProvider 具体实现
@@ -65,7 +65,7 @@ func (o *OperationDefinitionProviderImpl) CreateOperationDefinition(entity *enti
 
 // ListOperationDefinitions 获取 operation definition 列表
 func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination entity.Pagination) (
-	[]entitys.OperationDefinitionEntity,
+	[]*entitys.OperationDefinitionEntity,
 	error,
 ) {
 	definitionModels, _, err := o.dbAccess.ListByPage(pagination)
@@ -73,7 +73,7 @@ func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination en
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	var definitionEntities []entitys.OperationDefinitionEntity
+	var definitionEntities []*entitys.OperationDefinitionEntity
 	if err := copier.Copy(&definitionEntities, definitionModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err

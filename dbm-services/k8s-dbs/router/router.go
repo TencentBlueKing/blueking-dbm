@@ -93,7 +93,8 @@ type CoreAPIProviders struct {
 // buildCoreAPIProviders 构建 core api providers
 func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
+	addonMetaAdAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess, addonMetaAdAccess)
 
 	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)

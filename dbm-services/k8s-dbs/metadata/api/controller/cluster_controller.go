@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	"fmt"
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
@@ -41,6 +42,23 @@ var queryParamsMapping = map[string]string{
 	"namespace":    "namespace",
 	"clusterName":  "cluster_name",
 	"clusterAlias": "cluster_alias",
+}
+
+var topoNameAliasMapping = map[string]map[string]string{
+	"victoriametrics": {
+		"cluster": "全套服务",
+		"select":  "查询服务",
+	},
+}
+
+// getTopoNameAlias 获取 topo 别名
+func getTopoNameAlias(addonType, topoName string) string {
+	if innerMap, ok := topoNameAliasMapping[addonType]; ok {
+		if alias, ok := innerMap[topoName]; ok {
+			return alias
+		}
+	}
+	return ""
 }
 
 // ClusterController manages metadata for cluster.
@@ -71,6 +89,8 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
+	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
+	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
 	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
@@ -91,6 +111,10 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	if err := copier.Copy(&data, clusterEntities); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
+	}
+	for _, clusterEntity := range data {
+		clusterEntity.BkBizTitle = fmt.Sprintf("[%d]%s", clusterEntity.BkBizID, clusterEntity.BkBizName)
+		clusterEntity.TopoNameAlias = getTopoNameAlias(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
 	}
 	var responseData = respvo.PageResult{
 		Count:  count,

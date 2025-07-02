@@ -32,7 +32,7 @@ import (
 // ClusterOperationProvider 定义 cluster operation 业务逻辑层访问接口
 type ClusterOperationProvider interface {
 	CreateClusterOperation(entity *entitys.ClusterOperationEntity) (*entitys.ClusterOperationEntity, error)
-	ListClusterOperations(pagination entity.Pagination) ([]entitys.ClusterOperationEntity, error)
+	ListClusterOperations(pagination entity.Pagination) ([]*entitys.ClusterOperationEntity, error)
 }
 
 // ClusterOperationProviderImpl ClusterOperationProvider 具体实现
@@ -66,7 +66,7 @@ func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *entitys.Cl
 
 // ListClusterOperations 获取 cluster operation 列表
 func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.Pagination) (
-	[]entitys.ClusterOperationEntity,
+	[]*entitys.ClusterOperationEntity,
 	error,
 ) {
 	clusterOpModels, _, err := o.clusterOpDBAccess.ListByPage(pagination)
@@ -75,7 +75,7 @@ func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.P
 		return nil, err
 	}
 
-	var clusterOpEntities []entitys.ClusterOperationEntity
+	var clusterOpEntities []*entitys.ClusterOperationEntity
 	if err := copier.Copy(&clusterOpEntities, clusterOpModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err

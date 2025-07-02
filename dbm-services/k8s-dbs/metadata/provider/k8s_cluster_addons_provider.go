@@ -119,12 +119,12 @@ func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByID(id uint64) (*entitys
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	entity := entitys.K8sClusterAddonsEntity{}
-	if err := copier.Copy(&entity, model); err != nil {
+	clusterAddonEntity := entitys.K8sClusterAddonsEntity{}
+	if err := copier.Copy(&clusterAddonEntity, model); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
-	addonModel, err := k.saDbAccess.FindByID(entity.AddonID)
+	addonModel, err := k.saDbAccess.FindByID(clusterAddonEntity.AddonID)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +133,8 @@ func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByID(id uint64) (*entitys
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
-	entity.StorageAddon = addonEntity
-	return &entity, nil
+	clusterAddonEntity.StorageAddon = addonEntity
+	return &clusterAddonEntity, nil
 }
 
 // UpdateClusterAddon 更新

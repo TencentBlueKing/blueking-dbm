@@ -25,22 +25,24 @@ import (
 
 // K8sCrdClusterEntity cluster entity 定义
 type K8sCrdClusterEntity struct {
-	ID                  uint64    `json:"id"`
-	AddonID             uint64    `json:"addonId"`
-	AddonClusterVersion string    `json:"addonClusterVersion"`
-	K8sClusterConfigID  uint64    `json:"k8sClusterConfigId"`
-	RequestID           string    `json:"requestId"`
-	ClusterName         string    `json:"clusterName"`
-	ClusterAlias        string    `json:"clusterAlias"`
-	Namespace           string    `json:"namespace"`
-	BkBizID             uint64    `json:"bkBizId"`
-	BkBizName           string    `json:"bkBizName"`
-	BkAppAbbr           string    `json:"bkAppAbbr"`
-	BkAppCode           string    `json:"bkAppCode"`
-	Status              string    `json:"status"`
-	Description         string    `json:"description"`
-	CreatedBy           string    `json:"createdBy"`
-	CreatedAt           time.Time `json:"createdAt"`
-	UpdatedBy           string    `json:"updatedBy"`
-	UpdatedAt           time.Time `json:"updatedAt"`
+	ID                  uint64                   `json:"id"`
+	AddonID             uint64                   `json:"addonId"`
+	AddonClusterVersion string                   `json:"addonClusterVersion"`
+	AddonInfo           K8sCrdStorageAddonEntity `json:"addonInfo"`
+	TopoName            string                   `json:"topoName"`
+	K8sClusterConfigID  uint64                   `json:"k8sClusterConfigId"`
+	RequestID           string                   `json:"requestId"`
+	ClusterName         string                   `json:"clusterName"`
+	ClusterAlias        string                   `json:"clusterAlias"`
+	Namespace           string                   `json:"namespace"`
+	BkBizID             uint64                   `json:"bkBizId"`
+	BkBizName           string                   `json:"bkBizName"`
+	BkAppAbbr           string                   `json:"bkAppAbbr"`
+	BkAppCode           string                   `json:"bkAppCode"`
+	Status              string                   `json:"status"`
+	Description         string                   `json:"description"`
+	CreatedBy           string                   `json:"createdBy"`
+	CreatedAt           time.Time                `json:"createdAt"`
+	UpdatedBy           string                   `json:"updatedBy"`
+	UpdatedAt           time.Time                `json:"updatedAt"`
 }

@@ -35,10 +35,10 @@ type ClusterRequestRecordProvider interface {
 	DeleteRequestRecordByID(id uint64) (uint64, error)
 	FindRequestRecordByID(id uint64) (*entitys.ClusterRequestRecordEntity, error)
 	UpdateRequestRecord(entity *entitys.ClusterRequestRecordEntity) (uint64, error)
-	FindRecordsByParams(params map[string]interface{}) ([]entitys.ClusterRequestRecordEntity, error)
+	FindRecordsByParams(params map[string]interface{}) ([]*entitys.ClusterRequestRecordEntity, error)
 	ListRecords(params map[string]interface{},
 		pagination *entity.Pagination,
-	) ([]entitys.ClusterRequestRecordEntity, uint64, error)
+	) ([]*entitys.ClusterRequestRecordEntity, uint64, error)
 }
 
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
@@ -50,13 +50,13 @@ type ClusterRequestRecordProviderImpl struct {
 func (k *ClusterRequestRecordProviderImpl) ListRecords(
 	params map[string]interface{},
 	pagination *entity.Pagination,
-) ([]entitys.ClusterRequestRecordEntity, uint64, error) {
+) ([]*entitys.ClusterRequestRecordEntity, uint64, error) {
 	recordModels, count, err := k.dbAccess.ListByPage(params, pagination)
 	if err != nil {
 		slog.Error("Failed to list record", "error", err)
 		return nil, 0, err
 	}
-	var recordEntities []entitys.ClusterRequestRecordEntity
+	var recordEntities []*entitys.ClusterRequestRecordEntity
 	if err := copier.Copy(&recordEntities, recordModels); err != nil {
 		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, 0, err
@@ -67,14 +67,14 @@ func (k *ClusterRequestRecordProviderImpl) ListRecords(
 
 // FindRecordsByParams 通过参数查询 request record
 func (k *ClusterRequestRecordProviderImpl) FindRecordsByParams(params map[string]interface{}) (
-	[]entitys.ClusterRequestRecordEntity,
+	[]*entitys.ClusterRequestRecordEntity,
 	error,
 ) {
 	recordModels, err := k.dbAccess.FindByParams(params)
 	if err != nil {
 		return nil, err
 	}
-	var recordEntities []entitys.ClusterRequestRecordEntity
+	var recordEntities []*entitys.ClusterRequestRecordEntity
 	if err := copier.Copy(&recordEntities, recordModels); err != nil {
 		return nil, err
 	}

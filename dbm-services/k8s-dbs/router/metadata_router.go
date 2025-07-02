@@ -121,7 +121,8 @@ func buildOpsMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 // buildClusterMetaRouter clusterMeta 管理路由构建
 func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess)
+	addonMetaAdAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess, addonMetaAdAccess)
 	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
 	clusterMetaGroup := metaRouter.Group("/cluster")
 	{

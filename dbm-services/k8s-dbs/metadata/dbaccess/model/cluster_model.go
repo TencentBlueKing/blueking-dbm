@@ -29,6 +29,7 @@ type K8sCrdClusterModel struct {
 	ID                  uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	AddonID             uint64    `gorm:"not null;column:addon_id" json:"addonId"`
 	AddonClusterVersion string    `gorm:"size:32;column:addoncluster_version" json:"addonClusterVersion"`
+	TopoName            string    `gorm:"size:32;column:topo_name" json:"topoName"`
 	K8sClusterConfigID  uint64    `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
 	RequestID           string    `gorm:"not null;column:request_id" json:"requestId"`
 	ClusterName         string    `gorm:"size:32;not null;column:cluster_name" json:"clusterName"`

@@ -347,5 +347,5 @@ func (a *AddonProvider) getStorageAddon(entity *pventity.AddonEntity) (*provdere
 			"addon_type", entity.AddonType, "addon_version", entity.AddonVersion)
 		return nil, err
 	}
-	return &saEntities[0], nil
+	return saEntities[0], nil
 }

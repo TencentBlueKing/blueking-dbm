@@ -32,7 +32,7 @@ import (
 // ComponentOperationProvider 定义 component operation 业务逻辑层访问接口
 type ComponentOperationProvider interface {
 	CreateComponentOperation(entity *entitys.ComponentOperationEntity) (*entitys.ComponentOperationEntity, error)
-	ListComponentOperations(pagination entity.Pagination) ([]entitys.ComponentOperationEntity, error)
+	ListComponentOperations(pagination entity.Pagination) ([]*entitys.ComponentOperationEntity, error)
 }
 
 // ComponentOperationProviderImpl ComponentOperationProvider 具体实现
@@ -66,7 +66,7 @@ func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entity
 
 // ListComponentOperations 获取 component operation 列表
 func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination entity.Pagination) (
-	[]entitys.ComponentOperationEntity,
+	[]*entitys.ComponentOperationEntity,
 	error,
 ) {
 	componentOpModels, _, err := o.componentOpDBAccess.ListByPage(pagination)
@@ -74,7 +74,7 @@ func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination enti
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	var componentOpEntities []entitys.ComponentOperationEntity
+	var componentOpEntities []*entitys.ComponentOperationEntity
 	if err := copier.Copy(&componentOpEntities, componentOpModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
