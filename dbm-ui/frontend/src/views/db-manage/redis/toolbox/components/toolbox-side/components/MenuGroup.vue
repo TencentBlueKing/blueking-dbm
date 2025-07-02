@@ -66,7 +66,6 @@
   import { encodeRegexp, messageSuccess } from '@utils';
 
   interface Props {
-    activeViewName: string;
     draggable: boolean;
     id: string;
     serachKey: string;
@@ -74,17 +73,45 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-  const router = useRouter();
-  const userProfileStore = useUserProfile();
-  const eventBus = useEventBus();
-
   const favorMap = defineModel<Record<string, boolean>>('favorMap', {
     required: true,
   });
 
+  const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const userProfileStore = useUserProfile();
+  const eventBus = useEventBus();
+
   const menuChildList = _.flatten(MenuConfig.map((item) => item.menuList));
   const currentConfig = _.find(menuChildList, (item) => item.id === props.id);
+
+  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item)=>{
+    if ('bind' in item && item.bind) {
+      item.bind.forEach(routerName=>{
+        Object.assign(acc, {
+          [routerName]: item
+        })
+      })
+    }
+    Object.assign(acc, {
+      [item.id]: item
+    })
+    return acc
+  }, {})
+
+  const activeViewName = ref('');
+
+  watch(
+    route,
+    () => {
+      const routeName = route.name as string || ''
+      activeViewName.value = configChildrenMap[routeName]?.id;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const calcRender = (payload: MenuChild) => {
     if (!props.serachKey) {

@@ -57,28 +57,55 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import MenuConfig from '@views/db-manage/mongodb/toolbox-menu';
+  import MenuConfig, { type MenuChild } from '@views/db-manage/mongodb/toolbox-menu';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
-    activeViewName: string;
     draggable: boolean;
     id: string;
   }
 
   const props = defineProps<Props>();
 
+  const favorMap = defineModel<Record<string, boolean>>('favorMap', {
+    required: true,
+  });
+  
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
   const userProfileStore = useUserProfile();
   const eventBus = useEventBus();
 
-  const favorMap = defineModel<Record<string, boolean>>('favorMap', {
-    required: true,
-  });
-
   const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
+
+  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item)=>{
+    if ('bind' in item && Array.isArray(item.bind)) {
+        item.bind.forEach(routerName=>{
+          Object.assign(acc, {
+            [routerName]: item
+          })
+        })
+      }
+      Object.assign(acc, {
+        [item.id]: item
+      })
+      return acc
+    }, {})
+
+  const activeViewName = ref('');
+
+  watch(
+    route,
+    () => {
+      const routeName = route.name as string || ''
+      activeViewName.value = configChildrenMap[routeName]?.id;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleRouterChange = (routerName: string) => {
     router.push({
