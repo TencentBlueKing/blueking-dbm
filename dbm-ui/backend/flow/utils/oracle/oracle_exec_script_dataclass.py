@@ -150,7 +150,7 @@ class ExecuteScriptActKwargs:
                 "file_path": self.work_path,
                 "payload": {
                     "app": self.app,
-                    "taskid": self.payload["uid"],
+                    "taskid": str(self.payload["uid"]),
                     "ip": ip,
                     "port": str(port),
                     "servicename": info["service_name"],

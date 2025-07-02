@@ -130,6 +130,7 @@ class MongoDBCapcityMetaService(BaseService):
 
     @transaction.atomic
     def mongo_package_meta(self, cluster, rep_insts, created_by):
+        new_objs, ins_is_increment = [], False
         for inst_pair in rep_insts:
             old_ip, old_port = inst_pair["old"]["ip"], inst_pair["old"]["port"]
             new_ip, new_port = inst_pair["new"]["ip"], inst_pair["new"]["port"]
@@ -191,13 +192,13 @@ class MongoDBCapcityMetaService(BaseService):
                 old_tuple = StorageInstanceTuple.objects.get(receiver=old_obj)
                 StorageInstanceTuple.objects.create(ejector=old_tuple.ejector, receiver=new_obj, creator=created_by)
                 old_tuple.delete()
+            new_objs.append(new_obj)
             # 转移模块
-            ins_is_increment = False
             if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
                 ins_is_increment = True
-            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
-                instances=[new_obj], is_increment=ins_is_increment
-            )
+        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+            instances=new_objs, is_increment=ins_is_increment
+        )
 
     # 流程节点输入参数
     def inputs_format(self) -> List:
