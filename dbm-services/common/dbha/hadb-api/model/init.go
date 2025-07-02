@@ -21,6 +21,32 @@ type Database struct {
 // HADB TODO
 var HADB *Database
 
+// SQLModePlugin set sql_mode
+type SQLModePlugin struct{}
+
+// Name plugin name
+func (p *SQLModePlugin) Name() string {
+	return "sql_mode_plugin"
+}
+
+// Initialize plugin init
+func (p *SQLModePlugin) Initialize(db *gorm.DB) error {
+	//register callback
+	callback := db.Callback()
+	callback.Create().Before("gorm:create").Register("set_sql_mode", setSQLMode)
+	callback.Update().Before("gorm:update").Register("set_sql_mode", setSQLMode)
+	callback.Query().Before("gorm:query").Register("set_sql_mode", setSQLMode)
+	callback.Delete().Before("gorm:delete").Register("set_sql_mode", setSQLMode)
+	return nil
+}
+
+// setSQLMode set sql_mode to ”
+func setSQLMode(db *gorm.DB) {
+	if db.Statement.ConnPool != nil {
+		db.Exec("SET sql_mode = ''")
+	}
+}
+
 // InitHaDB TODO
 func InitHaDB() *gorm.DB {
 	err := DoCreateDBIfNotExist()
@@ -129,5 +155,8 @@ func GenerateGormConfig() *gorm.Config {
 
 	return &gorm.Config{
 		NowFunc: nowFunc,
+		Plugins: map[string]gorm.Plugin{
+			"sql_mode_plugin": &SQLModePlugin{},
+		},
 	}
 }
