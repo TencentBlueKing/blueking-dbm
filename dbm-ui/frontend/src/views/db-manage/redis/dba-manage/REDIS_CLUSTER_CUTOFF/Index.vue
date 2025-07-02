@@ -92,6 +92,7 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -172,31 +173,38 @@
     if (!result) {
       return;
     }
+    const sameClusters = _.groupBy(formData.tableData, (item)=>item.host.master_domain);
+
+    const infos = Object.values(sameClusters).map((sameRows) => {
+      const info = {
+        bk_biz_id: sameRows[0].host.bk_biz_id,
+        bk_cloud_id: sameRows[0].host.bk_cloud_id,
+        cluster_ids: sameRows[0].host.cluster_ids,
+        proxy: [],
+        redis_master: [],
+        redis_slave: []
+      };
+      sameRows.forEach((item) => {
+        const spec = {
+          bk_host_id: item.host.bk_host_id,
+          ip: item.host.ip,
+          spec_id: item.host.spec_config.id,
+        };
+        const list = info[
+          item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
+        ];
+        _.merge(info, {
+          [item.host.role]: [...list, spec],
+        });
+      });
+      return info;
+    });
+
     createTicketRun({
-      bizIdExtractor: (item) => item.host.bk_biz_id,
-      data: formData.tableData,
+      bizIdExtractor: (item) => item.bk_biz_id,
+      data: infos,
       detailsExtractor: (item) => ({
-        infos: [
-          {
-            bk_cloud_id: item.host.bk_cloud_id,
-            cluster_ids: item.host.cluster_ids,
-            proxy: item.host.role === 'proxy' ? [{
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-              spec_id: item.host.spec_config.id
-            }] : [],
-            redis_master: item.host.role === 'redis_master' ? [{
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-              spec_id: item.host.spec_config.id
-            }] : [],
-            redis_slave: item.host.role === 'redis_slave' ? [{
-              bk_host_id: item.host.bk_host_id,
-              ip: item.host.ip,
-              spec_id: item.host.spec_config.id
-            }] : [],
-          },
-        ],
+        infos: [item],
         ip_source: 'resource_pool',
       }),
       ticketPayload: formData.ticketPayload,
