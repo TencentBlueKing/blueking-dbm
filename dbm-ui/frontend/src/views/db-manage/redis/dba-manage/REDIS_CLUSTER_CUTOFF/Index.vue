@@ -190,11 +190,7 @@
               ip: item.host.ip,
               spec_id: item.host.spec_config.id
             }] : [],
-            redis_slave: item.host.related_slave?.bk_host_id ? [{
-              bk_host_id: item.host.related_slave.bk_host_id,
-              ip: item.host.related_slave.ip,
-              spec_id: item.host.related_slave.spec_config.id
-            }] : item.host.role === 'redis_slave' ? [{
+            redis_slave: item.host.role === 'redis_slave' ? [{
               bk_host_id: item.host.bk_host_id,
               ip: item.host.ip,
               spec_id: item.host.spec_config.id
