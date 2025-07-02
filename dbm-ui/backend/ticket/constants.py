@@ -757,16 +757,22 @@ class FlowMsgStatus(str, StructuredEnum):
 class TicketExpireType(str, StructuredEnum):
     """单据过期类型"""
 
-    ITSM = EnumField("itsm_expire", _("审批过期"))
-    INNER_FLOW = EnumField("inner_flow_expire", _("执行过期"))
-    FLOW_TODO = EnumField("flow_todo_expire", _("单据流程todo过期"))
+    PAUSE = EnumField("pause", _("待确认"))
+    ITSM = EnumField("itsm_expire", _("审批过期"))  # 待审批
+    INNER_FLOW = EnumField("inner_flow_expire", _("执行过期"))  # 已失败
+    FLOW_TODO = EnumField("flow_todo_expire", _("单据流程todo过期"))  # 待继续
+    TIMER = EnumField("timer", _("定时中"))
+    RESOURCE_REPLENISH = EnumField("resource_replenish", _("待补货"))
 
 
 # 【单据超时保护配置】
 TICKET_EXPIRE_DEFAULT_CONFIG = {
     TicketExpireType.ITSM: -1,
+    TicketExpireType.PAUSE: -1,
+    TicketExpireType.TIMER: -1,
     TicketExpireType.FLOW_TODO: -1,
     TicketExpireType.INNER_FLOW: -1,
+    TicketExpireType.RESOURCE_REPLENISH: -1,
 }
 
 FLOW_TYPE__EXPIRE_TYPE_CONFIG = {

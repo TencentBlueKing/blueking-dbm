@@ -28,6 +28,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
+    FLOW_TASK_TYPES,
     TICKET_EXPIRE_DEFAULT_CONFIG,
     TODO_RUNNING_STATUS,
     FlowErrCode,
@@ -226,21 +227,31 @@ class TicketTask(object):
 
         def filter_tickets(expire_type):
             ticket_ids = []
-            # itsm: 审批中的流程
+            flow_filters = None
+            todo_filters = None
+            # 待审批
             if expire_type == TicketExpireType.ITSM:
-                filters = Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
-                ticket_ids = list(Flow.objects.filter(filters).values_list("ticket", flat=True))
-            # inner flow / pipeline: 失败的流程和pipeline暂停节点(防止重试)
+                flow_filters = Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
+            # 待确认
+            elif expire_type == TicketExpireType.PAUSE:
+                flow_filters = Q(flow_type=FlowType.PAUSE, status=TicketFlowStatus.RUNNING)
+            # 已失败
             elif expire_type == TicketExpireType.INNER_FLOW:
-                filters = Q(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED)
-                ticket_ids = list(Flow.objects.filter(filters).values_list("ticket", flat=True))
-
-                filters = Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
-                ticket_ids.extend(list(Todo.objects.filter(filters).values_list("ticket", flat=True)))
-            # flow-pause: 流程中的暂定节点
+                flow_filters = Q(flow_type__in=FLOW_TASK_TYPES, status=TicketFlowStatus.FAILED)
+            # 待继续
             elif expire_type == TicketExpireType.FLOW_TODO:
-                filters = Q(type__in=[TodoType.APPROVE, TodoType.RESOURCE_REPLENISH], status__in=TODO_RUNNING_STATUS)
-                ticket_ids = list(Todo.objects.filter(filters).values_list("ticket", flat=True))
+                todo_filters = Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
+            # 定时中
+            elif expire_type == TicketExpireType.TIMER:
+                todo_filters = Q(type=TodoType.TIMER, status__in=TODO_RUNNING_STATUS)
+            # 待补货
+            elif expire_type == TicketExpireType.RESOURCE_REPLENISH:
+                todo_filters = Q(type=TodoType.RESOURCE_REPLENISH, status__in=TODO_RUNNING_STATUS)
+
+            if flow_filters:
+                ticket_ids = list(Flow.objects.filter(flow_filters).values_list("ticket", flat=True))
+            elif todo_filters:
+                ticket_ids = list(Todo.objects.filter(todo_filters).values_list("ticket", flat=True))
 
             return ticket_ids
 
@@ -253,7 +264,9 @@ class TicketTask(object):
                 if ticket["ticket_type"] not in ticket_type__config:
                     continue
                 cnf = ticket_type__config[ticket["ticket_type"]]
-                expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
+                expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, {}).get(
+                    expire_type
+                ) or TICKET_EXPIRE_DEFAULT_CONFIG.get(expire_type)
                 # -1表示无限制，不参与终止
                 if expire > 0 and ticket["update_at"] < now - timedelta(days=expire):
                     expire_ticket_ids.append(ticket["id"])
@@ -269,7 +282,9 @@ class TicketTask(object):
                     if ticket["ticket_type"] not in ticket_type__config:
                         continue
                     cnf = ticket_type__config[ticket["ticket_type"]]
-                    expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
+                    expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, {}).get(
+                        expire_type
+                    ) or TICKET_EXPIRE_DEFAULT_CONFIG.get(expire_type)
                     # -1表示无限制，不参与提醒
                     if expire < 0:
                         continue
