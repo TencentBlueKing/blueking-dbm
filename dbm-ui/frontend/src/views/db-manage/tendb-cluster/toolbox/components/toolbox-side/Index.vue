@@ -39,7 +39,6 @@
               <RenderMenuGroup
                 :id="element.id"
                 v-model:favor-map="favorRouteNameMap"
-                :active-view-name="activeViewName"
                 :draggable="!Boolean(serachKey)"
                 :serach-key="serachKey" />
             </template>
@@ -66,26 +65,14 @@
   import RenderMenuGroup from './components/MenuGroup.vue';
 
   const { t } = useI18n();
-  const route = useRoute();
   const userProfileStore = useUserProfile();
 
-  const activeViewName = ref('');
   const menuGroupIdList = menusConfig.map((item) => item.id);
 
   const serachKey = useDebouncedRef('');
   const activeCollapses = ref([...menuGroupIdList]);
   const allRenderMenuGroupList = ref<Record<'id' | 'name', string>[]>([]);
   const favorRouteNameMap = ref<Record<string, boolean>>({});
-
-  watch(
-    route,
-    () => {
-      activeViewName.value = route.name as string;
-    },
-    {
-      immediate: true,
-    },
-  );
 
   watch(
     () => serachKey,

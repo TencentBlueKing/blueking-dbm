@@ -62,14 +62,13 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import MenuConfig from '@views/db-manage/mysql/toolbox-menu';
+  import MenuConfig, { type MenuChild } from '@views/db-manage/mysql/toolbox-menu';
 
   import { encodeRegexp, messageSuccess } from '@utils';
 
   import TaskCount from './TaskCount.vue';
 
   interface Props {
-    activeViewName: string;
     draggable: boolean;
     id: string;
     serachKey: string;
@@ -77,16 +76,44 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-  const router = useRouter();
-  const userProfileStore = useUserProfile();
-  const eventBus = useEventBus();
-
   const favorMap = defineModel<Record<string, boolean>>('favorMap', {
     required: true,
   });
 
+  const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const userProfileStore = useUserProfile();
+  const eventBus = useEventBus();
+
   const currentConfig = _.find(MenuConfig, (item) => item.id === props.id);
+
+  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item)=>{
+    if (item.bind) {
+      item.bind.forEach(routerName=>{
+        Object.assign(acc, {
+          [routerName]: item
+        })
+      })
+    }
+    Object.assign(acc, {
+      [item.id]: item
+    })
+    return acc
+  }, {})
+
+  const activeViewName = ref('');
+
+  watch(
+    route,
+    () => {
+      const routeName = route.name as string || ''
+      activeViewName.value = configChildrenMap[routeName]?.id;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const calcRender = (payload: (typeof MenuConfig)[number]['children'][number]) => {
     if (!props.serachKey) {
