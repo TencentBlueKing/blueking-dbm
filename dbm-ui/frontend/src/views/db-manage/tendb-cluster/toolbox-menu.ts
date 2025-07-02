@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[]
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -87,6 +88,7 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
+        bind: [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE],
         id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',
@@ -156,6 +158,7 @@ export default [
         parentId: 'spider_fileback',
       },
       {
+        bind: ['spiderFlashback', TicketTypes.TENDBCLUSTER_FLASHBACK],
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
         id: 'spiderFlashback',
         name: t('闪回'),
