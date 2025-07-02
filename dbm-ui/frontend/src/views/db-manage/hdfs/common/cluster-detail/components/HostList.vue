@@ -83,6 +83,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -249,6 +250,21 @@
       cluster_ids: `${props.clusterData.id}`,
     });
 
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          tableRef.value?.getData<HdfsMachineModel>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
+
   const searchSelectData = [
     {
       id: 'ip',
@@ -294,7 +310,7 @@
     } else {
       // 其它类型的节点数不能全部被缩容，至少保留一个
       let dataNodeNum = 0;
-      (tableRef.value.getData() as HdfsMachineModel[]).forEach((nodeItem) => {
+      tableRef.value!.getData<HdfsMachineModel>().forEach((nodeItem) => {
         if (nodeItem.isDataNode) {
           dataNodeNum = dataNodeNum + 1;
         }
@@ -327,7 +343,7 @@
     return options;
   };
 
-  const tableRef = ref();
+  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -368,7 +384,7 @@
 
     // 其它类型的节点数不能全部被缩容，至少保留一个
     let dataNodeNum = 0;
-    (tableRef.value.getData() as HdfsMachineModel[]).forEach((machineItem) => {
+    tableRef.value!.getData<HdfsMachineModel>().forEach((machineItem) => {
       if (selectedMachineMap.value[machineItem.bk_host_id]) {
         return;
       }
@@ -436,12 +452,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value.getData());
+    copyAllIp(tableRef.value!.getData<HdfsMachineModel>());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value.getData());
+    copyNotAliveIp(tableRef.value!.getData<HdfsMachineModel>());
   };
 
   // 复制已选 IP

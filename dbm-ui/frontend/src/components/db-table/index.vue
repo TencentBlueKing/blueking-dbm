@@ -405,7 +405,9 @@
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
   };
 
+  let daymicTimer: NodeJS.Timeout;
   const fetchListData = (loading = true) => {
+    clearTimeout(daymicTimer);
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -429,14 +431,17 @@
         .dataSource(params, payload)
         .then((data) => {
           bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
-          data.results.length > 20 &&
-            setTimeout(() => {
+          if (data.results.length > 20) {
+            daymicTimer = setTimeout(() => {
               bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
-              data.results.length > 50 &&
-                setTimeout(() => {
+              if (data.results.length > 50) {
+                daymicTimer = setTimeout(() => {
                   bkTableRef.value.getVxeTableInstance().loadData(data.results);
                 }, 3000);
+              }
             }, 1500);
+          }
+
           tableData.value = data;
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();

@@ -87,6 +87,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -253,7 +254,7 @@
     } else {
       // 其它类型的节点数不能全部被缩容，至少保留一个
       let brokerNum = 0;
-      (tableRef.value.getData() as KafkaMachineModel[]).forEach((nodeItem) => {
+      tableRef.value!.getData<KafkaMachineModel>().forEach((nodeItem) => {
         if (nodeItem.isBroker) {
           brokerNum = brokerNum + 1;
         }
@@ -283,7 +284,20 @@
       ...params,
       cluster_ids: `${props.clusterData.id}`,
     });
-
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          tableRef.value!.getData<KafkaMachineModel>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
   const searchSelectData = [
     {
       id: 'ip',
@@ -314,7 +328,7 @@
 
   const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
-  const tableRef = ref();
+  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -353,7 +367,7 @@
       return options;
     }
     let brokerNum = 0;
-    (tableRef.value.getData() as KafkaMachineModel[]).forEach((nodeItem) => {
+    tableRef.value!.getData<KafkaMachineModel>().forEach((nodeItem) => {
       if (selectedMachineMap.value[nodeItem.bk_host_id]) {
         return;
       }
@@ -397,12 +411,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value.getData());
+    copyAllIp(tableRef.value!.getData<KafkaMachineModel>());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value.getData());
+    copyNotAliveIp(tableRef.value!.getData<KafkaMachineModel>());
   };
 
   // 复制已选 IP
