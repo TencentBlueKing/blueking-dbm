@@ -74,6 +74,7 @@
       related_slave?: {
         ip: string;
       }
+      role: string;
     }[];
   }
 
@@ -202,6 +203,13 @@
       immediate: true,
     },
   );
+
+  watch(()=>props.selected, ()=>{
+    dataList.value = props.selected.map((item)=>({
+      instance_role: item.role,
+      ip: item.ip
+    } as IValue))
+  })
 </script>
 <style lang="less" scoped>
   .batch-host-select {

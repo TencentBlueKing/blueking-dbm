@@ -215,7 +215,6 @@
         redis_master: [],
         redis_slave: [],
       } as unknown as TicketDetail['infos'][0];
-      const needDeleteSlaves: string[] = [];
       sameRows.forEach((item) => {
         const spec = {
           bk_host_id: item.host.bk_host_id,
@@ -228,15 +227,7 @@
         _.merge(info, {
           [item.host.role]: [...list, spec],
         });
-        if (item.host.role === 'redis_master') {
-          const deleteSlaveIp = item.host.related_slave?.ip;
-          if (deleteSlaveIp) {
-            needDeleteSlaves.push(deleteSlaveIp);
-          }
-        }
       });
-      // 当选择了master的时候，过滤对应的slave
-      info.redis_slave = info.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
       return info;
     });
 
