@@ -15,6 +15,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   id: string;
   name: string;
   parentId: string;

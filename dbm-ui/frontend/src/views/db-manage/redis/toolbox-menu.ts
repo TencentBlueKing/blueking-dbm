@@ -37,6 +37,7 @@ export default [
       {
         children: [
           {
+            bind: [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE],
             dbConsoleValue: 'redis.toolbox.keyExtract',
             id: TicketTypes.REDIS_KEYS_EXTRACT,
             name: t('Key 操作'),
@@ -73,6 +74,7 @@ export default [
             parentId: 'common-manage',
           },
           {
+            bind: [TicketTypes.REDIS_CLUSTER_INS_MIGRATE, TicketTypes.REDIS_SINGLE_INS_MIGRATE],
             dbConsoleValue: 'redis.toolbox.migrate',
             id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
             name: t('迁移'),
