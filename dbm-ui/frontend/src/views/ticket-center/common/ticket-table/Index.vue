@@ -4,13 +4,14 @@
     :loading="isLoading">
     <div ref="tableWrapper">
       <BkTable
-        :data="dataList"
+        ref="table"
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :row-class="rowClass"
         :row-config="{
           useKey: true,
           keyField: 'id',
+          isHover: true,
         }"
         :settings="tableSettings"
         :show-overflow="false"

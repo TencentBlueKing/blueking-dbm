@@ -86,6 +86,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -213,6 +214,21 @@
       ...params,
       cluster_id: props.clusterId,
     });
+
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'role') {
+        return _.uniqBy(
+          dbTable.value?.getData<IColumnData>().map((item) => ({
+            id: item.role,
+            name: item.role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
 
   const dbTable = useTemplateRef('dbTable');
   const primaryTagMap = shallowRef<Record<string, boolean>>({});

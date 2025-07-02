@@ -95,6 +95,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
         unique-select
@@ -113,9 +114,17 @@
       <BkTableColumn
         field="instance_domain"
         :min-width="300"
-        :title="t('所属集群')">
+        :title="t('域名')">
         <template #default="{ data }: { data: MongodbInstanceModel }">
           {{ data.instance_domain || '--' }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="shard"
+        :min-width="300"
+        :title="t('分片名')">
+        <template #default="{ data }: { data: MongodbInstanceModel }">
+          {{ data.shard || '--' }}
         </template>
       </BkTableColumn>
       <InstanceListFieldColumn />
@@ -166,6 +175,10 @@
 
   const searchSelectData = [
     {
+      id: 'instance',
+      name: t('实例'),
+    },
+    {
       id: 'ip',
       name: 'IP',
     },
@@ -193,7 +206,7 @@
       name: t('状态'),
     },
     {
-      id: 'instance_role',
+      id: 'role',
       name: t('部署角色'),
     },
     {
@@ -208,6 +221,21 @@
       cluster_id: props.clusterId,
       cluster_type: props.clusterType,
     });
+
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'role') {
+        return _.uniqBy(
+          dbTable.value?.getData<MongodbInstanceModel>().map((item) => ({
+            id: item.role,
+            name: item.role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
 
   const dbTable = useTemplateRef('dbTable');
   const selectedList = shallowRef<MongodbInstanceModel[]>([]);

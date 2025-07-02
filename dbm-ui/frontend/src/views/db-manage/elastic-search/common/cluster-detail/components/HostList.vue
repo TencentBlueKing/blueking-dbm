@@ -88,6 +88,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -276,6 +277,21 @@
     },
   ];
 
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'instance_role') {
+        return _.uniqBy(
+          tableRef.value?.getData<EsMachineModel>().map((item) => ({
+            id: item.instance_role,
+            name: item.instance_role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
+
   const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
 
   const checkNodeShrinkDisable = (node: EsMachineModel) => {
@@ -297,7 +313,7 @@
       let clientNodeNum = 0;
       let hotNodeNum = 0;
       let coldNodeNum = 0;
-      (tableRef.value.getData() as EsMachineModel[]).forEach((nodeItem) => {
+      tableRef.value!.getData<EsMachineModel>().forEach((nodeItem) => {
         if (nodeItem.isClient) {
           clientNodeNum = clientNodeNum + 1;
         } else if (nodeItem.isHot) {
@@ -325,7 +341,7 @@
     return options;
   };
 
-  const tableRef = ref();
+  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -373,7 +389,7 @@
     let hotNodeNum = 0;
     let coldNodeNumTotal = 0;
     let coldNodeNum = 0;
-    (tableRef.value.getData() as EsMachineModel[]).forEach((nodeItem) => {
+    tableRef.value!.getData<EsMachineModel>().forEach((nodeItem) => {
       if (nodeItem.isHot) {
         hotNodeNumTotal = hotNodeNumTotal + 1;
       } else if (nodeItem.isCold) {
@@ -425,12 +441,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value.getData());
+    copyAllIp(tableRef.value!.getData<EsMachineModel>());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value.getData());
+    copyNotAliveIp(tableRef.value!.getData<EsMachineModel>());
   };
 
   // 复制已选 IP
