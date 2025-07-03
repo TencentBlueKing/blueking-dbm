@@ -21,7 +21,9 @@
       {{ ticketDetails.db_app_abbr || '--' }}
     </InfoItem>
   </InfoList>
-  <RegionRequirements :details="ticketDetails.details" />
+  <RegionRequirements
+    v-if="!isAppend"
+    :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
   <InfoList>
     <InfoItem :label="t('业务英文名')">
@@ -58,7 +60,7 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      style="width: 100%">
+      style="flex: 1 0 100%">
       <BkTable :data="tableData">
         <BkTableColumn
           field="mainDomain"
@@ -84,6 +86,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
@@ -109,14 +112,48 @@
 
   const { db_app_abbr: appAbbr, details } = props.ticketDetails;
   const { append_apply: isAppend, infos, port = 0, resource_spec: resourceSpec } = details;
-  const backendSpec = resourceSpec.backend_group;
+  const backendSpec = resourceSpec?.backend_group;
+
+  let portType = '' as string | number[];
+  if (!isAppend) {
+    const clusterCount = infos.length;
+    const groupCount = infos.length / (resourceSpec?.backend_group.count || 0);
+
+    if (clusterCount % groupCount !== 0) {
+      portType = '';
+    }
+    if (clusterCount === groupCount) {
+      portType = 'increment'; // 递增端口号
+    }
+    if (groupCount === 1) {
+      portType = 'same'; // 端口号相同
+    }
+    const ports = Array(groupCount)
+      .fill(0)
+      .map((_, index) => port + index);
+    const groups = clusterCount / groupCount;
+    portType = _.flatMap(
+      Array(groups)
+        .fill(0)
+        .map(() => ports),
+    );
+  }
+
+  const getMasterDomain = (index: number, clusterName: string) => {
+    if (typeof portType === 'string') {
+      return `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${portType === 'increment' ? port + index : port}`}`;
+    }
+    return `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${portType.length === infos.length ? portType[index] : ''}`}`;
+  };
+
   const tableData = infos.map((infoItem, index) => {
     const { cluster_name: clusterName } = infoItem;
     return {
       databases: infoItem.databases,
-      mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
+      // mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
+      mainDomain: getMasterDomain(index, clusterName),
       masterIp: infoItem.backend_group?.master.ip,
-      slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
+      // slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
       slaveIp: infoItem.backend_group?.slave.ip,
     };
   });
