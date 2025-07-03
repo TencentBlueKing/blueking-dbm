@@ -424,17 +424,21 @@ class ClusterServiceHandler:
                 "show variables like 'character_set_server';",
                 "show variables like 'character_set_database';",
                 "show variables like 'max_connections';",
+                "show variables like 'spider_max_connections';",
                 "show variables like 'log_bin';",
                 "show variables like 'binlog_format';",
                 "show variables like 'long_query_time';",
+                "show variables like 'lower_case_table_names';",
+                "show variables like 'slave_parallel_threads';",
                 "show variables like 'innodb_buffer_pool_size';",
                 "show variables like 'innodb_data_file_path';",
             ],
             "show slave status": ["show slave status;"],
         }
+        standard_cmd = " ".join(cmd.split()).lower()
         cmds = []
         for special in special_sql:
-            if " ".join(cmd.split()).lower().startswith(special):
+            if standard_cmd.startswith(special):
                 cmds = special_sql[special]
 
         instance_rpc_results: List = []
@@ -443,7 +447,7 @@ class ClusterServiceHandler:
             cmd_results = [
                 {
                     "instance": res["address"],
-                    "table_data": cls.__merge_drs_result(res),
+                    "table_data": cls.__merge_drs_result(res, standard_cmd) if not res["error_msg"] else None,
                     "error_msg": res["error_msg"],
                 }
                 for res in rpc_results
@@ -461,22 +465,58 @@ class ClusterServiceHandler:
         """
         special_sql = ["show mysql configurations", "show slave status"]
 
-        for specila in special_sql:
-            if " ".join(cmd.split()).lower().startswith(specila):
+        for special in special_sql:
+            if " ".join(cmd.split()).lower().startswith(special):
                 return True
 
         return False
 
     @classmethod
-    def __merge_drs_result(cls, res):
+    def __merge_drs_result(cls, res, cmd):
         """
         用于合并单个实例查询多条sql的结果合并
+        指定主从信息
         @param res:
         @return:
+
         """
         table_data = []
-        for cmd_result in res["cmd_results"]:
-            table_data.extend(cmd_result["table_data"] if not res["error_msg"] else None)
+        merge_data = {}
+        if cmd.startswith("show mysql configurations"):
+            for cmd_result in res["cmd_results"]:
+                # 有的子查询没有结果或者报错，一律跳过 只记录有值的
+                if not cmd_result["error_msg"] and len(cmd_result["table_data"]) > 0:
+                    merge_data.update(
+                        {cmd_result["table_data"][0]["Variable_name"]: cmd_result["table_data"][0]["Value"]}
+                    )
+            table_data.append(merge_data)
+        elif cmd.startswith("show slave status"):
+            k_list = [
+                "Master_Host",
+                "Master_Port",
+                "Master_User",
+                "Slave_IO_State",
+                "Slave_IO_Running",
+                "Slave_SQL_Running",
+                "Seconds_Behind_Master",
+                "Connect_Retry",
+                "Master_File",
+                "Master_Position",
+                "Master_Log_File",
+                "Read_Master_Log_Pos",
+                "Relay_Master_Log_File",
+                "Exec_Master_Log_Pos",
+                "Replicate_Do_DB",
+                "Replicate_Ignore_DB",
+                "Last_Errno",
+                "Last_Error",
+            ]
+            td = res["cmd_results"][0]["table_data"]
+            merge_data.update({k: td[0][k] for k in k_list if len(td) > 0 and k in td[0]})
+            table_data.append(merge_data)
+        else:
+            for cmd_result in res["cmd_results"]:
+                table_data.extend(cmd_result["table_data"] if not cmd_result["error_msg"] else None)
 
         return table_data
 
