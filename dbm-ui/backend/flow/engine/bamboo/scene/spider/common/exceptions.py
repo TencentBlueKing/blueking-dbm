@@ -74,4 +74,9 @@ class NoSpiderVersionException(TenDBClusterFlowBaseException):
 class SpiderVersionInconsistentException(TenDBClusterFlowBaseException):
     ERROR_CODE = "009"
     MESSAGE = _("集群spider版本不一致")
+
+
+class CalcRecycleFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("计算spider_host是否回退资源池失败")
     MESSAGE_TPL = _("{message}")

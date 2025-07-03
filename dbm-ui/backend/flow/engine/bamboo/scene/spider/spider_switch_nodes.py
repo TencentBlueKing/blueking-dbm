@@ -32,6 +32,9 @@ from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_c
     PauseWithTicketLockCheckComponent,
 )
 from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
+from backend.flow.plugins.components.collections.spider.check_if_normal_for_cluster import (
+    CheckIfNormalSpiderNodeComponent,
+)
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.ticket.constants import TicketType
 
@@ -277,3 +280,31 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+
+    def revoke_flow(self):
+        """
+        定义TenDB Cluster替换接入层流程出现异常，终止的流程
+        主要逻辑是根据单据终止后，哪些新机器可以进入主机退回流程中
+        """
+        revoke_pipeline = Builder(root_id=self.root_id, data=self.data)
+
+        acts_list = []
+        for info in self.data["infos"]:
+            acts_list.append(
+                {
+                    "act_name": _("集群ID[{}]计算回收主机".format(info["cluster_id"])),
+                    "act_component_code": CheckIfNormalSpiderNodeComponent.code,
+                    "kwargs": asdict(
+                        CheckIfNormalSpiderNodeComponent.kwargs(
+                            cluster_id=info["cluster_id"],
+                            spider_hosts=info["spider_new_ip_list"],
+                            spider_role=info["switch_spider_role"],
+                            resource_spec=info["resource_spec"],
+                            created_by=self.data["created_by"],
+                        )
+                    ),
+                }
+            )
+
+        revoke_pipeline.add_parallel_acts(acts_list=acts_list)
+        revoke_pipeline.run_pipeline()
