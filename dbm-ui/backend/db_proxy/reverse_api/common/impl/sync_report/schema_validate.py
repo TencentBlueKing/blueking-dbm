@@ -31,3 +31,5 @@ class SyncReportEventSerializer(serializers.Serializer):
                     sr.event_type_cache.append(event_type)
             else:
                 raise serializers.ValidationError(_(f"{event_type} not a registered event type"))
+
+        return attrs
