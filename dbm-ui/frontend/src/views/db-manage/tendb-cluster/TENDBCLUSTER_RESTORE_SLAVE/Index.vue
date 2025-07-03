@@ -33,11 +33,15 @@
         :title="t('新机重建')"
         :true-value="TicketTypes.TENDBCLUSTER_RESTORE_SLAVE" />
     </div>
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -112,6 +116,7 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
@@ -120,6 +125,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
@@ -136,28 +143,45 @@
   const router = useRouter();
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'slave_ip',
+      label: t('目标从库主机'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    newSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newSlave,
-    },
-    slave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: '',
-      spec_id: 0,
-      ...data.slave,
-      related_instances: [] as string[],
-    },
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        ip: '',
+        master_domain: '',
+        related_instances: [] as string[],
+        role: '',
+        spec_id: 0,
+      },
+      data.slave,
+    ),
     specId: data.specId || 0,
   });
 
@@ -171,6 +195,8 @@
     TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
   );
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
@@ -272,5 +298,28 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          labels: item.labels?.split(','),
+          slave: {
+            ip: item.slave_ip,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

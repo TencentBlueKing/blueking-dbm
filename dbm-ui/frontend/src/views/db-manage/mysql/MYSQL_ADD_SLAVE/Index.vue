@@ -17,24 +17,13 @@
       class="mb-20"
       closable
       :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
-      <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
-      <BkRadioGroup
-        v-model="sourceType"
-        class="mb-16"
-        style="width: 450px"
-        type="card"
-        @change="handleChangeMode">
-        <BkRadioButton :label="SourceType.RESOURCE_AUTO">
-          {{ t('资源池自动匹配') }}
-        </BkRadioButton>
-        <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
-          {{ t('资源池手动选择') }}
-        </BkRadioButton>
-      </BkRadioGroup>
       <EditableTable
         :key="tableKey"
         ref="table"
@@ -46,36 +35,18 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
+            allow-repeat
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SpecColumn
-            v-model="item.specId"
-            :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.cluster.spec_id"
-            selectable />
-          <template v-if="sourceType === SourceType.RESOURCE_AUTO">
-            <ResourceTagColumn
-              v-model="item.labels"
-              v-model:selected="item.labelSelected" />
-            <AvailableResourceColumn
-              :params="{
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-                spec_id: item.specId,
-                labels: item.labels.join(','),
-              }" />
-          </template>
-          <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
-            <SingleResourceHostColumn
-              v-model="item.newSlave"
-              field="newSlave.ip"
-              :label="t('新从库主机')"
-              :min-width="150"
-              :params="{
-                for_bizs: [currentBizId, 0],
-                resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-              }" />
-          </template>
+          <SingleResourceHostColumn
+            v-model="item.newSlave"
+            field="newSlave.ip"
+            :label="t('新从库主机')"
+            :min-width="150"
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -113,16 +84,14 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { BackupSourceType, SourceType } from '@services/types';
+  import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -133,10 +102,7 @@
 
   interface RowData {
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
-    specId: number;
   }
 
   const { t } = useI18n();
@@ -144,25 +110,39 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = [
+    {
+      case: 'tendbha.test.dba.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: '192.168.10.2',
+      key: 'new_slave_ip',
+      label: t('新从库主机'),
+    },
+  ];
+
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-      spec_id: 0,
-      ...data.cluster,
-      related_clusters: [] as RowData['cluster']['related_clusters'],
-    },
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    newSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newSlave,
-    },
-    specId: data.specId || 0,
+    cluster: Object.assign(
+      {
+        cluster_type: ClusterTypes.TENDBHA,
+        id: 0,
+        master_domain: '',
+        related_clusters: [] as RowData['cluster']['related_clusters'],
+        spec_id: 0,
+      },
+      data.cluster,
+    ),
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
   });
 
   const defaultData = () => ({
@@ -171,7 +151,6 @@
     tableData: [createTableRow()],
   });
 
-  const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
@@ -242,8 +221,6 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { backup_source: backupSource, clusters, infos } = details;
-      tableKey.value = random();
-      sourceType.value = details.source_type;
       Object.assign(formData, {
         backupSource,
         ...createTickePayload(ticketDetail),
@@ -252,11 +229,9 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
             newSlave: {
               ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
             },
-            specId: item.resource_spec.new_slave.spec_id,
           });
         }),
       });
@@ -269,25 +244,18 @@
       cluster_ids: number[];
       resource_spec: {
         new_slave: {
-          hosts?: {
+          hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
-          label_values?: string[]; // 标签value列表，单据详情回显用
-          labels?: string[]; // 标签id列表
           spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
-    source_type: SourceType;
   }>(TicketTypes.MYSQL_ADD_SLAVE);
-
-  const handleChangeMode = () => {
-    tableKey.value = random();
-  };
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -301,20 +269,12 @@
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           resource_spec: {
             new_slave: {
-              count: 1,
-              hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
-              label_values:
-                sourceType.value === SourceType.RESOURCE_AUTO
-                  ? item.labelSelected.map((item) => item.value)
-                  : undefined,
-              labels:
-                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+              hosts: [item.newSlave],
               spec_id: item.cluster.spec_id,
             },
           },
         })),
         ip_source: 'resource_pool',
-        source_type: sourceType.value,
       },
       ...formData.payload,
     });
@@ -338,6 +298,31 @@
       return acc;
     }, []);
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>
 <style lang="less" scoped>

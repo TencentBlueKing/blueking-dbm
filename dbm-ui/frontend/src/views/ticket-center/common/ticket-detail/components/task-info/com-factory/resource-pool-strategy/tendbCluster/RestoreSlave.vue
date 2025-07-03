@@ -53,7 +53,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('机器规格')"
+      :label="t('规格')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{

@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('扩容接入层：增加集群的Proxy数量')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -38,7 +42,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.cluster.spec_id"
+            :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             selectable />
           <EditableColumn
             field="count"
@@ -58,7 +62,7 @@
             :params="{
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-              spec_id: item.cluster.spec_id,
+              spec_id: item.specId,
               labels: item.labels.join(','),
             }" />
           <OperationColumn
@@ -100,8 +104,9 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
@@ -109,6 +114,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import RoleColumn from './components/RoleColumn.vue';
@@ -126,17 +133,46 @@
   const tableRef = useTemplateRef('table');
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      bk_cloud_id: 0,
-      id: 0,
-      master_domain: '',
-      mnt_count: 0,
-      spec_id: 0,
-      ...data.cluster,
-      spider_master: [] as TendbClusterModel['spider_master'],
-      spider_slave: [] as TendbClusterModel['spider_slave'],
+  const batchInputConfig = [
+    {
+      case: 'spider.tendb-test.1.db',
+      key: 'master_domain',
+      label: t('目标集群'),
     },
+    {
+      case: 'spider_slave',
+      key: 'role',
+      label: t('扩容节点类型'),
+    },
+    {
+      case: '通用proxy配置',
+      key: 'spec_name',
+      label: t('规格'),
+    },
+    {
+      case: '1',
+      key: 'count',
+      label: t('扩容数量（台）'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
+        id: 0,
+        master_domain: '',
+        mnt_count: 0,
+        spider_master: [] as TendbClusterModel['spider_master'],
+        spider_slave: [] as TendbClusterModel['spider_slave'],
+      },
+      data.cluster,
+    ),
     count: data.count || '',
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
@@ -150,6 +186,8 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
@@ -232,5 +270,31 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          count: item.count,
+          labels: item.labels?.split(','),
+          role: (item.role as string).toLocaleLowerCase(),
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

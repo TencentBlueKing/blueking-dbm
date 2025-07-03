@@ -12,9 +12,13 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData"
     :rules="rules">
     <EditableRow
@@ -25,12 +29,12 @@
         :selected="selected"
         :selected-map="selectedMap"
         @batch-edit="handleBatchEdit" />
-      <SpecColumn
-        v-model="item.specId"
-        :cluster-type="DBTypes.MYSQL"
-        :current-spec-id="item.batchCluster.specId"
-        selectable />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <SpecColumn
+          v-model="item.specId"
+          :cluster-type="DBTypes.MYSQL"
+          :current-spec-id="item.batchCluster.specId"
+          selectable />
         <ResourceTagColumn
           v-model="item.labels"
           v-model:selected="item.labelSelected" />
@@ -67,6 +71,7 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -77,10 +82,13 @@
 
   import { DBTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -150,32 +158,79 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: Partial<RowData> = {}) => ({
-    batchCluster: data.batchCluster || {
-      clusters: {},
-      renderText: '',
-      specId: 0,
-    },
+  const batchInputConfig = computed(() => {
+    if (props.sourceType === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: 'tendbha.test.dba.db',
+          key: 'master_domain',
+          label: t('目标集群'),
+        },
+        {
+          case: '2核_4G_50G',
+          key: 'spec_name',
+          label: t('规格'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: 'tendbha.test.dba.db',
+        key: 'master_domain',
+        label: t('目标集群'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_master_ip',
+        label: t('新Master主机'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_slave_ip',
+        label: t('新Slave主机'),
+      },
+    ];
+  });
+
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    batchCluster: Object.assign(
+      {
+        clusters: {} as RowData['batchCluster']['clusters'],
+        renderText: '',
+        specId: 0,
+      },
+      data.batchCluster,
+    ),
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    newMaster: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newMaster,
-    },
-    newSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newSlave,
-    },
+    newMaster: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newMaster,
+    ),
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
     specId: data.specId || 0,
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     tableData.value
@@ -273,15 +328,9 @@
               batchCluster,
               labels: (item.resource_spec.new_master.labels || []).map((label) => Number(label)),
               newMaster: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: 0,
-                bk_host_id: 0,
                 ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
               },
               newSlave: {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: 0,
-                bk_host_id: 0,
                 ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
               },
               specId: item.resource_spec.new_master.spec_id,
@@ -298,14 +347,7 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              clusters: {
-                [item.master_domain]: {
-                  id: item.id,
-                  master_domain: item.master_domain,
-                },
-              },
               renderText: item.master_domain,
-              specId: item.cluster_spec?.spec_id || item.masters?.[0]?.spec_config.id || -1,
             },
           }),
         );
@@ -313,6 +355,36 @@
       return acc;
     }, []);
     tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          batchCluster: {
+            renderText: item.master_domain,
+          },
+          labels: item.labels?.split(','),
+          newMaster: {
+            ip: item.new_master_ip,
+          },
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({

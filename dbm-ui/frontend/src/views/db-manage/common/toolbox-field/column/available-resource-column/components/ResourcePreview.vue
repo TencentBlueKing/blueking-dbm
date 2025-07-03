@@ -25,7 +25,7 @@
           <strong>{{ machineNum }}</strong>
         </I18nT>
         <div class="sub-title">
-          <div class="sub-title-label">{{ t('机器规格') }}:</div>
+          <div class="sub-title-label">{{ t('规格') }}:</div>
           <div class="sub-title-value">{{ specInfo?.spec_name || '--' }}</div>
           <div class="sub-title-label">{{ t('资源标签') }}:</div>
           <div class="sub-title-value">
@@ -176,7 +176,7 @@
       },
     ],
     onSuccess: (data) => {
-      tagList.value = data.results;
+      tagList.value = data.results || [];
     },
   });
 

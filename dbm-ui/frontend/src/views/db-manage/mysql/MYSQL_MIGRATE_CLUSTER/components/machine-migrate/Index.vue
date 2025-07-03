@@ -12,9 +12,13 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData"
     :rules="rules">
     <EditableRow
@@ -24,12 +28,12 @@
         v-model="item.master"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SpecColumn
-        v-model="item.specId"
-        :cluster-type="DBTypes.MYSQL"
-        :current-spec-id="item.master.spec_id"
-        selectable />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <SpecColumn
+          v-model="item.specId"
+          :cluster-type="DBTypes.MYSQL"
+          :current-spec-id="item.master.spec_id"
+          selectable />
         <ResourceTagColumn
           v-model="item.labels"
           v-model:selected="item.labelSelected" />
@@ -76,10 +80,13 @@
 
   import { DBTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+
+  import { random } from '@utils';
 
   import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
@@ -139,40 +146,86 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = computed(() => {
+    if (props.sourceType === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: '192.168.10.2',
+          key: 'master_ip',
+          label: t('目标Master主机'),
+        },
+        {
+          case: '2核_4G_50G',
+          key: 'spec_name',
+          label: t('规格'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: '192.168.10.2',
+        key: 'master_ip',
+        label: t('目标Master主机'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_master_ip',
+        label: t('新Master主机'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_slave_ip',
+        label: t('新Slave主机'),
+      },
+    ];
+  });
+
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    master: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      port: 0,
-      role: '',
-      spec_id: 0,
-      ...data.master,
-      cluster_ids: [] as number[],
-      related_clusters: [] as string[],
-      related_instances: [] as string[],
-    },
-    newMaster: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newMaster,
-    },
-    newSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newSlave,
-    },
+    master: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_ids: [] as number[],
+        ip: '',
+        port: 0,
+        related_clusters: [] as string[],
+        related_instances: [] as string[],
+        role: '',
+        spec_id: 0,
+      },
+      data.master,
+    ),
+    newMaster: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newMaster,
+    ),
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
     specId: data.specId || 0,
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.master.bk_host_id).map((item) => item.master));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
@@ -311,6 +364,36 @@
       return acc;
     }, []);
     tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          labels: item.labels?.split(','),
+          master: {
+            ip: item.master_ip,
+          },
+          newMaster: {
+            ip: item.new_master_ip,
+          },
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({

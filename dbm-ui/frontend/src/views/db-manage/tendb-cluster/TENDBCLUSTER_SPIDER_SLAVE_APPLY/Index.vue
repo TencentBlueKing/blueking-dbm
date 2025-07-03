@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -35,7 +39,6 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.cluster.spec_id"
             selectable />
           <EditableColumn
             field="count"
@@ -55,7 +58,7 @@
             :params="{
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-              spec_id: item.cluster.spec_id,
+              spec_id: item.specId,
               labels: item.labels.join(','),
             }" />
           <OperationColumn
@@ -99,6 +102,7 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
@@ -106,6 +110,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -121,14 +127,38 @@
   const tableRef = useTemplateRef('table');
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      bk_cloud_id: 0,
-      id: 0,
-      master_domain: '',
-      spec_id: 0,
-      ...data.cluster,
+  const batchInputConfig = [
+    {
+      case: 'spider.tendb-test.1.db',
+      key: 'master_domain',
+      label: t('目标集群'),
     },
+    {
+      case: '通用proxy配置',
+      key: 'spec_name',
+      label: t('规格'),
+    },
+    {
+      case: '1',
+      key: 'count',
+      label: t('部署台数'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
+        id: 0,
+        master_domain: '',
+      },
+      data.cluster,
+    ),
     count: data.count || '',
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
@@ -141,6 +171,8 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
@@ -220,5 +252,30 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          count: item.count,
+          labels: item.labels?.split(','),
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

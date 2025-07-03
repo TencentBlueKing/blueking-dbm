@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变）')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -96,12 +100,15 @@
 
   import { Affinity, DBTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import CapacityColumn from './components/capacity-column/Index.vue';
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -117,29 +124,46 @@
   const tableRef = useTemplateRef('table');
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      bk_cloud_id: 0,
-      cluster_capacity: 0,
-      cluster_shard_num: 0,
-      db_module_id: 0,
-      disaster_tolerance_level: Affinity.CROS_SUBZONE,
-      id: 0,
-      machine_pair_cnt: 0,
-      master_domain: '',
-      remote_shard_num: 0,
-      ...data.cluster,
-      cluster_spec: {} as TendbClusterModel['cluster_spec'],
+  const batchInputConfig = [
+    {
+      case: 'spider.tendb-test.1.db',
+      key: 'master_domain',
+      label: t('目标集群'),
     },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    cluster: Object.assign(
+      {
+        bk_cloud_id: 0,
+        cluster_capacity: 0,
+        cluster_shard_num: 0,
+        cluster_spec: {} as TendbClusterModel['cluster_spec'],
+        db_module_id: 0,
+        disaster_tolerance_level: Affinity.CROS_SUBZONE,
+        id: 0,
+        machine_pair_cnt: 0,
+        master_domain: '',
+        remote_shard_num: 0,
+      },
+      data.cluster,
+    ),
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    targetCapacity: {
-      cluster_capacity: 0,
-      machine_pair: 0,
-      spec_id: 0,
-      spec_name: '',
-      ...data.targetCapacity,
-    },
+    targetCapacity: Object.assign(
+      {
+        cluster_capacity: 0,
+        machine_pair: 0,
+        spec_id: 0,
+        spec_name: '',
+      },
+      data.targetCapacity,
+    ),
   });
 
   const defaultData = () => ({
@@ -150,6 +174,8 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
@@ -261,5 +287,28 @@
       return acc;
     }, []);
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          labels: item.labels?.split(','),
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

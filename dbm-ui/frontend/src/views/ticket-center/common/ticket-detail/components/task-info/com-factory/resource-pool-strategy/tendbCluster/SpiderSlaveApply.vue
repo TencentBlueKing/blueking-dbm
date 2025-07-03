@@ -21,7 +21,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('机器规格')"
+      :label="t('规格')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.spider_slave_ip_list.spec_id]?.name || '--' }}
@@ -66,9 +66,10 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
-  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
 
   import { DBTypes, TicketTypes } from '@common/const';
+
+  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSlaveApply>;

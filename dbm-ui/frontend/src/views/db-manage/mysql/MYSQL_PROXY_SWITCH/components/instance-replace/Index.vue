@@ -12,9 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData"
     :rules="rules">
     <EditableRow
@@ -24,14 +27,14 @@
         v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SpecColumn
-        v-model="item.specId"
-        :cluster-type="DBTypes.MYSQL"
-        :current-spec-id="item.originProxy.spec_id"
-        :machine-type="MachineTypes.MYSQL_PROXY"
-        selectable
-        :show-tag="false" />
       <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+        <SpecColumn
+          v-model="item.specId"
+          :cluster-type="DBTypes.MYSQL"
+          :current-spec-id="item.originProxy.spec_id"
+          :machine-type="MachineTypes.MYSQL_PROXY"
+          selectable
+          :show-tag="false" />
         <ResourceTagColumn
           v-model="item.labels"
           v-model:selected="item.labelSelected" />
@@ -70,10 +73,13 @@
 
   import { DBTypes, MachineTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+
+  import { random } from '@utils';
 
   import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
 
@@ -130,32 +136,71 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = computed(() => {
+    if (props.sourceType === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: '192.168.10.2:10000',
+          key: 'instance_address',
+          label: t('目标Proxy实例'),
+        },
+        {
+          case: '2核_4G_50G',
+          key: 'spec_name',
+          label: t('规格'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: '192.168.10.2:10000',
+        key: 'instance_address',
+        label: t('目标Proxy实例'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_proxy_ip',
+        label: t('新Proxy主机'),
+      },
+    ];
+  });
+
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    originProxy: {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-      role: '',
-      spec_id: 0,
-      ...data.originProxy,
-    },
+    originProxy: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        instance_address: '',
+        ip: '',
+        master_domain: '',
+        port: 0,
+        role: '',
+        spec_id: 0,
+      },
+      data.originProxy,
+    ),
     specId: data.specId || 0,
-    targetProxy: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.targetProxy,
-    },
+    targetProxy: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.targetProxy,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     tableData.value
@@ -241,6 +286,33 @@
       return acc;
     }, []);
     tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          labels: item.labels?.split(','),
+          originProxy: {
+            instance_address: item.instance_address,
+          },
+          specId: item.spec_name,
+          targetProxy: {
+            ip: item.new_proxy_ip,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({
