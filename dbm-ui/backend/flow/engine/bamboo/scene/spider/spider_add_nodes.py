@@ -25,6 +25,9 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_slaves_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.plugins.components.collections.spider.check_if_normal_for_cluster import (
+    CheckIfNormalSpiderNodeComponent,
+)
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
@@ -38,6 +41,25 @@ class TenDBClusterAddNodesFlow(object):
     构建TenDB Cluster 添加 spider 节点；添加不同角色的spider，处理方式不一样
     目前只支持spider_master/spider_slave 角色的添加
     支持不同云区域的合并操作
+    ticket_data参数：
+        {
+          "uid": "1",
+          "created_by": "xxx",
+          "bk_biz_id": "1",
+          "ticket_type": "TENDBCLUSTER_SPIDER_ADD_NODES",
+          "infos": [
+                      {
+                        "cluster_id": 1,
+                        "add_spider_role": "spider_master"
+                        "spider_ip_list":  [
+                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":1},
+                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":2}
+                        ],
+                        "resource_spec": {"spider":{'id':1,'xxx':'xxx'}}
+                      }
+                ]
+
+        }
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -213,3 +235,31 @@ class TenDBClusterAddNodesFlow(object):
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-slave节点流程".format(cluster.name)))
+
+    def revoke_flow(self):
+        """
+        定义TenDB Cluster扩容接入层流程出现异常，终止的流程
+        主要逻辑是根据单据终止后，哪些新机器可以进入主机退回流程中
+        """
+        revoke_pipeline = Builder(root_id=self.root_id, data=self.data)
+
+        acts_list = []
+        for info in self.data["infos"]:
+            acts_list.append(
+                {
+                    "act_name": _("集群ID[{}]计算回收主机".format(info["cluster_id"])),
+                    "act_component_code": CheckIfNormalSpiderNodeComponent.code,
+                    "kwargs": asdict(
+                        CheckIfNormalSpiderNodeComponent.kwargs(
+                            cluster_id=info["cluster_id"],
+                            spider_hosts=info["spider_ip_list"],
+                            spider_role=info["add_spider_role"],
+                            resource_spec=info["resource_spec"],
+                            created_by=self.data["created_by"],
+                        )
+                    ),
+                }
+            )
+
+        revoke_pipeline.add_parallel_acts(acts_list=acts_list)
+        revoke_pipeline.run_pipeline()
