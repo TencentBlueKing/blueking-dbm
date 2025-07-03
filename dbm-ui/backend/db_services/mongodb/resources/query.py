@@ -15,7 +15,7 @@ from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, Query
 from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
@@ -292,7 +292,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             ProxyInstance.objects.annotate(role=F("access_layer"), shard=Value(""))
             .select_related("machine")
             .prefetch_related("cluster")
-            .filter(query_filters)
+            .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
         return storage_instance.union(proxy_instance)
