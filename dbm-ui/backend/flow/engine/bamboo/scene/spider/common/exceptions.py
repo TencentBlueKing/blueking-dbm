@@ -63,3 +63,9 @@ class TendbGetClusterInfoFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("获取集群信息失败")
     MESSAGE_TPL = _("{message}")
+
+
+class CalcRecycleFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("计算spider_host是否回退资源池失败")
+    MESSAGE_TPL = _("{message}")
