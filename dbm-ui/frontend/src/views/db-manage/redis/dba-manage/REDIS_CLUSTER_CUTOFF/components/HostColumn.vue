@@ -70,10 +70,11 @@
 
   interface Props {
     selected: {
+      bk_biz_id: number;
       ip: string;
       related_slave?: {
         ip: string;
-      }
+      };
       role: string;
     }[];
   }
@@ -108,7 +109,7 @@
   const dataList = shallowRef<IValue[]>([]);
 
   // 铺平获取关联的从库ip，用于校验
-  const allIps = computed(() => props.selected.flatMap((item) => [item.ip, item.related_slave?.ip].filter(Boolean)))
+  const allIps = computed(() => props.selected.flatMap((item) => [item.ip, item.related_slave?.ip].filter(Boolean)));
 
   const rules = [
     {
@@ -131,12 +132,12 @@
   const { loading: relatedLoading, run: queryRelatedSlave } = useRequest(queryMasterSlavePairs, {
     manual: true,
     onSuccess: (data) => {
-      const [{ slaves }] = data.filter((cur)=>cur.master_ip===modelValue.value.ip);
+      const [{ slaves }] = data.filter((cur) => cur.master_ip === modelValue.value.ip);
       if (slaves) {
         modelValue.value.related_slave = {
           bk_host_id: slaves.bk_host_id,
           ip: slaves.ip,
-          spec_config: slaves.spec_config
+          spec_config: slaves.spec_config,
         };
       }
     },
@@ -152,17 +153,17 @@
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
-          cluster_ids: item.related_clusters.map(item=>item.id),
+          cluster_ids: item.related_clusters.map((item) => item.id),
           ip: item.ip,
           master_domain: cluster?.immute_domain || '',
           role: item.instance_role,
-          spec_config: item.spec_config
+          spec_config: item.spec_config,
         };
         if (item.instance_role === 'redis_master') {
           queryRelatedSlave({
             bk_biz_id: item.bk_biz_id,
-            cluster_id: cluster.id
-          })
+            cluster_id: cluster.id,
+          });
         }
       }
     },
@@ -181,7 +182,7 @@
       ip: value,
       master_domain: '',
       role: '',
-      spec_config: {} as SpecInfo
+      spec_config: {} as SpecInfo,
     };
   };
 
@@ -204,12 +205,19 @@
     },
   );
 
-  watch(()=>props.selected, ()=>{
-    dataList.value = props.selected.map((item)=>({
-      instance_role: item.role,
-      ip: item.ip
-    } as IValue))
-  })
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected.map(
+        (item) =>
+          ({
+            bk_biz_id: item.bk_biz_id,
+            instance_role: item.role,
+            ip: item.ip,
+          }) as IValue,
+      );
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {
