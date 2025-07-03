@@ -414,17 +414,12 @@
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
+        bk_biz_id: props.ignoreBiz ? undefined : window.PROJECT_CONFIG.BIZ_ID,
         limit: pagination.limit,
         offset: (pagination.current - 1) * pagination.limit,
         ...paramsMemo,
         ...sortParams,
       };
-
-      if (!props.ignoreBiz) {
-        Object.assign(params, {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        });
-      }
 
       const payload = {};
       // API 参数需要和 URL 联动基本可以确认是页面级别的列表
