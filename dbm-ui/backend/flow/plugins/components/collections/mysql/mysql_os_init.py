@@ -12,7 +12,7 @@ import base64
 import copy
 import re
 
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 
 from backend import env

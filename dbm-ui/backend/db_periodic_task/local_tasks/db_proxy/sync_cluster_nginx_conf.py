@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from django.utils.translation import ugettext as _
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from backend import env
 from backend.components import JobApi
