@@ -28,14 +28,14 @@
         <template v-else> -- </template>
       </template>
     </BkTableColumn>
-    <BkTableColumn
-      :label="t('机器规格')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
-      </template>
-    </BkTableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
+      <BkTableColumn
+        :label="t('规格')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
+        </template>
+      </BkTableColumn>
       <BkTableColumn
         :label="t('资源标签')"
         :min-width="200">

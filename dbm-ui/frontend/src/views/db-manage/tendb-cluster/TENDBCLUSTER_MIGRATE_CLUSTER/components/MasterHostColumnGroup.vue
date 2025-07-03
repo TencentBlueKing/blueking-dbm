@@ -111,7 +111,7 @@
     {
       message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
@@ -121,7 +121,7 @@
     {
       message: t('非 Master IP'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
+      validator: (value: string) => !value || modelValue.value.role === 'remote_master',
     },
   ];
 

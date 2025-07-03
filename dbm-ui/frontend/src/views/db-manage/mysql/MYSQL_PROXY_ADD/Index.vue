@@ -35,10 +35,13 @@
           {{ t('资源池手动选择') }}
         </BkRadioButton>
       </BkRadioGroup>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData"
         :rules="rules">
         <EditableRow
@@ -49,14 +52,14 @@
             role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SpecColumn
-            v-model="item.specId"
-            :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.cluster.spec_id"
-            :machine-type="MachineTypes.MYSQL_PROXY"
-            selectable
-            :show-tag="false" />
           <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+            <SpecColumn
+              v-model="item.specId"
+              :cluster-type="DBTypes.MYSQL"
+              :current-spec-id="item.cluster.spec_id"
+              :machine-type="MachineTypes.MYSQL_PROXY"
+              selectable
+              :show-tag="false" />
             <ResourceTagColumn
               v-model="item.labels"
               v-model:selected="item.labelSelected" />
@@ -121,6 +124,7 @@
 
   import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
@@ -146,23 +150,27 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-      spec_id: 0,
-      ...data.cluster,
-      related_clusters: [] as RowData['cluster']['related_clusters'],
-    },
+    cluster: Object.assign(
+      {
+        cluster_type: ClusterTypes.TENDBHA,
+        id: 0,
+        master_domain: '',
+        related_clusters: [] as RowData['cluster']['related_clusters'],
+        spec_id: 0,
+      },
+      data.cluster,
+    ),
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    newProxy: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newProxy,
-    },
+    newProxy: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newProxy,
+    ),
     specId: data.specId || 0,
   });
 
@@ -174,6 +182,40 @@
   const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
+
+  const batchInputConfig = computed(() => {
+    if (sourceType.value === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: 'tendbha.test.dba.db',
+          key: 'master_domain',
+          label: t('目标集群'),
+        },
+        {
+          case: '2核_4G_50G',
+          key: 'spec_name',
+          label: t('规格'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: 'tendbha.test.dba.db',
+        key: 'master_domain',
+        label: t('目标集群'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_proxy_ip',
+        label: t('新Proxy主机'),
+      },
+    ];
+  });
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const clusterMap = computed(() => {
@@ -335,6 +377,33 @@
       return acc;
     }, []);
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          cluster: {
+            master_domain: item.master_domain,
+          },
+          labels: item.labels?.split(','),
+          newProxy: {
+            ip: item.new_proxy_ip,
+          },
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>
 <style lang="less" scoped>

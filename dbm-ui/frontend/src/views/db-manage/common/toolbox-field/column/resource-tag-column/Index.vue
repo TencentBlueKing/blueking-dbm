@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :label="t('资源标签')"
-    :min-width="150">
+    :min-width="200">
     <EditableSelect
       v-model="modelValue"
       :all-option-id="DEFAULT_TAG_ID"
@@ -26,6 +26,7 @@
       :list="tagList"
       multiple
       multiple-mode="tag"
+      :popover-min-width="200"
       show-all
       :tag-theme="tagTheme"
       @change="handleChange">
@@ -45,6 +46,7 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -64,7 +66,8 @@
   const { t } = useI18n();
 
   const tagList = ref<IValue[]>([]);
-  const tagMap = ref<Record<number, any>>({});
+  const tagInfoById = ref<Record<number, any>>({});
+  const tagInfoByValue = ref<Record<string, any>>({});
   // 默认值为 0，表示非专用资源（指未包含任何标签的主机）
   const DEFAULT_TAG_ID = 0;
 
@@ -80,8 +83,11 @@
       },
     ],
     onSuccess: (data) => {
+      if (!data.results.length) {
+        return;
+      }
       tagList.value = data.results;
-      tagMap.value = data.results.reduce<Record<number, any>>(
+      tagInfoById.value = data.results.reduce<Record<number, any>>(
         (acc, item) => {
           Object.assign(acc, {
             [item.id]: item,
@@ -96,13 +102,52 @@
           },
         },
       );
-      if (modelValue.value.length) {
-        selected.value = modelValue.value.map((id) => tagMap.value[id]);
-      }
+      tagInfoByValue.value = data.results.reduce<Record<string, any>>(
+        (acc, item) => {
+          Object.assign(acc, {
+            [item.value]: item,
+          });
+          return acc;
+        },
+        {
+          [t('非专用资源')]: {
+            id: DEFAULT_TAG_ID,
+            type: 'resource',
+            value: t('非专用资源'),
+          },
+        },
+      );
     },
   });
 
   const handleChange = (value: number[]) => {
-    selected.value = value.map((id) => tagMap.value[id]);
+    selected.value = value.map((id) => tagInfoById.value[id]);
   };
+
+  const updateModelAndSelected = (data: any[]) => {
+    const list = data.reduce<IValue[]>((acc, item: string | number) => {
+      if (typeof item === 'string' && Boolean(tagInfoByValue.value[item]?.id)) {
+        acc.push(tagInfoByValue.value[item]);
+      }
+      if (typeof item === 'number' && Boolean(tagInfoById.value[item]?.id)) {
+        acc.push(tagInfoById.value[item]);
+      }
+      return acc;
+    }, []);
+    if (!list.length) {
+      return;
+    }
+    modelValue.value = list.map((item) => item.id);
+    selected.value = modelValue.value.map((id) => tagInfoById.value[id]);
+  };
+
+  watch(
+    () => modelValue.value,
+    (newValue, oldValue) => {
+      if (!_.isEqual(newValue, oldValue)) {
+        setTimeout(() => updateModelAndSelected(newValue), 200);
+      }
+    },
+    { deep: true, immediate: true },
+  );
 </script>

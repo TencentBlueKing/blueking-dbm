@@ -17,11 +17,15 @@
       class="mb-20"
       closable
       :title="t('迁移主从：主从机器上的所有实例成对迁移到新机器上，旧机器会下架掉。')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -106,6 +110,7 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
@@ -113,6 +118,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import MasterHostColumnGroup, { type SelectorHost } from './components/MasterHostColumnGroup.vue';
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
@@ -129,29 +136,46 @@
   const tableRef = useTemplateRef('table');
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'master_ip',
+      label: t('目标主库主机'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
+
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    oldMaster: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: '',
-      spec_id: 0,
-      ...data.oldMaster,
-      related_instances: [] as string[],
-    },
-    oldSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.oldSlave,
-      related_instances: [] as string[],
-    },
+    oldMaster: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        ip: '',
+        master_domain: '',
+        related_instances: [] as string[],
+        role: '',
+        spec_id: 0,
+      },
+      data.oldMaster,
+    ),
+    oldSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+        related_instances: [] as string[],
+      },
+      data.oldSlave,
+    ),
     specId: data.specId || 0,
   });
 
@@ -163,6 +187,7 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.oldMaster.bk_host_id).map((item) => item.oldMaster),
@@ -257,5 +282,28 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          labels: item.labels?.split(','),
+          oldMaster: {
+            ip: item.master_ip,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

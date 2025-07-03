@@ -145,7 +145,7 @@
     {
       message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
@@ -217,16 +217,22 @@
     emits('batch-edit', selected.TendbhaHost);
   };
 
-  watch(modelValue, () => {
-    if (modelValue.value.ip && !modelValue.value.bk_host_id) {
-      queryInstance({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_type: [ClusterTypes.TENDBHA],
-        db_type: DBTypes.MYSQL,
-        instance_addresses: [modelValue.value.ip],
-      });
-    }
-  });
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryInstance({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

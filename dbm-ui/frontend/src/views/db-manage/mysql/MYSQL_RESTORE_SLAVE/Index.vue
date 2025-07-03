@@ -51,10 +51,13 @@
           {{ t('资源池手动选择') }}
         </BkRadioButton>
       </BkRadioGroup>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
@@ -63,11 +66,11 @@
             v-model="item.slave"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SpecColumn
-            v-model="item.specId"
-            :cluster-type="DBTypes.MYSQL"
-            :current-spec-id="item.slave.spec_id" />
           <template v-if="sourceType === SourceType.RESOURCE_AUTO">
+            <SpecColumn
+              v-model="item.specId"
+              :cluster-type="DBTypes.MYSQL"
+              :current-spec-id="item.slave.spec_id" />
             <ResourceTagColumn
               v-model="item.labels"
               v-model:selected="item.labelSelected" />
@@ -133,6 +136,7 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
@@ -162,23 +166,27 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     labels: (data.labels as number[]) || ([] as number[]),
     labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
-    newSlave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.newSlave,
-    },
-    slave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      role: '',
-      spec_id: 0,
-      ...data.slave,
-      related_clusters: [] as RowData['slave']['related_clusters'],
-    },
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+        related_clusters: [] as RowData['slave']['related_clusters'],
+        role: '',
+        spec_id: 0,
+      },
+      data.slave,
+    ),
     specId: data.specId || 0,
   });
 
@@ -194,6 +202,36 @@
   const sourceType = ref(SourceType.RESOURCE_AUTO);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
+
+  const batchInputConfig = computed(() => {
+    if (sourceType.value === SourceType.RESOURCE_AUTO) {
+      return [
+        {
+          case: '192.168.10.2',
+          key: 'slave_ip',
+          label: t('目标从库主机'),
+        },
+        {
+          case: '标签1,标签2',
+          key: 'labels',
+          label: t('资源标签'),
+        },
+      ];
+    }
+    return [
+      {
+        case: '192.168.10.2',
+        key: 'slave_ip',
+        label: t('目标从库主机'),
+      },
+      {
+        case: '192.168.10.2',
+        key: 'new_slave_ip',
+        label: t('新从库主机'),
+      },
+    ];
+  });
+
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
@@ -316,5 +354,32 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          labels: item.labels?.split(','),
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+          slave: {
+            ip: item.slave_ip,
+          },
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

@@ -130,7 +130,7 @@
         <span class="input-desc">G</span>
       </BkFormItem>
       <BkFormItem
-        :label="t('QPS')"
+        label="QPS"
         :required="false">
         <BkInput
           v-model="specInfo.qps"

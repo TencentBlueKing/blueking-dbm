@@ -140,7 +140,7 @@
     {
       message: t('目标主机重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
@@ -150,15 +150,15 @@
     {
       message: t('非 Slave IP'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
+      validator: (value: string) => !value || modelValue.value.role === 'remote_slave',
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [currentHost] = data;
+      const [currentHost] = data;
+      if (currentHost) {
         const relatedInstances: string[] = [];
         data.forEach((item) => {
           relatedInstances.push(item.instance_address);

@@ -25,6 +25,7 @@
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
+
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   interface Props {
@@ -58,6 +59,8 @@
   );
 
   watch(renderList, () => {
-    modelValue.value = renderList.value?.[0]?.value || '';
+    if (!modelValue.value) {
+      modelValue.value = renderList.value?.[0]?.value || '';
+    }
   });
 </script>

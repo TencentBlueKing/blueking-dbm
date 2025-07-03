@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    :label="t('机器规格')"
+    :label="t('规格')"
     :min-width="150">
     <EditableBlock
       v-if="!selectable"
@@ -59,7 +59,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    currentSpecId: -1,
+    currentSpecId: 0,
     machineType: undefined,
     selectable: false,
     showTag: true,
@@ -90,23 +90,37 @@
       },
     ],
     onSuccess: (data) => {
-      specList.value = data.results;
+      specList.value = data.results || [];
     },
   });
 
+  // 初始化
   watch(
-    () => props.currentSpecId,
+    () => [modelValue.value, props.currentSpecId],
     () => {
-      modelValue.value = props.currentSpecId;
+      if (!modelValue.value && props.currentSpecId) {
+        modelValue.value = props.currentSpecId || 0;
+      }
+
+      // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
+      if (modelValue.value && typeof modelValue.value === 'string') {
+        setTimeout(() => {
+          modelValue.value =
+            specList.value.filter((item) => item.spec_name === (modelValue.value as unknown as string))?.[0]?.spec_id ||
+            props.currentSpecId ||
+            0;
+        }, 200);
+        return;
+      }
+      // 如果 modelValue 被设置为 -1 或者其他负数 时，则自动选择第一个规格
+      if (modelValue.value < 0) {
+        setTimeout(() => {
+          modelValue.value = specList.value[0]?.spec_id || props.currentSpecId || 0;
+        }, 200);
+      }
+    },
+    {
+      immediate: true,
     },
   );
-
-  watchEffect(() => {
-    // 如果 modelValue 被设置为 -1 或者其他负数时，则自动选择第一个规格
-    if (modelValue.value < 0) {
-      setTimeout(() => {
-        modelValue.value = specList.value[0]?.spec_id || 0;
-      }, 200);
-    }
-  });
 </script>

@@ -72,6 +72,10 @@
 
   interface Props {
     /**
+     * 是否允许重复
+     */
+    allowRepeat?: boolean
+    /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
@@ -133,7 +137,7 @@
     {
       message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
