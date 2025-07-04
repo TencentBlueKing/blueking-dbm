@@ -42,6 +42,9 @@
             <TicketRevoke
               class="mr-8"
               :data="ticketData" />
+            <!-- <TicketTerminate
+              class="mr-8"
+              :data="ticketData" /> -->
           </template>
         </SmartAction>
       </PermissionCatch>
@@ -62,6 +65,7 @@
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
   import TicketRevoke from '@views/ticket-center/common/TicketRevoke.vue';
 
+  // import TicketTerminate from '@views/ticket-center/common/TicketTerminate.vue';
   import BaseInfo from './components/BaseInfo.vue';
   import FlowInfos from './components/flow-info/Index.vue';
   import TaskInfo from './components/task-info/Index.vue';
