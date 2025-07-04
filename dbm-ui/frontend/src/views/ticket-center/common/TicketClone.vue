@@ -70,8 +70,8 @@
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, // Spider扩容接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
     [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, // spider 缩容接入层
-    [TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, // spider 替换接入层
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, // Spider 部署只读接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES]: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, // spider 替换接入层
   };
 
   /**
@@ -196,7 +196,7 @@
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
-    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: 'spiderMasterFailover', // Spider remote主故障切换
+    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换
     [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, // Spider remote 主从切换
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: TicketTypes.TENDBCLUSTER_NODE_REBALANCE, // Spider 集群remote节点扩缩容
