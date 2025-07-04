@@ -97,15 +97,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
-    {
-      path: 'master-slave-swap/:page?',
-      name: 'spiderMasterSlaveSwap',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
-        navName: t('主从互切'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/master-slave-swap/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('DB 主从互切'), {
+      dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
+    }),
     {
       path: 'master-failover/:page?',
       name: 'spiderMasterFailover',

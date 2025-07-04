@@ -47,7 +47,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
-        id: 'spiderMasterSlaveSwap',
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'spider_cluster_maintain',
       },
