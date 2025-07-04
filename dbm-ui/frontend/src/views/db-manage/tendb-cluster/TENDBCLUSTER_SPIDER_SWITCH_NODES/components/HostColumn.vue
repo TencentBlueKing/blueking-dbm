@@ -89,7 +89,6 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     cluster_id: number;
@@ -119,37 +118,27 @@
     {
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'blur',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
       message: t('非接入层 IP'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave';
-      },
+      validator: (value: string) =>
+        !value || modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave',
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const item = data[0];
+      const [item] = data;
       if (item) {
         modelValue.value = {
-          bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
           cluster_id: item.cluster_id,
@@ -174,7 +163,6 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
