@@ -104,7 +104,7 @@
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
-    [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: 'MySQLMasterSlaveSwap', // Mysql 主从互切
+    [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, // Mysql 主从互切
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区

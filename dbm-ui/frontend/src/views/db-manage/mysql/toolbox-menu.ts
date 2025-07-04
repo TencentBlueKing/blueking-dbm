@@ -121,7 +121,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.masterSlaveSwap',
-        id: 'MySQLMasterSlaveSwap',
+        id: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'migrate',
       },
