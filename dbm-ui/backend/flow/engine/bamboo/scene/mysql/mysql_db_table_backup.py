@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_SYSTEM_USER
+from backend.flow.consts import DBA_SYSTEM_USER, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.build_database_table_filter_regex import (
@@ -146,6 +146,7 @@ class MySQLDBTableBackupFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
+                        job_timeout=LONG_JOB_TIMEOUT,
                         bk_cloud_id=cluster_obj.bk_cloud_id,
                         run_as_system_user=DBA_SYSTEM_USER,
                         exec_ip=instance_obj.machine.ip,
