@@ -100,15 +100,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('DB 主从互切'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
     }),
-    {
-      path: 'master-failover/:page?',
-      name: 'spiderMasterFailover',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.masterFailover',
-        navName: t('主库故障切换'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/master-failover/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'tendbCluster.toolbox.masterFailover',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
