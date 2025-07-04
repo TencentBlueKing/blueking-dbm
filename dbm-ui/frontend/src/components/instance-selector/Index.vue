@@ -543,6 +543,7 @@
           getTableList: getTendbhaInstanceList,
         },
         topoConfig: {
+          countFunc: (item: ServiceReturnType<typeof getTendbhaList>[number]) => item.masters.length,
           getTopoList: getTendbhaList,
         },
       },
