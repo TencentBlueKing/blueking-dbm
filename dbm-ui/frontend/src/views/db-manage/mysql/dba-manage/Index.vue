@@ -19,8 +19,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { TicketTypes } from '@common/const';
-
   import DbaManageMenu from '@views/db-manage/common/dba-manage-menu/Index.vue';
 
   const { t } = useI18n();
@@ -30,11 +28,6 @@
       dbConsoleValue: 'dbaManage.mysql.webQuery',
       id: 'DbaManageMysqlWebQuery',
       name: t('管理控制台'),
-    },
-    {
-      dbConsoleValue: 'dbaManage.mysql.instanceFailOver',
-      id: `DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`,
-      name: t('主库故障切换'),
     },
   ];
 </script>
