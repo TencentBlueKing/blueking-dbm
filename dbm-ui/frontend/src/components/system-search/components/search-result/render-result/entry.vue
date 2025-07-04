@@ -6,8 +6,8 @@
       class="result-item"
       @click="handleGo(item)">
       <div class="value-text">
-        <HightLightText
-          :key-word="formattedKeyword"
+        <TextHighlight
+          :keyword="formattedKeyword"
           :text="item.entry" />
       </div>
       <div class="biz-text">
@@ -21,8 +21,7 @@
   import { batchSplitRegex } from '@common/regex';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
-
-  import HightLightText from './components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;

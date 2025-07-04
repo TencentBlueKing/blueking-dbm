@@ -7,8 +7,8 @@
       @click="handleGo(item)">
       <div class="value-text">
         <span>#</span>
-        <HightLightText
-          :key-word="keyWord"
+        <TextHighlight
+          :keyword="keyWord"
           :text="item.root_id" />
       </div>
       <div class="biz-text">
@@ -22,7 +22,7 @@
 
   import { systemSearchCache } from '@common/cache';
 
-  import HightLightText from './components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
