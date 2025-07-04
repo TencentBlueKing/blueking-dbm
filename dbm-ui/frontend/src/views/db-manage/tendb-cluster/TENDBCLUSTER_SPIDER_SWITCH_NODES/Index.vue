@@ -79,6 +79,7 @@
   import _ from 'lodash';
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
@@ -101,24 +102,11 @@
   import SpecColumn from './components/SpecColumn.vue';
 
   interface RowData {
-    host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      instance_address: string;
-      ip: string;
-      master_domain: string;
-      port: number;
-      role: string;
-      spec_id: number;
-    };
-    row_key: string;
+    host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const tableKey = ref(Date.now());
 
   const batchInputConfig = [
     {
@@ -129,20 +117,20 @@
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    host: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-      role: '',
-      spec_id: 0,
-      ...data.host,
-    },
-    row_key: random(),
+    host: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        instance_address: '',
+        ip: '',
+        master_domain: '',
+        port: 0,
+        role: '',
+        spec_id: 0,
+      },
+      data.host,
+    ),
   });
 
   const defaultData = () => ({
@@ -152,6 +140,8 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
@@ -167,7 +157,6 @@
           return createTableRow({
             host: {
               ...host,
-              bk_biz_id: ticketDetail.bk_biz_id,
               cluster_id: cluster.id,
               instance_address: `${host.ip}:${host.port}`,
               master_domain: cluster.immute_domain,
@@ -190,7 +179,6 @@
           spec_id: number;
         };
       };
-      row_key: string;
       spider_old_ip_list: {
         bk_cloud_id: number;
         bk_host_id: number;
@@ -232,7 +220,6 @@
               spec_id: item.host.spec_id,
             },
           },
-          row_key: item.row_key,
           spider_old_ip_list: [
             {
               bk_cloud_id: item.host.bk_cloud_id,
@@ -292,10 +279,10 @@
     );
 
     if (isClear) {
-      tableKey.value = Date.now();
-      formData.tableData = [...dataList]; // 覆盖
+      tableKey.value = random();
+      formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
 </script>
