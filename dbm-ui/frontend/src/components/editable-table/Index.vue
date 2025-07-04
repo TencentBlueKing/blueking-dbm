@@ -101,6 +101,7 @@
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
     validateByField: (row: string | string[]) => Promise<boolean>;
     validateByRowIndex: (row: number | number[]) => Promise<boolean>;
+    viewError: (errorList: { errors: string; field: string; row_key: string }[]) => void;
   }
 
   export const tableInjectKey: InjectionKey<
@@ -244,6 +245,32 @@
     return Promise.all(columnList.map((column) => column.validate())).then(() => true);
   };
 
+  const viewError = (errorList: Parameters<Expose['viewError']>[0]) => {
+    // 后端校验无法保证 row index 的正确性，需要通过 row key 来标记每一行数据
+    // 优先通过 props.model 将 row key 转换成 row index
+    const errorRowKeyMap = errorList.reduce<Record<string, (typeof errorList)[number]>>((result, item) => {
+      return Object.assign(result, {
+        [item.row_key]: item,
+      });
+    }, {});
+    const errorRowIndexMap = props.model.reduce<Record<string, (typeof errorList)[number]>>((result, item, index) => {
+      if (item?.row_key && errorRowKeyMap[item.row_key]) {
+        Object.assign(result, {
+          [index]: errorRowKeyMap[item.row_key],
+        });
+      }
+      return result;
+    }, {});
+    Object.keys(errorRowIndexMap).forEach((rowIndex) => {
+      rowList.value[Number(rowIndex)].forEach((column) => {
+        const errorInfo = errorRowIndexMap[rowIndex];
+        if (column.props.idMark && errorInfo) {
+          column.viewError(errorInfo.errors, errorInfo.field);
+        }
+      });
+    });
+  };
+
   provide(tableInjectKey, {
     columnSizeConfig,
     emits,
@@ -259,6 +286,7 @@
     validateByColumnIndex,
     validateByField,
     validateByRowIndex,
+    viewError,
   });
 
   defineExpose<Expose>({
@@ -266,6 +294,7 @@
     validateByColumnIndex,
     validateByField,
     validateByRowIndex,
+    viewError,
   });
 </script>
 <style lang="less">

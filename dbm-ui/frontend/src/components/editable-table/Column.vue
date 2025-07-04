@@ -97,6 +97,7 @@
     email?: boolean;
     field?: string;
     fixed?: 'left' | 'right';
+    idMark?: string; // 不参入任何内部逻辑处理，
     label: string;
     loading?: boolean;
     max?: number;
@@ -123,30 +124,33 @@
     tips?: () => VNode;
   }
 
-  interface Expose {
+  interface BaseMethod {
     clearValidate: () => void;
-    getRowIndex: () => number;
     validate: () => Promise<boolean>;
+    viewError: (message: string, idMark: string) => void;
   }
 
-  export interface IContext {
+  interface Expose extends BaseMethod {
+    getRowIndex: () => number;
+  }
+
+  export interface IContext extends BaseMethod {
     el: HTMLElement;
     instance: ComponentInternalInstance;
     key: string;
     props: Props;
     slots: Slots;
     uniqueKey: string;
-    validate: (trigger?: string) => Promise<boolean>;
   }
 
-  export const EditableTableColumnKey: InjectionKey<{
-    blur: () => void;
-    clearValidate: () => void;
-    focus: () => void;
-    getRowIndex: () => number;
-    registerRules: (params: IRule[]) => void;
-    validate: (trigger?: string) => Promise<boolean>;
-  }> = Symbol('EditableTableColumnKey');
+  export const EditableTableColumnKey: InjectionKey<
+    {
+      blur: () => void;
+      focus: () => void;
+      getRowIndex: () => number;
+      registerRules: (params: IRule[]) => void;
+    } & BaseMethod
+  > = Symbol('EditableTableColumnKey');
 
   const rowspanNumMap: Record<string, number> = {};
   const calcRowspanRenderQunue: [number, () => void][] = [];
@@ -170,6 +174,7 @@
     disabledMethod: undefined,
     field: undefined,
     fixed: undefined,
+    idMark: undefined,
     max: undefined,
     maxlength: undefined,
     maxWidth: undefined,
@@ -456,10 +461,12 @@
     }
     // 单元格被合并跳过验证
     if (!isRowspanRender.value) {
+      clearValidate();
       return Promise.resolve(true);
     }
     // 没有设置 field 不进行验证
     if (!props.field) {
+      clearValidate();
       return Promise.resolve(true);
     }
     let rules: IRule[] = [];
@@ -592,6 +599,14 @@
     });
   };
 
+  const viewError = (message: string, idMark: string) => {
+    if (idMark !== props.idMark) {
+      return;
+    }
+    validateState.isError = true;
+    validateState.errorMessage = message;
+  };
+
   provide(EditableTableColumnKey, {
     blur: () => {
       isFocused.value = false;
@@ -607,10 +622,12 @@
       registerRules = rules;
     },
     validate,
+    viewError,
   });
 
   onMounted(() => {
     rowContext?.registerColumn({
+      clearValidate,
       el: rootRef.value as HTMLElement,
       instance: currentInstance,
       key: columnKey,
@@ -618,6 +635,7 @@
       slots,
       uniqueKey,
       validate,
+      viewError,
     });
 
     // setTimeout 确保 registerColumn 结束
@@ -648,6 +666,7 @@
     clearValidate,
     getRowIndex,
     validate,
+    viewError,
   });
 </script>
 <style lang="less">
