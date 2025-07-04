@@ -211,6 +211,8 @@ def gen_dns_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProcess]:
     elif param["op_type"] == DnsOpType.ADD_AND_DELETE:
         old_ips = get_access_ips_from_dns(ticket_data["bk_cloud_id"], ticket_data["bk_biz_id"], param["domain"])
         add_ips, del_ips = _get_add_and_del_ips(old_ips, param["new_ips"])
+        if len(add_ips + del_ips) == 0:
+            return None
         # 添加域名
         if add_ips:
             dns_kwargs = DnsKwargs(
@@ -275,6 +277,8 @@ def gen_clb_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProcess]:
     elif param["op_type"] == DnsOpType.ADD_AND_DELETE:
         old_ips = _get_access_ips_from_clb(param["entry"])
         add_ips, del_ips = _get_add_and_del_ips(old_ips, param["new_ips"])
+        if len(add_ips + del_ips) == 0:
+            return None
         # 添加ip
         if add_ips:
             clb_kwargs = ClbKwargs(
@@ -336,6 +340,8 @@ def gen_polaris_atom_job(root_id, ticket_data, param: Dict) -> Optional[SubProce
     elif param["op_type"] == DnsOpType.ADD_AND_DELETE:
         old_ips = _get_access_ips_from_polaris(param["entry"])
         add_ips, del_ips = _get_add_and_del_ips(old_ips, param["new_ips"])
+        if len(add_ips + del_ips) == 0:
+            return None
         # 添加ip
         if add_ips:
             polaris_kwargs = PolarisKwargs(
@@ -441,8 +447,12 @@ def get_access_manager_atom_job(root_id, ticket_data) -> Optional[SubProcess]:
                 and ce["cluster_entry_type"] == ClusterEntryType.DNS
             ):
                 param["entry"] = ce["entry"]
-                sub_builder_list.append(generic_manager(ce["cluster_entry_type"], root_id, ticket_data, param))
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_builder_list)
-    return sub_pipeline.build_sub_process(sub_name=_("{}-{}-dns/clb 接入层子任务".format(cluster_id, param["op_type"])))
+                sub_builder = generic_manager(ce["cluster_entry_type"], root_id, ticket_data, param)
+                if sub_builder:
+                    sub_builder_list.append(sub_builder)
+    # 子流程不能为空，否则run_pipeline会报错
+    if sub_builder_list:
+        sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_builder_list)
+        return sub_pipeline.build_sub_process(sub_name=_("{}-{}-dns/clb 接入层子任务".format(cluster_id, param["op_type"])))
+    return None

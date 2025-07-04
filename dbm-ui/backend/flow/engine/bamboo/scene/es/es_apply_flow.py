@@ -219,7 +219,9 @@ class EsApplyFlow(EsFlow):
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        es_pipeline.add_sub_pipeline(get_access_manager_atom_job(root_id=self.root_id, ticket_data=es_deploy_data))
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=es_deploy_data)
+        if sub_pipeline_access:
+            es_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 添加到DBMeta并转模块
         es_pipeline.add_act(

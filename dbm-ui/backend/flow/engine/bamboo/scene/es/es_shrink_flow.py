@@ -91,7 +91,7 @@ class EsShrinkFlow(EsFlow):
             kwargs=asdict(act_kwargs),
         )
 
-        # 移除域名映射
+        # 修改接入层信息
         """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=self.bk_cloud_id,
@@ -105,7 +105,9 @@ class EsShrinkFlow(EsFlow):
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        es_pipeline.add_sub_pipeline(get_access_manager_atom_job(root_id=self.root_id, ticket_data=shrink_data))
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=shrink_data)
+        if sub_pipeline_access:
+            es_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 检查下架节点上是否安装kibana
         manager_ip = get_manager_ip(

@@ -196,7 +196,7 @@ class EsReplaceFlow(EsFlow):
             act_name=_("添加到DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(scale_up_act_kwargs)
         )
 
-        # 添加域名
+        # 修改接入层信息
         """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=scale_up_data["bk_cloud_id"],
@@ -210,9 +210,9 @@ class EsReplaceFlow(EsFlow):
             kwargs={**asdict(scale_up_act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        scale_up_sub_pipeline.add_sub_pipeline(
-            get_access_manager_atom_job(root_id=self.root_id, ticket_data=scale_up_data)
-        )
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=scale_up_data)
+        if sub_pipeline_access:
+            scale_up_sub_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 校验扩容是否成功
         scale_up_act_kwargs.get_es_payload_func = EsActPayload.get_check_nodes_payload.__name__
@@ -253,7 +253,7 @@ class EsReplaceFlow(EsFlow):
             kwargs=asdict(shrink_act_kwargs),
         )
 
-        # 移除域名映射
+        # 修改接入层信息
         """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=shrink_data["bk_cloud_id"],
@@ -267,7 +267,9 @@ class EsReplaceFlow(EsFlow):
             kwargs={**asdict(shrink_act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        es_pipeline.add_sub_pipeline(get_access_manager_atom_job(root_id=self.root_id, ticket_data=shrink_data))
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=shrink_data)
+        if sub_pipeline_access:
+            shrink_sub_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 检查下架节点上是否安装kibana
         manager_ip = get_manager_ip(

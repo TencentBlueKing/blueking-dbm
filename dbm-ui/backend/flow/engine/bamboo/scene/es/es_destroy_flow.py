@@ -91,7 +91,7 @@ class EsDestroyFlow(EsFlow):
             kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
         )
 
-        # 清理域名
+        # 清理接入层
         """
         dns_kwargs = DnsKwargs(bk_cloud_id=self.bk_cloud_id, dns_op_type=DnsOpType.CLUSTER_DELETE)
         es_pipeline.add_act(
@@ -100,9 +100,9 @@ class EsDestroyFlow(EsFlow):
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        es_pipeline.add_sub_pipeline(
-            get_access_manager_atom_job(root_id=self.root_id, ticket_data=self.get_flow_base_data())
-        )
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=self.get_flow_base_data())
+        if sub_pipeline_access:
+            es_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 清理DBMeta
         es_pipeline.add_act(act_name=_("清理Meta"), act_component_code=EsMetaComponent.code, kwargs=asdict(act_kwargs))

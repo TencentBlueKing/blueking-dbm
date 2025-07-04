@@ -173,7 +173,7 @@ class EsScaleUpFlow(EsFlow):
             act_name=_("添加到DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        # 添加域名
+        # 修改接入层信息
         """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=self.bk_cloud_id,
@@ -187,6 +187,8 @@ class EsScaleUpFlow(EsFlow):
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
         )
         """
-        es_pipeline.add_sub_pipeline(get_access_manager_atom_job(root_id=self.root_id, ticket_data=scale_up_data))
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=scale_up_data)
+        if sub_pipeline_access:
+            es_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         es_pipeline.run_pipeline()
