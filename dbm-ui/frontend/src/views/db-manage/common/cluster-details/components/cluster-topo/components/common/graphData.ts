@@ -76,7 +76,6 @@ export const nodeTypes = {
   HDFS_MASTER_NAMENODE: 'hdfs_master::hdfs_namenode',
   HDFS_MASTER_ZOOKEEPER: 'hdfs_master::hdfs_zookeeper',
   MASTER: 'backend::backend_master',
-  MASTER_BIND_ENTRY_GROUP: 'master_bind_entry_group',
   MASTER_ENTRY_GROUP: 'master_entry_group',
   MONGODB_BACKUP: 'mongodb::backup',
   MONGODB_CONFIG: 'mongo_config::m1',
@@ -519,7 +518,7 @@ export class GraphData {
       nodeMap[node.id] = node;
     }
 
-    const masterDomainNode = nodeMap[nodeTypes.MASTER_BIND_ENTRY_GROUP];
+    const masterDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
     const proxyIpNode = nodeMap[nodeTypes.PROXY];
 
     const clbDomainNode = nodeMap[nodeTypes.CLB_DNS_ENTRY_GROUP];
