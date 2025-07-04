@@ -52,6 +52,7 @@ class EsFlow(object):
             self.http_port = data.get("http_port")
             self.bk_cloud_id = data.get("bk_cloud_id")
             self.city_code = data.get("city_code")
+            self.disaster_tolerance_level = data.get("disaster_tolerance_level")
 
             # 从dbconfig获取配置信息
             dbconfig = DBConfigApi.query_conf_item(
@@ -81,6 +82,7 @@ class EsFlow(object):
             self.domain = cluster.immute_domain
             self.http_port = masters.first().port
             self.bk_cloud_id = cluster.bk_cloud_id
+            self.disaster_tolerance_level = cluster.disaster_tolerance_level
 
             # 从dbconfig获取配置信息
             dbconfig = DBConfigApi.get_or_generate_instance_config(
@@ -135,6 +137,7 @@ class EsFlow(object):
             "es_config": self.es_config,
             "resource_spec": self.resource_spec,
             "city_code": self.city_code,
+            "disaster_tolerance_level": self.disaster_tolerance_level,
         }
         return flow_data
 

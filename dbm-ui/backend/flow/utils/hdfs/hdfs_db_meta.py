@@ -74,6 +74,7 @@ class HdfsDBMeta(object):
             "storages": storage_instances,
             "creator": self.ticket_data["created_by"],
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
 
         with atomic():
