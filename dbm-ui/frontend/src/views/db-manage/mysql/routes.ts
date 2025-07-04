@@ -54,14 +54,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
   createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
   createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),
-  {
-    path: 'master-slave-swap/:page?',
-    name: 'MySQLMasterSlaveSwap',
-    meta: {
-      navName: t('主从互切'),
-    },
-    component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切')),
   createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换Proxy')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   {
