@@ -213,7 +213,11 @@
         ip: string;
       }[];
     };
-  }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES);
+  }>(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, {
+    onError(errors) {
+      tableRef.value!.viewError(errors);
+    },
+  });
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();

@@ -126,6 +126,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         break;
       default:
         if (!error.response.config.payload.catchError) {
+          console.log('catcherro');
           messageError(error.message);
         }
     }

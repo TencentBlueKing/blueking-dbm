@@ -42,6 +42,7 @@
     </EditableBlock>
   </EditableColumn>
   <EditableColumn
+    id-mark="switch_spider_role"
     :label="t('实例角色')"
     :loading="loading"
     :min-width="150">

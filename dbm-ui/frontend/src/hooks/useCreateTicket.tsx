@@ -8,7 +8,13 @@ import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
 
-export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSuccess?: (ticketId: number) => void }) {
+export function useCreateTicket<T>(
+  ticketType: TicketTypes,
+  options?: {
+    onError?: (errors: { errors: string; field: string; row_key: string }[]) => void;
+    onSuccess?: (ticketId: number) => void;
+  },
+) {
   const loading = ref(false);
   const router = useRouter();
   const route = useRoute();
@@ -104,9 +110,10 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
           },
           title: t('是否继续提交单据'),
         });
-      } else {
+      } else if (code !== 8704003) {
         messageError(message);
       }
+      options?.onError?.(e.errors || []);
     } finally {
       loading.value = false;
     }
