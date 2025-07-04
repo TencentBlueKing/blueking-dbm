@@ -87,8 +87,8 @@
       :min-width="400">
       <template #default="{ data: rowData }: { data: IDataRow }">
         <div
-          v-for="(privilege, key) in userDbPrivilegeMap[`${rowData.user}#${rowData.accessDbs}`]"
-          :key="`${rowData.user}#${rowData.accessDbs}#${key}`">
+          v-for="(privilege, key) in userDbPrivilegeMap[rowData.user]"
+          :key="key">
           <div
             v-if="privilege.length"
             class="cell-privilege">
@@ -163,10 +163,10 @@
         userDbPrivilegeMap.value = props.data.reduce<Record<string, AccountRulePrivilege>>((acc, cur) => {
           const { privileges } = cur;
           privileges?.forEach((item) => {
-            const { access_db: accessDbs, priv, user } = item;
+            const { priv, user } = item;
             const privileageMap = new Set(priv.split(','));
             Object.assign(acc, {
-              [`${user}#${accessDbs}`]: {
+              [user]: {
                 ddl: ddl.filter((item) => privileageMap.has(item)),
                 dml: dml.filter((item) => privileageMap.has(item)),
                 glob: glob.filter((item) => privileageMap.has(item)),
@@ -197,7 +197,7 @@
                 }
                 const privileageMap = new Set(results[0].rules.flatMap((item) => item.privilege.split(',')));
                 resolve({
-                  [`${user}#${accessDbs}`]: {
+                  [user]: {
                     ddl: ddl.filter((item) => privileageMap.has(item)),
                     dml: dml.filter((item) => privileageMap.has(item)),
                     glob: glob.filter((item) => privileageMap.has(item)),
