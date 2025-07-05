@@ -144,21 +144,18 @@ func BuildClusterProvider(db *gorm.DB) *provider.ClusterProvider {
 		slog.Error("build common providers error", "error", err)
 		panic(err)
 	}
-
-	clusterProvider, err := provider.NewClusterProviderBuilder().
-		WithClusterMetaProvider(coreAPIProviders.ClusterMetaProvider).
-		WithComponentMetaProvider(coreAPIProviders.ComponentMetaProvider).
-		WithCdMetaProvider(coreAPIProviders.ClusterDefinitionProvider).
-		WithCmpdMetaProvider(coreAPIProviders.ComponentDefinitionProvider).
-		WithCmpvMetaProvider(coreAPIProviders.ComponentVersionProvider).
-		WithClusterConfigMetaProvider(coreAPIProviders.ClusterConfigProvider).
-		WithReqRecordProvider(coreAPIProviders.RequestRecordProvider).
-		WithClusterHelmRepoProvider(coreAPIProviders.HelmRepoProvider).
-		WithReleaseMetaProvider(coreAPIProviders.ClusterReleaseProvider).
-		WithAddonMetaProvider(coreAPIProviders.AddonMetaProvider).
-		Build()
+	clusterProviderBuilder := provider.ClusterProviderBuilder{}
+	clusterProvider, err := provider.NewClusterProvider(
+		clusterProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
+		clusterProviderBuilder.WithComponentMeta(coreAPIProviders.ComponentMetaProvider),
+		clusterProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
+		clusterProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
+		clusterProviderBuilder.WithClusterHelmRepoMeta(coreAPIProviders.HelmRepoProvider),
+		clusterProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
+		clusterProviderBuilder.WithAddonMeta(coreAPIProviders.AddonMetaProvider),
+	)
 	if err != nil {
-		slog.Error("build cluster provider error", "error", err)
+		slog.Error("failed to build cluster provider", "error", err)
 		panic(err)
 	}
 	return clusterProvider
@@ -174,18 +171,20 @@ func BuildOpsRequestProvider(db *gorm.DB, clusterProvider *provider.ClusterProvi
 
 	opsRequestMetaDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
 	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(opsRequestMetaDbAccess)
+	opsRequestProviderBuilder := provider.OpsRequestProviderBuilder{}
 
-	opsReqService, err := provider.NewOpsReqProviderBuilder().
-		WithopsRequestMetaProvider(opsRequestMetaProvider).
-		WithClusterMetaProvider(coreAPIProviders.ClusterMetaProvider).
-		WithClusterConfigMetaProvider(coreAPIProviders.ClusterConfigProvider).
-		WithReqRecordProvider(coreAPIProviders.RequestRecordProvider).
-		WithReleaseMetaProvider(coreAPIProviders.ClusterReleaseProvider).
-		WithClusterProvider(clusterProvider).Build()
+	opsReqProvider, err := provider.NewOpsReqProvider(
+		opsRequestProviderBuilder.WithOpsRequestMeta(opsRequestMetaProvider),
+		opsRequestProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
+		opsRequestProviderBuilder.WithClusterConfigMeta(coreAPIProviders.ClusterConfigProvider),
+		opsRequestProviderBuilder.WithReqRecordMeta(coreAPIProviders.RequestRecordProvider),
+		opsRequestProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
+		opsRequestProviderBuilder.WithClusterProvider(clusterProvider))
+
 	if err != nil {
 		slog.Error("build ops request provider error", "error", err)
 		panic(err)
 	}
 
-	return opsReqService
+	return opsReqProvider
 }

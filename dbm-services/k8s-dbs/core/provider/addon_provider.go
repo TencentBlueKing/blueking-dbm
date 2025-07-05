@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"errors"
 	"fmt"
 	capiconst "k8s-dbs/core/api/constant"
 	coreclient "k8s-dbs/core/client"
@@ -40,21 +41,110 @@ import (
 
 // AddonProvider AddonProvider 结构体
 type AddonProvider struct {
-	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider
-	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider
-	clusterAddonsProvider metaprovider.K8sClusterAddonsProvider
-	addonMetaProvider     metaprovider.K8sCrdStorageAddonProvider
+	reqRecordMeta     metaprovider.ClusterRequestRecordProvider
+	clusterConfigMeta metaprovider.K8sClusterConfigProvider
+	addonHelmRepoMeta metaprovider.AddonHelmRepoProvider
+	clusterAddonsMeta metaprovider.K8sClusterAddonsProvider
+	addonMeta         metaprovider.K8sCrdStorageAddonProvider
+}
+
+// AddonProviderOption AddonProvider 的函数选项
+type AddonProviderOption func(*AddonProvider)
+
+// AddonProviderBuilder 辅助构建 AddonProvider
+type AddonProviderBuilder struct{}
+
+// WithReqRecordMeta 设置 ClusterRequestRecordProvider
+func (a *AddonProviderBuilder) WithReqRecordMeta(
+	provider metaprovider.ClusterRequestRecordProvider,
+) AddonProviderOption {
+	return func(a *AddonProvider) {
+		a.reqRecordMeta = provider
+	}
+}
+
+// WithClusterConfigMeta 设置 K8sClusterConfigMeta
+func (a *AddonProviderBuilder) WithClusterConfigMeta(
+	provider metaprovider.K8sClusterConfigProvider,
+) AddonProviderOption {
+	return func(a *AddonProvider) {
+		a.clusterConfigMeta = provider
+	}
+}
+
+// WithAddonHelmRepoMeta 设置 addonHelmRepoMeta
+func (a *AddonProviderBuilder) WithAddonHelmRepoMeta(
+	provider metaprovider.AddonHelmRepoProvider,
+) AddonProviderOption {
+	return func(a *AddonProvider) {
+		a.addonHelmRepoMeta = provider
+	}
+}
+
+// WithClusterAddonMeta 设置 K8sClusterAddonsProvider
+func (a *AddonProviderBuilder) WithClusterAddonMeta(
+	provider metaprovider.K8sClusterAddonsProvider,
+) AddonProviderOption {
+	return func(a *AddonProvider) {
+		a.clusterAddonsMeta = provider
+	}
+}
+
+// WithAddonMeta 配置 K8sCrdStorageAddonProvider
+func (a *AddonProviderBuilder) WithAddonMeta(
+	provider metaprovider.K8sCrdStorageAddonProvider,
+) AddonProviderOption {
+	return func(a *AddonProvider) {
+		a.addonMeta = provider
+	}
+}
+
+// NewAddonProvider 创建 AddonProvider 实例
+func NewAddonProvider(opts ...AddonProviderOption) (*AddonProvider, error) {
+	provider := &AddonProvider{}
+	for _, opt := range opts {
+		opt(provider)
+	}
+	if err := provider.validateProvider(); err != nil {
+		slog.Error("failed to validate addon provider", "error", err)
+		return nil, err
+	}
+	return provider, nil
+}
+
+// validateProvider 验证 AddonProvider 必要字段
+func (a *AddonProvider) validateProvider() error {
+	if a.reqRecordMeta == nil {
+		slog.Error("reqRecordMeta is nil")
+		return errors.New("reqRecordMeta is nil")
+	}
+	if a.clusterConfigMeta == nil {
+		slog.Error("clusterConfigMeta is nil")
+		return errors.New("clusterConfigMeta is nil")
+	}
+	if a.addonMeta == nil {
+		slog.Error("addonMetaProvider is nil")
+		return errors.New("addonMetaProvider is nil")
+	}
+	if a.addonHelmRepoMeta == nil {
+		slog.Error("addonHelmRepoMeta is nil")
+		return errors.New("addonHelmRepoMeta is nil")
+	}
+	if a.clusterAddonsMeta == nil {
+		slog.Error("clusterAddonsMeta is nil")
+		return errors.New("clusterAddonsMeta is nil")
+	}
+	return nil
 }
 
 // ManageAddon 管理 addon 插件
 func (a *AddonProvider) ManageAddon(entity *pventity.AddonEntity, operation capiconst.AddonOperation) error {
-	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, a.reqRecordProvider)
+	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, a.reqRecordMeta)
 	if err != nil {
 		slog.Error("Failed to create request record", "error", err)
 		return fmt.Errorf("failed to create request record for addon: %w", err)
 	}
-	k8sClusterConfig, err := a.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	k8sClusterConfig, err := a.clusterConfigMeta.FindConfigByName(entity.K8sClusterName)
 	if err != nil {
 		slog.Error("Failed to find k8s cluster config", "error", err)
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
@@ -102,23 +192,6 @@ func (a *AddonProvider) ManageAddon(entity *pventity.AddonEntity, operation capi
 	return nil
 }
 
-// NewAddonProvider 创建 AddonProvider 实例
-func NewAddonProvider(
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
-	addonHelmRepoProvider metaprovider.AddonHelmRepoProvider,
-	clusterAddonsMetaProvider metaprovider.K8sClusterAddonsProvider,
-	addonMetaProvider metaprovider.K8sCrdStorageAddonProvider,
-) *AddonProvider {
-	return &AddonProvider{
-		reqRecordProvider,
-		clusterConfigProvider,
-		addonHelmRepoProvider,
-		clusterAddonsMetaProvider,
-		addonMetaProvider,
-	}
-}
-
 // getAddonHelmRepository 获取 addon helm repository
 func (a *AddonProvider) getAddonHelmRepository(
 	entity *pventity.AddonEntity,
@@ -127,7 +200,7 @@ func (a *AddonProvider) getAddonHelmRepository(
 	repoParams["chart_name"] = entity.AddonType
 	repoParams["chart_version"] = entity.AddonVersion
 
-	helmRepo, err := a.addonHelmRepoProvider.FindByParams(repoParams)
+	helmRepo, err := a.addonHelmRepoMeta.FindByParams(repoParams)
 	if err != nil {
 		slog.Error("failed to find helm repo for addon", "addon_type",
 			entity.AddonType, "addon_version", entity.AddonVersion, "error", err)
@@ -268,7 +341,7 @@ func (a *AddonProvider) createClusterAddon(entity *pventity.AddonEntity) (
 		AddonID:        storageAddon.ID,
 	}
 
-	addedClusterAddon, err := a.clusterAddonsProvider.CreateClusterAddon(&clusterAddon)
+	addedClusterAddon, err := a.clusterAddonsMeta.CreateClusterAddon(&clusterAddon)
 	if err != nil {
 		slog.Error("failed to save cluster addon record",
 			"error", err,
@@ -290,12 +363,12 @@ func (a *AddonProvider) deleteClusterAddon(entity *pventity.AddonEntity) error {
 		"addon_id":         storageAddon.ID,
 		"k8s_cluster_name": entity.K8sClusterName,
 	}
-	clusterAddons, err := a.clusterAddonsProvider.FindClusterAddonByParams(caParams)
+	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(caParams)
 	if err != nil {
 		slog.Error("failed to find cluster addon record", "caParams", caParams, "error", err)
 	}
 	if len(clusterAddons) == 1 {
-		_, err := a.clusterAddonsProvider.DeleteClusterAddon(clusterAddons[0].ID)
+		_, err := a.clusterAddonsMeta.DeleteClusterAddon(clusterAddons[0].ID)
 		if err != nil {
 			slog.Error("failed to delete cluster addon record", "error", err, "addon_id", clusterAddons[0].ID)
 			return err
@@ -315,13 +388,13 @@ func (a *AddonProvider) updateClusterAddon(entity *pventity.AddonEntity) error {
 		"addon_id":         storageAddon.ID,
 		"k8s_cluster_name": entity.K8sClusterName,
 	}
-	clusterAddons, err := a.clusterAddonsProvider.FindClusterAddonByParams(caParams)
+	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(caParams)
 	if err != nil {
 		slog.Error("failed to find cluster addon record", "caParams", caParams, "error", err)
 		return err
 	}
 	if len(clusterAddons) == 1 {
-		_, err := a.clusterAddonsProvider.UpdateClusterAddon(&clusterAddons[0])
+		_, err := a.clusterAddonsMeta.UpdateClusterAddon(&clusterAddons[0])
 		if err != nil {
 			slog.Error("failed to update cluster addon record", "error", err, "addon_id", clusterAddons[0].ID)
 			return err
@@ -336,7 +409,7 @@ func (a *AddonProvider) getStorageAddon(entity *pventity.AddonEntity) (*provdere
 		"addon_type":    entity.AddonType,
 		"addon_version": entity.AddonVersion,
 	}
-	saEntities, err := a.addonMetaProvider.FindStorageAddonByParams(saParams)
+	saEntities, err := a.addonMeta.FindStorageAddonByParams(saParams)
 	if err != nil {
 		slog.Error("failed to find addon meta data", "error", err,
 			"addon_type", entity.AddonType, "addon_version", entity.AddonVersion)

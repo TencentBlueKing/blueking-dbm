@@ -52,152 +52,118 @@ type ClusterProvider struct {
 	addonMetaProvider       metaprovider.K8sCrdStorageAddonProvider
 	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
 	componentMetaProvider   metaprovider.K8sCrdComponentProvider
-	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
-	cmpdMetaProvider        metaprovider.K8sCrdCmpdProvider
-	cmpvMetaProvider        metaprovider.K8sCrdCmpvProvider
 	clusterConfigProvider   metaprovider.K8sClusterConfigProvider
 	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
 	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
 	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
 }
 
-// ClusterProviderBuilder ClusterProvider builder
-type ClusterProviderBuilder struct {
-	addonMetaProvider       metaprovider.K8sCrdStorageAddonProvider
-	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
-	componentMetaProvider   metaprovider.K8sCrdComponentProvider
-	cdMetaProvider          metaprovider.K8sCrdClusterDefinitionProvider
-	cmpdMetaProvider        metaprovider.K8sCrdCmpdProvider
-	cmpvMetaProvider        metaprovider.K8sCrdCmpvProvider
-	clusterConfigProvider   metaprovider.K8sClusterConfigProvider
-	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
-	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
-	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
+// ClusterProviderOptions ClusterProvider 的函数选项
+type ClusterProviderOptions func(*ClusterProvider)
+
+// ClusterProviderBuilder 辅助构建 ClusterProvider
+type ClusterProviderBuilder struct{}
+
+// WithClusterMeta 设置 ClusterMetaProvider
+func (c *ClusterProviderBuilder) WithClusterMeta(
+	p metaprovider.K8sCrdClusterProvider,
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.clusterMetaProvider = p
+	}
 }
 
-// NewClusterProviderBuilder 创建 ClusterProviderBuilder 实例
-func NewClusterProviderBuilder() *ClusterProviderBuilder {
-	return &ClusterProviderBuilder{}
-}
-
-// WithClusterMetaProvider 设置 ClusterMetaProvider
-func (c *ClusterProviderBuilder) WithClusterMetaProvider(p metaprovider.K8sCrdClusterProvider) *ClusterProviderBuilder {
-	c.clusterMetaProvider = p
-	return c
-}
-
-// WithComponentMetaProvider 设置 ComponentMetaProvider
-func (c *ClusterProviderBuilder) WithComponentMetaProvider(
+// WithComponentMeta 设置 ComponentMetaProvider
+func (c *ClusterProviderBuilder) WithComponentMeta(
 	p metaprovider.K8sCrdComponentProvider,
-) *ClusterProviderBuilder {
-	c.componentMetaProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.componentMetaProvider = p
+	}
 }
 
-// WithCdMetaProvider 设置 CdMetaProvider
-func (c *ClusterProviderBuilder) WithCdMetaProvider(
-	p metaprovider.K8sCrdClusterDefinitionProvider,
-) *ClusterProviderBuilder {
-	c.cdMetaProvider = p
-	return c
-}
-
-// WithCmpdMetaProvider 设置 CmpdMetaProvider
-func (c *ClusterProviderBuilder) WithCmpdMetaProvider(p metaprovider.K8sCrdCmpdProvider) *ClusterProviderBuilder {
-	c.cmpdMetaProvider = p
-	return c
-}
-
-// WithCmpvMetaProvider 设置 CmpvMetaProvider
-func (c *ClusterProviderBuilder) WithCmpvMetaProvider(p metaprovider.K8sCrdCmpvProvider) *ClusterProviderBuilder {
-	c.cmpvMetaProvider = p
-	return c
-}
-
-// WithClusterConfigMetaProvider 设置 ClusterConfigMetaProvider
-func (c *ClusterProviderBuilder) WithClusterConfigMetaProvider(
+// WithClusterConfigMeta 设置 ClusterConfigMetaProvider
+func (c *ClusterProviderBuilder) WithClusterConfigMeta(
 	p metaprovider.K8sClusterConfigProvider,
-) *ClusterProviderBuilder {
-	c.clusterConfigProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.clusterConfigProvider = p
+	}
 }
 
-// WithReqRecordProvider 设置 ReqRecordProvider
-func (c *ClusterProviderBuilder) WithReqRecordProvider(
+// WithReqRecordMeta 设置 ReqRecordProvider
+func (c *ClusterProviderBuilder) WithReqRecordMeta(
 	p metaprovider.ClusterRequestRecordProvider,
-) *ClusterProviderBuilder {
-	c.reqRecordProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.reqRecordProvider = p
+	}
 }
 
-// WithReleaseMetaProvider 设置 ReleaseMetaProvider
-func (c *ClusterProviderBuilder) WithReleaseMetaProvider(
+// WithReleaseMeta 设置 ReleaseMetaProvider
+func (c *ClusterProviderBuilder) WithReleaseMeta(
 	p metaprovider.AddonClusterReleaseProvider,
-) *ClusterProviderBuilder {
-	c.releaseMetaProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.releaseMetaProvider = p
+	}
 }
 
-// WithClusterHelmRepoProvider 设置 ClusterProviderBuilder
-func (c *ClusterProviderBuilder) WithClusterHelmRepoProvider(
+// WithClusterHelmRepoMeta 设置 ClusterProviderBuilder
+func (c *ClusterProviderBuilder) WithClusterHelmRepoMeta(
 	p metaprovider.AddonClusterHelmRepoProvider,
-) *ClusterProviderBuilder {
-	c.clusterHelmRepoProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.clusterHelmRepoProvider = p
+	}
 }
 
-// WithAddonMetaProvider 设置 AddonMetaProvider
-func (c *ClusterProviderBuilder) WithAddonMetaProvider(
+// WithAddonMeta 设置 AddonMetaProvider
+func (c *ClusterProviderBuilder) WithAddonMeta(
 	p metaprovider.K8sCrdStorageAddonProvider,
-) *ClusterProviderBuilder {
-	c.addonMetaProvider = p
-	return c
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.addonMetaProvider = p
+	}
 }
 
-// Build 构建并返回 ClusterProvider 实例
-func (c *ClusterProviderBuilder) Build() (*ClusterProvider, error) {
+// validateProvider 验证 ClusterProvider 必要字段
+func (c *ClusterProvider) validateProvider() error {
 	if c.clusterMetaProvider == nil {
-		return nil, errors.New("clusterMetaProvider is required")
+		return errors.New("clusterMetaProvider is required")
 	}
 	if c.componentMetaProvider == nil {
-		return nil, errors.New("componentMetaProvider is required")
-	}
-	if c.cdMetaProvider == nil {
-		return nil, errors.New("cdMetaProvider is required")
-	}
-	if c.cmpdMetaProvider == nil {
-		return nil, errors.New("cmpdMetaProvider is required")
-	}
-	if c.cmpvMetaProvider == nil {
-		return nil, errors.New("cmpvMetaProvider is required")
+		return errors.New("componentMetaProvider is required")
 	}
 	if c.clusterConfigProvider == nil {
-		return nil, errors.New("clusterConfigProvider is required")
+		return errors.New("clusterConfigProvider is required")
 	}
 	if c.reqRecordProvider == nil {
-		return nil, errors.New("reqRecordProvider is required")
+		return errors.New("reqRecordProvider is required")
 	}
 	if c.releaseMetaProvider == nil {
-		return nil, errors.New("releaseMetaProvider is required")
+		return errors.New("releaseMetaProvider is required")
 	}
 	if c.clusterHelmRepoProvider == nil {
-		return nil, errors.New("clusterHelmRepoProvider is required")
+		return errors.New("clusterHelmRepoProvider is required")
 	}
 	if c.addonMetaProvider == nil {
-		return nil, errors.New("addonMetaProvider is required")
+		return errors.New("addonMetaProvider is required")
 	}
-	return &ClusterProvider{
-		clusterMetaProvider:     c.clusterMetaProvider,
-		componentMetaProvider:   c.componentMetaProvider,
-		cdMetaProvider:          c.cdMetaProvider,
-		cmpdMetaProvider:        c.cmpdMetaProvider,
-		cmpvMetaProvider:        c.cmpvMetaProvider,
-		clusterConfigProvider:   c.clusterConfigProvider,
-		reqRecordProvider:       c.reqRecordProvider,
-		releaseMetaProvider:     c.releaseMetaProvider,
-		clusterHelmRepoProvider: c.clusterHelmRepoProvider,
-		addonMetaProvider:       c.addonMetaProvider,
-	}, nil
+	return nil
+}
+
+// NewClusterProvider 创建 ClusterProvider 实例
+func NewClusterProvider(option ...ClusterProviderOptions) (*ClusterProvider, error) {
+	provider := &ClusterProvider{}
+	for _, opt := range option {
+		opt(provider)
+	}
+	if err := provider.validateProvider(); err != nil {
+		slog.Error("failed to validate cluster provider", "error", err)
+		return nil, err
+	}
+	return provider, nil
 }
 
 // InstanceSetGVR returns the GroupVersionResource definition for InstanceSet custom resource.

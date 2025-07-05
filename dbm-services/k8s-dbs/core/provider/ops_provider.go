@@ -20,13 +20,13 @@ limitations under the License.
 package provider
 
 import (
-	"errors"
 	"fmt"
 	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
 	metaprovider "k8s-dbs/metadata/provider"
+	"log/slog"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
@@ -36,101 +36,85 @@ import (
 
 // OpsRequestProvider the OpsRequest provider struct
 type OpsRequestProvider struct {
-	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
-	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
-	clusterProvider        *ClusterProvider
-	clusterConfigProvider  metaprovider.K8sClusterConfigProvider
-	reqRecordProvider      metaprovider.ClusterRequestRecordProvider
-	releaseMetaProvider    metaprovider.AddonClusterReleaseProvider
+	opsRequestMeta    metaprovider.K8sCrdOpsRequestProvider
+	clusterMeta       metaprovider.K8sCrdClusterProvider
+	clusterProvider   *ClusterProvider
+	clusterConfigMeta metaprovider.K8sClusterConfigProvider
+	reqRecordMeta     metaprovider.ClusterRequestRecordProvider
+	releaseMeta       metaprovider.AddonClusterReleaseProvider
 }
 
-// NewOpsReqProviderBuilder 创建 OpsReqProviderBuilder 实例
-func NewOpsReqProviderBuilder() *OpsReqProviderBuilder {
-	return &OpsReqProviderBuilder{}
+// OpsRequestProviderOption OpsRequestProvider 的函数选项
+type OpsRequestProviderOption func(*OpsRequestProvider)
+
+// OpsRequestProviderBuilder 辅助构建 OpsRequestProvider
+type OpsRequestProviderBuilder struct{}
+
+// NewOpsReqProvider 创建 OpsReqProvider 实例
+func NewOpsReqProvider(opts ...OpsRequestProviderOption) (*OpsRequestProvider, error) {
+	provider := &OpsRequestProvider{}
+	for _, opt := range opts {
+		opt(provider)
+	}
+	if err := provider.validateProvider(); err != nil {
+		slog.Error("failed to validate ops request provider", "error", err)
+		return nil, err
+	}
+	return provider, nil
 }
 
-// OpsReqProviderBuilder ClusterProvider builder
-type OpsReqProviderBuilder struct {
-	opsRequestMetaProvider metaprovider.K8sCrdOpsRequestProvider
-	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
-	clusterConfigProvider  metaprovider.K8sClusterConfigProvider
-	reqRecordProvider      metaprovider.ClusterRequestRecordProvider
-	releaseMetaProvider    metaprovider.AddonClusterReleaseProvider
-	clusterProvider        *ClusterProvider
+// WithOpsRequestMeta 设置 opsRequestMeta
+func (o *OpsRequestProviderBuilder) WithOpsRequestMeta(
+	provider metaprovider.K8sCrdOpsRequestProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.opsRequestMeta = provider
+	}
 }
 
-// WithopsRequestMetaProvider 设置 opsRequestMetaProvider
-func (o *OpsReqProviderBuilder) WithopsRequestMetaProvider(
-	p metaprovider.K8sCrdOpsRequestProvider,
-) *OpsReqProviderBuilder {
-	o.opsRequestMetaProvider = p
-	return o
+// WithClusterMeta 设置 ClusterMetaProvider
+func (o *OpsRequestProviderBuilder) WithClusterMeta(
+	provider metaprovider.K8sCrdClusterProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.clusterMeta = provider
+	}
 }
 
-// WithClusterMetaProvider 设置 ClusterMetaProvider
-func (o *OpsReqProviderBuilder) WithClusterMetaProvider(p metaprovider.K8sCrdClusterProvider) *OpsReqProviderBuilder {
-	o.clusterMetaProvider = p
-	return o
+// WithClusterConfigMeta 设置 ClusterConfigMetaProvider
+func (o *OpsRequestProviderBuilder) WithClusterConfigMeta(
+	provider metaprovider.K8sClusterConfigProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.clusterConfigMeta = provider
+	}
 }
 
-// WithClusterConfigMetaProvider 设置 ClusterConfigMetaProvider
-func (o *OpsReqProviderBuilder) WithClusterConfigMetaProvider(
-	p metaprovider.K8sClusterConfigProvider,
-) *OpsReqProviderBuilder {
-	o.clusterConfigProvider = p
-	return o
+// WithReqRecordMeta 设置 reqRecordMeta
+func (o *OpsRequestProviderBuilder) WithReqRecordMeta(
+	provider metaprovider.ClusterRequestRecordProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.reqRecordMeta = provider
+	}
 }
 
-// WithReqRecordProvider 设置 ReqRecordProvider
-func (o *OpsReqProviderBuilder) WithReqRecordProvider(
-	p metaprovider.ClusterRequestRecordProvider,
-) *OpsReqProviderBuilder {
-	o.reqRecordProvider = p
-	return o
-}
-
-// WithReleaseMetaProvider 设置 ReleaseMetaProvider
-func (o *OpsReqProviderBuilder) WithReleaseMetaProvider(
-	p metaprovider.AddonClusterReleaseProvider,
-) *OpsReqProviderBuilder {
-	o.releaseMetaProvider = p
-	return o
+// WithReleaseMeta 设置 ReleaseMetaProvider
+func (o *OpsRequestProviderBuilder) WithReleaseMeta(
+	provider metaprovider.AddonClusterReleaseProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.releaseMeta = provider
+	}
 }
 
 // WithClusterProvider 设置 ClusterProvider
-func (o *OpsReqProviderBuilder) WithClusterProvider(p *ClusterProvider) *OpsReqProviderBuilder {
-	o.clusterProvider = p
-	return o
-}
-
-// Build 构建并返回 OpsRequestProvider 实例
-func (o *OpsReqProviderBuilder) Build() (*OpsRequestProvider, error) {
-	if o.opsRequestMetaProvider == nil {
-		return nil, errors.New("opsRequestMetaProvider is required")
+func (o *OpsRequestProviderBuilder) WithClusterProvider(
+	provider *ClusterProvider,
+) OpsRequestProviderOption {
+	return func(p *OpsRequestProvider) {
+		p.clusterProvider = provider
 	}
-	if o.clusterMetaProvider == nil {
-		return nil, errors.New("clusterMetaProvider is required")
-	}
-	if o.clusterConfigProvider == nil {
-		return nil, errors.New("clusterConfigProvider is required")
-	}
-	if o.reqRecordProvider == nil {
-		return nil, errors.New("reqRecordProvider is required")
-	}
-	if o.releaseMetaProvider == nil {
-		return nil, errors.New("releaseMetaProvider is required")
-	}
-	if o.clusterProvider == nil {
-		return nil, errors.New("clusterProvider is required")
-	}
-	return &OpsRequestProvider{
-		opsRequestMetaProvider: o.opsRequestMetaProvider,
-		clusterMetaProvider:    o.clusterMetaProvider,
-		clusterConfigProvider:  o.clusterConfigProvider,
-		reqRecordProvider:      o.reqRecordProvider,
-		releaseMetaProvider:    o.releaseMetaProvider,
-		clusterProvider:        o.clusterProvider,
-	}, nil
 }
 
 // GetOpsRequestStatus get opsRequest status
@@ -144,13 +128,13 @@ func (o *OpsRequestProvider) GetOpsRequestStatus(request *coreentity.Request) (*
 
 // VerticalScaling Create a verticalScaling of opsRequest
 func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, coreconst.VScaling)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VScaling)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the configuration of the k8s client based on the unique identifier and initialize the client
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -165,8 +149,8 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		verticalScaling,
 		addedRequestEntity.RequestID,
@@ -181,7 +165,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
+	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -195,12 +179,12 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 
 // HorizontalScaling Create a horizontalScaling of opsRequest
 func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, coreconst.HScaling)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.HScaling)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -215,8 +199,8 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		horizontalScaling,
 		addedRequestEntity.RequestID,
@@ -236,7 +220,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 		"release_name":          request.ClusterName,
 		"namespace":             request.Namespace,
 	}
-	releaseEntity, err := o.releaseMetaProvider.FindByParams(paramsRelease)
+	releaseEntity, err := o.releaseMeta.FindByParams(paramsRelease)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +228,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	if err != nil {
 		return nil, err
 	}
-	_, err = o.releaseMetaProvider.UpdateClusterRelease(newReleaseEntity)
+	_, err = o.releaseMeta.UpdateClusterRelease(newReleaseEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -259,12 +243,12 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 
 // VolumeExpansion Create a volumeExpansion of opsRequest
 func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, coreconst.VExpansion)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VExpansion)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -284,8 +268,8 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		volumeExpansion,
 		addedRequestEntity.RequestID,
@@ -300,7 +284,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
+	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -318,12 +302,12 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 	if request.ComponentList != nil {
 		requestType = coreconst.StartComp
 	}
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, requestType)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -338,8 +322,8 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		start,
 		addedRequestEntity.RequestID,
@@ -369,12 +353,12 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 		requestType = coreconst.RestartComp
 	}
 
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, requestType)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -399,8 +383,8 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		restart,
 		addedRequestEntity.RequestID,
@@ -429,12 +413,12 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 		requestType = coreconst.StopComp
 	}
 
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, requestType)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -449,8 +433,8 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		stop,
 		addedRequestEntity.RequestID,
@@ -475,12 +459,12 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 
 // UpgradeCluster create crd if needed and Create a upgradeCluster of opsRequest
 func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, coreconst.UpgradeComp)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.UpgradeComp)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -500,8 +484,8 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		upgrade,
 		addedRequestEntity.RequestID,
@@ -516,7 +500,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMetaProvider, request, k8sClusterConfig.ID)
+	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -530,12 +514,12 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 
 // ExposeCluster create crd if needed and Create a exposeCluster of opsRequest
 func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordProvider, request, coreconst.ExposeService)
+	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.ExposeService)
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -551,8 +535,8 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 	}
 
 	err = corehelper.CreateOpsRequestMetaData(
-		o.opsRequestMetaProvider,
-		o.clusterMetaProvider,
+		o.opsRequestMeta,
+		o.clusterMeta,
 		request,
 		expose,
 		addedRequestEntity.RequestID,
@@ -576,7 +560,7 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 
 // DescribeOpsRequest describe OpsRequest
 func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*coreentity.OpsRequestData, error) {
-	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	k8sClusterConfig, err := o.clusterConfigMeta.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
@@ -600,6 +584,26 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 		return nil, err
 	}
 	return responseData, nil
+}
+
+// validateProvider 验证 OpsRequestProvider 必要字段
+func (o *OpsRequestProvider) validateProvider() error {
+	if o.opsRequestMeta == nil {
+		return fmt.Errorf("missing opsRequestMeta")
+	}
+	if o.clusterMeta == nil {
+		return fmt.Errorf("missing clusterMeta")
+	}
+	if o.releaseMeta == nil {
+		return fmt.Errorf("missing releaseMeta")
+	}
+	if o.reqRecordMeta == nil {
+		return fmt.Errorf("missing reqRecordMeta")
+	}
+	if o.clusterConfigMeta == nil {
+		return fmt.Errorf("missing clusterConfigMeta")
+	}
+	return nil
 }
 
 // getClusterInfo Query cluster information and return

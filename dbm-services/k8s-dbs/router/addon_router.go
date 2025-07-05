@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/core/provider"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
+	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -57,12 +58,17 @@ func initAddonController(db *gorm.DB) *controller.AddonController {
 	clusterAddonsMetaDbAccess := metadbaccess.NewK8sClusterAddonsDbAccess(db)
 	clusterAddonsMetaProvider := metaprovider.NewK8sClusterAddonsProvider(clusterAddonsMetaDbAccess, addonMetaDbAccess)
 
-	addonProvider := provider.NewAddonProvider(
-		requestRecordProvider,
-		k8sClusterConfigProvider,
-		addonHelmRepoProvider,
-		clusterAddonsMetaProvider,
-		addonMetaProvider,
+	addonProviderBuilder := &provider.AddonProviderBuilder{}
+	addonProvider, err := provider.NewAddonProvider(
+		addonProviderBuilder.WithReqRecordMeta(requestRecordProvider),
+		addonProviderBuilder.WithAddonMeta(addonMetaProvider),
+		addonProviderBuilder.WithClusterAddonMeta(clusterAddonsMetaProvider),
+		addonProviderBuilder.WithClusterConfigMeta(k8sClusterConfigProvider),
+		addonProviderBuilder.WithAddonHelmRepoMeta(addonHelmRepoProvider),
 	)
+	if err != nil {
+		slog.Error("failed to build addon provider", "error", err)
+		panic(err)
+	}
 	return controller.NewAddonController(addonProvider)
 }
