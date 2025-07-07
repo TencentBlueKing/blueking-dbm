@@ -97,7 +97,7 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('DB 主从互切'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('主从互切'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换'), {
