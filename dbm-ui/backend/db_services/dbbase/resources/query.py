@@ -963,6 +963,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_cloud_id": machine.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "cluster_type": machine.cluster_type,
+            "cluster_type_name": ClusterType.get_choice_label(machine.cluster_type),
             "machine_type": machine.machine_type,
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,
