@@ -107,7 +107,7 @@
   .cluster-resource-selector-preview-result {
     display: flex;
     height: 100%;
-    max-height: 680px;
+    max-height: 660px;
     padding: 12px 24px;
     overflow: hidden;
     font-size: @font-size-mini;
@@ -116,8 +116,8 @@
 
     .header {
       display: flex;
-      padding: 16px 0;
       align-items: center;
+      margin-bottom: 16px;
 
       > span {
         flex: 1;

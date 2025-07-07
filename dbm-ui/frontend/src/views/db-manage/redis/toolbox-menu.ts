@@ -23,6 +23,7 @@ export interface MenuItem {
 }
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -87,6 +88,12 @@ export default [
             dbConsoleValue: 'redis.toolbox.installModule',
             id: TicketTypes.REDIS_CLUSTER_LOAD_MODULES,
             name: t('安装 Module'),
+            parentId: 'cluster-manage',
+          },
+          {
+            dbConsoleValue: 'redis.toolbox.clusterReinstallDbmon',
+            id: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON,
+            name: t('集群标准化'),
             parentId: 'cluster-manage',
           },
         ],

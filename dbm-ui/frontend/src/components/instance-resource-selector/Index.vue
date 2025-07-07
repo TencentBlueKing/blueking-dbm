@@ -29,6 +29,9 @@
       :min="320"
       placement="right">
       <template #main>
+        <PanelTab
+          v-model="currentClusterType"
+          :panel-list="configList" />
         <RenderTable
           v-model:selected="selected"
           :params="params" />
@@ -56,14 +59,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { ClusterTypes } from '@common/const';
+
   import comFactory from './com-factory';
+  import PanelTab from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderTable, { type IValue } from './components/RenderTable.vue';
 
   export type IInstance = IValue;
 
+  type SupportClusterTypes = keyof typeof comFactory;
+
   interface Props {
-    clusterType: keyof typeof comFactory;
+    clusterTypes: SupportClusterTypes[];
     role?: string;
   }
 
@@ -83,10 +91,20 @@
 
   const { t } = useI18n();
 
+  const currentClusterType = ref<SupportClusterTypes>(ClusterTypes.TENDBHA);
+
+  const configList = computed(() => props.clusterTypes.map((clusterType) => comFactory[clusterType]));
+
   const params = computed(() => ({
-    ...comFactory[props.clusterType],
+    ...comFactory[currentClusterType.value].params,
     role: props.role,
   }));
+
+  watch(isShow, () => {
+    if (isShow.value) {
+      currentClusterType.value = props.clusterTypes[0];
+    }
+  });
 
   const handleClose = () => {
     isShow.value = false;

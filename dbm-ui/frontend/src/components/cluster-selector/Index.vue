@@ -282,6 +282,24 @@
       resultContent: ResultPreview,
       tableContent: RedisTable,
     },
+    [ClusterTypes.REDIS_INSTANCE]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          cluster_type: ClusterTypes.REDIS_INSTANCE,
+          ...params,
+        }),
+      id: ClusterTypes.REDIS_INSTANCE,
+      multiple: true,
+      name: t('Redis 主从'),
+      resultContent: ResultPreview,
+      tableContent: RedisTable,
+    },
     [ClusterTypes.SQLSERVER_HA]: {
       disabledRowConfig: [
         {
