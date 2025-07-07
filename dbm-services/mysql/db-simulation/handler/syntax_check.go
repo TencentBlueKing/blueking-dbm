@@ -279,10 +279,10 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		}
 		byteCount := 0
 		for _, tbl := range relationTbls {
-			byteCount += strings.Count(strings.Join(tbl.Tbls, ""), "") - 1
+			byteCount += len(strings.Join(tbl.Tbls, ""))
 		}
-		byteCount += strings.Count(strings.Join(dbs, ""), "") - 1
-		byteCount += strings.Count(strings.Join(createDbs, ""), "") - 1
+		byteCount += len(strings.Join(dbs, ""))
+		byteCount += len(strings.Join(createDbs, ""))
 		// sql语句的变更表数量大于2000,防止mysqldump 拼接参数过长导致执行失败
 		// job 参数最大长度47k byte
 		if byteCount > 45000 {

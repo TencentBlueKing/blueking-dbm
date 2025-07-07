@@ -27,7 +27,7 @@ class MysqlCLBBindDomainFlowParamBuilder(builders.FlowParamBuilder):
         """
         {
             "uid": "22346",
-            "created_by": "makeyuan",
+            "created_by": "operator",
             "bk_biz_id": "20",
             "bk_cloud_id": 0,
             "ticket_type": "MYSQL_CLB_BIND_DOMAIN",
