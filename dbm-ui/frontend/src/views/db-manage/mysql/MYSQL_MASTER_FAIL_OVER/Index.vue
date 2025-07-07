@@ -17,11 +17,27 @@
       class="mb-20"
       closable
       :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+    <div class="mb-16">
+      <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
+      <CardCheckbox
+        v-model="operaObjectType"
+        :desc="t('用于强制执行实例级别切换')"
+        icon="rebuild"
+        :title="t('实例切换')"
+        :true-value="OperaObejctType.INSTANCE" />
+      <CardCheckbox
+        v-model="operaObjectType"
+        class="ml-8"
+        :desc="t('用于强制执行主机级别切换')"
+        icon="host"
+        :title="t('主机切换')"
+        :true-value="OperaObejctType.MACHINE" />
+    </div>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
     <BkForm
-      class="mt-16 mb-16"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
@@ -31,27 +47,24 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterHostColumn
+          <MasterColumn
             v-model="item.master"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SlaveHostColumn
+          <SlaveColumn
             v-model="item.slave"
-            :master-host="item.master" />
+            :master="item.master" />
           <EditableColumn
             :label="t('同机关联的集群')"
             :min-width="150"
             required>
-            <EditableBlock v-if="item.master.related_clusters.length">
+            <EditableBlock :placeholder="t('自动生成')">
               <p
                 v-for="cluster in item.master.related_clusters"
                 :key="cluster.id">
                 {{ cluster.master_domain }}
               </p>
             </EditableBlock>
-            <EditableBlock
-              v-else
-              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -64,12 +77,12 @@
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_verify_checksum">
+        <BkCheckbox v-model="formData.is_check_delay">
           {{ t('检查主从同步延迟') }}
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_check_delay">
+        <BkCheckbox v-model="formData.is_verify_checksum">
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
@@ -103,10 +116,13 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
+
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -115,28 +131,30 @@
 
   import { random } from '@utils';
 
-  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
-  import SlaveHostColumn from './components/SlaveHostColumn.vue';
+  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: ComponentProps<typeof MasterHostColumn>['modelValue'];
-    slave: ComponentProps<typeof SlaveHostColumn>['modelValue'];
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
     {
       case: '192.168.10.2',
       key: 'ip',
-      label: t('目标主库主机'),
+      label: t('故障主库主机'),
     },
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         ip: '',
@@ -147,6 +165,7 @@
     ),
     slave: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         ip: '',
@@ -163,6 +182,7 @@
     tableData: [createTableRow()],
   });
 
+  const operaObjectType = ref(OperaObejctType.MACHINE);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
@@ -170,6 +190,14 @@
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  watch(operaObjectType, () => {
+    if (operaObjectType.value === OperaObejctType.INSTANCE) {
+      router.push({
+        name: TicketTypes.MYSQL_INSTANCE_FAIL_OVER,
+      });
+    }
+  });
 
   useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
     async onSuccess(ticketDetail) {
@@ -220,18 +248,8 @@
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_ids: item.master.related_clusters.map((item) => item.id),
-          master_ip: {
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: item.master.bk_cloud_id,
-            bk_host_id: item.master.bk_host_id,
-            ip: item.master.ip,
-          },
-          slave_ip: {
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: item.slave.bk_cloud_id,
-            bk_host_id: item.slave.bk_host_id,
-            ip: item.slave.ip,
-          },
+          master_ip: item.master,
+          slave_ip: item.slave,
         })),
         is_check_delay: formData.is_check_delay,
         is_check_process: formData.is_check_process,

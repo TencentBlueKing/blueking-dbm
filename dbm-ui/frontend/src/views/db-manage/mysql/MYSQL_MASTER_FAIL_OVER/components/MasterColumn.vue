@@ -30,8 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -58,9 +58,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -70,6 +68,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
@@ -145,6 +144,7 @@
       const [currentHost] = data;
       if (currentHost) {
         modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
           ip: currentHost.ip,
@@ -162,8 +162,9 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
+      bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: value,
@@ -198,9 +199,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .table-cell {
-    padding: 0 8px;
   }
 </style>

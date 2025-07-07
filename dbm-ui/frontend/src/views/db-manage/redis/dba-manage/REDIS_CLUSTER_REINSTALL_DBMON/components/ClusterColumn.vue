@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="ClusterTypes.REDIS"
+    :cluster-types="[ClusterTypes.REDIS]"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -46,14 +46,18 @@
   import type RedisModel from '@services/model/redis/redis';
   import { getGlobalCluster } from '@services/source/dbbase';
 
-  import { ClusterTypes, DBTypes, queryClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterResourceSelector, { type ICluster } from '@components/cluster-resource-selector/Index.vue';
 
   export type IValue = ICluster;
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  interface Props {
+    selected: Array<typeof modelValue.value>;
+  }
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -65,6 +69,8 @@
   }>({
     required: true,
   });
+
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const { t } = useI18n();
 
@@ -121,7 +127,6 @@
     () => {
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
-          cluster_type: queryClusterTypes[DBTypes.REDIS].join(','),
           db_type: DBTypes.REDIS,
           exact_domain: modelValue.value.master_domain,
         });
@@ -129,6 +134,13 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected as IValue[];
     },
   );
 </script>

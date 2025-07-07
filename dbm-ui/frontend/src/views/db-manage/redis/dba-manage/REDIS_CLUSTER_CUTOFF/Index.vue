@@ -111,6 +111,8 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SpecColumn from '@views/db-manage/redis/REDIS_CLUSTER_CUTOFF/components/SpecColumn.vue';
 
+  import { random } from '@utils';
+
   import HostColumn, { type IValue } from './components/HostColumn.vue';
   import { random } from '@utils';
 

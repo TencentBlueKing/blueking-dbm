@@ -102,6 +102,7 @@
     [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 高可用清档
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: 'MySQLExecute', // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
+    [TicketTypes.MYSQL_INSTANCE_FAIL_OVER]: TicketTypes.MYSQL_INSTANCE_FAIL_OVER, // Mysql主库实例故障切换
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, // Mysql 主从互切
@@ -127,6 +128,7 @@
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: TicketTypes.REDIS_CLUSTER_DATA_COPY, // Redis 数据复制
     [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE, // Redis 集群迁移
     [TicketTypes.REDIS_CLUSTER_LOAD_MODULES]: TicketTypes.REDIS_CLUSTER_LOAD_MODULES, // 安装 Module
+    [TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON]: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, // Redis 集群标准化
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, // Redis 集群分片变更
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更
@@ -174,8 +176,9 @@
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
-    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: 'spiderMasterFailover', // Spider remote主故障切换
-    [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: 'spiderMasterSlaveSwap', // Spider remote 主从切换
+    [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障
+    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换
+    [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, // Spider remote 主从切换
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: TicketTypes.TENDBCLUSTER_NODE_REBALANCE, // Spider 集群remote节点扩缩容
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区

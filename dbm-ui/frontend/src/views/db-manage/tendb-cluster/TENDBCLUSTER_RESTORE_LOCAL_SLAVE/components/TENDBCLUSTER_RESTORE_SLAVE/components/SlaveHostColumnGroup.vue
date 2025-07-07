@@ -30,8 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <EditableColumn
     :label="t('从库主机关联实例')"
@@ -51,7 +51,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
-    :selected="selectedInstances"
+    :selected="selectedHosts"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
@@ -73,9 +73,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -95,20 +93,37 @@
     spec_id: number;
     spec_name: string;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-      spec_name: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
+
+  const tabListConfig = {
+    TendbClusterHost: [
+      {
+        id: 'TendbClusterHost',
+        name: t('故障主库主机'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const tabListConfig = {
     TendbClusterHost: [
@@ -135,7 +150,7 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
     TendbClusterHost: props.selected.map(
       (item) =>
         ({
@@ -195,7 +210,7 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
@@ -222,7 +237,14 @@
   watch(
     () => modelValue.value.ip,
     () => {
-      handleInputChange(modelValue.value.ip);
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
     },
     {
       immediate: true,

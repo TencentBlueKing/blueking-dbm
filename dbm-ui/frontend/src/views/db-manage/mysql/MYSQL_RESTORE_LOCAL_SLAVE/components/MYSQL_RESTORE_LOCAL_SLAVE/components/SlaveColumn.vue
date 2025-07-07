@@ -16,7 +16,8 @@
     field="slave.ip"
     :label="t('从库主机')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
       v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
@@ -26,19 +27,21 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   interface Props {
-    masterHost: {
-      related_clusters: {
-        id: number;
-      }[];
+    master: {
+      bk_host_id: number;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      ip: string;
     };
   }
 
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
@@ -48,28 +51,28 @@
 
   const { t } = useI18n();
 
-  const { loading, run: querySlaveMachine } = useRequest(getIntersectedSlaveMachinesFromClusters, {
+  const { loading, run: querySlave } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [slaveHost] = data;
-      if (slaveHost) {
+      const [item] = Object.values(data.machines);
+      if (item) {
         modelValue.value = {
-          bk_cloud_id: slaveHost.bk_cloud_id,
-          bk_host_id: slaveHost.bk_host_id,
-          ip: slaveHost.ip,
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
         };
       }
     },
   });
 
   watch(
-    () => props.masterHost,
+    () => props.master,
     () => {
-      if (props.masterHost.related_clusters.length) {
-        querySlaveMachine({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_ids: [props.masterHost.related_clusters[0].id],
-          is_stand_by: true,
+      if (props.master.bk_host_id) {
+        querySlave({
+          bk_biz_id: props.master.bk_biz_id,
+          machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
       }
     },
@@ -78,9 +81,3 @@
     },
   );
 </script>
-
-<style lang="less" scoped>
-  .table-cell {
-    padding: 0 8px;
-  }
-</style>

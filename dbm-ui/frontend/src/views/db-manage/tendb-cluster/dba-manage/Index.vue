@@ -14,7 +14,7 @@
 <template>
   <DbaManageMenu
     :routes="routes"
-    sub-title="TendbCluster" />
+    sub-title="Tendb Cluster" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -28,6 +28,12 @@
       dbConsoleValue: 'dbaManage.tendbcluster.webQuery',
       id: 'DbaManageTendbClusterWebQuery',
       name: t('管理控制台'),
+    },
+    {
+      bind: [`DBA_${TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER}`, `DBA_${TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER}`],
+      dbConsoleValue: 'dbaManage.tendbcluster.instanceFailOver',
+      id: `DBA_${TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER}`,
+      name: t('主库故障切换'),
     },
   ];
 </script>

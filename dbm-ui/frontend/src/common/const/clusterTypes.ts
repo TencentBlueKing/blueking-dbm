@@ -15,9 +15,9 @@ export enum ClusterTypes {
   DBMON = 'dbmon', // redis监控
   PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // RedisCluster集群
   PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster', // Tendisplus存储版集群
-  REDIS = 'redis', // Redis
+  REDIS = 'redis', // 【Redis集群】
   REDIS_CLUSTER = 'RedisCluster', // RedisCluster集群
-  REDIS_INSTANCE = 'RedisInstance', // RedisCache主从版
+  REDIS_INSTANCE = 'RedisInstance', // 【RedisCache主从】
   TENDIS_PLUS_CLUSTER = 'TendisplusCluster', // TendisplusCluster集群
   TENDIS_PLUS_INSTANCE = 'TendisplusInstance', // Tendisplus主从版
   TENDIS_SSD_INSTANCE = 'TendisSSDInstance', // TendisSSD主从版

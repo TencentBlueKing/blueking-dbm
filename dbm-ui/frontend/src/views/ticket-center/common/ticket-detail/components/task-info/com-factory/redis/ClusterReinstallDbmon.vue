@@ -20,9 +20,6 @@
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('所属业务')">
-      {{ ticketDetails.bk_biz_name || '--' }}
-    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('重新下发GSE配置')">
