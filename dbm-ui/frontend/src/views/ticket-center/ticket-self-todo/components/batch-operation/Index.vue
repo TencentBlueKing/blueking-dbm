@@ -78,12 +78,14 @@
   const titleMap = {
     [TicketModel.STATUS_APPROVE]: t('批量审批'),
     [TicketModel.STATUS_RESOURCE_REPLENISH]: t('批量处理'),
+    [TicketModel.STATUS_TIMER]: t('批量处理'),
     [TicketModel.STATUS_TODO]: t('批量处理'),
   };
 
   const actionComMap = {
     [TicketModel.STATUS_APPROVE]: StatusApproveAction,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenishAction,
+    [TicketModel.STATUS_TIMER]: StatusTodoAction,
     [TicketModel.STATUS_TODO]: StatusTodoAction,
   };
 
