@@ -295,6 +295,7 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TagBlock from '@components/tag-block/Index.vue';
+  import TicketDetail from '@components/ticket-detail/index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { getBusinessHref, getOffset } from '@utils';
@@ -304,8 +305,6 @@
   import useDatePicker from '../hooks/use-date-picker';
   import useFetchData from '../hooks/use-fetch-data';
   import useSearchSelect from '../hooks/use-search-select';
-
-  import TicketDetail from './components/TicketDetail.vue';
 
   type IRowData = TicketModel<unknown>;
 
