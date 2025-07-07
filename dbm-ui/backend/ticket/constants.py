@@ -272,14 +272,16 @@ class TicketType(str, StructuredEnum):
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
     MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)  # noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
-    MYSQL_AUTOFIX_TODO_REGISTER = TicketEnumField("MYSQL_AUTOFIX_TODO_REGISTER", _("MySQL DBHA 故障自愈任务注册"))
-    MYSQL_STORAGE_STANDARDIZE_AUTOFIX = TicketEnumField(
-        "MYSQL_STORAGE_STANDARDIZE_AUTOFIX", _("MySQL 存储自愈自动重标准化"), register_iam=False)
     MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"), register_iam=False)
     MYSQL_RENAME_DATABASE = TicketEnumField("MYSQL_RENAME_DATABASE", _("MySQL DB重命名"))
 
-    # MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"),
-    #                                                register_iam=False)
+    # mysql autofix
+    MYSQL_AUTOFIX_TODO_REGISTER = TicketEnumField("MYSQL_AUTOFIX_TODO_REGISTER", _("MySQL DBHA 故障自愈任务注册"))
+    MYSQL_STORAGE_STANDARDIZE_AUTOFIX = TicketEnumField(
+        "MYSQL_STORAGE_STANDARDIZE_AUTOFIX", _("MySQL 存储自愈自动重标准化"), register_iam=False)
+    MYSQL_AUTOFIX_PROXY_SWITCH = TicketEnumField("MYSQL_AUTOFIX_PROXY_SWITCH", _("MySQL PROXY 自愈替换"))
+    MYSQL_AUTOFIX_SPIDER_ADD = TicketEnumField("MYSQL_AUTOFIX_SPIDER_ADD", _("MySQL SPIDER 自愈扩容"))
+    MYSQL_AUTOFIX_SPIDER_REDUCE = TicketEnumField("MYSQL_AUTOFIX_SPIDER_REDUCE", _("MySQL SPIDER 自愈踢除故障"))
 
     MYSQL_CLUSTER_STANDARDIZE = TicketEnumField("MYSQL_CLUSTER_STANDARDIZE", _("MySQL 集群标准化"), register_iam=False)
 

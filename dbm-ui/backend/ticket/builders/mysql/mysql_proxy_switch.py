@@ -104,3 +104,13 @@ class MysqlProxySwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     inner_flow_builder = MysqlProxySwitchParamBuilder
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
     pause_node_builder = MySQLBasePauseParamBuilder
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_PROXY_SWITCH, is_apply=True, is_recycle=True)
+class MysqlAutofixProxySwitchFlowBuilder(MysqlProxySwitchFlowBuilder):
+    """
+    自愈专用
+    """
+
+    default_need_itsm = False
+    default_need_manual_confirm = False

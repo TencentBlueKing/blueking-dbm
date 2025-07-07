@@ -95,3 +95,13 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     def patch_ticket_detail(self):
         self.calc_reduce_spider()
         super().patch_ticket_detail()
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_SPIDER_REDUCE, is_recycle=True)
+class MysqlAutofixSpiderReduce(TendbSpiderReduceNodesFlowBuilder):
+    """
+    自愈专用
+    """
+
+    default_need_itsm = False
+    default_need_manual_confirm = False

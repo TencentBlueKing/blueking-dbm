@@ -15,8 +15,8 @@ from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountR
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_autofix_todo_register_flow import (
-    MySQLAutofixTodoRegisterFlow,
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_todo_register_flow import (
+    MySQLDBHAAutofixTodoRegisterFlow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
@@ -710,15 +710,8 @@ class MySQLController(BaseController):
         mysql 自愈
         只是把自愈信息入库
         """
-        flow = MySQLAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLDBHAAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
-
-    def storage_auto_standardize_autofix_scene(self):
-        """
-        mysql 自愈
-        """
-        flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize_by_ip()
 
     def mysql_rename_database_scene(self):
         """

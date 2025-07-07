@@ -70,3 +70,9 @@ class TendbSpiderAddNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbSpiderAddNodesFlowParamBuilder
     inner_flow_name = _("TenDBCluster Cluster 接入层扩容")
     resource_batch_apply_builder = TendbSpiderAddNodesResourceParamBuilder
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_SPIDER_ADD, is_apply=True)
+class MysqlAutofixAddSpider(TendbSpiderAddNodesFlowBuilder):
+    default_need_itsm = False
+    default_need_manual_confirm = True

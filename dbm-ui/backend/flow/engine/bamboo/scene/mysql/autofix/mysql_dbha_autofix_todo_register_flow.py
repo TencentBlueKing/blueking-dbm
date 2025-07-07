@@ -22,7 +22,7 @@ from backend.flow.plugins.components.collections.mysql.autofix.mysql_autofix_tod
 logger = logging.getLogger("flow")
 
 
-class MySQLAutofixTodoRegisterFlow(object):
+class MySQLDBHAAutofixTodoRegisterFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]):
         self.root_id = root_id
         self.data = data
@@ -33,20 +33,12 @@ class MySQLAutofixTodoRegisterFlow(object):
             "infos": [{
                     bk_cloud_id = models.IntegerField(default=0)
                     bk_biz_id = models.IntegerField(default=0)
-                    cluster_id = models.IntegerField(default=0)
+                    check_id = models.IntegerField
                     immute_domain = models.CharField(max_length=255, default="")
-                    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
                     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")
-                    instance_role = models.CharField(max_length=64, choices=InstanceRole.get_choices(), default="")
                     ip = models.GenericIPAddressField(default="")
                     port = models.IntegerField(default=0)
                     event_create_time = models.DateTimeField()
-                    dbha_gm_ip = models.GenericIPAddressField(default="")
-                    inplace_recovery_retry_times = models.IntegerField(default=0)
-                    context_master_host = models.GenericIPAddressField(default="")
-                    context_master_port = models.IntegerField(default=0)
-                    context_master_log_file = models.CharField(max_length=255, default="")
-                    context_master_log_pos = models.IntegerField(default=0)
             }, ...]
         }
         """

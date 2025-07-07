@@ -15,8 +15,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
-from backend.db_monitor.constants import MySQLAutofixStep
+from backend.db_meta.enums import ClusterType, MachineType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
@@ -69,63 +68,44 @@ class ReplaceStatusFlag(IntFlag):
 class MySQLAutofixTodo(AuditedModel):
     bk_cloud_id = models.IntegerField(default=0)
     bk_biz_id = models.IntegerField(default=0)
-    cluster_id = models.IntegerField(default=0)
     check_id = models.BigIntegerField(default=0)
+    cluster_id = models.BigIntegerField(default=0)
     immute_domain = models.CharField(max_length=255, default="")
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")
-    instance_role = models.CharField(max_length=64, choices=InstanceRole.get_choices(), default="", null=True)
     ip = models.GenericIPAddressField(default="")
     port = models.IntegerField(default=0)
     event_create_time = models.DateTimeField()
-    dbha_gm_ip = models.GenericIPAddressField(default="")
-
-    context_master_host = models.GenericIPAddressField(default="", null=True)
-    context_master_port = models.IntegerField(default=0, null=True)
-    context_master_log_file = models.CharField(max_length=255, default="", null=True)
-    context_master_log_pos = models.IntegerField(default=0, null=True)
-
-    inplace_ticket_id = models.BigIntegerField(default=0)
-    inplace_ticket_status = models.CharField(
+    ticket_id = models.BigIntegerField(default=0, help_text=_("自愈单据"))
+    status = models.CharField(
         max_length=64,
         choices=MySQLAutofixTicketStatus.get_choices(),
         default=MySQLAutofixTicketStatus.UNSUBMITTED.value,
-    )
-
-    replace_ticket_id = models.BigIntegerField(default=0)
-    replace_ticket_status = models.CharField(
-        max_length=64,
-        choices=MySQLAutofixTicketStatus.get_choices(),
-        default=MySQLAutofixTicketStatus.UNSUBMITTED.value,
-    )
-
-    current_step = models.CharField(
-        max_length=64, choices=MySQLAutofixStep.get_choices(), default=MySQLAutofixStep.IN_PLACE_AUTOFIX.value
     )
 
     def __str__(self):
-        return "[{}:{}] {} {} {} {}:{}".format(
+        return "[{}:{}] {} {} {}:{}".format(
             self.bk_cloud_id,
             self.bk_biz_id,
             self.immute_domain,
             self.machine_type,
-            self.instance_role,
+            # self.instance_role,
             self.ip,
             self.port,
         )
 
     class Meta:
-        indexes = [
-            models.Index(fields=["inplace_ticket_status", "current_step", "inplace_ticket_id"]),
-            models.Index(fields=["replace_ticket_status", "current_step", "replace_ticket_id"]),
-            models.Index(fields=["inplace_ticket_id"]),
-            models.Index(fields=["replace_ticket_id"]),
-            # 为查询优化建的索引
-            models.Index(fields=["current_step", "replace_ticket_id", "check_id", "ip"]),
-            models.Index(fields=["current_step", "inplace_ticket_id", "check_id", "ip"]),
-            models.Index(fields=["inplace_ticket_status", "current_step", "check_id"]),
-            models.Index(fields=["replace_ticket_status", "current_step", "check_id"]),
-        ]
+        # indexes = [
+        #     models.Index(fields=["inplace_ticket_status", "current_step", "inplace_ticket_id"]),
+        #     models.Index(fields=["replace_ticket_status", "current_step", "replace_ticket_id"]),
+        #     models.Index(fields=["inplace_ticket_id"]),
+        #     models.Index(fields=["replace_ticket_id"]),
+        #     # 为查询优化建的索引
+        #     models.Index(fields=["current_step", "replace_ticket_id", "check_id", "ip"]),
+        #     models.Index(fields=["current_step", "inplace_ticket_id", "check_id", "ip"]),
+        #     models.Index(fields=["inplace_ticket_status", "current_step", "check_id"]),
+        #     models.Index(fields=["replace_ticket_status", "current_step", "check_id"]),
+        # ]
         unique_together = [
             (
                 "check_id",

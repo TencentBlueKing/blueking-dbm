@@ -12,9 +12,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
@@ -23,23 +20,18 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MySQLClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
+    """
+    单据参数对比 flow 参数做了简化
+    with_deploy_binary: [with_deploy_binary, with_bk_plugin, with_backup_client]
+    with_push_config: [with_push_config, with_exporter_config]
+    """
+
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices())
-    cluster_ids = serializers.ListField(child=serializers.IntegerField())
-    departs = serializers.ListField(child=serializers.ChoiceField(choices=DeployPeripheralToolsDepart.get_choices()))
-    with_deploy_binary = serializers.BooleanField()
-    with_deploy_config = serializers.BooleanField()
-    with_collect_sysinfo = serializers.BooleanField()
-    with_bk_plugin = serializers.BooleanField()
-    with_cc_standardize = serializers.BooleanField()
-    with_instance_standardize = serializers.BooleanField()
-
-    def validate(self, attrs):
-        cluster_ids = attrs.get("cluster_ids")
-        cluster_type = attrs.get("cluster_type")
-
-        if Cluster.objects.filter(pk__in=cluster_ids).exclude(cluster_type=cluster_type).exists():
-            raise serializers.ValidationError(_("集群类型不匹配"))
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(help_text=_("集群ID")))
+    with_deploy_binary = serializers.BooleanField(help_text=_("是否推送二进制"), default=True)
+    with_push_config = serializers.BooleanField(help_text=_("是否推送配置"), default=True)
+    with_cc_standardize = serializers.BooleanField(help_text=_("是否CC模块标准"), default=False)
+    with_instance_standardize = serializers.BooleanField(help_text=_("是否实例标准化. 高危"), default=False)
 
 
 class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
@@ -49,7 +41,7 @@ class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_CLUSTER_STANDARDIZE)
 class MySQLClusterStandardizeFlowBuilder(TicketFlowBuilder):
     default_need_itsm = False
-    default_need_manual_confirm = False
+    default_need_manual_confirm = True
     serializer = MySQLClusterStandardizeDetailSerializer
     inner_flow_builder = MySQLClusterStandardizeFlowParamBuilder
     inner_flow_name = _("MySQL集群标准化")
