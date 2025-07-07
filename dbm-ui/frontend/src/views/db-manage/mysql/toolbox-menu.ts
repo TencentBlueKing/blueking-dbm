@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -102,6 +103,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_RESTORE_SLAVE],
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
         id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
@@ -138,8 +140,9 @@ export default [
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.masterFailover',
-        id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
+        bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'mysql.toolbox.instanceFailover',
+        id: TicketTypes.MYSQL_INSTANCE_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },

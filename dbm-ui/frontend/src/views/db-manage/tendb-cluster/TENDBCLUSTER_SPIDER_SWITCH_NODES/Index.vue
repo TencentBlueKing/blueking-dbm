@@ -36,7 +36,9 @@
             v-model="item.host"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <SpecColumn v-model="item.host.spec_id" />
+          <SpecColumn
+            v-model="item.host.spec_id"
+            :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -86,12 +88,13 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -99,7 +102,6 @@
   import { random } from '@utils';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
-  import SpecColumn from './components/SpecColumn.vue';
 
   interface RowData {
     host: ComponentProps<typeof HostColumn>['modelValue'];

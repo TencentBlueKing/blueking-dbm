@@ -863,7 +863,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('主库主机'),
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaMachineList,
         },
@@ -889,7 +889,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('主库主机'),
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaMachineList,
         },

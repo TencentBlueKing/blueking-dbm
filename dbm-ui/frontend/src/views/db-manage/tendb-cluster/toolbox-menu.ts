@@ -46,13 +46,14 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
-        id: 'spiderMasterSlaveSwap',
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'spider_cluster_maintain',
       },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.masterFailover',
-        id: 'spiderMasterFailover',
+        bind: [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER],
+        dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
+        id: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'spider_cluster_maintain',
       },
@@ -87,6 +88,7 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
+        bind: [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE],
         id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',

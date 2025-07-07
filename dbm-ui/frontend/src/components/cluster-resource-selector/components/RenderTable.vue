@@ -20,7 +20,7 @@
     <DbTable
       ref="table"
       :data-source="dataSource"
-      :height="580"
+      :height="540"
       ignore-biz
       primary-key="id"
       selectable
@@ -35,7 +35,7 @@
       <BkTableColumn
         field="cluster_type_name"
         :label="t('集群类型')"
-        :min-width="120" />
+        :min-width="160" />
       <BkTableColumn
         field="phase"
         :filter="filterOption.status"
@@ -93,7 +93,7 @@
 
   const searchSelectData = [
     {
-      id: 'master_domain',
+      id: 'domain',
       name: t('域名'),
     },
   ];
@@ -148,7 +148,7 @@
 
 <style lang="less">
   .cluster-resource-selector-render-table {
-    padding: 24px;
+    padding: 12px 24px;
 
     .bk-table-body {
       tr {
