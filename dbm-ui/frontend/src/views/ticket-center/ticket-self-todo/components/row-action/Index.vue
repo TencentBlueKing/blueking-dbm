@@ -24,6 +24,7 @@
     [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_INNER_TODO]: StatusInnerTodo,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,
+    [TicketModel.STATUS_TIMER]: StatusTodo,
     [TicketModel.STATUS_TODO]: StatusTodo,
   };
 
