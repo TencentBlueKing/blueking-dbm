@@ -35,11 +35,22 @@ type K8sCrdComponentDbAccess interface {
 	FindByID(id uint64) (*models.K8sCrdComponentModel, error)
 	Update(model *models.K8sCrdComponentModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sCrdComponentModel, int64, error)
+	DeleteByClusterID(id uint64) (uint64, error)
 }
 
 // K8sCrdComponentDbAccessImpl K8sCrdComponentDbAccess 的具体实现
 type K8sCrdComponentDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// DeleteByClusterID 按照 cluster ID 来删除 component
+func (k *K8sCrdComponentDbAccessImpl) DeleteByClusterID(id uint64) (uint64, error) {
+	result := k.db.Delete(&models.K8sCrdComponentModel{}, "crd_cluster_id = ?", id)
+	if result.Error != nil {
+		slog.Error("failed to delete component", "error", result.Error)
+		return 0, result.Error
+	}
+	return uint64(result.RowsAffected), nil
 }
 
 // Create 创建元数据接口实现
@@ -60,7 +71,7 @@ func (k *K8sCrdComponentDbAccessImpl) Create(model *models.K8sCrdComponentModel)
 func (k *K8sCrdComponentDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdComponentModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete component error", "error", result.Error.Error())
+		slog.Error("Delete component error", "error", result.Error)
 		return 0, result.Error
 	}
 	return uint64(result.RowsAffected), nil

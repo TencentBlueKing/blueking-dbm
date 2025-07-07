@@ -34,11 +34,17 @@ type K8sCrdComponentProvider interface {
 	DeleteComponentByID(id uint64) (uint64, error)
 	FindComponentByID(id uint64) (*entitys.K8sCrdComponentEntity, error)
 	UpdateComponent(entity *entitys.K8sCrdComponentEntity) (uint64, error)
+	DeleteComponentByClusterID(id uint64) (uint64, error)
 }
 
 // K8sCrdComponentProviderImpl K8sCrdComponentProvider 具体实现
 type K8sCrdComponentProviderImpl struct {
 	dbAccess dbaccess.K8sCrdComponentDbAccess
+}
+
+// DeleteComponentByClusterID 根据 cluster ID 来删除 component
+func (k K8sCrdComponentProviderImpl) DeleteComponentByClusterID(id uint64) (uint64, error) {
+	return k.dbAccess.DeleteByClusterID(id)
 }
 
 // CreateComponent 创建 component

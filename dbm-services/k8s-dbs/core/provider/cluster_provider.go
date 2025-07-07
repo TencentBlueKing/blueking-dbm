@@ -397,6 +397,13 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	}
 	_, err = c.clusterMetaProvider.DeleteClusterByID(clusterEntity.ID)
 	if err != nil {
+		slog.Error("failed to delete cluster", "error", err)
+		return err
+	}
+
+	_, err = c.componentMetaProvider.DeleteComponentByClusterID(clusterEntity.ID)
+	if err != nil {
+		slog.Error("failed to delete component", "error", err)
 		return err
 	}
 
