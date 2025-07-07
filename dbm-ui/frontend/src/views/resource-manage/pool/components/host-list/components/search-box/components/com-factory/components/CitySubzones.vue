@@ -52,9 +52,11 @@
     model: Record<string, any>;
   }
 
-  interface Emits {
-    (e: 'change', value: any, name?: string): void;
-  }
+  type Emits = (e: 'change', value: any, name?: string) => void;
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   const props = defineProps<Props>();
 
@@ -62,10 +64,6 @@
 
   const cityCode = defineModel<string>({
     default: '',
-  });
-
-  defineOptions({
-    inheritAttrs: false,
   });
 
   const subzoneIds = ref<string[]>([]);
