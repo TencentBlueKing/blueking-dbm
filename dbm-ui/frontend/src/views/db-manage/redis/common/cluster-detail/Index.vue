@@ -156,7 +156,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </BkDropdownItem>
-            <BkDropdownItem v-db-console="'redis.clusterManage.DNSDomainToCLB'">
+            <BkDropdownItem
+              v-if="data.isOnlineCLB"
+              v-db-console="'redis.clusterManage.DNSDomainToCLB'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">

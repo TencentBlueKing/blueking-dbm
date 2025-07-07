@@ -166,7 +166,9 @@
               <FunController
                 controller-id="redis_nameservice"
                 module-id="addons">
-                <div v-db-console="'redis.clusterManage.enableCLB'">
+                <div
+                  v-if="!data.isOnlineCLB"
+                  v-db-console="'redis.clusterManage.enableCLB'">
                   <OperationBtnStatusTips
                     :data="data"
                     :disabled="!data.isOffline">
@@ -182,7 +184,9 @@
                     </AuthButton>
                   </OperationBtnStatusTips>
                 </div>
-                <div v-db-console="'redis.clusterManage.DNSDomainToCLB'">
+                <div
+                  v-if="data.isOnlineCLB"
+                  v-db-console="'redis.clusterManage.DNSDomainToCLB'">
                   <OperationBtnStatusTips
                     :data="data"
                     :disabled="!data.isOffline">
@@ -198,7 +202,9 @@
                     </AuthButton>
                   </OperationBtnStatusTips>
                 </div>
-                <div v-db-console="'redis.clusterManage.enablePolaris'">
+                <div
+                  v-if="!data.isOnlinePolaris"
+                  v-db-console="'redis.clusterManage.enablePolaris'">
                   <OperationBtnStatusTips
                     :data="data"
                     :disabled="!data.isOffline">
