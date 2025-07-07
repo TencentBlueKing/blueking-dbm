@@ -36,6 +36,7 @@ from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
 from backend.ticket.todos import BaseTodoContext
 from backend.utils.basic import generate_root_id
+from backend.utils.local import local
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -112,7 +113,12 @@ class InnerFlow(BaseTicketFlow):
             self.create_failed_todo()
         # 变更todo状态
         if fail_todo and fail_todo.status != todo_status:
-            fail_todo.set_status(self.ticket.creator, todo_status)
+            try:
+                local_request = local.request
+                operator = local_request.user.username if local_request else ""
+            except (AttributeError, Exception):
+                operator = ""
+            fail_todo.set_status(operator, todo_status)
 
         return self.flow_obj.update_status(status)
 
@@ -127,7 +133,7 @@ class InnerFlow(BaseTicketFlow):
             ticket=self.ticket,
             type=TodoType.INNER_FAILED,
             context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
-            status=TodoStatus.DONE_SUCCESS,
+            status=TodoStatus.TODO,
         )
 
     def check_exclusive_operations(self):
@@ -208,7 +214,7 @@ class InnerFlow(BaseTicketFlow):
         from backend.db_services.taskflow.handlers import TaskFlowHandler
 
         if FlowTree.objects.filter(root_id=self.flow_obj.flow_obj_id).exists():
-            TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline()
+            TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline(operator)
         # 流转flow的终止状态
         super()._revoke(operator)
 

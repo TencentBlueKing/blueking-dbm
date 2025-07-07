@@ -35,7 +35,7 @@ class TodoManager(models.Manager):
         # 从flow中获取单据审批人
         from backend.ticket.handler import TicketHandler
 
-        itsm_operators = TicketHandler.get_itsm_approvers(flow)
+        itsm_operators, itsm_helpers = TicketHandler.get_itsm_todo_operators(flow)
 
         # 构造单据状态与处理人之间的对应关系
         # - 审批中：提单人可撤销，dba可处理，
@@ -46,7 +46,7 @@ class TodoManager(models.Manager):
         # - 待补货：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         # - 已失败：operators[提单人 + dba] + helpers[单据协助人 + second_dba + other_dba]
         todo_operators_map = {
-            TodoType.ITSM: itsm_operators[:1],
+            TodoType.ITSM: itsm_operators,
             TodoType.APPROVE: creator,
             TodoType.TIMER: creator,
             TodoType.INNER_APPROVE: creator + dba,
@@ -54,7 +54,7 @@ class TodoManager(models.Manager):
             TodoType.INNER_FAILED: creator + dba,
         }
         todo_helpers_map = {
-            TodoType.ITSM: itsm_operators[1:],
+            TodoType.ITSM: itsm_helpers,
             TodoType.APPROVE: ticket_helpers,
             TodoType.TIMER: ticket_helpers,
             TodoType.INNER_APPROVE: ticket_helpers + second_dba + other_dba,

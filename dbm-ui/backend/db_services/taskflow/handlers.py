@@ -47,7 +47,7 @@ class TaskFlowHandler:
     def __init__(self, root_id: str):
         self.root_id = root_id
 
-    def revoke_pipeline(self):
+    def revoke_pipeline(self, operator: str = ""):
         """撤销当前流程"""
 
         # 如果当前的pipeline未被创建，则直接更新FlowTree的状态为撤销态

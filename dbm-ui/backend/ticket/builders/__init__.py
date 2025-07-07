@@ -125,6 +125,9 @@ class ItsmParamBuilder(CallBackBuilderMixin):
     def get_approvers(self):
         db_type = BuilderFactory.registry[self.ticket.ticket_type].group
         approvers = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, db_type)
+        # 审批默认加上admin
+        if "admin" not in approvers:
+            approvers.append("admin")
         return ",".join(approvers)
 
     def format(self):

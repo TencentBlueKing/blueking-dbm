@@ -29,6 +29,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
+    SPECIAL_APPROVE_TICKETS,
     TODO_RUNNING_STATUS,
     FlowType,
     FlowTypeConfig,
@@ -228,8 +229,17 @@ class TicketHandler:
         if flow.flow_type != FlowType.BK_ITSM:
             return []
         itsm_fields = {field["key"]: field["value"] for field in flow.details["fields"]}
-        itsm_operators = itsm_fields["approver"].split(",")
-        return itsm_operators
+        approvers = itsm_fields["approver"].split(",")
+        return approvers
+
+    @classmethod
+    def get_itsm_todo_operators(cls, flow):
+        approvers = cls.get_itsm_approvers(flow)
+        # 对于特殊审批单据，所有人均是处理者
+        if flow.ticket.ticket_type in SPECIAL_APPROVE_TICKETS:
+            return approvers, []
+        # 审批首人是处理人，剩下是协助者
+        return approvers[:1], approvers[1:]
 
     @classmethod
     def operate_itsm_ticket(cls, ticket_id, action, operator, **kwargs):

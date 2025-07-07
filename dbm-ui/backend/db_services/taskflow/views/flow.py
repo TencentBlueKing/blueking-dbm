@@ -129,7 +129,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True)
     def revoke_pipeline(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
-        return Response(TaskFlowHandler(root_id=root_id).revoke_pipeline().result)
+        user = requests.user.username
+        # TODO: 如果存在flow，则利用flow的revoke
+        return Response(TaskFlowHandler(root_id=root_id).revoke_pipeline(user).result)
 
     @common_swagger_auto_schema(
         operation_summary=_("重试节点"),

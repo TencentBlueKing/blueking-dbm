@@ -28,11 +28,6 @@ class ItsmTodoContext(BaseTodoContext):
 class ItsmTodo(todos.TodoActor):
     """来自审批中的待办"""
 
-    @property
-    def allow_superuser_process(self):
-        # 单据未执行前（待审批、待执行时）超管不拥有特权。规避超管误点的风险
-        return False
-
     def process(self, username, action, params):
         # itsm的todo允许本人操作
         if username == self.todo.ticket.creator and self.todo.status in TODO_RUNNING_STATUS:
@@ -70,8 +65,10 @@ class ItsmTodo(todos.TodoActor):
         elif action == TodoActionType.TERMINATE and username == own:
             approve_itsm_ticket(OperateNodeActionType.WITHDRAW, is_approved=False)
             self.todo.set_terminated(username, action)
-        # 只允许审批人通过
+        # 只允许审批人/admin 通过
         elif action == TodoActionType.APPROVE and username != own:
+            if username not in self.todo.operators + self.todo.helpers:
+                username = "admin"
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True)
             self.todo.set_success(username, action)
 

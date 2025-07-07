@@ -804,3 +804,11 @@ RUNNING_FLOW__TICKET_STATUS = {
     FlowType.INNER_FLOW: TicketStatus.RUNNING,
     FlowType.TIMER: TicketStatus.TIMER,
 }
+
+# 特殊审批单据，并非用DBA管理审批，而是覆写审批人员
+SPECIAL_APPROVE_TICKETS = [
+    TicketType.MYSQL_ACCOUNT_RULE_CHANGE,
+    TicketType.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
+    TicketType.MYSQL_DUMP_DATA,
+    TicketType.TENDBCLUSTER_DUMP_DATA,
+]
