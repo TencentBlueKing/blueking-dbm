@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-package service
+package probe
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver/exporter"
+	"dbm-services/common/dbha-v2/internal/receiver/output"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -37,7 +37,7 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers []exporter.Saver
+	savers []output.Saver
 	eventC requestEventC
 	quit   chan struct{}
 	wg     sync.WaitGroup

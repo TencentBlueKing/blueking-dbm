@@ -1,16 +1,26 @@
 name: receiver
 version: v2.0.0
 
-service:
-  listenAddress: 127.0.0.1:22222
-
 discovery:
-  endpoints: http://127.0.0.1:2379;http://127.0.0.2:2379
+  endpoints: http://etcd-server:2379  
   user: root
   password: 1234567890
 
-exporter:
+input:
+  - name: probe
+    enable: false
+    endpoints: 127.0.0.1:25560
+
+  - name: kafka
+    enable: true
+    endpoints: http://kafk-server:9092
+    user: root
+    password: 1234567890
+    topics: [test]
+
+output:
   - name: doris
+    enable: true
     endpoints: 127.0.0.1:9030
     user: root
     password: 123456

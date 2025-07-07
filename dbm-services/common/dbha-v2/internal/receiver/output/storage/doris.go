@@ -77,3 +77,7 @@ func (d *Doris) Save(data interface{}) error {
 	logger.Debug("doris exporter save:%v", data)
 	return nil
 }
+
+func (d *Doris) Close() {
+
+}
