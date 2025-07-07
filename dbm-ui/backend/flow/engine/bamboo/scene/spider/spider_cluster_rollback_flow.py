@@ -114,7 +114,7 @@ class TenDBRollBackDataFlow(object):
             if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
                 backup_info = self.data["backupinfo"]
             else:
-                rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
+                rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"], check_full_backup=True)
                 rollback_time = self.data["rollback_time"]
                 backup_info = rollback_handler.query_latest_backup_log(str2datetime(rollback_time))
                 if backup_info is None:
