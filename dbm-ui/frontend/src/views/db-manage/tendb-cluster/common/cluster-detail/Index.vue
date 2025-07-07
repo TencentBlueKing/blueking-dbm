@@ -104,7 +104,7 @@
             </div>
           </BkDropdownItem>
           <BkDropdownItem
-            v-if="!data.isOnlineCLB"
+            v-if="!data.isOnlineCLBMaster"
             v-db-console="'tendbCluster.clusterManage.enableCLB'">
             <OperationBtnStatusTips
               :data="data"
@@ -121,12 +121,12 @@
                       details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
                     })
                 ">
-                {{ t('启用Spider Master负载均衡（CLB）') }}
+                {{ t('启用 Spider Master 负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
           <BkDropdownItem
-            v-if="!data.isOnlineCLB"
+            v-if="!data.isOnlineCLBSlave"
             v-db-console="'tendbCluster.clusterManage.enableCLB'">
             <OperationBtnStatusTips
               :data="data"
@@ -143,11 +143,13 @@
                       details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
                     })
                 ">
-                {{ t('启用Spider Slave负载均衡（CLB）') }}
+                {{ t('启用 Spider Slave 负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+          <BkDropdownItem
+            v-if="data.isOnlineCLBMaster"
+            v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -174,7 +176,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+          <BkDropdownItem
+            v-if="data.isOnlineCLBSlave"
+            v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">

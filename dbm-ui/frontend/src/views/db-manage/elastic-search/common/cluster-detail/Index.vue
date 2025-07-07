@@ -111,7 +111,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'es.clusterManage.DNSDomainToCLB'">
+          <BkDropdownItem
+            v-if="data.isOnlineCLB"
+            v-db-console="'es.clusterManage.DNSDomainToCLB'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">

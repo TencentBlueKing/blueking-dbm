@@ -138,7 +138,7 @@
                 </AuthButton>
               </div>
               <div
-                v-if="!data.isOnlineCLB"
+                v-if="!data.isOnlineCLBMaster"
                 v-db-console="'tendbCluster.clusterManage.enableCLB'">
                 <OperationBtnStatusTips
                   :data="data"
@@ -160,7 +160,7 @@
                 </OperationBtnStatusTips>
               </div>
               <div
-                v-if="!data.isOnlineCLB"
+                v-if="!data.isOnlineCLBSlave"
                 v-db-console="'tendbCluster.clusterManage.enableCLB'">
                 <OperationBtnStatusTips
                   :data="data"
@@ -181,7 +181,9 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <div v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+              <div
+                v-if="data.isOnlineCLBMaster"
+                v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -208,7 +210,9 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <div v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+              <div
+                v-if="data.isOnlineCLBSlave"
+                v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">

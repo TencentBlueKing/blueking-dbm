@@ -134,7 +134,9 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <div v-db-console="'mysql.haClusterList.DNSDomainToCLB'">
+              <div
+                v-if="data.isOnlineCLB"
+                v-db-console="'mysql.haClusterList.DNSDomainToCLB'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">

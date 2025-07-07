@@ -180,7 +180,15 @@ export default class TendbCluster extends ClusterBase {
   }
 
   get isOnlineCLB() {
-    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
+    return this.isOnlineCLBMaster || this.isOnlineCLBSlave;
+  }
+
+  get isOnlineCLBMaster() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb' && item.role === 'master_entry');
+  }
+
+  get isOnlineCLBSlave() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb' && item.role === 'slave_entry');
   }
 
   get isStarting() {

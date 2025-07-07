@@ -95,7 +95,9 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mysql.haClusterList.DNSDomainToCLB'">
+          <BkDropdownItem
+            v-if="data.isOnlineCLB"
+            v-db-console="'mysql.haClusterList.DNSDomainToCLB'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">

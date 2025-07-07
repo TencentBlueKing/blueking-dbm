@@ -136,7 +136,9 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
-            <div v-db-console="'es.clusterManage.DNSDomainToCLB'">
+            <div
+              v-if="data.isOnlineCLB"
+              v-db-console="'es.clusterManage.DNSDomainToCLB'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
