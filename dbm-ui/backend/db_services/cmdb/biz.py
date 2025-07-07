@@ -12,15 +12,12 @@ import collections
 import logging
 from typing import Dict, List
 
-from django.db.models import Count
-
 from backend import env
 from backend.components import CCApi
 from backend.components.dbconfig.constants import DEPLOY_FILE_NAME, ConfType, LevelName
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppCache, Cluster, DBModule, Machine, ProxyInstance, StorageInstance
-from backend.db_services.cmdb.constants import ModuleCountType
+from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
 from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData
 from backend.db_services.dbconfig.handlers import DBConfigHandler
@@ -251,88 +248,3 @@ def get_or_create_resource_module():
 
 def get_or_create_pending_module():
     return get_or_create_dbm_module(PENDING_MODULE)
-
-
-def filter_by_biz_name(data: list, biz_name: str) -> list:
-    return [biz for biz in data if biz["bk_biz_name"] == biz_name]
-
-
-def filter_by_module_name(data: list, module_name: str) -> list:
-    result = []
-    for biz in data:
-        filtered_modules = [module for module in biz["modules"] if module["module_name"] == module_name]
-        if filtered_modules:
-            new_biz = biz.copy()
-            new_biz["modules"] = filtered_modules
-            result.append(new_biz)
-    return result
-
-
-def process_count_obj(queryset, nested_data):
-    count_obj = queryset.values("db_module_id", "bk_biz_id").annotate(count=Count("db_module_id")).order_by("-count")
-    for obj in count_obj:
-        bk_biz_id = obj["bk_biz_id"]
-        db_module_id = obj["db_module_id"]
-        count = obj["count"]
-        nested_data[bk_biz_id]["count"] += count
-        nested_data[bk_biz_id]["modules"][db_module_id] = count
-
-
-def list_biz_module_trees(
-    cluster_type: str, bk_biz_name: str, module_name: str, count_type: str, role: str
-) -> List[Dict]:
-    """
-    获取业务与模块维度集群数量
-    :param cluster_type: 以逗号分隔的集群类型字符串
-    :param bk_biz_name: 业务名称
-    :param module_name: 模块名称
-    :param count_type: 计数类型（如 "cluster" 或 "instance"）
-    :param role: 是否过滤为实例角色
-    :return: 包含业务和模块维度的计数列表
-    """
-    cluster_type_list = cluster_type.split(",")
-
-    if count_type == ModuleCountType.CLUSTER.value:
-        queryset = Cluster.objects.filter(cluster_type__in=cluster_type_list)
-    elif count_type == ModuleCountType.INSTANCE.value:
-        filters = {"cluster_type__in": cluster_type_list}
-        if role:
-            filters["instance_role"] = role
-        queryset = StorageInstance.objects.filter(**filters)
-    elif count_type == ModuleCountType.MACHINE.value:
-        queryset = Machine.objects.filter(cluster_type__in=cluster_type_list)
-    else:
-        raise ValueError(f"Unsupported count_type: {count_type}")
-
-    nested_data = collections.defaultdict(lambda: {"count": 0, "modules": collections.defaultdict(int)})
-    process_count_obj(queryset, nested_data)
-
-    if count_type == ModuleCountType.INSTANCE.value:
-        filters = {"cluster_type__in": cluster_type_list}
-        if role:
-            filters["access_layer"] = role
-        proxy_queryset = ProxyInstance.objects.filter(**filters)
-        process_count_obj(proxy_queryset, nested_data)
-
-    db_module_map = DBModule.db_module_map()
-    id_to_name = AppCache.id_to_name()
-
-    final_data = [
-        {
-            "bk_biz_name": id_to_name.get(bk_biz_id, ""),
-            "bk_biz_id": bk_biz_id,
-            "count": data["count"],
-            "modules": [
-                {"module_name": db_module_map.get(module_id, ""), "module_id": module_id, "count": count}
-                for module_id, count in data["modules"].items()
-            ],
-        }
-        for bk_biz_id, data in nested_data.items()
-    ]
-
-    if bk_biz_name:
-        final_data = filter_by_biz_name(final_data, bk_biz_name)
-    if module_name:
-        final_data = filter_by_module_name(final_data, module_name)
-
-    return final_data
