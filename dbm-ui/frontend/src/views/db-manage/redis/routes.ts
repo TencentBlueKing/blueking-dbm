@@ -25,6 +25,7 @@ import { t } from '@locales/index';
 
 const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
+const redisClusterReInstallDbmonRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, t('集群标准化'));
 const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_MODULES, t('安装 Module'));
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
@@ -114,6 +115,7 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.backup': redisBackupRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
   'redis.toolbox.clusterMigrate': redisClusterMigrateRoute,
+  'redis.toolbox.clusterReinstallDbmon': redisClusterReInstallDbmonRoute,
   'redis.toolbox.clusterShardChange': redisClusterShardUpdateRoute,
   'redis.toolbox.clusterTypeChange': redisClusterTypeUpdateRoute,
   'redis.toolbox.dataCopy': redisDBDataCopyRoute,

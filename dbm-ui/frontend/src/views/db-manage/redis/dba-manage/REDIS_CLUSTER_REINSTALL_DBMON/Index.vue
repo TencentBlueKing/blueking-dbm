@@ -34,6 +34,7 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
+            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('所属业务')"
@@ -78,6 +79,7 @@
 <script lang="ts" setup>
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { useBatchCreateTicket } from '@hooks';
@@ -85,14 +87,15 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
-  import type { ComponentProps } from 'vue-component-type-helpers';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
   import { random } from '@utils';
+
+  import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];

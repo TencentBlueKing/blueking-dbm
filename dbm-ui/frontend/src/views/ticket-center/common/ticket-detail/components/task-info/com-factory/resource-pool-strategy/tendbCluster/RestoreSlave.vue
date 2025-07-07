@@ -53,7 +53,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前资源规格')"
+      :label="t('规格')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{
@@ -61,13 +61,6 @@
           ticketDetails.details.machine_infos?.[data.old_nodes.old_slave?.[0]?.ip]?.spec_config?.name ||
           '--'
         }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新从库主机')"
-      :min-width="150">
-      <template #default>
-        {{ t('资源池自动匹配') }}
       </template>
     </BkTableColumn>
   </BkTable>

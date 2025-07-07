@@ -97,24 +97,15 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
-    {
-      path: 'master-slave-swap/:page?',
-      name: 'spiderMasterSlaveSwap',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
-        navName: t('主从互切'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/master-slave-swap/Index.vue'),
-    },
-    {
-      path: 'master-failover/:page?',
-      name: 'spiderMasterFailover',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.masterFailover',
-        navName: t('主库故障切换'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/master-failover/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('主从互切'), {
+      dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'tendbCluster.toolbox.instanceFailover',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'tendbCluster.toolbox.masterFailover',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
@@ -239,6 +230,9 @@ const spiderToolboxRoute = {
       dbConsole: 'tendbCluster.toolbox.masterSlaveClone',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, t('重建从库'), {
+      dbConsole: 'tendbCluster.toolbox.slaveLocalRebuild',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'), {
       dbConsole: 'tendbCluster.toolbox.slaveRebuild',
     }),
     {
