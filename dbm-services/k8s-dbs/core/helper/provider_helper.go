@@ -22,6 +22,7 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	coreentity "k8s-dbs/core/entity"
@@ -34,6 +35,7 @@ import (
 
 // CreateRequestRecord Save request
 func CreateRequestRecord(
+	dbsContext *commentity.DbsContext,
 	requestParams interface{},
 	requestType string,
 	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
@@ -54,6 +56,8 @@ func CreateRequestRecord(
 		RequestID:     util.RequestID(),
 		RequestType:   requestType,
 		RequestParams: string(serializedRequest),
+		CreatedBy:     dbsContext.BkAuth.BkUserName,
+		UpdatedBy:     dbsContext.BkAuth.BkUserName,
 	}
 	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
 	if err != nil {
@@ -98,6 +102,7 @@ func SaveAuditLog(
 		RequestType:    requestType,
 		RequestParams:  string(requestBytes),
 		CreatedBy:      request.BKAuth.BkUserName,
+		UpdatedBy:      request.BKAuth.BkUserName,
 	}
 
 	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)

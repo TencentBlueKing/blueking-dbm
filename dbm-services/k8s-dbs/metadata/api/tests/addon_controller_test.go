@@ -151,12 +151,6 @@ func SetupAddonRouter() *gin.Engine {
 func TestCreateAddon(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupAddonRouter()
-
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
 	addonRequest := req.K8sCrdAddonReqVo{
 		AddonName:            "surrealdb-2.2.0",
 		AddonCategory:        "Graph",
@@ -169,10 +163,6 @@ func TestCreateAddon(t *testing.T) {
 		Topologies:           "{}",
 		Releases:             "{}",
 		Description:          "just for test",
-		CreatedBy:            "admin",
-		CreatedAt:            parsedTime,
-		UpdatedAt:            parsedTime,
-		UpdatedBy:            "admin",
 	}
 
 	requestBody, err := json.Marshal(&addonRequest)
@@ -283,12 +273,6 @@ func TestUpdateAddon(t *testing.T) {
 	router := SetupAddonRouter()
 	err := AddSampleAddon()
 	assert.NoError(t, err)
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
 	addonRequest := req.K8sCrdAddonReqVo{
 		AddonName:            "surrealdb-2.2.2",
 		AddonType:            "SurrealDB-2",
@@ -301,10 +285,6 @@ func TestUpdateAddon(t *testing.T) {
 		Topologies:           "{}",
 		Releases:             "{}",
 		Description:          "just for test2",
-		CreatedBy:            "admin2",
-		CreatedAt:            parsedTime,
-		UpdatedAt:            parsedTime,
-		UpdatedBy:            "admin2",
 	}
 
 	requestBody, err := json.Marshal(&addonRequest)

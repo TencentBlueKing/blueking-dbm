@@ -19,13 +19,17 @@ limitations under the License.
 
 package req
 
-import "k8s-dbs/core/entity"
+import (
+	commentity "k8s-dbs/common/entity"
+	"k8s-dbs/core/entity"
+)
 
-// K8sNsReqVo k8s 的 namespace 创建请求结构体
-type K8sNsReqVo struct {
-	K8sClusterName string                `json:"k8sClusterName,omitempty"`
-	Name           string                `json:"name" binding:"required"`
-	Annotations    map[string]string     `json:"annotations,omitempty"`   // 可选注解
-	Labels         map[string]string     `json:"labels,omitempty"`        // 可选标签
-	ResourceQuota  *entity.ResourceQuota `json:"resourceQuota,omitempty"` // 可选资源配额
+// K8sNamespaceReqVo k8s 的 namespace 创建请求结构体
+type K8sNamespaceReqVo struct {
+	K8sClusterName    string                `json:"k8sClusterName,omitempty"`
+	Name              string                `json:"name" binding:"required"`
+	Annotations       map[string]string     `json:"annotations,omitempty"`   // 可选注解
+	Labels            map[string]string     `json:"labels,omitempty"`        // 可选标签
+	ResourceQuota     *entity.ResourceQuota `json:"resourceQuota,omitempty"` // 可选资源配额
+	commentity.BKAuth `json:",inline"`
 }

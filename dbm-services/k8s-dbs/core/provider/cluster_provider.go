@@ -212,7 +212,6 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	clusterRelease, err := buildClusterReleaseEntity(
 		k8sClusterConfig.ID,
 		request,
-		coreconst.DefaultUserName,
 		coreconst.DefaultRepoName,
 		coreconst.DefaultRepoRepository,
 		values,
@@ -503,6 +502,7 @@ func (c *ClusterProvider) createComponentEntity(
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
 			CreatedBy:     request.BKAuth.BkUserName,
+			UpdatedBy:     request.BKAuth.BkUserName,
 		}
 		_, err := c.componentMetaProvider.CreateComponent(componentEntity)
 		if err != nil {
@@ -542,7 +542,6 @@ func (c *ClusterProvider) getClusterDataResp(request *coreentity.Request) (*core
 func buildClusterReleaseEntity(
 	k8sClusterConfigID uint64,
 	request *coreentity.Request,
-	createdBy string,
 	repoName string,
 	repoRepository string,
 	releaseValues map[string]interface{},
@@ -566,13 +565,14 @@ func buildClusterReleaseEntity(
 	return &provderentity.AddonClusterReleaseEntity{
 		K8sClusterConfigID: k8sClusterConfigID,
 		ReleaseName:        releaseName,
-		CreatedBy:          createdBy,
 		Namespace:          namespace,
 		ChartName:          chartName,
 		ChartVersion:       chartVersion,
 		RepoName:           repoName,
 		RepoRepository:     repoRepository,
 		ChartValues:        jsonStr,
+		CreatedBy:          request.BKAuth.BkUserName,
+		UpdatedBy:          request.BKAuth.BkUserName,
 	}, nil
 }
 

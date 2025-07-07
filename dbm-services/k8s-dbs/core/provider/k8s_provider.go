@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -52,8 +53,11 @@ type K8sProvider struct {
 }
 
 // CreateNamespace 创建命名空间
-func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pventity.K8sNamespaceEntity, error) {
-	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, k.reqRecordProvider)
+func (k *K8sProvider) CreateNamespace(
+	dbsContext *commentity.DbsContext,
+	entity *pventity.K8sNamespaceEntity,
+) (*pventity.K8sNamespaceEntity, error) {
+	_, err := helper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
 	if err != nil {
 		return nil, err
 	}

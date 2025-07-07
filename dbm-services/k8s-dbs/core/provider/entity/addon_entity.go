@@ -19,9 +19,16 @@ limitations under the License.
 
 package entity
 
+import "time"
+
 // AddonEntity addon 创建请求结构体
 type AddonEntity struct {
-	K8sClusterName string `json:"k8sClusterName,omitempty"`
-	AddonType      string `json:"addonType,omitempty"`
-	AddonVersion   string `json:"addonVersion,omitempty"`
+	K8sClusterName string    `json:"k8sClusterName,omitempty"`
+	AddonType      string    `json:"addonType,omitempty"`
+	AddonVersion   string    `json:"addonVersion,omitempty"`
+	Description    string    `json:"description"`
+	CreatedBy      string    `json:"createdBy"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedBy      string    `json:"updatedBy"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }

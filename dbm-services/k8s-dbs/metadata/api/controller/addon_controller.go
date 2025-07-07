@@ -100,7 +100,10 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	addedAddon, err := a.addonProvider.CreateStorageAddon(&addonEntity)
+	dbsContext := commentity.DbsContext{
+		BkAuth: &addon.BKAuth,
+	}
+	addedAddon, err := a.addonProvider.CreateStorageAddon(&dbsContext, &addonEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
@@ -131,8 +134,11 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return
 	}
+	dbsContext := commentity.DbsContext{
+		BkAuth: &addon.BKAuth,
+	}
 	addonEntity.ID = id
-	rows, err := a.addonProvider.UpdateStorageAddon(&addonEntity)
+	rows, err := a.addonProvider.UpdateStorageAddon(&dbsContext, &addonEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
 		return

@@ -21,7 +21,7 @@ package tests
 
 import (
 	"fmt"
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
@@ -64,8 +64,14 @@ func TestCreateClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-
-	added, err := repoProvider.CreateHelmRepo(repo)
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	added, err := repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 	assert.Equal(t, added.RepoName, repo.RepoName)
 	assert.Equal(t, added.RepoRepository, repo.RepoRepository)
@@ -88,8 +94,14 @@ func TestDeleteClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-
-	_, err = repoProvider.CreateHelmRepo(repo)
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 
 	rows, err := repoProvider.DeleteHelmRepoByID(1)
@@ -110,8 +122,14 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-
-	_, err = repoProvider.CreateHelmRepo(repo)
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 
 	updateRepo := &entitys.AddonClusterHelmRepoEntity{
@@ -149,13 +167,19 @@ func TestListClusterHelmRepo(t *testing.T) {
 			CreatedBy:      "test-user",
 		},
 	}
-
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
 	for _, repo := range repos {
-		_, err := repoProvider.CreateHelmRepo(&repo)
+		_, err := repoProvider.CreateHelmRepo(dbsContext, &repo)
 		assert.NoError(t, err)
 	}
 
-	pagination := entity.Pagination{
+	pagination := commentity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}
@@ -188,8 +212,14 @@ func TestGetClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-
-	_, err = repoProvider.CreateHelmRepo(repo)
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 
 	params := map[string]interface{}{

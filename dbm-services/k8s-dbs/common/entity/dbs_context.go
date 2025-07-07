@@ -17,11 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package req
+package entity
 
-// AddonInstallReqVo Addon 安装请求结构体
-type AddonInstallReqVo struct {
-	K8sClusterName string `json:"k8sClusterName,omitempty"`
-	AddonType      string `json:"addonType,omitempty"`
-	AddonVersion   string `json:"addonVersion,omitempty"`
+// DbsContext Dbs 操作上下文
+type DbsContext struct {
+	BkAuth *BKAuth `json:",inline"`
 }

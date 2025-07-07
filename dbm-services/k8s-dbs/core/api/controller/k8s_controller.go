@@ -21,6 +21,7 @@ package controller
 
 import (
 	coreconst "k8s-dbs/common/constant"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
@@ -45,7 +46,7 @@ type K8sController struct {
 
 // CreateNamespace 创建 namespace
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
-	var namespaceReq reqvo.K8sNsReqVo
+	var namespaceReq reqvo.K8sNamespaceReqVo
 	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
 		return
@@ -55,7 +56,10 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
 		return
 	}
-	added, err := k.k8sProvider.CreateNamespace(&namespaceEntity)
+	dbsContext := commentity.DbsContext{
+		BkAuth: &namespaceReq.BKAuth,
+	}
+	added, err := k.k8sProvider.CreateNamespace(&dbsContext, &namespaceEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
 		return

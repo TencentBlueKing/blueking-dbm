@@ -22,12 +22,13 @@ package controller
 import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/api/vo/resp"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	metaentity "k8s-dbs/metadata/provider/entity"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -74,12 +75,15 @@ func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var repoEntity entitys.AddonClusterHelmRepoEntity
+	var repoEntity metaentity.AddonClusterHelmRepoEntity
 	if err := copier.Copy(&repoEntity, &reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&repoEntity)
+	dbsContext := commentity.DbsContext{
+		BkAuth: &reqVo.BKAuth,
+	}
+	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&dbsContext, &repoEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return

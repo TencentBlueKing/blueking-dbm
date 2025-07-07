@@ -20,19 +20,16 @@ limitations under the License.
 package req
 
 import (
-	"time"
+	commentity "k8s-dbs/common/entity"
 )
 
 // AddonClusterHelmRepoRespVo addon cluster helm repo 定义
 type AddonClusterHelmRepoRespVo struct {
-	RepoName       string    `json:"repoName" binding:"required"`
-	RepoRepository string    `json:"repoRepository" binding:"required"`
-	RepoUsername   string    `json:"repoUsername" binding:"required"`
-	RepoPassword   string    `json:"repoPassword" binding:"required"`
-	ChartName      string    `json:"chartName" binding:"required"`
-	ChartVersion   string    `json:"chartVersion" binding:"required"`
-	CreatedBy      string    `json:"createdBy" binding:"required"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	RepoName          string `json:"repoName" binding:"required"`
+	RepoRepository    string `json:"repoRepository" binding:"required"`
+	RepoUsername      string `json:"repoUsername" binding:"required"`
+	RepoPassword      string `json:"repoPassword" binding:"required"`
+	ChartName         string `json:"chartName" binding:"required"`
+	ChartVersion      string `json:"chartVersion" binding:"required"`
+	commentity.BKAuth `json:",inline"`
 }

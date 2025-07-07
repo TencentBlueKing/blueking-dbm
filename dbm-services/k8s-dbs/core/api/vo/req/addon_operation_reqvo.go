@@ -19,9 +19,12 @@ limitations under the License.
 
 package req
 
-// AddonUninstallReqVo Addon 卸载请求结构体
-type AddonUninstallReqVo struct {
-	K8sClusterName string `json:"k8sClusterName,omitempty"`
-	AddonType      string `json:"addonType,omitempty"`
-	AddonVersion   string `json:"addonVersion,omitempty"`
+import commentity "k8s-dbs/common/entity"
+
+// AddonOperationReqVo Addon 操作请求结构体
+type AddonOperationReqVo struct {
+	K8sClusterName    string `json:"k8sClusterName,omitempty"`
+	AddonType         string `json:"addonType,omitempty"`
+	AddonVersion      string `json:"addonVersion,omitempty"`
+	commentity.BKAuth `json:",inline"`
 }

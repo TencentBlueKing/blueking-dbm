@@ -22,6 +22,7 @@ package controller
 import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	"k8s-dbs/metadata/api/vo/req"
@@ -79,7 +80,10 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return
 	}
-	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&repoEntity)
+	dbsContext := commentity.DbsContext{
+		BkAuth: &reqVo.BKAuth,
+	}
+	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&dbsContext, &repoEntity)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
 		return

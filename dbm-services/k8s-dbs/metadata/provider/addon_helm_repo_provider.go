@@ -20,7 +20,7 @@ limitations under the License.
 package provider
 
 import (
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
 	entitys "k8s-dbs/metadata/provider/entity"
@@ -31,12 +31,15 @@ import (
 
 // AddonHelmRepoProvider 定义 addon cluster helm repo 业务逻辑层访问接口
 type AddonHelmRepoProvider interface {
-	CreateHelmRepo(entity *entitys.AddonHelmRepoEntity) (*entitys.AddonHelmRepoEntity, error)
+	CreateHelmRepo(
+		dbsContext *commentity.DbsContext,
+		entity *entitys.AddonHelmRepoEntity,
+	) (*entitys.AddonHelmRepoEntity, error)
 	DeleteHelmRepoByID(id uint64) (uint64, error)
 	FindHelmRepoByID(id uint64) (*entitys.AddonHelmRepoEntity, error)
 	FindByParams(params map[string]interface{}) (*entitys.AddonHelmRepoEntity, error)
 	UpdateHelmRepo(entity *entitys.AddonHelmRepoEntity) (uint64, error)
-	ListHelmRepos(pagination entity.Pagination) ([]*entitys.AddonHelmRepoEntity, error)
+	ListHelmRepos(pagination commentity.Pagination) ([]*entitys.AddonHelmRepoEntity, error)
 }
 
 // AddonHelmRepoProviderImpl AddonHelmRepoProvider 具体实现
@@ -45,13 +48,15 @@ type AddonHelmRepoProviderImpl struct {
 }
 
 // CreateHelmRepo 创建
-func (a *AddonHelmRepoProviderImpl) CreateHelmRepo(entity *entitys.AddonHelmRepoEntity) (
-	*entitys.AddonHelmRepoEntity, error,
-) {
+func (a *AddonHelmRepoProviderImpl) CreateHelmRepo(
+	dbsContext *commentity.DbsContext,
+	entity *entitys.AddonHelmRepoEntity,
+) (*entitys.AddonHelmRepoEntity, error) {
 	model := models.AddonHelmRepoModel{}
-	err := copier.Copy(&model, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
+	entity.CreatedBy = dbsContext.BkAuth.BkUserName
+	entity.UpdatedBy = dbsContext.BkAuth.BkUserName
+	if err := copier.Copy(&model, entity); err != nil {
+		slog.Error("Failed to copy entity to model", "error", err)
 		return nil, err
 	}
 	addedModel, err := a.dbAccess.Create(&model)
@@ -128,7 +133,7 @@ func (a *AddonHelmRepoProviderImpl) UpdateHelmRepo(entity *entitys.AddonHelmRepo
 }
 
 // ListHelmRepos 分页查询
-func (a *AddonHelmRepoProviderImpl) ListHelmRepos(pagination entity.Pagination) (
+func (a *AddonHelmRepoProviderImpl) ListHelmRepos(pagination commentity.Pagination) (
 	[]*entitys.AddonHelmRepoEntity,
 	error,
 ) {

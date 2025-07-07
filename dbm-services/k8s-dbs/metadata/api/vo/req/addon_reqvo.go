@@ -19,23 +19,20 @@ limitations under the License.
 
 package req
 
-import "time"
+import commentity "k8s-dbs/common/entity"
 
 // K8sCrdAddonReqVo represents the request data structure of addon meta.
 type K8sCrdAddonReqVo struct {
-	AddonName            string    `json:"addonName" binding:"required"`
-	AddonCategory        string    `json:"addonCategory" binding:"required"`
-	AddonType            string    `json:"addonType" binding:"required"`
-	AddonVersion         string    `json:"addonVersion" binding:"required"`
-	RecommendedVersion   string    `json:"recommendedVersion" binding:"required"`
-	SupportedVersions    string    `json:"supportedVersions" binding:"required"`
-	RecommendedAcVersion string    `json:"recommendedAcVersion" binding:"required"`
-	SupportedAcVersions  string    `json:"supportedAcVersions" binding:"required"`
-	Topologies           string    `json:"topologies" binding:"required"`
-	Releases             string    `json:"releases" binding:"required"`
-	Description          string    `json:"description" binding:"required"`
-	CreatedBy            string    `json:"createdBy"`
-	CreatedAt            time.Time `json:"createdAt" binding:"required"`
-	UpdatedBy            string    `json:"updatedBy"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	AddonName            string `json:"addonName" binding:"required"`
+	AddonCategory        string `json:"addonCategory" binding:"required"`
+	AddonType            string `json:"addonType" binding:"required"`
+	AddonVersion         string `json:"addonVersion" binding:"required"`
+	RecommendedVersion   string `json:"recommendedVersion" binding:"required"`
+	SupportedVersions    string `json:"supportedVersions" binding:"required"`
+	RecommendedAcVersion string `json:"recommendedAcVersion" binding:"required"`
+	SupportedAcVersions  string `json:"supportedAcVersions" binding:"required"`
+	Topologies           string `json:"topologies" binding:"required"`
+	Releases             string `json:"releases" binding:"required"`
+	Description          string `json:"description" binding:"required"`
+	commentity.BKAuth    `json:",inline"`
 }

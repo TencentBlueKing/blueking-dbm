@@ -20,7 +20,7 @@ limitations under the License.
 package helper
 
 import (
-	commonentity "k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
 	metaconst "k8s-dbs/metadata/constant"
@@ -30,7 +30,7 @@ import (
 )
 
 // BuildPagination 构建 Pagination
-func BuildPagination(ctx *gin.Context) (*commonentity.Pagination, error) {
+func BuildPagination(ctx *gin.Context) (*commentity.Pagination, error) {
 	page, err := strconv.Atoi(ctx.DefaultQuery(metaconst.ParamsPage, metaconst.DefaultPageStr))
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
@@ -42,7 +42,7 @@ func BuildPagination(ctx *gin.Context) (*commonentity.Pagination, error) {
 		return nil, err
 	}
 	limit = min(limit, metaconst.MaxFetchSize)
-	pagination := commonentity.Pagination{Page: page, Limit: limit}
+	pagination := commentity.Pagination{Page: page, Limit: limit}
 	return &pagination, nil
 }
 
