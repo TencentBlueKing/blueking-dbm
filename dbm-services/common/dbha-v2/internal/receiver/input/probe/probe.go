@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-package service
+package probe
 
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/exporter"
+	"dbm-services/common/dbha-v2/internal/receiver/output"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -42,42 +42,25 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
-type Receiver struct {
-	savers []exporter.Saver
+type Probe struct {
 	proto.UnimplementedReceiverServiceServer
-	wg      sync.WaitGroup
-	address string
-	svr     *grpc.Server
+	wg     sync.WaitGroup
+	savers []output.Outputer
+	cfg    config.IntputConfig
+	svr    *grpc.Server
 }
 
-// NewReceiverServer new a receiver server
-func NewReceiverServer(address string) (*Receiver, error) {
-	addr := strings.TrimSpace(address)
+// NewProbeServer new a receiver server
+func NewProbeServer(cfg config.IntputConfig, outputers []output.Outputer) (*Probe, error) {
+	addr := strings.TrimSpace(cfg.Endpoints)
 	if addr == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")
 	}
 
-	svr := &Receiver{address: addr}
-
-	if len(config.Cfg.Exporters) == 0 {
-		logger.Warn("no any exporter to use")
-	}
-
-	for _, cfg := range config.Cfg.Exporters {
-		saver, err := exporter.NewSaver(&cfg)
-		if err != nil {
-			logger.Warn("create saver failed, errmsg(%v)", err)
-			continue
-		}
-
-		logger.Info("add saver(%s)", cfg.Name)
-		svr.savers = append(svr.savers, saver)
-	}
-
-	return svr, nil
+	return &Probe{cfg: cfg, savers: outputers}, nil
 }
 
-func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
+func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
 	ctx := stream.Context()
 	addr, ok := peer.FromContext(ctx)
 
@@ -86,7 +69,7 @@ func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 		clientId = addr.Addr.String()
 	}
 
-	connHandler := &connectionHandler{savers: r.savers}
+	connHandler := &connectionHandler{savers: p.savers}
 	connHandler.run()
 	defer connHandler.close()
 
@@ -115,7 +98,7 @@ func (r *Receiver) PushData(stream proto.ReceiverService_PushDataServer) error {
 	}
 }
 
-func (r *Receiver) Run(ctx context.Context) error {
+func (p *Probe) Run(ctx context.Context) error {
 	kasp := keepalive.ServerParameters{
 		Time:    constant.DefaultServerPingTime,
 		Timeout: constant.DefaultPingTimeout,
@@ -133,23 +116,23 @@ func (r *Receiver) Run(ctx context.Context) error {
 		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
 	)
 
-	proto.RegisterReceiverServiceServer(svr, r)
-	listen, err := net.Listen("tcp", r.address)
+	proto.RegisterReceiverServiceServer(svr, p)
+	listen, err := net.Listen("tcp", p.cfg.Endpoints)
 	if err != nil {
-		logger.Error("receiver listen failed. address(%s)", r.address)
+		logger.Error("receiver listen failed. address(%s)", p.cfg.Endpoints)
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
 
-	r.svr = svr
+	p.svr = svr
 
-	return r.svr.Serve(listen)
+	return p.svr.Serve(listen)
 }
 
-func (r *Receiver) Close() {
-	if r.svr == nil {
+func (p *Probe) Close() {
+	if p.svr == nil {
 		return
 	}
 
-	r.svr.Stop()
-	r.wg.Wait()
+	p.svr.Stop()
+	p.wg.Wait()
 }
