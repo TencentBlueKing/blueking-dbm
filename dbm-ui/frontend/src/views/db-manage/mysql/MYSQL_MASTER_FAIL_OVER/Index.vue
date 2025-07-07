@@ -17,8 +17,11 @@
       class="mb-20"
       closable
       :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+    <BatchInput
+      :config="batchInputConfig"
+      @change="handleBatchInput" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-16"
       form-type="vertical"
       :model="formData">
       <EditableTable
@@ -55,7 +58,21 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <CheckPayload v-model="formData.checkPayload" />
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_process">
+          {{ t('检查业务来源的连接') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_verify_checksum">
+          {{ t('检查主从同步延迟') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_delay">
+          {{ t('检查主从数据校验结果') }}
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -80,71 +97,74 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import CheckPayload, {
-    createCheckPayload,
-  } from '@views/db-manage/common/toolbox-field/form-item/check-payload/Index.vue';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
   import SlaveHostColumn from './components/SlaveHostColumn.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-      related_clusters: {
-        id: number;
-        master_domain: string;
-      }[];
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    master: ComponentProps<typeof MasterHostColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveHostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => {
-    const initHost = () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    });
-    return {
-      master: data.master || {
-        ...initHost(),
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('目标主库主机'),
+    },
+  ];
+
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    master: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
         related_clusters: [] as RowData['master']['related_clusters'],
+        role: '',
       },
-      slave: data.slave || initHost(),
-    };
-  };
+      data.master,
+    ),
+    slave: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.slave,
+    ),
+  });
 
   const defaultData = () => ({
-    checkPayload: createCheckPayload(),
+    is_check_delay: false,
+    is_check_process: false,
+    is_verify_checksum: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -154,25 +174,16 @@
   useTicketDetail<Mysql.MasterFailOver>(TicketTypes.MYSQL_MASTER_FAIL_OVER, {
     async onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      const resultList = await Promise.all(
-        infos.map((item) =>
-          findRelatedClustersByClusterIds({
-            bk_biz_id: clusters[item.cluster_ids[0]].bk_biz_id,
-            cluster_ids: item.cluster_ids,
-          }),
-        ),
-      );
       Object.assign(formData, {
-        ...createCheckPayload(details),
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item, index) =>
+        tableData: details.infos.map((item) =>
           createTableRow({
             master: {
-              ...item.master_ip,
-              related_clusters: [resultList[index][0].cluster_info, ...resultList[index][0].related_clusters],
+              ip: item.master_ip.ip,
             },
-            slave: item.slave_ip,
           }),
         ),
       });
@@ -210,14 +221,21 @@
         infos: formData.tableData.map((item) => ({
           cluster_ids: item.master.related_clusters.map((item) => item.id),
           master_ip: {
-            bk_biz_id: item.master.bk_biz_id,
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             bk_cloud_id: item.master.bk_cloud_id,
             bk_host_id: item.master.bk_host_id,
             ip: item.master.ip,
           },
-          slave_ip: item.slave,
+          slave_ip: {
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            bk_cloud_id: item.slave.bk_cloud_id,
+            bk_host_id: item.slave.bk_host_id,
+            ip: item.slave.ip,
+          },
         })),
-        ...formData.checkPayload,
+        is_check_delay: formData.is_check_delay,
+        is_check_process: formData.is_check_process,
+        is_verify_checksum: formData.is_verify_checksum,
       },
       ...formData.payload,
     });
@@ -233,14 +251,7 @@
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
               ip: item.ip,
-              related_clusters: item.related_clusters.map((item) => ({
-                id: item.id,
-                master_domain: item.immute_domain,
-              })),
             },
           }),
         );
@@ -248,5 +259,22 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        master: {
+          ip: item.ip,
+        },
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 </script>

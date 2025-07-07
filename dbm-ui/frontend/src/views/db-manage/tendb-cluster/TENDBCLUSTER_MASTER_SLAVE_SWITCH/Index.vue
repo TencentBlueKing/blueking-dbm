@@ -150,9 +150,9 @@
   });
 
   const defaultData = () => ({
-    is_check_delay: true,
-    is_check_process: true,
-    is_verify_checksum: true,
+    is_check_delay: false,
+    is_check_process: false,
+    is_verify_checksum: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -169,6 +169,9 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) => {
           return createTableRow({

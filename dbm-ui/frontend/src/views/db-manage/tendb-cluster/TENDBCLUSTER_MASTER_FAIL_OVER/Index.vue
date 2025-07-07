@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('主从互切：主机级别操作，即同机所有集群均会完成主从关系互切')" />
+      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -150,9 +150,9 @@
   });
 
   const defaultData = () => ({
-    is_check_delay: true,
-    is_check_process: true,
-    is_verify_checksum: true,
+    is_check_delay: false,
+    is_check_process: false,
+    is_verify_checksum: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -170,6 +170,9 @@
       const { details } = ticketDetail;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
         tableData: details.infos.map((item) => {
           return createTableRow({
             master: {

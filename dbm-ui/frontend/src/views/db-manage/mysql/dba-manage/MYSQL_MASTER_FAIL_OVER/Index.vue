@@ -76,7 +76,21 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <CheckPayload v-model="formData.checkPayload" />
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_process">
+          {{ t('检查业务来源的连接') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_verify_checksum">
+          {{ t('检查主从同步延迟') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_delay">
+          {{ t('检查主从数据校验结果') }}
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.ticketPayload" />
     </BkForm>
     <template #action>
@@ -113,11 +127,9 @@
   import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-
+  import { random } from '@utils';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import CheckPayload, {
-    createCheckPayload,
-  } from '@views/db-manage/common/toolbox-field/form-item/check-payload/Index.vue';
+
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -146,34 +158,40 @@
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    master: {
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: '',
-      ...data.master,
-    },
-    slave: {
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      ...data.slave,
-    },
+    master: Object.assign(
+      {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        ip: '',
+        master_domain: '',
+        role: '',
+      },
+      data.master,
+    ),
+    slave: Object.assign(
+      {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.slave,
+    ),
   });
 
   const defaultData = () => ({
-    checkPayload: createCheckPayload(),
+    is_check_delay: false,
+    is_check_process: false,
+    is_verify_checksum: false,
     tableData: [createTableRow()],
     ticketPayload: createTickePayload(),
   });
 
   const operaObjectType = ref(OperaObejctType.MACHINE);
   const formData = reactive(defaultData());
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -226,7 +244,9 @@
             slave_ip: item.slave,
           },
         ],
-        ...formData.checkPayload,
+        is_check_delay: formData.is_check_delay,
+        is_check_process: formData.is_check_process,
+        is_verify_checksum: formData.is_verify_checksum,
       }),
       ticketPayload: formData.ticketPayload,
     });
@@ -249,7 +269,7 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+    formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -264,10 +284,10 @@
       return acc;
     }, []);
     if (isClear) {
-      tableKey.value = Date.now();
+      tableKey.value = random();
       formData.tableData = [...dataList]; // 覆盖
     } else {
-      formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
 </script>
