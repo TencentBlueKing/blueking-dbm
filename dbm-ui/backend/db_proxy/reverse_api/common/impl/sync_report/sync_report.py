@@ -24,7 +24,17 @@ def sync_report(bk_cloud_id: int, ip: str, port_list: List[int], data: List):
     kafka_opts = env.REVERSE_REPORT_KAFKA_OPTIONS
     with sr.lock:
         if sr.producers is None:
-            sr.producers = [KafkaProducer(api_version=(0, 11), **kafka_opts) for i in range(5)]
+            sr.producers = [
+                KafkaProducer(
+                    api_version=(0, 11),
+                    retries=5,
+                    request_timeout_ms=2000,
+                    reconnect_backoff_max_ms=2000,
+                    max_block_ms=2000,
+                    **kafka_opts
+                )
+                for i in range(5)
+            ]
 
     vd = SyncReportEventSerializer(data=data, many=True)
     if not vd.is_valid():
