@@ -57,15 +57,18 @@ export function getTicketCount() {
       INNER_HELP: number;
       INNER_TODO: number;
       RESOURCE_REPLENISH: number;
+      TIMER: 0;
       TODO: number;
     };
     SELF_MANAGE: number;
+    TIMER: 0;
     to_help: {
       APPROVE: number;
       FAILED: number;
       INNER_HELP: number;
       INNER_TODO: number;
       RESOURCE_REPLENISH: number;
+      TIMER: 0;
       TODO: number;
     };
   }>(`${path}/get_tickets_count/`);
