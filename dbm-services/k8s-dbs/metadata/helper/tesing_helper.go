@@ -59,3 +59,13 @@ func GetAcVersionTestDbAccess() dbaccess.AddonClusterVersionDbAccess {
 	dbAccess := dbaccess.NewAddonClusterVersionDbAccess(db)
 	return dbAccess
 }
+
+// GetClusterTagTestDbAccess 获取测试 ClusterTagTestDbAccess
+func GetClusterTagTestDbAccess() dbaccess.K8sCrdClusterTagDbAccess {
+	db, err := InitTestTable(constant.TbK8sCrdClusterTag, &model.K8sCrdClusterTagModel{})
+	if err != nil {
+		panic(err)
+	}
+	dbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	return dbAccess
+}

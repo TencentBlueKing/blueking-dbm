@@ -23,25 +23,26 @@ import "time"
 
 // K8sCrdClusterRespVo defines the response data structure of cluster meta.
 type K8sCrdClusterRespVo struct {
-	ID                  uint64            `json:"id"`
-	AddonInfo           K8sCrdAddonRespVo `json:"addonInfo"`
-	AddonClusterVersion string            `json:"addonClusterVersion"`
-	TopoName            string            `json:"topoName"`
-	TopoNameAlias       string            `json:"topoNameAlias"`
-	K8sClusterConfigID  uint64            `json:"k8sClusterConfigId"`
-	RequestID           string            `json:"requestId"`
-	ClusterName         string            `json:"clusterName"`
-	ClusterAlias        string            `json:"clusterAlias"`
-	Namespace           string            `json:"namespace"`
-	BkBizID             uint64            `json:"bkBizId"`
-	BkBizName           string            `json:"bkBizName"`
-	BkAppAbbr           string            `json:"bkAppAbbr"`
-	BkAppCode           string            `json:"bkAppCode"`
-	BkBizTitle          string            `json:"bkBizTitle"`
-	Status              string            `json:"status"`
-	Description         string            `json:"description"`
-	CreatedBy           string            `json:"createdBy"`
-	CreatedAt           time.Time         `json:"createdAt"`
-	UpdatedBy           string            `json:"updatedBy"`
-	UpdatedAt           time.Time         `json:"updatedAt"`
+	ID                  uint64                    `json:"id"`
+	AddonInfo           K8sCrdAddonRespVo         `json:"addonInfo"`
+	AddonClusterVersion string                    `json:"addonClusterVersion"`
+	TopoName            string                    `json:"topoName"`
+	TopoNameAlias       string                    `json:"topoNameAlias"`
+	K8sClusterConfigID  uint64                    `json:"k8sClusterConfigId"`
+	RequestID           string                    `json:"requestId"`
+	ClusterName         string                    `json:"clusterName"`
+	ClusterAlias        string                    `json:"clusterAlias"`
+	Namespace           string                    `json:"namespace"`
+	BkBizID             uint64                    `json:"bkBizId"`
+	BkBizName           string                    `json:"bkBizName"`
+	BkAppAbbr           string                    `json:"bkAppAbbr"`
+	BkAppCode           string                    `json:"bkAppCode"`
+	BkBizTitle          string                    `json:"bkBizTitle"`
+	Tags                []*K8sCrdClusterTagRespVo `json:"tags"`
+	Status              string                    `json:"status"`
+	Description         string                    `json:"description"`
+	CreatedBy           string                    `json:"createdBy"`
+	CreatedAt           time.Time                 `json:"createdAt"`
+	UpdatedBy           string                    `json:"updatedBy"`
+	UpdatedAt           time.Time                 `json:"updatedAt"`
 }

@@ -33,10 +33,11 @@ type OpsRequestParams struct {
 
 // Request Receive request structure
 type Request struct {
-	K8sClusterName    string `json:"k8sClusterName,omitempty" required:"true"`
-	BkBizID           uint64 `json:"bkBizId,omitempty"`
-	BkBizName         string `json:"bkBizName,omitempty"`
-	BkAppAbbr         string `json:"bkAppAbbr,omitempty"`
+	K8sClusterName    string   `json:"k8sClusterName,omitempty" required:"true"`
+	BkBizID           uint64   `json:"bkBizId,omitempty"`
+	BkBizName         string   `json:"bkBizName,omitempty"`
+	BkAppAbbr         string   `json:"bkAppAbbr,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
 	Metadata          `json:",inline"`
 	Spec              `json:",inline"`
 	coreentity.BKAuth `json:",inline"`

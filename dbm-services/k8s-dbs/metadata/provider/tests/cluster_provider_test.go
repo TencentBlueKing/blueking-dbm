@@ -56,10 +56,10 @@ func TestCreateCluster(t *testing.T) {
 	db, err := initClusterTable()
 	assert.NoError(t, err)
 
-	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
+	clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(clusterDbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := &entitys.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
@@ -84,8 +84,8 @@ func TestDeleteCluster(t *testing.T) {
 
 	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := &entitys.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
@@ -110,8 +110,8 @@ func TestUpdateCluster(t *testing.T) {
 
 	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := &entitys.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
@@ -144,8 +144,8 @@ func TestGetCluster(t *testing.T) {
 
 	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := &entitys.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
@@ -173,8 +173,8 @@ func TestGetClusterByParams(t *testing.T) {
 
 	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := &entitys.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
@@ -207,8 +207,8 @@ func TestListCluster(t *testing.T) {
 
 	dbAccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess, clusterTagDbAccess)
 
 	cluster := []entitys.K8sCrdClusterEntity{
 		{

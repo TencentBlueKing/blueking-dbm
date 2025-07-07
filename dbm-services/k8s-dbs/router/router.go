@@ -88,13 +88,16 @@ type CoreAPIProviders struct {
 	ClusterReleaseProvider      metaprovider.AddonClusterReleaseProvider
 	HelmRepoProvider            metaprovider.AddonClusterHelmRepoProvider
 	AddonMetaProvider           metaprovider.K8sCrdStorageAddonProvider
+	ClusterTagProvider          metaprovider.K8sCrdClusterTagProvider
 }
 
 // buildCoreAPIProviders 构建 core api providers
 func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaAdAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess, addonMetaAdAccess)
+	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
+		addonMetaDbAccess, clusterTagDbAccess)
 
 	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
@@ -120,8 +123,9 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	helmRepoProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
 
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
+
+	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(clusterTagDbAccess)
 
 	return &CoreAPIProviders{
 		ClusterMetaProvider:         clusterMetaProvider,
@@ -134,6 +138,7 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 		ClusterReleaseProvider:      clusterReleaseProvider,
 		HelmRepoProvider:            helmRepoProvider,
 		AddonMetaProvider:           addonMetaProvider,
+		ClusterTagProvider:          clusterTagProvider,
 	}, nil
 }
 
@@ -153,6 +158,7 @@ func BuildClusterProvider(db *gorm.DB) *provider.ClusterProvider {
 		clusterProviderBuilder.WithClusterHelmRepoMeta(coreAPIProviders.HelmRepoProvider),
 		clusterProviderBuilder.WithReleaseMeta(coreAPIProviders.ClusterReleaseProvider),
 		clusterProviderBuilder.WithAddonMeta(coreAPIProviders.AddonMetaProvider),
+		clusterProviderBuilder.WithClusterTagsMeta(coreAPIProviders.ClusterTagProvider),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster provider", "error", err)

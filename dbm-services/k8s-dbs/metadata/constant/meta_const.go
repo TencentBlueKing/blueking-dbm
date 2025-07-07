@@ -29,6 +29,7 @@ const (
 	TbK8sCrdCluster             = "tb_k8s_crd_cluster"
 	TbK8sCrdComponent           = "tb_k8s_crd_component"
 	TbK8sCrdOpsRequest          = "tb_k8s_crd_opsrequest"
+	TbK8sCrdClusterTag          = "tb_k8s_crd_cluster_tag"
 	TbK8sClusterConfig          = "tb_k8s_cluster_config"
 	TbClusterRequestRecord      = "tb_cluster_request_record"
 	TbK8sClusterService         = "tb_k8s_cluster_service"

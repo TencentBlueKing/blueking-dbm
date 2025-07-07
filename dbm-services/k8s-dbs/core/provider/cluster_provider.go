@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	commentity "k8s-dbs/common/entity"
 	coreclient "k8s-dbs/core/client"
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
@@ -56,6 +57,7 @@ type ClusterProvider struct {
 	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
 	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
 	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
+	ClusterTagProvider      metaprovider.K8sCrdClusterTagProvider
 }
 
 // ClusterProviderOptions ClusterProvider 的函数选项
@@ -127,6 +129,15 @@ func (c *ClusterProviderBuilder) WithAddonMeta(
 	}
 }
 
+// WithClusterTagsMeta 设置 ClusterTagProvider
+func (c *ClusterProviderBuilder) WithClusterTagsMeta(
+	p metaprovider.K8sCrdClusterTagProvider,
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.ClusterTagProvider = p
+	}
+}
+
 // validateProvider 验证 ClusterProvider 必要字段
 func (c *ClusterProvider) validateProvider() error {
 	if c.clusterMetaProvider == nil {
@@ -149,6 +160,9 @@ func (c *ClusterProvider) validateProvider() error {
 	}
 	if c.addonMetaProvider == nil {
 		return errors.New("addonMetaProvider is required")
+	}
+	if c.ClusterTagProvider == nil {
+		return errors.New("ClusterTagProvider is required")
 	}
 	return nil
 }
@@ -184,21 +198,28 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to create request entity: %w", err)
 	}
 
-	// 获取 k8s 集群配置
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
 	}
 
-	// 获取 K8sClient
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
 	}
 
-	if err = c.saveClusterMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID); err != nil {
+	// 记录 cluster record
+	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
+	if err != nil {
 		slog.Error("failed to save cluster meta data", "err", err)
 		return err
+	}
+	// 记录 cluster tag
+	if len(request.Tags) > 0 {
+		if err = c.saveClusterTags(request, clusterEntity); err != nil {
+			slog.Error("failed to save cluster tags", "err", err)
+			return err
+		}
 	}
 
 	// 安装 cluster
@@ -208,7 +229,20 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		return err
 	}
 
-	// 保存 addon cluster release
+	// 记录 addon cluster release
+	if err = c.saveClusterRelease(request, k8sClusterConfig, values); err != nil {
+		slog.Error("failed to save cluster release", "error", err)
+		return err
+	}
+	return nil
+}
+
+// saveClusterRelease 记录集群 release 元数据
+func (c *ClusterProvider) saveClusterRelease(
+	request *coreentity.Request,
+	k8sClusterConfig *provderentity.K8sClusterConfigEntity,
+	values map[string]interface{},
+) error {
 	clusterRelease, err := buildClusterReleaseEntity(
 		k8sClusterConfig.ID,
 		request,
@@ -220,7 +254,6 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		slog.Error("build cluster release entity error", "error", err.Error())
 		return fmt.Errorf("failed to build cluster release entity: %w", err)
 	}
-
 	_, err = c.releaseMetaProvider.CreateClusterRelease(clusterRelease)
 	if err != nil {
 		slog.Error("failed to save cluster release",
@@ -233,25 +266,51 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	return nil
 }
 
-// saveClusterMetaData 记录集群元数据
-func (c *ClusterProvider) saveClusterMetaData(
+// saveClusterMetaData 记录集群 tags
+func (c *ClusterProvider) saveClusterTags(
+	request *coreentity.Request,
+	cluster *provderentity.K8sCrdClusterEntity,
+) error {
+	if len(request.Tags) == 0 {
+		return nil
+	}
+	var tagEntities []*provderentity.K8sCrdClusterTagEntity
+	for _, tag := range request.Tags {
+		tagEntity := &provderentity.K8sCrdClusterTagEntity{
+			CrdClusterID: cluster.ID,
+			ClusterTag:   tag,
+		}
+		tagEntities = append(tagEntities, tagEntity)
+	}
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &request.BKAuth,
+	}
+	_, err := c.ClusterTagProvider.BatchCreate(dbsContext, tagEntities)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// saveClusterMetaData 记录集群关联资源元数据
+func (c *ClusterProvider) saveClusterCRMetaData(
 	request *coreentity.Request,
 	requestID string,
 	k8sClusterConfigID uint64,
-) error {
+) (*provderentity.K8sCrdClusterEntity, error) {
 	// 记录 cluster 元数据
 	addedClusterEntity, err := c.createClusterEntity(request, requestID, k8sClusterConfigID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clusterID := addedClusterEntity.ID
 	// 记录 component 元数据
 	_, err = c.createComponentEntity(request, clusterID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return addedClusterEntity, nil
 }
 
 // UpdateCluster 更新集群
@@ -374,17 +433,14 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return err
 	}
-
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
-
 	if err != nil {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
-
 	clusterEntity, err := c.clusterMetaProvider.FindByParams(
 		map[string]interface{}{
 			"k8s_cluster_config_id": k8sClusterConfig.ID,
@@ -394,18 +450,41 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.clusterMetaProvider.DeleteClusterByID(clusterEntity.ID)
+
+	// 清理 cluster 关联资源元数据
+	err = c.clearClusterCRMetaData(clusterEntity)
 	if err != nil {
-		slog.Error("failed to delete cluster", "error", err)
+		slog.Error("failed to clear cluster cr meta data", "error", err)
 		return err
 	}
 
-	_, err = c.componentMetaProvider.DeleteComponentByClusterID(clusterEntity.ID)
+	// 清理 cluster tag 元数据
+	err = c.clearClusterTags(request, clusterEntity)
 	if err != nil {
-		slog.Error("failed to delete component", "error", err)
+		slog.Error("failed to clear cluster tags", "error", err)
 		return err
 	}
 
+	// 清理 cluster release 元数据
+	err = c.clearClusterRelease(request, k8sClusterConfig)
+	if err != nil {
+		slog.Error("failed to clear cluster release", "error", err)
+		return err
+	}
+
+	// 删除集群
+	if err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
+		slog.Error("failed to delete storage addon cluster", "error", err)
+		return err
+	}
+	return nil
+}
+
+// clearClusterRelease 清理 cluster release 元数据
+func (c *ClusterProvider) clearClusterRelease(
+	request *coreentity.Request,
+	k8sClusterConfig *provderentity.K8sClusterConfigEntity,
+) error {
 	releaseEntity, err := c.releaseMetaProvider.FindByParams(
 		map[string]interface{}{
 			"k8s_cluster_config_id": k8sClusterConfig.ID,
@@ -419,11 +498,37 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	if err = coreclient.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
+// clearClusterTags 清理 cluster tag 元数据
+func (c *ClusterProvider) clearClusterTags(
+	request *coreentity.Request,
+	clusterEntity *provderentity.K8sCrdClusterEntity,
+) error {
+	dbsContext := &commentity.DbsContext{
+		BkAuth: &request.BKAuth,
+	}
+	_, err := c.ClusterTagProvider.DeleteByClusterID(dbsContext, clusterEntity.ID)
+	if err != nil {
+		slog.Error("failed to delete cluster tag", "error", err)
 		return err
 	}
+	return nil
+}
 
+// clearClusterCRMetaData 清理 cluster 关联的资源元数据
+func (c *ClusterProvider) clearClusterCRMetaData(clusterEntity *provderentity.K8sCrdClusterEntity) error {
+	_, err := c.clusterMetaProvider.DeleteClusterByID(clusterEntity.ID)
+	if err != nil {
+		slog.Error("failed to delete cluster", "error", err)
+		return err
+	}
+	_, err = c.componentMetaProvider.DeleteComponentByClusterID(clusterEntity.ID)
+	if err != nil {
+		slog.Error("failed to delete component", "error", err)
+		return err
+	}
 	return nil
 }
 

@@ -24,9 +24,9 @@ import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/resp"
 	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
+	"log/slog"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -84,7 +84,7 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdClusterRespVo
+	var data respvo.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, cluster); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
@@ -107,14 +107,15 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 	}
-	var data []resp.K8sCrdClusterRespVo
+	var data []respvo.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, clusterEntities); err != nil {
+		slog.Error("fail to copy cluster data", "error", err)
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	for _, clusterEntity := range data {
-		clusterEntity.BkBizTitle = fmt.Sprintf("[%d]%s", clusterEntity.BkBizID, clusterEntity.BkBizName)
-		clusterEntity.TopoNameAlias = getTopoNameAlias(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
+	for idx, clusterEntity := range data {
+		data[idx].BkBizTitle = fmt.Sprintf("[%d]%s", clusterEntity.BkBizID, clusterEntity.BkBizName)
+		data[idx].TopoNameAlias = getTopoNameAlias(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
 	}
 	var responseData = respvo.PageResult{
 		Count:  count,

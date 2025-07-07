@@ -90,8 +90,9 @@ func SetupClusterRouter() *gin.Engine {
 	db, _ := initClusterTable()
 	clusterDbaccess := dbaccess.NewCrdClusterDbAccess(db)
 	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
 
-	clusterProvider := provider.NewK8sCrdClusterProvider(clusterDbaccess, addonDbAccess)
+	clusterProvider := provider.NewK8sCrdClusterProvider(clusterDbaccess, addonDbAccess, clusterTagDbAccess)
 	clusterController := controller.NewClusterController(clusterProvider)
 	{
 		routerGroup.GET("/cluster/:id", clusterController.GetCluster)
