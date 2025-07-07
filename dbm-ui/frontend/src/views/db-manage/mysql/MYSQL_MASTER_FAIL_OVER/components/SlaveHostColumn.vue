@@ -39,17 +39,11 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     ip: string;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      ip: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -60,7 +54,6 @@
       const [slaveHost] = data;
       if (slaveHost) {
         modelValue.value = {
-          bk_biz_id: slaveHost.bk_biz_id,
           bk_cloud_id: slaveHost.bk_cloud_id,
           bk_host_id: slaveHost.bk_host_id,
           ip: slaveHost.ip,
