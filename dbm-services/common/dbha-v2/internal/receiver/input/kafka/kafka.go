@@ -22,27 +22,7 @@
  * SOFTWARE.
  */
 
-package config_test
+package kafka
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"testing"
-
-	"github.com/spf13/viper"
-)
-
-var receiverCfgFile = "../../../configs/receiver.yaml"
-
-func TestConfig(t *testing.T) {
-	viper.SetConfigFile(receiverCfgFile)
-
-	if err := viper.ReadInConfig(); err != nil {
-		t.Fatalf("viper read in config failed, errmsg(%v)", err)
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		t.Fatalf("viper unmarshal failed, errmsg(%v)", err)
-	}
-
-	t.Log("reciever cfg:", config.Cfg)
+type Kafka struct {
 }

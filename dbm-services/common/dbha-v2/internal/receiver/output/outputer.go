@@ -22,23 +22,23 @@
  * SOFTWARE.
  */
 
-package exporter
+package output
 
 import (
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/exporter/storage"
+	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"strings"
 )
 
-// Saver Define the interface for storing data.
-type Saver interface {
+// Outputer Define the interface for storing data.
+type Outputer interface {
 	Save(data interface{}) error
+	Close()
 }
 
-// NewSaver create a new saver
-func NewSaver(cfg *config.ExporterConfig) (Saver, error) {
-
+// NewOutputer create a new saver
+func NewOutputer(cfg config.OutputConfig) (Outputer, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(storage.NameDoris):
 		return storage.NewDoris(strings.Split(cfg.Endpoints, ";"), cfg.User, cfg.Password)

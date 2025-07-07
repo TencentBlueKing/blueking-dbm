@@ -22,67 +22,21 @@
  * SOFTWARE.
  */
 
-package receiver
+package input
 
 import (
-	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"dbm-services/common/dbha-v2/internal/receiver/output"
 )
 
-func setupGracefulShutdown(svr *Service) {
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+type DataC chan interface{}
 
-	go func() {
-		<-sigC
-		logger.Info("shutdown receiver server")
-		svr.Close()
-		os.Exit(0)
-	}()
+type Inputer interface {
+	Harvest(outers []output.Outputer) error
+	Close()
 }
 
-// Run run receiver service
-func Run(cmd *cobra.Command, args []string) error {
-
-	viper.SetConfigName("receiver")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		return err
-	}
-
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSize,
-		MaxBackups: config.Cfg.Log.FileCount,
-	}
-
-	log := logger.NewZapLogger(logCfg)
-	logger.SetLogger(log)
-
-	logger.Debug("receiver config. %v", config.Cfg)
-
-	ctx := context.Background()
-	svr := &Service{}
-
-	setupGracefulShutdown(svr)
-
-	return svr.Run(ctx)
+// NewInputer create a new Inputer.
+func NewInputer(cfg config.IntputConfig) (Inputer, error) {
+	return nil, nil
 }

@@ -26,11 +26,6 @@ package config
 
 var Cfg = Configuration{}
 
-// ServiceConfig service configuration
-type ServiceConfig struct {
-	ListenAddress string `yaml:"listenAddress" mapstructure:"ListenAddress"`
-}
-
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
 	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
@@ -38,9 +33,20 @@ type DiscoveryConfig struct {
 	Password  string `yaml:"password"  mapstructure:"password"`
 }
 
-// ExporterConfig Configuration related to data storage.
-type ExporterConfig struct {
+// InputConfig define the information of data input stream.
+type IntputConfig struct {
+	Name      string   `yaml:"name"      mapstructure:"name"`
+	Enable    bool     `yaml:"enable"    mapstructure:"enable"`
+	Endpoints string   `yaml:"endpoints" mapstructure:"endpoints"`
+	User      string   `yaml:"user"      mapstructure:"user"`
+	Password  string   `yaml:"password"  mapstructure:"password"`
+	Topics    []string `yaml:"topics"    mapstructure:"topics"`
+}
+
+// OutputConfig Configuration related to data storage.
+type OutputConfig struct {
 	Name      string `yaml:"name"      mapstructure:"name"`
+	Enable    bool   `yaml:"enable"    mapstructure:"enable"`
 	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
 	User      string `yaml:"user"      mapstructure:"user"`
 	Password  string `yaml:"password"  mapstructure:"password"`
@@ -56,10 +62,10 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string           `yaml:"name"      mapstructure:"name"`
-	Version   string           `yaml:"version"   mapstructure:"version"`
-	Service   ServiceConfig    `yaml:"service"   mapstructure:"service"`
-	Discovery DiscoveryConfig  `yaml:"discovery" mapstructure:"discovery"`
-	Exporters []ExporterConfig `yaml:"exporter"  mapstructure:"exporter"`
-	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
+	Name      string          `yaml:"name"      mapstructure:"name"`
+	Version   string          `yaml:"version"   mapstructure:"version"`
+	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
+	Inputers  []IntputConfig  `yaml:"input"     mapstructure:"input"`
+	Outputers []OutputConfig  `yaml:"output"    mapstructure:"output"`
+	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
