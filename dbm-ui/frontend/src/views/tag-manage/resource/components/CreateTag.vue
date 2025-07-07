@@ -22,7 +22,7 @@
         <span class="title">{{ t('新建标签') }}</span>
         <span class="title-divider">|</span>
         <span class="biz-name">
-          {{ biz?.name || t('公共资源池') }}
+          {{ bizIdMap.get(props.bizId)?.name || t('公共资源池') }}
         </span>
       </div>
     </template>
@@ -68,15 +68,18 @@
   import { useRequest } from 'vue-request';
 
   import { createTag, validateTag } from '@services/source/tag';
-  import type { BizItem } from '@services/types';
+
+  import { useGlobalBizs } from '@stores';
 
   interface Props {
-    biz?: BizItem;
+    bizId?: number;
   }
 
   type Emits = (e: 'create') => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    bizId: 0,
+  });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -85,14 +88,13 @@
   const { t } = useI18n();
   const formRef = useTemplateRef('formRef');
   const inputRef = useTemplateRef('inputRef');
+  const { bizIdMap } = useGlobalBizs();
 
   const existedTagsSet = ref<Set<string>>(new Set());
 
   const formModel = reactive({
     tags: [] as string[],
   });
-
-  const curBizId = computed(() => props.biz?.bk_biz_id || 0);
 
   const rules = computed(() => {
     const existedArr = formModel.tags.filter((item) => existedTagsSet.value.has(item));
@@ -127,7 +129,7 @@
     () => formModel.tags,
     (tags) => {
       runValidate({
-        bk_biz_id: curBizId.value,
+        bk_biz_id: props.bizId,
         tags: tags.map((tag) => ({ key: 'dbresource', value: tag })),
         type: 'resource',
       });
@@ -146,7 +148,7 @@
   const handleConfirm = async () => {
     await formRef.value!.validate();
     runCreate({
-      bk_biz_id: curBizId.value,
+      bk_biz_id: props.bizId,
       tags: formModel.tags.map((tag) => ({ key: 'dbresource', value: tag })),
       type: 'resource',
     });
