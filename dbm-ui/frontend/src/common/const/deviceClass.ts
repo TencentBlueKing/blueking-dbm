@@ -1,7 +1,7 @@
 import { t } from '@locales/index';
 
 /**
- * 机器事件统类型
+ * 磁盘类型
  */
 export const enum DeviceClass {
   ALL = 'ALL',

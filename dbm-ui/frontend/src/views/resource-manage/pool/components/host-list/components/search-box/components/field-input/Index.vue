@@ -168,7 +168,7 @@
     disk_type: true,
     mem: true,
     mount_point: true,
-    os_type: true,
+    // os_type: true,
   };
   const isBusiness = route.name === 'BizResourcePool';
 
@@ -181,7 +181,7 @@
     () => props.modelValue,
     () => {
       localValueMemo.value = { ...props.modelValue };
-      isShowMore.value = Object.keys(props.modelValue).some((key) => moreKeys[key]);
+      // isShowMore.value = Object.keys(props.modelValue).some((key) => moreKeys[key]);
     },
     {
       immediate: true,
@@ -230,6 +230,11 @@
     emits('update:modelValue', value);
     emits('submit');
   };
+
+  onBeforeMount(() => {
+    // 父组件挂载或激活时，会解析url，此时需要判断是否要自动展开更多条件
+    isShowMore.value = Object.keys(props.modelValue).some((key) => moreKeys[key]);
+  });
 
   onActivated(() => {
     // 组件激活时需要校验一次值
