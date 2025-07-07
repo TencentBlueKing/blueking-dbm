@@ -588,21 +588,21 @@ class DataAPI(object):
         注：在不开启多租户模式下，租户ID固定为default
         """
         from backend.components import NO_NEED_TENANT_API
-        from backend.db_meta.models.app import TenantCache
+        from backend.utils.tenant import TenantHandler
 
         if not settings.ENABLE_MULTI_TENANT_MODE or self.base in NO_NEED_TENANT_API:
             return settings.DEFAULT_TENANT_ID
 
-        if "tenant_id" in params:
-            return params["tenant_id"]
-        if "bk_biz_id" in params:
-            return TenantCache.get_tenant_with_app(params["bk_biz_id"])
+        tenant_id = TenantHandler.get_tenant_id_from_params(params)
+        if tenant_id:
+            return tenant_id
 
-        local_request = local.request
-        if local.tenant_id:
-            return local.tenant_id
-        if hasattr(local_request, "user"):
-            return local_request.user.tenant_id
+        if "bk_biz_id" in params:
+            return TenantHandler.get_tenant_id_by_biz(params["bk_biz_id"])
+
+        tenant_id = TenantHandler.get_tenant_id_from_request()
+        if tenant_id:
+            return tenant_id
 
         raise ApiRequestError(_("无法获取当前请求的租户ID"))
 

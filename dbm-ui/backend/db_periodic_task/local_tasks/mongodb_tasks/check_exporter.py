@@ -21,6 +21,7 @@ from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
 from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record, dev_debug
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
@@ -192,6 +193,9 @@ def fetch_metric_by_cluster(cluster_domain):
     # 设置要查询的 cluster_domain 变量
     params["query_configs"][0]["promql"] = query_template["up"].format(cluster_domain=cluster_domain)
     dev_debug("params: {}".format(params["query_configs"][0]["promql"]))
+
+    tenant_id = TenantCache.get_tenant_with_app(params["bk_biz_id"])
+    params["tenant_id"] = tenant_id
 
     metric_result = defaultdict(dict)
     try:
