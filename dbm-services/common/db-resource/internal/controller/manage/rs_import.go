@@ -13,7 +13,6 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -189,7 +188,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	if config.AppConfig.Yunti.IsNotEmpty() {
 		logger.Info("try to get machine info from yunti")
 		var verr error
-		cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
+		cvmInfoMap, verr = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
 		if verr != nil {
 			logger.Warn("query cvm info failed %s", verr.Error())
 		}
@@ -234,23 +233,11 @@ func getCvmMachDetailInfo(ipList []string) (cvmInfoMap map[string]yunti.Instance
 	}), nil
 }
 
-func regularExpressionMatching(regular, s string) bool {
-	m, err := regexp.MatchString(regular, s)
-	if err != nil {
-		logger.Error("matching error: %s", err.Error())
-		return false
-	}
-	return m
-}
-
-// getCvmMachList 判断主机是否是cvm
-func getCvmMachList(hosts []*cc.Host) []string {
+// buildCvmMachList 判断主机是否是cvm
+func buildCvmMachList(hosts []*cc.Host) []string {
 	var machIpList []string
 	for _, host := range hosts {
-		if regularExpressionMatching(`^TC(\d*)\d$`, host.AssetID) || strings.Contains(strings.ToUpper(host.SvrTypeName),
-			"QC_CVM") {
-			machIpList = append(machIpList, host.InnerIP)
-		}
+		machIpList = append(machIpList, host.InnerIP)
 	}
 	return machIpList
 }
@@ -377,7 +364,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 		if config.AppConfig.Yunti.IsNotEmpty() {
 			logger.Info("try to get machine info from yunti")
 			var verr error
-			cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
+			cvmInfoMap, verr = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
 			if verr != nil {
 				logger.Warn("query cvm info failed %s", verr.Error())
 			}
