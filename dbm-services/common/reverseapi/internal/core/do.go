@@ -36,6 +36,7 @@ func (c *Core) do(method string, api string, payLoad json.RawMessage, ports ...i
 
 func (c *Core) doOneAddrWithRetry(method string, apiPath string, addr string, payLoad json.RawMessage, ports ...int) (data []byte, err error) {
 	var allErrors []error
+	var ar apiResponse
 	err = retry.Do(
 		func() error {
 			ep := url.URL{
@@ -77,7 +78,6 @@ func (c *Core) doOneAddrWithRetry(method string, apiPath string, addr string, pa
 				return errors.Errorf("unexpected status code %d (%s)", resp.StatusCode, resp.Status)
 			}
 
-			var ar apiResponse
 			if err := json.Unmarshal(data, &ar); err != nil {
 				return err
 			}
@@ -101,5 +101,5 @@ func (c *Core) doOneAddrWithRetry(method string, apiPath string, addr string, pa
 		return nil, err2.Join(allErrors...)
 	}
 
-	return
+	return ar.Data, nil
 }
