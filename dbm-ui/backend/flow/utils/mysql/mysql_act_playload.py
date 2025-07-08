@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
 import logging
 import os
+from collections import defaultdict
 from typing import Any, List
 
 from deprecated import deprecated
@@ -1891,19 +1893,66 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def tendb_cluster_remote_switch(self, **kwargs):
-        """
-        定义拼接TenDB-Cluster集群的remote互切/主故障切换的payload参数
-        """
-        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
-
+    def tendb_cluster_slave_spt_switch(self, **kwargs):
+        cluster_id = self.cluster["cluster_id"]
+        switch_tuples = self.cluster["switch_tuples"]
+        c = Cluster.objects.get(id=cluster_id)
+        shards = c.tendbclusterstorageset_set.filter()
+        shard_map = defaultdict(int)
+        for shard in shards:
+            shard_map[shard.storage_instance_tuple.receiver.id] = shard.shard_id
+            shard_map[shard.storage_instance_tuple.ejector.id] = shard.shard_id
         switch_paris = []
-        for tuples in self.ticket_data["switch_tuples"]:
-            objs = cluster.storageinstance_set.filter(machine__ip=tuples["master"]["ip"])
+        for tuples in switch_tuples:
+            objs = c.storageinstance_set.filter(machine__ip=tuples["master"]["ip"])
             for master in objs:
                 slave = StorageInstanceTuple.objects.get(ejector=master).receiver
                 switch_paris.append(
                     {
+                        "shard_id": shard_map.get(int(master.id), -1),
+                        "master": {"host": master.machine.ip, "port": master.port},
+                        "slave": {"host": slave.machine.ip, "port": slave.port},
+                    }
+                )
+        pos_info = kwargs["trans_data"]["masters_bin_pos_map"]
+        logger.info(f"pos_info: {pos_info}")
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.TenDBClusterBackendSlaveSptSwitch.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": c.proxyinstance_set.first().admin_port,
+                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "force": self.ticket_data["force"],
+                    "switch_paris": switch_paris,
+                    "pos_map_info": json.dumps(pos_info),
+                    "batch_id": self.cluster["batch_id"],
+                },
+            },
+        }
+
+    def tendb_cluster_remote_switch(self, **kwargs):
+        """
+        定义拼接TenDB-Cluster集群的remote互切/主故障切换的payload参数
+        """
+        cluster_id = self.cluster["cluster_id"]
+        switch_tuples = self.cluster["switch_tuples"]
+        c = Cluster.objects.get(id=cluster_id)
+        shards = c.tendbclusterstorageset_set.filter()
+        shard_map = defaultdict(int)
+        for shard in shards:
+            shard_map[shard.storage_instance_tuple.receiver.id] = shard.shard_id
+            shard_map[shard.storage_instance_tuple.ejector.id] = shard.shard_id
+        switch_paris = []
+        for tuples in switch_tuples:
+            objs = c.storageinstance_set.filter(machine__ip=tuples["master"]["ip"])
+            for master in objs:
+                slave = StorageInstanceTuple.objects.get(ejector=master).receiver
+                switch_paris.append(
+                    {
+                        "shard_id": shard_map.get(int(master.id), -1),
                         "master": {"host": master.machine.ip, "port": master.port},
                         "slave": {"host": slave.machine.ip, "port": slave.port},
                     }
@@ -1916,10 +1965,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "port": c.proxyinstance_set.first().admin_port,
                     "slave_delay_check": self.ticket_data["is_check_delay"],
                     "force": self.ticket_data["force"],
                     "switch_paris": switch_paris,
+                    "batch_id": self.cluster["batch_id"],
                 },
             },
         }

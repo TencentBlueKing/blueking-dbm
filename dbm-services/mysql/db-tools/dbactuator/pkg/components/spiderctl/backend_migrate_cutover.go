@@ -410,7 +410,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 		}
 	}
 	rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
-	if err = s.writeContents(rollbackSqls); err != nil {
+	if err = writeContents(s.fd, rollbackSqls); err != nil {
 		return err
 	}
 	s.fd.Close()

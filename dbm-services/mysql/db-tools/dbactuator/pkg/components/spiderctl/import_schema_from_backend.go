@@ -358,7 +358,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		go func(conn *sql.Conn, db string, dumpfile string) {
 			ctrChan <- struct{}{}
 			defer func() { wg.Done(); <-ctrChan }()
-			_, err = conn.ExecContext(context.Background(), fmt.Sprintf("set tc_admin=0;"))
+			_, err = conn.ExecContext(context.Background(), "set tc_admin=0;")
 			if err != nil {
 				logger.Error("set session tc_admin=0 failed:%s", err.Error())
 				errChan <- err

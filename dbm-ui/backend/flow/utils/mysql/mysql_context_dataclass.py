@@ -257,6 +257,15 @@ class ClusterSwitchContext:
 
 
 @dataclass()
+class SpiderSwitchContext:
+    masters_bin_pos_map: dict = field(default_factory=dict)  # 代表新master的位点信息
+
+    @staticmethod
+    def get_new_masters_bin_pos_var_name() -> str:
+        return "masters_bin_pos_map"
+
+
+@dataclass()
 class SpiderApplyManualContext:
     """
     定义Spider集群部署的可交互上下文dataclass类(手输ip模式)

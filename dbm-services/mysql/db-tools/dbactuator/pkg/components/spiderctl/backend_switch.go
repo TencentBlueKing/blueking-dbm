@@ -14,6 +14,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -42,7 +43,9 @@ type runtimeCtx struct {
 	CutOverCtx
 	realSwitchSvrPairs []SvrPairs
 	slavesConn         map[IPPORT]*native.DbWorker
-	mastesConn         map[IPPORT]*native.DbWorker
+	mastersConn        map[IPPORT]*native.DbWorker
+	newMastersConn     map[IPPORT]*native.DbWorker
+	newSlavesConn      map[IPPORT]*native.DbWorker
 }
 
 // SpiderRemotedbSwitchParam TODO
@@ -59,6 +62,9 @@ type SpiderRemotedbSwitchParam struct {
 	SwitchPairs []SwitchUnit `json:"switch_paris" validate:"required,gt=0,dive"`
 	// force: 忽略部分切换前检查
 	Force bool `json:"force"`
+	// binlog pos info
+	PosMapInfo string `json:"pos_map_info"`
+	BatchId    int    `json:"batch_id" validate:"required,gte=1"`
 }
 
 // CutOverCtx TODO
@@ -89,8 +95,9 @@ type SvrPairs struct {
 
 // SwitchUnit TODO
 type SwitchUnit struct {
-	Master Instance `json:"master" validate:"required"`
-	Slave  Instance `json:"slave"  validate:"required"`
+	ShardID int      `json:"shard_id"`
+	Master  Instance `json:"master" validate:"required"`
+	Slave   Instance `json:"slave"  validate:"required"`
 }
 
 // IpPort TODO
@@ -133,7 +140,7 @@ func (r *SpiderClusterBackendSwitchComp) Example() interface{} {
 	}
 }
 
-// Init TODO
+// Init do init
 func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	r.ipPortServersMap = make(map[string]native.Server)
 	logger.Info("tdbctl connecting ...")
@@ -146,6 +153,10 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	if err != nil {
 		return err
 	}
+	ipPortServersMap, svrNameServersMap := transServersToMap(servers)
+	r.ipPortServersMap = ipPortServersMap
+	r.svrNameServersMap = svrNameServersMap
+
 	// connect spider
 	logger.Info("connecting all spider ...")
 	r.spidersConn, r.spidersLockConn, err = connSpiders(servers)
@@ -154,15 +165,13 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	}
 	logger.Info("get all sys users ...")
 	r.getSysUsers(servers, r.GeneralParam.GetAllSysAccount())
-	ipPortServersMap, svrNameServersMap := transServersToMap(servers)
-	r.ipPortServersMap = ipPortServersMap
-	r.svrNameServersMap = svrNameServersMap
+
 	// initialize rollback sql file
 	if err = r.initRollbackRouteFile(); err != nil {
 		return err
 	}
 	logger.Info("connect backend instance ...")
-	r.mastesConn = make(map[string]*native.DbWorker)
+	r.mastersConn = make(map[string]*native.DbWorker)
 	r.slavesConn = make(map[string]*native.DbWorker)
 	for _, swpair := range r.Params.SwitchPairs {
 		// 故障场景下，master 一般会连接不上
@@ -176,7 +185,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 			if err != nil {
 				return err
 			}
-			r.mastesConn[masterAddr] = masterConn
+			r.mastersConn[masterAddr] = masterConn
 		}
 		slaveAddr := swpair.Slave.IpPort()
 		slaveSvr, ok := ipPortServersMap[slaveAddr]
@@ -191,6 +200,130 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	}
 	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, fmt.Sprintf("%s.%d", LOCK_FILE_NAME, r.Params.Port)))
 	return nil
+}
+
+// CommInit TODO
+func (r *SpiderClusterBackendSwitchComp) CommInit() (err error) {
+	r.ipPortServersMap = make(map[string]native.Server)
+	logger.Info("tdbctl connecting ...")
+	if err = r.connTdbctl(); err != nil {
+		logger.Error("Connect %d failed:%s", r.Params.Port, err.Error())
+		return err
+	}
+	logger.Info("query tdbctl servers")
+	servers, err := r.tdbCtlConn.SelectServers()
+	if err != nil {
+		return err
+	}
+	ipPortServersMap, svrNameServersMap := transServersToMap(servers)
+	r.ipPortServersMap = ipPortServersMap
+	r.svrNameServersMap = svrNameServersMap
+
+	// connect spider
+	logger.Info("connecting all spider ...")
+	r.spidersConn, r.spidersLockConn, err = connSpiders(servers)
+	if err != nil {
+		return err
+	}
+	logger.Info("connect backend instance ...")
+	r.newMastersConn = make(map[string]*native.DbWorker)
+	r.newSlavesConn = make(map[string]*native.DbWorker)
+	for _, swpair := range r.Params.SwitchPairs {
+		newMasterAddr := swpair.Slave.IpPort()
+		slaveSvr, ok := ipPortServersMap[newMasterAddr]
+		if !ok {
+			return fmt.Errorf("%s: servers not exist in ipPortServersMap", newMasterAddr)
+		}
+		slaveConn, errx := slaveSvr.GetConn()
+		if errx != nil {
+			return errx
+		}
+		r.newMastersConn[newMasterAddr] = slaveConn
+	}
+	r.fdLock = flock.New(path.Join(cst.BK_PKG_INSTALL_PATH, fmt.Sprintf("%s.%d", LOCK_FILE_NAME, r.Params.Port)))
+	return err
+}
+
+// InitSwitchSlaveRt SwitchSlaveRoute init
+func (r *SpiderClusterBackendSwitchComp) InitSwitchSlaveRt(taskid string) (err error) {
+	var posMap map[string]native.MasterStatusResp
+	logger.Info("get pos map info %s", r.Params.PosMapInfo)
+	if err = json.Unmarshal([]byte(r.Params.PosMapInfo), &posMap); err != nil {
+		logger.Error("Unmarshal posMap failed:%s", err.Error())
+		return err
+	}
+	r.newMasterPosInfos = posMap
+	// check position
+	for _, swpair := range r.Params.SwitchPairs {
+		// if swpair.ShardID < 0 {
+		// 	return fmt.Errorf("%s: shard_id invalid", swpair.Slave.IpPort())
+		// }
+		_, exist := r.newMasterPosInfos[swpair.Slave.IpPort()]
+		if !exist {
+			return fmt.Errorf("%s: not found change master pos info ", swpair.Slave.IpPort())
+		}
+	}
+	// 读取 switch slave rt sql
+	currentPath, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	fileName := buildSwitchSlaveSptRtSQLFileName(taskid, r.Params.BatchId)
+	// 读取 switch slave rt sql
+	switchSlaveSptRtSQLFile, err := os.OpenFile(path.Join(currentPath, fileName), os.O_RDONLY, 0666)
+	if err != nil {
+		return err
+	}
+	defer switchSlaveSptRtSQLFile.Close()
+	scanner := bufio.NewScanner(switchSlaveSptRtSQLFile)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, line)
+	}
+	if err = scanner.Err(); err != nil {
+		return err
+	}
+	// 因为路由已经切了，server是找不到原master的信息
+	for _, switch_sql := range r.slaveShardSwitchSqls {
+		user := readInfo("user", switch_sql)
+		host := readInfo("host", switch_sql)
+		port := readPort(switch_sql)
+		password := readInfo("password", switch_sql)
+		conn, err := native.NewDbWorker(fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?parseTime=True&loc=Local&timeout=10s",
+			user, password, host, port, ""))
+		if err != nil {
+			return err
+		}
+		r.newSlavesConn[fmt.Sprintf("%s:%s", host, port)] = conn
+	}
+	return nil
+}
+
+func readInfo(keyWord string, text string) string {
+	re := regexp.MustCompile(fmt.Sprintf(`%s\s+'([^']+)'`, keyWord))
+	// 在SQL字符串中查找匹配项
+	matches := re.FindStringSubmatch(text)
+	if len(matches) <= 1 {
+		logger.Warn("未提取到")
+		return ""
+	}
+	return matches[1]
+}
+
+func readPort(text string) string {
+	re := regexp.MustCompile(`port\s+(\d+)`)
+	// 在SQL字符串中查找匹配项
+	matches := re.FindStringSubmatch(text)
+
+	if len(matches) <= 1 {
+		logger.Warn("未提取到")
+		return ""
+	}
+	return matches[1]
 }
 
 // PreCheck precheck
@@ -487,27 +620,27 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 
 // CutOverSlave TODO
 func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
-	var tdbctlFlushed bool
+	// var tdbctlFlushed bool
 	// switch spider rout
-	defer func() {
-		if err != nil && len(r.slaveShardrollbackSqls) > 0 {
-			_, xerr := r.tdbCtlConn.ExecMore(r.slaveShardrollbackSqls)
-			if xerr != nil {
-				logger.Error("rollbackup tdbctl router failed %s", xerr.Error())
-			}
-			logger.Info("rollback route successfully~")
-			if tdbctlFlushed {
-				return
-			}
-			if ferr := r.flushRoutingForce(); ferr != nil {
-				logger.Error("execute flush rollback route failed %s", err.Error())
-				return
-			}
-			logger.Info("excute flush rollback route successfully~")
-		}
-	}()
+	// defer func() {
+	// 	if err != nil && len(r.slaveShardrollbackSqls) > 0 {
+	// 		_, xerr := r.tdbCtlConn.ExecMore(r.slaveShardrollbackSqls)
+	// 		if xerr != nil {
+	// 			logger.Error("rollbackup tdbctl router failed %s", xerr.Error())
+	// 		}
+	// 		logger.Info("rollback route successfully~")
+	// 		if tdbctlFlushed {
+	// 			return
+	// 		}
+	// 		if ferr := r.flushRoutingForce(); ferr != nil {
+	// 			logger.Error("execute flush rollback route failed %s", err.Error())
+	// 			return
+	// 		}
+	// 		logger.Info("excute flush rollback route successfully~")
+	// 	}
+	// }()
 	if _, err = r.tdbCtlConn.ExecMore(r.slaveShardSwitchSqls); err != nil {
-		tdbctlFlushed = true
+		logger.Error("执行切换从分片路由失败: %v", err)
 		return err
 	}
 	// flush 到中控生效
@@ -536,7 +669,7 @@ func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 		w = append(w, "// slave spt rollback sql text ")
 		w = append(w, slaveRbSqls...)
 	}
-	if err = r.writeContents(w); err != nil {
+	if err = writeContents(r.fd, w); err != nil {
 		return err
 	}
 	if err = r.fd.Close(); err != nil {
@@ -547,6 +680,41 @@ func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 	r.slaveShardrollbackSqls = slaveRbSqls
 	logger.Info("rollback sql file persisted successfully")
 	return
+}
+
+// PersistenceSwitchSlaveSptRtSQLFile 将切换slave 分片的路由的SQL持久化到文件
+// 因为生成路由的spider密码没有记录，只在server表里面
+// 要拆分切换的步骤，为了减少再次授权
+// 直接生成切换的SQL 供下次个节点使用 暂时这样实现
+func (r *SpiderClusterBackendSwitchComp) PersistenceSwitchSlaveSptRtSQLFile(taskid string) (err error) {
+	currentPath, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	fileName := buildSwitchSlaveSptRtSQLFileName(taskid, r.Params.BatchId)
+	// 使用 os.O_CREATE|os.O_WRONLY|os.O_TRUNC 标志
+	// os.O_CREATE - 如果文件不存在则创建
+	// os.O_WRONLY - 只写模式
+	// os.O_TRUNC - 如果文件存在则清空内容
+	fd, err := os.OpenFile(path.Join(currentPath, fileName), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	if err = writeContents(fd, r.slaveShardSwitchSqls); err != nil {
+		return err
+	}
+	return nil
+}
+
+func buildSwitchSlaveSptRtSQLFileName(taskid string, batchid int) string {
+	return fmt.Sprintf(".%s_%d_switch_slave_spt.sql", taskid, batchid)
+
+}
+
+// OutputBinLogPosCtx output the instance binlog position ctx
+func (r *SpiderClusterBackendSwitchComp) OutputBinLogPosCtx() (err error) {
+	return components.PrintOutputCtx(r.newMasterPosInfos)
 }
 
 func (r *SpiderClusterBackendSwitchComp) recordBinLogPos() (err error) {
@@ -560,7 +728,7 @@ func (r *SpiderClusterBackendSwitchComp) recordBinLogPos() (err error) {
 		if err != nil {
 			return err
 		}
-		logger.Info("%s,current pos is  binlog_file:%s,binlog_pos:%d,gitid_sets:%s", swpair.Slave.IpPort(), pos.File,
+		logger.Info("%s,current pos is binlog_file:%s,binlog_pos:%d,gitid_sets:%s", swpair.Slave.IpPort(), pos.File,
 			pos.Position,
 			pos.ExecutedGtidSet)
 		r.newMasterPosInfos[swpair.Slave.IpPort()] = pos
@@ -568,10 +736,10 @@ func (r *SpiderClusterBackendSwitchComp) recordBinLogPos() (err error) {
 	return
 }
 
-// GrantReplForNewSlave TODO
+// GrantReplForNewSlave grant repl for new slave
 func (r *SpiderClusterBackendSwitchComp) GrantReplForNewSlave() (err error) {
 	for _, swpair := range r.Params.SwitchPairs {
-		conn, ok := r.slavesConn[swpair.Slave.IpPort()]
+		conn, ok := r.newMastersConn[swpair.Slave.IpPort()]
 		if !ok {
 			return fmt.Errorf("get  %s conn failed", swpair.Slave.IpPort())
 		}
@@ -581,13 +749,14 @@ func (r *SpiderClusterBackendSwitchComp) GrantReplForNewSlave() (err error) {
 			return err
 		}
 		if _, err = conn.ExecMore(r.grantReplSql(swpair.Master.Host, ver)); err != nil {
+			logger.Error("在[%s] 授权对新的slave[%s] repl账户失败, err:%v", swpair.Slave.IpPort(), swpair.Master.IpPort(), err)
 			return err
 		}
 	}
 	return nil
 }
 
-// StopRepl TODO
+// StopRepl stop slave repl
 func (r *SpiderClusterBackendSwitchComp) StopRepl() (err error) {
 	for _, swpair := range r.Params.SwitchPairs {
 		conn, ok := r.slavesConn[swpair.Slave.IpPort()]
@@ -605,7 +774,6 @@ func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, version strin
 	var execSQLs []string
 	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
-	logger.Info("repl user:%s,repl_pwd:%s", repl_user, repl_pwd)
 	if cmutil.MySQLVersionParse(version) >= cmutil.MySQLVersionParse("5.7") {
 		// MySQL5.7以上的版本的授权
 		execSQLs = append(execSQLs, fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
@@ -624,12 +792,12 @@ func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, version strin
 	return execSQLs
 }
 
-// ChangeMasterToNewMaster TODO
+// ChangeMasterToNewMaster change master to new master
 func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
 	for _, swpair := range r.Params.SwitchPairs {
-		conn := r.mastesConn[swpair.Master.IpPort()]
+		conn := r.newSlavesConn[swpair.Master.IpPort()]
 		pos := r.newMasterPosInfos[swpair.Slave.IpPort()]
 		changeMastersql := fmt.Sprintf(
 			`CHANGE MASTER TO MASTER_HOST='%s', 
@@ -645,14 +813,14 @@ func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 			pos.File,
 			pos.Position,
 		)
-		logger.Info("change master  to %s", swpair.Slave.IpPort())
+		logger.Info("[%s] 执行 change master to [%s]", swpair.Master.IpPort(), swpair.Slave.IpPort())
 		if _, err = conn.Exec(changeMastersql); err != nil {
 			return err
 		}
-		logger.Info("start slave")
 		if _, err = conn.Exec("start slave;"); err != nil {
 			return err
 		}
+		logger.Info("[%s] 执行 start slave successfully~", swpair.Master.IpPort())
 		err = cmutil.Retry(cmutil.RetryConfig{
 			Times:     30,
 			DelayTime: 1 * time.Second,
@@ -667,6 +835,7 @@ func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 			return fmt.Errorf("wating..., IOThread:%s,SQLThread:%s", ss.SlaveIORunning, ss.SlaveSQLRunning)
 		})
 		if err != nil {
+			logger.Error("[%s] 复制状态异常: %v", swpair.Master.IpPort(), err)
 			return err
 		}
 	}
@@ -721,7 +890,7 @@ func (c *CutOverCtx) getSlaveSpiderServers() (slaveSpiderServers []native.Server
 	return
 }
 
-// CheckSpiderAppProcesslist TODO
+// CheckSpiderAppProcesslist  check spider app processlist
 func (c *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
 	for addr, spider_conn := range c.spidersConn {
 		pls, err := spider_conn.ShowApplicationProcesslist(c.sysUsers)
@@ -772,7 +941,7 @@ func (c *CutOverCtx) flushTablesAtEverySpiderNode() (err error) {
 	return
 }
 
-// Unlock TODO
+// Unlock unlock
 func (c *CutOverCtx) Unlock() (err error) {
 	for addr, lockConn := range c.spidersLockConn {
 		err = cmutil.Retry(cmutil.RetryConfig{
@@ -840,8 +1009,8 @@ func (c *CutOverCtx) initRollbackRouteFile() (err error) {
 	return
 }
 
-func (c *CutOverCtx) writeContents(contents []string) (err error) {
-	write := bufio.NewWriter(c.fd)
+func writeContents(fd *os.File, contents []string) (err error) {
+	write := bufio.NewWriter(fd)
 	for _, content := range contents {
 		_, err = write.WriteString(content + "\n\r")
 		if err != nil {

@@ -160,9 +160,9 @@ class SpiderDBMeta(object):
         对已执行remote互切/主故障切换后的集群做元数据的调整
         """
         TenDBClusterClusterHandler.remote_switch(
-            cluster_id=self.global_data["cluster_id"],
-            switch_tuples=self.global_data["switch_tuples"],
-            force=self.global_data["force"],
+            cluster_id=self.cluster["cluster_id"],
+            switch_tuples=self.cluster["switch_tuples"],
+            force=self.cluster["force"],
         )
         return True
 
