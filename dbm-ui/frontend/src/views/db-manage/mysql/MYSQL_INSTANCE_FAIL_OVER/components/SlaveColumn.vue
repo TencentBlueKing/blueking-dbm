@@ -31,6 +31,7 @@
 
   interface Props {
     master: {
+      bk_host_id: number;
       bk_biz_id: number;
       related_clusters: {
         id: number;
@@ -54,7 +55,7 @@
 
   const { t } = useI18n();
 
-  const { loading, run: querySlaveMachine } = useRequest(getIntersectedSlaveMachinesFromClusters, {
+  const { loading, run: querySlave } = useRequest(getIntersectedSlaveMachinesFromClusters, {
     manual: true,
     onSuccess: (data) => {
       const [item] = data;
@@ -74,8 +75,8 @@
   watch(
     () => props.master,
     () => {
-      if (props.master.related_clusters.length) {
-        querySlaveMachine({
+      if (props.master.bk_host_id) {
+        querySlave({
           bk_biz_id: props.master.bk_biz_id,
           cluster_ids: props.master.related_clusters.map((item) => item.id),
           is_stand_by: true,

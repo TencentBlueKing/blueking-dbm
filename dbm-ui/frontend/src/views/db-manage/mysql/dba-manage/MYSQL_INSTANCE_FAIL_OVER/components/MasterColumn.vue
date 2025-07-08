@@ -36,7 +36,7 @@
   <InstanceResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="ClusterTypes.TENDBHA"
+    :cluster-types="[ClusterTypes.TENDBHA]"
     role="backend_master"
     @change="handleSelectorChange" />
 </template>

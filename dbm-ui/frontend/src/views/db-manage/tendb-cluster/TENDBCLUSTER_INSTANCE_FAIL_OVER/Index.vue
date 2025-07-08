@@ -74,12 +74,12 @@
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_verify_checksum">
+        <BkCheckbox v-model="formData.is_check_delay">
           {{ t('检查主从同步延迟') }}
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_check_delay">
+        <BkCheckbox v-model="formData.is_verify_checksum">
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
@@ -113,8 +113,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { OperaObejctType } from '@services/types';
-
-  import { useCreateTicket } from '@hooks';
+  import type { TendbCluster } from '@services/model/ticket/ticket';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -198,6 +198,25 @@
         name: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
       });
     }
+  });
+
+  useTicketDetail<TendbCluster.InstanceFailOver>(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, {
+    async onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      Object.assign(formData, {
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
+        payload: createTickePayload(ticketDetail),
+        tableData: details.infos.map((item) =>
+          createTableRow({
+            master: {
+              instance_address: `${item.switch_tuples?.[0]?.master?.ip}:${item.switch_tuples?.[0]?.master?.port}`,
+            },
+          }),
+        ),
+      });
+    },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{

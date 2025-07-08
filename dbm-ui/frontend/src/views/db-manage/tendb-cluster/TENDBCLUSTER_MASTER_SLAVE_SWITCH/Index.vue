@@ -57,12 +57,12 @@
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_verify_checksum">
+        <BkCheckbox v-model="formData.is_check_delay">
           {{ t('检查主从同步延迟') }}
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_check_delay">
+        <BkCheckbox v-model="formData.is_verify_checksum">
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
@@ -108,8 +108,8 @@
 
   import { random } from '@utils';
 
-  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
-  import SlaveHostColumn from './components/SlaveHostColumn.vue';
+  import MasterHostColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveHostColumn from './components/SlaveColumn.vue';
 
   interface RowData {
     master: ComponentProps<typeof MasterHostColumn>['modelValue'];
@@ -130,6 +130,7 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_id: 0,
@@ -141,6 +142,7 @@
     ),
     slave: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         ip: '',
@@ -173,13 +175,13 @@
         is_check_process: details.is_check_process,
         is_verify_checksum: details.is_verify_checksum,
         payload: createTickePayload(ticketDetail),
-        tableData: details.infos.map((item) => {
-          return createTableRow({
+        tableData: details.infos.map((item) =>
+          createTableRow({
             master: {
               ip: item.switch_tuples?.[0].master.ip,
             },
-          });
-        }),
+          }),
+        ),
       });
     },
   });

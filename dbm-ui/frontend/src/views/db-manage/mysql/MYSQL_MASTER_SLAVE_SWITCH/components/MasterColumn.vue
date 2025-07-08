@@ -30,13 +30,14 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
     :selected="selectedHosts"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -48,14 +49,16 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type PanelListType,
+    type InstanceSelectorValues,
+    type IValue,
+  } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -65,6 +68,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
@@ -78,6 +82,33 @@
   });
 
   const { t } = useI18n();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: [ClusterTypes.TENDBHA],
+        name: t('故障主库主机'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'backend_master',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'backend_master',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
@@ -110,17 +141,18 @@
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data;
-      if (item) {
+      const [currentHost] = data;
+      if (currentHost) {
         modelValue.value = {
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          ip: item.ip,
-          related_clusters: item.related_clusters.map((item) => ({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          ip: currentHost.ip,
+          related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
             master_domain: item.master_domain,
           })),
-          role: item.role,
+          role: currentHost.role,
         };
       }
     },
@@ -130,8 +162,9 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
+      bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: value,

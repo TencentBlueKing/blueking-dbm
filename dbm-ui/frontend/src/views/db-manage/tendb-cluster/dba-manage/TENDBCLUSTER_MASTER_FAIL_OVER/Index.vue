@@ -82,16 +82,16 @@
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_verify_checksum">
+        <BkCheckbox v-model="formData.is_check_delay">
           {{ t('检查主从同步延迟') }}
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_check_delay">
+        <BkCheckbox v-model="formData.is_verify_checksum">
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
-      <TicketPayload v-model="formData.payload" />
+      <TicketPayload v-model="formData.ticketPayload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -186,8 +186,8 @@
     is_check_delay: false,
     is_check_process: false,
     is_verify_checksum: false,
-    payload: createTickePayload(),
     tableData: [createTableRow()],
+    ticketPayload: createTickePayload(),
   });
 
   const operaObjectType = ref(OperaObejctType.MACHINE);
@@ -255,7 +255,7 @@
         is_check_process: formData.is_check_process,
         is_verify_checksum: formData.is_verify_checksum,
       }),
-      ticketPayload: formData.payload,
+      ticketPayload: formData.ticketPayload,
     });
   };
 

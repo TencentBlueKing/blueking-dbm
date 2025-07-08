@@ -43,7 +43,9 @@
               <EditableBlock
                 v-model="item.host.role"
                 :placeholder="t('自动生成')" />
-              <EditableBlock v-if="item.host.related_slave?.bk_host_id" class="related-cell">
+              <EditableBlock
+                v-if="item.host.related_slave?.bk_host_id"
+                class="related-cell">
                 redis_slave
               </EditableBlock>
             </div>
@@ -109,6 +111,8 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import SpecColumn from '@views/db-manage/redis/REDIS_CLUSTER_CUTOFF/components/SpecColumn.vue';
 
+  import { random } from '@utils';
+
   import HostColumn, { type IValue } from './components/HostColumn.vue';
 
   interface RowData {
@@ -128,16 +132,19 @@
   ];
 
   const createTableRow = (data: { host?: Partial<RowData['host']> } = {}) => ({
-    host: Object.assign({
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_ids: [] as number[],
-      ip: '',
-      master_domain: '',
-      role: '',
-      spec_config: {} as RowData['host']['spec_config'],
-    }, data.host),
+    host: Object.assign(
+      {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_ids: [] as number[],
+        ip: '',
+        master_domain: '',
+        role: '',
+        spec_config: {} as RowData['host']['spec_config'],
+      },
+      data.host,
+    ),
   });
 
   const defaultData = () => ({
@@ -146,7 +153,7 @@
   });
 
   const formData = reactive(defaultData());
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
@@ -166,14 +173,16 @@
     ip_source: 'resource_pool';
   }
 
-  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<TicketDetail>(TicketTypes.REDIS_CLUSTER_CUTOFF);
+  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<TicketDetail>(
+    TicketTypes.REDIS_CLUSTER_CUTOFF,
+  );
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
-    const sameClusters = _.groupBy(formData.tableData, (item)=>item.host.master_domain);
+    const sameClusters = _.groupBy(formData.tableData, (item) => item.host.master_domain);
 
     const infos = Object.values(sameClusters).map((sameRows) => {
       const info = {
@@ -182,7 +191,7 @@
         cluster_ids: sameRows[0].host.cluster_ids,
         proxy: [],
         redis_master: [],
-        redis_slave: []
+        redis_slave: [],
       };
       sameRows.forEach((item) => {
         const spec = {
@@ -190,9 +199,7 @@
           ip: item.host.ip,
           spec_id: item.host.spec_config.id,
         };
-        const list = info[
-          item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
-        ];
+        const list = info[item.host.role as 'redis_slave' | 'redis_master' | 'proxy'];
         _.merge(info, {
           [item.host.role]: [...list, spec],
         });
@@ -243,17 +250,17 @@
       return acc;
     }, []);
     if (isClear) {
-      tableKey.value = Date.now();
-      formData.tableData = [...dataList]; // 覆盖
+      tableKey.value = random();
+      formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
 </script>
 <style lang="less">
-.redis-cluster-cutoff {
-  .related-cell {
-    border-top: 1px solid #DCDEE5;
+  .redis-cluster-cutoff {
+    .related-cell {
+      border-top: 1px solid #dcdee5;
+    }
   }
-}
-</style> 
+</style>

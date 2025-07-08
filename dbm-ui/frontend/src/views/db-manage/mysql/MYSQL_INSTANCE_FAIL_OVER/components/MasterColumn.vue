@@ -92,7 +92,7 @@
         name: t('故障主库实例'),
         tableConfig: {
           firsrColumn: {
-            field: 'ip',
+            field: 'instance_address',
             label: t('Master 实例'),
             role: 'backend_master',
           },
@@ -103,7 +103,7 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            field: 'ip',
+            field: 'instance_address',
             label: t('Master 实例'),
             role: 'backend_master',
           },

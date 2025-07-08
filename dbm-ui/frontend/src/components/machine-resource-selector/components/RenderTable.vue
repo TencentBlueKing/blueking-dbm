@@ -20,7 +20,7 @@
     <DbTable
       ref="table"
       :data-source="dataSource"
-      :height="580"
+      :height="540"
       ignore-biz
       primary-key="ip"
       selectable
@@ -155,7 +155,7 @@
 
 <style lang="less">
   .machine-resource-selector-render-table {
-    padding: 24px;
+    padding: 12px 24px;
 
     .bk-table-body {
       tr {

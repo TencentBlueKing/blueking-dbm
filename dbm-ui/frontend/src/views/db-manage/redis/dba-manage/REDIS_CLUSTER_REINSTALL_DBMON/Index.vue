@@ -79,6 +79,7 @@
 <script lang="ts" setup>
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { useBatchCreateTicket } from '@hooks';
@@ -92,15 +93,12 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { random } from '@utils';
+
   import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
 
   interface RowData {
-    cluster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      id: number;
-      master_domain: string;
-    };
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -116,13 +114,15 @@
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    cluster: {
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      id: 0,
-      master_domain: '',
-      ...data.cluster,
-    },
+    cluster: Object.assign(
+      {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        id: 0,
+        master_domain: '',
+      },
+      data.cluster,
+    ),
   });
 
   const defaultData = () => ({
@@ -132,7 +132,7 @@
   });
 
   const formData = reactive(defaultData());
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -199,10 +199,10 @@
       return acc;
     }, []);
     if (isClear) {
-      tableKey.value = Date.now();
-      formData.tableData = [...dataList]; // 覆盖
+      tableKey.value = random();
+      formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
 </script>
