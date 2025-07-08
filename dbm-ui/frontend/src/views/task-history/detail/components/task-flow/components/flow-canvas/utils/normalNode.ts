@@ -23,16 +23,21 @@ export const searchObj = {
   key: '',
 };
 
+const LINE_WIDTH = 170;
+
 // 2行的情况下，对文本进行填充调整
 function adjustLinesText(linesText: string[], keyword: string) {
   const adjustLines = linesText;
   const totalStr = linesText.join(keyword);
   const totalWidth = getTextWidth(totalStr);
+  if (totalWidth < LINE_WIDTH) {
+    return [totalStr];
+  }
   const firstTestStr = `${linesText[0]}${keyword}`;
   let firstLineTestWidth = getTextWidth(firstTestStr);
   let secondLineStartIndex = 0;
-  if (firstLineTestWidth < 150) {
-    while (firstLineTestWidth < 150 && firstLineTestWidth < totalWidth) {
+  if (firstLineTestWidth < LINE_WIDTH) {
+    while (firstLineTestWidth < LINE_WIDTH && firstLineTestWidth < totalWidth) {
       secondLineStartIndex += 1;
       const tmpStr = firstTestStr + linesText[1].substring(0, secondLineStartIndex);
       firstLineTestWidth = getTextWidth(tmpStr);
@@ -142,7 +147,7 @@ export class NormalNode extends Rect {
       y = 10;
       lines = adjustLinesText(lines, searchObj.key);
     } else {
-      if (getTextWidth(name!) > 180) {
+      if (getTextWidth(name!) > LINE_WIDTH) {
         y = 16;
       }
     }
@@ -156,7 +161,7 @@ export class NormalNode extends Rect {
         text,
         textOverflow: 'ellipsis',
         wordWrap: true,
-        wordWrapWidth: 180,
+        wordWrapWidth: LINE_WIDTH,
         x: this.isSubProcess ? -width / 2 + 72 : -width / 2 + 58,
         y: lines.length > 1 ? index * 16 : y,
         zIndex: 1,
@@ -177,7 +182,7 @@ export class NormalNode extends Rect {
           if (textIndex > 0) {
             const formalTextWidth = getTextWidth(textList.slice(0, textIndex).join(''));
             style.x = style.x + formalTextWidth;
-            style.wordWrapWidth = 180 - formalTextWidth;
+            style.wordWrapWidth = LINE_WIDTH - formalTextWidth;
           }
           if (text === searchObj.key) {
             style.fill = 'orange';
