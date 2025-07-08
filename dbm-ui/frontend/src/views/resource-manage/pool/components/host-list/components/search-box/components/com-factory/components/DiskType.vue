@@ -54,10 +54,12 @@
   const { t } = useI18n();
 
   const dataList = computed(() =>
-    (data.value || []).map((item) => ({
-      label: deviceClassDisplayMap[item as DeviceClass],
-      value: item,
-    })),
+    (data.value || [])
+      .filter((item) => item !== 'ALL')
+      .map((item) => ({
+        label: deviceClassDisplayMap[item as DeviceClass],
+        value: item,
+      })),
   );
 
   const { data } = useRequest(searchDeviceClass);

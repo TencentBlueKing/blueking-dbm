@@ -78,10 +78,12 @@ export default (props: any) => {
         name: t('磁盘挂载点'),
       },
       {
-        children: diskTypeList.value?.map((item) => ({
-          id: item,
-          name: deviceClassDisplayMap[item as DeviceClass],
-        })),
+        children: diskTypeList.value
+          ?.filter((item) => item !== 'ALL')
+          .map((item) => ({
+            id: item,
+            name: deviceClassDisplayMap[item as DeviceClass],
+          })),
         id: 'disk_type',
         name: t('磁盘类型'),
       },
