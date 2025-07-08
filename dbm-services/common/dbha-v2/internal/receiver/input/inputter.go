@@ -22,62 +22,34 @@
  * SOFTWARE.
  */
 
-package storage
+package input
 
 import (
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/input/kafka"
+	"dbm-services/common/dbha-v2/internal/receiver/output"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+
+	"context"
+	"strings"
 )
 
-const NameDoris = "doris"
+type DataC chan interface{}
 
-type DorisOption interface {
-	apply(*dorisOptions)
+type Inputter interface {
+	Harvest(ctx context.Context, savers []output.Outputter) error
+	Close()
 }
 
-type dorisOptions struct {
-	endpoints     []string
-	user          string
-	password      string
-	timeoutSecond int
-}
+// NewInputer create a new Inputer.
+func NewInputter(cfg config.IntputConfig) (Inputter, error) {
+	endpoints := strings.Split(cfg.Endpoints, ";")
 
-type funcDorisOption struct {
-	do func(*dorisOptions)
-}
+	switch strings.ToLower(cfg.Name) {
+	case strings.ToLower(kafka.Name):
+		return kafka.New(endpoints, cfg.Topics, cfg.User, cfg.Password, cfg.Mechanism)
 
-func (f *funcDorisOption) apply(opt *dorisOptions) {
-	f.do(opt)
-}
-
-func DorisOptionTimeout(second int) *funcDorisOption {
-	return &funcDorisOption{
-		do: func(opt *dorisOptions) {
-			opt.timeoutSecond = second
-		},
+	default:
+		return nil, gerrors.Newf(gerrors.NotFound, "the inputer(%s) is not found", cfg.Name)
 	}
-}
-
-func NewDoris(endpoints []string, user, password string, opts ...DorisOption) (*Doris, error) {
-
-	doris := &Doris{opts: &dorisOptions{}}
-
-	for _, opt := range opts {
-		opt.apply(doris.opts)
-	}
-
-	return doris, nil
-}
-
-type Doris struct {
-	opts *dorisOptions
-}
-
-func (d *Doris) Save(data interface{}) error {
-
-	logger.Debug("doris exporter save:%v", data)
-	return nil
-}
-
-func (d *Doris) Close() {
-
 }
