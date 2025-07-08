@@ -1,15 +1,14 @@
-import { onBeforeUnmount, reactive, ref, useTemplateRef } from 'vue';
+import { reactive, ref, useTemplateRef } from 'vue';
 import { useRequest } from 'vue-request';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTickets, getTicketStatus } from '@services/source/ticket';
 
-import { useEventBus, useUrlSearch } from '@hooks';
+import { useUrlSearch } from '@hooks';
 
 import { useStorage, useTimeoutFn } from '@vueuse/core';
 
 export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
-  const eventBus = useEventBus();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
@@ -104,12 +103,6 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
         isLoading.value = false;
       });
   };
-
-  eventBus.on('refreshTicketStatus', fetchTicketStatus);
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', fetchTicketStatus);
-  });
 
   return {
     dataList,
