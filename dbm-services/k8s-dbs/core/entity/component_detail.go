@@ -71,11 +71,11 @@ type PodResourceUsage struct {
 // MarshalJSON 自定义 PodResourceQuota JSON 序列化逻辑
 func (p PodResourceQuota) MarshalJSON() ([]byte, error) {
 	output := map[string]interface{}{
-		"request_cpu":    p.Request.CPU,
-		"request_memory": p.Request.Memory,
-		"limit_cpu":      p.Limit.CPU,
-		"limit_memory":   p.Limit.Memory,
-		"storage":        p.Storage,
+		"requestCpu":    p.Request.CPU,
+		"requestMemory": p.Request.Memory,
+		"limitCpu":      p.Limit.CPU,
+		"limitMemory":   p.Limit.Memory,
+		"storage":       p.Storage,
 	}
 	return json.Marshal(output)
 }

@@ -19,7 +19,10 @@ limitations under the License.
 
 package resp
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // K8sCrdAddonRespVo defines the response data structure of addon meta.
 type K8sCrdAddonRespVo struct {
@@ -40,4 +43,48 @@ type K8sCrdAddonRespVo struct {
 	CreatedAt            time.Time `json:"createdAt"`
 	UpdatedBy            string    `json:"updatedBy"`
 	UpdatedAt            time.Time `json:"updatedAt"`
+}
+
+// MarshalJSON 自定义 K8sCrdAddonRespVo JSON 序列化逻辑
+func (k K8sCrdAddonRespVo) MarshalJSON() ([]byte, error) {
+	var topologiesArray []map[string]any
+	err := json.Unmarshal([]byte(k.Topologies), &topologiesArray)
+	if err != nil {
+		return nil, err
+	}
+	var releasesArray []map[string]any
+	err = json.Unmarshal([]byte(k.Releases), &releasesArray)
+	if err != nil {
+		return nil, err
+	}
+	var supportedVersionsArray []string
+	err = json.Unmarshal([]byte(k.SupportedVersions), &supportedVersionsArray)
+	if err != nil {
+		return nil, err
+	}
+	var supportedAcVersionsArray []string
+	err = json.Unmarshal([]byte(k.SupportedAcVersions), &supportedAcVersionsArray)
+	if err != nil {
+		return nil, err
+	}
+	output := map[string]interface{}{
+		"id":                   k.ID,
+		"addonName":            k.AddonName,
+		"addonCategory":        k.AddonCategory,
+		"addonType":            k.AddonType,
+		"addonVersion":         k.AddonVersion,
+		"recommendedVersion":   k.RecommendedVersion,
+		"supportedVersions":    supportedVersionsArray,
+		"recommendedAcVersion": k.RecommendedAcVersion,
+		"supportedAcVersions":  supportedAcVersionsArray,
+		"topologies":           topologiesArray,
+		"releases":             releasesArray,
+		"active":               k.Active,
+		"description":          k.Description,
+		"createdBy":            k.CreatedBy,
+		"createdAt":            k.CreatedAt,
+		"updatedBy":            k.UpdatedBy,
+		"updatedAt":            k.UpdatedAt,
+	}
+	return json.Marshal(output)
 }
