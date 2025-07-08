@@ -708,7 +708,7 @@ func (task *MakeCacheSyncTask) RedisShakeStart(reacquirePort bool) {
 		var logCmd string
 		ctx, cancel := context.WithCancel(context.Background())
 		// redis7版本以上用redis-shake V4 去做同步
-		if err == nil && task.SrcBigVersion >= 7 {
+		if err == nil && task.SrcBigVersion >= util.REDISVERSIONUSEV4 {
 			task.createShakeV4ConfigFile()
 			logCmd = fmt.Sprintf("%s %s", task.RedisShakeBin, task.ShakeConfFile)
 			task.Logger.Info(logCmd)
@@ -975,7 +975,7 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 	if task.SrcBigVersion == 0 {
 		task.GetSrcRedisVersion()
 	}
-	if task.SrcBigVersion >= 7 {
+	if task.SrcBigVersion >= util.REDISVERSIONUSEV4 {
 		shakeMetric := RedisShakeV4Metric{}
 		task.Err = json.Unmarshal(resp, &shakeMetric)
 		if task.Err != nil {
