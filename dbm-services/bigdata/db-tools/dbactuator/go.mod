@@ -10,7 +10,7 @@ require (
 	github.com/go-ini/ini v1.67.0
 	github.com/go-playground/validator/v10 v10.12.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/golang/glog v1.1.1
+	github.com/golang/glog v1.2.4
 	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.23.8
@@ -55,7 +55,7 @@ require (
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.39.0
-	golang.org/x/net v0.28.0
+	golang.org/x/net v0.38.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
