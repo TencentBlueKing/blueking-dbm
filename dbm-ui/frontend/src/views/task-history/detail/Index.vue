@@ -134,6 +134,8 @@
   const router = useRouter();
   const { t } = useI18n();
 
+  let isInitCanvas = false;
+
   const ticketId = ref(0);
   const showHostPreview = ref(false);
   const showDeliverResult = ref(true);
@@ -160,9 +162,14 @@
 
   watch(activePanelId, () => {
     if (activePanelId.value === 'task_flow') {
+      if (isInitCanvas) {
+        return;
+      }
+
       setTimeout(() => {
+        isInitCanvas = true;
         taskFlowRef.value!.checkAndInitCanvas();
-      });
+      }, 100);
     }
   });
 

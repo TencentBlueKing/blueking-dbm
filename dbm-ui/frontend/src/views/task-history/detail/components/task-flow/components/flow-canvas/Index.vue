@@ -390,7 +390,7 @@
   };
 
   onUnmounted(() => {
-    flowGraphInstance.destroy();
+    flowGraphInstance?.destroy();
   });
 
   defineExpose<Exposes>({
