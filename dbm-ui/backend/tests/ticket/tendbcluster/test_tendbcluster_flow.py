@@ -16,6 +16,7 @@ import pytest
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, Spec, StorageInstance, TenDBClusterSpiderExt
+from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.drs import DRSApiMock
 from backend.tests.mock_data.ticket.tendbcluster_flow import (
     TENDBCLUSTER_APPLY_DATA,
@@ -76,12 +77,10 @@ class TestTenDBClusterFlow(BaseTicketTest):
 
     @classmethod
     def apply_patches(cls):
-        mock_drs_api_patch = patch(
-            "backend.db_services.mysql.remote_service.handlers.DRSApi", new_callable=lambda: DRSApiMock()
-        )
         cls.patches.extend(
             [
-                mock_drs_api_patch,
+                patch("backend.db_services.mysql.remote_service.handlers.DRSApi", DRSApiMock),
+                patch("backend.flow.utils.spider.spider_bk_config.DBConfigApi", DBConfigApiMock),
             ]
         )
         super().apply_patches()

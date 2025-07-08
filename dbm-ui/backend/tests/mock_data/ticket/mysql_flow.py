@@ -382,7 +382,7 @@ MYSQL_PROXY_ADD_DATA = {
 }
 
 MYSQL_MASTER_SLAVE_SWITCH_DATA = {
-    "bk_biz_id": 3,
+    "bk_biz_id": BK_BIZ_ID,
     "details": {
         "infos": [
             {
