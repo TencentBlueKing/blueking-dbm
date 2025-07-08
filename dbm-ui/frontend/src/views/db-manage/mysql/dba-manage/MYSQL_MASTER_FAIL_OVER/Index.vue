@@ -50,16 +50,22 @@
           :key="index">
           <MasterColumn
             v-model="item.master"
+            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SlaveColumn
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
-            :label="t('所属集群')"
-            :min-width="150">
-            <EditableBlock
-              v-model="item.master.master_domain"
-              :placeholder="t('自动生成')" />
+            :label="t('同机关联的集群')"
+            :min-width="150"
+            required>
+            <EditableBlock :placeholder="t('自动生成')">
+              <p
+                v-for="cluster in item.master.related_clusters"
+                :key="cluster.id">
+                {{ cluster.master_domain }}
+              </p>
+            </EditableBlock>
           </EditableColumn>
           <EditableColumn
             :label="t('所属业务')"
@@ -124,20 +130,21 @@
 
   import { useBatchCreateTicket } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import { random } from '@utils';
-  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SlaveColumn from '@views/db-manage/mysql/MYSQL_MASTER_FAIL_OVER/components/SlaveColumn.vue';
 
-  import { useGlobalBizs } from '@/stores';
+  import { random } from '@utils';
 
   import MasterColumn, { type IValue } from './components/MasterColumn.vue';
-  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
     master: ComponentProps<typeof MasterColumn>['modelValue'];
@@ -153,7 +160,7 @@
     {
       case: '192.168.10.2',
       key: 'ip',
-      label: 'Master',
+      label: t('故障主库主机'),
     },
   ];
 
@@ -163,9 +170,8 @@
         bk_biz_id: 0,
         bk_cloud_id: 0,
         bk_host_id: 0,
-        cluster_id: 0,
         ip: '',
-        master_domain: '',
+        related_clusters: [] as RowData['master']['related_clusters'],
         role: '',
       },
       data.master,
@@ -239,7 +245,7 @@
       detailsExtractor: (item) => ({
         infos: [
           {
-            cluster_ids: [item.master.cluster_id],
+            cluster_ids: item.master.related_clusters.map((item) => item.id),
             master_ip: item.master,
             slave_ip: item.slave,
           },
@@ -285,7 +291,7 @@
     }, []);
     if (isClear) {
       tableKey.value = random();
-      formData.tableData = [...dataList]; // 覆盖
+      formData.tableData = [...dataList];
     } else {
       formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
     }

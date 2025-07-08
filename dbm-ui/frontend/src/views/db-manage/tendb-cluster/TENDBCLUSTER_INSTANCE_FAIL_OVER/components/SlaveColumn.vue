@@ -13,12 +13,13 @@
 
 <template>
   <EditableColumn
-    field="slave.ip"
-    :label="t('从库主机')"
+    field="slave.instance_address"
+    :label="t('从库实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
-      v-model="modelValue.ip"
+      v-model="modelValue.instance_address"
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
@@ -26,51 +27,66 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   interface Props {
-    masterHost: {
-      related_clusters: {
-        id: number;
-      }[];
+    master: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      ip: string;
+      port: number;
     };
   }
 
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    instance_address: string;
     ip: string;
+    port: number;
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const { loading, run: querySlaveMachine } = useRequest(getIntersectedSlaveMachinesFromClusters, {
+  const { loading, run: fetchRemoteMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [slaveHost] = data;
-      if (slaveHost) {
+      const [machineInstancePair] = Object.values(data.machines);
+      if (machineInstancePair) {
         modelValue.value = {
-          bk_cloud_id: slaveHost.bk_cloud_id,
-          bk_host_id: slaveHost.bk_host_id,
-          ip: slaveHost.ip,
+          bk_biz_id: machineInstancePair.bk_biz_id,
+          bk_cloud_id: machineInstancePair.bk_cloud_id,
+          bk_host_id: machineInstancePair.bk_host_id,
+          ip: machineInstancePair.ip,
+          port: props.master.port,
+          instance_address: `${props.master.ip}:${props.master.port}`,
         };
       }
     },
   });
 
   watch(
-    () => props.masterHost,
+    () => props.master.ip,
     () => {
-      if (props.masterHost.related_clusters.length) {
-        querySlaveMachine({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_ids: [props.masterHost.related_clusters[0].id],
-          is_stand_by: true,
+      if (props.master.ip) {
+        fetchRemoteMachineInstancePair({
+          bk_biz_id: props.master.bk_biz_id,
+          machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
+      } else {
+        modelValue.value = {
+          bk_biz_id: 0,
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+          port: 0,
+          instance_address: '',
+        };
       }
     },
     {
@@ -78,9 +94,3 @@
     },
   );
 </script>
-
-<style lang="less" scoped>
-  .table-cell {
-    padding: 0 8px;
-  }
-</style>

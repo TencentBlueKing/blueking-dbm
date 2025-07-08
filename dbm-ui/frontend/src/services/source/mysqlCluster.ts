@@ -67,11 +67,15 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
 /**
  * [tendbcluster]根据实例/机器查询关联对
  */
-export function getRemoteMachineInstancePair(params: { instances?: string[]; machines?: string[] }) {
+export function getRemoteMachineInstancePair(params: {
+  bk_biz_id?: number;
+  instances?: string[];
+  machines?: string[];
+}) {
   return http.post<{
     instances: Record<string, RemotePairInstanceModel>;
     machines: Record<string, RemotePairInstanceModel>;
-  }>(`${getRootPath()}/get_remote_machine_instance_pair/`, params);
+  }>(`${getRootPath(params.bk_biz_id)}/get_remote_machine_instance_pair/`, params);
 }
 
 /**

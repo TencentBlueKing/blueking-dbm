@@ -13,12 +13,13 @@
 
 <template>
   <EditableColumn
-    field="slave.instance_address"
-    label="Slave"
+    field="slave.ip"
+    :label="t('从库主机')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
-      v-model="modelValue.instance_address"
+      v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
@@ -31,8 +32,9 @@
   interface Props {
     master: {
       bk_biz_id: number;
-      cluster_id: number;
-      port: number;
+      related_clusters: {
+        id: number;
+      }[];
     };
   }
 
@@ -42,9 +44,7 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    instance_address: string;
     ip: string;
-    port: number;
   }>({
     required: true,
   });
@@ -60,9 +60,7 @@
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
-          instance_address: `${item.ip}:${props.master.port}`,
           ip: item.ip,
-          port: props.master.port,
         };
       }
     },
@@ -71,10 +69,11 @@
   watch(
     () => props.master,
     () => {
-      if (props.master.cluster_id) {
+      if (props.master.related_clusters.length) {
         querySlaveMachine({
           bk_biz_id: props.master.bk_biz_id,
-          cluster_ids: [props.master.cluster_id],
+          cluster_ids: props.master.related_clusters.map((item) => item.id),
+          is_stand_by: true,
         });
       }
     },
@@ -83,3 +82,9 @@
     },
   );
 </script>
+
+<style lang="less" scoped>
+  .table-cell {
+    padding: 0 8px;
+  }
+</style>

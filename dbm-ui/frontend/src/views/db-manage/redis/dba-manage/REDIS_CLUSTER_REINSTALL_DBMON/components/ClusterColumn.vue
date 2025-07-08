@@ -53,7 +53,11 @@
 
   export type IValue = ICluster;
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  interface Props {
+    selected: Array<typeof modelValue.value>;
+  }
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -63,13 +67,10 @@
     id: number;
     master_domain: string;
   }>({
-    default: () => ({
-      bk_biz_id: 0,
-      bk_cloud_id: 0,
-      id: 0,
-      master_domain: '',
-    }),
+    required: true,
   });
+
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const { t } = useI18n();
 
@@ -134,6 +135,13 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected as IValue[];
     },
   );
 </script>

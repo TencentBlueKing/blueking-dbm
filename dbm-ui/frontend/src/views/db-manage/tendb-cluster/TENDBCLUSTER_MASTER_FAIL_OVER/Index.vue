@@ -17,6 +17,22 @@
       class="mb-20"
       closable
       :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+    <div class="mb-16">
+      <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
+      <CardCheckbox
+        v-model="operaObjectType"
+        :desc="t('用于强制执行实例级别切换')"
+        icon="rebuild"
+        :title="t('实例切换')"
+        :true-value="OperaObejctType.INSTANCE" />
+      <CardCheckbox
+        v-model="operaObjectType"
+        class="ml-8"
+        :desc="t('用于强制执行主机级别切换')"
+        icon="host"
+        :title="t('主机切换')"
+        :true-value="OperaObejctType.MACHINE" />
+    </div>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -32,16 +48,17 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterHostColumn
+          <MasterColumn
             v-model="item.master"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SlaveHostColumn
+          <SlaveColumn
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            required>
             <EditableBlock
               v-model="item.master.master_domain"
               :placeholder="t('自动生成')" />
@@ -96,10 +113,13 @@
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
+  import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
+
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -108,28 +128,30 @@
 
   import { random } from '@utils';
 
-  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
-  import SlaveHostColumn from './components/SlaveHostColumn.vue';
+  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    master: ComponentProps<typeof MasterHostColumn>['modelValue'];
-    slave: ComponentProps<typeof SlaveHostColumn>['modelValue'];
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
     {
       case: '192.168.10.2',
       key: 'ip',
-      label: t('目标主库主机'),
+      label: t('故障主库主机'),
     },
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_id: 0,
@@ -141,6 +163,7 @@
     ),
     slave: Object.assign(
       {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         ip: '',
@@ -157,6 +180,7 @@
     tableData: [createTableRow()],
   });
 
+  const operaObjectType = ref(OperaObejctType.MACHINE);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
@@ -165,21 +189,29 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
+  watch(operaObjectType, () => {
+    if (operaObjectType.value === OperaObejctType.INSTANCE) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER,
+      });
+    }
+  });
+
   useTicketDetail<TendbCluster.MasterFailOver>(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
         is_check_delay: details.is_check_delay,
         is_check_process: details.is_check_process,
         is_verify_checksum: details.is_verify_checksum,
-        tableData: details.infos.map((item) => {
-          return createTableRow({
+        payload: createTickePayload(ticketDetail),
+        tableData: details.infos.map((item) =>
+          createTableRow({
             master: {
               ip: item.switch_tuples?.[0].master.ip,
             },
-          });
-        }),
+          }),
+        ),
       });
     },
   });

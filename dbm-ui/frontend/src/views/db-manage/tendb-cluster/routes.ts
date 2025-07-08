@@ -100,6 +100,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, t('主从互切'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveSwap',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'tendbCluster.toolbox.instanceFailover',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换'), {
       dbConsole: 'tendbCluster.toolbox.masterFailover',
     }),

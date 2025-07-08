@@ -56,23 +56,12 @@
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
-            :label="t('同机关联的集群')"
+            :label="t('所属集群')"
             :min-width="150"
             required>
-            <EditableBlock :placeholder="t('自动生成')">
-              <p
-                v-for="cluster in item.master.related_clusters"
-                :key="cluster.id">
-                {{ cluster.master_domain }}
-              </p>
-            </EditableBlock>
-          </EditableColumn>
-          <EditableColumn
-            :label="t('所属业务')"
-            :min-width="150">
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ getBizInfoById(item.master.bk_biz_id)?.name || '' }}
-            </EditableBlock>
+            <EditableBlock
+              v-model="item.master.master_domain"
+              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -94,7 +83,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
-      <TicketPayload v-model="formData.ticketPayload" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -125,9 +114,7 @@
 
   import { OperaObejctType } from '@services/types';
 
-  import { useBatchCreateTicket } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
@@ -137,11 +124,11 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import SlaveColumn from '@views/db-manage/mysql/MYSQL_INSTANCE_FAIL_OVER/components/SlaveColumn.vue';
 
   import { random } from '@utils';
 
-  import MasterColumn, { type IValue } from './components/MasterColumn.vue';
+  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
     master: ComponentProps<typeof MasterColumn>['modelValue'];
@@ -149,7 +136,6 @@
   }
 
   const { t } = useI18n();
-  const { getBizInfoById } = useGlobalBizs();
   const router = useRouter();
   const tableRef = useTemplateRef('table');
 
@@ -167,10 +153,11 @@
         bk_biz_id: 0,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        cluster_id: 0,
         instance_address: '',
         ip: '',
+        master_domain: '',
         port: 0,
-        related_clusters: [] as RowData['master']['related_clusters'],
         role: '',
       },
       data.master,
@@ -193,7 +180,7 @@
     is_check_process: false,
     is_verify_checksum: false,
     tableData: [createTableRow()],
-    ticketPayload: createTickePayload(),
+    payload: createTickePayload(),
   });
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);
@@ -208,56 +195,57 @@
   watch(operaObjectType, () => {
     if (operaObjectType.value === OperaObejctType.MACHINE) {
       router.push({
-        name: `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`,
+        name: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
       });
     }
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      cluster_ids: number[];
-      master_ip: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        port: number;
-      };
-      slave_ip: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        port: number;
-      };
+      cluster_id: number;
+      switch_tuples: {
+        master: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+        };
+        slave: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+        };
+      }[];
     }[];
     is_check_delay: boolean;
     is_check_process: boolean;
     is_verify_checksum: boolean;
-  }>(TicketTypes.MYSQL_INSTANCE_FAIL_OVER);
+  }>(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
-
     createTicketRun({
-      bizIdExtractor: (item) => item.master.bk_biz_id,
-      data: formData.tableData,
-      detailsExtractor: (item) => ({
-        infos: [
-          {
-            cluster_ids: item.master.related_clusters.map((item) => item.id),
-            master_ip: item.master,
-            slave_ip: item.slave,
-          },
-        ],
+      details: {
+        infos: formData.tableData.map((item) => ({
+          cluster_id: item.master.cluster_id,
+          switch_tuples: [
+            {
+              master: item.master,
+              slave: item.slave,
+            },
+          ],
+        })),
         is_check_delay: formData.is_check_delay,
         is_check_process: formData.is_check_process,
         is_verify_checksum: formData.is_verify_checksum,
-      }),
-      ticketPayload: formData.ticketPayload,
+      },
+      ...formData.payload,
     });
   };
 
@@ -265,7 +253,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: IValue[]) => {
+  const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(

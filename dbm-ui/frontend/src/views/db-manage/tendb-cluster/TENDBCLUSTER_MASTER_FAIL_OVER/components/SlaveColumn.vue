@@ -16,7 +16,8 @@
     field="slave.ip"
     :label="t('从库主机')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
       v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
@@ -30,6 +31,7 @@
 
   interface Props {
     master: {
+      bk_biz_id: number;
       bk_cloud_id: number;
       ip: string;
     };
@@ -38,6 +40,7 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
@@ -53,6 +56,7 @@
       const [machineInstancePair] = Object.values(data.machines);
       if (machineInstancePair) {
         modelValue.value = {
+          bk_biz_id: machineInstancePair.bk_biz_id,
           bk_cloud_id: machineInstancePair.bk_cloud_id,
           bk_host_id: machineInstancePair.bk_host_id,
           ip: machineInstancePair.ip,
@@ -66,10 +70,12 @@
     () => {
       if (props.master.ip) {
         fetchRemoteMachineInstancePair({
+          bk_biz_id: props.master.bk_biz_id,
           machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
       } else {
         modelValue.value = {
+          bk_biz_id: 0,
           bk_cloud_id: 0,
           bk_host_id: 0,
           ip: '',
