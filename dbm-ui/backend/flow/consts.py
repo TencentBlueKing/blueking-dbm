@@ -432,6 +432,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
     TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
+    TenDBClusterBackendSlaveSptSwitch = EnumField("switch-slave-router", _("spider集群 切换slave路由"))
     TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
     DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
     OsCmd = EnumField("oscmd-run", _("执行os命令"))

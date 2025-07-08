@@ -49,6 +49,7 @@ func NewSpiderCtlCommand() *cobra.Command {
 				NewChkTdbctlSpiderSchaCommand(),
 				NewChkTdbctlSpiderRouterCommand(),
 				NewSpiderOnlineDDLCommand(),
+				NewSwitchSlaveRouterCmd(),
 			},
 		},
 	}
