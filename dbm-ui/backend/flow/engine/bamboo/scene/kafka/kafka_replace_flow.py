@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import logging.config
-import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -25,7 +24,6 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import (
     DEFAULT_IP,
     ZK_CONF,
-    ZK_PORT,
     DnsOpType,
     KafkaActuatorActionEnum,
     LevelInfoEnum,
@@ -171,14 +169,15 @@ class KafkaReplaceFlow(object):
         old_my_id_list = []
         old_zookeeper_ip_set = {zookeeper["ip"] for zookeeper in self.data["old_nodes"]["zookeeper"]}
         for old_zookeeper_conf in old_zookeeper_conf_list:
-            result = re.sub(ZK_PORT, "", old_zookeeper_conf.strip("server")).split("=")
-            list_str = list(result[0])
-            list_str.pop(0)
-            my_id = int("".join(list_str))
+            line = old_zookeeper_conf.strip()
+            if not line.startswith("server."):
+                continue
+            no_prefix = line[len("server.") :]
+            myid_str, ip_ports = no_prefix.split("=", 1)
+            my_id = int(myid_str)
+            ip = ip_ports.split(":")[0]
             if my_id > max_my_id:
                 max_my_id = my_id
-
-            ip = result[1]
             if ip not in old_zookeeper_ip_set:
                 zookeeper_conf_list.append(old_zookeeper_conf)
             else:
