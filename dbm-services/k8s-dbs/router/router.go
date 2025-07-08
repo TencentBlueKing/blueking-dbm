@@ -96,8 +96,9 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
-		addonMetaDbAccess, clusterTagDbAccess)
+		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
 
 	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
 	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
@@ -111,7 +112,6 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
 	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
 
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
 	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)

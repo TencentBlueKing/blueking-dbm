@@ -43,9 +43,10 @@ type K8sCrdClusterProvider interface {
 
 // K8sCrlClusterProviderImpl K8sCrlClusterProvider 具体实现
 type K8sCrlClusterProviderImpl struct {
-	clusterDbAccess    dbaccess.K8sCrdClusterDbAccess
-	addonDbAccess      dbaccess.K8sCrdStorageAddonDbAccess
-	clusterTagDbAccess dbaccess.K8sCrdClusterTagDbAccess
+	clusterDbAccess          dbaccess.K8sCrdClusterDbAccess
+	addonDbAccess            dbaccess.K8sCrdStorageAddonDbAccess
+	clusterTagDbAccess       dbaccess.K8sCrdClusterTagDbAccess
+	k8sClusterConfigDbAccess dbaccess.K8sClusterConfigDbAccess
 }
 
 // CreateCluster 创建 cluster
@@ -80,28 +81,25 @@ func (k *K8sCrlClusterProviderImpl) DeleteClusterByID(id uint64) (uint64, error)
 func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error) {
 	clusterModel, err := k.clusterDbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find clusterModel By ID", "ID", id, "error", err)
 		return nil, err
 	}
-	clusterEntity := entitys.K8sCrdClusterEntity{}
-	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {
+	clusterEntity := &entitys.K8sCrdClusterEntity{}
+	if err := copier.Copy(clusterEntity, clusterModel); err != nil {
 		return nil, err
 	}
 
 	addonModel, err := k.addonDbAccess.FindByID(clusterEntity.AddonID)
 	if err != nil {
-		slog.Error("Failed to find addonModel By ID", "ID", clusterEntity.AddonID, "error", err)
 		return nil, err
 	}
 	addonEntity := &entitys.K8sCrdStorageAddonEntity{}
-	if err := copier.Copy(&addonEntity, addonModel); err != nil {
+	if err := copier.Copy(addonEntity, addonModel); err != nil {
 		return nil, err
 	}
 	clusterEntity.AddonInfo = addonEntity
 
 	tagModels, err := k.clusterTagDbAccess.FindByClusterID(clusterEntity.ID)
 	if err != nil {
-		slog.Error("Failed to find tagModels By ID", "ID", clusterEntity.ID, "error", err)
 		return nil, err
 	}
 	var tagEntities []*entitys.K8sCrdClusterTagEntity
@@ -109,7 +107,17 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 		return nil, err
 	}
 	clusterEntity.Tags = tagEntities
-	return &clusterEntity, nil
+
+	k8sConfigModel, err := k.k8sClusterConfigDbAccess.FindByID(clusterEntity.K8sClusterConfigID)
+	if err != nil {
+		return nil, err
+	}
+	k8sConfigEntity := &entitys.K8sClusterConfigEntity{}
+	if err := copier.Copy(k8sConfigEntity, k8sConfigModel); err != nil {
+		return nil, err
+	}
+	clusterEntity.K8sClusterConfig = k8sConfigEntity
+	return clusterEntity, nil
 }
 
 // FindByParams 通过 params 查找 cluster
@@ -188,10 +196,12 @@ func NewK8sCrdClusterProvider(
 	clusterDbAccess dbaccess.K8sCrdClusterDbAccess,
 	addonDbAccess dbaccess.K8sCrdStorageAddonDbAccess,
 	clusterTagDbAccess dbaccess.K8sCrdClusterTagDbAccess,
+	k8sClusterConfigDbaccess dbaccess.K8sClusterConfigDbAccess,
 ) K8sCrdClusterProvider {
 	return &K8sCrlClusterProviderImpl{
-		clusterDbAccess:    clusterDbAccess,
-		addonDbAccess:      addonDbAccess,
-		clusterTagDbAccess: clusterTagDbAccess,
+		clusterDbAccess:          clusterDbAccess,
+		addonDbAccess:            addonDbAccess,
+		clusterTagDbAccess:       clusterTagDbAccess,
+		k8sClusterConfigDbAccess: k8sClusterConfigDbaccess,
 	}
 }

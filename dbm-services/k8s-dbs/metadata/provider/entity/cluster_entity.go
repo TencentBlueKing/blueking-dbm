@@ -31,6 +31,7 @@ type K8sCrdClusterEntity struct {
 	AddonInfo           *K8sCrdStorageAddonEntity `json:"addonInfo"`
 	TopoName            string                    `json:"topoName"`
 	K8sClusterConfigID  uint64                    `json:"k8sClusterConfigId"`
+	K8sClusterConfig    *K8sClusterConfigEntity   `json:"k8sClusterConfig"`
 	RequestID           string                    `json:"requestId"`
 	ClusterName         string                    `json:"clusterName"`
 	ClusterAlias        string                    `json:"clusterAlias"`

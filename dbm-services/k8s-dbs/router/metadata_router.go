@@ -123,8 +123,9 @@ func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
-		addonMetaDbAccess, clusterTagDbAccess)
+		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
 	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
 	clusterMetaGroup := metaRouter.Group("/cluster")
 	{

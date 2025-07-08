@@ -24,11 +24,11 @@ import "time"
 // K8sCrdClusterRespVo defines the response data structure of cluster meta.
 type K8sCrdClusterRespVo struct {
 	ID                  uint64                    `json:"id"`
-	AddonInfo           K8sCrdAddonRespVo         `json:"addonInfo"`
+	AddonInfo           *K8sCrdAddonRespVo        `json:"addonInfo"`
 	AddonClusterVersion string                    `json:"addonClusterVersion"`
 	TopoName            string                    `json:"topoName"`
 	TopoNameAlias       string                    `json:"topoNameAlias"`
-	K8sClusterConfigID  uint64                    `json:"k8sClusterConfigId"`
+	K8sClusterConfig    *K8sClusterConfigRespVo   `json:"k8sClusterConfig"`
 	RequestID           string                    `json:"requestId"`
 	ClusterName         string                    `json:"clusterName"`
 	ClusterAlias        string                    `json:"clusterAlias"`
