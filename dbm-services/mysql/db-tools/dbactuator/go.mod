@@ -105,7 +105,7 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/jinzhu/copier v0.4.0
