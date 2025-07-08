@@ -69,14 +69,7 @@
   export type IValue = IMachine;
 
   interface Props {
-    selected: {
-      bk_biz_id: number;
-      ip: string;
-      related_slave?: {
-        ip: string;
-      };
-      role: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;

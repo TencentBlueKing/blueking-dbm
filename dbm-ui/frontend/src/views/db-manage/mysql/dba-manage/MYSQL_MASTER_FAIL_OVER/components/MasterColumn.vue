@@ -53,7 +53,13 @@
 
   export type IValue = IMachine;
 
+  interface Props {
+    selected: Array<typeof modelValue.value>;
+  }
+
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -61,9 +67,11 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    cluster_id: number;
     ip: string;
-    master_domain: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
     role: string;
   }>({
     required: true,
@@ -95,16 +103,18 @@
   const { loading, run: queryMachine } = useRequest(getGlobalMachine, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data.results;
-      if (item) {
+      const [currentHost] = data.results;
+      if (currentHost) {
         modelValue.value = {
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          cluster_id: item.related_clusters?.[0]?.id || 0,
-          ip: item.ip,
-          master_domain: item.related_clusters?.[0]?.immute_domain || '',
-          role: item.instance_role,
+          bk_biz_id: currentHost.bk_biz_id,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          ip: currentHost.ip,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.immute_domain,
+          })),
+          role: currentHost.instance_role,
         };
       }
     },
@@ -119,9 +129,8 @@
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_id: 0,
       ip: value,
-      master_domain: '',
+      related_clusters: [],
       role: '',
     };
   };
@@ -144,6 +153,20 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected.map(
+        (item) =>
+          ({
+            bk_biz_id: item.bk_biz_id,
+            instance_role: item.role,
+            ip: item.ip,
+          }) as IValue,
+      );
     },
   );
 </script>

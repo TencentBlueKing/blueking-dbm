@@ -76,6 +76,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ipv4 } from '@common/regex';
+
   import { getSearchSelectorParams } from '@utils';
 
   type SearchSelectProps = InstanceType<typeof SearchSelect>['$props'];
@@ -97,7 +99,7 @@
 
   const searchSelectData = [
     {
-      id: 'instance',
+      id: 'instance_address',
       name: 'IP:Port',
     },
   ];
@@ -130,7 +132,12 @@
   const dbTableRef = useTemplateRef('table');
 
   watchEffect(() => {
-    dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), props.params);
+    const params = getSearchSelectorParams(searchSelectValue.value);
+    if (ipv4.test(params.instance_address)) {
+      params.ip = params.instance_address;
+      delete params.instance_address;
+    }
+    dbTableRef.value?.fetchData(params, props.params);
   });
 
   const dataSource = (params: Parameters) =>

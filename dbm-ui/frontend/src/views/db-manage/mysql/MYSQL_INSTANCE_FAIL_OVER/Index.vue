@@ -67,13 +67,6 @@
               </p>
             </EditableBlock>
           </EditableColumn>
-          <EditableColumn
-            :label="t('所属业务')"
-            :min-width="150">
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ getBizInfoById(item.master.bk_biz_id)?.name || '' }}
-            </EditableBlock>
-          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -94,7 +87,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
-      <TicketPayload v-model="formData.ticketPayload" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -125,23 +118,21 @@
 
   import { OperaObejctType } from '@services/types';
 
-  import { useBatchCreateTicket } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
-
+  import type { Mysql } from '@services/model/ticket/ticket';
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import SlaveColumn from '@views/db-manage/mysql/MYSQL_INSTANCE_FAIL_OVER/components/SlaveColumn.vue';
 
-  import { random } from '@utils';
+  import { useGlobalBizs } from '@/stores';
 
-  import MasterColumn, { type IValue } from './components/MasterColumn.vue';
+  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
     master: ComponentProps<typeof MasterColumn>['modelValue'];
@@ -164,20 +155,20 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
-        bk_biz_id: 0,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         instance_address: '',
         ip: '',
-        port: 0,
         related_clusters: [] as RowData['master']['related_clusters'],
+        port: 0,
         role: '',
       },
       data.master,
     ),
     slave: Object.assign(
       {
-        bk_biz_id: 0,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         instance_address: '',
@@ -193,12 +184,12 @@
     is_check_process: false,
     is_verify_checksum: false,
     tableData: [createTableRow()],
-    ticketPayload: createTickePayload(),
+    payload: createTickePayload(),
   });
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
-  const tableKey = ref(random());
+  const tableKey = ref(Date.now());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -208,12 +199,31 @@
   watch(operaObjectType, () => {
     if (operaObjectType.value === OperaObejctType.MACHINE) {
       router.push({
-        name: `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`,
+        name: TicketTypes.MYSQL_MASTER_FAIL_OVER,
       });
     }
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
+  useTicketDetail<Mysql.InstanceFailOver>(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, {
+    async onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      Object.assign(formData, {
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
+        payload: createTickePayload(ticketDetail),
+        tableData: details.infos.map((item) =>
+          createTableRow({
+            master: {
+              instance_address: `${item.master_ip.ip}:${item.master_ip.port}`,
+            },
+          }),
+        ),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
       master_ip: {
@@ -241,23 +251,18 @@
     if (!result) {
       return;
     }
-
     createTicketRun({
-      bizIdExtractor: (item) => item.master.bk_biz_id,
-      data: formData.tableData,
-      detailsExtractor: (item) => ({
-        infos: [
-          {
-            cluster_ids: item.master.related_clusters.map((item) => item.id),
-            master_ip: item.master,
-            slave_ip: item.slave,
-          },
-        ],
+      details: {
+        infos: formData.tableData.map((item) => ({
+          cluster_ids: item.master.related_clusters.map((item) => item.id),
+          master_ip: item.master,
+          slave_ip: item.slave,
+        })),
         is_check_delay: formData.is_check_delay,
         is_check_process: formData.is_check_process,
         is_verify_checksum: formData.is_verify_checksum,
-      }),
-      ticketPayload: formData.ticketPayload,
+      },
+      ...formData.payload,
     });
   };
 
@@ -265,7 +270,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: IValue[]) => {
+  const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
@@ -293,7 +298,7 @@
       return acc;
     }, []);
     if (isClear) {
-      tableKey.value = random();
+      tableKey.value = Date.now();
       formData.tableData = [...dataList];
     } else {
       formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];

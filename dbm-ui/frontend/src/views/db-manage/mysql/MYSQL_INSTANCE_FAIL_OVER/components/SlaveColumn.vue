@@ -14,9 +14,10 @@
 <template>
   <EditableColumn
     field="slave.instance_address"
-    label="Slave"
+    :label="t('从库实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
       v-model="modelValue.instance_address"
       :placeholder="t('自动生成')" />
@@ -31,7 +32,9 @@
   interface Props {
     master: {
       bk_biz_id: number;
-      cluster_id: number;
+      related_clusters: {
+        id: number;
+      }[];
       port: number;
     };
   }
@@ -71,10 +74,11 @@
   watch(
     () => props.master,
     () => {
-      if (props.master.cluster_id) {
+      if (props.master.related_clusters.length) {
         querySlaveMachine({
           bk_biz_id: props.master.bk_biz_id,
-          cluster_ids: [props.master.cluster_id],
+          cluster_ids: props.master.related_clusters.map((item) => item.id),
+          is_stand_by: true,
         });
       }
     },

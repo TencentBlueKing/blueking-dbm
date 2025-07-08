@@ -50,26 +50,26 @@
           :key="index">
           <MasterColumn
             v-model="item.master"
+            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <SlaveColumn
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            required>
             <EditableBlock
               v-model="item.master.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
             :label="t('所属业务')"
-            :min-width="150">
-            <EditableBlock v-if="item.master.bk_biz_id">
-              {{ getBizInfoById(item.master.bk_biz_id)?.name || item.master.bk_biz_id }}
+            :min-width="150"
+            required>
+            <EditableBlock :placeholder="t('自动生成')">
+              {{ getBizInfoById(item.master.bk_biz_id)?.name || '' }}
             </EditableBlock>
-            <EditableBlock
-              v-else
-              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -91,7 +91,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </BkFormItem>
-      <TicketPayload v-model="formData.ticketPayload" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -125,19 +125,20 @@
   import { useBatchCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
-  import { random } from '@utils';
+
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import SlaveColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_INSTANCE_FAIL_OVER/components/SlaveColumn.vue';
+
+  import { random } from '@utils';
 
   import { useGlobalBizs } from '@/stores';
 
   import MasterColumn, { type IValue } from './components/MasterColumn.vue';
-  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
     master: ComponentProps<typeof MasterColumn>['modelValue'];
@@ -153,7 +154,7 @@
     {
       case: '192.168.10.2:2000',
       key: 'instance_address',
-      label: 'Master',
+      label: t('故障主库实例'),
     },
   ];
 
@@ -189,8 +190,8 @@
     is_check_delay: false,
     is_check_process: false,
     is_verify_checksum: false,
+    payload: createTickePayload(),
     tableData: [createTableRow()],
-    ticketPayload: createTickePayload(),
   });
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);
@@ -260,7 +261,7 @@
         is_check_process: formData.is_check_process,
         is_verify_checksum: formData.is_verify_checksum,
       }),
-      ticketPayload: formData.ticketPayload,
+      ticketPayload: formData.payload,
     });
   };
 

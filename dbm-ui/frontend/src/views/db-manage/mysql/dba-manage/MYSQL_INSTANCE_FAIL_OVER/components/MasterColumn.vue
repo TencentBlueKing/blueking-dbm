@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="master.instance_address"
     fixed="left"
-    label="Master"
+    :label="t('故障主库实例')"
     :loading="loading"
     :min-width="150"
     required>
@@ -53,7 +53,13 @@
 
   export type IValue = IInstance;
 
+  interface Props {
+    selected: Array<typeof modelValue.value>;
+  }
+
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -61,11 +67,13 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    cluster_id: number;
     instance_address: string;
     ip: string;
-    master_domain: string;
     port: number;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
     role: string;
   }>({
     required: true,
@@ -97,18 +105,20 @@
   const { loading, run: queryInstance } = useRequest(getGlobalInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data.results;
-      if (item) {
+      const [currentInstance] = data.results;
+      if (currentInstance) {
         modelValue.value = {
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
-          ip: item.ip,
-          master_domain: item.master_domain,
-          port: item.port,
-          role: item.role,
+          bk_biz_id: currentInstance.bk_biz_id,
+          bk_cloud_id: currentInstance.bk_cloud_id,
+          bk_host_id: currentInstance.bk_host_id,
+          instance_address: currentInstance.instance_address,
+          ip: currentInstance.ip,
+          port: currentInstance.port,
+          related_clusters: currentInstance.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
+          role: currentInstance.role,
         };
       }
     },
@@ -123,11 +133,10 @@
       bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_id: 0,
       instance_address: value,
       ip: '',
-      master_domain: '',
       port: 0,
+      related_clusters: [],
       role: '',
     };
   };
@@ -149,6 +158,13 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected as IValue[];
     },
   );
 </script>

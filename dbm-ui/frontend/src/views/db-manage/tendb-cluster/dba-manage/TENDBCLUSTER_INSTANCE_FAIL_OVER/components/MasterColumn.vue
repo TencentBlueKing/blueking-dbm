@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="master.instance_address"
     fixed="left"
-    label="Master"
+    :label="t('故障主库实例')"
     :loading="loading"
     :min-width="150"
     required>
@@ -53,7 +53,13 @@
 
   export type IValue = IInstance;
 
+  interface Props {
+    selected: Array<typeof modelValue.value>;
+  }
+
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -88,7 +94,7 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非主库实例'),
+      message: t('非接入层实例'),
       trigger: 'blur',
       validator: (value: string) => !value || modelValue.value.role === 'remote_master',
     },
@@ -149,6 +155,13 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      dataList.value = props.selected as IValue[];
     },
   );
 </script>

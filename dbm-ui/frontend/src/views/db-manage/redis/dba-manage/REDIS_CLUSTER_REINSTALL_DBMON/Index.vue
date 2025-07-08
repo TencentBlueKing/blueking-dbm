@@ -34,6 +34,7 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
+            :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('所属业务')"

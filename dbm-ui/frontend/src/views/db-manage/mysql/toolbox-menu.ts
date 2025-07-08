@@ -16,7 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  bind?: string[]
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -141,8 +141,9 @@ export default [
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.masterFailover',
-        id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
+        bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'mysql.toolbox.instanceFailover',
+        id: TicketTypes.MYSQL_INSTANCE_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
