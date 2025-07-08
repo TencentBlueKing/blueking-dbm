@@ -22,21 +22,44 @@
  * SOFTWARE.
  */
 
-package input
+package storage
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/output"
-)
+import "fmt"
 
-type DataC chan interface{}
-
-type Inputer interface {
-	Harvest(outers []output.Outputer) error
-	Close()
+type MySQLOption interface {
+	apply(*mysqlOptions)
 }
 
-// NewInputer create a new Inputer.
-func NewInputer(cfg config.IntputConfig) (Inputer, error) {
-	return nil, nil
+type mysqlOptions struct {
+	endpoint      string
+	user          string
+	password      string
+	database      string
+	timeoutSecond int
+}
+
+func (o *mysqlOptions) buildDSN() string {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", o.user, o.password, o.endpoint, o.database)
+
+	if o.timeoutSecond > 0 {
+		dsn = fmt.Sprintf("%s?timeout=%d", dsn, o.timeoutSecond)
+	}
+
+	return dsn
+}
+
+type funcMySQLOption struct {
+	do func(*mysqlOptions)
+}
+
+func (f *funcMySQLOption) apply(opt *mysqlOptions) {
+	f.do(opt)
+}
+
+func MySQLOptionTimeout(second int) *funcMySQLOption {
+	return &funcMySQLOption{
+		do: func(opt *mysqlOptions) {
+			opt.timeoutSecond = second
+		},
+	}
 }

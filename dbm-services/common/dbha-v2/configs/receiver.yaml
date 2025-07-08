@@ -2,7 +2,7 @@ name: receiver
 version: v2.0.0
 
 discovery:
-  endpoints: http://etcd-server:2379  
+  endpoints: http://etcd-server:2379
   user: root
   password: 1234567890
 
@@ -16,11 +16,12 @@ input:
     endpoints: http://kafk-server:9092
     user: root
     password: 1234567890
+    mechanism: plaintext
     topics: [test]
 
 output:
-  - name: doris
-    enable: true
+  - name: mysql
+    enable: false
     endpoints: 127.0.0.1:9030
     user: root
     password: 123456

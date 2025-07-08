@@ -31,12 +31,14 @@ import (
 	"dbm-services/common/dbha-v2/internal/receiver/output"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+
 	"sync"
 )
 
 type Service struct {
-	inputers  []input.Inputer
-	outputers []output.Outputer
+	quit       chan struct{}
+	inputters  []input.Inputter
+	outputters []output.Outputter
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -54,13 +56,13 @@ func (s *Service) Run(ctx context.Context) error {
 			continue
 		}
 
-		outputer, err := output.NewOutputer(outputerCfg)
+		outputter, err := output.NewOutputter(outputerCfg)
 		if err != nil {
 			logger.Warn("create new outputer(%s) failed, errmsg(%v)", outputerCfg.Name, err)
 			continue
 		}
 
-		s.outputers = append(s.outputers, outputer)
+		s.outputters = append(s.outputters, outputter)
 	}
 
 	for _, inputerCfg := range config.Cfg.Inputers {
@@ -69,19 +71,33 @@ func (s *Service) Run(ctx context.Context) error {
 			continue
 		}
 
-		inputer, err := input.NewInputer(inputerCfg)
+		inputter, err := input.NewInputter(inputerCfg)
 		if err != nil {
 			logger.Warn("create new inputer(%s) failed, errmsg(%v)", inputerCfg.Name, err)
 			continue
 		}
 
-		err = inputer.Harvest(s.outputers)
+		err = inputter.Harvest(ctx, s.outputters)
 		if err != nil {
 			logger.Warn("do not start harvest for inputer(%s), errmsg(%v)", inputerCfg.Name, err)
 			continue
 		}
 
-		s.inputers = append(s.inputers, inputer)
+		s.inputters = append(s.inputters, inputter)
+	}
+
+	logger.Info("dbhav2 receiver server is running")
+
+	if s.quit == nil {
+		s.quit = make(chan struct{})
+	}
+
+	select {
+	case <-s.quit:
+		break
+
+	case <-ctx.Done():
+		break
 	}
 
 	return nil
@@ -90,21 +106,23 @@ func (s *Service) Run(ctx context.Context) error {
 func (s *Service) Close() {
 	wg := sync.WaitGroup{}
 
-	for _, inputer := range s.inputers {
+	for _, inputter := range s.inputters {
 		wg.Add(1)
-		go func(in input.Inputer) {
+		go func(in input.Inputter) {
 			defer wg.Done()
 			in.Close()
-		}(inputer)
+		}(inputter)
 	}
 
-	for _, outputer := range s.outputers {
+	for _, outputter := range s.outputters {
 		wg.Add(1)
-		go func(out output.Outputer) {
+		go func(out output.Outputter) {
 			wg.Done()
 			out.Close()
-		}(outputer)
+		}(outputter)
 	}
 
 	wg.Wait()
+	close(s.quit)
+	s.quit = nil
 }

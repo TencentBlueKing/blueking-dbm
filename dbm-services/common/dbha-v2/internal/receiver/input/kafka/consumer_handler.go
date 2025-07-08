@@ -22,27 +22,41 @@
  * SOFTWARE.
  */
 
-package output
+package kafka
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/output"
 	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"strings"
+	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/IBM/sarama"
 )
 
-// Outputer Define the interface for storing data.
-type Outputer interface {
-	Save(data interface{}) error
-	Close()
+var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
+
+type consumerHandler struct {
+	savers []output.Outputter
 }
 
-// NewOutputer create a new saver
-func NewOutputer(cfg config.OutputConfig) (Outputer, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(storage.NameDoris):
-		return storage.NewDoris(strings.Split(cfg.Endpoints, ";"), cfg.User, cfg.Password)
-	default:
-		return nil, gerrors.Newf(gerrors.NotFound, "unsupported storage(%s)", cfg.Name)
+func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {
+	logger.Info("begin to consume")
+	return nil
+}
+
+func (h *consumerHandler) Cleanup(session sarama.ConsumerGroupSession) error {
+	logger.Info("end to consume")
+	return nil
+}
+
+func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		for _, saver := range h.savers {
+			saver.Save(&storage.Message{
+				Topic: msg.Topic,
+				Data:  string(msg.Value),
+			})
+		}
 	}
+
+	return nil
 }

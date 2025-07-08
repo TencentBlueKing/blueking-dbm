@@ -40,6 +40,7 @@ type IntputConfig struct {
 	Endpoints string   `yaml:"endpoints" mapstructure:"endpoints"`
 	User      string   `yaml:"user"      mapstructure:"user"`
 	Password  string   `yaml:"password"  mapstructure:"password"`
+	Mechanism string   `yaml:"mechanism" mapstructure:"mechanism"`
 	Topics    []string `yaml:"topics"    mapstructure:"topics"`
 }
 
