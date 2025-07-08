@@ -58,7 +58,7 @@
             {{ t('失败重试') }}
           </BkButton>
         </ProcessRetry>
-        <ProcessFailedTerminate
+        <!-- <ProcessFailedTerminate
           :data="ticketDetail"
           :flow-data="data">
           <BkButton
@@ -66,7 +66,7 @@
             theme="danger">
             {{ t('终止') }}
           </BkButton>
-        </ProcessFailedTerminate>
+        </ProcessFailedTerminate> -->
       </div>
     </template>
   </StatusFailed>
@@ -84,7 +84,7 @@
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import ProcessFailedTerminate from '@views/ticket-center/common/action-confirm/ProcessFailedTerminate.vue';
+  // import ProcessFailedTerminate from '@views/ticket-center/common/action-confirm/ProcessFailedTerminate.vue';
   import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
 
   import { utcTimeToSeconds } from '@utils';

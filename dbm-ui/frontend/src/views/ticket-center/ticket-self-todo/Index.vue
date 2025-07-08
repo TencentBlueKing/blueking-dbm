@@ -106,9 +106,13 @@
   const { defaultStatus: ticketStatus, list: statusList } = useStatusList(isAssist);
 
   const isSelectable = computed(() =>
-    [TicketModel.STATUS_APPROVE, TicketModel.STATUS_RESOURCE_REPLENISH, TicketModel.STATUS_TODO].includes(
-      ticketStatus.value,
-    ),
+    [
+      TicketModel.STATUS_APPROVE,
+      TicketModel.STATUS_FAILED,
+      TicketModel.STATUS_RESOURCE_REPLENISH,
+      TicketModel.STATUS_TIMER,
+      TicketModel.STATUS_TODO,
+    ].includes(ticketStatus.value),
   );
 
   watch([ticketStatus, isAssist], () => {
@@ -132,6 +136,10 @@
     .header-action-box {
       display: flex;
       margin-bottom: 16px;
+
+      .bk-radio-capsule {
+        background: #eaebf0;
+      }
     }
   }
 </style>

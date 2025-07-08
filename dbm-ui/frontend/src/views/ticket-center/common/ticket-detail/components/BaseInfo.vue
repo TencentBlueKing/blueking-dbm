@@ -84,17 +84,17 @@
     {
       manual: true,
       onSuccess(data) {
-        if (localTicketData.value) {
-          Object.assign(localTicketData.value, {
-            status: data[localTicketData.value.id] as string,
-          });
-          if (!localTicketData.value.isFinished) {
-            loopFetchTicketStatus();
-          }
+        localTicketData.value!.status = data[props.ticketData.id] as TicketModel['status'];
+        if (!localTicketData.value!.isFinished) {
+          loopFetchTicketStatus();
         }
       },
     },
   );
+
+  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
+    refreshTicketStatus();
+  }, 3000);
 
   watch(
     route,
@@ -118,10 +118,6 @@
       immediate: true,
     },
   );
-
-  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
-    refreshTicketStatus();
-  }, 3000);
 
   eventBus.on('refreshTicketStatus', refreshTicketStatus);
 

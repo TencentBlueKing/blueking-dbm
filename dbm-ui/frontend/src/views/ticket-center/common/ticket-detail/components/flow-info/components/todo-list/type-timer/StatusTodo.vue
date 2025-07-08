@@ -76,13 +76,13 @@
       :todo-data="data">
       <BkButton class="ml-8">{{ t('修改定时') }}</BkButton>
     </ModifyTimer>
-    <ProcessTerminate :todo-data="data">
+    <!-- <ProcessTerminate :todo-data="data">
       <BkButton
         class="ml-8"
         theme="danger">
         {{ t('终止单据') }}
       </BkButton>
-    </ProcessTerminate>
+    </ProcessTerminate> -->
   </div>
 </template>
 <script setup lang="ts">
@@ -99,7 +99,7 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   import ModifyTimer from './components/ModifyTimer.vue';
-  import ProcessTerminate from './components/ProcessTerminate.vue';
+  // import ProcessTerminate from './components/ProcessTerminate.vue';
   import RunCountdown from './components/RunCountdown.vue';
 
   interface Props {
