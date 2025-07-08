@@ -12,22 +12,24 @@
 -->
 
 <template>
-  <InfoList>
-    <InfoItem :label="t('变更类型')">
-      {{ t('删除规则') }}
-    </InfoItem>
-  </InfoList>
-  <BkTable :data="[ticketDetails.details.last_account_rules]">
-    <BkTableColumn
-      field="userName"
-      :label="t('账户名称')" />
-    <BkTableColumn
-      field="access_db"
-      :label="t('访问DB')" />
-    <BkTableColumn
-      field="privilege"
-      :label="t('权限')" />
-  </BkTable>
+  <div>
+    <InfoList>
+      <InfoItem :label="t('变更类型')">
+        {{ t('删除规则') }}
+      </InfoItem>
+    </InfoList>
+    <BkTable :data="[ticketDetails.details.last_account_rules]">
+      <BkTableColumn
+        field="userName"
+        :label="t('账户名称')" />
+      <BkTableColumn
+        field="access_db"
+        :label="t('访问DB')" />
+      <BkTableColumn
+        field="privilege"
+        :label="t('权限')" />
+    </BkTable>
+  </div>
 </template>
 
 <script setup lang="tsx">
