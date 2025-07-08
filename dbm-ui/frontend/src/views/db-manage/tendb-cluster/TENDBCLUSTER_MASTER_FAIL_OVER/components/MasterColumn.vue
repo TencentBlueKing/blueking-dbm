@@ -30,13 +30,14 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
     :selected="selectedHosts"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -48,14 +49,16 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type PanelListType,
+    type InstanceSelectorValues,
+    type IValue,
+  } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -77,6 +80,33 @@
   });
 
   const { t } = useI18n();
+
+  const tabListConfig = {
+    TendbClusterHost: [
+      {
+        id: 'TendbClusterHost',
+        name: t('故障主库主机'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
@@ -128,7 +158,7 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,

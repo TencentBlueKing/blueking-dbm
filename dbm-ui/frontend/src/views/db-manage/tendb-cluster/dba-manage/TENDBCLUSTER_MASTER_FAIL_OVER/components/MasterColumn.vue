@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="master.ip"
     fixed="left"
-    label="Master"
+    :label="t('故障主库主机')"
     :loading="loading"
     :min-width="150"
     required>
@@ -36,7 +36,7 @@
   <MachineResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="ClusterTypes.TENDBCLUSTER"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     role="remote_master"
     @change="handleSelectorChange" />
 </template>

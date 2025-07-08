@@ -31,6 +31,7 @@
 
   interface Props {
     master: {
+      bk_host_id: number;
       bk_biz_id: number;
       bk_cloud_id: number;
       ip: string;
@@ -53,16 +54,16 @@
 
   const { t } = useI18n();
 
-  const { loading, run: fetchRemoteMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
+  const { loading, run: querySlave } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [machineInstancePair] = Object.values(data.machines);
-      if (machineInstancePair) {
+      const [item] = Object.values(data.machines);
+      if (item) {
         modelValue.value = {
-          bk_biz_id: machineInstancePair.bk_biz_id,
-          bk_cloud_id: machineInstancePair.bk_cloud_id,
-          bk_host_id: machineInstancePair.bk_host_id,
-          ip: machineInstancePair.ip,
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
           port: props.master.port,
           instance_address: `${props.master.ip}:${props.master.port}`,
         };
@@ -71,22 +72,13 @@
   });
 
   watch(
-    () => props.master.ip,
+    () => props.master,
     () => {
-      if (props.master.ip) {
-        fetchRemoteMachineInstancePair({
+      if (props.master.bk_host_id) {
+        querySlave({
           bk_biz_id: props.master.bk_biz_id,
           machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
-      } else {
-        modelValue.value = {
-          bk_biz_id: 0,
-          bk_cloud_id: 0,
-          bk_host_id: 0,
-          ip: '',
-          port: 0,
-          instance_address: '',
-        };
       }
     },
     {

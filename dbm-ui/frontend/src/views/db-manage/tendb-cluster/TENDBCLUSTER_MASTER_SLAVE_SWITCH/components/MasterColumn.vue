@@ -53,9 +53,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -65,6 +63,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
     cluster_id: number;
@@ -111,6 +110,7 @@
       const [item] = data;
       if (item) {
         modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
           cluster_id: item.related_clusters?.[0]?.id,
@@ -128,6 +128,7 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,

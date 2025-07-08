@@ -36,7 +36,7 @@
   <InstanceResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-type="ClusterTypes.TENDBCLUSTER"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     role="remote_master"
     @change="handleSelectorChange" />
 </template>

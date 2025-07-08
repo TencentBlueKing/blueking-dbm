@@ -30,8 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -58,9 +58,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -164,7 +162,7 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,
