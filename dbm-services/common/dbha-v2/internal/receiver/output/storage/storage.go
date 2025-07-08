@@ -22,7 +22,10 @@
  * SOFTWARE.
  */
 
-package kafka
+package storage
 
-type Kafka struct {
+// Message Data message reported by probe.
+type Message struct {
+	Topic string
+	Data  string
 }
