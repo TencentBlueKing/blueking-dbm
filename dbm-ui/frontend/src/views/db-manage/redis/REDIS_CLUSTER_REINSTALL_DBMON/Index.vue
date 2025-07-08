@@ -53,7 +53,7 @@
         class="mb-16">
         {{ t('重新下发GSE配置') }}
       </BkCheckbox>
-      <TicketPayload v-model="formData.ticketPayload" />
+      <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
       <BkButton
@@ -82,12 +82,11 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { useBatchCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
-
   import { TicketTypes } from '@common/const';
-
+  import { type Redis } from '@services/model/ticket/ticket';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -116,10 +115,11 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
-        bk_biz_id: 0,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         id: 0,
         master_domain: '',
+        cluster_type: '',
       },
       data.cluster,
     ),
@@ -128,7 +128,7 @@
   const defaultData = () => ({
     restart_exporter: false,
     tableData: [createTableRow()],
-    ticketPayload: createTickePayload(),
+    payload: createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -137,7 +137,25 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const { loading: isSubmitting, run: createTicketRun } = useBatchCreateTicket<{
+  useTicketDetail<Redis.ClusterReinstallDbmon>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      const { clusters, cluster_ids } = details;
+      Object.assign(formData, {
+        payload: createTickePayload(ticketDetail),
+        restart_exporter: details.restart_exporter,
+        tableData: cluster_ids.map((id) =>
+          createTableRow({
+            cluster: {
+              master_domain: clusters[id]?.immute_domain || '',
+            },
+          }),
+        ),
+      });
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     bk_biz_id: number;
     bk_cloud_id: number;
     cluster_ids: number[];
@@ -151,16 +169,14 @@
       return;
     }
     createTicketRun({
-      bizIdExtractor: (item) => item.cluster.bk_biz_id,
-      data: formData.tableData,
-      detailsExtractor: (item) => ({
-        bk_biz_id: item.cluster.bk_biz_id,
-        bk_cloud_id: item.cluster.bk_cloud_id,
-        cluster_ids: [item.cluster.id],
+      details: {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: formData.tableData?.[0]?.cluster.bk_cloud_id,
+        cluster_ids: formData.tableData.map((item) => item.cluster.id),
         is_stop: false,
         restart_exporter: formData.restart_exporter,
-      }),
-      ticketPayload: formData.ticketPayload,
+      },
+      ...formData.payload,
     });
   };
 
