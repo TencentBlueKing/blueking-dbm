@@ -2846,7 +2846,7 @@
   "schemaVersion": 39,
   "tags": [
     "mysql",
-    "business",
+    "business"
   ],
   "templating": {
     "list": [
