@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel, Node
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
-from backend.db_meta.enums import ClusterEntryType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 
 
@@ -22,7 +22,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     绘制spider的拓扑结构图
     """
 
-    def build_spider_entry_relations(role, spider_group_name, entry_group_id, entry_group_name):
+    def build_spider_entry_relations(entry_role, role, spider_group_name, entry_group_id, entry_group_name):
         """获得Spider和对应的访问入口，并建立访问关系"""
 
         spider_insts, spider_group = graph.add_spider_nodes(cluster, role, group_name=spider_group_name)
@@ -31,7 +31,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
         clb_entry_group = None
         spider_entry_group = Group(node_id=entry_group_id, group_name=entry_group_name)
-        all_spider_entry = spider_insts.first().bind_entry.all()
+        all_spider_entry = cluster.clusterentry_set.filter(role=entry_role).all()
         if all_spider_entry.filter(cluster__clusterentry__cluster_entry_type=ClusterEntryType.CLB).exists():
             if role == TenDBClusterSpiderRole.SPIDER_MASTER:
                 clb_entry_group = Group(node_id="clb_master_entry_group", group_name=_("CLB IP(master)"))
@@ -98,6 +98,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
     # 建立spider master和访问入口（主）的关系
     spider_master_insts, spider_master_group = build_spider_entry_relations(
+        ClusterEntryRole.MASTER_ENTRY,
         TenDBClusterSpiderRole.SPIDER_MASTER,
         spider_group_name=_("Spider Master"),
         entry_group_id=_("spider_master_entry_bind"),
@@ -105,6 +106,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     )
     # 建立spider slave和访问入口（从）的关系
     __, spider_slave_group = build_spider_entry_relations(
+        ClusterEntryRole.SLAVE_ENTRY,
         TenDBClusterSpiderRole.SPIDER_SLAVE,
         spider_group_name=_("Spider Slave"),
         entry_group_id=_("spider_slave_entry_bind"),

@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import ForeignRelationType, Graphic, Group, LineLabel
 from backend.db_meta.api.common import get_clb_topo
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 
 
@@ -73,8 +73,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
                 graph.add_line(source=proxy_instance_group, target=backend_instance_grp, label=LineLabel.Access)
             else:
                 graph.add_foreign_cluster(ForeignRelationType.AccessTo, backend_instance_cluster)
-
-        all_proxy_entrys = proxy_instance.bind_entry.all()
+        all_proxy_entrys = cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY.value).all()
         graph = get_clb_topo(graph, all_proxy_entrys, proxy_instance_group)
 
     return graph

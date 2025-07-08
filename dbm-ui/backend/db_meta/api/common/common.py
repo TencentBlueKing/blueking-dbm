@@ -83,7 +83,7 @@ def get_clb_topo(graph, all_entry, proxy_group):
                 master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.DNS.value)))
 
         # 北极星目前只指向proxy
-        else:
+        elif entry.cluster_entry_type == ClusterEntryType.POLARIS:
             dummy_be_node, entry_group = graph.add_node(entry, to_group=entry_group)
             graph.add_line(source=entry_group, target=proxy_group, label=LineLabel.Bind)
             master_entry_names.append(str(GroupNameType.get_choice_label(GroupNameType.POLARIS.value)))
