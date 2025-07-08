@@ -59,6 +59,9 @@ export default (isAssist: Ref<number>) => {
   }
 
   watch(list, () => {
+    if (route.params.status) {
+      return;
+    }
     defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
   });
 

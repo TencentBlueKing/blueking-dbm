@@ -6,6 +6,14 @@
     @click="handleGoProcess">
     {{ t('去处理') }}
   </BkButton>
+  <ProcessTerminate :data="data">
+    <BkButton
+      class="ml-8"
+      text
+      theme="primary">
+      {{ t('终止单据') }}
+    </BkButton>
+  </ProcessTerminate>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
@@ -14,6 +22,8 @@
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
+
+  import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
 
   import { getBusinessHref } from '@utils';
 
