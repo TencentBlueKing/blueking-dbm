@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="master.instance_address"
+    field="slave.instance_address"
     fixed="left"
-    :label="t('故障主库实例')"
+    :label="t('目标从库实例')"
     :loading="loading"
     :min-width="150"
     required>
@@ -30,31 +30,37 @@
     </template>
     <EditableInput
       v-model="modelValue.instance_address"
-      :placeholder="t('请输入如: 192.168.10.2:1000')"
-      @change="handleChange" />
+      :placeholder="t('请输入IP:Port')"
+      @change="handleInputChange" />
   </EditableColumn>
-  <InstanceResourceSelector
+  <InstanceSelector
     v-model:is-show="showSelector"
-    v-model:selected="dataList"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-    role="remote_master"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedInstances"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getGlobalInstance } from '@services/source/dbbase';
+  import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceResourceSelector, { type IInstance } from '@components/instance-resource-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
-  export type IValue = IInstance;
+  export type SelectorHost = IValue;
 
   interface Props {
-    selected: Array<typeof modelValue.value>;
+    selected: {
+      instance_address: string;
+    }[];
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -79,14 +85,41 @@
 
   const { t } = useI18n();
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('目标从库'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'instance_address',
+            label: t('Slave 实例'),
+            role: 'backend_slave',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
   const showSelector = ref(false);
-  const dataList = shallowRef<IValue[]>([]);
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
+      (item) =>
+        ({
+          instance_address: item.instance_address,
+        }) as IValue,
+    ),
+  }));
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
+      message: t('格式不符合要求'),
       trigger: 'blur',
       validator: (value: string) => !value || ipPort.test(value),
+    },
+    {
+      message: t('目标实例重复'),
+      trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),
@@ -94,27 +127,27 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非接入层实例'),
+      message: t('非 Slave 实例'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'remote_master',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
   ];
 
-  const { loading, run: queryInstance } = useRequest(getGlobalInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data.results;
-      if (item) {
+      const [currentHost] = data;
+      if (currentHost) {
         modelValue.value = {
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
-          ip: item.ip,
-          master_domain: item.master_domain,
-          port: item.port,
-          role: item.role,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          cluster_id: currentHost.cluster_id,
+          instance_address: currentHost.instance_address,
+          ip: currentHost.ip,
+          master_domain: currentHost.master_domain,
+          port: currentHost.port,
+          role: currentHost.role,
         };
       }
     },
@@ -124,9 +157,9 @@
     showSelector.value = true;
   };
 
-  const handleChange = (value: string) => {
+  const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: 0,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
@@ -138,30 +171,24 @@
     };
   };
 
-  const handleSelectorChange = (selected: IValue[]) => {
-    emits('batch-edit', selected);
+  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 
   watch(
     modelValue,
     () => {
       if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
-        queryInstance({
-          cluster_type: ClusterTypes.TENDBCLUSTER,
-          db_type: DBTypes.TENDBCLUSTER,
-          instance_address: modelValue.value.instance_address,
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.instance_address],
         });
       }
     },
     {
       immediate: true,
-    },
-  );
-
-  watch(
-    () => props.selected,
-    () => {
-      dataList.value = props.selected as IValue[];
     },
   );
 </script>

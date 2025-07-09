@@ -13,15 +13,38 @@
 
 <template>
   <SmartAction>
+    <BkAlert
+      class="mb-20"
+      closable
+      :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
+    <div class="title-spot mt-12 mb-10">{{ t('重建类型') }}<span class="required" /></div>
+    <div class="mt-8 mb-20">
+      <CardCheckbox
+        v-model="restoreType"
+        :desc="t('在原主机上进行故障从库实例重建')"
+        icon="rebuild"
+        :title="t('原地重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE" />
+      <CardCheckbox
+        v-model="restoreType"
+        class="ml-8"
+        :desc="t('将从库主机的全部实例重建到新主机')"
+        icon="host"
+        :title="t('新机重建')"
+        :true-value="TicketTypes.MYSQL_RESTORE_SLAVE" />
+    </div>
     <BkForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
+        :key="tableKey"
         ref="table"
-        class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        class="mt-16 mb-20"
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -33,6 +56,7 @@
             v-model="item.newSlave"
             field="newSlave.ip"
             :label="t('新从库主机')"
+            :min-width="150"
             :params="{
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
@@ -66,69 +90,63 @@
     </template>
   </SmartAction>
 </template>
-
 <script lang="ts" setup>
+  import type { _DeepPartial } from 'pinia';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { type Mysql } from '@services/model/ticket/ticket';
   import { BackupSourceType } from '@services/types';
 
-  import { useCreateTicket } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
 
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
+  import { random } from '@utils';
+
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
-    newSlave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-      related_clusters: {
-        id: number;
-        master_domain: string;
-      }[];
-    };
+    newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
   }
-
-  interface Props {
-    ticketDetails?: TicketModel<Mysql.ResourcePool.RestoreSlave>;
-  }
-
-  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
+  const router = useRouter();
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    newSlave: data.newSlave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
-    slave: data.slave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-      related_clusters: [],
-    },
+  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+        related_clusters: [] as RowData['slave']['related_clusters'],
+        role: '',
+        spec_id: 0,
+      },
+      data.slave,
+    ),
   });
 
   const defaultData = () => ({
@@ -137,93 +155,74 @@
     tableData: [createTableRow()],
   });
 
+  const restoreType = ref<TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE | TicketTypes.MYSQL_RESTORE_SLAVE>(
+    TicketTypes.MYSQL_RESTORE_SLAVE,
+  );
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'slave_ip',
+      label: t('目标从库主机'),
+    },
+    {
+      case: '192.168.10.2',
+      key: 'new_slave_ip',
+      label: t('新从库主机'),
+    },
+  ];
+
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-  const newSlaveCounter = computed(() => {
-    return formData.tableData.reduce(
-      (result, item) => {
-        Object.assign(result, {
-          [item.newSlave.ip]: (result[item.newSlave.ip] || 0) + 1,
-        });
-        return result;
-      },
-      {} as Record<string, number>,
-    );
-  });
 
-  const rules = {
-    'newSlave.ip': [
-      {
-        message: t('IP 重复'),
-        trigger: 'change',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
-        },
-      },
-      {
-        message: t('IP 重复'),
-        trigger: 'blur',
-        validator: (value: string, { rowData }: { rowData: RowData }) => {
-          return newSlaveCounter.value[rowData.newSlave.ip] <= 1;
-        },
-      },
-    ],
-  };
+  useTicketDetail<Mysql.ResourcePool.RestoreSlave>(TicketTypes.MYSQL_RESTORE_SLAVE, {
+    onSuccess(ticketDetail) {
+      const { backup_source: backupSource, infos } = ticketDetail.details;
+      tableKey.value = random();
+      Object.assign(formData, {
+        backupSource,
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) =>
+          createTableRow({
+            slave: {
+              ip: item.old_nodes.old_slave?.[0]?.ip || '',
+            },
+          }),
+        ),
+      });
+    },
+  });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       old_nodes: {
-        old_slave: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
+        old_slave: RowData['newSlave'][];
       };
       resource_spec: {
         new_slave: {
-          hosts: {
+          hosts?: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
-          spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
   }>(TicketTypes.MYSQL_RESTORE_SLAVE);
 
-  watch(
-    () => props.ticketDetails,
-    () => {
-      if (props.ticketDetails) {
-        const { backup_source: backupSource, clusters, infos } = props.ticketDetails.details;
-        Object.assign(formData, {
-          backupSource,
-          ...createTickePayload(props.ticketDetails),
-        });
-        if (infos.length > 0) {
-          formData.tableData = infos.map((item) =>
-            createTableRow({
-              newSlave: item.resource_spec.new_slave.hosts[0],
-              slave: {
-                ...item.old_nodes.old_slave[0],
-                related_clusters: item.cluster_ids.map((id) => ({
-                  id,
-                  master_domain: clusters[id].immute_domain,
-                })),
-              },
-            }),
-          );
-        }
-      }
-    },
-  );
+  watch(restoreType, () => {
+    if (restoreType.value === TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE) {
+      router.push({
+        name: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+      });
+    }
+  });
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
@@ -246,7 +245,6 @@
             resource_spec: {
               new_slave: {
                 hosts: [item.newSlave],
-                spec_id: 0,
               },
             },
           })),
@@ -267,14 +265,7 @@
         acc.push(
           createTableRow({
             slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
               ip: item.ip,
-              related_clusters: item.related_clusters.map((item) => ({
-                id: item.id,
-                master_domain: item.immute_domain,
-              })),
             },
           }),
         );
@@ -282,5 +273,30 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          newSlave: {
+            ip: item.new_slave_ip,
+          },
+          slave: {
+            ip: item.slave_ip,
+          },
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 </script>

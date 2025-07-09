@@ -31,8 +31,8 @@
 
   interface Props {
     master: {
-      bk_host_id: number;
       bk_biz_id: number;
+      bk_host_id: number;
       related_clusters: {
         id: number;
       }[];

@@ -114,7 +114,6 @@
   import { random } from '@utils';
 
   import HostColumn, { type IValue } from './components/HostColumn.vue';
-  import { random } from '@utils';
 
   interface RowData {
     host: ComponentProps<typeof HostColumn>['modelValue'];

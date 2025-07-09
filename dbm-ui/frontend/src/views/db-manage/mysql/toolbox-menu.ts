@@ -103,6 +103,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_RESTORE_SLAVE],
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
         id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),

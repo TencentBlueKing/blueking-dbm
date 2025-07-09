@@ -58,7 +58,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    minWidth: 300,
+    minWidth: 200,
     params: () => ({}),
   });
 
@@ -66,17 +66,12 @@
    * 绑定的modelValue须包含ip
    */
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
     ip: string;
   }>({
-    default: () => ({
-      bk_biz_id: undefined,
-      bk_cloud_id: undefined,
-      bk_host_id: undefined,
-      ip: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -126,19 +121,11 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: undefined,
-      bk_cloud_id: undefined,
-      bk_host_id: undefined,
+      bk_biz_id: 0,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
       ip: value,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        hosts: value,
-        limit,
-        offset: 0,
-      });
-    }
   };
 
   const handleSelectorChange = (hostList: IValue[]) => {
@@ -152,6 +139,23 @@
       };
     }
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          hosts: modelValue.value.ip,
+          limit,
+          offset: 0,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

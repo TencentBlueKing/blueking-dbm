@@ -87,7 +87,7 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
-  import type { ComponentProps } from 'vue-component-type-helpers';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -96,7 +96,6 @@
   import { random } from '@utils';
 
   import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
-  import { random } from '@utils';
 
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];

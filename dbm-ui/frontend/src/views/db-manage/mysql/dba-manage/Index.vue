@@ -29,11 +29,5 @@
       id: 'DbaManageMysqlWebQuery',
       name: t('管理控制台'),
     },
-    {
-      bind: [`DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`, `DBA_${TicketTypes.MYSQL_MASTER_FAIL_OVER}`],
-      dbConsoleValue: 'dbaManage.mysql.instanceFailOver',
-      id: `DBA_${TicketTypes.MYSQL_INSTANCE_FAIL_OVER}`,
-      name: t('主库故障切换'),
-    },
   ];
 </script>
