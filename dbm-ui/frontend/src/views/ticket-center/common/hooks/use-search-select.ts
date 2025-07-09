@@ -12,11 +12,10 @@ import { getSearchSelectorParams, makeMap } from '@utils';
 
 const value = ref<ISearchValue[]>([]);
 
-const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
-
 export default (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+  const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 
   const searchSelectData = computed(() => {
     const serachList = [
@@ -76,13 +75,28 @@ export default (options = {} as { exclude: string[] }) => {
   const formatSearchValue = computed(() => getSearchSelectorParams(value.value));
 
   const searchFieldMap = computed(() =>
-    searchSelectData.value.reduce<Record<string, { label: string; value: string }[]>>((result, item) => {
+    searchSelectData.value.reduce<
+      Record<
+        string,
+        {
+          confirmEvents: string[];
+          list: { label: string; value: string }[];
+          name: string;
+          type: 'single';
+        }
+      >
+    >((result, item) => {
       if (item.children) {
         Object.assign(result, {
-          [item.id]: item.children.map((childItem) => ({
-            label: childItem.name,
-            value: childItem.id,
-          })),
+          [item.id]: {
+            confirmEvents: ['onChange'],
+            list: item.children.map((childItem) => ({
+              label: childItem.name,
+              value: childItem.id,
+            })),
+            name: item.name,
+            type: 'single',
+          },
         });
       }
       return result;

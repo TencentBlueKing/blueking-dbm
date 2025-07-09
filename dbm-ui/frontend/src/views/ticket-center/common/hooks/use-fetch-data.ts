@@ -15,13 +15,14 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
 
   const searchParams = getSearchParams();
 
+  // const tableRef = useTemplateRef<any>('table');
   const isLoading = ref(false);
   const dataList = ref<TicketModel[]>([]);
   const pagination = reactive({
     count: 0,
     current: 1,
     limit: paginationLimitCache.value,
-    limitList: [10, 20, 50, 100],
+    limitList: [10, 20, 50, 100, 200, 500],
     remote: true,
   });
   const ordering = ref('');
@@ -60,8 +61,10 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     fetchTicketStatus();
   }, 3000);
 
+  // let daymicTimer: NodeJS.Timeout;
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
+    // clearTimeout(daymicTimer);
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
@@ -70,6 +73,18 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     })
       .then((data) => {
         dataList.value = data.results;
+
+        // tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
+        // if (data.results.length > 20) {
+        //   daymicTimer = setTimeout(() => {
+        //     tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
+        //     if (data.results.length > 50) {
+        //       daymicTimer = setTimeout(() => {
+        //         tableRef.value.getVxeTableInstance().loadData(data.results);
+        //       }, 3000);
+        //     }
+        //   }, 1500);
+        // }
 
         pagination.count = data.count;
 

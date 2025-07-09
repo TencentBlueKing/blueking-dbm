@@ -39,18 +39,7 @@
       :selectable="isSelectable"
       @selection="handleSelection">
       <template #action>
-        <BkTableColumn
-          fixed="right"
-          :label="t('操作')"
-          width="160">
-          <template #default="{ data }: { data: TicketModel }">
-            <RowAction
-              v-if="data"
-              :key="data.id"
-              :data="data"
-              :ticket-status="ticketStatus" />
-          </template>
-        </BkTableColumn>
+        <RowAction :ticket-status="ticketStatus" />
       </template>
     </TicketTable>
     <AssistTab v-model="isAssist" />
