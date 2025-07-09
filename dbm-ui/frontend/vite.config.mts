@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
         '@lib': resolve(__dirname, 'lib'),
         '@patch': resolve(__dirname, 'patch'),
       },
-      extensions: ['.tsx', '.ts', '.js'],
+      extensions: ['.tsx', '.ts', '.js', '.mjs'],
     },
     css: {
       preprocessorOptions: {
