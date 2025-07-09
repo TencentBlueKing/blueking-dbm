@@ -196,8 +196,6 @@ func (task *LightningFatherTask) GetDstClusterNodes() (clusterNodes []*clusterNo
 			return
 		}
 		clusterNode.RedisPassword = string(passwordDecode)
-		task.Logger.Info(fmt.Sprintf("slave_addr:%s encodePassword:%s password:%s",
-			clusterNode.SlaveAddr, clusterNode.RedisPasswordEncode, clusterNode.RedisPassword))
 	}
 	return
 }

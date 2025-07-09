@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import copy
 import logging.config
 from collections import defaultdict
 from dataclasses import asdict
@@ -321,7 +321,9 @@ class RedisSlotsMigrateFlow(object):
     def __init_builder(self, operate_name: str, info: dict):
 
         cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])
-        logger.info("+===+++++===cluster_info+++++===++++ :: {}".format(cluster_info))
+        cluster_info_log = copy.deepcopy(cluster_info)
+        cluster_info_log.pop("password", None)
+        logger.info("+===+++++===cluster_info+++++===++++ :: {}".format(cluster_info_log))
 
         flow_data = self.data
         flow_data.update(cluster_info)

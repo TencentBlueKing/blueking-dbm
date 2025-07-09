@@ -135,17 +135,24 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 		}
 		dstIP := list01[0]
 		dstPort := list01[1]
+		var importCmdlog []string
 		if supPipeImport == true {
+			importCmdlog = append(importCmd, fmt.Sprintf(
+				"%s --no-auth-warning -h %s -p %s -a %q --pipe --pipe-timeout %d < %s 1>%s 2>%s",
+				item.RedisClient, dstIP, dstPort, "xxxxx", importTimeout, item.SQLFile, item.LogFile, item.ErrFile))
 			importCmd = append(importCmd, fmt.Sprintf(
 				"%s --no-auth-warning -h %s -p %s -a %q --pipe --pipe-timeout %d < %s 1>%s 2>%s",
 				item.RedisClient, dstIP, dstPort, item.DstPassword, importTimeout, item.SQLFile, item.LogFile, item.ErrFile))
 			grepStdoutCmd = fmt.Sprintf("grep -i 'errors' %s | { grep -v 'errors: 0' || true; } ", item.LogFile)
 		} else {
+			importCmdlog = append(importCmd, fmt.Sprintf(
+				"%s --no-auth-warning -h %s -p %s -a %q --pipe --pipe-timeout %d < %s 1>%s 2>%s",
+				item.RedisClient, dstIP, dstPort, "xxxxx", importTimeout, item.SQLFile, item.LogFile, item.ErrFile))
 			importCmd = append(importCmd, fmt.Sprintf("%s --no-auth-warning -h %s -p %s -a %q < %s 1>%s 2>%s",
 				item.RedisClient, dstIP, dstPort, item.DstPassword, item.SQLFile, item.LogFile, item.ErrFile))
 			grepStdoutCmd = fmt.Sprintf("grep -i 'Err' %s | { grep -v 'invalid DB index' || true; }", item.LogFile)
 		}
-		item.Logger.Info(fmt.Sprintf("第%d次导入文件,导入命令:%s", times, importCmd))
+		item.Logger.Info(fmt.Sprintf("第%d次导入文件,导入命令:%s", times, importCmdlog))
 		_, item.Err = util.RunLocalCmd("bash", importCmd, "", nil, time.Duration(cmdTimeout)*time.Second, item.Logger)
 		if item.Err != nil {
 			errBytes, _ := ioutil.ReadFile(item.ErrFile)
@@ -157,10 +164,10 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 			}
 			if retryAble && times <= maxRetryTimes {
 				dtsAddr = item.task.NextDstProxyAddr(true)
-				item.Logger.Error("导入出错,retry...", zap.Error(item.Err), zap.String("params", item.ToString()))
+				item.Logger.Error("导入出错,retry...", zap.Error(item.Err))
 				continue
 			}
-			item.Logger.Error("导入出错", zap.Error(item.Err), zap.String("params", item.ToString()))
+			item.Logger.Error("导入出错", zap.Error(item.Err))
 			return
 		}
 		grepRet, _ := util.RunLocalCmd("bash",
