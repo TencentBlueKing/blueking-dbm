@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
 	models "k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
 	entitys "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 
@@ -34,7 +35,7 @@ type K8sCrdClusterProvider interface {
 	CreateCluster(entity *entitys.K8sCrdClusterEntity) (*entitys.K8sCrdClusterEntity, error)
 	DeleteClusterByID(id uint64) (uint64, error)
 	FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error)
-	FindByParams(params map[string]interface{}) (*entitys.K8sCrdClusterEntity, error)
+	FindByParams(params *metaentity.ClusterQueryParams) (*entitys.K8sCrdClusterEntity, error)
 	UpdateCluster(entity *entitys.K8sCrdClusterEntity) (uint64, error)
 	ListClusters(params map[string]interface{},
 		pagination *entity.Pagination,
@@ -121,7 +122,10 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 }
 
 // FindByParams 通过 params 查找 cluster
-func (k *K8sCrlClusterProviderImpl) FindByParams(params map[string]interface{}) (*entitys.K8sCrdClusterEntity, error) {
+func (k *K8sCrlClusterProviderImpl) FindByParams(params *metaentity.ClusterQueryParams) (
+	*entitys.K8sCrdClusterEntity,
+	error,
+) {
 	clusterModel, err := k.clusterDbAccess.FindByParams(params)
 	if err != nil {
 		slog.Error("Failed to find clusterModel by params", "params", params, "error", err)

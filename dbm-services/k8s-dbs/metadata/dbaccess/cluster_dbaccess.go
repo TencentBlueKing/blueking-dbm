@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/dbaccess/model"
-	"log"
+	metaentity "k8s-dbs/metadata/entity"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ type K8sCrdClusterDbAccess interface {
 	Create(model *models.K8sCrdClusterModel) (*models.K8sCrdClusterModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdClusterModel, error)
-	FindByParams(params map[string]interface{}) (*models.K8sCrdClusterModel, error)
+	FindByParams(params *metaentity.ClusterQueryParams) (*models.K8sCrdClusterModel, error)
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
 	ListByPage(params map[string]interface{}, pagination *entity.Pagination) ([]models.K8sCrdClusterModel, uint64, error)
 }
@@ -76,17 +76,17 @@ func (k *K8sCrdClusterDbAccessImpl) FindByID(id uint64) (*models.K8sCrdClusterMo
 }
 
 // FindByParams 根据参数查找 cluster 元数据接口实现
-func (k *K8sCrdClusterDbAccessImpl) FindByParams(params map[string]interface{}) (*models.K8sCrdClusterModel, error) {
+func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQueryParams) (
+	*models.K8sCrdClusterModel,
+	error,
+) {
 	var cluster models.K8sCrdClusterModel
-
-	// 动态条件查询
 	result := k.db.Where(params).First(&cluster)
-
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("cluster not found")
 	}
 	if result.Error != nil {
-		log.Printf("Query cluster error: %v", result.Error)
+		slog.Error("Find cluster error", "error", result.Error)
 		return nil, result.Error
 	}
 

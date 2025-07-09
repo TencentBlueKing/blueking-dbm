@@ -29,6 +29,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
+	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
@@ -442,10 +443,10 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 	clusterEntity, err := c.clusterMetaProvider.FindByParams(
-		map[string]interface{}{
-			"k8s_cluster_config_id": k8sClusterConfig.ID,
-			"cluster_name":          request.ClusterName,
-			"namespace":             request.Namespace,
+		&metaentity.ClusterQueryParams{
+			ClusterName:        request.ClusterName,
+			Namespace:          request.Namespace,
+			K8sClusterConfigID: k8sClusterConfig.ID,
 		})
 	if err != nil {
 		return err

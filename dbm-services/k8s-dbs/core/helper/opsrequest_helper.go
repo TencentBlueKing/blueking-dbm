@@ -28,6 +28,7 @@ import (
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
+	metacommentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metaentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
@@ -630,11 +631,11 @@ func CreateOpsRequestMetaData(
 	if err != nil {
 		return err
 	}
-	params := map[string]interface{}{
-		"cluster_name": request.ClusterName,
-		"namespace":    request.Namespace,
+	params := metacommentity.ClusterQueryParams{
+		ClusterName: request.ClusterName,
+		Namespace:   request.Namespace,
 	}
-	clusterEntity, err := crdClusterProvider.FindByParams(params)
+	clusterEntity, err := crdClusterProvider.FindByParams(&params)
 	if err != nil {
 		return err
 	}

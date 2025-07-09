@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
 	"testing"
 	"time"
 
@@ -163,12 +164,13 @@ func TestGetClusterByParams(t *testing.T) {
 	_, err = dbAccess.Create(cluster)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"k8s_cluster_config_id": 1,
-		"cluster_name":          "mycluster",
-		"namespace":             "default",
+	params := metaentity.ClusterQueryParams{
+		K8sClusterConfigID: 1,
+		ClusterName:        "mycluster",
+		Namespace:          "default",
 	}
-	findCluster, err := dbAccess.FindByParams(params)
+
+	findCluster, err := dbAccess.FindByParams(&params)
 	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
