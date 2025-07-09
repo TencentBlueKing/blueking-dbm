@@ -156,7 +156,7 @@
 
   const placeholder = t('请分别输入集群_起止时间_目标库_目标表_忽略库_忽略表_多个对象_换行分隔');
 
-  const matchReg = /([^ ]+)(?: +)([^~]+ +~ +[\d -:]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+)$/;
+  const matchReg = /^([^ ]+) +([^~]+? ~ [\d\s:-]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+)$/;
 
   const inputRef = ref();
   const isChecking = ref(false);
