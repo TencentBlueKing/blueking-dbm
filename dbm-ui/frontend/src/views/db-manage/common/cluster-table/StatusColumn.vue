@@ -1,12 +1,12 @@
 <template>
-  <BkTableColumn
-    field="status"
-    :label="t('状态')"
+  <TableColumn
+    col-key="status"
+    :title="t('状态')"
     width="100">
-    <template #default="{ data }: { data: TendnclusterModel }">
-      <ClusterRoleStatus :data="data" />
+    <template #default="{ row }: { row: TendnclusterModel }">
+      <ClusterRoleStatus :data="row" />
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

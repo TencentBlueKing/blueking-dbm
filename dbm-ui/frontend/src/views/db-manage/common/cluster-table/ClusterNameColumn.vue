@@ -1,11 +1,10 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-cluster-name-column"
-    field="cluster_name"
-    :label="t('集群名称')"
+    col-key="cluster_name"
     :min-width="200"
-    :show-overflow="false">
-    <template #header>
+    :title="t('集群名称')">
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -19,14 +18,14 @@
         {{ t('集群名称') }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ row }: { row: TendnclusterModel }">
       <div @mouseenter="handleToolsShow">
         <TextOverflowLayout>
-          {{ data.cluster_name }}
+          {{ row.cluster_name }}
           <template
             v-if="isToolsShow"
             #append>
-            <BkPopover v-if="data.temporary_info?.source_cluster">
+            <BkPopover v-if="row.temporary_info?.source_cluster">
               <DbIcon
                 style="margin-left: 5px; color: #1cab88; cursor: pointer"
                 type="clone" />
@@ -35,15 +34,15 @@
                   <div class="title">{{ t('构造集群') }}</div>
                   <div class="item-row">
                     <div class="label">{{ t('构造源集群') }}：</div>
-                    <div class="content">{{ data.temporary_info?.source_cluster }}</div>
+                    <div class="content">{{ row.temporary_info?.source_cluster }}</div>
                   </div>
                   <div class="item-row">
                     <div class="label">{{ t('关联单据') }}：</div>
                     <div
                       class="content"
                       style="color: #3a84ff"
-                      @click="() => handleGoTicket(data.temporary_info.ticket_id)">
-                      {{ data.temporary_info.ticket_id }}
+                      @click="() => handleGoTicket(row.temporary_info.ticket_id)">
+                      {{ row.temporary_info.ticket_id }}
                     </div>
                   </div>
                 </div>
@@ -52,12 +51,12 @@
             <DbIcon
               v-bk-tooltips="t('复制集群名称')"
               type="copy"
-              @click="handleCopyClusterName(data.cluster_name)" />
+              @click="handleCopyClusterName(row.cluster_name)" />
           </template>
         </TextOverflowLayout>
       </div>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';

@@ -1,12 +1,12 @@
 <template>
-  <BkTableColumn
-    field="db_module_name"
-    :label="t('模块')"
+  <TableColumn
+    col-key="db_module_name"
+    :title="t('模块')"
     :width="150">
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.db_module_name || '--' }}
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.db_module_name || '--' }}
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script
   setup
