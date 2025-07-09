@@ -51,8 +51,8 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-    type PanelListType,
     type IValue,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
@@ -86,7 +86,7 @@
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: [
       {
-        id: [ClusterTypes.TENDBCLUSTER],
+        id: ClusterTypes.TENDBCLUSTER,
         name: t('故障主库实例'),
         tableConfig: {
           firsrColumn: {

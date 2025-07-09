@@ -62,6 +62,7 @@
   import { ClusterTypes } from '@common/const';
 
   import comFactory from './com-factory';
+  import PanelTab from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderTable, { type IValue } from './components/RenderTable.vue';
 

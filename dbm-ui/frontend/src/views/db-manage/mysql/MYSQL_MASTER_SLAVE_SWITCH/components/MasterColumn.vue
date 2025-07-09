@@ -50,9 +50,9 @@
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
-    type PanelListType,
     type InstanceSelectorValues,
     type IValue,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
@@ -86,7 +86,7 @@
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
-        id: [ClusterTypes.TENDBHA],
+        id: ClusterTypes.TENDBHA,
         name: t('故障主库主机'),
         tableConfig: {
           firsrColumn: {
