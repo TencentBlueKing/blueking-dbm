@@ -94,6 +94,7 @@ export const useSelect = (
         <TableColumn
           colKey='row-select'
           fixed='left'
+          resizable={false}
           width={60}>
           {{
             default: ({ row }: { row: any }) => (

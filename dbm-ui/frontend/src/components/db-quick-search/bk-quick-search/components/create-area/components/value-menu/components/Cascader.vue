@@ -58,7 +58,7 @@
         </div>
       </div>
       <div
-        v-if="isSearching && renderSearchList.length < 1"
+        v-if="isSearching && renderSearchList.length < 1 && !isRemoteListLoading"
         class="bk-quick-search-value-panel-filter-empty">
         <BkException
           description="搜索为空"

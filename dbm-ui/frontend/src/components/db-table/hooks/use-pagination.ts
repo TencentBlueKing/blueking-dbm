@@ -1,6 +1,6 @@
 import { reactive } from 'vue';
 
-export const usePagination = (options: { callback: () => void }) => {
+export const usePagination = (options?: { callback: () => void }) => {
   const pagination = reactive<{
     align: string;
     count: number;

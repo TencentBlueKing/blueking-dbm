@@ -62,6 +62,7 @@
 
   onMounted(() => {
     setTimeout(() => {
+      // @ts-expect-error fix 类型报错，实际存在 focus 方法
       inputRef.value?.focus();
     }, 100);
   });

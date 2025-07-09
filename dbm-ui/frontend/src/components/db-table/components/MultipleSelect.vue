@@ -34,7 +34,7 @@
       v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
       class="t-table-filter-empty">
       <BkException
-        description="搜索为空"
+        :description="t('搜索为空')"
         scene="part"
         type="search-empty" />
     </div>
@@ -43,8 +43,9 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
-  import { Checkbox, CheckboxGroup, Input } from 'tdesign-vue-next';
+  import { Checkbox, CheckboxGroup, type CheckboxGroupValue, Input } from 'tdesign-vue-next';
   import { nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { makeMap } from '@utils';
 
@@ -61,10 +62,10 @@
       keyword?: string;
     }) => Promise<{ label: string; value: number | string }[]>;
     remoteSearch?: boolean;
-    value?: (number | string)[];
+    value?: string;
   }
 
-  type Emits = (e: 'change', value: NonNullable<Props['list']>[number]['value'][]) => void;
+  type Emits = (e: 'change', value: string) => void;
 
   defineOptions({
     inheritAttrs: false,
@@ -74,10 +75,11 @@
     list: () => [],
     remoteMethod: undefined,
     remoteSearch: false,
-    value: () => [],
+    value: '',
   });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const {
     filterKey,
     list,
@@ -87,8 +89,8 @@
   const defaultValue = shallowRef<{ label: string; value: number | string }[]>([]);
 
   const wrapperRef = useTemplateRef('wrapper');
+  const localValue = shallowRef(props.value.split(','));
   const searchBoxRef = useTemplateRef('searchBox');
-  const localValue = shallowRef(props.value);
   const contentMinWidth = ref(0);
 
   const renderList = computed(() => {
@@ -116,9 +118,9 @@
       if (defaultValue.value.length > 0) {
         return;
       }
-      if (props.value.length > 0 && _.isFunction(props.remoteMethod)) {
+      if (props.value && _.isFunction(props.remoteMethod)) {
         props.remoteMethod!({
-          defaultValue: props.value.join(','),
+          defaultValue: props.value,
         }).then((data) => {
           defaultValue.value = data;
         });
@@ -129,8 +131,8 @@
     },
   );
 
-  const handleChange = (value: any) => {
-    emits('change', value);
+  const handleChange = (value: CheckboxGroupValue) => {
+    emits('change', value.join(','));
   };
 
   onMounted(() => {
