@@ -13,7 +13,6 @@ from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
-from django.http import QueryDict
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -94,9 +93,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     filter_class = TicketListFilter
     pagination_class = AuditedLimitOffsetPagination
 
-    # 暂存单据信息
-    tmp_ticket = None
-
     def _get_custom_permissions(self):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
@@ -153,12 +149,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return queryset.prefetch_related("todo_of_ticket")
 
     def get_serializer_context(self):
-        if self.action == "batch_create_ticket":
-            mutable_data = QueryDict("", mutable=True)
-            mutable_data.update(self.tmp_ticket)
-            self.request._request.POST = mutable_data  # 更改为 POST
-            self.request._full_data = mutable_data
-
         context = super(TicketViewSet, self).get_serializer_context()
         if self.action == "retrieve":
             context["ticket_ctx"] = TicketContext(ticket=self.get_object())
