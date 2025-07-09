@@ -75,7 +75,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="!data.isOnlineCLB"
-            v-db-console="'mongodb.sharedClusterList.enableCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">

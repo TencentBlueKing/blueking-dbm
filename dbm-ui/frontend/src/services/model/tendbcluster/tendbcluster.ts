@@ -179,10 +179,6 @@ export default class TendbCluster extends ClusterBase {
     return affinityMap[this.disaster_tolerance_level];
   }
 
-  get isOnlineCLB() {
-    return this.isOnlineCLBMaster || this.isOnlineCLBSlave;
-  }
-
   get isOnlineCLBMaster() {
     return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb' && item.role === 'master_entry');
   }
@@ -282,7 +278,7 @@ export default class TendbCluster extends ClusterBase {
   get slaveEntryList() {
     const port = this.spider_slave[0]?.port;
     return this.cluster_entry
-      .filter((item) => item.role === 'slave_entry')
+      .filter((item) => item.role === 'slave_entry' && !['clb', 'clbDns'].includes(item.cluster_entry_type))
       .map((item) => ({
         ...item,
         port,

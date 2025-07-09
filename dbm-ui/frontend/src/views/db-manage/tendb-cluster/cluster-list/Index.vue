@@ -139,7 +139,7 @@
               </div>
               <div
                 v-if="!data.isOnlineCLBMaster"
-                v-db-console="'tendbCluster.clusterManage.enableCLB'">
+                v-db-console="'common.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -161,7 +161,7 @@
               </div>
               <div
                 v-if="!data.isOnlineCLBSlave"
-                v-db-console="'tendbCluster.clusterManage.enableCLB'">
+                v-db-console="'common.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -183,7 +183,7 @@
               </div>
               <div
                 v-if="data.isOnlineCLBMaster"
-                v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+                v-db-console="'common.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -212,7 +212,7 @@
               </div>
               <div
                 v-if="data.isOnlineCLBSlave"
-                v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+                v-db-console="'common.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -306,11 +306,13 @@
             @refresh="fetchTableData">
             <template #append="{ data }">
               <div
-                v-if="data.isOnlineCLB"
+                v-if="data.isOnlineCLBMaster"
                 class="ml-4">
                 <ClusterEntryPanel
+                  clb-role="master_entry"
                   :cluster-id="data.id"
-                  entry-type="clb" />
+                  entry-type="clb"
+                  :panel-width="350" />
               </div>
             </template>
           </MasterDomainColumn>
@@ -320,7 +322,19 @@
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             :get-table-instance="getTableInstance"
             :is-filter="isFilter"
-            :selected-list="selected" />
+            :selected-list="selected">
+            <template #append="{ data }">
+              <div
+                v-if="data.isOnlineCLBSlave"
+                class="ml-4">
+                <ClusterEntryPanel
+                  clb-role="slave_entry"
+                  :cluster-id="data.id"
+                  entry-type="clb"
+                  :panel-width="350" />
+              </div>
+            </template>
+          </SlaveDomainColumn>
         </template>
         <template #role>
           <RoleColumn

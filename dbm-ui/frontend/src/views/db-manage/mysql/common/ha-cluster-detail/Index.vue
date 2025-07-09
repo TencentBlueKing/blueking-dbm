@@ -80,7 +80,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="!data.isOnlineCLB"
-            v-db-console="'mysql.haClusterList.enableCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -97,7 +97,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="data.isOnlineCLB"
-            v-db-console="'mysql.haClusterList.DNSDomainToCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">

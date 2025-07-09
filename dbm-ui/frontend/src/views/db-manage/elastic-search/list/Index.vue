@@ -104,7 +104,7 @@
             </div>
             <div
               v-if="!data.isOnlineCLB"
-              v-db-console="'es.clusterManage.enableCLB'">
+              v-db-console="'common.clb'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
@@ -121,7 +121,7 @@
             </div>
             <div
               v-if="!data.isOnlinePolaris"
-              v-db-console="'es.clusterManage.enablePolaris'">
+              v-db-console="'common.polaris'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
@@ -138,7 +138,7 @@
             </div>
             <div
               v-if="data.isOnlineCLB"
-              v-db-console="'es.clusterManage.DNSDomainToCLB'">
+              v-db-console="'common.clb'">
               <OperationBtnStatusTips
                 :data="data"
                 :disabled="!data.isOffline">
