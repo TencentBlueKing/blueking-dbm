@@ -4,14 +4,16 @@
       <div class="cluster-domain">
         {{ data.masterDomain }}
       </div>
-      <div
-        v-if="data.isOnlineCLB"
-        class="ml-4">
-        <ClusterEntryPanel
-          :cluster-id="data.id"
-          entry-type="clb"
-          size="big" />
-      </div>
+      <slot name="clb">
+        <div
+          v-if="data.isOnlineCLB"
+          class="ml-4">
+          <ClusterEntryPanel
+            :cluster-id="data.id"
+            entry-type="clb"
+            size="big" />
+        </div>
+      </slot>
       <div
         v-if="data.isOnlinePolaris"
         class="ml-4">

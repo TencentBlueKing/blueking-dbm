@@ -163,64 +163,64 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <FunController
+              <!-- <FunController
                 controller-id="redis_nameservice"
-                module-id="addons">
-                <div
-                  v-if="!data.isOnlineCLB"
-                  v-db-console="'redis.clusterManage.enableCLB'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_plugin_create_clb"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_plugin_create_clb"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="() => handleAddClb({ details: { cluster_id: data.id } })">
-                      {{ t('启用CLB') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </div>
-                <div
-                  v-if="data.isOnlineCLB"
-                  v-db-console="'redis.clusterManage.DNSDomainToCLB'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_plugin_dns_bind_clb"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_plugin_dns_bind_clb"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="() => handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
-                      {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </div>
-                <div
-                  v-if="!data.isOnlinePolaris"
-                  v-db-console="'redis.clusterManage.enablePolaris'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_plugin_create_polaris"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_plugin_create_polaris"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="() => handleAddPolaris({ details: { cluster_id: data.id } })">
-                      {{ t('启用北极星') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </div>
-              </FunController>
+                module-id="addons"> -->
+              <div
+                v-if="!data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_plugin_create_clb"
+                    :disabled="data.isOffline"
+                    :permission="data.permission.redis_plugin_create_clb"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                    {{ t('启用CLB') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_plugin_dns_bind_clb"
+                    :disabled="data.isOffline"
+                    :permission="data.permission.redis_plugin_dns_bind_clb"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="() => handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
+                    {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="!data.isOnlinePolaris"
+                v-db-console="'common.polaris'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="redis_plugin_create_polaris"
+                    :disabled="data.isOffline"
+                    :permission="data.permission.redis_plugin_create_polaris"
+                    :resource="data.id"
+                    style="width: 100%; height: 32px"
+                    text
+                    @click="() => handleAddPolaris({ details: { cluster_id: data.id } })">
+                    {{ t('启用北极星') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <!-- </FunController> -->
               <div
                 v-if="data.isOnline"
                 v-db-console="'redis.clusterManage.disable'">
