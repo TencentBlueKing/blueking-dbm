@@ -236,6 +236,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_SEMANTIC_CHECK = TicketEnumField("MYSQL_SEMANTIC_CHECK", _("MySQL 模拟执行"), register_iam=False)
     MYSQL_PROXY_ADD = TicketEnumField("MYSQL_PROXY_ADD", _("MySQL 添加Proxy"), _("集群维护"))
     MYSQL_PROXY_SWITCH = TicketEnumField("MYSQL_PROXY_SWITCH", _("MySQL 替换Proxy"), _("集群维护"))
+    MYSQL_PROXY_REDUCE = TicketEnumField("MYSQL_PROXY_REDUCE", _("MySQL 缩容Proxy"), _("集群维护"))
     MYSQL_SINGLE_DESTROY = TicketEnumField("MYSQL_SINGLE_DESTROY", _("MySQL 单节点删除"), register_iam=False)
     MYSQL_SINGLE_ENABLE = TicketEnumField("MYSQL_SINGLE_ENABLE", _("MySQL 单节点启用"), register_iam=False)
     MYSQL_SINGLE_DISABLE = TicketEnumField("MYSQL_SINGLE_DISABLE", _("MySQL 单节点禁用"), register_iam=False)
