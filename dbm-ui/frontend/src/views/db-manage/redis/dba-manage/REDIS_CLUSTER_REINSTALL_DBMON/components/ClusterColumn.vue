@@ -36,7 +36,7 @@
   <ClusterResourceSelector
     v-model:is-show="showSelector"
     v-model:selected="dataList"
-    :cluster-types="[ClusterTypes.REDIS, ClusterTypes.REDIS_INSTANCE]"
+    :cluster-types="[ClusterTypes.REDIS]"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -127,13 +127,6 @@
     () => {
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-            ClusterTypes.REDIS_INSTANCE,
-          ].join(','),
           db_type: DBTypes.REDIS,
           exact_domain: modelValue.value.master_domain,
         });

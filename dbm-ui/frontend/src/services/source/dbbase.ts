@@ -233,7 +233,7 @@ export function updateClusterTag(params: { bk_biz_id: number; cluster_id: number
 export function getGlobalInstance(params: {
   bk_biz_id?: number; // 业务ID
   cluster_id?: number; // 集群ID
-  cluster_type: string; // 集群类型
+  cluster_type?: string; // 集群类型
   db_module_id?: number; // 模块ID
   db_type: DBTypes; // 数据库类型
   domain?: string; // 域名查询
@@ -247,7 +247,7 @@ export function getGlobalInstance(params: {
   role?: string; // 过滤的实例角色
   status?: string; // 实例状态
 }) {
-  return http.get<ListBase<InstanceInfos[]>>(`${path}/get_global_instance/`, params);
+  return http.get<ListBase<InstanceInfos[]>>(`${path}/filter_instances/`, params);
 }
 
 // 查询全局主机
@@ -261,7 +261,7 @@ export function getGlobalMachine(params: {
   bk_os_name?: string; // 操作系统
   cluster_ids?: string; // 集群ID列表
   cluster_status?: string;
-  cluster_type: string;
+  cluster_type?: string;
   creator?: string; // 创建人
   db_module_id?: number; // 模块ID
   db_type: DBTypes; // 数据库类型
@@ -274,7 +274,7 @@ export function getGlobalMachine(params: {
   offset?: number;
   spider_role?: string; // spider角色
 }) {
-  return http.get<ListBase<MachineInfos[]>>(`${path}/get_global_machine/`, params);
+  return http.get<ListBase<MachineInfos[]>>(`${path}/filter_machines/`, params);
 }
 
 // 查询全局集群
@@ -295,10 +295,12 @@ export function getGlobalCluster<
 >(params: {
   bk_biz_id?: number;
   cluster_ids?: string;
-  cluster_type: string;
+  cluster_type?: string;
   db_type: DBTypes;
   domain?: string;
   exact_domain?: string;
+  limit?: number;
+  offset?: number;
 }) {
   return http.get<T[]>(`${path}/filter_clusters/`, params).then((data) => ({
     count: data.length || 0,

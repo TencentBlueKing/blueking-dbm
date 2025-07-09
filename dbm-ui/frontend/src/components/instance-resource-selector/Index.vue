@@ -96,8 +96,7 @@
   const configList = computed(() => props.clusterTypes.map((clusterType) => comFactory[clusterType]));
 
   const params = computed(() => ({
-    cluster_type: comFactory[currentClusterType.value].cluster_type,
-    db_type: comFactory[currentClusterType.value].db_type,
+    ...comFactory[currentClusterType.value].params,
     role: props.role,
   }));
 

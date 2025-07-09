@@ -74,6 +74,7 @@
 
   interface Props {
     routes?: {
+      bind?: string[];
       dbConsoleValue: string;
       id: string;
       name: string;
@@ -107,6 +108,9 @@
     route,
     () => {
       toolboxTitle.value = route.meta.navName as string;
+      activeMenu.value = props.routes.find(
+        (item) => item.bind?.includes(route.name as string) || route.name === item.id,
+      )?.id;
     },
     {
       immediate: true,

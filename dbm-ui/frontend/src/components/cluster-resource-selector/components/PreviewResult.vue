@@ -117,6 +117,7 @@
     .header {
       display: flex;
       align-items: center;
+      margin-bottom: 16px;
 
       > span {
         flex: 1;

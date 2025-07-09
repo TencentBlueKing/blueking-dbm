@@ -72,7 +72,6 @@
 
   interface Props {
     clusterTypes: SupportClusterTypes[];
-    role?: string;
   }
 
   type Emits = (e: 'change', data: IValue[]) => void;
@@ -96,9 +95,7 @@
   const configList = computed(() => props.clusterTypes.map((clusterType) => comFactory[clusterType]));
 
   const params = computed(() => ({
-    cluster_type: comFactory[currentClusterType.value].cluster_type,
-    db_type: comFactory[currentClusterType.value].db_type,
-    role: props.role,
+    ...comFactory[currentClusterType.value].params,
   }));
 
   watch(isShow, () => {
