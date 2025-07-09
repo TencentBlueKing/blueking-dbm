@@ -421,7 +421,7 @@
   };
 
   const fetchHostNodes = async () => {
-    if (!dateTimeRangeUTC.value[0] || !dateTimeRangeUTC.value[0]) {
+    if (!dateTimeRangeUTC.value[0]) {
       return;
     }
     const ret = await getRedisDTSHistoryJobs({

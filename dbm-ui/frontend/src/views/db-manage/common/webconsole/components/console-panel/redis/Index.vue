@@ -35,7 +35,7 @@
 
   const handleSuccess = (cmd: string, message: ServiceReturnType<typeof queryWebconsole>['query']) => {
     // 切换数据库索引
-    if (/^\s*select\s+.*$/.test(cmd) && /^OK/.test(message as string)) {
+    if (/^\s*select\s+.*$/.test(cmd) && (message as string).startsWith('OK')) {
       dbNum.value = Number(cmd.substring('select '.length));
       consoleInputRef.value!.updateCommand();
     }
