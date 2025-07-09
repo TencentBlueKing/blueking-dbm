@@ -15,8 +15,8 @@ import type { App } from 'vue';
 import { VxeTooltip } from 'vxe-pc-ui';
 
 import { Table, TableColumn } from '@blueking/table';
+import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@blueking/tdesign-ui';
 
-// import { PrimaryTable, TableColumn as PrimaryTableColumn } from '@blueking/tdesign-ui';
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
 import AuthOption from '@components/auth-component/option.vue';
@@ -55,7 +55,7 @@ import { ipSelector } from '@components/vue2/ip-selector';
 
 import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
 
-// import '@blueking/tdesign-ui/vue3/index.css';
+import '@blueking/tdesign-ui/vue3/index.css';
 import UserSelector from '@patch/user-selector/selector.vue';
 
 import('@blueking/table/vue3/vue3.css');
@@ -97,8 +97,8 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthRouterLink', AuthRouterLink);
   app.component('TableDetailDialog', TableDetailDialog);
   app.component('NewFeatureGuide', NewFeatureGuide);
-  // app.component('TTable', PrimaryTable);
-  // app.component('TTableColumn', PrimaryTableColumn);
+  app.component('PrimaryTable', PrimaryTable);
+  app.component('TableColumn', PrimaryTableColumn);
   setTimeout(() => {
     // eslint-disable-next-line
     delete app._context.components.BkTable;

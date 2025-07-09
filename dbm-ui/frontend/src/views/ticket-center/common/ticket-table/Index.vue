@@ -3,29 +3,24 @@
     class="ticket-table-mode"
     :loading="isLoading">
     <div ref="tableWrapper">
-      <BkTable
+      <PrimaryTable
+        ref="table"
+        :bk-ui-settings="tableSettings"
         :data="dataList"
+        :ellipsis="false"
         :max-height="tableMaxHeight"
-        :pagination="pagination"
-        :row-class="rowClass"
-        :row-config="{
-          useKey: true,
-          keyField: 'id',
-        }"
-        :settings="tableSettings"
-        :show-overflow="false"
-        show-settings
-        @filter-change="handleFilterChange"
-        @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange"
-        @setting-change="handleTableSettings"
-        @sort-change="handleSortChange">
-        <BkTableColumn
+        :row-class-name="rowClass"
+        row-key="id"
+        title-ellipsis
+        @change="handleFilterChange"
+        @setting-change="handleTableSettings">
+        <TableColumn
           v-if="selectable"
+          col-key="row-select"
           fixed="left"
           :min-width="80"
           :width="80">
-          <template #header>
+          <template #title>
             <div class="table-selection-head">
               <div
                 v-if="isWholeChecked"
@@ -76,69 +71,67 @@
               :model-value="Boolean(rowSelectMemo[row.id])"
               @change="handleSelectionChange(row)" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="id"
+        </TableColumn>
+        <TableColumn
+          col-key="id"
           fixed="left"
-          :label="t('单号')"
+          :title="t('单号')"
           width="100">
-          <template #default="{ data }: { data: IRowData }">
+          <template #default="{ row }: { row: IRowData }">
             <AuthRouterLink
               action-id="ticket_view"
-              :permission="data.permission.ticket_view"
-              :resource="data.id"
+              :permission="row.permission.ticket_view"
+              :resource="row.id"
               target="_blank"
               :to="{
                 name: 'ticketDetail',
                 params: {
-                  ticketId: data.id,
+                  ticketId: row.id,
                 },
               }"
-              @click="(event: MouseEvent) => handleGoDetail(data, event)">
-              {{ data.id }}
+              @click="(event: MouseEvent) => handleGoDetail(row, event)">
+              {{ row.id }}
             </AuthRouterLink>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
+        </TableColumn>
+        <TableColumn
           v-if="!excludeColumn.includes('bk_biz_id')"
-          field="bk_biz_id"
-          :filter-multiple="false"
-          :filters="searchFieldMap['bk_biz_id']"
-          :label="t('业务')"
-          :min-width="150">
-          <template #default="{ data }: { data: IRowData }">
-            {{ data.bk_biz_name }}
+          col-key="bk_biz_id"
+          :filter="searchFieldMap['bk_biz_id']"
+          :min-width="150"
+          :title="t('业务')">
+          <template #default="{ row }: { row: IRowData }">
+            {{ row.bk_biz_name }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="ticket_type__in"
-          filter-multiple
-          :filters="searchFieldMap['ticket_type__in']"
-          :label="t('单据类型')"
+        </TableColumn>
+        <TableColumn
+          col-key="ticket_type__in"
+          :filter="searchFieldMap['ticket_type__in']"
           :min-width="200"
-          show-overflow>
-          <template #default="{ data }: { data: IRowData }">
-            {{ data.ticket_type_display }}
+          show-overflow
+          :title="t('单据类型')">
+          <template #default="{ row }: { row: IRowData }">
+            {{ row.ticket_type_display }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="ticket_type_display"
-          :label="t('子任务')"
-          :min-width="200">
-          <template #default="{ data }: { data: IRowData }">
-            <template v-if="ticketInnerFlowInfo[data.id]">
+        </TableColumn>
+        <TableColumn
+          col-key="ticket_type_display"
+          :min-width="200"
+          :title="t('子任务')">
+          <template #default="{ row }: { row: IRowData }">
+            <template v-if="ticketInnerFlowInfo[row.id]">
               <div
-                v-for="(flowItem, index) in ticketInnerFlowInfo[data.id]"
+                v-for="(flowItem, index) in ticketInnerFlowInfo[row.id]"
                 :key="index"
                 style="line-height: 26px">
                 <BkButton
                   text
                   theme="primary"
-                  @click="() => handleGoTaskHistoryDetail(data, flowItem)">
+                  @click="() => handleGoTaskHistoryDetail(row, flowItem)">
                   {{ flowItem.flow_alias }}
                 </BkButton>
               </div>
-              <span v-if="ticketInnerFlowInfo[data.id].length < 1">--</span>
+              <span v-if="ticketInnerFlowInfo[row.id].length < 1">--</span>
             </template>
             <div
               v-else
@@ -149,94 +142,93 @@
                 type="sync-pending" />
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="related_object"
-          :label="t('集群')"
+        </TableColumn>
+        <TableColumn
+          col-key="related_object"
           min-width="300"
-          :show-overflow="false">
-          <template #default="{ data }: { data: IRowData }">
+          :show-overflow="false"
+          :title="t('集群')">
+          <template #default="{ row }: { row: IRowData }">
             <div
-              v-if="data.related_object.objects"
+              v-if="row.related_object.objects"
               style="line-height: 20px">
               <div
-                v-for="item in data.related_object.objects.slice(0, 6)"
+                v-for="item in row.related_object.objects.slice(0, 6)"
                 :key="item">
                 {{ item }}
               </div>
-              <div v-if="data.related_object.objects.length > 6">
+              <div v-if="row.related_object.objects.length > 6">
                 <span>...</span>
                 <BkTag
                   v-bk-tooltips="{
-                    content: data.related_object.objects.join('\n'),
+                    content: row.related_object.objects.join('\n'),
                   }"
                   class="ml-4"
                   size="small">
                   <I18nT
                     keypath="共n个"
                     scope="global">
-                    {{ data.related_object.objects.length }}
+                    {{ row.related_object.objects.length }}
                   </I18nT>
                 </BkTag>
               </div>
             </div>
-            <template v-if="data.related_object.objects.length < 1"> -- </template>
+            <template v-if="row.related_object.objects.length < 1"> -- </template>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="status"
-          filter-multiple
-          :filters="searchFieldMap['status']"
-          :label="t('单据状态')"
-          :min-width="100">
-          <template #default="{ data }: { data: IRowData }">
+        </TableColumn>
+        <TableColumn
+          col-key="status"
+          :filter="searchFieldMap['status']"
+          :min-width="140"
+          :title="t('单据状态')">
+          <template #default="{ row }: { row: IRowData }">
             <TicketStatusTag
-              v-if="data"
-              :data="data" />
+              v-if="row"
+              :data="row" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="remark"
-          :label="t('备注')"
+        </TableColumn>
+        <TableColumn
+          col-key="remark"
           :min-width="250"
-          show-overflow>
-          <template #default="{ data }: { data: IRowData }">
-            <span>{{ data.remark || '--' }}</span>
+          show-overflow
+          :title="t('备注')">
+          <template #default="{ row }: { row: IRowData }">
+            <span>{{ row.remark || '--' }}</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="todo_operators"
-          :label="t('当前处理人')"
+        </TableColumn>
+        <TableColumn
+          col-key="todo_operators"
+          :title="t('当前处理人')"
           width="160">
-          <template #default="{ data }: { data: IRowData }">
+          <template #default="{ row }: { row: IRowData }">
             <TagBlock
               copyenable
-              :data="data.todo_operators" />
+              :data="row.todo_operators" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="todo_helpers"
-          :label="t('当前协助人')"
+        </TableColumn>
+        <TableColumn
+          col-key="todo_helpers"
+          :title="t('当前协助人')"
           width="250">
-          <template #default="{ data }: { data: IRowData }">
+          <template #default="{ row }: { row: IRowData }">
             <TagBlock
               copyenable
-              :data="data.todo_helpers" />
+              :data="row.todo_helpers" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="creator"
-          :label="t('申请人')"
+        </TableColumn>
+        <TableColumn
+          col-key="creator"
+          :title="t('申请人')"
           width="150" />
-        <BkTableColumn
-          field="create_at"
-          :label="t('申请时间')"
+        <TableColumn
+          col-key="create_at"
           sort
+          :title="t('申请时间')"
           width="250">
-          <template #default="{ data }: { data: IRowData }">
-            {{ data.createAtDisplay || '--' }}
+          <template #default="{ row }: { row: IRowData }">
+            {{ row.createAtDisplay || '--' }}
           </template>
-        </BkTableColumn>
+        </TableColumn>
         <slot name="action" />
         <template #empty>
           <EmptyStatus
@@ -264,7 +256,14 @@
             </BkRadioGroup>
           </div>
         </template>
-      </BkTable>
+      </PrimaryTable>
+      <div class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          @change="handlePageValueChange"
+          @limit-change="handlePageLimitChange" />
+      </div>
     </div>
     <TableDetailDialog
       v-model="isShowDetail"
@@ -278,12 +277,11 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { onBeforeUnmount, shallowRef, type UnwrapRef, useTemplateRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
-
-  import { type VxeTableDefines } from '@blueking/vxe-table';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
@@ -338,12 +336,15 @@
   const userProfileStore = useUserProfile();
 
   const { formatValue: formatDateValue, value: datePickerValue } = useDatePicker();
-  const { dataList, fetchTicketList, loading: isLoading, ordering, pagination } = useFetchData(props.dataSource);
+  const { dataList, fetchTicketList, loading: isLoading, pagination } = useFetchData(props.dataSource);
   const { formatSearchValue, searchFieldMap, value: searchSelectValue } = useSearchSelect();
 
   const { getSearchParams } = useUrlSearch();
 
   let isInited = false;
+
+  const table = ref();
+  console.log('table = ', table);
 
   const rootRef = useTemplateRef('tableWrapper');
   const tableMaxHeight = ref<number | 'auto'>('auto');
@@ -368,7 +369,9 @@
       Boolean(formatDateValue.value.create_at__lte),
   );
 
-  const rowClass = (params: TicketModel) => (params.id === ticketId.value ? 'select-row' : '');
+  const rowClass = ({ row }: { row: TicketModel<unknown> }) => {
+    return row.id === ticketId.value ? 'select-row' : '';
+  };
 
   const fetchData = () => {
     fetchTicketList({
@@ -486,31 +489,32 @@
     triggerSelection();
   };
 
-  const handleSortChange = (payload: { field: string; order: string }) => {
-    ordering.value = payload.order === 'desc' ? payload.field : `-${payload.field}`;
-    fetchData();
-  };
+  // const handleSortChange = (payload: { field: string; order: string }) => {
+  //   ordering.value = payload.order === 'desc' ? payload.field : `-${payload.field}`;
+  //   fetchData();
+  // };
 
-  const handleFilterChange = (payload: VxeTableDefines.FilterChangeEventParams) => {
-    const result = payload.filterList.map((item) => {
-      const nameMap = item.column.filters.reduce<Record<string, string>>(
-        (result, item) =>
-          Object.assign(result, {
-            [item.value]: item.label,
-          }),
-        {},
-      );
-      return {
-        id: item.field,
-        name: item.column.title,
-        values: item.values.map((valueItem) => ({
-          id: valueItem,
-          name: nameMap[valueItem],
-        })),
-      };
-    });
+  const handleFilterChange = (payload: { filter?: Record<string, any> }) => {
+    console.log('filter change = ', payload, searchFieldMap.value);
+    if (!payload.filter) {
+      return;
+    }
+    searchSelectValue.value = Object.keys(payload.filter).reduce<UnwrapRef<typeof searchSelectValue>>(
+      (result, filedKey) => {
+        const { list, name } = searchFieldMap.value[filedKey];
+        result.push({
+          id: filedKey,
+          name,
+          values: _.filter(list, (item) => item.value === payload.filter![filedKey]).map((item) => ({
+            id: item.value,
+            name: item.label,
+          })),
+        });
 
-    searchSelectValue.value = result;
+        return result;
+      },
+      [],
+    );
   };
 
   // 切换每页条数
@@ -581,7 +585,7 @@
   };
 
   onMounted(() => {
-    tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 20;
+    tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     eventBus.on('refreshTicketStatus', fetchRefresh);
 
     if (Number(route.params.ticketId)) {
@@ -646,6 +650,23 @@
     .select-row {
       td {
         background: #ebf2ff !important;
+      }
+    }
+
+    .table-footer {
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      background: #fff;
+      align-items: center;
+      border-top: 1px solid var(--td-component-border);
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
+        }
       }
     }
   }

@@ -22,17 +22,17 @@
       ref="dataTable"
       :data-source="dataSource">
       <template #action>
-        <BkTableColumn
-          field=""
+        <TableColumn
+          col-key="action"
           fixed="right"
-          :label="t('操作')"
+          :title="t('操作')"
           width="80">
-          <template #default="{ data }: { data: TicketModel }">
+          <template #default="{ row }: { row: TicketModel }">
             <TicketClone
-              v-if="data"
-              :data="data" />
+              v-if="row"
+              :data="row" />
           </template>
-        </BkTableColumn>
+        </TableColumn>
       </template>
     </TicketTable>
   </div>
