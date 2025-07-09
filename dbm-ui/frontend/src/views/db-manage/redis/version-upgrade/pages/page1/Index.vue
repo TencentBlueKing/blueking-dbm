@@ -123,7 +123,6 @@
       nodeType: firstRow.nodeType,
     };
     if (
-      otherRowList.length === 0 ||
       otherRowList.every(
         (rowItem) => rowItem.clusterType === firstRow.clusterType && rowItem.nodeType === firstRow.nodeType,
       )

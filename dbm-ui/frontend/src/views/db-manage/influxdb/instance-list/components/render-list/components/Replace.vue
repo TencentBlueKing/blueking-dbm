@@ -142,8 +142,8 @@
           return reject();
         }
 
-        Promise.all([influxdbRef.value.getValue()]).then(
-          ([influxdbValue]) => {
+        influxdbRef.value.getValue().then(
+          (influxdbValue) => {
             const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
                 return influxdbValue.new_nodes.length < 1;

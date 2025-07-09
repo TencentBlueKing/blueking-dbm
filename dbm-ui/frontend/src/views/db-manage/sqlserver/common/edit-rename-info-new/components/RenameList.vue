@@ -74,8 +74,8 @@
   const editableTableRef = useTemplateRef('editableTable');
   const targetDbNameRef = useTemplateRef<Array<typeof EditableColumn>>('targetDbNameRef');
 
-  const isTargetDbNameError = ref(new Array<boolean>(modelValue.value.length).fill(false));
-  const isRenameDbNameError = ref(new Array<boolean>(modelValue.value.length).fill(false));
+  const isTargetDbNameError = ref(Array.from({ length: modelValue.value.length }, () => false));
+  const isRenameDbNameError = ref(Array.from({ length: modelValue.value.length }, () => false));
 
   const valueMemo = _.cloneDeep(modelValue.value);
 

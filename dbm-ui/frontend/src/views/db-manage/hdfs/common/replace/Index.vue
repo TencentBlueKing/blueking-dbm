@@ -147,8 +147,8 @@
           messageError(t('至少替换一种节点类型'));
           return reject();
         }
-        Promise.all([datanodeRef.value.getValue()]).then(
-          ([datanodeValue]) => {
+        datanodeRef.value.getValue().then(
+          (datanodeValue) => {
             const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
                 return datanodeValue.new_nodes.length < 1;

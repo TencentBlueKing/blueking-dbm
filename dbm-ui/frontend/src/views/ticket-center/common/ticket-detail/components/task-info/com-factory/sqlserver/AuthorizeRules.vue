@@ -12,9 +12,50 @@
 -->
 
 <template>
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+  <InfoList>
+    <InfoItem :label="t('目标集群')">
+      {{ domainList.join('，') }}
+    </InfoItem>
+    <InfoItem
+      :label="t('权限明细')"
+      style="flex: 1 0 100%">
+      <BkTable
+        class="sqlserver-permission-table"
+        :data="ruleList"
+        :show-overflow="false">
+        <BkTableColumn
+          field="user"
+          :label="t('账号名称')"
+          :width="200">
+          <template #default="{ data }: { data: dataItem }">
+            <div
+              class="sqlserver-permission-cell"
+              @click="() => handleToggleExpand(data)">
+              <DbIcon
+                v-if="data.rule_sets.length > 1"
+                class="user-icon"
+                :class="[{ 'user-icon-expand': data.isExpand }]"
+                type="down-shape" />
+              <div class="user-name">{{ data.username }}</div>
+            </div>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="access_db"
+          :label="t('访问 DB')"
+          :min-width="300">
+          <template #default="{ data }: { data: dataItem }">
+            <div
+              v-for="(rule, ruleIndex) in getRenderList(data)"
+              :key="ruleIndex"
+              class="sqlserver-permission-cell">
+              <BkTag>{{ rule.access_db }}</BkTag>
+            </div>
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -24,7 +65,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import DemandInfo, { type DemandInfoConfig } from '../components/DemandInfo.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.authorizeRules>;
@@ -46,7 +87,6 @@
   const { t } = useI18n();
 
   // 是否是添加授权
-  const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.SQLSERVER_AUTHORIZE_RULES;
   const ruleList = (props.ticketDetails.details?.authorize_data || []).reduce(
     (prevRuleList, authorizeItem) => [
       ...prevRuleList,
@@ -59,93 +99,6 @@
     [] as dataItem[],
   );
   const domainList = props.ticketDetails.details.authorize_data?.[0].target_instances || [];
-  const excelUrl = props.ticketDetails.details?.excel_url;
-
-  let config: DemandInfoConfig[] = [];
-  const columns = [
-    {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: dataItem }) => (
-        <div
-          class='mongo-permission-cell'
-          onClick={() => handleToggleExpand(data)}>
-          {data.rule_sets.length > 1 && (
-            <db-icon
-              class={['user-icon', { 'user-icon-expand': data.isExpand }]}
-              type='down-shape'
-            />
-          )}
-          {<div class='user-name'>{data.username}</div>}
-        </div>
-      ),
-    },
-    {
-      field: 'access_db',
-      label: t('访问DB'),
-      render: ({ data }: { data: dataItem }) =>
-        getRenderList(data).map((rule) => (
-          <div class='mongo-permission-cell'>
-            <bk-tag>{rule.access_db}</bk-tag>
-          </div>
-        )),
-    },
-  ];
-
-  const getConfig = () => {
-    if (isAddAuth) {
-      return [
-        {
-          list: [
-            {
-              label: t('目标集群'),
-              render: () => domainList.join('，'),
-            },
-            {
-              isTable: true,
-              label: t('权限明细'),
-              render: () => (
-                <db-original-table
-                  class='mongo-permission-table'
-                  columns={columns}
-                  data={ruleList}
-                />
-              ),
-            },
-          ],
-        },
-      ];
-    }
-
-    return [
-      {
-        list: [
-          {
-            label: t('Excel文件'),
-            render: () => (
-              <div class='excel-link'>
-                <db-icon
-                  class='mr-6'
-                  color='#2dcb56'
-                  type='excel'
-                  svg
-                />
-                <a href={excelUrl}>
-                  {t('批量授权文件')}
-                  <db-icon
-                    class='ml-6'
-                    type='import'
-                    svg
-                  />
-                </a>
-              </div>
-            ),
-          },
-        ],
-      },
-    ];
-  };
-  config = getConfig();
 
   const getRenderList = (data: dataItem) => (data.isExpand ? data.rule_sets : data.rule_sets.slice(0, 1));
 
@@ -158,18 +111,13 @@
 </script>
 
 <style lang="less" scoped>
-  :deep(.excel-link) {
-    display: flex;
-    align-items: center;
-  }
-
-  :deep(.mongo-permission-cell) {
+  :deep(.sqlserver-permission-cell) {
     position: relative;
     display: flex;
-    height: calc(var(--row-height) - 1px);
+    height: 30px;
     padding: 0 15px;
     overflow: hidden;
-    line-height: calc(var(--row-height) - 1px);
+    line-height: 30px;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -177,7 +125,7 @@
     align-items: center;
   }
 
-  :deep(.mongo-permission-cell:last-child) {
+  :deep(.sqlserver-permission-cell:last-child) {
     border-bottom: 0;
   }
 
@@ -202,7 +150,7 @@
     align-items: center;
   }
 
-  :deep(.mongo-permission-table) {
+  :deep(.sqlserver-permission-table) {
     transition: all 0.5s;
 
     td {
@@ -213,7 +161,7 @@
 
     td:first-child {
       .cell,
-      .mongo-permission-cell {
+      .sqlserver-permission-cell {
         height: 100% !important;
       }
     }
