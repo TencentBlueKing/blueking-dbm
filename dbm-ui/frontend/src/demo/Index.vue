@@ -1,187 +1,263 @@
 <template>
-  <EditableTable
-    ref="table"
-    :model="dataModel"
-    :rules="rules">
-    <EditableTableRow
-      v-for="(item, index) in dataModel"
-      :key="index">
-      <EditableTableColumn
-        field="name"
-        fixed="left"
-        label="第一列"
-        :loading="isLoading"
-        :width="200">
-        <EditInput
-          v-model="item.name"
-          clearable
-          @change="handelNameChange"
-          @clear="handleClear">
-          <template #prepend>asd</template>
-          <template #append>
-            <div>asd</div>
-          </template>
-        </EditInput>
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="age"
-        label="第二列"
-        :width="200">
-        <EditSelect v-model="item.age">
-          <BkOption
-            id="1"
-            name="wx" />
-          <BkOption
-            id="2"
-            name="QQ" />
-        </EditSelect>
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="date"
-        label="第三列">
-        <EditDatePicker
-          v-model="item.date"
-          @change="handleChange" />
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="time"
-        label="第四列">
-        <EditTimePicker
-          v-model="item.time"
-          @change="handleChange" />
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="tag"
-        label="第五列"
-        :min-width="200">
-        <EditTagInput v-model="item.tag" />
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="tag"
-        label="第五列"
-        :min-width="200">
-        <EditBlock v-model="item.des">
-          {{ item.more }}
-          <template #append> as </template>
-        </EditBlock>
-      </EditableTableColumn>
-      <EditableTableColumn
-        field="more"
-        label="第六列"
-        :min-width="200">
-        <EditTextarea v-model="item.more" />
-      </EditableTableColumn>
-      <OperationColumn
-        :create-row-method="createData"
-        :table-data="dataModel" />
-    </EditableTableRow>
-  </EditableTable>
-  <BkButton
-    :loading="isSubmiting"
-    @click="handleSubmit">
-    提交
-  </BkButton>
+  <div>
+    <div style="width: 500px; margin: 200px auto">
+      <QuickSearch
+        :data="data"
+        @change="handleChange" />
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
-  import { reactive, useTemplateRef } from 'vue';
+  import dayjs from 'dayjs';
 
-  import EditableTable, {
-    Block as EditBlock,
-    Column as EditableTableColumn,
-    DatePicker as EditDatePicker,
-    Input as EditInput,
-    Row as EditableTableRow,
-    Select as EditSelect,
-    TagInput as EditTagInput,
-    Textarea as EditTextarea,
-    TimePicker as EditTimePicker,
-  } from '@components/editable-table/Index.vue';
+  import QuickSearch, { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-
-  const createData = () => ({
-    name: 'name',
-    age: '',
-    date: '',
-    time: '',
-    tag: [],
-    des: '这是一段描述文字',
-    more: 'mormeroemroemroemro',
-  });
-
-  const tableRef = useTemplateRef('table');
-  const isSubmiting = ref(false);
-  const isLoading = ref(false);
-
-  const dataModel = reactive([
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-  ]);
-
-  const rules = {
-    name: [
-      {
-        validator: (value: string, rowData: any) => {
-          console.log('change validator = ', value, rowData);
-          return Boolean(value);
+  const data: Props['data'] = [
+    {
+      description: '测试一发',
+      id: 'id',
+      name: 'ID',
+      type: 'input',
+    },
+    {
+      description: '支持模糊搜索',
+      id: 'address',
+      name: '地址',
+      type: 'multiple-input',
+    },
+    {
+      id: 'name',
+      list: [
+        {
+          label: '张三',
+          value: 'zhangsan',
         },
-        message: '错了',
-        trigger: 'change',
-      },
-      {
-        validator: (value: string) => {
-          console.log('blur validator = ', value);
-          return Boolean(value);
+        {
+          label: '李四',
+          value: ' list',
         },
-        message: '错了',
-        trigger: 'blur',
+      ],
+      name: '多选',
+      type: 'multiple',
+    },
+    {
+      id: 'sex',
+      list: [
+        {
+          label: '男',
+          value: ' body',
+        },
+        {
+          label: '女',
+          value: ' girl',
+        },
+      ],
+      name: '单选',
+      type: 'single',
+    },
+    {
+      id: 'sehg',
+      list: [
+        {
+          label: '广东',
+          value: ' 广东',
+        },
+        {
+          label: '广西',
+          value: ' 广西',
+        },
+        {
+          label: '湖南',
+          value: ' 湖南',
+        },
+        {
+          label: '湖北',
+          value: ' 湖北',
+        },
+        {
+          label: '四川',
+          value: ' 四川',
+        },
+      ],
+      name: '自定义',
+      type: 'single',
+    },
+    {
+      id: 'sehgasd',
+      list: [
+        {
+          children: [
+            {
+              label: '一年级',
+              value: '一年级',
+            },
+            {
+              label: '二年级',
+              value: '二年级',
+            },
+            {
+              label: '三年级',
+              value: '三年级',
+            },
+            {
+              label: '四年级',
+              value: '四年级',
+            },
+            {
+              label: '五年级',
+              value: '五年级',
+            },
+            {
+              label: '六年级',
+              value: '六年级',
+            },
+          ],
+          label: ' 小学',
+          value: '小学',
+        },
+        {
+          children: [
+            {
+              label: '一年级',
+              value: '一年级',
+            },
+            {
+              label: '二年级',
+              value: '二年级',
+            },
+            {
+              label: '三年级',
+              value: '三年级',
+            },
+          ],
+          label: ' 初中',
+          value: '初中',
+        },
+        {
+          children: [
+            {
+              label: '一年级',
+              value: '一年级',
+            },
+            {
+              label: '二年级',
+              value: '二年级',
+            },
+            {
+              label: '三年级',
+              value: '三年级',
+            },
+          ],
+          label: ' 高中',
+          value: '高中',
+        },
+      ],
+      name: '级联',
+      type: 'cascader',
+    },
+    {
+      id: 'multiple-cascader',
+      list: [
+        {
+          children: [
+            {
+              label: '小学一年级',
+              value: '小学一年级',
+            },
+            {
+              label: '小学二年级',
+              value: '小学二年级',
+            },
+            {
+              label: '小学三年级',
+              value: '小学三年级',
+            },
+            {
+              label: '小学四年级',
+              value: '小学四年级',
+            },
+            {
+              label: '小学五年级',
+              value: '小学五年级',
+            },
+            {
+              label: '小学六年级',
+              value: '小学六年级',
+            },
+          ],
+          label: ' 小学',
+          value: '小学',
+        },
+        {
+          children: [
+            {
+              label: '初中一年级',
+              value: '初中一年级',
+            },
+            {
+              label: '初中二年级',
+              value: '初中二年级',
+            },
+            {
+              label: '初中三年级',
+              value: '初中三年级',
+            },
+          ],
+          label: ' 初中',
+          value: '初中',
+        },
+        {
+          children: [
+            {
+              label: '高中一年级',
+              value: '高中一年级',
+            },
+            {
+              label: '高中二年级',
+              value: '高中二年级',
+            },
+            {
+              label: '高中三年级',
+              value: '高中三年级',
+            },
+          ],
+          label: ' 高中',
+          value: '高中',
+        },
+      ],
+      name: '级联多选',
+      type: 'multiple-cascader',
+    },
+    {
+      id: 'date',
+      name: '日期',
+      type: 'date',
+    },
+    {
+      id: 'date-range',
+      name: '日期范围',
+      props: {
+        presets: {
+          今天: [dayjs().toDate(), dayjs().toDate()],
+          最近3天: [dayjs().subtract(2, 'day').toDate(), dayjs().toDate()],
+          最近7天: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
+        },
       },
-    ],
-    age: [
-      {
-        validator: () => false,
-        message: '错了没',
-        trigger: 'change',
-      },
-    ],
-  };
+      type: 'date-range',
+    },
+    {
+      id: 'datetime',
+      name: '日期时间',
+      type: 'datetime',
+    },
+    {
+      id: 'datetime-range',
+      name: '日期时间范围',
+      type: 'datetime-range',
+    },
+  ];
 
-  const handleClear = () => {
-    console.log('handleClear');
-  };
-
-  const handelNameChange = () => {
-    isLoading.value = true;
-    console.log('handelNameChange');
-    setTimeout(() => {
-      isLoading.value = false;
-    }, 10000);
-  };
-  const handleChange = (value: string) => {
-    console.log(value);
-  };
-
-  const handleSubmit = () => {
-    isSubmiting.value = true;
-    tableRef
-      .value!.validateByColumnIndex(0)
-      .then(() => {
-        console.log('success');
-      })
-      .finally(() => {
-        console.log('finally');
-        isSubmiting.value = false;
-      });
+  const handleChange = (payload: any) => {
+    console.log('serach select change = ', payload);
   };
 </script>
