@@ -59,16 +59,16 @@
     (e: 'cancel'): void;
   }
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   withDefaults(defineProps<Props>(), {
     defaultValue: '',
     simple: false,
   });
 
   const emits = defineEmits<Emits>();
-
-  defineOptions({
-    inheritAttrs: false,
-  });
 
   const { t } = useI18n();
 
@@ -81,7 +81,7 @@
 
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
-      dbTypeList.value = [{ id: 'PUBLIC', name: t('通用') }, ...data];
+      dbTypeList.value = data.concat({ id: 'PUBLIC', name: t('通用') });
     },
   });
 

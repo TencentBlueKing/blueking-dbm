@@ -56,7 +56,8 @@ export function fetchDeviceClass(params: { device_type?: string; limit?: number;
 }
 
 /**
- * 获取磁盘类型
+ *
+ * @deprecated 获取磁盘类型（存量）。固定的枚举值，直接查询全量的数据就好
  */
 export function fetchDiskTypes() {
   return http.get<string[]>(`${path}/get_disktypes/`);

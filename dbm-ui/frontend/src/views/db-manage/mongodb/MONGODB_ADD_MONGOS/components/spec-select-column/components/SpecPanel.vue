@@ -17,7 +17,7 @@
     placement="right"
     :popover-delay="0"
     theme="light"
-    width="420">
+    width="500">
     <slot name="hover" />
     <template #content>
       <div class="spec-column-panel">
@@ -65,7 +65,7 @@
                   {{ storageSpecItem.size }}
                 </div>
                 <div class="row-three">
-                  {{ storageSpecItem.type }}
+                  {{ deviceClassDisplayMap[storageSpecItem.type as DeviceClass] }}
                 </div>
               </div>
             </div>
@@ -77,6 +77,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   interface Props {
     data: {
@@ -106,7 +108,7 @@
 <style lang="less" scoped>
   .spec-column-panel {
     display: flex;
-    width: 420px;
+    width: 500px;
     height: 220px;
     padding: 16px;
     margin-top: -14px;
@@ -182,7 +184,7 @@
             .head-three {
               .cell-common();
 
-              width: 82px;
+              width: 150px;
               border-bottom: none;
             }
           }
@@ -208,7 +210,7 @@
             .row-three {
               .cell-common();
 
-              width: 82px;
+              width: 150px;
             }
           }
         }
