@@ -179,6 +179,7 @@
             ClusterTypes.REDIS_INSTANCE,
           ].join(','),
           db_type: DBTypes.REDIS,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
         });
       }
