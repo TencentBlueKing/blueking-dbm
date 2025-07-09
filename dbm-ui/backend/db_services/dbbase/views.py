@@ -105,8 +105,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "add_cluster_tag_keys",
         ): [ClusterEditPermission()],
         (
-            "get_global_machine",
-            "get_global_instance",
+            "filter_clusters",
+            "filter_machines",
+            "filter_instances",
         ): [ClusterListPermission()],
     }
     default_permission_class = [DBManagePermission()]
@@ -582,7 +583,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         serializer_class=QueryGlobalInstanceSerializer,
         pagination_class=ResourceLimitOffsetPagination,
     )
-    def get_global_instance(self, request, *args, **kwargs):
+    def filter_instances(self, request, *args, **kwargs):
         return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "list_instances")
 
     @common_swagger_auto_schema(
@@ -598,5 +599,5 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         serializer_class=QueryGlobalMachineSerializer,
         pagination_class=ResourceLimitOffsetPagination,
     )
-    def get_global_machine(self, request, *args, **kwargs):
+    def filter_machines(self, request, *args, **kwargs):
         return retrieve_resources(self, request, self.get_serializer_class(), "list_machines")

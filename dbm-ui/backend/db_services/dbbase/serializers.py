@@ -92,7 +92,8 @@ class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, Li
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
-    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False, default="")
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=-1)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
     def validate(self, attrs):
@@ -307,17 +308,31 @@ class AddClusterTagKeysSerializer(serializers.Serializer):
     tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
 
 
-class QueryGlobalMachineSerializer(ListRedisMachineResourceSLZ, ListTendbClusterMachineResourceSLZ):
+class QueryGlobalSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
-    cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
-    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块(逗号分割)"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False)
+    db_module_id = serializers.CharField(help_text=_("所属DB模块(逗号分割)"), required=False)
+
+    def validate(self, attrs):
+        cluster_type = attrs.get("cluster_type")
+        db_type = attrs.get("db_type")
+
+        # cluster_type和db_type不能同时为空
+        if not cluster_type and not db_type:
+            raise serializers.ValidationError(_("cluster_type or db_type must be provided."))
+
+        return attrs
 
 
-class QueryGlobalInstanceSerializer(MongoDBListInstancesSerializer, SqlserverListInstanceSerializer):
+class QueryGlobalMachineSerializer(
+    ListRedisMachineResourceSLZ, ListTendbClusterMachineResourceSLZ, QueryGlobalSerializer
+):
+    pass
 
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
-    cluster_type = serializers.CharField(help_text=_("集群类型"))
-    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块(逗号分割)"))
 
+class QueryGlobalInstanceSerializer(
+    MongoDBListInstancesSerializer, SqlserverListInstanceSerializer, QueryGlobalSerializer
+):
     # influxdb过滤
     group_id = serializers.CharField(help_text=_("分组ID"), required=False)
