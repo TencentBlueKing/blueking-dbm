@@ -22,9 +22,10 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	mconst "k8s-dbs/metadata/constant"
-	models "k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -32,12 +33,12 @@ import (
 
 // K8sCrdStorageAddonDbAccess 定义 addon 元数据的数据库访问接口
 type K8sCrdStorageAddonDbAccess interface {
-	Create(model *models.K8sCrdStorageAddonModel) (*models.K8sCrdStorageAddonModel, error)
+	Create(model *metamodel.K8sCrdStorageAddonModel) (*metamodel.K8sCrdStorageAddonModel, error)
 	DeleteByID(id uint64) (uint64, error)
-	FindByID(id uint64) (*models.K8sCrdStorageAddonModel, error)
-	FindByParams(params map[string]interface{}) ([]models.K8sCrdStorageAddonModel, error)
-	Update(model *models.K8sCrdStorageAddonModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.K8sCrdStorageAddonModel, int64, error)
+	FindByID(id uint64) (*metamodel.K8sCrdStorageAddonModel, error)
+	FindByParams(params *metaentity.AddonQueryParams) ([]*metamodel.K8sCrdStorageAddonModel, error)
+	Update(model *metamodel.K8sCrdStorageAddonModel) (uint64, error)
+	ListByPage(pagination commentity.Pagination) ([]metamodel.K8sCrdStorageAddonModel, int64, error)
 }
 
 // K8sCrdStorageAddonDbAccessImpl K8sCrdStorageAddonDbAccess 的具体实现
@@ -46,27 +47,27 @@ type K8sCrdStorageAddonDbAccessImpl struct {
 }
 
 // FindByParams 参数查询实现
-func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params map[string]interface{}) (
-	[]models.K8sCrdStorageAddonModel,
+func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params *metaentity.AddonQueryParams) (
+	[]*metamodel.K8sCrdStorageAddonModel,
 	error,
 ) {
-	var saModels []models.K8sCrdStorageAddonModel
+	var addonModels []*metamodel.K8sCrdStorageAddonModel
 	if err := k.db.
 		Where(params).
 		Limit(mconst.MaxFetchSize).
-		Find(&saModels).Error; err != nil {
+		Find(&addonModels).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []models.K8sCrdStorageAddonModel{}, nil
+			return []*metamodel.K8sCrdStorageAddonModel{}, nil
 		}
 		slog.Error("failed to find by params", "error", err)
 		return nil, fmt.Errorf("database query failed: %w", err)
 	}
-	return saModels, nil
+	return addonModels, nil
 }
 
 // Create 创建 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *models.K8sCrdStorageAddonModel) (
-	*models.K8sCrdStorageAddonModel,
+func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *metamodel.K8sCrdStorageAddonModel) (
+	*metamodel.K8sCrdStorageAddonModel,
 	error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
@@ -78,7 +79,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *models.K8sCrdStorageAddon
 
 // DeleteByID 删除 addon 元数据接口实现
 func (k *K8sCrdStorageAddonDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
-	result := k.db.Delete(&models.K8sCrdStorageAddonModel{}, id)
+	result := k.db.Delete(&metamodel.K8sCrdStorageAddonModel{}, id)
 	if result.Error != nil {
 		slog.Error("Delete storageAddon error", "error", result.Error.Error())
 		return 0, result.Error
@@ -87,18 +88,18 @@ func (k *K8sCrdStorageAddonDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 }
 
 // FindByID 查找 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) FindByID(id uint64) (*models.K8sCrdStorageAddonModel, error) {
-	var storageAddonModel models.K8sCrdStorageAddonModel
-	result := k.db.First(&storageAddonModel, id)
+func (k *K8sCrdStorageAddonDbAccessImpl) FindByID(id uint64) (*metamodel.K8sCrdStorageAddonModel, error) {
+	var addonModel metamodel.K8sCrdStorageAddonModel
+	result := k.db.First(&addonModel, id)
 	if result.Error != nil {
 		slog.Error("Find storageAddon error", "error", result.Error.Error())
 		return nil, result.Error
 	}
-	return &storageAddonModel, nil
+	return &addonModel, nil
 }
 
 // Update 更新 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *models.K8sCrdStorageAddonModel) (uint64, error) {
+func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *metamodel.K8sCrdStorageAddonModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(storageAddonModel)
 	if result.Error != nil {
 		slog.Error("Update storageAddon error", "error", result.Error.Error())
@@ -108,17 +109,17 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *models.K8sCrd
 }
 
 // ListByPage 分页查询 addon 元数据接口实现
-func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.K8sCrdStorageAddonModel,
+func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination commentity.Pagination) (
+	[]metamodel.K8sCrdStorageAddonModel,
 	int64,
 	error,
 ) {
-	var addonModels []models.K8sCrdStorageAddonModel
-	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&addonModels).Error; err != nil {
+	var addonModel []metamodel.K8sCrdStorageAddonModel
+	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&addonModel).Error; err != nil {
 		slog.Error("List storageAddon error", "error", err.Error())
 		return nil, 0, err
 	}
-	return addonModels, int64(len(addonModels)), nil
+	return addonModel, int64(len(addonModel)), nil
 }
 
 // NewK8sCrdStorageAddonDbAccess 创建 K8sCrdStorageAddonDbAccess 接口实现实例

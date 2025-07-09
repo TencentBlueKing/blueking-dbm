@@ -24,7 +24,7 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	"k8s-dbs/metadata/model"
 	"testing"
 	"time"
 

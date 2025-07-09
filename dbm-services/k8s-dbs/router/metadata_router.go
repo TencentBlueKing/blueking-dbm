@@ -34,12 +34,6 @@ func buildMetaRouter(db *gorm.DB, router *gin.Engine) {
 	{
 		buildAddonMetaRouter(db, metaRouter)
 
-		buildCdMetaRouter(db, metaRouter)
-
-		buildCmpdMetaRouter(db, metaRouter)
-
-		buildCmpvMetaRouter(db, metaRouter)
-
 		buildClusterMetaRouter(db, metaRouter)
 
 		buildOpsMetaRouter(db, metaRouter)
@@ -131,48 +125,6 @@ func buildClusterMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
 		clusterMetaGroup.GET("/search", clusterMetaController.ListCluster)
-	}
-}
-
-// buildCmpvMetaRouter cmpv 元数据管理路由构建
-func buildCmpvMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cmpvMetaDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
-	cmpvMetaProvider := metaprovider.NewK8sCrdCmpvProvider(cmpvMetaDbAccess)
-	cmpvMetaController := metacontroller.NewCmpvController(cmpvMetaProvider)
-	cmpvMetaGroup := metaRouter.Group("/cmpv")
-	{
-		cmpvMetaGroup.GET("/:id", cmpvMetaController.GetCmpv)
-		cmpvMetaGroup.DELETE("/:id", cmpvMetaController.DeleteCmpv)
-		cmpvMetaGroup.POST("", cmpvMetaController.CreateCmpv)
-		cmpvMetaGroup.PUT("/:id", cmpvMetaController.UpdateCmpv)
-	}
-}
-
-// buildCmpdMetaRouter cmpd 元数据管理路由构建
-func buildCmpdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cmpdMetaDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
-	cmpdMetaProvider := metaprovider.NewK8sCrdCmpdProvider(cmpdMetaDbAccess)
-	cmpdMetaController := metacontroller.NewCmpdController(cmpdMetaProvider)
-	cmpdMetaGroup := metaRouter.Group("/cmpd")
-	{
-		cmpdMetaGroup.GET("/:id", cmpdMetaController.GetCmpd)
-		cmpdMetaGroup.DELETE("/:id", cmpdMetaController.DeleteCmpd)
-		cmpdMetaGroup.POST("", cmpdMetaController.CreateCmpd)
-		cmpdMetaGroup.PUT("/:id", cmpdMetaController.UpdateCmpd)
-	}
-}
-
-// buildCdMetaRouter cd 元数据管理路由构建
-func buildCdMetaRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
-	cdMetaDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
-	cdMetaProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(cdMetaDbAccess)
-	cdMetaController := metacontroller.NewCdController(cdMetaProvider)
-	cdMetaGroup := metaRouter.Group("/cd")
-	{
-		cdMetaGroup.GET("/:id", cdMetaController.GetCd)
-		cdMetaGroup.DELETE("/:id", cdMetaController.DeleteCd)
-		cdMetaGroup.POST("", cdMetaController.CreateCd)
-		cdMetaGroup.PUT("/:id", cdMetaController.UpdateCd)
 	}
 }
 

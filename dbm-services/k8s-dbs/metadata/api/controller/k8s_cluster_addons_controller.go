@@ -23,8 +23,9 @@ import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/resp"
+	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/resp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -65,10 +66,10 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 // GetAddonsByClusterName retrieves cluster addons by k8s_cluster_name.
 func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
 	k8sClusterName := ctx.Query("k8sClusterName")
-	params := map[string]interface{}{
-		"k8s_cluster_name": k8sClusterName,
+	clusterAddonParams := &metaentity.K8sClusterAddonQueryParams{
+		K8sClusterName: k8sClusterName,
 	}
-	clusterAddons, err := k.caProvider.FindClusterAddonByParams(params)
+	clusterAddons, err := k.caProvider.FindClusterAddonByParams(clusterAddonParams)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return

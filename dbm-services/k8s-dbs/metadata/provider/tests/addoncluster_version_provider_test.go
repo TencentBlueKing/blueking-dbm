@@ -20,9 +20,9 @@ limitations under the License.
 package tests
 
 import (
+	entitys "k8s-dbs/metadata/entity"
 	testhelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

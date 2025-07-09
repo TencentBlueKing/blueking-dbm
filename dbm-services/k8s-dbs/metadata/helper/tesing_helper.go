@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	model2 "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/driver/mysql"
@@ -52,7 +52,7 @@ func InitTestTable(table string, modelPtr interface{}) (*gorm.DB, error) {
 
 // GetAcVersionTestDbAccess 获取测试 AddonClusterVersionDbAccess
 func GetAcVersionTestDbAccess() dbaccess.AddonClusterVersionDbAccess {
-	db, err := InitTestTable(constant.TbAddonClusterVersion, &model.AddonClusterVersionModel{})
+	db, err := InitTestTable(constant.TbAddonClusterVersion, &model2.AddonClusterVersionModel{})
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +62,7 @@ func GetAcVersionTestDbAccess() dbaccess.AddonClusterVersionDbAccess {
 
 // GetClusterTagTestDbAccess 获取测试 ClusterTagTestDbAccess
 func GetClusterTagTestDbAccess() dbaccess.K8sCrdClusterTagDbAccess {
-	db, err := InitTestTable(constant.TbK8sCrdClusterTag, &model.K8sCrdClusterTagModel{})
+	db, err := InitTestTable(constant.TbK8sCrdClusterTag, &model2.K8sCrdClusterTagModel{})
 	if err != nil {
 		panic(err)
 	}

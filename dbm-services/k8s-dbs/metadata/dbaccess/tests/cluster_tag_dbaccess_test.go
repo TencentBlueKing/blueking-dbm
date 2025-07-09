@@ -20,8 +20,8 @@ limitations under the License.
 package tests
 
 import (
-	"k8s-dbs/metadata/dbaccess/model"
 	testhelper "k8s-dbs/metadata/helper"
+	"k8s-dbs/metadata/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

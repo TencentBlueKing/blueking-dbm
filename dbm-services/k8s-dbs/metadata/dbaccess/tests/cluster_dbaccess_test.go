@@ -24,8 +24,8 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
 	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
 	"time"
 
@@ -206,9 +206,9 @@ func TestListCluster(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	params := map[string]interface{}{
-		"namespace": "default",
-		"status":    "Running",
+	params := &metaentity.ClusterQueryParams{
+		Namespace: "default",
+		Status:    "Running",
 	}
 
 	pagination := entity.Pagination{

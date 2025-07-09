@@ -31,7 +31,6 @@ import (
 	corehelper "k8s-dbs/core/helper"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
-	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 	"sort"
 
@@ -241,7 +240,7 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 // saveClusterRelease 记录集群 release 元数据
 func (c *ClusterProvider) saveClusterRelease(
 	request *coreentity.Request,
-	k8sClusterConfig *provderentity.K8sClusterConfigEntity,
+	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
 	values map[string]interface{},
 ) error {
 	clusterRelease, err := buildClusterReleaseEntity(
@@ -270,14 +269,14 @@ func (c *ClusterProvider) saveClusterRelease(
 // saveClusterMetaData 记录集群 tags
 func (c *ClusterProvider) saveClusterTags(
 	request *coreentity.Request,
-	cluster *provderentity.K8sCrdClusterEntity,
+	cluster *metaentity.K8sCrdClusterEntity,
 ) error {
 	if len(request.Tags) == 0 {
 		return nil
 	}
-	var tagEntities []*provderentity.K8sCrdClusterTagEntity
+	var tagEntities []*metaentity.K8sCrdClusterTagEntity
 	for _, tag := range request.Tags {
-		tagEntity := &provderentity.K8sCrdClusterTagEntity{
+		tagEntity := &metaentity.K8sCrdClusterTagEntity{
 			CrdClusterID: cluster.ID,
 			ClusterTag:   tag,
 		}
@@ -298,7 +297,7 @@ func (c *ClusterProvider) saveClusterCRMetaData(
 	request *coreentity.Request,
 	requestID string,
 	k8sClusterConfigID uint64,
-) (*provderentity.K8sCrdClusterEntity, error) {
+) (*metaentity.K8sCrdClusterEntity, error) {
 	// 记录 cluster 元数据
 	addedClusterEntity, err := c.createClusterEntity(request, requestID, k8sClusterConfigID)
 	if err != nil {
@@ -349,12 +348,12 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 		return err
 	}
 
-	paramsRelease := map[string]interface{}{
-		"k8s_cluster_config_id": k8sClusterConfig.ID,
-		"release_name":          request.ClusterName,
-		"namespace":             request.Namespace,
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		ReleaseName:        request.ClusterName,
+		Namespace:          request.Namespace,
 	}
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
 	if err != nil {
 		return err
 	}
@@ -406,12 +405,13 @@ func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) erro
 		return err
 	}
 
-	paramsRelease := map[string]interface{}{
-		"k8s_cluster_config_id": k8sClusterConfig.ID,
-		"release_name":          request.ClusterName,
-		"namespace":             request.Namespace,
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		ReleaseName:        request.ClusterName,
+		Namespace:          request.Namespace,
 	}
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(paramsRelease)
+
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
 	if err != nil {
 		return err
 	}
@@ -484,14 +484,14 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 // clearClusterRelease 清理 cluster release 元数据
 func (c *ClusterProvider) clearClusterRelease(
 	request *coreentity.Request,
-	k8sClusterConfig *provderentity.K8sClusterConfigEntity,
+	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
 ) error {
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(
-		map[string]interface{}{
-			"k8s_cluster_config_id": k8sClusterConfig.ID,
-			"release_name":          request.ClusterName,
-			"namespace":             request.Namespace,
-		})
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		ReleaseName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	}
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
 	if err != nil {
 		return err
 	}
@@ -505,7 +505,7 @@ func (c *ClusterProvider) clearClusterRelease(
 // clearClusterTags 清理 cluster tag 元数据
 func (c *ClusterProvider) clearClusterTags(
 	request *coreentity.Request,
-	clusterEntity *provderentity.K8sCrdClusterEntity,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) error {
 	dbsContext := &commentity.DbsContext{
 		BkAuth: &request.BKAuth,
@@ -519,7 +519,7 @@ func (c *ClusterProvider) clearClusterTags(
 }
 
 // clearClusterCRMetaData 清理 cluster 关联的资源元数据
-func (c *ClusterProvider) clearClusterCRMetaData(clusterEntity *provderentity.K8sCrdClusterEntity) error {
+func (c *ClusterProvider) clearClusterCRMetaData(clusterEntity *metaentity.K8sCrdClusterEntity) error {
 	_, err := c.clusterMetaProvider.DeleteClusterByID(clusterEntity.ID)
 	if err != nil {
 		slog.Error("failed to delete cluster", "error", err)
@@ -556,12 +556,12 @@ func (c *ClusterProvider) createClusterEntity(
 	request *coreentity.Request,
 	requestID string,
 	k8sClusterConfigID uint64,
-) (*provderentity.K8sCrdClusterEntity, error) {
-	addonParams := map[string]interface{}{
-		"addon_type":    request.StorageAddonType,
-		"addon_version": request.StorageAddonVersion,
+) (*metaentity.K8sCrdClusterEntity, error) {
+	addonQueryParams := &metaentity.AddonQueryParams{
+		AddonType:    request.StorageAddonType,
+		AddonVersion: request.StorageAddonVersion,
 	}
-	storageAddon, err := c.addonMetaProvider.FindStorageAddonByParams(addonParams)
+	storageAddon, err := c.addonMetaProvider.FindStorageAddonByParams(addonQueryParams)
 	if err != nil {
 		slog.Error("failed to get storage addon", "error", err)
 		return nil, err
@@ -572,7 +572,7 @@ func (c *ClusterProvider) createClusterEntity(
 		return nil, err
 	}
 
-	clusterEntity := &provderentity.K8sCrdClusterEntity{
+	clusterEntity := &metaentity.K8sCrdClusterEntity{
 		AddonID:             storageAddon[0].ID,
 		AddonClusterVersion: request.AddonClusterVersion,
 		TopoName:            request.TopoName,
@@ -600,11 +600,11 @@ func (c *ClusterProvider) createClusterEntity(
 func (c *ClusterProvider) createComponentEntity(
 	request *coreentity.Request,
 	crdClusterID uint64,
-) ([]*provderentity.K8sCrdComponentEntity, error) {
-	var compEntityList []*provderentity.K8sCrdComponentEntity
+) ([]*metaentity.K8sCrdComponentEntity, error) {
+	var compEntityList []*metaentity.K8sCrdComponentEntity
 	for _, comp := range request.ComponentList {
 		compName := request.Metadata.ClusterName + "-" + comp.ComponentName
-		componentEntity := &provderentity.K8sCrdComponentEntity{
+		componentEntity := &metaentity.K8sCrdComponentEntity{
 			ComponentName: compName,
 			CrdClusterID:  crdClusterID,
 			CreatedBy:     request.BKAuth.BkUserName,
@@ -651,7 +651,7 @@ func buildClusterReleaseEntity(
 	repoName string,
 	repoRepository string,
 	releaseValues map[string]interface{},
-) (*provderentity.AddonClusterReleaseEntity, error) {
+) (*metaentity.AddonClusterReleaseEntity, error) {
 	releaseName := request.ClusterName
 	namespace := request.Namespace
 	chartName := request.StorageAddonType + "-cluster"
@@ -668,7 +668,7 @@ func buildClusterReleaseEntity(
 
 	jsonStr := string(jsonData)
 
-	return &provderentity.AddonClusterReleaseEntity{
+	return &metaentity.AddonClusterReleaseEntity{
 		K8sClusterConfigID: k8sClusterConfigID,
 		ReleaseName:        releaseName,
 		Namespace:          namespace,
@@ -835,10 +835,11 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 // getClusterHelmRepository 获取 cluster helm repository
 func (c *ClusterProvider) getClusterHelmRepository(
 	request *coreentity.Request,
-) (*provderentity.AddonClusterHelmRepoEntity, error) {
-	repoParams := make(map[string]interface{})
-	repoParams["chart_name"] = request.StorageAddonType + "-cluster"
-	repoParams["chart_version"] = request.StorageAddonVersion
+) (*metaentity.AddonClusterHelmRepoEntity, error) {
+	repoParams := &metaentity.HelmRepoQueryParams{
+		ChartName:    request.StorageAddonType + "-cluster",
+		ChartVersion: request.StorageAddonVersion,
+	}
 
 	helmRepo, err := c.clusterHelmRepoProvider.FindByParams(repoParams)
 	if err != nil {

@@ -20,7 +20,7 @@ limitations under the License.
 package tests
 
 import (
-	"k8s-dbs/metadata/dbaccess/model"
+	"k8s-dbs/metadata/model"
 	"testing"
 	"time"
 

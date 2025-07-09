@@ -21,8 +21,8 @@ package provider
 
 import (
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	entitys "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"

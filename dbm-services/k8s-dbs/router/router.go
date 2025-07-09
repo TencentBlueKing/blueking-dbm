@@ -78,17 +78,14 @@ func NewRouter(db *gorm.DB) *Router {
 
 // CoreAPIProviders 封装 core api providers
 type CoreAPIProviders struct {
-	ClusterMetaProvider         metaprovider.K8sCrdClusterProvider
-	ClusterDefinitionProvider   metaprovider.K8sCrdClusterDefinitionProvider
-	ComponentMetaProvider       metaprovider.K8sCrdComponentProvider
-	ComponentDefinitionProvider metaprovider.K8sCrdCmpdProvider
-	ComponentVersionProvider    metaprovider.K8sCrdCmpvProvider
-	ClusterConfigProvider       metaprovider.K8sClusterConfigProvider
-	RequestRecordProvider       metaprovider.ClusterRequestRecordProvider
-	ClusterReleaseProvider      metaprovider.AddonClusterReleaseProvider
-	HelmRepoProvider            metaprovider.AddonClusterHelmRepoProvider
-	AddonMetaProvider           metaprovider.K8sCrdStorageAddonProvider
-	ClusterTagProvider          metaprovider.K8sCrdClusterTagProvider
+	ClusterMetaProvider    metaprovider.K8sCrdClusterProvider
+	ComponentMetaProvider  metaprovider.K8sCrdComponentProvider
+	ClusterConfigProvider  metaprovider.K8sClusterConfigProvider
+	RequestRecordProvider  metaprovider.ClusterRequestRecordProvider
+	ClusterReleaseProvider metaprovider.AddonClusterReleaseProvider
+	HelmRepoProvider       metaprovider.AddonClusterHelmRepoProvider
+	AddonMetaProvider      metaprovider.K8sCrdStorageAddonProvider
+	ClusterTagProvider     metaprovider.K8sCrdClusterTagProvider
 }
 
 // buildCoreAPIProviders 构建 core api providers
@@ -100,17 +97,8 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
 		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	clusterDefinitionDbAccess := metadbaccess.NewK8sCrdClusterDefinitionDbAccess(db)
-	clusterDefinitionProvider := metaprovider.NewK8sCrdClusterDefinitionProvider(clusterDefinitionDbAccess)
-
 	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
 	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
-
-	componentDefinitionDbAccess := metadbaccess.NewK8sCrdCmpdDbAccess(db)
-	componentDefinitionProvider := metaprovider.NewK8sCrdCmpdProvider(componentDefinitionDbAccess)
-
-	componentVersionDbAccess := metadbaccess.NewK8sCrdCmpvDbAccess(db)
-	componentVersionProvider := metaprovider.NewK8sCrdCmpvProvider(componentVersionDbAccess)
 
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 
@@ -128,17 +116,14 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(clusterTagDbAccess)
 
 	return &CoreAPIProviders{
-		ClusterMetaProvider:         clusterMetaProvider,
-		ClusterDefinitionProvider:   clusterDefinitionProvider,
-		ComponentMetaProvider:       componentMetaProvider,
-		ComponentDefinitionProvider: componentDefinitionProvider,
-		ComponentVersionProvider:    componentVersionProvider,
-		ClusterConfigProvider:       k8sClusterConfigProvider,
-		RequestRecordProvider:       requestRecordProvider,
-		ClusterReleaseProvider:      clusterReleaseProvider,
-		HelmRepoProvider:            helmRepoProvider,
-		AddonMetaProvider:           addonMetaProvider,
-		ClusterTagProvider:          clusterTagProvider,
+		ClusterMetaProvider:    clusterMetaProvider,
+		ComponentMetaProvider:  componentMetaProvider,
+		ClusterConfigProvider:  k8sClusterConfigProvider,
+		RequestRecordProvider:  requestRecordProvider,
+		ClusterReleaseProvider: clusterReleaseProvider,
+		HelmRepoProvider:       helmRepoProvider,
+		AddonMetaProvider:      addonMetaProvider,
+		ClusterTagProvider:     clusterTagProvider,
 	}, nil
 }
 

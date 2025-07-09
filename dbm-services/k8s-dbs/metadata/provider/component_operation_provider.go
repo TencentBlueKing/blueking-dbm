@@ -22,8 +22,8 @@ package provider
 import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	entity2 "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -31,8 +31,8 @@ import (
 
 // ComponentOperationProvider 定义 component operation 业务逻辑层访问接口
 type ComponentOperationProvider interface {
-	CreateComponentOperation(entity *entitys.ComponentOperationEntity) (*entitys.ComponentOperationEntity, error)
-	ListComponentOperations(pagination entity.Pagination) ([]*entitys.ComponentOperationEntity, error)
+	CreateComponentOperation(entity *entity2.ComponentOperationEntity) (*entity2.ComponentOperationEntity, error)
+	ListComponentOperations(pagination entity.Pagination) ([]*entity2.ComponentOperationEntity, error)
 }
 
 // ComponentOperationProviderImpl ComponentOperationProvider 具体实现
@@ -42,8 +42,8 @@ type ComponentOperationProviderImpl struct {
 }
 
 // CreateComponentOperation 创建 component operation
-func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entitys.ComponentOperationEntity) (
-	*entitys.ComponentOperationEntity, error,
+func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entity2.ComponentOperationEntity) (
+	*entity2.ComponentOperationEntity, error,
 ) {
 	model := models.ComponentOperationModel{}
 	err := copier.Copy(&model, entity)
@@ -56,7 +56,7 @@ func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entity
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	addedEntity := entitys.ComponentOperationEntity{}
+	addedEntity := entity2.ComponentOperationEntity{}
 	if err := copier.Copy(&addedEntity, addedModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -66,7 +66,7 @@ func (o *ComponentOperationProviderImpl) CreateComponentOperation(entity *entity
 
 // ListComponentOperations 获取 component operation 列表
 func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination entity.Pagination) (
-	[]*entitys.ComponentOperationEntity,
+	[]*entity2.ComponentOperationEntity,
 	error,
 ) {
 	componentOpModels, _, err := o.componentOpDBAccess.ListByPage(pagination)
@@ -74,7 +74,7 @@ func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination enti
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	var componentOpEntities []*entitys.ComponentOperationEntity
+	var componentOpEntities []*entity2.ComponentOperationEntity
 	if err := copier.Copy(&componentOpEntities, componentOpModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -85,7 +85,7 @@ func (o *ComponentOperationProviderImpl) ListComponentOperations(pagination enti
 		if err != nil {
 			return nil, err
 		}
-		opDefEntity := entitys.OperationDefinitionEntity{}
+		opDefEntity := entity2.OperationDefinitionEntity{}
 		if err := copier.Copy(&opDefEntity, opDefModel); err != nil {
 			slog.Error("Failed to copy entity to copied model", "error", err)
 			return nil, err

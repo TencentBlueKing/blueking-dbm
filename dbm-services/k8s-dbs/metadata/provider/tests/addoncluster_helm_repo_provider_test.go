@@ -24,9 +24,9 @@ import (
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +56,7 @@ func TestCreateClusterHelmRepo(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	repoProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
-	repo := &entitys.AddonClusterHelmRepoEntity{
+	repo := &metaentity.AddonClusterHelmRepoEntity{
 		RepoName:       "test-reponame",
 		RepoRepository: "test-repository",
 		RepoUsername:   "test-username",
@@ -86,7 +86,7 @@ func TestDeleteClusterHelmRepo(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	repoProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
-	repo := &entitys.AddonClusterHelmRepoEntity{
+	repo := &metaentity.AddonClusterHelmRepoEntity{
 		RepoName:       "test-reponame",
 		RepoRepository: "test-repository",
 		RepoUsername:   "test-username",
@@ -114,7 +114,7 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	repoProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
-	repo := &entitys.AddonClusterHelmRepoEntity{
+	repo := &metaentity.AddonClusterHelmRepoEntity{
 		RepoName:       "test-reponame",
 		RepoRepository: "test-repository",
 		RepoUsername:   "test-username",
@@ -132,7 +132,7 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 
-	updateRepo := &entitys.AddonClusterHelmRepoEntity{
+	updateRepo := &metaentity.AddonClusterHelmRepoEntity{
 		ID:             1,
 		RepoName:       "test-reponame",
 		RepoRepository: "test-repository",
@@ -151,7 +151,7 @@ func TestListClusterHelmRepo(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	repoProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
-	repos := []entitys.AddonClusterHelmRepoEntity{
+	repos := []metaentity.AddonClusterHelmRepoEntity{
 		{
 			RepoName:       "test-reponame",
 			RepoRepository: "test-repository",
@@ -204,7 +204,7 @@ func TestGetClusterHelmRepo(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	repoProvider := provider.NewAddonClusterHelmRepoProvider(dbAccess)
-	repo := &entitys.AddonClusterHelmRepoEntity{
+	repo := &metaentity.AddonClusterHelmRepoEntity{
 		RepoName:       "test-reponame",
 		RepoRepository: "test-repository",
 		RepoUsername:   "test-username",
@@ -222,11 +222,12 @@ func TestGetClusterHelmRepo(t *testing.T) {
 	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"chart_name":    "test-chartname",
-		"chart_version": "test-chartversion",
-		"repo_name":     "test-reponame",
+	params := &metaentity.HelmRepoQueryParams{
+		ChartName:    "test-chartname",
+		ChartVersion: "test-chartversion",
+		RepoName:     "test-reponame",
 	}
+
 	foundRepo, err := repoProvider.FindByParams(params)
 	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)

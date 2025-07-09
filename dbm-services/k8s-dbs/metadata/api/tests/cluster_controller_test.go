@@ -24,7 +24,7 @@ import (
 	"k8s-dbs/metadata/api/controller"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
 	"net/http"
 	"net/http/httptest"

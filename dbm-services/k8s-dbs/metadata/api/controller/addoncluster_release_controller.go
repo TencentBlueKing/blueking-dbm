@@ -23,10 +23,11 @@ import (
 	"encoding/json"
 	"fmt"
 	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/entity"
+	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/resp"
+	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/resp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -50,50 +51,49 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
 	cluster, err := c.clusterReleaseProvider.FindClusterReleaseByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, cluster); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	coreentity.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterReleaseByParam get addon cluster release by its Param.
 func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
-	releaseNameParam := ctx.Param("releaseName")
-	namespaceParam := ctx.Param("namespace")
-	if releaseNameParam == "" || namespaceParam == "" {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("cluster_name 参数不能为空")))
+	releaseName := ctx.Param("releaseName")
+	namespace := ctx.Param("namespace")
+	if releaseName == "" || namespace == "" {
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("cluster_name 参数不能为空")))
 		return
 	}
-	paramsRelease := map[string]interface{}{
-		"release_name": releaseNameParam,
-		"namespace":    namespaceParam,
+	params := &metaentity.ClusterReleaseQueryParams{
+		ReleaseName: releaseName,
+		Namespace:   namespace,
 	}
-	clusterRelease, err := c.clusterReleaseProvider.FindByParams(paramsRelease)
+	clusterRelease, err := c.clusterReleaseProvider.FindByParams(params)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
 	var respVo resp.AddonClusterReleaseRespVo
 	if err = copier.Copy(&respVo, clusterRelease); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	// Deserialization
 	var chartValues map[string]interface{}
 	if err = json.Unmarshal([]byte(clusterRelease.ChartValues), &chartValues); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
 	respVo.ChartValues = chartValues
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	coreentity.SuccessResponse(ctx, respVo, commconst.Success)
 }

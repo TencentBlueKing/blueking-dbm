@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -233,11 +234,12 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 	_, err = dbAccess.Create(release)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"k8s_cluster_config_id": 1,
-		"release_name":          "test-release",
-		"namespace":             "test-namespace",
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: 1,
+		ReleaseName:        "test-release",
+		Namespace:          "test-namespace",
 	}
+
 	findClusterRelease, err := dbAccess.FindByParams(params)
 	assert.NoError(t, err)
 	assert.Equal(t, release.RepoName, findClusterRelease.RepoName)

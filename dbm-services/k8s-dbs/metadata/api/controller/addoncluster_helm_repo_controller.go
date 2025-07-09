@@ -25,10 +25,10 @@ import (
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/req"
-	"k8s-dbs/metadata/api/vo/resp"
+	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	metaentity "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/vo/req"
+	"k8s-dbs/metadata/vo/resp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -105,10 +105,12 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) 
 			fmt.Errorf("chartName 或 chartVersion 参数不能为空")))
 		return
 	}
-	params := map[string]interface{}{
-		"chart_name":    chartName,
-		"chart_version": chartVersion,
+
+	params := &metaentity.HelmRepoQueryParams{
+		ChartName:    chartName,
+		ChartVersion: chartVersion,
 	}
+
 	repo, err := c.clusterHelmRepoProvider.FindByParams(params)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))

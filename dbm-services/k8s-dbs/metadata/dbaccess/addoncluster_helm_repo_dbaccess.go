@@ -21,8 +21,9 @@ package dbaccess
 
 import (
 	"errors"
-	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
+	commentity "k8s-dbs/common/entity"
+	metaenitty "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -30,12 +31,12 @@ import (
 
 // AddonClusterHelmRepoDbAccess 定义 AddonClusterHelmRepo 元数据的数据库访问接口
 type AddonClusterHelmRepoDbAccess interface {
-	Create(model *models.AddonClusterHelmRepoModel) (*models.AddonClusterHelmRepoModel, error)
+	Create(model *metamodel.AddonClusterHelmRepoModel) (*metamodel.AddonClusterHelmRepoModel, error)
 	DeleteByID(id uint64) (uint64, error)
-	FindByID(id uint64) (*models.AddonClusterHelmRepoModel, error)
-	FindByParams(params map[string]interface{}) (*models.AddonClusterHelmRepoModel, error)
-	Update(model *models.AddonClusterHelmRepoModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.AddonClusterHelmRepoModel, int64, error)
+	FindByID(id uint64) (*metamodel.AddonClusterHelmRepoModel, error)
+	FindByParams(params *metaenitty.HelmRepoQueryParams) (*metamodel.AddonClusterHelmRepoModel, error)
+	Update(model *metamodel.AddonClusterHelmRepoModel) (uint64, error)
+	ListByPage(pagination commentity.Pagination) ([]metamodel.AddonClusterHelmRepoModel, int64, error)
 }
 
 // AddonClusterHelmRepoDbAccessImpl AddonClusterHelmRepoDbAccess 的具体实现
@@ -44,8 +45,8 @@ type AddonClusterHelmRepoDbAccessImpl struct {
 }
 
 // Create 创建接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *models.AddonClusterHelmRepoModel) (
-	*models.AddonClusterHelmRepoModel,
+func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *metamodel.AddonClusterHelmRepoModel) (
+	*metamodel.AddonClusterHelmRepoModel,
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
@@ -57,7 +58,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *models.AddonClusterHelm
 
 // DeleteByID 删除接口实现
 func (a *AddonClusterHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
-	result := a.db.Delete(&models.AddonClusterHelmRepoModel{}, id)
+	result := a.db.Delete(&metamodel.AddonClusterHelmRepoModel{}, id)
 	if result.Error != nil {
 		slog.Error("Delete model error", "error", result.Error.Error())
 		return 0, result.Error
@@ -66,8 +67,8 @@ func (a *AddonClusterHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error)
 }
 
 // FindByID 查找接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) FindByID(id uint64) (*models.AddonClusterHelmRepoModel, error) {
-	var model models.AddonClusterHelmRepoModel
+func (a *AddonClusterHelmRepoDbAccessImpl) FindByID(id uint64) (*metamodel.AddonClusterHelmRepoModel, error) {
+	var model metamodel.AddonClusterHelmRepoModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
 		slog.Error("Find model error", "error", result.Error.Error())
@@ -77,15 +78,12 @@ func (a *AddonClusterHelmRepoDbAccessImpl) FindByID(id uint64) (*models.AddonClu
 }
 
 // FindByParams 根据参数查找接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) FindByParams(params map[string]interface{}) (
-	*models.AddonClusterHelmRepoModel,
+func (a *AddonClusterHelmRepoDbAccessImpl) FindByParams(params *metaenitty.HelmRepoQueryParams) (
+	*metamodel.AddonClusterHelmRepoModel,
 	error,
 ) {
-	var helmRepo models.AddonClusterHelmRepoModel
-
-	// 动态条件查询
+	var helmRepo metamodel.AddonClusterHelmRepoModel
 	result := a.db.Where(params).First(&helmRepo)
-
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		slog.Error("Find model error", "error", result.Error.Error())
 		return nil, result.Error
@@ -99,7 +97,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) FindByParams(params map[string]interf
 }
 
 // Update 更新接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) Update(model *models.AddonClusterHelmRepoModel) (uint64, error) {
+func (a *AddonClusterHelmRepoDbAccessImpl) Update(model *metamodel.AddonClusterHelmRepoModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
 		slog.Error("Update model error", "error", result.Error.Error())
@@ -109,12 +107,12 @@ func (a *AddonClusterHelmRepoDbAccessImpl) Update(model *models.AddonClusterHelm
 }
 
 // ListByPage 分页查询接口实现
-func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.AddonClusterHelmRepoModel,
+func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination commentity.Pagination) (
+	[]metamodel.AddonClusterHelmRepoModel,
 	int64,
 	error,
 ) {
-	var releaseModels []models.AddonClusterHelmRepoModel
+	var releaseModels []metamodel.AddonClusterHelmRepoModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
 		slog.Error("List release error", "error", err.Error())
 		return nil, 0, err

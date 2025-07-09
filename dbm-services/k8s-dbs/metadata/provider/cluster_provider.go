@@ -22,9 +22,8 @@ package provider
 import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
 	metaentity "k8s-dbs/metadata/entity"
-	entitys "k8s-dbs/metadata/provider/entity"
+	models "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -32,14 +31,14 @@ import (
 
 // K8sCrdClusterProvider 定义 cluster 业务逻辑层访问接口
 type K8sCrdClusterProvider interface {
-	CreateCluster(entity *entitys.K8sCrdClusterEntity) (*entitys.K8sCrdClusterEntity, error)
+	CreateCluster(entity *metaentity.K8sCrdClusterEntity) (*metaentity.K8sCrdClusterEntity, error)
 	DeleteClusterByID(id uint64) (uint64, error)
-	FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error)
-	FindByParams(params *metaentity.ClusterQueryParams) (*entitys.K8sCrdClusterEntity, error)
-	UpdateCluster(entity *entitys.K8sCrdClusterEntity) (uint64, error)
-	ListClusters(params map[string]interface{},
+	FindClusterByID(id uint64) (*metaentity.K8sCrdClusterEntity, error)
+	FindByParams(params *metaentity.ClusterQueryParams) (*metaentity.K8sCrdClusterEntity, error)
+	UpdateCluster(entity *metaentity.K8sCrdClusterEntity) (uint64, error)
+	ListClusters(params *metaentity.ClusterQueryParams,
 		pagination *entity.Pagination,
-	) ([]*entitys.K8sCrdClusterEntity, uint64, error)
+	) ([]*metaentity.K8sCrdClusterEntity, uint64, error)
 }
 
 // K8sCrlClusterProviderImpl K8sCrlClusterProvider 具体实现
@@ -51,8 +50,8 @@ type K8sCrlClusterProviderImpl struct {
 }
 
 // CreateCluster 创建 cluster
-func (k *K8sCrlClusterProviderImpl) CreateCluster(entity *entitys.K8sCrdClusterEntity) (
-	*entitys.K8sCrdClusterEntity, error,
+func (k *K8sCrlClusterProviderImpl) CreateCluster(entity *metaentity.K8sCrdClusterEntity) (
+	*metaentity.K8sCrdClusterEntity, error,
 ) {
 	k8sCrdClusterModel := models.K8sCrdClusterModel{}
 	err := copier.Copy(&k8sCrdClusterModel, entity)
@@ -65,7 +64,7 @@ func (k *K8sCrlClusterProviderImpl) CreateCluster(entity *entitys.K8sCrdClusterE
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	clusterEntity := entitys.K8sCrdClusterEntity{}
+	clusterEntity := metaentity.K8sCrdClusterEntity{}
 	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {
 		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
@@ -79,12 +78,12 @@ func (k *K8sCrlClusterProviderImpl) DeleteClusterByID(id uint64) (uint64, error)
 }
 
 // FindClusterByID 通过 ID 查找 cluster
-func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdClusterEntity, error) {
+func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sCrdClusterEntity, error) {
 	clusterModel, err := k.clusterDbAccess.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
-	clusterEntity := &entitys.K8sCrdClusterEntity{}
+	clusterEntity := &metaentity.K8sCrdClusterEntity{}
 	if err := copier.Copy(clusterEntity, clusterModel); err != nil {
 		return nil, err
 	}
@@ -93,7 +92,7 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 	if err != nil {
 		return nil, err
 	}
-	addonEntity := &entitys.K8sCrdStorageAddonEntity{}
+	addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(addonEntity, addonModel); err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 	if err != nil {
 		return nil, err
 	}
-	var tagEntities []*entitys.K8sCrdClusterTagEntity
+	var tagEntities []*metaentity.K8sCrdClusterTagEntity
 	if err := copier.Copy(&tagEntities, tagModels); err != nil {
 		return nil, err
 	}
@@ -113,7 +112,7 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 	if err != nil {
 		return nil, err
 	}
-	k8sConfigEntity := &entitys.K8sClusterConfigEntity{}
+	k8sConfigEntity := &metaentity.K8sClusterConfigEntity{}
 	if err := copier.Copy(k8sConfigEntity, k8sConfigModel); err != nil {
 		return nil, err
 	}
@@ -123,7 +122,7 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*entitys.K8sCrdC
 
 // FindByParams 通过 params 查找 cluster
 func (k *K8sCrlClusterProviderImpl) FindByParams(params *metaentity.ClusterQueryParams) (
-	*entitys.K8sCrdClusterEntity,
+	*metaentity.K8sCrdClusterEntity,
 	error,
 ) {
 	clusterModel, err := k.clusterDbAccess.FindByParams(params)
@@ -131,7 +130,7 @@ func (k *K8sCrlClusterProviderImpl) FindByParams(params *metaentity.ClusterQuery
 		slog.Error("Failed to find clusterModel by params", "params", params, "error", err)
 		return nil, err
 	}
-	clusterEntity := entitys.K8sCrdClusterEntity{}
+	clusterEntity := metaentity.K8sCrdClusterEntity{}
 	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {
 		return nil, err
 	}
@@ -140,7 +139,7 @@ func (k *K8sCrlClusterProviderImpl) FindByParams(params *metaentity.ClusterQuery
 		slog.Error("Failed to find addonModel by ID", "ID", clusterModel.AddonID, "error", err)
 		return nil, err
 	}
-	addonEntity := &entitys.K8sCrdStorageAddonEntity{}
+	addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 	if err := copier.Copy(addonEntity, addonModel); err != nil {
 		return nil, err
 	}
@@ -149,7 +148,7 @@ func (k *K8sCrlClusterProviderImpl) FindByParams(params *metaentity.ClusterQuery
 }
 
 // UpdateCluster 更新 cluster
-func (k *K8sCrlClusterProviderImpl) UpdateCluster(entity *entitys.K8sCrdClusterEntity) (uint64, error) {
+func (k *K8sCrlClusterProviderImpl) UpdateCluster(entity *metaentity.K8sCrdClusterEntity) (uint64, error) {
 	clusterModel := models.K8sCrdClusterModel{}
 	err := copier.Copy(&clusterModel, entity)
 	if err != nil {
@@ -166,15 +165,15 @@ func (k *K8sCrlClusterProviderImpl) UpdateCluster(entity *entitys.K8sCrdClusterE
 
 // ListClusters 查询 cluster 列表
 func (k *K8sCrlClusterProviderImpl) ListClusters(
-	params map[string]interface{},
+	params *metaentity.ClusterQueryParams,
 	pagination *entity.Pagination,
-) ([]*entitys.K8sCrdClusterEntity, uint64, error) {
+) ([]*metaentity.K8sCrdClusterEntity, uint64, error) {
 	clusterModels, count, err := k.clusterDbAccess.ListByPage(params, pagination)
 	if err != nil {
 		slog.Error("Failed to list cluster", "error", err)
 		return nil, 0, err
 	}
-	var clusterEntities []*entitys.K8sCrdClusterEntity
+	var clusterEntities []*metaentity.K8sCrdClusterEntity
 	if err := copier.Copy(&clusterEntities, clusterModels); err != nil {
 		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, 0, err
@@ -185,7 +184,7 @@ func (k *K8sCrlClusterProviderImpl) ListClusters(
 			slog.Error("Failed to find entity", "error", err)
 			return nil, 0, err
 		}
-		addonEntity := &entitys.K8sCrdStorageAddonEntity{}
+		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 		if err := copier.Copy(addonEntity, addonModel); err != nil {
 			slog.Error("Failed to copy model to copied model", "error", err)
 			return nil, 0, err

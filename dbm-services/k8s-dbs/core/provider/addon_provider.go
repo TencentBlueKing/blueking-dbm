@@ -30,8 +30,8 @@ import (
 	"k8s-dbs/core/helper"
 	corehelper "k8s-dbs/core/helper"
 	pventity "k8s-dbs/core/provider/entity"
+	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
-	provderentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 
 	helmcli "helm.sh/helm/v3/pkg/cli"
@@ -200,11 +200,11 @@ func (a *AddonProvider) ManageAddon(
 // getAddonHelmRepository 获取 addon helm repository
 func (a *AddonProvider) getAddonHelmRepository(
 	entity *pventity.AddonEntity,
-) (*provderentity.AddonHelmRepoEntity, error) {
-	repoParams := make(map[string]interface{})
-	repoParams["chart_name"] = entity.AddonType
-	repoParams["chart_version"] = entity.AddonVersion
-
+) (*metaentity.AddonHelmRepoEntity, error) {
+	repoParams := &metaentity.HelmRepoQueryParams{
+		ChartName:    entity.AddonType,
+		ChartVersion: entity.AddonVersion,
+	}
 	helmRepo, err := a.addonHelmRepoMeta.FindByParams(repoParams)
 	if err != nil {
 		slog.Error("failed to find helm repo for addon", "addon_type",
@@ -332,7 +332,7 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 
 // createClusterAddon 记录 k8s 集群 addon 的安装信息
 func (a *AddonProvider) createClusterAddon(dbsContext *commentity.DbsContext, entity *pventity.AddonEntity) (
-	*provderentity.K8sClusterAddonsEntity,
+	*metaentity.K8sClusterAddonsEntity,
 	error,
 ) {
 	storageAddon, err := a.getStorageAddon(entity)
@@ -341,7 +341,7 @@ func (a *AddonProvider) createClusterAddon(dbsContext *commentity.DbsContext, en
 		return nil, err
 	}
 
-	clusterAddon := provderentity.K8sClusterAddonsEntity{
+	clusterAddon := metaentity.K8sClusterAddonsEntity{
 		K8sClusterName: entity.K8sClusterName,
 		AddonID:        storageAddon.ID,
 		CreatedBy:      dbsContext.BkAuth.BkUserName,
@@ -366,13 +366,14 @@ func (a *AddonProvider) deleteClusterAddon(_ *commentity.DbsContext, entity *pve
 		slog.Error("failed to get storage addon", "error", err)
 		return err
 	}
-	caParams := map[string]interface{}{
-		"addon_id":         storageAddon.ID,
-		"k8s_cluster_name": entity.K8sClusterName,
+
+	clusterAddonParams := &metaentity.K8sClusterAddonQueryParams{
+		K8sClusterName: entity.K8sClusterName,
+		AddonID:        storageAddon.ID,
 	}
-	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(caParams)
+	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(clusterAddonParams)
 	if err != nil {
-		slog.Error("failed to find cluster addon record", "caParams", caParams, "error", err)
+		slog.Error("failed to find cluster addon record", "caParams", clusterAddonParams, "error", err)
 	}
 	if len(clusterAddons) == 1 {
 		_, err := a.clusterAddonsMeta.DeleteClusterAddon(clusterAddons[0].ID)
@@ -391,13 +392,13 @@ func (a *AddonProvider) updateClusterAddon(dbsContext *commentity.DbsContext, en
 		slog.Error("failed to get storage addon", "error", err)
 		return err
 	}
-	caParams := map[string]interface{}{
-		"addon_id":         storageAddon.ID,
-		"k8s_cluster_name": entity.K8sClusterName,
+	clusterAddonParams := &metaentity.K8sClusterAddonQueryParams{
+		K8sClusterName: entity.K8sClusterName,
+		AddonID:        storageAddon.ID,
 	}
-	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(caParams)
+	clusterAddons, err := a.clusterAddonsMeta.FindClusterAddonByParams(clusterAddonParams)
 	if err != nil {
-		slog.Error("failed to find cluster addon record", "caParams", caParams, "error", err)
+		slog.Error("failed to find cluster addon record", "caParams", clusterAddonParams, "error", err)
 		return err
 	}
 	if len(clusterAddons) == 1 {
@@ -413,12 +414,12 @@ func (a *AddonProvider) updateClusterAddon(dbsContext *commentity.DbsContext, en
 }
 
 // getStorageAddon 获取 storage addons
-func (a *AddonProvider) getStorageAddon(entity *pventity.AddonEntity) (*provderentity.K8sCrdStorageAddonEntity, error) {
-	saParams := map[string]interface{}{
-		"addon_type":    entity.AddonType,
-		"addon_version": entity.AddonVersion,
+func (a *AddonProvider) getStorageAddon(entity *pventity.AddonEntity) (*metaentity.K8sCrdStorageAddonEntity, error) {
+	addonQueryParams := &metaentity.AddonQueryParams{
+		AddonType:    entity.AddonType,
+		AddonVersion: entity.AddonVersion,
 	}
-	saEntities, err := a.addonMeta.FindStorageAddonByParams(saParams)
+	saEntities, err := a.addonMeta.FindStorageAddonByParams(addonQueryParams)
 	if err != nil {
 		slog.Error("failed to find addon meta data", "error", err,
 			"addon_type", entity.AddonType, "addon_version", entity.AddonVersion)

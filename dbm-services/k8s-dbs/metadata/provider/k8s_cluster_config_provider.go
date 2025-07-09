@@ -21,8 +21,8 @@ package provider
 
 import (
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -30,11 +30,11 @@ import (
 
 // K8sClusterConfigProvider 定义 cluster config 业务逻辑层访问接口
 type K8sClusterConfigProvider interface {
-	CreateConfig(entity *entitys.K8sClusterConfigEntity) (*entitys.K8sClusterConfigEntity, error)
+	CreateConfig(entity *metaentity.K8sClusterConfigEntity) (*metaentity.K8sClusterConfigEntity, error)
 	DeleteConfigByID(id uint64) (uint64, error)
-	FindConfigByID(id uint64) (*entitys.K8sClusterConfigEntity, error)
-	FindConfigByName(name string) (*entitys.K8sClusterConfigEntity, error)
-	UpdateConfig(entity *entitys.K8sClusterConfigEntity) (uint64, error)
+	FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error)
+	FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error)
+	UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error)
 }
 
 // K8sClusterConfigProviderImpl K8sClusterConfigProvider 具体实现
@@ -43,10 +43,10 @@ type K8sClusterConfigProviderImpl struct {
 }
 
 // CreateConfig 创建 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *entitys.K8sClusterConfigEntity) (
-	*entitys.K8sClusterConfigEntity, error,
+func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *metaentity.K8sClusterConfigEntity) (
+	*metaentity.K8sClusterConfigEntity, error,
 ) {
-	configModel := models.K8sClusterConfigModel{}
+	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -57,7 +57,7 @@ func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *entitys.K8sClusterCo
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	configEntity := entitys.K8sClusterConfigEntity{}
+	configEntity := metaentity.K8sClusterConfigEntity{}
 	if err := copier.Copy(&configEntity, createdModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -71,13 +71,13 @@ func (k *K8sClusterConfigProviderImpl) DeleteConfigByID(id uint64) (uint64, erro
 }
 
 // FindConfigByID 根据 ID 查找 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*entitys.K8sClusterConfigEntity, error) {
+func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
 		slog.Error("Failed to find entity", "error", err)
 		return nil, err
 	}
-	configEntity := entitys.K8sClusterConfigEntity{}
+	configEntity := metaentity.K8sClusterConfigEntity{}
 	if err := copier.Copy(&configEntity, configModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -86,13 +86,13 @@ func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*entitys.K8sCl
 }
 
 // FindConfigByName 根据 Params 查找 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*entitys.K8sClusterConfigEntity, error) {
+func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByClusterName(name)
 	if err != nil {
 		slog.Error("Failed to find entity", "error", err)
 		return nil, err
 	}
-	clusterEntity := entitys.K8sClusterConfigEntity{}
+	clusterEntity := metaentity.K8sClusterConfigEntity{}
 	if err := copier.Copy(&clusterEntity, configModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -101,8 +101,8 @@ func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*entitys.K
 }
 
 // UpdateConfig 更新 k8s cluster config
-func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *entitys.K8sClusterConfigEntity) (uint64, error) {
-	configModel := models.K8sClusterConfigModel{}
+func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error) {
+	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)

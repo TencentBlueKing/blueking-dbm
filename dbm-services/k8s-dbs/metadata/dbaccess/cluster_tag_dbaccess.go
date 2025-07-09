@@ -21,7 +21,7 @@ package dbaccess
 
 import (
 	metaconst "k8s-dbs/metadata/constant"
-	models "k8s-dbs/metadata/dbaccess/model"
+	models "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"

@@ -22,8 +22,8 @@ package provider
 import (
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	entitys "k8s-dbs/metadata/entity"
+	models "k8s-dbs/metadata/model"
 
 	"github.com/jinzhu/copier"
 )

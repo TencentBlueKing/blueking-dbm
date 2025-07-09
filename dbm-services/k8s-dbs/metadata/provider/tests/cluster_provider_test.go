@@ -24,10 +24,9 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
 	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
 	"time"
 
@@ -64,7 +63,7 @@ func TestCreateCluster(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(clusterDbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := &entitys.K8sCrdClusterEntity{
+	cluster := &metaentity.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
@@ -92,7 +91,7 @@ func TestDeleteCluster(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := &entitys.K8sCrdClusterEntity{
+	cluster := &metaentity.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
@@ -120,7 +119,7 @@ func TestUpdateCluster(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := &entitys.K8sCrdClusterEntity{
+	cluster := &metaentity.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
@@ -132,7 +131,7 @@ func TestUpdateCluster(t *testing.T) {
 	_, err = clusterProvider.CreateCluster(cluster)
 	assert.NoError(t, err)
 
-	newCluster := &entitys.K8sCrdClusterEntity{
+	newCluster := &metaentity.K8sCrdClusterEntity{
 		ID:          1,
 		ClusterName: "mycluster2",
 		Namespace:   "default2",
@@ -156,7 +155,7 @@ func TestGetCluster(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := &entitys.K8sCrdClusterEntity{
+	cluster := &metaentity.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
@@ -187,7 +186,7 @@ func TestGetClusterByParams(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := &entitys.K8sCrdClusterEntity{
+	cluster := &metaentity.K8sCrdClusterEntity{
 		ClusterName:        "mycluster",
 		Namespace:          "default",
 		K8sClusterConfigID: 1,
@@ -223,7 +222,7 @@ func TestListCluster(t *testing.T) {
 	clusterProvider := provider.NewK8sCrdClusterProvider(dbAccess, addonDbAccess,
 		clusterTagDbAccess, k8sClusterConfigDbAccess)
 
-	cluster := []entitys.K8sCrdClusterEntity{
+	cluster := []metaentity.K8sCrdClusterEntity{
 		{
 			ClusterName:        "mycluster1",
 			Namespace:          "default",
@@ -247,9 +246,9 @@ func TestListCluster(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	params := map[string]interface{}{
-		"namespace": "default",
-		"status":    "Running",
+	params := &metaentity.ClusterQueryParams{
+		Namespace: "default",
+		Status:    "Running",
 	}
 
 	pagination := entity.Pagination{

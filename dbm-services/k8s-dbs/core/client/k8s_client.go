@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 	"k8s-dbs/core/client/constants"
-	entitys "k8s-dbs/metadata/provider/entity"
+	entitys "k8s-dbs/metadata/entity"
 	"log"
 
 	metricsclientset "k8s.io/metrics/pkg/client/clientset/versioned"

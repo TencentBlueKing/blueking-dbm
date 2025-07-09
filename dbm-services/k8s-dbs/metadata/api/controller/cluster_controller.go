@@ -24,15 +24,15 @@ import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/errors"
+	metaentity "k8s-dbs/metadata/entity"
 	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/resp"
 	"log/slog"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-
-	respvo "k8s-dbs/metadata/api/vo/resp"
 )
 
 var queryParamsMapping = map[string]string{
@@ -84,7 +84,7 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data respvo.K8sCrdClusterRespVo
+	var data resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, cluster); err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 		return
@@ -103,11 +103,17 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	}
 	params := metahelper.BuildPageParams(ctx)
 	params = mapParamsWithMapping(params, queryParamsMapping)
-	clusterEntities, count, err := c.clusterProvider.ListClusters(params, pagination)
+	clusterQueryParams := metaentity.ClusterQueryParams{}
+
+	if err := copier.Copy(&clusterQueryParams, params); err != nil {
+		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		return
+	}
+	clusterEntities, count, err := c.clusterProvider.ListClusters(&clusterQueryParams, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
 	}
-	var data []respvo.K8sCrdClusterRespVo
+	var data []resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, clusterEntities); err != nil {
 		slog.Error("fail to copy cluster data", "error", err)
 		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
@@ -117,7 +123,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		data[idx].BkBizTitle = fmt.Sprintf("[%d]%s", clusterEntity.BkBizID, clusterEntity.BkBizName)
 		data[idx].TopoNameAlias = getTopoNameAlias(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
 	}
-	var responseData = respvo.PageResult{
+	var responseData = resp.PageResult{
 		Count:  count,
 		Result: data,
 	}

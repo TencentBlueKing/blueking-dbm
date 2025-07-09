@@ -21,8 +21,8 @@ package provider
 
 import (
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -30,10 +30,10 @@ import (
 
 // K8sCrdOpsRequestProvider 定义 ospRequest 业务逻辑层访问接口
 type K8sCrdOpsRequestProvider interface {
-	CreateOpsRequest(entity *entitys.K8sCrdOpsRequestEntity) (*entitys.K8sCrdOpsRequestEntity, error)
+	CreateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (*metaentity.K8sCrdOpsRequestEntity, error)
 	DeleteOpsRequestByID(id uint64) (uint64, error)
-	FindOpsRequestByID(id uint64) (*entitys.K8sCrdOpsRequestEntity, error)
-	UpdateOpsRequest(entity *entitys.K8sCrdOpsRequestEntity) (uint64, error)
+	FindOpsRequestByID(id uint64) (*metaentity.K8sCrdOpsRequestEntity, error)
+	UpdateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (uint64, error)
 }
 
 // K8sCrdOpsRequestProviderImpl K8sCrdOpsRequestDbAccess 具体实现
@@ -42,10 +42,10 @@ type K8sCrdOpsRequestProviderImpl struct {
 }
 
 // CreateOpsRequest 创建 opsRequest
-func (k K8sCrdOpsRequestProviderImpl) CreateOpsRequest(entity *entitys.K8sCrdOpsRequestEntity) (
-	*entitys.K8sCrdOpsRequestEntity, error,
+func (k K8sCrdOpsRequestProviderImpl) CreateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (
+	*metaentity.K8sCrdOpsRequestEntity, error,
 ) {
-	k8sOpsRequestModel := models.K8sCrdOpsRequestModel{}
+	k8sOpsRequestModel := metamodel.K8sCrdOpsRequestModel{}
 	err := copier.Copy(&k8sOpsRequestModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -56,7 +56,7 @@ func (k K8sCrdOpsRequestProviderImpl) CreateOpsRequest(entity *entitys.K8sCrdOps
 		slog.Error("Failed to create entity", "error", err)
 		return nil, err
 	}
-	opsEntity := entitys.K8sCrdOpsRequestEntity{}
+	opsEntity := metaentity.K8sCrdOpsRequestEntity{}
 	if err := copier.Copy(&opsEntity, opsModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -70,13 +70,13 @@ func (k K8sCrdOpsRequestProviderImpl) DeleteOpsRequestByID(id uint64) (uint64, e
 }
 
 // FindOpsRequestByID 查找 opsRequest
-func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByID(id uint64) (*entitys.K8sCrdOpsRequestEntity, error) {
+func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByID(id uint64) (*metaentity.K8sCrdOpsRequestEntity, error) {
 	opsModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
 		slog.Error("Failed to delete entity", "error", err)
 		return nil, err
 	}
-	opsEntity := entitys.K8sCrdOpsRequestEntity{}
+	opsEntity := metaentity.K8sCrdOpsRequestEntity{}
 	if err := copier.Copy(&opsEntity, opsModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -85,8 +85,8 @@ func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByID(id uint64) (*entitys.K8
 }
 
 // UpdateOpsRequest 更新 opsRequest
-func (k K8sCrdOpsRequestProviderImpl) UpdateOpsRequest(entity *entitys.K8sCrdOpsRequestEntity) (uint64, error) {
-	opsRequestModel := models.K8sCrdOpsRequestModel{}
+func (k K8sCrdOpsRequestProviderImpl) UpdateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (uint64, error) {
+	opsRequestModel := metamodel.K8sCrdOpsRequestModel{}
 	err := copier.Copy(&opsRequestModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)

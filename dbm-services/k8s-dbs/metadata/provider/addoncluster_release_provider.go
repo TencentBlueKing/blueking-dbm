@@ -22,8 +22,8 @@ package provider
 import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	models "k8s-dbs/metadata/dbaccess/model"
-	entitys "k8s-dbs/metadata/provider/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"github.com/jinzhu/copier"
@@ -31,12 +31,12 @@ import (
 
 // AddonClusterReleaseProvider 定义 addon cluster release 业务逻辑层访问接口
 type AddonClusterReleaseProvider interface {
-	CreateClusterRelease(entity *entitys.AddonClusterReleaseEntity) (*entitys.AddonClusterReleaseEntity, error)
+	CreateClusterRelease(entity *metaentity.AddonClusterReleaseEntity) (*metaentity.AddonClusterReleaseEntity, error)
 	DeleteClusterReleaseByID(id uint64) (uint64, error)
-	FindClusterReleaseByID(id uint64) (*entitys.AddonClusterReleaseEntity, error)
-	FindByParams(params map[string]interface{}) (*entitys.AddonClusterReleaseEntity, error)
-	UpdateClusterRelease(entity *entitys.AddonClusterReleaseEntity) (uint64, error)
-	ListClusterReleases(pagination entity.Pagination) ([]*entitys.AddonClusterReleaseEntity, error)
+	FindClusterReleaseByID(id uint64) (*metaentity.AddonClusterReleaseEntity, error)
+	FindByParams(params *metaentity.ClusterReleaseQueryParams) (*metaentity.AddonClusterReleaseEntity, error)
+	UpdateClusterRelease(entity *metaentity.AddonClusterReleaseEntity) (uint64, error)
+	ListClusterReleases(pagination entity.Pagination) ([]*metaentity.AddonClusterReleaseEntity, error)
 }
 
 // AddonClusterReleaseProviderImpl AddonClusterReleaseProvider 具体实现
@@ -45,10 +45,10 @@ type AddonClusterReleaseProviderImpl struct {
 }
 
 // CreateClusterRelease 创建 cluster release
-func (a *AddonClusterReleaseProviderImpl) CreateClusterRelease(entity *entitys.AddonClusterReleaseEntity) (
-	*entitys.AddonClusterReleaseEntity, error,
+func (a *AddonClusterReleaseProviderImpl) CreateClusterRelease(entity *metaentity.AddonClusterReleaseEntity) (
+	*metaentity.AddonClusterReleaseEntity, error,
 ) {
-	releaseModel := models.AddonClusterReleaseModel{}
+	releaseModel := metamodel.AddonClusterReleaseModel{}
 	err := copier.Copy(&releaseModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -59,7 +59,7 @@ func (a *AddonClusterReleaseProviderImpl) CreateClusterRelease(entity *entitys.A
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	addedEntity := entitys.AddonClusterReleaseEntity{}
+	addedEntity := metaentity.AddonClusterReleaseEntity{}
 	if err := copier.Copy(&addedEntity, addedModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -74,7 +74,7 @@ func (a *AddonClusterReleaseProviderImpl) DeleteClusterReleaseByID(id uint64) (u
 
 // FindClusterReleaseByID 查找 cluster release
 func (a *AddonClusterReleaseProviderImpl) FindClusterReleaseByID(id uint64) (
-	*entitys.AddonClusterReleaseEntity,
+	*metaentity.AddonClusterReleaseEntity,
 	error,
 ) {
 	releaseModel, err := a.dbAccess.FindByID(id)
@@ -82,7 +82,7 @@ func (a *AddonClusterReleaseProviderImpl) FindClusterReleaseByID(id uint64) (
 		slog.Error("Failed to find entity")
 		return nil, err
 	}
-	releaseEntity := entitys.AddonClusterReleaseEntity{}
+	releaseEntity := metaentity.AddonClusterReleaseEntity{}
 	if err := copier.Copy(&releaseEntity, releaseModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -91,8 +91,8 @@ func (a *AddonClusterReleaseProviderImpl) FindClusterReleaseByID(id uint64) (
 }
 
 // FindByParams 通过 params 查找 addon cluster release
-func (a *AddonClusterReleaseProviderImpl) FindByParams(params map[string]interface{}) (
-	*entitys.AddonClusterReleaseEntity,
+func (a *AddonClusterReleaseProviderImpl) FindByParams(params *metaentity.ClusterReleaseQueryParams) (
+	*metaentity.AddonClusterReleaseEntity,
 	error,
 ) {
 	clusterReleaseModel, err := a.dbAccess.FindByParams(params)
@@ -100,7 +100,7 @@ func (a *AddonClusterReleaseProviderImpl) FindByParams(params map[string]interfa
 		slog.Error("Failed to find entity", "error", err)
 		return nil, err
 	}
-	clusterReleaseEntity := entitys.AddonClusterReleaseEntity{}
+	clusterReleaseEntity := metaentity.AddonClusterReleaseEntity{}
 	if err := copier.Copy(&clusterReleaseEntity, clusterReleaseModel); err != nil {
 		slog.Error("Failed to copy model to copied model", "error", err)
 		return nil, err
@@ -109,11 +109,11 @@ func (a *AddonClusterReleaseProviderImpl) FindByParams(params map[string]interfa
 }
 
 // UpdateClusterRelease 更新 cluster release
-func (a *AddonClusterReleaseProviderImpl) UpdateClusterRelease(entity *entitys.AddonClusterReleaseEntity) (
+func (a *AddonClusterReleaseProviderImpl) UpdateClusterRelease(entity *metaentity.AddonClusterReleaseEntity) (
 	uint64,
 	error,
 ) {
-	releaseModel := models.AddonClusterReleaseModel{}
+	releaseModel := metamodel.AddonClusterReleaseModel{}
 	err := copier.Copy(&releaseModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -129,7 +129,7 @@ func (a *AddonClusterReleaseProviderImpl) UpdateClusterRelease(entity *entitys.A
 
 // ListClusterReleases 获取 addon cluster release 列表
 func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination entity.Pagination) (
-	[]*entitys.AddonClusterReleaseEntity,
+	[]*metaentity.AddonClusterReleaseEntity,
 	error,
 ) {
 	releaseModels, _, err := a.dbAccess.ListByPage(pagination)
@@ -137,7 +137,7 @@ func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination entity.
 		slog.Error("Failed to find release")
 		return nil, err
 	}
-	var releaseEntities []*entitys.AddonClusterReleaseEntity
+	var releaseEntities []*metaentity.AddonClusterReleaseEntity
 	if err := copier.Copy(&releaseEntities, releaseModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err

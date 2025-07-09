@@ -26,8 +26,8 @@ import (
 	"k8s-dbs/common/util"
 	coreclient "k8s-dbs/core/client"
 	coreentity "k8s-dbs/core/entity"
+	providerentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
-	providerentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 
 	"helm.sh/helm/v3/pkg/action"

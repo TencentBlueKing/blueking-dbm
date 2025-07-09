@@ -28,9 +28,8 @@ import (
 	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
-	metacommentity "k8s-dbs/metadata/entity"
+	metaenitty "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
-	metaentity "k8s-dbs/metadata/provider/entity"
 	"log/slog"
 	"strings"
 
@@ -631,7 +630,7 @@ func CreateOpsRequestMetaData(
 	if err != nil {
 		return err
 	}
-	params := metacommentity.ClusterQueryParams{
+	params := metaenitty.ClusterQueryParams{
 		ClusterName: request.ClusterName,
 		Namespace:   request.Namespace,
 	}
@@ -652,7 +651,7 @@ func CreateOpsRequestMetaData(
 }
 
 // getEntityFromReq 解析 request 构建 K8sCrdOpsRequestEntity
-func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaentity.K8sCrdOpsRequestEntity, error) {
+func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaenitty.K8sCrdOpsRequestEntity, error) {
 	var opsRequestObject opv1.OpsRequest
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(crd.ResourceObject.Object, &opsRequestObject)
 	if err != nil {
@@ -668,7 +667,7 @@ func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaentity.K8sCrdO
 		return nil, fmt.Errorf("failed to marshal spec to JSON: %w", err)
 	}
 
-	opsReqEntity := &metaentity.K8sCrdOpsRequestEntity{
+	opsReqEntity := &metaenitty.K8sCrdOpsRequestEntity{
 		OpsRequestName: opsRequestObject.Name,
 		OpsRequestType: crd.ResourceType,
 		Metadata:       string(metaDataJSON),
@@ -680,8 +679,8 @@ func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaentity.K8sCrdO
 // UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
 func UpdateValWithHScaling(
 	request *entity.Request,
-	releaseEntity *metaentity.AddonClusterReleaseEntity,
-) (*metaentity.AddonClusterReleaseEntity, error) {
+	releaseEntity *metaenitty.AddonClusterReleaseEntity,
+) (*metaenitty.AddonClusterReleaseEntity, error) {
 	values, err := stringToMap(releaseEntity.ChartValues)
 	if err != nil {
 		return nil, err
@@ -722,13 +721,14 @@ func UpdateValWithCompList(
 	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
 	request *entity.Request,
 	k8sClusterConfigID uint64,
-) (*metaentity.AddonClusterReleaseEntity, error) {
-	paramsRelease := map[string]interface{}{
-		"k8s_cluster_config_id": k8sClusterConfigID,
-		"release_name":          request.ClusterName,
-		"namespace":             request.Namespace,
+) (*metaenitty.AddonClusterReleaseEntity, error) {
+
+	params := &metaenitty.ClusterReleaseQueryParams{
+		K8sClusterConfigID: k8sClusterConfigID,
+		ReleaseName:        request.ClusterName,
+		Namespace:          request.Namespace,
 	}
-	releaseEntity, err := releaseMetaProvider.FindByParams(paramsRelease)
+	releaseEntity, err := releaseMetaProvider.FindByParams(params)
 	if err != nil {
 		return nil, err
 	}

@@ -21,8 +21,9 @@ package dbaccess
 
 import (
 	"errors"
-	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
+	commentity "k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -30,12 +31,12 @@ import (
 
 // AddonHelmRepoDbAccess 定义 AddonClusterHelmRepo 元数据的数据库访问接口
 type AddonHelmRepoDbAccess interface {
-	Create(model *models.AddonHelmRepoModel) (*models.AddonHelmRepoModel, error)
+	Create(model *metamodel.AddonHelmRepoModel) (*metamodel.AddonHelmRepoModel, error)
 	DeleteByID(id uint64) (uint64, error)
-	FindByID(id uint64) (*models.AddonHelmRepoModel, error)
-	FindByParams(params map[string]interface{}) (*models.AddonHelmRepoModel, error)
-	Update(model *models.AddonHelmRepoModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.AddonHelmRepoModel, int64, error)
+	FindByID(id uint64) (*metamodel.AddonHelmRepoModel, error)
+	FindByParams(params *metaentity.HelmRepoQueryParams) (*metamodel.AddonHelmRepoModel, error)
+	Update(model *metamodel.AddonHelmRepoModel) (uint64, error)
+	ListByPage(pagination commentity.Pagination) ([]metamodel.AddonHelmRepoModel, int64, error)
 }
 
 // AddonHelmRepoDbAccessImpl AddonHelmRepoDbAccess 的具体实现
@@ -44,8 +45,8 @@ type AddonHelmRepoDbAccessImpl struct {
 }
 
 // Create 创建接口实现
-func (a *AddonHelmRepoDbAccessImpl) Create(model *models.AddonHelmRepoModel) (
-	*models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) Create(model *metamodel.AddonHelmRepoModel) (
+	*metamodel.AddonHelmRepoModel,
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
@@ -57,7 +58,7 @@ func (a *AddonHelmRepoDbAccessImpl) Create(model *models.AddonHelmRepoModel) (
 
 // DeleteByID 删除接口实现
 func (a *AddonHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
-	result := a.db.Delete(&models.AddonHelmRepoModel{}, id)
+	result := a.db.Delete(&metamodel.AddonHelmRepoModel{}, id)
 	if result.Error != nil {
 		slog.Error("Delete model error", "error", result.Error.Error())
 		return 0, result.Error
@@ -66,8 +67,8 @@ func (a *AddonHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 }
 
 // FindByID 查找接口实现
-func (a *AddonHelmRepoDbAccessImpl) FindByID(id uint64) (*models.AddonHelmRepoModel, error) {
-	var model models.AddonHelmRepoModel
+func (a *AddonHelmRepoDbAccessImpl) FindByID(id uint64) (*metamodel.AddonHelmRepoModel, error) {
+	var model metamodel.AddonHelmRepoModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
 		slog.Error("Find model error", "error", result.Error.Error())
@@ -77,15 +78,12 @@ func (a *AddonHelmRepoDbAccessImpl) FindByID(id uint64) (*models.AddonHelmRepoMo
 }
 
 // FindByParams 根据参数查找接口实现
-func (a *AddonHelmRepoDbAccessImpl) FindByParams(params map[string]interface{}) (
-	*models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) FindByParams(params *metaentity.HelmRepoQueryParams) (
+	*metamodel.AddonHelmRepoModel,
 	error,
 ) {
-	var helmRepo models.AddonHelmRepoModel
-
-	// 动态条件查询
+	var helmRepo metamodel.AddonHelmRepoModel
 	result := a.db.Where(params).First(&helmRepo)
-
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		slog.Error("Find model error", "error", result.Error.Error())
 		return nil, result.Error
@@ -99,7 +97,7 @@ func (a *AddonHelmRepoDbAccessImpl) FindByParams(params map[string]interface{}) 
 }
 
 // Update 更新接口实现
-func (a *AddonHelmRepoDbAccessImpl) Update(model *models.AddonHelmRepoModel) (uint64, error) {
+func (a *AddonHelmRepoDbAccessImpl) Update(model *metamodel.AddonHelmRepoModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
 		slog.Error("Update model error", "error", result.Error.Error())
@@ -109,12 +107,12 @@ func (a *AddonHelmRepoDbAccessImpl) Update(model *models.AddonHelmRepoModel) (ui
 }
 
 // ListByPage 分页查询接口实现
-func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.AddonHelmRepoModel,
+func (a *AddonHelmRepoDbAccessImpl) ListByPage(pagination commentity.Pagination) (
+	[]metamodel.AddonHelmRepoModel,
 	int64,
 	error,
 ) {
-	var releaseModels []models.AddonHelmRepoModel
+	var releaseModels []metamodel.AddonHelmRepoModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
 		slog.Error("List model error", "error", err.Error())
 		return nil, 0, err

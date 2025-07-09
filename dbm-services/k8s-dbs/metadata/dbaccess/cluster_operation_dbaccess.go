@@ -21,7 +21,7 @@ package dbaccess
 
 import (
 	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
+	models "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"
