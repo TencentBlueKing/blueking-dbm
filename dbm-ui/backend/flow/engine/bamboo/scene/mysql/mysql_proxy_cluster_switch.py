@@ -130,6 +130,10 @@ class MySQLProxyClusterSwitchFlow(object):
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
+        # dbha 自愈复用了这个 flow, 需要禁用人工确认节点才能全自动化
+        # 为了不影响已有单据, 增加一个 default = False 的控制变量
+        disable_manual_confirm = self.data.get("disable_manual_confirm", False)
+
         # 多集群操作时循环加入集群proxy替换子流程
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数
@@ -150,15 +154,16 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
             # 解除对主从迁移的单据互斥锁，这个阶段到下一个暂停节点，允许主从迁移单据进入执行
-            sub_pipeline.add_act(
-                act_name=_("解锁部分单据互斥锁"),
-                act_component_code=AddUnlockTicketTypeConfigComponent.code,
-                kwargs=asdict(
-                    AddUnLockTicketTypeKwargs(
-                        cluster_ids=info["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER]
-                    )
-                ),
-            )
+            if not disable_manual_confirm:
+                sub_pipeline.add_act(
+                    act_name=_("解锁部分单据互斥锁"),
+                    act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                    kwargs=asdict(
+                        AddUnLockTicketTypeKwargs(
+                            cluster_ids=info["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER]
+                        )
+                    ),
+                )
 
             # 初始新机器
             sub_pipeline.add_sub_pipeline(
@@ -194,16 +199,17 @@ class MySQLProxyClusterSwitchFlow(object):
             )
             # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行切换
             # 这里会释放前一阶段解除对主从迁移的单据互斥锁，这个阶段不允许主从迁移单据进入执行
-            sub_pipeline.add_act(
-                act_name=_("人工确认，判断互斥条件"),
-                act_component_code=PauseWithTicketLockCheckComponent.code,
-                kwargs=asdict(
-                    ReleaseUnLockTicketTypeKwargs(
-                        cluster_ids=info["cluster_ids"],
-                        release_unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER],
-                    )
-                ),
-            )
+            if not disable_manual_confirm:
+                sub_pipeline.add_act(
+                    act_name=_("人工确认，判断互斥条件"),
+                    act_component_code=PauseWithTicketLockCheckComponent.code,
+                    kwargs=asdict(
+                        ReleaseUnLockTicketTypeKwargs(
+                            cluster_ids=info["cluster_ids"],
+                            release_unlock_ticket_type_list=[TicketType.MYSQL_MIGRATE_CLUSTER],
+                        )
+                    ),
+                )
 
             # 阶段2 根据需要替换的proxy的集群，依次添加
             switch_proxy_sub_list = []
@@ -317,21 +323,22 @@ class MySQLProxyClusterSwitchFlow(object):
                     ],
                     with_actuator=False,
                     with_bk_plugin=False,
-                    with_collect_sysinfo=False,
+                    with_collect_sysinfo=True,
                 )
             )
 
             # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
-            sub_pipeline.add_act(
-                act_name=_("人工确认，判断互斥条件"),
-                act_component_code=PauseWithTicketLockCheckComponent.code,
-                kwargs=asdict(
-                    ReleaseUnLockTicketTypeKwargs(
-                        cluster_ids=info["cluster_ids"],
-                        release_unlock_ticket_type_list=[],
-                    )
-                ),
-            )
+            if not disable_manual_confirm:
+                sub_pipeline.add_act(
+                    act_name=_("人工确认，判断互斥条件"),
+                    act_component_code=PauseWithTicketLockCheckComponent.code,
+                    kwargs=asdict(
+                        ReleaseUnLockTicketTypeKwargs(
+                            cluster_ids=info["cluster_ids"],
+                            release_unlock_ticket_type_list=[],
+                        )
+                    ),
+                )
 
             # 阶段5 机器维度，下架旧机器节点
             reduce_proxy_sub_list = []

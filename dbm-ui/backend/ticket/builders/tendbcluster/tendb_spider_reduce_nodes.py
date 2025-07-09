@@ -97,7 +97,7 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
         super().patch_ticket_detail()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_SPIDER_REDUCE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE, is_recycle=True)
 class MysqlAutofixSpiderReduce(TendbSpiderReduceNodesFlowBuilder):
     """
     自愈专用

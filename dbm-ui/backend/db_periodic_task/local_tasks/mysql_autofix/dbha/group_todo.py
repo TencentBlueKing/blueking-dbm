@@ -115,18 +115,22 @@ def validate_group(row: Dict) -> (str, int, str):
     else:
         instance_count = StorageInstance.objects.filter(machine__bk_cloud_id=row["bk_cloud_id"], machine__ip=row["ip"])
 
-    if row["cnt"] < instance_count.count():
-        event_create_time_min = MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).aggregate(
-            event_create_time=Min("event_create_time")
-        )["event_create_time"]
+    # 还没提单的自愈请求, 需要做超时检查
+    if sts[0] == MySQLAutofixTicketStatus.UNSUBMITTED:
+        if row["cnt"] < instance_count.count():
+            event_create_time_min = MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).aggregate(
+                event_create_time=Min("event_create_time")
+            )["event_create_time"]
 
-        # 等太久了, 超时放弃
-        if event_create_time_min > datetime.now(timezone.utc) - timedelta(minutes=15):
-            MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).update(status=MySQLAutofixTicketStatus.TIMEOUT)
-            raise MySQLDBHAAutofixWaitTimeout(check_id=row["check_id"])
-        else:  # 再等等
-            raise MySQLDBHAAutofixMissingRecord
-    elif row["cnt"] > instance_count.count():
-        raise MySQLDBHAAutofixBadTodoRecord(check_id=row["check_id"])
+            # 等太久了, 超时放弃
+            if event_create_time_min > datetime.now(timezone.utc) - timedelta(minutes=15):
+                MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).update(
+                    status=MySQLAutofixTicketStatus.TIMEOUT
+                )
+                raise MySQLDBHAAutofixWaitTimeout(check_id=row["check_id"])
+            else:  # 再等等
+                raise MySQLDBHAAutofixMissingRecord
+        elif row["cnt"] > instance_count.count():
+            raise MySQLDBHAAutofixBadTodoRecord(check_id=row["check_id"])
 
     return mts[0], ticket_ids[0], sts[0]

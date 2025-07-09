@@ -52,10 +52,10 @@ def spider_autofix(gtd: GroupedTodo):
 
     # 自动审核, 人工执行, 不跟踪状态
     Ticket.create_ticket(
-        ticket_type=TicketType.MYSQL_AUTOFIX_SPIDER_ADD,
+        ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_ADD,
         creator="system",
         bk_biz_id=gtd.bk_biz_id,
-        remark=TicketType.MYSQL_AUTOFIX_SPIDER_ADD,
+        remark=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_ADD,
         details={
             "bk_cloud_id": gtd.bk_cloud_id,
             "bk_biz_id": gtd.bk_biz_id,
@@ -80,10 +80,10 @@ def spider_autofix(gtd: GroupedTodo):
     )
 
     tk = Ticket.create_ticket(
-        ticket_type=TicketType.MYSQL_AUTOFIX_SPIDER_REDUCE,
+        ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE,
         creator="system",
         bk_biz_id=gtd.bk_biz_id,
-        remark=TicketType.MYSQL_AUTOFIX_SPIDER_REDUCE,
+        remark=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE,
         details={
             "bk_cloud_id": gtd.bk_cloud_id,
             "bk_biz_id": gtd.bk_biz_id,

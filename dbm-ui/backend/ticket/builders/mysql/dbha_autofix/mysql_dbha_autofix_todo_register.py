@@ -110,7 +110,7 @@ class MySQLDBHAAutofixRegisterInnerFlowBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_TODO_REGISTER, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_TODO_REGISTER, is_apply=True)
 class MySQLDBHAAutofixRegisterFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDBHAAutofixRegisterDetailSerializer
     alarm_transform_serializer = MySQLDBHAAlarmTransformSerializer

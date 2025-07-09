@@ -72,7 +72,7 @@ class TendbSpiderAddNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     resource_batch_apply_builder = TendbSpiderAddNodesResourceParamBuilder
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_AUTOFIX_SPIDER_ADD, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_ADD, is_apply=True)
 class MysqlAutofixAddSpider(TendbSpiderAddNodesFlowBuilder):
     default_need_itsm = False
     default_need_manual_confirm = True

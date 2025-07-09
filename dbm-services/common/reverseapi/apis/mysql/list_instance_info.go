@@ -1,9 +1,11 @@
 package mysql
 
 import (
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/internal/core"
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -13,6 +15,8 @@ func ListInstanceInfo(core *core.Core, ports ...int) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", errors.Wrap(err, "failed to call list_instance_info")
 	}
+
+	logger.Info(fmt.Sprintf("raw data %s", string(data)))
 	var r []mysql.CommonInstanceInfo
 	err = json.Unmarshal(data, &r)
 	if err != nil {

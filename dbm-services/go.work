@@ -3,7 +3,6 @@ go 1.24.2
 use (
 	k8s-dbs
 	bigdata/db-tools/dbactuator
-	common/celery-service
 	common/db-config
 	common/db-dns/dns-api
 	common/db-dns/dns-api/pkg
