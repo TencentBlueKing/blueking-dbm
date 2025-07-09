@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -23,7 +22,7 @@ func (c *demoEvent) ClusterType() string {
 }
 
 func (c *demoEvent) EventType() string {
-	return "mysql-backup"
+	return "ob-bench"
 }
 
 func (c *demoEvent) EventCreateTimeStamp() time.Time {
@@ -40,13 +39,14 @@ func (c *demoEvent) String() string {
 	return string(b)
 }
 
-func (c *demoEvent) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c)
-}
+//func (c *demoEvent) MarshalJSON() ([]byte, error) {
+//	return json.Marshal(c)
+//}
 
 func main() {
-	flag.Parse()
-	apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
+	//flag.Parse()
+	//apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
+	apiCore := core.NewCore(0, "1.1.1.1:9090")
 
 	event := &demoEvent{
 		bkBizId:  21,

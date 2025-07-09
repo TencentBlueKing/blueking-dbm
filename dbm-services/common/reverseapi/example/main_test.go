@@ -5,14 +5,12 @@ import (
 	"dbm-services/common/reverseapi/internal/core"
 	"fmt"
 	"testing"
-
-	flag "github.com/spf13/pflag"
 )
 
 func benchmarkReport(b *testing.B, buckSize int) {
-	flag.Parse()
-	apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
-
+	//flag.Parse()
+	//apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
+	apiCore := core.NewCore(0, "1.1.1.1:9090")
 	var events []*demoEvent
 	for i := 0; i < buckSize; i++ {
 		events = append(events, &demoEvent{
