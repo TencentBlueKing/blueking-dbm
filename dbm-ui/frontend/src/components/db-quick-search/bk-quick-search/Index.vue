@@ -165,7 +165,7 @@
 
   const renderTagList = computed(() => {
     const wholeList = [...localSelectValueList.value];
-    if (renderTagCount.value <= 0 || isFouced.value) {
+    if (renderTagCount.value < 0 || isFouced.value) {
       return wholeList;
     }
     return wholeList.slice(0, renderTagCount.value);
@@ -285,7 +285,7 @@
 <style lang="less">
   .bk-quick-search {
     position: relative;
-    z-index: 999;
+    z-index: 9;
     height: 32px;
     font-size: 12px;
 
@@ -314,9 +314,9 @@
 
   .bk-quick-search-tag-box {
     display: flex;
-    height: 32px;
+    height: 30px;
     max-width: calc(100% - 24px);
-    min-height: 32px;
+    min-height: 30px;
     padding: 0 8px;
     padding-bottom: 4px;
     overflow: hidden;
