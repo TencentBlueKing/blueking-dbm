@@ -1,7 +1,7 @@
 <template>
   <component
     :is="renderCom"
-    :data="data" />
+    :key="ticketStatus" />
 </template>
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
@@ -13,7 +13,6 @@
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
-    data: TicketModel;
     ticketStatus: string;
   }
 
@@ -28,5 +27,5 @@
     [TicketModel.STATUS_TODO]: StatusTodo,
   };
 
-  const renderCom = comMap[props.ticketStatus];
+  const renderCom = computed(() => comMap[props.ticketStatus]);
 </script>

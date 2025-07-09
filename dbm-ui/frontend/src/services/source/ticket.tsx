@@ -182,6 +182,19 @@ export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
   >(`${path}/flow_types/`, params ?? {});
 }
 
+export function getTicketGroupTypes(params?: { is_apply: 0 | 1 }) {
+  return http.get<
+    {
+      children: {
+        label: string;
+        value: string;
+      }[];
+      label: string;
+      value: string;
+    }[]
+  >(`${path}/ticket_group_types/`, params ?? {});
+}
+
 /**
  * 查询集群变更单据事件
  */
