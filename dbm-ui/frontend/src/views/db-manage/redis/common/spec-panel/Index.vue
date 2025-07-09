@@ -80,7 +80,7 @@
                     {{ data.storage_spec[0].size }}
                   </div>
                   <div class="row_three">
-                    {{ data.storage_spec[0].type }}
+                    {{ deviceClassDisplayMap[data.storage_spec[0].type as DeviceClass] }}
                   </div>
                 </div>
               </div>
@@ -104,6 +104,8 @@
   </BkPopover>
 </template>
 <script setup lang="ts">
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+
   export interface SpecInfo {
     count?: number;
     cpu: {

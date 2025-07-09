@@ -18,13 +18,13 @@
         :model="searchParams"
         @change="(data) => handleSearch(data, 'db')" />
     </BkFormItem>
-    <BkFormItem :label="t('地域 - 园区')">
-      <Region
+    <BkFormItem :label="t('规格')">
+      <Spec
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
-    <BkFormItem :label="t('规格')">
-      <Spec
+    <BkFormItem :label="t('地域 - 园区')">
+      <Region
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
@@ -40,6 +40,8 @@
   import { useUrlSearch } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import { DBTypes } from '@common/const';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
@@ -96,7 +98,7 @@
     }
     if (isInit) {
       // 初始化一定要带db_type和业务id
-      params.db_type = params.db_type || 'PUBLIC';
+      params.db_type = params.db_type || DBTypes.MYSQL;
       params.for_biz = params.for_biz || '0';
     }
     params = filterEmptyValues(params);

@@ -16,7 +16,7 @@
     <div class="spec-form-item-label device-or-mem-label">
       <BkSelect
         v-model="currentType"
-        :disabled="isEdit"
+        :disabled="!editable"
         :filterable="false"
         @change="handleChooseType"
         @toggle="handleTogglePopover">
@@ -24,7 +24,7 @@
           <div
             v-bk-tooltips="{
               content: t('该规格已被使用，不允许修改'),
-              disabled: !isEdit,
+              disabled: editable,
             }"
             class="operation-more-main">
             <span class="label-content">
@@ -37,7 +37,7 @@
                 class="more-icon"
                 :class="{
                   'more-icon-active': isRotate,
-                  'icon-disabled': isEdit,
+                  'icon-disabled': !editable,
                 }"
                 type="down-shape" />
             </span>
@@ -55,17 +55,17 @@
       ref="specDeviceRef"
       v-model="deviceClassModelValue"
       :cpu="cpuModelValue"
-      :is-edit="isEdit"
+      :editable="editable"
       :mem="memModelValue" />
     <div
       v-else
       class="cpu-mem-main">
       <SpecCPU
         v-model="cpuModelValue"
-        :is-edit="isEdit" />
+        :editable="editable" />
       <SpecMem
         v-model="memModelValue"
-        :is-edit="isEdit" />
+        :editable="editable" />
     </div>
   </div>
 </template>
@@ -78,7 +78,7 @@
   import SpecMem from './components/SpecMem.vue';
 
   interface Props {
-    isEdit: boolean;
+    editable: boolean;
   }
 
   interface Exposes {
@@ -86,20 +86,18 @@
     getDeviceClassCpuMem: () => DeviceClassCpuMemType;
   }
 
-  withDefaults(defineProps<Props>(), {
-    isEdit: false,
-  });
+  defineProps<Props>();
 
   const deviceClassModelValue = defineModel<string[]>('deviceClass', { required: true });
 
   const cpuModelValue = defineModel<{
-    min: number | string;
     max: number | string;
+    min: number | string;
   }>('cpu', { required: true });
 
   const memModelValue = defineModel<{
-    min: number | string;
     max: number | string;
+    min: number | string;
   }>('mem', { required: true });
 
   const { t } = useI18n();
@@ -128,12 +126,12 @@
   const handleChooseType = (type: string) => {
     if (type === 'device_class') {
       cpuModelValue.value = {
-        min: 0,
         max: 0,
+        min: 0,
       };
       memModelValue.value = {
-        min: 0,
         max: 0,
+        min: 0,
       };
     } else {
       deviceClassModelValue.value = [];
@@ -216,6 +214,6 @@
   .cpu-mem-main {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
   }
 </style>

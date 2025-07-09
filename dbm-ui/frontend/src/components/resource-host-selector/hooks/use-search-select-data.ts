@@ -3,11 +3,13 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import { fetchDeviceClass, fetchDiskTypes, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
+import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
 import { fetchDbTypeList, getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
-import { getCloudList } from '@services/source/ipchooser';
+import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
+
+import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -76,10 +78,12 @@ export default (props: any) => {
         name: t('磁盘挂载点'),
       },
       {
-        children: diskTypeList.value?.map((item) => ({
-          id: item,
-          name: item,
-        })),
+        children: diskTypeList.value
+          ?.filter((item) => item !== 'ALL')
+          .map((item) => ({
+            id: item,
+            name: deviceClassDisplayMap[item as DeviceClass],
+          })),
         id: 'disk_type',
         name: t('磁盘类型'),
       },
@@ -118,7 +122,7 @@ export default (props: any) => {
     initialData: [],
   });
 
-  const { data: diskTypeList } = useRequest(fetchDiskTypes, {
+  const { data: diskTypeList } = useRequest(searchDeviceClass, {
     initialData: [],
   });
 

@@ -61,7 +61,7 @@
                   {{ data.storage_spec[0]?.size || '--' }}
                 </div>
                 <div class="row-three">
-                  {{ data.storage_spec[0]?.type || '--' }}
+                  {{ data.storage_spec[0] ? deviceClassDisplayMap[data.storage_spec[0].type as DeviceClass] : '--' }}
                 </div>
               </div>
             </div>
@@ -73,6 +73,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   export interface SpecInfo {
     count: number;

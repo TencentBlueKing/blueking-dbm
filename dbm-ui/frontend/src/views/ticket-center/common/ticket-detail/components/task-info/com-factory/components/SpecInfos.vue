@@ -14,10 +14,21 @@
       style="align-items: start">
       <span class="info-title">{{ $t('磁盘') }}：</span>
       <span class="info-value">
-        <DbOriginalTable
+        <BkTable
           class="custom-edit-table mt-8"
-          :columns="columns"
-          :data="data.storage_spec" />
+          :data="data.storage_spec">
+          <BkTableColumn
+            field="mount_point"
+            :label="t('挂载点')" />
+          <BkTableColumn
+            field="size"
+            :label="t('最小容量G')" />
+          <BkTableColumn :label="t('磁盘类型')">
+            <template #default="{ data: rowData }: { data: SpecInfo['storage_spec'][number] }">
+              {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
+            </template>
+          </BkTableColumn>
+        </BkTable>
       </span>
     </div>
   </div>
@@ -25,6 +36,8 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   export interface SpecInfo {
     count: number;
@@ -52,21 +65,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'mount_point',
-      label: t('挂载点'),
-    },
-    {
-      field: 'size',
-      label: t('最小容量G'),
-    },
-    {
-      field: 'type',
-      label: t('磁盘类型'),
-    },
-  ];
 </script>
 
 <style lang="less" scoped>

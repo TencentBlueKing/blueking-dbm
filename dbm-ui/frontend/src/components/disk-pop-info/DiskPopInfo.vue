@@ -11,18 +11,33 @@
       <div style="padding: 8px 1px">
         <BkTable
           border="outer"
-          :columns="tableColumns"
           :data="tableData"
-          :max-height="250" />
+          :max-height="250">
+          <BkTableColumn
+            field="mounted_point"
+            :label="t('挂载点')" />
+          <BkTableColumn
+            field="size"
+            :label="t('容量（G）')" />
+          <BkTableColumn
+            field="disk_type"
+            :label="t('磁盘类型')">
+            <template #default="{ data }: { data: UnwrapRef<typeof tableData>[number] }">
+              {{ deviceClassDisplayMap[data.disk_type as DeviceClass] }}
+            </template>
+          </BkTableColumn>
+        </BkTable>
       </div>
     </template>
   </BkPopover>
 </template>
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { computed, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   interface Props {
     data: DbResourceModel['storage_device'];
@@ -41,19 +56,4 @@
       mounted_point: key,
     })),
   );
-
-  const tableColumns = [
-    {
-      field: 'mounted_point',
-      label: t('挂载点'),
-    },
-    {
-      field: 'size',
-      label: t('容量（G）'),
-    },
-    {
-      field: 'disk_type',
-      label: t('磁盘类型'),
-    },
-  ];
 </script>

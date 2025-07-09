@@ -20,11 +20,11 @@
     :placeholder="t('请选择磁盘类型')"
     @change="handleChange">
     <BkOption
-      v-for="(item, index) in data"
-      :key="`${item}#${index}`"
-      :label="item"
-      :value="item">
-      {{ item }}
+      v-for="item in dataList"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value">
+      {{ item.label }}
     </BkOption>
   </BkSelect>
 </template>
@@ -32,30 +32,37 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchDiskTypes } from '@services/source/dbresourceResource';
+  import { searchDeviceClass } from '@services/source/ipchooser';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   interface Props {
     defaultValue?: string;
     model: Record<string, any>;
   }
 
-  interface Emits {
-    (e: 'change', value: Props['defaultValue']): void;
-  }
-
-  defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
   defineOptions({
     inheritAttrs: false,
   });
 
+  defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
 
-  const { data } = useRequest(fetchDiskTypes, {
-    initialData: [],
-  });
+  const dataList = computed(() =>
+    (data.value || [])
+      .filter((item) => item !== 'ALL')
+      .map((item) => ({
+        label: deviceClassDisplayMap[item as DeviceClass],
+        value: item,
+      })),
+  );
+
+  const { data } = useRequest(searchDeviceClass);
 
   const handleChange = (value: Props['defaultValue']) => {
     emits('change', value);
