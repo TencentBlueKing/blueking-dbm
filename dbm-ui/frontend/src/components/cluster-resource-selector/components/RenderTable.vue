@@ -33,6 +33,10 @@
         :label="t('目标集群')"
         :min-width="240" />
       <BkTableColumn
+        field="cluster_type_name"
+        :label="t('集群类型')"
+        :min-width="160" />
+      <BkTableColumn
         field="phase"
         :filter="filterOption.status"
         :label="t('状态')"
