@@ -43,16 +43,19 @@ export enum FlowTypes {
  */
 export function getTaskflow(params: {
   bk_biz_id?: number;
+  bk_biz_id__in?: string;
   created_at__gte?: string;
   created_at__lte?: string;
   limit: number;
   offset: number;
   root_id?: string;
+  root_id__in?: string;
   status?: string;
   status__in?: string;
   ticket_type?: string;
   ticket_type__in?: string;
   uid?: number;
+  uid__in?: string;
 }) {
   return http.get<ListBase<TaskFlowModel[]>>(`${path}/`, params).then((res) => ({
     ...res,

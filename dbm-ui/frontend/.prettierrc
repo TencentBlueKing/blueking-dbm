@@ -12,6 +12,5 @@
   "arrowParens": "always",
   "vueIndentScriptAndStyle": true,
   "singleAttributePerLine": true,
-  "proseWrap": "always",
-  "plugins": ["@prettier/plugin-oxc"]
+  "proseWrap": "always"
 }
