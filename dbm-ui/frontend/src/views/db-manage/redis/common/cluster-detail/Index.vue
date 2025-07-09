@@ -348,7 +348,7 @@
   };
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.TENDBHA,
+    ClusterTypes.REDIS_CLUSTER,
     {
       onSuccess: () => {
         fetchDetailData();
