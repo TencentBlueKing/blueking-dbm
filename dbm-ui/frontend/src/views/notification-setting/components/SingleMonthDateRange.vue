@@ -57,8 +57,8 @@
 
   const emits = defineEmits<Emits>();
 
-  function generateList() {
-    return new Array(31).fill(0).reduce((results, item, index) => {
+  const generateList = () => {
+    return Array.from({ length: 31 }, () => 0).reduce<ListItem[]>((results, item, index) => {
       const date = index + 1;
       const isToday = date === todayDate;
       const obj = {
@@ -71,8 +71,8 @@
       };
       results.push(obj);
       return results;
-    }, []) as ListItem[];
-  }
+    }, []);
+  };
 
   const showPanel = ref(false);
 

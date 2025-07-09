@@ -313,20 +313,18 @@
               }),
             );
             mergeCells.value.push(
-              ...[
-                {
-                  col: 0,
-                  colspan: 1,
-                  row: tableData.value.length,
-                  rowspan: newRows.length,
-                },
-                {
-                  col: 1,
-                  colspan: 1,
-                  row: tableData.value.length,
-                  rowspan: newRows.length,
-                },
-              ],
+              {
+                col: 0,
+                colspan: 1,
+                row: tableData.value.length,
+                rowspan: newRows.length,
+              },
+              {
+                col: 1,
+                colspan: 1,
+                row: tableData.value.length,
+                rowspan: newRows.length,
+              },
             );
             tableData.value.push(...newRows);
           }
