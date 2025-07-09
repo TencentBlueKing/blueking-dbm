@@ -20,12 +20,12 @@
         <span
           v-bk-tooltips="{
             content: t('该规格已被使用，不允许修改'),
-            disabled: !isEdit,
+            disabled: editable,
           }"
           class="inline-block">
           <BkInput
             v-model="modelValue.min"
-            :disabled="isEdit"
+            :disabled="!editable"
             :max="256"
             :min="1"
             :show-control="false"
@@ -41,12 +41,12 @@
         <span
           v-bk-tooltips="{
             content: t('该规格已被使用，不允许修改'),
-            disabled: !isEdit,
+            disabled: editable,
           }"
           class="inline-block">
           <BkInput
             v-model="modelValue.max"
-            :disabled="isEdit"
+            :disabled="!editable"
             :max="256"
             :min="1"
             :show-control="false"
@@ -69,12 +69,10 @@
   }
 
   interface Props {
-    isEdit: boolean;
+    editable: boolean;
   }
 
-  withDefaults(defineProps<Props>(), {
-    isEdit: false,
-  });
+  defineProps<Props>();
 
   const modelValue = defineModel<ModelValue>({ required: true });
 
