@@ -499,16 +499,12 @@ def retrieve_resources(self, request, serializer_class, resource_method_name):
     """
     通用方法来处理不同资源类型的请求。
     """
-    from backend.db_services.dbbase.constants import DB_RESOURCE_MAP
+    from backend.db_services.dbbase.resources import register
 
     query_params = self.params_validate(serializer_class)
     bk_biz_id = query_params.pop("bk_biz_id", None)
-    db_type = query_params.pop("db_type", None)
-    RetrieveResource = DB_RESOURCE_MAP[db_type]
-
-    # 为 MySQL 和 SQLServer 设置集群类型
-    if db_type in [DBType.MySQL.value, DBType.Sqlserver.value]:
-        RetrieveResource.cluster_types = ClusterType.db_type_cluster_types_map().get(db_type)
+    cluster_types = query_params["cluster_type"].split(",")
+    RetrieveResource = register.cluster_type__resource_class[cluster_types[0]]
 
     # 动态调用资源方法获取数据
     resource_method = getattr(RetrieveResource, resource_method_name)
