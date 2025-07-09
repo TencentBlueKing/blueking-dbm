@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Machine
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
@@ -48,9 +48,24 @@ class MongoDBInstanceDeInstallResourceParamBuilder(BaseMongoDBOperateResourcePar
         pass
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_INSTANCE_DEINSTALL, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_INSTANCE_DEINSTALL, is_apply=True, is_recycle=True)
 class MongoDBInstanceDeInstallFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBInstanceDeInstallDetailSerializer
     inner_flow_builder = MongoDBInstanceDeInstallFlowParamBuilder
     inner_flow_name = _("MongoDB 实例下架")
     resource_batch_apply_builder = MongoDBInstanceDeInstallResourceParamBuilder
+    need_patch_recycle_host_details = True
+
+    def supplement_old_nodes(self):
+        self.ticket.details["old_nodes"] = {}
+        self.ticket.details["old_nodes"]["instance"] = []
+        for info in self.ticket.details["infos"]:
+            machine_info = Machine.objects.filter(ip=info["ip"], bk_cloud_id=info["bk_cloud_id"]).values(
+                "ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"
+            )
+            if machine_info.exists():
+                self.ticket.details["old_nodes"]["instance"].append(machine_info[0])
+
+    def patch_ticket_detail(self):
+        self.supplement_old_nodes()
+        super().patch_ticket_detail()
