@@ -34,15 +34,11 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
+            :cluster-types="[ClusterTypes.REDIS]"
+            field="cluster.master_domain"
+            :label="t('目标集群')"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            :label="t('所属业务')"
-            :min-width="150">
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ getBizInfoById(item.cluster.bk_biz_id)?.name || '' }}
-            </EditableBlock>
-          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -79,13 +75,11 @@
 <script lang="ts" setup>
   import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-
+  import RedisModel from '@services/model/redis/redis';
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
   import { type Redis } from '@services/model/ticket/ticket';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -94,14 +88,18 @@
 
   import { random } from '@utils';
 
-  import ClusterColumn, { type IValue } from './components/ClusterColumn.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   interface RowData {
-    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    cluster: {
+      bk_cloud_id: number;
+      id: number;
+      master_domain: string;
+      cluster_type: string;
+    };
   }
 
   const { t } = useI18n();
-  const { getBizInfoById } = useGlobalBizs();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
@@ -115,7 +113,6 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         id: 0,
         master_domain: '',
@@ -184,7 +181,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: IValue[]) => {
+  const handleBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
