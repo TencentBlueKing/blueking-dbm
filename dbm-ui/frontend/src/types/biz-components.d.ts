@@ -12,6 +12,7 @@ declare module 'vue' {
     DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
+    DbQuickSearch: typeof import('@components/db-quick-search/Index.vue').default;
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
@@ -30,11 +31,11 @@ declare module 'vue' {
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
     NewFeatureGuide: typeof import('@components/new-feature-guide/Index.vue').default;
     OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
+    PrimaryTable: typeof import('@blueking/tdesign-ui').PrimaryTable;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
+    TableColumn: typeof import('@blueking/tdesign-ui').TableColumn;
     TableDetailDialog: typeof import('@components/table-detail-dialog/Index.vue').default;
-    // TTable: typeof import('@blueking/tdesign-ui').PrimaryTable;
-    // TTableColumn: typeof import('@blueking/tdesign-ui').TableColumn;
   }
 }
 

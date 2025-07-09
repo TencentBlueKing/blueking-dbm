@@ -1,0 +1,668 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <div
+    ref="rootRef"
+    class="db-table">
+    <BkLoading
+      :loading="isLoading"
+      :z-index="2">
+      <PrimaryTable
+        :key="tableKey"
+        ref="bkTableRef"
+        :max-height="tableMaxHeight"
+        :pagination="pagination"
+        :remote-pagination="remotePagination"
+        :settings="settings"
+        show-overflow
+        :show-settings="showSettings"
+        v-bind="$attrs"
+        @column-sort="handleColumnSortChange"
+        @page-limit-change="handlePageLimitChange"
+        @page-value-change="handlePageValueChange"
+        @row-click="handleRowClick">
+        <component :is="selectColumn" />
+        <slot />
+        <template #expandRow="row">
+          <slot
+            name="expandRow"
+            :row="row" />
+        </template>
+        <template #empty>
+          <slot name="empty">
+            <EmptyStatus
+              :is-anomalies="isAnomalies"
+              :is-searching="isSearching"
+              @clear-search="handleClearSearch"
+              @refresh="fetchListData" />
+          </slot>
+        </template>
+        <template
+          v-if="slots.setting"
+          #setting>
+          <slot name="setting" />
+        </template>
+      </PrimaryTable>
+    </BkLoading>
+  </div>
+</template>
+<script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
+  import _ from 'lodash';
+  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type VNode } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
+
+  import type { IRequestPayload } from '@services/http';
+  import type { ListBase } from '@services/types';
+
+  import { useUrlSearch } from '@hooks';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+
+  import { getOffset } from '@utils';
+
+  import { useStorage } from '@vueuse/core';
+
+  import useSelect from './hooks/use-select.tsx';
+
+  export interface Props {
+    // 是否允许行点击选中
+    allowRowClickSelect?: boolean;
+    clearSelection?: boolean;
+    columns?: InstanceType<typeof Table>['$props']['columns'];
+    // 没提供默认使用浏览器窗口的高度 window.innerHeight
+    containerHeight?: number;
+    dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
+    disableSelectMethod?: (data: any) => boolean | string;
+    fixedPagination?: boolean;
+    // 跨业务
+    ignoreBiz?: boolean;
+    paginationExtra?: {
+      small?: boolean;
+    };
+    // data 数据的主键
+    primaryKey?: string;
+    // 是否解析 URL query 参数
+    releateUrlQuery?: boolean;
+    remotePagination?: boolean;
+    remoteSort?: boolean;
+    // 是否开启远程分页
+    selectable?: boolean;
+    // 默认选中
+    selected?: any[];
+    settings?: {
+      checked?: string[];
+      disabled?: string[];
+      size?: string;
+    };
+    // 是否开启跨页全选
+    showSelectAllPage?: boolean;
+    showSettings?: boolean;
+    sortType?: 'ordering' | 'default';
+  }
+
+  export interface Emits {
+    (e: 'requestSuccess', value: any): void;
+    (e: 'requestFinished', value: any[]): void;
+    (e: 'clearSearch'): void;
+    (e: 'selection', key: string[], list: any[]): void;
+  }
+
+  export interface Slots {
+    default: () => VNode;
+    empty: () => VNode;
+    expandRow: () => VNode;
+    setting: () => VNode;
+  }
+
+  export interface Exposes {
+    bkTableRef: Ref<InstanceType<typeof Table>>;
+    clearSelected: () => void;
+    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void;
+    getAllData: <T>() => Promise<Array<T>>;
+    getData: <T>() => Array<T>;
+    loading: Ref<boolean>;
+    removeSelectByKey: (key: string) => void;
+    updateTableKey: () => void;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    allowRowClickSelect: false,
+    clearSelection: true,
+    columns: () => [],
+    containerHeight: undefined,
+    disableSelectMethod: () => false,
+    fixedPagination: false,
+    ignoreBiz: false,
+    paginationExtra: () => ({}),
+    primaryKey: 'id',
+    releateUrlQuery: false,
+    remotePagination: true,
+    remoteSort: false,
+    selectable: false,
+    selected: () => [],
+    settings: undefined,
+    showSelectAllPage: true,
+    showSettings: false,
+    sortType: 'default',
+  });
+
+  const emits = defineEmits<Emits>();
+  const slots = defineSlots<Slots>();
+  // defineOptions({
+  //   inheritAttrs: false,
+  // });
+
+  const router = useRouter();
+  const { t } = useI18n();
+  const { selectColumn } = useSelect();
+  const paginationLimitCache = useStorage('table_pagination_limit', 20);
+
+  const rootRef = ref();
+  const bkTableRef = ref();
+  const tableKey = ref(Date.now().toString());
+  const isLoading = ref(false);
+  const tableMaxHeight = ref<number | 'auto'>('auto');
+  const tableData = ref<ListBase<any>>({
+    count: 0,
+    next: '',
+    permission: {},
+    previous: '',
+    results: [],
+  });
+  const isSearching = ref(false);
+  const isAnomalies = ref(false);
+  const rowSelectMemo = shallowRef<Record<string | number, Record<any, any>>>({});
+  const isWholeChecked = ref(false);
+  const pagination = reactive<{
+    align: string;
+    count: number;
+    current: number;
+    layout: Array<string>;
+    limit: number;
+    limitList: Array<number>;
+  }>({
+    align: 'right',
+    count: 0,
+    current: 1,
+    layout: ['total', 'limit', 'list'],
+    limit: paginationLimitCache.value,
+    limitList: [10, 20, 50, 100],
+    ...props.paginationExtra,
+  });
+  // 是否本页全选
+  const isCurrentPageAllSelected = computed(() => {
+    if (isWholeChecked.value) {
+      return false;
+    }
+    const list = tableData.value.results;
+    if (list.length < 1) {
+      return false;
+    }
+    const selectMap = { ...rowSelectMemo.value };
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
+    for (let i = 0; i < list.length; i++) {
+      if (!selectMap[_.get(list[i], props.primaryKey)]) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  let paramsMemo = {};
+  let baseParamsMemo = {};
+  let sortParams = {};
+
+  let isReady = false;
+  let isPaginationChangeFetch = false;
+
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
+
+  /**
+   * 判断是否处于搜索状态
+   */
+  const getSearchingStatus = () => {
+    const searchKeys: string[] = [];
+    const baseParamsKeys = Object.keys(baseParamsMemo);
+
+    for (const [key, value] of Object.entries(paramsMemo)) {
+      if (baseParamsKeys.includes(key) || ['', undefined].includes(value as any)) continue;
+
+      searchKeys.push(key);
+    }
+
+    return searchKeys.filter((key) => !baseParamsKeys.includes(key)).length > 0;
+  };
+
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+
+  const triggerSelection = () => {
+    emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
+  };
+
+  const fetchListData = (loading = true) => {
+    Promise.resolve().then(() => {
+      isLoading.value = loading;
+      const params = {
+        bk_biz_id: props.ignoreBiz ? undefined : window.PROJECT_CONFIG.BIZ_ID,
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
+        ...paramsMemo,
+        ...sortParams,
+      };
+
+      const payload = {};
+      // API 参数需要和 URL 联动基本可以确认是页面级别的列表
+      // 这个时候权限提示交互为页面嵌入的方式
+      if (props.releateUrlQuery) {
+        Object.assign(payload, {
+          permission: 'page',
+        });
+      }
+      isAnomalies.value = false;
+      props
+        .dataSource(params, payload)
+        .then((data) => {
+          tableData.value = data;
+          pagination.count = data.count;
+          isSearching.value = getSearchingStatus();
+          isAnomalies.value = false;
+
+          // 默认清空选项
+          if (props.clearSelection) {
+            bkTableRef.value?.clearSelection?.();
+          }
+
+          if (!props.fixedPagination && props.releateUrlQuery) {
+            router.replace({
+              query: replaceSearchParams(params, false),
+            });
+          }
+          if (!isPaginationChangeFetch) {
+            isWholeChecked.value = false;
+            isPaginationChangeFetch = false;
+            triggerSelection();
+          }
+
+          emits('requestSuccess', data);
+        })
+        .catch((error) => {
+          console.log('from dbtable error = ', error);
+          tableData.value.results = [];
+          pagination.count = 0;
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isLoading.value = false;
+        });
+    });
+  };
+
+  // 拉取全量数据
+  const fetchAllData = async () => {
+    const params = {
+      limit: -1,
+      offset: (pagination.current - 1) * pagination.limit,
+      ...paramsMemo,
+      ...sortParams,
+    };
+    if (!props.ignoreBiz) {
+      Object.assign(params, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
+    }
+    const { results } = await props.dataSource(params);
+    return results;
+  };
+
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
+        Object.assign(acc, {
+          [item[props.primaryKey]]: item,
+        });
+        return acc;
+      }, {});
+      rowSelectMemo.value = {
+        ...selectMap,
+      };
+    },
+  );
+
+  // 解析 URL 上面的分页信息
+  const parseURL = () => {
+    if (!props.releateUrlQuery || props.fixedPagination) {
+      return;
+    }
+    const { offset, order_field: orderField, order_type: orderType, page_size: limit } = getSearchParams();
+    if (offset && limit) {
+      pagination.current = ~~offset;
+      pagination.limit = ~~limit;
+      pagination.limitList = [...new Set([...pagination.limitList, pagination.limit])].sort((a, b) => a - b);
+    }
+    if (orderField && orderType) {
+      paramsMemo = {
+        order_field: orderField,
+        order_type: orderType,
+      };
+    }
+    isReady = true;
+  };
+
+  // 全选当前页
+  const handlePageSelect = () => {
+    const selectMap = { ...rowSelectMemo.value };
+    tableData.value.results.forEach((dataItem: any) => {
+      if (props.disableSelectMethod(dataItem)) {
+        return;
+      }
+      selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+    });
+    rowSelectMemo.value = selectMap;
+    isWholeChecked.value = false;
+    triggerSelection();
+  };
+
+  // 切换当前页全选
+  const handleTogglePageSelect = (checked: boolean) => {
+    const selectMap = { ...rowSelectMemo.value };
+    tableData.value.results.forEach((dataItem: any) => {
+      if (checked) {
+        if (!props.disableSelectMethod(dataItem)) {
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        }
+      } else {
+        delete selectMap[_.get(dataItem, props.primaryKey)];
+      }
+    });
+    if (!checked) {
+      isWholeChecked.value = false;
+    }
+    rowSelectMemo.value = selectMap;
+    triggerSelection();
+  };
+
+  // 清空选择
+  const handleClearWholeSelect = () => {
+    rowSelectMemo.value = {};
+    isWholeChecked.value = false;
+    triggerSelection();
+  };
+
+  // 跨页全选
+  const handleWholeSelect = () => {
+    if (!props.showSelectAllPage) {
+      // 屏蔽跨页全选
+      handleTogglePageSelect(true);
+      return;
+    }
+
+    fetchAllData().then((results) => {
+      const selectMap = { ...rowSelectMemo.value };
+      results.forEach((dataItem: any) => {
+        if (props.disableSelectMethod(dataItem)) {
+          return;
+        }
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+      });
+      rowSelectMemo.value = selectMap;
+      isWholeChecked.value = true;
+      triggerSelection();
+    });
+  };
+
+  // 选中单行
+  const handleRowClick = (event: MouseEvent, data: any) => {
+    if (!props.allowRowClickSelect) {
+      return;
+    }
+    const targetElement = event.target as HTMLElement;
+    if (/bk-button/.test(targetElement.className)) {
+      return;
+    }
+    if (!props.selectable) {
+      return;
+    }
+    if (props.disableSelectMethod(data)) {
+      return;
+    }
+    const selectMap = { ...rowSelectMemo.value };
+    if (!selectMap[_.get(data, props.primaryKey)]) {
+      selectMap[_.get(data, props.primaryKey)] = data;
+    } else {
+      delete selectMap[_.get(data, props.primaryKey)];
+      isWholeChecked.value = false;
+    }
+    rowSelectMemo.value = selectMap;
+
+    triggerSelection();
+  };
+
+  // 勾选单行
+  const handleSelecteRow = (data: any) => {
+    if (!props.selectable) {
+      return;
+    }
+    if (props.disableSelectMethod(data)) {
+      return;
+    }
+    const selectMap = { ...rowSelectMemo.value };
+    if (!selectMap[_.get(data, props.primaryKey)]) {
+      selectMap[_.get(data, props.primaryKey)] = data;
+    } else {
+      delete selectMap[_.get(data, props.primaryKey)];
+      isWholeChecked.value = false;
+    }
+    rowSelectMemo.value = selectMap;
+
+    triggerSelection();
+  };
+
+  // 排序
+  const handleColumnSortChange = (sortPayload: any) => {
+    if (!props.remoteSort) {
+      return;
+    }
+    const valueMap = {
+      asc: 1,
+      desc: 0,
+      null: undefined,
+    };
+    if (props.sortType === 'ordering') {
+      sortParams = {
+        ordering: `${valueMap[sortPayload.type as keyof typeof valueMap] === 0 ? '-' : ''}${sortPayload.column.field}`,
+      };
+    } else {
+      sortParams = {
+        [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
+      };
+    }
+    fetchListData();
+  };
+
+  // 切换每页条数
+  const handlePageLimitChange = (pageLimit: number) => {
+    if (pagination.limit === pageLimit) {
+      return;
+    }
+    pagination.limit = pageLimit;
+    pagination.current = 1;
+    isPaginationChangeFetch = true;
+    paginationLimitCache.value = pageLimit;
+    fetchListData();
+  };
+
+  // 切换页码
+  const handlePageValueChange = (pageValue: number) => {
+    if (pagination.current === pageValue) {
+      return;
+    }
+    pagination.current = pageValue;
+    isPaginationChangeFetch = true;
+    fetchListData();
+  };
+
+  // 情况搜索条件
+  const handleClearSearch = () => {
+    emits('clearSearch');
+  };
+
+  const calcTableHeight = () => {
+    if (props.fixedPagination) {
+      return;
+    }
+    nextTick(() => {
+      const top = props.containerHeight ? 0 : getOffset(rootRef.value).top;
+      const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
+      const pageOffsetBottom = props.containerHeight ? 0 : 20;
+
+      const tableRowTotalHeight = totalHeight - top - pageOffsetBottom;
+
+      tableMaxHeight.value = tableRowTotalHeight;
+    });
+  };
+
+  onMounted(() => {
+    parseURL();
+    calcTableHeight();
+  });
+
+  defineExpose<Exposes>({
+    bkTableRef,
+    // 清空选择
+    clearSelected() {
+      // bkTableRef.value?.clearSelection();
+      handleClearWholeSelect();
+    },
+    // 获取远程数据
+    fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
+      paramsMemo = {
+        ...params,
+        ...baseParams,
+      };
+      baseParamsMemo = { ...baseParams };
+      if (isReady) {
+        pagination.current = 1;
+      }
+      setTimeout(() => {
+        fetchListData(loading);
+      });
+    },
+    // 获取全量数据
+    getAllData: fetchAllData,
+    // 获取表格渲染数据
+    getData() {
+      return tableData.value.results;
+    },
+    loading: isLoading,
+    removeSelectByKey(key: string) {
+      delete rowSelectMemo.value[key];
+    },
+    updateTableKey() {
+      tableKey.value = Date.now().toString();
+    },
+  });
+</script>
+<style lang="less">
+  .db-table {
+    .head-prepend-row {
+      display: flex;
+      height: 30px;
+      background: #ebecf0;
+      align-items: center;
+      justify-content: center;
+    }
+
+    table tbody tr td .vxe-cell {
+      line-height: unset !important;
+    }
+  }
+
+  .db-table-select-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 64px;
+
+    .db-table-whole-check {
+      position: relative;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+      cursor: pointer;
+      background-color: #fff;
+      border: 1px solid #3a84ff;
+      border-radius: 2px;
+
+      &::after {
+        position: absolute;
+        top: 2px;
+        left: 5px;
+        width: 4px;
+        height: 8px;
+        border: 2px solid #3a84ff;
+        border-top: 0;
+        border-left: 0;
+        content: '';
+        transform: rotate(45deg);
+      }
+    }
+
+    .select-menu-flag {
+      margin-left: 4px;
+      font-size: 18px;
+      color: #63656e;
+    }
+  }
+
+  [data-theme~='db-table-select-menu'] {
+    padding: 0 !important;
+
+    .db-table-select-plan {
+      padding: 5px 0;
+
+      .plan-item {
+        padding: 0 10px;
+        font-size: 12px;
+        line-height: 26px;
+        cursor: pointer;
+
+        &:hover {
+          color: #3a84ff;
+          background-color: #eaf3ff;
+        }
+
+        &.is-selected {
+          color: #3a84ff;
+          background-color: #f4f6fa;
+        }
+      }
+    }
+  }
+</style>
