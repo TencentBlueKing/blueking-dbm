@@ -1,22 +1,22 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-alias-column"
-    field="cluster_alias"
-    :label="t('别名')"
-    :min-width="150">
-    <template #default="{ data }: { data: IRowData }">
+    col-key="cluster_alias"
+    :min-width="150"
+    :title="t('别名')">
+    <template #default="{ row }: { row: IRowData }">
       <TextOverflowLayout>
-        {{ data.cluster_alias || '--' }}
+        {{ row.cluster_alias || '--' }}
         <template
-          v-if="!data.isOffline"
+          v-if="!row.isOffline"
           #append>
           <UpdateClusterAliasName
-            :data="data"
+            :data="row"
             @success="handleUpdateSuccess" />
         </template>
       </TextOverflowLayout>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';

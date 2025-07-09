@@ -7,17 +7,9 @@
       :disable-select-method="disableSelectMethod"
       releate-url-query
       :row-class="getRowClass"
-      :row-config="{
-        useKey: true,
-        keyField: 'id',
-        isHover: true,
-      }"
       v-bind="$attrs"
-      :scroll-y="{ enabled: true, gt: 0 }"
+      row-key="id"
       selectable
-      :settings="settings"
-      :show-overflow="false"
-      show-settings
       @request-success="handleRequestSuceess"
       @selection="handleSelection"
       @setting-change="handleTableSettings">
@@ -75,6 +67,8 @@
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
+
   import ClusterAliasColumn from './ClusterAliasColumn.vue';
   import ClusterNameColumn from './ClusterNameColumn.vue';
   import ClusterStatsColumn from './ClusterStatsColumn.vue';
@@ -107,13 +101,13 @@
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useUserProfile } from '@stores';
 
-  import DbTable, { type Props as DbTableProps } from '@components/db-table/index.vue';
-
+  // import DbTable, { type Props as DbTableProps } from '@components/db-table/index.vue';
   import type { ClusterModel, ISupportClusterType } from './types.ts';
 
   export interface Props<C extends ISupportClusterType> {
     clusterId: number;
     clusterType: C;
+    dataSource: (params: any) => Promise<any>;
     disableSelectMethod?: (data: any) => boolean;
     settings?: {
       checked?: string[];
@@ -149,7 +143,7 @@
     syncMode: () => VNode;
   }
 
-  const props = withDefaults(defineProps<DbTableProps & Props<T>>(), {
+  const props = withDefaults(defineProps<Props<T>>(), {
     disableSelectMethod: () => false,
     settings: undefined,
   });
@@ -157,6 +151,8 @@
   const emits = defineEmits<Emits<T>>();
 
   defineSlots<Slots>();
+
+  console.log(props.settings);
 
   const getRowClass = (data: { id: number; isNew: boolean; isOnline: boolean }) => {
     const classList = [];
@@ -242,7 +238,7 @@
       fetchData();
     },
     getAllData<T>() {
-      return tableRef.value?.getAllData<T>() || Promise.resolve([]);
+      return tableRef.value?.fetchAllData<T>() || Promise.resolve([]);
     },
     getData<T>() {
       return tableRef.value?.getData<T>() || [];

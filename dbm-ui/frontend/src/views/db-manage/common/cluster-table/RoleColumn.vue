@@ -1,10 +1,10 @@
 <template>
   <BkTableColumn
     class-name="cluster-table-role-column"
-    :field="field"
-    :label="label"
+    :col-key="field"
     :min-width="minWidth"
-    :show-overflow="false">
+    :show-overflow="false"
+    :title="label">
     <template #header>
       <RenderHeadCopy
         :config="[
@@ -24,10 +24,10 @@
         {{ label }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: IRowData }">
+    <template #default="{ row }: { row: IRowData }">
       <RoleCell
-        :data="getRoleInstanceList(data)"
-        @go-detail="(event: MouseEvent) => handleShowMore(data.id, event)">
+        :data="getRoleInstanceList(row)"
+        @go-detail="(event: MouseEvent) => handleShowMore(row.id, event)">
         <template
           v-if="slots.default"
           #default="{ data: instanceItem }">

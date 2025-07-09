@@ -1,15 +1,15 @@
 <template>
-  <BkTableColumn
-    field="tag"
-    :label="t('标签')"
+  <TableColumn
+    col-key="tag"
+    :title="t('标签')"
     :width="200">
-    <template #default="{ data }: { data: IRowData }">
+    <template #default="{ row }: { row: IRowData }">
       <ClusterTag
-        :data="data"
+        :data="row"
         mode="vertical"
         @success="handleOperateSuccess" />
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';

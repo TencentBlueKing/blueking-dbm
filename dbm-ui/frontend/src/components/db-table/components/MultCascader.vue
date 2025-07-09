@@ -3,7 +3,9 @@
     ref="menuRef"
     class="db-table-filter-type-mult-cascader"
     :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
-    <div class="t-table__filter-pop-search">
+    <div
+      ref="searchBox"
+      class="t-table__filter-pop-search">
       <Input
         v-model="filterKey"
         autofocus
@@ -118,6 +120,7 @@
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IListItem>(props);
 
   const layoutWrapperRef = useTemplateRef('layoutWrapper');
+  const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
   const expanedParent = ref<IListItem>();
   const localValueIdMap = shallowRef<Record<string, IListItem['value']>>({});
@@ -163,9 +166,8 @@
       indeterminate: checked ? false : indeterminate,
     };
   };
-
   const calcPanelWidth = () => {
-    setTimeout(() => {
+    nextTick(() => {
       contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
     });
   };
@@ -270,6 +272,9 @@
 
   onMounted(() => {
     calcPanelWidth();
+    setTimeout(() => {
+      searchBoxRef.value!.querySelector('input')?.focus();
+    }, 100);
   });
 </script>
 <style lang="less">
@@ -277,6 +282,7 @@
     .layout-wrapper {
       display: flex;
       max-height: 280px;
+      min-width: max-content;
       margin-top: 8px;
       margin-bottom: 8px;
       overflow: hidden;

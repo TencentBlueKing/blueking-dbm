@@ -1,20 +1,21 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-list-operation-column"
+    col-key="row-operation"
     fixed="left"
-    label=" "
-    :resize="false"
+    :resizable="false"
+    title=" "
     :width="30">
-    <template #default="{ data, rowIndex }: { data: IRowData; rowIndex: number }">
+    <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
       <OperationMenu
         :style="{
-          display: !currentClusterId ? (rowIndex === 0 ? 'flex' : '') : currentClusterId === data.id ? 'flex' : '',
+          display: !currentClusterId ? (rowIndex === 0 ? 'flex' : '') : currentClusterId === row.id ? 'flex' : '',
         }"
-        @show="() => handleShow(data)">
-        <slot v-bind="{ data }" />
+        @show="() => handleShow(row)">
+        <slot v-bind="{ data: row }" />
       </OperationMenu>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useRoute } from 'vue-router';

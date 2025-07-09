@@ -1,12 +1,11 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-master-domain-column"
-    :field="field"
+    :col-key="field"
     fixed="left"
-    :label="label"
     :min-width="columnMinWidth"
-    visiable>
-    <template #header>
+    :title="label">
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -25,21 +24,21 @@
         {{ label }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: IRowData }">
+    <template #default="{ row }: { row: IRowData }">
       <MasterDomainCell
         :cluster-type="clusterType"
-        :data="data"
+        :data="row"
         :db-type="dbType"
         @go-detail="handleToDetails"
         @refresh="handleRefresh">
         <template #append>
           <slot
             name="append"
-            v-bind="{ data }" />
+            v-bind="{ data: row }" />
         </template>
       </MasterDomainCell>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import type { VNode } from 'vue';
