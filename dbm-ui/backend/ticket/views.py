@@ -287,7 +287,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket_datas = []
         for ticket in tickets:
             try:
-                self.tmp_ticket = ticket
                 # 获取 create_ticket 方法需要的参数名
                 create_ticket_params = inspect.signature(Ticket.create_ticket).parameters
                 # 使用字典表达式过滤掉不在方法参数中的键

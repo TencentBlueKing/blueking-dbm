@@ -139,18 +139,26 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
         super().__init__(actions=[action], resource_metes=resource_metes, instance_ids_getters=instance_ids_getters)
 
     def authorize_instance_ids_getters(self, request, view):
+        def process_authorize_data(details):
+            # 统一处理不同来源的 authorize_data
+            authorize_data = details.get("authorize_data") or details.get("authorize_data_list")
+            if isinstance(authorize_data, list):
+                authorize_data_list.extend(authorize_data)
+            else:
+                authorize_data_list.append(authorize_data)
+
         authorize_resource_tuples = []
         authorize_data_list = []
         if self.batch:
             # 处理批量授权单据
             for data in request.data["tickets"]:
                 details = data.get("details", {})
-                authorize_data = details.get("authorize_data") or details.get("authorize_data_list")
-                authorize_data_list.extend(authorize_data)
+                process_authorize_data(details)
         else:
             # 处理单个授权单据
             details = request.data.get("details", {})
-            authorize_data_list.append(details.get("authorize_data", details.get("authorize_data_list")))
+            process_authorize_data(details)
+
         # 处理特殊授权单据
         if self.batch:
             if request.data["tickets"][0]["ticket_type"] in [

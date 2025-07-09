@@ -55,7 +55,6 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
-    QueryGlobalClusterSerializer,
     QueryGlobalInstanceSerializer,
     QueryGlobalMachineSerializer,
     RemoveClusterTagKeysSerializer,
@@ -106,7 +105,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "add_cluster_tag_keys",
         ): [ClusterEditPermission()],
         (
-            "get_global_cluster",
             "get_global_machine",
             "get_global_instance",
         ): [ClusterListPermission()],
@@ -160,9 +158,10 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer, pagination_class=None)
     def filter_clusters(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+        limit, offset = data.pop("limit"), data.pop("offset")
         # 先按照集群类型聚合
         resource_cls__cluster_ids_map = defaultdict(list)
         for cluster in Cluster.objects.filter(data["filters"]).values("id", "cluster_type"):
@@ -175,7 +174,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 continue
             query_params = {**data["query_params"], "cluster_ids": ",".join(map(str, cluster_ids))}
             cluster_resource_data: ResourceList = resource_class.list_clusters(
-                bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=-1, offset=0
+                bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=limit, offset=offset
             )
             clusters_data.extend(cluster_resource_data.data)
 
@@ -571,22 +570,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response()
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据db类型获取集群信息"),
-        auto_schema=ResponseSwaggerAutoSchema,
-        query_serializer=QueryGlobalClusterSerializer(),
-        responses={status.HTTP_200_OK: QueryGlobalClusterSerializer()},
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["GET"],
-        detail=False,
-        serializer_class=QueryGlobalClusterSerializer,
-        pagination_class=ResourceLimitOffsetPagination,
-    )
-    def get_global_cluster(self, request, *args, **kwargs):
-        return retrieve_resources(self, request, QueryGlobalClusterSerializer, "_list_clusters")
-
-    @common_swagger_auto_schema(
         operation_summary=_("根据db类型获取实例信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryGlobalInstanceSerializer(),
@@ -600,7 +583,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         pagination_class=ResourceLimitOffsetPagination,
     )
     def get_global_instance(self, request, *args, **kwargs):
-        return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "_list_instances")
+        return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "list_instances")
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型获取机器信息"),
@@ -616,4 +599,4 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         pagination_class=ResourceLimitOffsetPagination,
     )
     def get_global_machine(self, request, *args, **kwargs):
-        return retrieve_resources(self, request, self.get_serializer_class(), "_list_machines")
+        return retrieve_resources(self, request, self.get_serializer_class(), "list_machines")
