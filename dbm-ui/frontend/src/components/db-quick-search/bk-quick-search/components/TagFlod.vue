@@ -72,6 +72,7 @@
           content: popContentRef.value as HTMLElement,
           hideOnClick: false,
           interactive: false,
+          maxWidth: 370,
           offset: [0, 8],
           placement: 'top',
           theme: 'light',

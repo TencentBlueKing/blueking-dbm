@@ -1,8 +1,8 @@
 <template>
-  <BkTableColumn
-    field="id"
+  <TableColumn
+    col-key="id"
     fixed="left"
-    label="ID"
+    title="ID"
     :width="80" />
 </template>
 <script setup lang="ts">

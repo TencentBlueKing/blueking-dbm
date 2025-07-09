@@ -1,11 +1,9 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-slave-domain-column"
-    field="slave_domain"
-    :label="t('从访问入口')"
+    col-key="slave_domain"
     :min-width="280"
-    :show-overflow="false"
-    visiable>
+    :title="t('从访问入口')">
     <template #header>
       <RenderHeadCopy
         :config="[
@@ -25,16 +23,16 @@
         {{ t('从访问入口') }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: IRowData }">
-      <SlaveDomainCell :data="data">
+    <template #default="{ row }: { row: IRowData }">
+      <SlaveDomainCell :data="row">
         <template #append>
           <slot
             name="append"
-            v-bind="{ data }" />
+            v-bind="{ data: row }" />
         </template>
       </SlaveDomainCell>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import _ from 'lodash';

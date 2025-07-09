@@ -60,7 +60,8 @@
 
   if (props.parseUrl) {
     const routeQuery = route.query;
-    modelValue.value = props.data.reduce((result, configItem) => {
+
+    const urlCache = props.data.reduce((result, configItem) => {
       if (routeQuery[`${configItem.id}__gte`] && routeQuery[`${configItem.id}__lte`]) {
         Object.assign(result, {
           [`${configItem.id}__gte`]: routeQuery[`${configItem.id}__gte`],
@@ -77,6 +78,9 @@
       }
       return result;
     }, {});
+    if (Object.keys(urlCache).length > 0) {
+      modelValue.value = urlCache;
+    }
   }
 
   let isInnerSelfChange = false;
