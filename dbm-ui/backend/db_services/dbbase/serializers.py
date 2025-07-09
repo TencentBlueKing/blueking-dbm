@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -19,7 +18,16 @@ from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import ResourceType
-from backend.db_services.dbbase.resources.serializers import ListClusterEntriesSLZ, ListResourceSLZ
+from backend.db_services.dbbase.resources.serializers import (
+    ListClusterEntriesSLZ,
+    ListMongoDBResourceSLZ,
+    ListMySQLResourceSLZ,
+    ListRedisMachineResourceSLZ,
+    ListSQLServerResourceSLZ,
+    ListTendbClusterMachineResourceSLZ,
+    MongoDBListInstancesSerializer,
+    SqlserverListInstanceSerializer,
+)
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
@@ -79,15 +87,21 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": []}
 
 
-class ClusterFilterSerializer(ListResourceSLZ):
+class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ):
     # 基础的集群过滤条件
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False, default="")
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=-1)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
     def validate(self, attrs):
         # 获取集群基础过滤条件用作第一轮过滤
-        filters = Q(bk_biz_id=attrs["bk_biz_id"])
+        filters = Q()
+        attrs["bk_biz_id"] = attrs.get("bk_biz_id", None)
+        if attrs["bk_biz_id"]:
+            filters &= Q(bk_biz_id=attrs["bk_biz_id"])
         if attrs["cluster_ids"]:
             filters &= Q(id__in=attrs["cluster_ids"].split(","))
         if attrs["cluster_type"]:
@@ -289,3 +303,33 @@ class AddClusterTagKeysSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
     tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+
+
+class QueryGlobalSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False)
+    db_module_id = serializers.CharField(help_text=_("所属DB模块(逗号分割)"), required=False)
+
+    def validate(self, attrs):
+        cluster_type = attrs.get("cluster_type")
+        db_type = attrs.get("db_type")
+
+        # cluster_type和db_type不能同时为空
+        if not cluster_type and not db_type:
+            raise serializers.ValidationError(_("cluster_type or db_type must be provided."))
+
+        return attrs
+
+
+class QueryGlobalMachineSerializer(
+    ListRedisMachineResourceSLZ, ListTendbClusterMachineResourceSLZ, QueryGlobalSerializer
+):
+    pass
+
+
+class QueryGlobalInstanceSerializer(
+    MongoDBListInstancesSerializer, SqlserverListInstanceSerializer, QueryGlobalSerializer
+):
+    # influxdb过滤
+    group_id = serializers.CharField(help_text=_("分组ID"), required=False)

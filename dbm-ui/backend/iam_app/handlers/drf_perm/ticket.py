@@ -41,8 +41,9 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
     创建单据相关动作鉴权 -- 关联一个动作
     """
 
-    def __init__(self, ticket_type: TicketType) -> None:
+    def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
+        self.batch = batch
         action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
         actions = [action] if action else []
         # 只考虑关联一种资源
@@ -64,12 +65,14 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
 
         super().__init__(actions, resource_meta, instance_ids_getter=instance_ids_getter)
 
-    @staticmethod
-    def instance_biz_ids_getter(request, view):
+    def instance_biz_ids_getter(self, request, view):
+        if self.batch:
+            return [data["bk_biz_id"] for data in request.data["tickets"]]
         return [request.data["bk_biz_id"]]
 
-    @staticmethod
-    def instance_account_ids_getter(request, view):
+    def instance_account_ids_getter(self, request, view):
+        if self.batch:
+            return [data["details"]["account_id"] for data in request.data["tickets"]]
         return [request.data["details"]["account_id"]]
 
     @staticmethod
@@ -86,17 +89,24 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         details = request.data.get("details") or request.data
         return get_target_items_from_details(details, match_keys=["instance_id", "instance_ids"])
 
-    @staticmethod
-    def instance_dumper_cluster_ids_getter(request, view):
-        details = request.data.get("details") or request.data
-        # 如果是dumper部署，则从detail获取集群ID，否则从ExtraProcessInstance根据dumper获取集群ID
-        if request.data["ticket_type"] == TicketType.TBINLOGDUMPER_INSTALL:
-            cluster_ids = fetch_cluster_ids(details)
-        else:
-            dumper_instance_ids = details.get("dumper_instance_ids", [])
-            cluster_ids = list(
-                ExtraProcessInstance.objects.filter(id__in=dumper_instance_ids).values_list("cluster_id", flat=True)
-            )
+    def instance_dumper_cluster_ids_getter(self, request, view):
+        cluster_ids = []
+        tickets = request.data.get("tickets", []) if self.batch else [request.data]
+
+        for ticket in tickets:
+            ticket_type = ticket.get("ticket_type")
+            ticket_details = ticket.get("details", {})
+
+            if ticket_type == TicketType.TBINLOGDUMPER_INSTALL:
+                cluster_ids.extend(fetch_cluster_ids(ticket_details))
+            else:
+                dumper_instance_ids = ticket_details.get("dumper_instance_ids", [])
+                if dumper_instance_ids:
+                    cluster_ids.extend(
+                        ExtraProcessInstance.objects.filter(id__in=dumper_instance_ids).values_list(
+                            "cluster_id", flat=True
+                        )
+                    )
         return cluster_ids
 
 
@@ -106,8 +116,9 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
     由于这种相关的单据类型很少，且资源独立，所以请根据单据类型来分别写instance_ids_getter函数
     """
 
-    def __init__(self, ticket_type: TicketType) -> None:
+    def __init__(self, ticket_type: TicketType, batch: bool = False) -> None:
         self.ticket_type = ticket_type
+        self.batch = batch
         action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
         resource_metes = action.related_resource_types
         # 根据单据类型来决定资源获取方式
@@ -127,35 +138,56 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
 
         super().__init__(actions=[action], resource_metes=resource_metes, instance_ids_getters=instance_ids_getters)
 
-    @staticmethod
-    def authorize_instance_ids_getters(request, view):
+    def authorize_instance_ids_getters(self, request, view):
+        def process_authorize_data(details):
+            # 统一处理不同来源的 authorize_data
+            authorize_data = details.get("authorize_data") or details.get("authorize_data_list")
+            if isinstance(authorize_data, list):
+                authorize_data_list.extend(authorize_data)
+            else:
+                authorize_data_list.append(authorize_data)
+
         authorize_resource_tuples = []
-        if "authorize_data" in request.data["details"]:
-            authorize_data_list = [request.data["details"]["authorize_data"]]
+        authorize_data_list = []
+        if self.batch:
+            # 处理批量授权单据
+            for data in request.data["tickets"]:
+                details = data.get("details", {})
+                process_authorize_data(details)
         else:
-            authorize_data_list = request.data["details"]["authorize_data_list"]
-        if request.data["ticket_type"] in [TicketType.SQLSERVER_AUTHORIZE_RULES, TicketType.MONGODB_AUTHORIZE_RULES]:
+            # 处理单个授权单据
+            details = request.data.get("details", {})
+            process_authorize_data(details)
+
+        # 处理特殊授权单据
+        if self.batch:
+            if request.data["tickets"][0]["ticket_type"] in [
+                TicketType.SQLSERVER_AUTHORIZE_RULES,
+                TicketType.MONGODB_AUTHORIZE_RULES,
+            ]:
+                authorize_data_list = authorize_data_list[0]
+        elif request.data["ticket_type"] in [TicketType.SQLSERVER_AUTHORIZE_RULES, TicketType.MONGODB_AUTHORIZE_RULES]:
             authorize_data_list = authorize_data_list[0]
+
         for data in authorize_data_list:
             authorize_resource_tuples.extend(list(itertools.product([data["account_id"]], data["cluster_ids"])))
         return authorize_resource_tuples
 
-    @staticmethod
-    def openarea_instance_ids_getters(request, view):
-        details = request.data["details"]
-        return [(details["config_id"], details["cluster_id"])]
+    def openarea_instance_ids_getters(self, request, view):
+        openarea_details = request.data["tickets"] if self.batch else [request.data]
+        return [(details["details"]["config_id"], details["details"]["cluster_id"]) for details in openarea_details]
 
 
-def create_ticket_permission(ticket_type: TicketType) -> List[IAMPermission]:
+def create_ticket_permission(ticket_type: TicketType, batch: bool = False) -> List[IAMPermission]:
     action = BuilderFactory.ticket_type__iam_action.get(ticket_type)
     if not action:
         # 对于未注册到iam的单据动作，默认只开放给superuser
         logger.warning(_("单据动作ID:{} 不存在").format(action))
         return [RejectPermission()]
     if len(action.related_resource_types) <= 1:
-        return [CreateTicketOneResourcePermission(ticket_type=ticket_type)]
+        return [CreateTicketOneResourcePermission(ticket_type=ticket_type, batch=batch)]
     else:
-        return [CreateTicketMoreResourcePermission(ticket_type=ticket_type)]
+        return [CreateTicketMoreResourcePermission(ticket_type=ticket_type, batch=batch)]
 
 
 class BatchApprovalPermission(BasePermission):
