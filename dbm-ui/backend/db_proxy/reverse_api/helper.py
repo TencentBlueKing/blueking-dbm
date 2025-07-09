@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ipaddress
+
 from django.db.models import Q
 from rest_framework.request import Request
 
@@ -15,6 +17,7 @@ from backend import env
 from backend.db_meta.models import Machine
 from backend.db_proxy.constants import DB_CLOUD_MACHINE_EXPIRE_TIME, DB_CLOUD_PROXY_EXPIRE_TIME, ExtensionType
 from backend.db_proxy.models import DBExtension
+from backend.db_proxy.reverse_api import mcache_lock, nginx_ips_mcache, registered_machines_mcache
 from backend.utils.redis import check_set_member_in_redis
 
 
@@ -38,22 +41,33 @@ def validate_nginx_ip(bk_cloud_id: int, request: Request):
     else:
         raise Exception("nginx ip in HTTP_X_FORWARDED_FOR not found")
 
-    cache_key = f"cache_cloud_nginx_{bk_cloud_id}"
-    check_nginx = lambda *args: DBExtension.objects.get(  # noqa: E731
-        Q(bk_cloud_id=bk_cloud_id, extension=ExtensionType.NGINX)
-        & (Q(details__ip=nginx_ip) | Q(details__bk_outer_ip=nginx_ip))
-    )
-    try:
-        check_set_member_in_redis(cache_key, nginx_ip, check_nginx, DB_CLOUD_PROXY_EXPIRE_TIME)
-    except DBExtension.DoesNotExist:
-        raise DBExtension.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
+    if nginx_ip in nginx_ips_mcache[bk_cloud_id]:
+        return True
+    else:
+        cache_key = f"cache_cloud_nginx_{bk_cloud_id}"
+        check_nginx = lambda *args: DBExtension.objects.get(  # noqa: E731
+            Q(bk_cloud_id=bk_cloud_id, extension=ExtensionType.NGINX)
+            & (Q(details__ip=nginx_ip) | Q(details__bk_outer_ip=nginx_ip))
+        )
+        try:
+            check_set_member_in_redis(cache_key, nginx_ip, check_nginx, DB_CLOUD_PROXY_EXPIRE_TIME)
+            with mcache_lock:
+                nginx_ips_mcache[bk_cloud_id].append(nginx_ip)
+        except DBExtension.DoesNotExist:
+            raise DBExtension.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
 
 
 def validate_machine_ip(bk_cloud_id: int, request: Request):
     client_ip = get_client_ip(request)
-    cache_key = f"cache_cloud_machine_{bk_cloud_id}"
-    check_machine = lambda *args: Machine.objects.get(ip=client_ip, bk_cloud_id=bk_cloud_id)  # noqa: E731
-    try:
-        check_set_member_in_redis(cache_key, client_ip, check_machine, DB_CLOUD_MACHINE_EXPIRE_TIME)
-    except Machine.DoesNotExist:
-        raise Machine.DoesNotExist(f"Machine not found for ip {client_ip}, bk_cloud_id {bk_cloud_id}")
+    client_ip_int = int(ipaddress.IPv4Address(client_ip))
+    if client_ip_int in registered_machines_mcache[bk_cloud_id]:
+        return True
+    else:
+        cache_key = f"cache_cloud_machine_{bk_cloud_id}"
+        check_machine = lambda *args: Machine.objects.get(ip=client_ip, bk_cloud_id=bk_cloud_id)  # noqa: E731
+        try:
+            check_set_member_in_redis(cache_key, client_ip, check_machine, DB_CLOUD_MACHINE_EXPIRE_TIME)
+            with mcache_lock:
+                registered_machines_mcache[bk_cloud_id].add(client_ip_int)
+        except Machine.DoesNotExist:
+            raise Machine.DoesNotExist(f"Machine not found for ip {client_ip}, bk_cloud_id {bk_cloud_id}")

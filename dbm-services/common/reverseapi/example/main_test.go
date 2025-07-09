@@ -10,7 +10,7 @@ import (
 func benchmarkReport(b *testing.B, buckSize int) {
 	//flag.Parse()
 	//apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
-	apiCore := core.NewCore(0, "1.1.1.1:9090")
+	apiCore := core.NewCore(0, "1.1.1.1:80")
 	var events []*demoEvent
 	for i := 0; i < buckSize; i++ {
 		events = append(events, &demoEvent{
