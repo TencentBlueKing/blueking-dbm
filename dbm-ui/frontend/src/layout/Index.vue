@@ -333,6 +333,10 @@
     justify-content: flex-end;
   }
 
+  .db-navigation-side-menu {
+    height: 100%;
+  }
+
   .db-navigation-content-header {
     position: relative;
     z-index: 99;

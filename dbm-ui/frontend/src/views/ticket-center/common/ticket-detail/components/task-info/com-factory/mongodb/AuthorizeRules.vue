@@ -12,9 +12,71 @@
 -->
 
 <template>
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+  <InfoList>
+    <InfoItem :label="t('目标集群')">
+      <BkButton
+        text
+        theme="primary"
+        @click="handleTargetCluster">
+        <strong>{{ clusterIds.length }}</strong>
+      </BkButton>
+      <span>{{ t('个') }}</span>
+    </InfoItem>
+    <InfoItem
+      :label="t('权限明细')"
+      style="flex: 1 0 100%">
+      <BkTable
+        class="mongo-permission-table"
+        :data="ruleList"
+        :show-overflow="false">
+        <BkTableColumn
+          field="user"
+          :label="t('账号名称')"
+          :width="200">
+          <template #default="{ data }: { data: dataItem }">
+            <div
+              class="mongo-permission-cell"
+              @click="() => handleToggleExpand(data)">
+              <DbIcon
+                v-if="data.rule_sets.length > 1"
+                class="user-icon"
+                :class="[{ 'user-icon-expand': data.isExpand }]"
+                type="down-shape" />
+              <div class="user-name">{{ data.username }}</div>
+            </div>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="access_db"
+          :label="t('访问 DB')"
+          :width="300">
+          <template #default="{ data }: { data: dataItem }">
+            <div
+              v-for="(rule, ruleIndex) in getRenderList(data)"
+              :key="ruleIndex"
+              class="mongo-permission-cell">
+              <BkTag>{{ rule.db }}</BkTag>
+            </div>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="privilege"
+          :label="t('权限')"
+          :min-width="300">
+          <template #default="{ data }: { data: dataItem }">
+            <div
+              v-for="(rule, ruleIndex) in getRenderList(data)"
+              :key="ruleIndex"
+              class="mongo-permission-cell">
+              <TextOverflowLayout>
+                {{ rule.privileges.join('，') }}
+              </TextOverflowLayout>
+            </div>
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
+  </InfoList>
   <TargetClusterPreview
     v-model="previewTargetClusterShow"
     :cluster-ids="clusterIds"
@@ -28,9 +90,9 @@
 
   import { TicketTypes } from '@common/const';
 
-  import TextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import DemandInfo, { type DemandInfoConfig } from '../components/DemandInfo.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   import TargetClusterPreview from './components/TargetClusterPreview.vue';
 
@@ -56,8 +118,6 @@
 
   const { t } = useI18n();
 
-  // 是否是添加授权
-  const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.MONGODB_AUTHORIZE_RULES;
   const ruleList = (props.ticketDetails.details?.authorize_data || []).reduce(
     (prevRuleList, authorizeItem) => [
       ...prevRuleList,
@@ -70,116 +130,6 @@
     [] as dataItem[],
   );
   const clusterIds = props.ticketDetails.details.authorize_data?.[0].cluster_ids || [];
-  const excelUrl = props.ticketDetails.details?.excel_url;
-
-  let config: DemandInfoConfig[] = [];
-  const columns = [
-    {
-      field: 'user',
-      label: t('账号名称'),
-      render: ({ data }: { data: dataItem }) => (
-        <div
-          class='mongo-permission-cell'
-          onClick={() => handleToggleExpand(data)}>
-          {data.rule_sets.length > 1 && (
-            <db-icon
-              class={['user-icon', { 'user-icon-expand': data.isExpand }]}
-              type='down-shape'
-            />
-          )}
-          {<div class='user-name'>{data.username}</div>}
-        </div>
-      ),
-    },
-    {
-      field: 'access_db',
-      label: t('访问DB'),
-      render: ({ data }: { data: dataItem }) =>
-        getRenderList(data).map((rule) => (
-          <div class='mongo-permission-cell'>
-            <bk-tag>{rule.db}</bk-tag>
-          </div>
-        )),
-    },
-    {
-      field: 'privilege',
-      label: t('权限'),
-      render: ({ data }: { data: dataItem }) =>
-        getRenderList(data).map((rule) => (
-          <div class='mongo-permission-cell'>
-            <TextEllipsisOneLine
-              text={rule.privileges.join('，')}
-              textStyle={{ color: '#63656e' }}
-            />
-          </div>
-        )),
-    },
-  ];
-
-  const getConfig = () => {
-    if (isAddAuth) {
-      return [
-        {
-          list: [
-            {
-              label: t('目标集群'),
-              render: () => (
-                <>
-                  <bk-button
-                    theme='primary'
-                    text
-                    onClick={handleTargetCluster}>
-                    <strong>{clusterIds.length}</strong>
-                  </bk-button>
-                  <span>{t('个')}</span>
-                </>
-              ),
-            },
-            {
-              isTable: true,
-              label: t('权限明细'),
-              render: () => (
-                <db-original-table
-                  class='mongo-permission-table'
-                  columns={columns}
-                  data={ruleList}
-                />
-              ),
-            },
-          ],
-        },
-      ];
-    }
-
-    return [
-      {
-        list: [
-          {
-            label: t('Excel文件'),
-            render: () => (
-              <div class='excel-link'>
-                <db-icon
-                  class='mr-6'
-                  color='#2dcb56'
-                  type='excel'
-                  svg
-                />
-                <a href={excelUrl}>
-                  {t('批量授权文件')}
-                  <db-icon
-                    class='ml-6'
-                    type='import'
-                    svg
-                  />
-                </a>
-              </div>
-            ),
-          },
-        ],
-      },
-    ];
-  };
-  config = getConfig();
 
   const previewTargetClusterShow = ref(false);
 
@@ -206,10 +156,10 @@
   :deep(.mongo-permission-cell) {
     position: relative;
     display: flex;
-    height: calc(var(--row-height) - 1px);
+    height: 30px;
     padding: 0 15px;
     overflow: hidden;
-    line-height: calc(var(--row-height) - 1px);
+    line-height: 30px;
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
