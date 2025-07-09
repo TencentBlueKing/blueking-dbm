@@ -183,7 +183,7 @@
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const { resource_spec: resourceSpec } = props.ticketDetails?.details;
+  const { resource_spec: resourceSpec } = props.ticketDetails.details;
   const { client: clientSpec, cold: coldSpec, hot: hotSpec, master: masterSpec } = resourceSpec;
 
   /**

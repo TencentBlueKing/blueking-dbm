@@ -402,7 +402,7 @@
     const fullDayInMinutes = 24 * 60;
 
     // 创建一个数组，用于表示整天的占用情况，初始都为空闲
-    const availableMinutes = new Array(fullDayInMinutes).fill(true);
+    const availableMinutes = Array.from({ length: fullDayInMinutes }, () => true);
 
     // 根据给定的时间段将已占用的分钟设置为 false
     for (const timeRangeItem of timeRanges) {
@@ -521,7 +521,7 @@
   };
 
   const areTimeRangesOverlapping = () => {
-    const minuteOccupied = new Array(24 * 60).fill(false); // 创建一个布尔数组，用于跟踪每分钟的占用情况
+    const minuteOccupied = Array.from({ length: 24 * 60 }, () => false); // 创建一个布尔数组，用于跟踪每分钟的占用情况
     const timeRanges = panelList.value.map((item) => item.timeRange);
 
     for (const timeRangeItem of timeRanges) {

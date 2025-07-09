@@ -171,7 +171,7 @@
             return false;
           }
           // % 通配符不需要校验存在
-          if (/%$/.test(value[0]) || value[0] === '*') {
+          if (value[0].endsWith('%') || value[0] === '*') {
             return true;
           }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
