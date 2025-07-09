@@ -1,69 +1,132 @@
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import { computed, onBeforeUnmount, shallowRef } from 'vue';
+import dayjs from 'dayjs';
+import { computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRequest } from 'vue-request';
 
 import TicketModel from '@services/model/ticket/ticket';
-import { getTicketTypes } from '@services/source/ticket';
+import { getTicketGroupTypes } from '@services/source/ticket';
+import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
-import { getSearchSelectorParams, makeMap } from '@utils';
+import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-const value = ref<ISearchValue[]>([]);
+import { makeMap } from '@utils';
 
-const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
+const quickSearchValue = ref<Record<string, any>>({});
 
 export default (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
-  const searchSelectData = computed(() => {
-    const serachList = [
+  const quickSearchData = computed(() => {
+    const serachList: Props['data'] = [
       {
         id: 'ids',
-        multiple: true,
         name: t('单号'),
+        type: 'multiple-input',
+        validator: (value: string) => {
+          return !isNaN(Number(value)) ? true : t('单号只支持数字');
+        },
       },
       {
-        children: ticketTypeList.value,
         id: 'ticket_type__in',
-        multiple: true,
         name: t('单据类型'),
+        remoteMethod: () => getTicketGroupTypes(),
+        type: 'multiple-cascader',
       },
       {
+        description: t('支持模糊搜索'),
         id: 'cluster',
         name: t('集群'),
+        type: 'multiple-input',
       },
       {
-        children: globalBizsStore.bizs.map((item) => ({
-          id: `${item.bk_biz_id}`,
-          name: item.name,
+        id: 'bk_biz_ids',
+        list: globalBizsStore.bizs.map((item) => ({
+          label: item.name,
+          value: `${item.bk_biz_id}`,
         })),
-        id: 'bk_biz_id',
         name: t('业务'),
+        type: 'multiple',
       },
       {
-        children: Object.keys(TicketModel.statusTextMap).reduce<Record<'id' | 'name', string>[]>((acc, key) => {
+        id: 'status',
+        list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
           acc.push({
-            id: key,
-            name: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
+            label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
+            value: key,
           });
           return acc;
         }, []),
-        id: 'status',
-        multiple: true,
         name: t('单据状态'),
+        type: 'multiple',
       },
       {
+        description: t('支持模糊搜索'),
         id: 'remark',
         name: t('备注'),
+        type: 'input',
       },
       {
         id: 'creator',
-        name: t('提单人'),
+        name: t('申请人'),
+        remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+          const requestParams = {};
+          if (params.defaultValue) {
+            Object.assign(requestParams, { exact_lookups: params.defaultValue });
+          }
+          if (params.keyword) {
+            Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+          }
+
+          return getUserList(requestParams).then((data) =>
+            data.results.map((item) => ({
+              label: `${item.display_name} (${item.username})`,
+              value: item.username,
+            })),
+          );
+        },
+        remoteSearch: true,
+        type: 'multiple',
       },
-    ];
+      {
+        id: 'create_at',
+        name: t('申请时间'),
+        props: {
+          shortcuts: [
+            {
+              text: t('近 1 小时'),
+              value: () => [dayjs().subtract(1, 'hour').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 12 小时'),
+              value: () => [dayjs().subtract(12, 'hour').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('今天'),
+              value: () => [dayjs().startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+            {
+              text: t('近 7 天'),
+              value: () => [dayjs().subtract(6, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+            {
+              text: t('近 1 个月'),
+              value: () => [dayjs().subtract(1, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+            {
+              text: t('近 3 个月'),
+              value: () => [dayjs().subtract(3, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+            {
+              text: t('近 6 个月'),
+              value: () => [dayjs().subtract(6, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+          ],
+        },
+        type: 'datetime-range',
+      },
+    ] as const;
 
     if (!options.exclude) {
       return serachList;
@@ -73,42 +136,12 @@ export default (options = {} as { exclude: string[] }) => {
     return serachList.filter((item) => !excludeMap[item.id]);
   });
 
-  const formatSearchValue = computed(() => getSearchSelectorParams(value.value));
-
-  const searchFieldMap = computed(() =>
-    searchSelectData.value.reduce<Record<string, { label: string; value: string }[]>>((result, item) => {
-      if (item.children) {
-        Object.assign(result, {
-          [item.id]: item.children.map((childItem) => ({
-            label: childItem.name,
-            value: childItem.id,
-          })),
-        });
-      }
-      return result;
-    }, {}),
-  );
-
-  useRequest(getTicketTypes, {
-    cacheKey: 'ticketTypes',
-    onSuccess(data) {
-      ticketTypeList.value = data.map((item) => ({
-        id: item.key,
-        name: item.value,
-      }));
-    },
-    staleTime: 24 * 60 * 60 * 1000,
-  });
-
   onBeforeUnmount(() => {
-    value.value = [];
+    quickSearchValue.value = {};
   });
 
   return {
-    formatSearchValue,
-    searchFieldMap,
-    searchSelectData,
-    ticketTypeList,
-    value,
+    quickSearchData,
+    quickSearchValue,
   };
 };

@@ -29,6 +29,7 @@
             required>
             <BkInput
               v-model="terminateFormMode.remark"
+              autofocus
               :maxlength="100"
               :rows="3"
               type="textarea" />

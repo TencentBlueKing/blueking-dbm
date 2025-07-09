@@ -6,7 +6,6 @@
       label="SKIP"
       style="width: 100%">
       <BkTag
-        size="small"
         theme="success"
         type="stroke">
         {{ t('立即执行') }}
@@ -17,7 +16,6 @@
       label="TERMINATE"
       style="margin-left: 0">
       <BkTag
-        size="small"
         theme="danger"
         type="stroke">
         {{ t('终止单据') }}

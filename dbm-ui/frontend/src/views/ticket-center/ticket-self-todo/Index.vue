@@ -18,39 +18,22 @@
         class="w-88 ml-8"
         :ticket-list="selectTicketIdList"
         :ticket-status="ticketStatus" />
-      <BkDatePicker
-        v-model="datePickerValue"
-        format="yyyy-MM-dd HH:mm:ss"
-        :shortcuts="shortcutsRange"
-        style="margin-left: auto"
-        type="datetimerange"
-        use-shortcut-text />
-      <DbSearchSelect
-        v-model="searachSelectValue"
-        :data="searchSelectData"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         parse-url
-        :placeholder="t('请输入或选择条件搜索')"
-        style="width: 450px; margin-left: 8px"
-        unique-select />
+        :placeholder="t('搜索单号、单据类型，集群，业务，备注，申请人...')"
+        style="width: 550px; margin-left: auto" />
     </div>
     <TicketTable
+      :key="ticketStatus"
       ref="dataTable"
       :data-source="dataSource"
+      :exclude-filter-field="['status']"
       :selectable="isSelectable"
       @selection="handleSelection">
       <template #action>
-        <BkTableColumn
-          fixed="right"
-          :label="t('操作')"
-          width="160">
-          <template #default="{ data }: { data: TicketModel }">
-            <RowAction
-              v-if="data"
-              :key="data.id"
-              :data="data"
-              :ticket-status="ticketStatus" />
-          </template>
-        </BkTableColumn>
+        <RowAction :ticket-status="ticketStatus" />
       </template>
     </TicketTable>
     <AssistTab v-model="isAssist" />
@@ -64,7 +47,6 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
-  import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TicketTable from '@views/ticket-center/common/ticket-table/Index.vue';
@@ -79,9 +61,7 @@
 
   const { t } = useI18n();
 
-  const { shortcutsRange, value: datePickerValue } = useDatePicker();
-
-  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
+  const { quickSearchData, quickSearchValue } = useSearchSelect({
     exclude: ['status'],
   });
 
