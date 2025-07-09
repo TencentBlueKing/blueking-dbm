@@ -51,8 +51,8 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-    type PanelListType,
     type IValue,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
@@ -71,14 +71,14 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    ip: string;
     instance_address: string;
+    ip: string;
+    port: number;
     related_clusters: {
       id: number;
       master_domain: string;
     }[];
     role: string;
-    port: number;
   }>({
     required: true,
   });
@@ -88,7 +88,7 @@
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
-        id: [ClusterTypes.TENDBHA],
+        id: ClusterTypes.TENDBHA,
         name: t('故障主库实例'),
         tableConfig: {
           firsrColumn: {
@@ -151,12 +151,12 @@
           bk_host_id: currentInstance.bk_host_id,
           instance_address: currentInstance.instance_address,
           ip: currentInstance.ip,
+          port: currentInstance.port,
           related_clusters: currentInstance.related_clusters.map((item) => ({
             id: item.id,
             master_domain: item.master_domain,
           })),
           role: currentInstance.role,
-          port: currentInstance.port,
         };
       }
     },
@@ -170,12 +170,12 @@
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,
-      instance_address: value,
       bk_host_id: 0,
+      instance_address: value,
       ip: '',
+      port: 0,
       related_clusters: [],
       role: '',
-      port: 0,
     };
   };
 
