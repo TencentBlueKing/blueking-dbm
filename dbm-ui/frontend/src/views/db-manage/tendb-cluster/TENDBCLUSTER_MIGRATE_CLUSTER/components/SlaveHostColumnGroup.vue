@@ -24,16 +24,13 @@
     :label="t('从库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
 <script lang="ts" setup>
@@ -52,16 +49,13 @@
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
     ip: string;
     related_instances: string[];
   }>({
-    default: () => ({
-      ip: '',
-      related_instances: [],
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -69,14 +63,14 @@
   const { loading, run: queryMachineInstancePair } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [machineInstancePair] = Object.values(data.machines);
-      if (machineInstancePair) {
+      const [item] = Object.values(data.machines);
+      if (item) {
         modelValue.value = {
-          bk_biz_id: machineInstancePair.bk_biz_id,
-          bk_cloud_id: machineInstancePair.bk_cloud_id,
-          bk_host_id: machineInstancePair.bk_host_id,
-          ip: machineInstancePair.ip,
-          related_instances: machineInstancePair.related_instances.map((item) => item.instance),
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
+          related_instances: item.related_instances.map((item) => item.instance),
         };
       }
     },

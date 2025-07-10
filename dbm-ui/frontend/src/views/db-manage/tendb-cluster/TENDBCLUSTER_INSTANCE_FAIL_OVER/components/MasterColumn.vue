@@ -35,7 +35,7 @@
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -84,15 +84,15 @@
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.TENDBHA]: [
+    [ClusterTypes.TENDBCLUSTER]: [
       {
-        id: ClusterTypes.TENDBHA,
+        id: ClusterTypes.TENDBCLUSTER,
         name: t('故障主库实例'),
         tableConfig: {
           firsrColumn: {
             field: 'instance_address',
             label: t('Master 实例'),
-            role: 'backend_master',
+            role: 'remote_master',
           },
         },
       },
@@ -103,7 +103,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: t('Master 实例'),
-            role: 'backend_master',
+            role: 'remote_master',
           },
         },
       },
@@ -112,7 +112,7 @@
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
+    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
       (item) =>
         ({
           instance_address: item.instance_address,
@@ -132,9 +132,9 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('该实例为非 Master 实例，请选择 Master 实例'),
+      message: t('该实例为非 remote_master 实例，请选择 remote_master 实例'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
+      validator: (value: string) => !value || modelValue.value.role === 'remote_master',
     },
   ];
 
@@ -164,7 +164,7 @@
 
   const handleChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
@@ -177,7 +177,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
   watch(
@@ -186,8 +186,8 @@
       if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
         queryInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBHA],
-          db_type: DBTypes.MYSQL,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
           instance_addresses: [modelValue.value.instance_address],
         });
       }

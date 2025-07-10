@@ -82,24 +82,19 @@
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('最多输入n个主机IP', { n: limit }),
-      trigger: 'blur',
-      validator: (value: string) => value.split(batchSplitRegex).length <= limit,
+      trigger: 'change',
+      validator: (value: string) => !value || value.split(batchSplitRegex).length <= limit,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
 

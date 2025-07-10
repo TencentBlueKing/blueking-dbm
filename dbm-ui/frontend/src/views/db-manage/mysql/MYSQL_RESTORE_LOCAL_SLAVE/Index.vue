@@ -212,7 +212,14 @@
         acc.push(
           createTableRow({
             slave: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
+              ip: item.ip,
+              master_domain: item.master_domain,
+              port: item.port,
             },
           }),
         );

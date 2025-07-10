@@ -13,12 +13,13 @@
 
 <template>
   <EditableColumn
-    field="slave.ip"
-    :label="t('从库主机')"
+    field="slave.instance_address"
+    :label="t('从库实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
-      v-model="modelValue.ip"
+      v-model="modelValue.instance_address"
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
@@ -26,15 +27,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   interface Props {
     master: {
       bk_biz_id: number;
+      bk_cloud_id: number;
       bk_host_id: number;
-      related_clusters: {
-        id: number;
-      }[];
+      ip: string;
+      port: number;
     };
   }
 
@@ -44,23 +45,27 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    instance_address: string;
     ip: string;
+    port: number;
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const { loading, run: querySlave } = useRequest(getIntersectedSlaveMachinesFromClusters, {
+  const { loading, run: querySlave } = useRequest(getRemoteMachineInstancePair, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data;
+      const [item] = Object.values(data.machines);
       if (item) {
         modelValue.value = {
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
+          instance_address: `${props.master.ip}:${props.master.port}`,
           ip: item.ip,
+          port: props.master.port,
         };
       }
     },
@@ -72,15 +77,16 @@
       if (props.master.bk_host_id) {
         querySlave({
           bk_biz_id: props.master.bk_biz_id,
-          cluster_ids: props.master.related_clusters.map((item) => item.id),
-          is_stand_by: true,
+          machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
       } else {
         modelValue.value = {
           bk_biz_id: 0,
           bk_cloud_id: 0,
           bk_host_id: 0,
+          instance_address: '',
           ip: '',
+          port: 0,
         };
       }
     },

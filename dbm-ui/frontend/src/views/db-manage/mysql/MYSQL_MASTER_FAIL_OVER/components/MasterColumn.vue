@@ -119,11 +119,12 @@
         }) as IValue,
     ),
   }));
+  let illegalInstances = '';
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
-      trigger: 'blur',
+      message: t('IP格式有误，请输入合法IP'),
+      trigger: 'change',
       validator: (value: string) => !value || ipv4.test(value),
     },
     {
@@ -132,15 +133,20 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非 Master IP'),
+      message: '',
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'backend_master',
+      validator: (value: string) =>
+        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
+      illegalInstances = data
+        .filter((item) => item.role !== 'backend_master')
+        .map((item) => item.instance_address)
+        .join('、');
       const [currentHost] = data;
       if (currentHost) {
         modelValue.value = {
@@ -163,8 +169,9 @@
   };
 
   const handleChange = (value: string) => {
+    illegalInstances = '';
     modelValue.value = {
-      bk_biz_id: 0,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: value,

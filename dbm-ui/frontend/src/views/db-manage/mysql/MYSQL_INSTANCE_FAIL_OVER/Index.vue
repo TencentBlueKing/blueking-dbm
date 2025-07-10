@@ -56,16 +56,12 @@
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
-            :label="t('同机关联的集群')"
+            :label="t('所属集群')"
             :min-width="150"
             required>
-            <EditableBlock :placeholder="t('自动生成')">
-              <p
-                v-for="cluster in item.master.related_clusters"
-                :key="cluster.id">
-                {{ cluster.master_domain }}
-              </p>
-            </EditableBlock>
+            <EditableBlock
+              v-model="item.master.master_domain"
+              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -116,12 +112,13 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
   import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
-  import type { Mysql } from '@services/model/ticket/ticket';
+
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
@@ -129,7 +126,7 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import { useGlobalBizs } from '@/stores';
+  import { random } from '@utils';
 
   import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
   import SlaveColumn from './components/SlaveColumn.vue';
@@ -140,7 +137,6 @@
   }
 
   const { t } = useI18n();
-  const { getBizInfoById } = useGlobalBizs();
   const router = useRouter();
   const tableRef = useTemplateRef('table');
 
@@ -158,9 +154,10 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        cluster_id: 0,
         instance_address: '',
         ip: '',
-        related_clusters: [] as RowData['master']['related_clusters'],
+        master_domain: '',
         port: 0,
         role: '',
       },
@@ -183,13 +180,13 @@
     is_check_delay: false,
     is_check_process: false,
     is_verify_checksum: false,
-    tableData: [createTableRow()],
     payload: createTickePayload(),
+    tableData: [createTableRow()],
   });
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
@@ -254,7 +251,7 @@
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
-          cluster_ids: item.master.related_clusters.map((item) => item.id),
+          cluster_ids: [item.master.cluster_id],
           master_ip: item.master,
           slave_ip: item.slave,
         })),
@@ -298,7 +295,7 @@
       return acc;
     }, []);
     if (isClear) {
-      tableKey.value = Date.now();
+      tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
       formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];

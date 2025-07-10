@@ -247,7 +247,7 @@ export function getGlobalInstance(params: {
   role?: string; // 过滤的实例角色
   status?: string; // 实例状态
 }) {
-  return http.get<ListBase<InstanceInfos[]>>(`${path}/filter_instances/`, params);
+  return http.get<ListBase<({ bk_biz_id: number } & InstanceInfos)[]>>(`${path}/filter_instances/`, params);
 }
 
 // 查询全局主机

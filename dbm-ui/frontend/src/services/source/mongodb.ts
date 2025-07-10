@@ -141,6 +141,7 @@ export function getMongoInstancesList(params: {
   cluster_type?: string;
   domain?: string;
   extra?: number;
+  instance_address?: string;
   ip?: string;
   limit?: number;
   offset?: number;

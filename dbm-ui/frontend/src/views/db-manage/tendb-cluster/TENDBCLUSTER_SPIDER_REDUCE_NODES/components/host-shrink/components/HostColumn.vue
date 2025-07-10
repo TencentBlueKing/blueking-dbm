@@ -99,34 +99,25 @@
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
       trigger: 'change',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非接入层 IP'),
+      message: t('主机不包含任何接入层实例'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave';
-      },
+      validator: (value: string) =>
+        !value || modelValue.value.role === 'spider_master' || modelValue.value.role === 'spider_slave',
     },
   ];
 

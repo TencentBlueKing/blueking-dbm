@@ -186,6 +186,7 @@
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
+            newSlave: item.resource_spec.new_slave.hosts?.[0],
             slave: {
               ip: item.old_nodes.old_slave?.[0]?.ip || '',
             },
@@ -204,7 +205,7 @@
       };
       resource_spec: {
         new_slave: {
-          hosts?: {
+          hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;

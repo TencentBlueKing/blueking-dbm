@@ -111,13 +111,13 @@
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
-      trigger: 'blur',
+      message: t('IP格式有误，请输入合法IP'),
+      trigger: 'change',
       validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('IP 重复'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: string) => !value || allIps.value.filter((ip) => ip === value).length < 2,
     },
     {
