@@ -61,7 +61,7 @@ class MongoInstanceDeInstallFlow(object):
             act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
-        # 复制集整机替换——子流程并行
+        # 实例下架——子流程并行
         sub_pipelines = []
         for instance in self.data["infos"]:
             sub_pipline = instance_deinstall(

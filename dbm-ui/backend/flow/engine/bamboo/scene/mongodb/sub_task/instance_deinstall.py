@@ -14,9 +14,10 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBInstanceType
+from backend.flow.consts import MongoDBInstanceType, MongoInstanceDbmonType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
+from backend.flow.plugins.components.collections.mongodb.fast_exec_script import MongoFastExecScriptComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
@@ -39,6 +40,17 @@ def instance_deinstall(root_id: str, ticket_data: Optional[Dict], sub_kwargs: Ac
         instance_type = MongoDBInstanceType.MongoS.value
     sub_get_kwargs.payload["bk_cloud_id"] = info["bk_cloud_id"]
     sub_get_kwargs.payload["set_id"] = ""
+
+    # 关闭 dbmon
+    kwargs_delete_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
+        node_info=info, operation_type=MongoInstanceDbmonType.DeleteDbmon
+    )
+    sub_sub_pipeline.add_act(
+        act_name=_("MongoDB-{}:{}-删除dbmon".format(info["ip"], str(info["port"]))),
+        act_component_code=MongoFastExecScriptComponent.code,
+        kwargs=kwargs_delete_dbmon,
+    )
+
     # 下架实例
     kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
         node_info=info,

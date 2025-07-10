@@ -52,7 +52,7 @@ class ExecuteScriptActKwargs:
         self.db_info = []
         # 获取集群信息
         for cluster in self.payload["cluster_info"]:
-            cluster_info = Cluster.objects.get(id=cluster["id"])
+            cluster_info = Cluster.objects.get(id=cluster["cluster_id"])
             domain = cluster_info.immute_domain
             instance = cluster_info.storageinstance_set.filter(instance_role=InstanceRole.PRIMARY)[0]
             self.db_info.append(
@@ -115,7 +115,7 @@ class ExecuteScriptActKwargs:
 
         uid = self.payload["uid"]
         sql_files_full_path_list = [
-            "{}/{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, self.payload["script_path"], file)
+            "{}/{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, self.payload["path"], file)
             for file in self.payload["script_files"]
         ]
         exec_ips = [host["ip"] for host in self.db_info]
@@ -124,7 +124,7 @@ class ExecuteScriptActKwargs:
             "file_list": sql_files_full_path_list,
             "ip_list": self.db_info,
             "exec_ips": exec_ips,
-            "file_target_path": "{}/install/dbactuator-{}".format(self.work_path, uid),
+            "file_target_path": "{}/install/dbactuator-{}".format(self.work_path, str(uid)),
         }
 
     def get_execute_script_kwargs(self, info: dict) -> dict:

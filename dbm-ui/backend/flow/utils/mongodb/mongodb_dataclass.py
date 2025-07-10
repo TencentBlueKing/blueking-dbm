@@ -33,6 +33,7 @@ from backend.flow.consts import (
     ExecuteShellScriptUser,
     MediumEnum,
     MongoDBActuatorActionEnum,
+    MongoDBClusterRole,
     MongoDBDefaultAuthDB,
     MongoDBInstanceType,
     MongoDBManagerUser,
@@ -1350,7 +1351,13 @@ class ActKwargs:
         plugin_hosts = []
         if mongodb_type == ClusterType.MongoReplicaSet.value:
             # 源ip
-            hosts.append({"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]})
+            for member in (
+                MongoRepository()
+                .fetch_one_cluster(with_domain=False, id=info["instances"][0]["cluster_id"])
+                .get_shards()[0]
+                .members
+            ):
+                hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
             # 目标ip
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             plugin_hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
@@ -1358,6 +1365,13 @@ class ActKwargs:
             self.payload["db_version"] = info["instances"][0]["db_version"]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
+            # 获取 cluster_id
+            if info["mongo_config"]:
+                cluster_id = info["mongo_config"][0]["instances"][0]["cluster_id"]
+            elif info["mongodb"]:
+                cluster_id = info["mongodb"][0]["instances"][0]["cluster_id"]
+                seg_range = info["mongodb"][0]["instances"][0]["seg_range"]
+            cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
             for mongos in info["mongos"]:
                 # 源ip
                 hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
@@ -1366,16 +1380,24 @@ class ActKwargs:
                 plugin_hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
             for config in info["mongo_config"]:
                 # 源ip
-                hosts.append({"ip": config["ip"], "bk_cloud_id": config["bk_cloud_id"]})
+                for member in cluster_info.get_config().members:
+                    hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
                 # 目标ip
                 hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
                 plugin_hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
-            for shard in info["mongodb"]:
+            for shard_by_ip in info["mongodb"]:
                 # 源ip
-                hosts.append({"ip": shard["ip"], "bk_cloud_id": shard["bk_cloud_id"]})
+                shards = cluster_info.get_shards()
+                for shard in shards:
+                    if shard.set_name == seg_range:
+                        for member in shard.members:
+                            hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
+                    break
                 # 目标ip
-                hosts.append({"ip": shard["target"]["ip"], "bk_cloud_id": shard["target"]["bk_cloud_id"]})
-                plugin_hosts.append({"ip": shard["target"]["ip"], "bk_cloud_id": shard["target"]["bk_cloud_id"]})
+                hosts.append({"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]})
+                plugin_hosts.append(
+                    {"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]}
+                )
             # 获取参数
             if info["mongos"]:
                 self.payload["db_version"] = info["mongos"][0]["instances"][0]["db_version"]
@@ -1425,19 +1447,19 @@ class ActKwargs:
             num=instance_count,
         )
 
-    def get_instance_replace_kwargs(self, info: dict, source_down: bool) -> dict:
+    def get_instance_replace_kwargs(self, exec_ip: str, info: dict, source_down: bool) -> dict:
         """替换的kwargs"""
 
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "bk_cloud_id": info["bk_cloud_id"],
-            "exec_ip": info["ip"],
+            "exec_ip": exec_ip,
             "db_act_template": {
                 "action": MongoDBActuatorActionEnum.MongoDReplace,
                 "file_path": self.file_path,
                 "payload": {
-                    "ip": info["ip"],
+                    "ip": exec_ip,
                     "port": self.db_instance["port"],
                     "sourceIP": info["ip"],
                     "sourcePort": self.db_instance["port"],
@@ -2131,6 +2153,99 @@ class ActKwargs:
                     "repoProject": "",
                     "repoRepo": "",
                     "repoPath": "",
+                },
+            },
+        }
+
+    def mongod_replace_get_exec_ip(self, cluster_type: str, cluster_role: str, source_ip: str, instance: dict) -> dict:
+        """整机替换mongod 获取执行ip，执行 ip 不为源 ip"""
+
+        cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=instance["cluster_id"])
+        if cluster_type == ClusterType.MongoReplicaSet.value:
+            for member in cluster_info.get_shards()[0].members:
+                if member.ip != source_ip:
+                    return {"ip": member.ip, "bk_cloud_id": member.bk_cloud_id}
+        elif (
+            cluster_type == ClusterType.MongoShardedCluster.value
+            and cluster_role == MongoDBClusterRole.ConfigSvr.value
+        ):
+            config = cluster_info.get_config()
+            for member in config.members:
+                if member.ip != source_ip:
+                    return {"ip": member.ip, "bk_cloud_id": member.bk_cloud_id}
+        elif (
+            cluster_type == ClusterType.MongoShardedCluster.value and cluster_role == MongoDBClusterRole.ShardSvr.value
+        ):
+            seg_range = instance["seg_range"]
+            shards = cluster_info.get_shards()
+            for shard in shards:
+                if shard.set_name == seg_range:
+                    for member in shard.members:
+                        if member.ip != source_ip:
+                            return {"ip": member.ip, "bk_cloud_id": member.bk_cloud_id}
+
+    @staticmethod
+    def replicaset_mongod_replace_get_node(cluster_id: int) -> list:
+        """副本集替换获取"""
+
+        cluster_info = MongoRepository().fetch_one_cluster(with_domain=True, id=cluster_id)
+        nodes = []
+        for member in cluster_info.get_shards()[0].members:
+            nodes.append(
+                {
+                    "ip": member.ip,
+                    "port": int(member.port),
+                    "bk_cloud_id": member.bk_cloud_id,
+                    "domain": member.domain,
+                    "instance_role": member.role,
+                }
+            )
+        return nodes
+
+    def get_step_down_kwargs(self, info: dict) -> dict:
+        """主备切换的kwargs"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": info["exec_bk_cloud_id"],
+            "exec_ip": info["exec_ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.ReplicasetStepDown,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": info["ip"],
+                    "port": info["port"],
+                    "targetIP": info["target_ip"],
+                    "adminUsername": info["admin_user"],
+                    "adminPassword": info["admin_password"],
+                },
+            },
+        }
+
+    def get_res_replace_add_node_kwargs(self, info: dict) -> dict:
+        """副本集整机替换添加node的kwargs"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": info["exec_bk_cloud_id"],
+            "exec_ip": info["exec_ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoDReplace,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": info["ip"],
+                    "port": info["port"],
+                    "sourceIP": "",
+                    "sourcePort": 0,
+                    "sourceDown": False,
+                    "adminUsername": info["admin_user"],
+                    "adminPassword": info["admin_password"],
+                    "targetIP": info["target"]["ip"],
+                    "targetPort": info["target"]["port"],
+                    "targetPriority": info["target"]["priority"],
+                    "targetHidden": info["target"]["hidden"],
                 },
             },
         }
