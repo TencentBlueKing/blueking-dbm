@@ -19,6 +19,7 @@ from backend.ticket.models import Flow, FlowSummary
 class BaseFlowOutputSerializer(serializers.Serializer):
     """流程输出序列化器，也是对一份流程输出表的基础定义"""
 
+    # TODO: 需要有一个table_name和display_name进行区别
     table_name: str = ""
     hidden: bool = False
 
