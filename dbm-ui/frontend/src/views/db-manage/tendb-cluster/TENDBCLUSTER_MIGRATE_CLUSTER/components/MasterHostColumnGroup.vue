@@ -37,16 +37,13 @@
     :label="t('主库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -69,9 +66,6 @@
 
   interface Props {
     selected: {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
       ip: string;
     }[];
   }
@@ -85,23 +79,15 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     ip: string;
     master_domain: string;
     related_instances: string[];
+    role: string;
     spec_id: number;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      related_instances: [],
-      spec_id: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -115,48 +101,55 @@
         }) as IValue,
     ),
   }));
+  let illegalInstances = '';
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
       trigger: 'change',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: '',
+      trigger: 'blur',
+      validator: (value: string) =>
+        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const currentHost = data[0];
+      illegalInstances = data
+        .filter((item) => item.role !== 'remote_master')
+        .map((item) => item.instance_address)
+        .join('、');
+      const [item] = data;
+      if (item) {
         const relatedInstances: string[] = [];
         data.forEach((item) => {
           relatedInstances.push(item.instance_address);
         });
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: currentHost.bk_cloud_id,
-          bk_host_id: currentHost.bk_host_id,
-          cluster_id: currentHost.cluster_id,
-          ip: currentHost.ip,
-          master_domain: currentHost.master_domain,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: item.cluster_id,
+          ip: item.ip,
+          master_domain: item.master_domain,
           related_instances: relatedInstances,
-          spec_id: currentHost.spec_config.id,
+          role: item.role,
+          spec_id: item.spec_config?.id || -1,
         };
       }
     },
@@ -167,22 +160,18 @@
   };
 
   const handleInputChange = (value: string) => {
+    illegalInstances = '';
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       ip: value,
       master_domain: '',
       related_instances: [],
+      role: '',
       spec_id: 0,
     };
-    if (value) {
-      queryHost({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
@@ -190,9 +179,16 @@
   };
 
   watch(
-    () => modelValue.value.ip,
+    modelValue,
     () => {
-      handleInputChange(modelValue.value.ip);
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
     },
     {
       immediate: true,

@@ -16,7 +16,23 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('迁移主从：主从机器上的所有实例成对迁移到新机器上，旧机器会下架掉。')" />
+      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+    <div class="mb-16">
+      <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
+      <CardCheckbox
+        v-model="operaObjectType"
+        :desc="t('用于强制执行实例级别切换')"
+        icon="rebuild"
+        :title="t('实例切换')"
+        :true-value="OperaObejctType.INSTANCE" />
+      <CardCheckbox
+        v-model="operaObjectType"
+        class="ml-8"
+        :desc="t('用于强制执行主机级别切换')"
+        icon="host"
+        :title="t('主机切换')"
+        :true-value="OperaObejctType.MACHINE" />
+    </div>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -32,18 +48,19 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterHostColumnGroup
-            v-model="item.oldMaster"
+          <MasterColumn
+            v-model="item.master"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SlaveHostColumnGroup
-            v-model="item.oldSlave"
-            :master-host="item.oldMaster" />
+          <SlaveColumn
+            v-model="item.slave"
+            :master="item.master" />
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            required>
             <EditableBlock
-              v-model="item.oldMaster.master_domain"
+              v-model="item.master.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
@@ -51,14 +68,20 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
-      <BkFormItem
-        :label="t('数据校验')"
-        property="need_checksum"
-        required>
-        <BkSwitcher
-          v-model="formData.need_checksum"
-          theme="primary" />
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_process">
+          {{ t('检查业务来源的连接') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_check_delay">
+          {{ t('检查主从同步延迟') }}
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem class="mb-8">
+        <BkCheckbox v-model="formData.is_verify_checksum">
+          {{ t('检查主从数据校验结果') }}
+        </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
@@ -90,95 +113,106 @@
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
-  import { BackupSourceType } from '@services/types';
+  import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import { random } from '@utils';
 
-  import MasterHostColumnGroup, { type SelectorHost } from './components/MasterHostColumnGroup.vue';
-  import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
+  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import SlaveColumn from './components/SlaveColumn.vue';
 
   interface RowData {
-    oldMaster: ComponentProps<typeof MasterHostColumnGroup>['modelValue'];
-    oldSlave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
+    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    slave: ComponentProps<typeof SlaveColumn>['modelValue'];
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2',
-      key: 'master_ip',
-      label: t('目标主库主机'),
+      case: '192.168.10.2:2000',
+      key: 'instance_address',
+      label: t('故障主库实例'),
     },
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    oldMaster: Object.assign(
+    master: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_id: 0,
+        instance_address: '',
         ip: '',
         master_domain: '',
-        related_instances: [] as string[],
+        port: 0,
         role: '',
-        spec_id: 0,
       },
-      data.oldMaster,
+      data.master,
     ),
-    oldSlave: Object.assign(
+    slave: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        instance_address: '',
         ip: '',
-        related_instances: [] as string[],
+        port: 0,
       },
-      data.oldSlave,
+      data.slave,
     ),
   });
 
   const defaultData = () => ({
-    backupSource: BackupSourceType.REMOTE,
-    need_checksum: true,
+    is_check_delay: false,
+    is_check_process: false,
+    is_verify_checksum: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
+  const operaObjectType = ref(OperaObejctType.INSTANCE);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
   const selected = computed(() =>
-    formData.tableData.filter((item) => item.oldMaster.bk_host_id).map((item) => item.oldMaster),
+    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
 
-  useTicketDetail<TendbCluster.ResourcePool.MigrateCluster>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, {
-    onSuccess(ticketDetail) {
+  watch(operaObjectType, () => {
+    if (operaObjectType.value === OperaObejctType.MACHINE) {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+      });
+    }
+  });
+
+  useTicketDetail<TendbCluster.InstanceFailOver>(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, {
+    async onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
-        backupSource: details.backup_source,
-        need_checksum: details.need_checksum,
+        is_check_delay: details.is_check_delay,
+        is_check_process: details.is_check_process,
+        is_verify_checksum: details.is_verify_checksum,
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
-            oldMaster: {
-              ip: item.old_nodes.old_master?.[0]?.ip || '',
-            },
-            oldSlave: {
-              ip: item.old_nodes.old_slave?.[0]?.ip || '',
+            master: {
+              instance_address: `${item.switch_tuples?.[0]?.master?.ip}:${item.switch_tuples?.[0]?.master?.port}`,
             },
           }),
         ),
@@ -187,19 +221,29 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
-      resource_spec: {
-        backend_group: {
-          count: number;
-          spec_id: number;
+      switch_tuples: {
+        master: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
         };
-      };
+        slave: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+        };
+      }[];
     }[];
-    ip_source: 'resource_pool';
-    need_checksum: boolean;
-  }>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER);
+    is_check_delay: boolean;
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
+  }>(TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -208,22 +252,18 @@
     }
     createTicketRun({
       details: {
-        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
-          cluster_id: item.oldMaster.cluster_id,
-          old_nodes: {
-            old_master: [item.oldMaster],
-            old_slave: [item.oldSlave],
-          },
-          resource_spec: {
-            backend_group: {
-              count: 1,
-              spec_id: item.oldMaster.spec_id,
+          cluster_id: item.master.cluster_id,
+          switch_tuples: [
+            {
+              master: item.master,
+              slave: item.slave,
             },
-          },
+          ],
         })),
-        ip_source: 'resource_pool',
-        need_checksum: formData.need_checksum,
+        is_check_delay: formData.is_check_delay,
+        is_check_process: formData.is_check_process,
+        is_verify_checksum: formData.is_verify_checksum,
       },
       ...formData.payload,
     });
@@ -235,26 +275,26 @@
 
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
-            oldMaster: {
-              ip: item.ip,
+            master: {
+              instance_address: item.instance_address,
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          oldMaster: {
-            ip: item.master_ip,
+          master: {
+            instance_address: item.instance_address,
           },
         }),
       );
@@ -264,10 +304,7 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+      formData.tableData = [...(formData.tableData[0].master.bk_host_id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
   };
 </script>
