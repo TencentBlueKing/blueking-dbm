@@ -2,7 +2,8 @@ package dbareport
 
 // BackupStatus the status of backup
 type BackupStatus struct {
-	Status string `json:"status"`
+	Status       string `json:"status"`
+	StatusDetail string `json:"status_detail"`
 
 	BackupId      string `json:"backup_id"`
 	BackupType    string `json:"backup_type" `

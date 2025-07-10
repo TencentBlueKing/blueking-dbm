@@ -8,9 +8,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
-type MysqlBackupResultEvent struct {
-	metaInfo *IndexContent
-}
+type MysqlBackupResultEvent IndexContent
 
 func (e *MysqlBackupResultEvent) ClusterType() string {
 	return "tendbha"
@@ -20,22 +18,18 @@ func (e *MysqlBackupResultEvent) EventType() string {
 	return "mysql_dbbackup_result"
 }
 
-func (e *MysqlBackupResultEvent) EventCreateTimeStamp() time.Time {
-	return e.metaInfo.BackupBeginTime
+func (e *MysqlBackupResultEvent) EventCreateTimeStamp() int64 {
+	return e.BackupBeginTime.UnixMilli()
 }
 
-func (e *MysqlBackupResultEvent) BkBizId() int64 {
-	return int64(e.metaInfo.BkBizId)
+func (e *MysqlBackupResultEvent) EventBkBizId() int64 {
+	return int64(e.BkBizId)
 }
 
 // 不强求实现 String, 这里是给下面的错误处理写例子用的
 func (e *MysqlBackupResultEvent) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
-}
-
-func (e *MysqlBackupResultEvent) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.metaInfo)
 }
 
 type MysqlBackupStatusEvent struct {
@@ -66,15 +60,19 @@ func (e *MysqlBackupStatusEvent) EventType() string {
 	return "mysql_dbbackup_progress"
 }
 
-func (e *MysqlBackupStatusEvent) EventCreateTimeStamp() time.Time {
+func (e *MysqlBackupStatusEvent) EventCreateTimeStamp() int64 {
 	if e.ts.IsZero() {
 		e.ts = time.Now()
 	}
-	return e.ts
+	return e.ts.UnixMilli()
 }
 
-func (e *MysqlBackupStatusEvent) BkBizId() int64 {
+func (e *MysqlBackupStatusEvent) EventBkBizId() int64 {
 	return int64(e.config.Public.BkBizId)
+}
+
+func (e *MysqlBackupStatusEvent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.report)
 }
 
 // 不强求实现 String, 这里是给下面的错误处理写例子用的
@@ -83,25 +81,11 @@ func (e *MysqlBackupStatusEvent) String() string {
 	return string(b)
 }
 
-func (e *MysqlBackupStatusEvent) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.report)
-}
-
 // SetStatus 设置备份进度
 // 每次修改 status都当做一个新的 event上报，这里要修改 ts
-func (e *MysqlBackupStatusEvent) SetStatus(progress string) *MysqlBackupStatusEvent {
+func (e *MysqlBackupStatusEvent) SetStatus(progress string, detail string) *MysqlBackupStatusEvent {
 	e.ts = time.Now()
 	e.report.Status = progress
+	e.report.StatusDetail = detail
 	return e
 }
-
-/*
-func (e *MysqlBackupStatusEvent) Sync() error {
-	if resp, reportErr := reapi.SyncReport(e.core, e); reportErr != nil {
-		logger.Log.Warnf("report backup status, resp: %s", string(resp))
-		return reportErr
-	}
-	return nil
-}
-
-*/

@@ -9,6 +9,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	errs "errors"
@@ -168,6 +169,11 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
 			continue
 		}
+		body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
+		body.Dimension["cluster_id"] = cnf.Public.ClusterId
+		body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
+		body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
+
 		if remoteConfig.EnableRemote {
 			cnf.BackupToRemote = *remoteConfig
 		}
@@ -192,25 +198,28 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 			err := backupData(ctx, &cnf)
 			if err != nil {
 				logger.Log.Error("Create Dbbackup: Failure for ", f)
-				body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
-				body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
-				body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
-				body.Content = fmt.Sprintf("run dbbackup failed for %s", f)
-				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
-					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
-				}
 			}
 			done <- err
 		}()
 
 		select {
 		case doneErr := <-done:
-			errList = errs.Join(errList, doneErr)
+			if doneErr != nil {
+				errList = errs.Join(errList, doneErr)
+				body.Content = fmt.Sprintf("run dbbackup failed for %s, err=%s", f, doneErr.Error())
+				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+				}
+			}
 			continue
 		case <-time.After(time.Duration(maxTimeoutSeconds) * time.Second):
 			doneErr := fmt.Errorf("backup timeout exceed %s for port %d",
 				cnf.Public.BackupTimeOut, cnf.Public.MysqlPort)
 			errList = errs.Join(errList, doneErr)
+			body.Content = fmt.Sprintf("run dbbackup failed for %s, error=%s", f, doneErr.Error())
+			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+				logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+			}
 			time.Sleep(cst.KillDelayMilliSec * time.Millisecond)
 			syscall.Kill(os.Getpid(), syscall.SIGINT) // 确保子进程能够获取到中断信号
 			continue                                  //break  // 同一批发起的备份任务，某个任务超时，后续任务也不进行
@@ -223,7 +232,6 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 }
 
 func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
-
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
@@ -275,7 +283,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 		return err
 	}
 
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Begin")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Begin", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 
@@ -302,7 +310,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	// check slave status
 
 	// execute backup
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Running")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Running", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	var sshClient *sshgo.Client
@@ -330,7 +338,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort, indexFilePath)
 
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Tarball")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Tarball", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	if cnf.BackupToRemote.EnableRemote {
@@ -344,7 +352,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 		}
 	}
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Success")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Success", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
@@ -519,8 +527,10 @@ func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 		"--config", remoteConfigFile,
 		"--backup-index-file", remoteIndexFile)
 	logger.Log.Infof("run command in remote:%s ", remoteCmd.String())
+	var cmdErr bytes.Buffer
+	remoteCmd.Stderr = &cmdErr
 	if err = remoteCmd.Run(); err != nil {
-		return err
+		return errors.WithMessagef(err, cmdErr.String())
 	}
 
 	// .index.remote 里面肯定会补充备份文件列表
@@ -559,6 +569,7 @@ func backupTarAndUpload(
 	cnf.Public.SetTargetName(targetDirName)
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)
 	cnf.Public.BackupType = metaInfo.BackupType
+	cnf.Public.DataSchemaGrant = "all" // 远程备份，都是要备份数据的
 
 	// build regex used for package
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {

@@ -2,14 +2,14 @@ package common
 
 import (
 	"encoding/json"
-	"time"
 )
 
 type ISyncReportEvent interface {
 	ClusterType() string
 	EventType() string
-	EventCreateTimeStamp() time.Time
-	BkBizId() int64
+	// EventCreateTimeStamp 微妙
+	EventCreateTimeStamp() int64
+	EventBkBizId() int64
 }
 
 type SyncReportErrDetail[T ISyncReportEvent] struct {

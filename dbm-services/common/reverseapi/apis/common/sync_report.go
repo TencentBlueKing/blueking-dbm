@@ -12,13 +12,15 @@ import (
 )
 
 type innerEvent struct {
-	PayLoad              common.ISyncReportEvent `json:"payload"`
-	BkBizId              int64                   `json:"bk_biz_id"`
-	ClusterType          string                  `json:"cluster_type"`
-	EventType            string                  `json:"event_type"`
-	EventCreateTimestamp time.Time               `json:"event_create_timestamp"`
-	EventUUID            string                  `json:"event_uuid"`
-	EventReportTimestamp time.Time               `json:"event_report_timestamp"`
+	PayLoad     common.ISyncReportEvent `json:"payload"`
+	BkBizId     int64                   `json:"bk_biz_id"`
+	ClusterType string                  `json:"cluster_type"`
+	EventType   string                  `json:"event_type"`
+	// EventCreateTimestamp 毫秒
+	EventCreateTimestamp int64 `json:"event_create_timestamp"`
+	// EventReportTimestamp 毫秒
+	EventReportTimestamp int64  `json:"event_report_timestamp"`
+	EventUUID            string `json:"event_uuid"`
 }
 
 func (i *innerEvent) MarshalJSON() ([]byte, error) {
@@ -50,11 +52,11 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 	for _, e := range events {
 		innerEvents = append(innerEvents, innerEvent{
 			PayLoad:              e,
-			BkBizId:              e.BkBizId(),
+			BkBizId:              e.EventBkBizId(),
 			ClusterType:          e.ClusterType(),
 			EventType:            e.EventType(),
 			EventCreateTimestamp: e.EventCreateTimeStamp(),
-			EventReportTimestamp: time.Now(),
+			EventReportTimestamp: time.Now().UnixMilli(),
 			EventUUID:            uuid.New().String(),
 		})
 	}

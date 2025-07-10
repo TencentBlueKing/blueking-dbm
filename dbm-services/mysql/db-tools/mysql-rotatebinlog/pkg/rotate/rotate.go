@@ -12,6 +12,8 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
+	"dbm-services/common/reverseapi"
+	reapi "dbm-services/common/reverseapi/apis/common"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	binlog_parser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
@@ -314,6 +316,11 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 // Backup binlog 提交到备份系统
 // 下一轮运行时判断上一次以及之前的提交任务状态
 func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
+	reportCore, err := reverseapi.NewCore(0)
+	if err != nil {
+		return err
+	}
+
 	if backupClient == nil {
 		logger.Warn("no backup_client found. ignoring backup")
 		return nil
@@ -369,6 +376,14 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				if taskStatus == models.IBStatusSuccess {
 					f.BackupStatus = taskStatus
 					log.Reporter().Result.Println(f)
+					ev := log.MysqlBinlogResultEvent(*f)
+					fmt.Println("xxxx2", f.Filename)
+					if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
+						fmt.Println("xxxx1", reportErr.Error())
+						return reportErr
+					} else {
+						fmt.Println("xxxxx", string(resp))
+					}
 				} else if taskStatus == f.BackupStatus { // 上传状态没有进展
 					continue
 				} else if taskStatus < models.IBStatusSuccess { // 未成功，且在上传中或者等待备份系统内部重试

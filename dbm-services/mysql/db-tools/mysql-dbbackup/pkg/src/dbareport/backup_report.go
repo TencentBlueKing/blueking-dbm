@@ -411,8 +411,8 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	if err != nil {
 		return err
 	}
-	ev := &MysqlBackupResultEvent{metaInfo: metaInfo}
-	if resp, reportErr := reapi.SyncReport(reportCore, ev); reportErr != nil {
+	var ev = MysqlBackupResultEvent(*metaInfo)
+	if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
 		return reportErr
 	} else {
 		logger.Log.Infof("report backup result success, resp: %s", string(resp))

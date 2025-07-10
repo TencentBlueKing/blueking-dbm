@@ -13,6 +13,7 @@ use (
 	common/go-pubpkg
 	common/reverseapi
 	common/bkdata-kafka-consumer
+	common/db-event-consumer
 	oracle/db-tools/dbactuator
 	mongodb/db-tools/dbactuator
 	mongodb/db-tools/dbmon
