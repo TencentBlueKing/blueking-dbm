@@ -15,6 +15,7 @@ from django.db import transaction
 from backend.core import notify
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow, SimpleTaskFlow
@@ -122,5 +123,12 @@ class TicketFlowManager(object):
         # 如果是待下架单据，正常结束要联动回收主机
         is_recycle = self.ticket.ticket_type in BuilderFactory.recycle_ticket_type
         if target_status == TicketStatus.SUCCEEDED and is_recycle:
-            recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
-            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
+            recycle_hosts = self.ticket.details.get("recycle_hosts", [])
+            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_OLD_HOST))
+
+        # 如果是部署类单据，异常终止要联动回收主机
+        is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
+        is_inner_flow = self.current_flow_obj.flow_type == FlowType.INNER_FLOW
+        if target_status == TicketStatus.TERMINATED and is_inner_flow and is_apply:
+            recycle_hosts = fetch_apply_hosts({"nodes": self.ticket.details["nodes"]})
+            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_APPLY_HOST))

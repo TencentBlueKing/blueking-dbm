@@ -17,10 +17,21 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings
+from backend.db_services.cmdb.biz import get_or_create_pending_module
+from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.exceptions import AppBaseException
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.controller.revoke import RevokeController
+from backend.flow.utils.cc_manage import CcManage
 from backend.ticket import builders
-from backend.ticket.builders import FlowParamBuilder, RecycleCleanMachineParamBuilder, TicketFlowBuilder
-from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.builders import (
+    FlowParamBuilder,
+    PauseParamBuilder,
+    RecycleCleanMachineParamBuilder,
+    TicketFlowBuilder,
+)
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
+from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
 from backend.utils.time import datetime2str
 
@@ -31,9 +42,12 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
+    parent_ticket_type = serializers.CharField(help_text=_("发起的单据类型"))
 
 
 class MachineIdleCheckParamBuilder(FlowParamBuilder):
+    """主机空闲检查参数构建"""
+
     controller = BaseController.machine_idle_check_flow
 
     def format_ticket_data(self):
@@ -50,20 +64,120 @@ class MachineIdleCheckParamBuilder(FlowParamBuilder):
 
 
 class RecycleHostParamBuilder(FlowParamBuilder):
+    """主机回收参数构建"""
+
     controller = BaseController.machine_recycle_flow
 
     def format_ticket_data(self):
         self.ticket_data.update(db_type=self.ticket_data["group"], operator=self.ticket.creator)
 
 
+class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
+    """计算新机回收参数构建"""
+
+    # 该 controller 需要计算出新机回收主机，并且将主机挪用到 pending 模块
+    controller = None
+
+    def build_controller_info(self):
+        self.controller = getattr(RevokeController, self.ticket_data["parent_ticket_type"].lower())
+        return super().build_controller_info()
+
+    def format_ticket_data(self):
+        # 计算参数来源于原来的单据flow信息
+        parent_flow = Flow.objects.get(status=TicketFlowStatus.TERMINATED, ticket_id=self.ticket_data["parent_ticket"])
+        self.ticket_data.update(parent_flow.details["ticket_data"])
+        # 增加通用参数
+        super().add_common_params()
+
+    @staticmethod
+    def __standardized(recycle_hosts):
+        """标准化资源主机信息"""
+        recycle_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
+        # 统一将回收主机挪到 pending 模块
+        bk_host_ids = [host["bk_host_id"] for host in recycle_hosts]
+        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").transfer_host_module(
+            bk_host_ids=bk_host_ids,
+            target_module_ids=[get_or_create_pending_module()],
+        )
+        for host in recycle_hosts:
+            host["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+        return recycle_hosts
+
+    def post_callback(self):
+        # 需要根据确定的回收主机，修改数据清理和分池处理的参数
+        try:
+            recycle_hosts = self.ticket.current_flow().flow_output_v2[0]["values"]
+            recycle_hosts = self.__standardized(recycle_hosts)
+        except AppBaseException as e:
+            BaseTicketFlow(self.ticket.current_flow()).run_error_status_handler(e)
+        else:
+            ticket_flows = list(self.ticket.flows.all())
+            # 将新机回收同步给后面两个流程
+            clear_flow = ticket_flows[-2]
+            clear_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
+            clear_flow.save(update_fields=["details"])
+
+            recycle_flow = ticket_flows[-1]
+            recycle_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
+            recycle_flow.save(update_fields=["details"])
+
+
 class RecycleHostFlowBuilder(TicketFlowBuilder):
     serializer = RecycleHostDetailSerializer
     machine_clean_flow_builder = RecycleCleanMachineParamBuilder
-    machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
     recycle_flow_builder = RecycleHostParamBuilder
     # 此单据不属于任何db，暂定为common
     group = "common"
     editable = False
+
+
+@builders.BuilderFactory.register(TicketType.RECYCLE_APPLY_HOST)
+class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
+    calc_recycle_apply_host_flow_builder = CalcRecycleApplyHostParamBuilder
+    pause_node_builder = PauseParamBuilder
+
+    def init_ticket_flows(self):
+        flows = [
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.HOST_RECYCLE.value,
+                details=self.calc_recycle_apply_host_flow_builder(self.ticket).get_params(),
+                flow_alias=_("计算新机回收主机数量"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.PAUSE.value,
+                details=self.pause_node_builder(self.ticket).get_params(),
+                flow_alias=_("人工确认"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.HOST_RECYCLE.value,
+                details=self.machine_clean_flow_builder(self.ticket).get_params(),
+                flow_alias=_("主机数据清理"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.HOST_RECYCLE.value,
+                details=self.recycle_flow_builder(self.ticket).get_params(),
+                flow_alias=_("主机分池处理"),
+            ),
+        ]
+
+        Flow.objects.bulk_create(flows)
+        return list(Flow.objects.filter(ticket=self.ticket))
+
+    def patch_ticket_detail(self):
+        try:
+            recycle_hosts = ResourceHandler.standardized_resource_host(self.ticket.details["recycle_hosts"])
+            self.ticket.update_details(recycle_hosts=recycle_hosts)
+        except AppBaseException as e:
+            logger.error(_("初始化新机回收单据失败: {}").format(e))
+
+
+@builders.BuilderFactory.register(TicketType.RECYCLE_OLD_HOST)
+class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
+    machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
 
     def check_independent_recycle(self):
         hosting_biz = BizSettings.get_exact_hosting_biz(self.ticket.bk_biz_id, self.ticket.details["group"])
@@ -117,13 +231,3 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     def patch_ticket_detail(self):
         trigger_time = datetime2str(datetime.now(timezone.utc) + timedelta(days=env.HOST_RECYCLE_RETENTION_DAYS))
         self.ticket.update_details(trigger_time=trigger_time)
-
-
-@builders.BuilderFactory.register(TicketType.RECYCLE_APPLY_HOST)
-class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
-    pass
-
-
-@builders.BuilderFactory.register(TicketType.RECYCLE_OLD_HOST)
-class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
-    pass

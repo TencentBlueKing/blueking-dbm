@@ -70,7 +70,7 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True, is_apply=True)
 class SpiderSwitchNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSwitchNodesDetailSerializer
     inner_flow_builder = SpiderSwitchNodesFlowParamBuilder
