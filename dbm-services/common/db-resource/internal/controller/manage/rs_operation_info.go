@@ -24,6 +24,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetOperationInfoParam TODO
@@ -95,15 +96,42 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	// Sanitize orderby parameter to prevent SQL injection
+	// Enhanced SQL injection protection for orderby parameter
 	orderby := strings.TrimSpace(p.Orderby)
-	if orderby == "" || !slices.Contains(model.TbRpOperationInfoColumns, orderby) {
-		// Use default ordering if orderby is empty or invalid
+	if orderby == "" {
+		// Use default ordering if empty
 		db.Order("create_time desc")
+		return
+	}
+
+	// Split into max 2 parts (column and direction)
+	parts := strings.SplitN(orderby, " ", 2)
+	column := strings.TrimSpace(parts[0])
+
+	// Strict column name validation
+	if !slices.Contains(model.TbRpOperationInfoColumns, column) {
+		db.Order("create_time desc")
+		return
+	}
+
+	// Default to ASC if no direction specified
+	// nolint
+	direction := "ASC"
+	if len(parts) > 1 {
+		dir := strings.ToUpper(strings.TrimSpace(parts[1]))
+		if dir == "DESC" {
+			direction = dir
+		} else if dir != "ASC" {
+			// Invalid direction, use default
+			db.Order("create_time desc")
+			return
+		}
+	}
+	// Use parameterized ordering with validated values
+	if direction == "ASC" {
+		db.Order(clause.OrderByColumn{Column: clause.Column{Name: column}, Desc: false})
 	} else {
-		// Use parameterized ordering with validated column name
-		// Note: direction (ASC/DESC) should also be validated if included in orderby
-		db.Order(fmt.Sprintf("%s", orderby))
+		db.Order(clause.OrderByColumn{Column: clause.Column{Name: column}, Desc: true})
 	}
 }
 
