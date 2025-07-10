@@ -132,14 +132,15 @@
 
   const rules = [
     {
-      message: t('格式不符合要求'),
-      trigger: 'blur',
+      message: t('实例格式有误，请输入 IP:Port'),
+      trigger: 'change',
       validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),

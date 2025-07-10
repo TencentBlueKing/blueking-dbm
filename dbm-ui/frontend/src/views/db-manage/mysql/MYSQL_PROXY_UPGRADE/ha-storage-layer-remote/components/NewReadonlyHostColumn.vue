@@ -111,13 +111,13 @@
       validator: (value: Props['cluster']['readonly_host']) => value.every((item) => !!item.ip),
     },
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
       validator: (value: Props['cluster']['readonly_host']) => value.every((item) => ipv4.test(item.ip)),
     },
     {
       message: t('新只读主机数与旧只读主机数不一致'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: Props['cluster']['readonly_host']) => value.length === hostLimit.value,
     },
     {
