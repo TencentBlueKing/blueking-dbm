@@ -31,8 +31,8 @@
 
   interface Props {
     master: {
-      bk_host_id: number;
       bk_biz_id: number;
+      bk_host_id: number;
       related_clusters: {
         id: number;
       }[];
@@ -76,6 +76,13 @@
           cluster_ids: props.master.related_clusters.map((item) => item.id),
           is_stand_by: true,
         });
+      } else {
+        modelValue.value = {
+          bk_biz_id: 0,
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          ip: '',
+        };
       }
     },
     {

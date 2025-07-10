@@ -59,15 +59,20 @@
   const columnContext = useColumn();
   const inputRef = ref();
 
-  watch(modelValue, () => {
-    columnContext?.validate('change');
-  });
+  const validateResult: boolean | undefined = true;
 
-  const handleChange = (value: string) => {
+  const handleChange = async (value: string) => {
+    const validateResult = await columnContext?.validate('change');
+    if (!validateResult) {
+      return;
+    }
     emits('change', value);
   };
 
   const handleBlur = () => {
+    if (!validateResult) {
+      return;
+    }
     columnContext?.blur();
     columnContext?.validate('blur');
     emits('blur');

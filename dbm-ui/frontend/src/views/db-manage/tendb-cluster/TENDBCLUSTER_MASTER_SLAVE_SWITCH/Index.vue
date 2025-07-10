@@ -152,9 +152,9 @@
   });
 
   const defaultData = () => ({
-    is_check_delay: false,
-    is_check_process: false,
-    is_verify_checksum: false,
+    is_check_delay: true,
+    is_check_process: true,
+    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });

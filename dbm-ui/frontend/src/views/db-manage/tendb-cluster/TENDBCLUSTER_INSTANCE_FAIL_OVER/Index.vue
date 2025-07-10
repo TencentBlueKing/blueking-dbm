@@ -112,8 +112,9 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { OperaObejctType } from '@services/types';
   import type { TendbCluster } from '@services/model/ticket/ticket';
+  import { OperaObejctType } from '@services/types';
+
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -150,7 +151,7 @@
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
-        bk_biz_id: 0,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         cluster_id: 0,
@@ -164,7 +165,7 @@
     ),
     slave: Object.assign(
       {
-        bk_biz_id: 0,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         instance_address: '',
@@ -179,8 +180,8 @@
     is_check_delay: false,
     is_check_process: false,
     is_verify_checksum: false,
-    tableData: [createTableRow()],
     payload: createTickePayload(),
+    tableData: [createTableRow()],
   });
 
   const operaObjectType = ref(OperaObejctType.INSTANCE);

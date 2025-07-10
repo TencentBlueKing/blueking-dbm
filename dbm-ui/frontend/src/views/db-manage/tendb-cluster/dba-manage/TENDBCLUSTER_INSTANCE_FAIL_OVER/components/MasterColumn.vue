@@ -84,8 +84,8 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
-      trigger: 'blur',
+      message: t('实例格式有误，请输入 IP:Port'),
+      trigger: 'change',
       validator: (value: string) => !value || ipPort.test(value),
     },
     {

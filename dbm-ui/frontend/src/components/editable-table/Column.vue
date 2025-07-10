@@ -238,7 +238,7 @@
       rules.push({
         message: `${label}不能为空`,
         required: true,
-        trigger: 'change',
+        trigger: 'blur',
         validator: defaultValidator.required,
       });
     }
@@ -456,6 +456,9 @@
   const triggerBlurQueue: string[] = [];
   const triggerQueue: undefined[] = [];
   const validate = (trigger?: string): Promise<boolean> => {
+    // 重新触发验证重置上次的验证状态
+    validateState.isError = false;
+    validateState.errorMessage = '';
     if (!tableContext) {
       return Promise.resolve(false);
     }
@@ -551,6 +554,9 @@
     return new Promise((resolve, reject) => {
       const delay = Math.max(Number(tableContext.props.validateDelay || 60), 60);
       setTimeout(() => {
+        if (validateState.isError) {
+          return reject(false);
+        }
         // setTimeout 延迟执行 Column 可能会已经被卸载
         if (!currentInstance.isMounted) {
           return reject(false);
@@ -573,12 +579,6 @@
 
         // 合并规则属性配置
         const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
-
-        if (finalRuleList.length > 0) {
-          // 重新触发验证重置上次的验证状态
-          validateState.isError = false;
-          validateState.errorMessage = '';
-        }
 
         const rowIndex = rowContext!.getRowIndex();
         const rowDataValue = {

@@ -67,13 +67,13 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
+      message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
       validator: (value: string) => ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {

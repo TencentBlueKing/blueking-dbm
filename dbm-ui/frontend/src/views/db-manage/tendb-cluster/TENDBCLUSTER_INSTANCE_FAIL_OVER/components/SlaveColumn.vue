@@ -31,9 +31,9 @@
 
   interface Props {
     master: {
-      bk_host_id: number;
       bk_biz_id: number;
       bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
       port: number;
     };
@@ -63,9 +63,9 @@
           bk_biz_id: item.bk_biz_id,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
+          instance_address: `${props.master.ip}:${props.master.port}`,
           ip: item.ip,
           port: props.master.port,
-          instance_address: `${props.master.ip}:${props.master.port}`,
         };
       }
     },
@@ -79,6 +79,15 @@
           bk_biz_id: props.master.bk_biz_id,
           machines: [`${props.master.bk_cloud_id}:${props.master.ip}`],
         });
+      } else {
+        modelValue.value = {
+          bk_biz_id: 0,
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          instance_address: '',
+          ip: '',
+          port: 0,
+        };
       }
     },
     {
