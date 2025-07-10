@@ -47,7 +47,7 @@ func (s *SimulationHandler) RegisterRouter(engine *gin.Engine) {
 	sp := engine.Group("/spider")
 	{
 		sp.POST("/simulation", s.TendbClusterSimulation)
-		sp.POST("/create", s.CreateTmpSpiderPodCluster)
+		// sp.POST("/create", s.CreateTmpSpiderPodCluster)
 	}
 }
 
@@ -60,31 +60,31 @@ type CreateClusterParam struct {
 }
 
 // CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
-func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
-	var param CreateClusterParam
-	if err := s.Prepare(r, &param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		return
-	}
-	ps := service.NewDbPodSets()
-	ps.BaseInfo = &service.MySQLPodBaseInfo{
-		PodName: param.PodName,
-		RootPwd: param.Pwd,
-		Charset: "utf8mb4",
-	}
-	var err error
-	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
-	if err != nil {
-		logger.Error(err.Error())
-		return
-	}
-	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
-	if err := ps.CreateClusterPod(""); err != nil {
-		logger.Error(err.Error())
-		return
-	}
-	s.SendResponse(r, nil, "ok")
-}
+// func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
+// 	var param CreateClusterParam
+// 	if err := s.Prepare(r, &param); err != nil {
+// 		logger.Error("ShouldBind failed %s", err)
+// 		return
+// 	}
+// 	ps := service.NewDbPodSets()
+// 	ps.BaseInfo = &service.MySQLPodBaseInfo{
+// 		PodName: param.PodName,
+// 		RootPwd: param.Pwd,
+// 		Charset: "utf8mb4",
+// 	}
+// 	var err error
+// 	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
+// 	if err != nil {
+// 		logger.Error(err.Error())
+// 		return
+// 	}
+// 	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
+// 	if err := ps.CreateClusterPod(""); err != nil {
+// 		logger.Error(err.Error())
+// 		return
+// 	}
+// 	s.SendResponse(r, nil, "ok")
+// }
 
 func replaceUnderSource(str string) string {
 	return strings.ReplaceAll(str, "_", "-")

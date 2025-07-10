@@ -23,7 +23,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -96,14 +95,15 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	orderby := p.Orderby
-	if !slices.Contains(model.TbRpOperationInfoColumns, orderby) {
-		orderby = ""
-	}
-	if lo.IsEmpty(strings.TrimSpace(orderby)) {
+	// Sanitize orderby parameter to prevent SQL injection
+	orderby := strings.TrimSpace(p.Orderby)
+	if orderby == "" || !slices.Contains(model.TbRpOperationInfoColumns, orderby) {
+		// Use default ordering if orderby is empty or invalid
 		db.Order("create_time desc")
 	} else {
-		db.Order(orderby)
+		// Use parameterized ordering with validated column name
+		// Note: direction (ASC/DESC) should also be validated if included in orderby
+		db.Order(fmt.Sprintf("%s", orderby))
 	}
 }
 

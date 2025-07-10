@@ -287,9 +287,8 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	}
 	logger.Info("connect tdbctl success ~")
 	// create cluster relation
-	for _, ql := range k.getCreateClusterSqls() {
-		logger.Info("exec init cluster sql %s", ql)
-		if _, err = k.DbWork.Db.Exec(ql); err != nil {
+	for _, sql := range k.getCreateClusterSqls() {
+		if _, err = k.DbWork.Db.Exec(sql); err != nil {
 			return err
 		}
 	}

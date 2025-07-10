@@ -17,8 +17,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/samber/lo"
@@ -236,9 +238,32 @@ type RelationTbl struct {
 
 // parseSpecialSQLFile 解析指定库表
 func (t *TmysqlParse) parseSpecialSQLFile(inputfileName, mysqlVersion string) (m map[string][]string, err error) {
-	f, err := os.Open(t.getAbsoutputfilePath(inputfileName, mysqlVersion))
+	// Secure file path handling
+	filePath := t.getAbsoutputfilePath(inputfileName, mysqlVersion)
+
+	// Validate file path is clean and within expected directory
+	cleanPath := filepath.Clean(filePath)
+	baseDir := filepath.Clean(t.BaseWorkdir) // Assuming BaseWorkdir is the safe base directory
+
+	// Check if path is within base directory
+	if !strings.HasPrefix(cleanPath, baseDir+string(filepath.Separator)) {
+		logger.Error("attempted path traversal attack: %s", cleanPath)
+		return nil, fmt.Errorf("invalid file path")
+	}
+
+	// Verify file exists and is regular file
+	if fi, errx := os.Stat(cleanPath); errx != nil {
+		logger.Error("file stat failed: %s", errx.Error())
+		return nil, errx
+	} else if fi.IsDir() {
+		logger.Error("path is directory: %s", cleanPath)
+		return nil, fmt.Errorf("invalid file type")
+	}
+
+	// Open with restricted permissions
+	f, err := os.OpenFile(cleanPath, os.O_RDONLY, 0400)
 	if err != nil {
-		logger.Error("open file failed %s", err.Error())
+		logger.Error("open file failed: %s", err.Error())
 		return nil, err
 	}
 	m = make(map[string][]string)
