@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标Proxy实例')"
     :loading="loading"
-    :min-width="300"
+    :min-width="200"
     required>
     <template #headAppend>
       <span
@@ -31,12 +31,12 @@
     <EditableInput
       v-model="modelValue.instance_address"
       :placeholder="t('请输入IP:Port')"
-      @change="handleInputChange" />
+      @change="handleChange" />
   </EditableColumn>
   <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
-    :min-width="300">
+    :min-width="240">
     <EditableBlock
       v-model="modelValue.master_domain"
       :placeholder="t('自动生成')" />
@@ -54,7 +54,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import InstanceSelector, {
@@ -79,22 +79,16 @@
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     instance_address: string;
     ip: string;
     master_domain: string;
     port: number;
+    role: string;
+    spec_id: number;
   }>({
-    default: () => ({
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -127,49 +121,54 @@
   } as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
-  const selectedInstances = computed(
-    () =>
-      ({
-        [ClusterTypes.TENDBHA]: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
-  );
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
+      (item) =>
+        ({
+          instance_address: item.instance_address,
+        }) as IValue,
+    ),
+  }));
 
   const rules = [
     {
-      message: t('格式不符合要求'),
+      message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: t('该实例为非 Proxy 实例，请选择 Proxy 实例'),
+      trigger: 'blur',
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
   const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [hostInfo] = data;
+      const [item] = data;
+      if (item) {
         modelValue.value = {
-          bk_cloud_id: hostInfo.bk_cloud_id,
-          bk_host_id: hostInfo.bk_host_id,
-          cluster_id: hostInfo.cluster_id,
-          instance_address: hostInfo.instance_address,
-          ip: hostInfo.ip,
-          master_domain: hostInfo.master_domain,
-          port: hostInfo.port,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: item.cluster_id,
+          instance_address: item.instance_address,
+          ip: item.ip,
+          master_domain: item.master_domain,
+          port: item.port,
+          role: item.role,
+          spec_id: item.spec_config?.id || -1,
         };
       }
     },
@@ -179,27 +178,40 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     modelValue.value = {
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
       cluster_id: 0,
       instance_address: value,
       ip: '',
       master_domain: '',
       port: 0,
+      role: '',
+      spec_id: 0,
     };
-    if (value) {
-      queryInstance({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+        queryInstance({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.instance_address],
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

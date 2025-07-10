@@ -149,22 +149,24 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
+  let illegalInstances = '';
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: '',
+      trigger: 'blur',
+      validator: (value: string) =>
+        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 
@@ -181,8 +183,12 @@
   const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [hostInfo] = data;
+      illegalInstances = data
+        .filter((item) => item.role !== 'backend_master')
+        .map((item) => item.instance_address)
+        .join('、');
+      const [hostInfo] = data;
+      if (hostInfo) {
         const clusterIds: number[] = [];
         const relatedInstances: string[] = [];
         const relatedClusters: string[] = [];
@@ -210,6 +216,7 @@
   };
 
   const handleInputChange = (value: string) => {
+    illegalInstances = '';
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,

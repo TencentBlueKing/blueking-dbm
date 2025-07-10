@@ -112,24 +112,25 @@
 
   const rules = [
     {
-      message: t('格式不符合要求'),
-      trigger: 'blur',
+      message: t('实例格式有误，请输入 IP:Port'),
+      trigger: 'change',
       validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非 Slave 实例'),
+      message: t('该实例为非 Slave 实例，请选择 Slave 实例'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'remote_slave',
+      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
   ];
 
@@ -178,12 +179,12 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBCLUSTER],
           db_type: DBTypes.TENDBCLUSTER,
-          instance_addresses: [modelValue.value.instance_address],
+          instance_addresses: [modelValue.value.ip],
         });
       }
     },

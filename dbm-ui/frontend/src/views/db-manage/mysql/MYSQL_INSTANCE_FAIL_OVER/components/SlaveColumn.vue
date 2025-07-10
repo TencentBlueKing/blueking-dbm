@@ -31,11 +31,9 @@
 
   interface Props {
     master: {
-      bk_host_id: number;
       bk_biz_id: number;
-      related_clusters: {
-        id: number;
-      }[];
+      bk_host_id: number;
+      cluster_id: number;
       port: number;
     };
   }
@@ -78,9 +76,18 @@
       if (props.master.bk_host_id) {
         querySlave({
           bk_biz_id: props.master.bk_biz_id,
-          cluster_ids: props.master.related_clusters.map((item) => item.id),
+          cluster_ids: [props.master.cluster_id],
           is_stand_by: true,
         });
+      } else {
+        modelValue.value = {
+          bk_biz_id: 0,
+          bk_cloud_id: 0,
+          bk_host_id: 0,
+          instance_address: '',
+          ip: '',
+          port: 0,
+        };
       }
     },
     {

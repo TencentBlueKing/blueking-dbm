@@ -121,24 +121,20 @@
 
   const rules = [
     {
-      message: t('格式不符合要求'),
+      message: t('实例格式有误，请输入 IP:Port'),
       trigger: 'change',
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => !value || ipPort.test(value),
     },
     {
       message: t('目标实例重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        !value || props.selected.filter((item) => item.instance_address === value).length < 2,
     },
     {
       message: t('目标实例不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
   ];
 
