@@ -39,6 +39,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
@@ -543,6 +544,16 @@ class RedisClusterVersionUpdateOnline(object):
                 },
             )
             sub_pipeline.add_sub_pipeline(sub_builder)
+
+            # 更新集群 集群 版本
+            act_kwargs.cluster["update_all"] = True
+            act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
+            act_kwargs.cluster["bk_biz_id"] = bk_biz_id
+            sub_pipeline.add_act(
+                act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
+                act_component_code=RedisUpdateVersionComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("集群{}版本在线升级".format(cluster_meta_data["cluster_name"])))
