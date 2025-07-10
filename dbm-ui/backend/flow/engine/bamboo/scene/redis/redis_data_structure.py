@@ -183,7 +183,7 @@ class RedisDataStructureFlow(object):
                 remainder = int(len(cluster_src_instance) % len(info["redis"]))
                 logger.info("redis_data_structure_flow info['redis']: {}".format(info["redis"]))
             else:
-                raise ValueError("info['redis'] len < 0, please check!")
+                raise ValueError("info['redis'] len <= 0, please check!")
             # ### 部署redis ############################################################
             sub_pipelines_install = []
             cluster_dst_instance = []
@@ -214,7 +214,11 @@ class RedisDataStructureFlow(object):
             logger.info("redis_data_structure_flow cluster_dst_instance: {}".format(cluster_dst_instance))
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):
-                raise ValueError("The total number of nodes in both clusters must be equal.")
+                raise ValueError(
+                    "info ins num:{} != cluster dts ins:{}".format(
+                        len(info["master_instances"]), len(cluster_dst_instance)
+                    )
+                )
 
             # 使用zip函数将源集群和临时集群的节点一一对应
             node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
@@ -304,7 +308,7 @@ class RedisDataStructureFlow(object):
             dest_dir = ""
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
             acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
-                act_kwargs, node_pairs, info, tendis_type, dest_dir
+                act_kwargs, node_pairs, int(info["cluster_id"]), info["recovery_time_point"], tendis_type, dest_dir
             )
             logger.info(_("redis_data_structure_flow acts_list_push_json: {}".format(acts_list_push_json)))
 
@@ -766,7 +770,8 @@ class RedisDataStructureFlow(object):
         self,
         sub_kwargs: ActKwargs,
         node_pairs: list,
-        info: dict,
+        cluster_id: int,
+        recovery_time_point: str,
         tendis_type: str,
         dest_dir: str,
     ) -> (list, list):
@@ -839,90 +844,58 @@ class RedisDataStructureFlow(object):
         acts_list = []
         acts_list_push_json = []
 
-        rollback_time = info["recovery_time_point"]
+        rollback_time = recovery_time_point
         logger.info(_("get_prod_temp_instance_pairs rollback_time: {}".format(rollback_time)))
         kvstorecount = None
         if tendis_type == ClusterType.TendisplusInstance.value:
             kvstorecount = act_kwargs.cluster["kvstorecount"]
-        for new_temp_ip in [host["ip"] for host in info["redis"]]:
-            source_ports = []
-            new_temp_ports = []
-            # 遍历所有
-            new_temp_node_pairs = []
-            source_ip_map = set()
-            for pair in node_pairs:
-                # 找到新机器相同的对应关系,source_ip可能有多个
-                if new_temp_ip in str(pair):
-                    new_temp_node_pairs.append(pair)
-                    source_ip_map.add(pair[0].split(IP_PORT_DIVIDER)[0])
-                    source_ports.append(int(pair[0].split(IP_PORT_DIVIDER)[1]))
-                    new_temp_ports.append(int(pair[1].split(IP_PORT_DIVIDER)[1]))
-            logger.info(_("new_temp_node_pairs: {}".format(new_temp_node_pairs)))
-            # 将多个source_ip的情况继续拆分,每个source_ip是一个actuator
-            if len(source_ip_map) > 1:
-                logger.info(_("len(source_ip_map) > 1, source_ip_map: {}".format(source_ip_map)))
-                for source_temp_ip in source_ip_map:
-                    source_ports = []
-                    new_temp_ports = []
-                    full_backupinfo, binlog_backupinfo = [], []
-                    source_ip = ""
-                    for temp_pair in new_temp_node_pairs:
-                        # 找到新机器相同的对应关系,source_ip只有一个
-                        if source_temp_ip in str(temp_pair):
-                            source_ports.append(int(temp_pair[0].split(IP_PORT_DIVIDER)[1]))
-                            new_temp_ports.append(int(temp_pair[1].split(IP_PORT_DIVIDER)[1]))
-                        source_ip = source_temp_ip
 
-                    for source_port in source_ports:
-                        logger.info(_("source_ip_map_source_ports: {}".format(source_ports)))
-                        instance_full_backup, instance_binlog_backup = self.get_backupfile(
-                            info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
-                        )
-                        full_backupinfo.append(instance_full_backup)
-                        binlog_backupinfo.extend(instance_binlog_backup)
-                    acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
-                        source_ip,
-                        source_ports,
-                        new_temp_ip,
-                        new_temp_ports,
-                        info["recovery_time_point"],
-                        tendis_type,
-                        dest_dir,
-                        full_backupinfo,
-                        binlog_backupinfo,
-                        act_kwargs,
-                    )
-                    acts_list.append(acts_list_new_ip)
-                    acts_list_push_json.append(acts_list_push_json_new_ip)
-                    logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
-                    logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
-            elif len(source_ip_map) == 1:
-                logger.info(_("get_prod_temp_instance_pairs len(source_ip_map) = 1"))
-                source_ip = next(iter(source_ip_map))
-                full_backupinfo, binlog_backupinfo = [], []
-                for source_port in source_ports:
-                    full_backup, binlog_backup = self.get_backupfile(
-                        info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
-                    )
-                    full_backupinfo.append(full_backup)
-                    binlog_backupinfo.extend(binlog_backup)
+        # 预处理：产出 [(source_ip,dts_ip)] = [dts_ports] and [source_ports]
+        pari_dest_ports = defaultdict(list)
+        pari_source_ports = defaultdict(list)
+        for pair in node_pairs:
+            source_ip, source_port = pair[0].split(IP_PORT_DIVIDER)
+            dest_ip, dest_port = pair[1].split(IP_PORT_DIVIDER)
+            # 如果是dts_ip的任务，则统计处理
+            pari_source_ports[(source_ip, dest_ip)].append(int(source_port))
+            pari_dest_ports[(source_ip, dest_ip)].append(int(dest_port))
 
-                acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
-                    source_ip,
-                    source_ports,
-                    new_temp_ip,
-                    new_temp_ports,
-                    info["recovery_time_point"],
-                    tendis_type,
-                    dest_dir,
-                    full_backupinfo,
-                    binlog_backupinfo,
-                    act_kwargs,
+        # 遍历。 按照ip组合构成下发任务
+        for pari_ip, source_ports in pari_source_ports.items():
+            dest_ports = pari_dest_ports[pari_ip]
+            source_ip, dest_ip = pari_ip[0], pari_ip[1]
+            full_backup_info, binlog_backup_info = [], []
+
+            # 遍历端口，查询出备份
+            logger.info(
+                _(
+                    "source_ip: {},source_ports: {},dest_ip: {},dest_ports: {}".format(
+                        source_ip, source_ports, dest_ip, dest_ports
+                    )
                 )
-                acts_list.append(acts_list_new_ip)
-                acts_list_push_json.append(acts_list_push_json_new_ip)
-                logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
-                logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
+            )
+            for source_port in source_ports:
+                instance_full_backup, instance_binlog_backup = self.get_backupfile(
+                    cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount
+                )
+                full_backup_info.append(instance_full_backup)
+                binlog_backup_info.extend(instance_binlog_backup)
+            acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
+                source_ip,
+                source_ports,
+                dest_ip,
+                dest_ports,
+                recovery_time_point,
+                tendis_type,
+                dest_dir,
+                full_backup_info,
+                binlog_backup_info,
+                act_kwargs,
+            )
+            acts_list.append(acts_list_new_ip)
+            acts_list_push_json.append(acts_list_push_json_new_ip)
+            logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backup_info)))
+            logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backup_info)))
         return acts_list, acts_list_push_json
 
     @staticmethod
