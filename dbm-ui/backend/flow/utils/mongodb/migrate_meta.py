@@ -150,8 +150,8 @@ class MongoDBMigrateMeta(object):
                 )
                 if result:
                     logger.error(
-                        "nodes:{} save user:{} password:{} fail, error: {}".format(
-                            password_info["nodes"], username, password_info["password"][username], result
+                        "nodes:{} save user:{} password fail, error: {}".format(
+                            password_info["nodes"], username, result
                         )
                     )
                     return False

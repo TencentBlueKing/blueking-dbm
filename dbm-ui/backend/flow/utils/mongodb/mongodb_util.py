@@ -151,7 +151,9 @@ class MongoUtil:
         )
 
         logger.info(
-            "cluster_id:{} webconsole user: {}, password: {}, is_created: {}".format(cluster_id, user, pwd, is_created)
+            "cluster_id:{} webconsole user: {}, password: {}, is_created: {}".format(
+                cluster_id, user, "xxx", is_created
+            )
         )
 
         return {
