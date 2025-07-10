@@ -65,6 +65,7 @@ def insert_host_event(params, data, kwargs, global_data):
 class HostOutputSerializer(BaseFlowOutputSerializer):
     ip = serializers.CharField(help_text=_("IP"))
     bk_cloud_id = serializers.IntegerField(help_text=_("管控区域"))
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     city = serializers.CharField(help_text=_("地域"), allow_null=True, allow_blank=True, default="")
     sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, default="")
     rack_id = serializers.CharField(help_text=_("机架"), allow_null=True, allow_blank=True, default="")
@@ -160,9 +161,6 @@ class ImportResourceInitStepFlow(object):
             "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
         }
         if data.get("reimport"):
-            # 对于重导入的机器，此时新机器仍然在DBA业务下，所以要更新bk_biz_id
-            for host in data["hosts"]:
-                host["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
             p.add_act(
                 act_name=_("主机资源重导入"),
                 act_component_code=ExternalServiceComponent.code,
