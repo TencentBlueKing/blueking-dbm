@@ -427,7 +427,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         results[CountType.MY_APPROVE] = tickets.filter(creator=user).count()
         # 我的已办
         results[CountType.DONE] = tickets.filter(todo_of_ticket__done_by=user).values("pk").distinct().count()
-
+        # 定时timer
+        results[CountType.TIMER] = tickets.filter(status=TicketStatus.TIMER).count()
         return Response(results)
 
     @common_swagger_auto_schema(

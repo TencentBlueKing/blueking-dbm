@@ -52,6 +52,7 @@ class CountType(str, StructuredEnum):
     FAILED = EnumField("FAILED", _("失败待处理"))
     DONE = EnumField("DONE", _("我的已办"))
     SELF_MANAGE = EnumField("SELF_MANAGE", _("我负责的业务"))
+    TIMER = EnumField("TIMER", _("定时"))
 
 
 class TodoStatus(str, StructuredEnum):
@@ -115,6 +116,7 @@ TICKET_TODO_STATUS_SET = [
     TicketStatus.RESOURCE_REPLENISH,
     TicketStatus.FAILED,
     TicketStatus.RUNNING,
+    TicketStatus.TIMER,
 ]
 # 单据[终止]的状态合集
 TICKET_FINISHED_STATUS_SET = [TicketStatus.SUCCEEDED, TicketStatus.REVOKED, TicketStatus.TERMINATED]
