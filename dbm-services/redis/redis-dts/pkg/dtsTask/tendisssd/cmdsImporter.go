@@ -118,7 +118,7 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 	importTimeout := task.ImportTimeout()
 	cmdTimeout := importTimeout + 60
 
-	item.Logger.Info("开始执行导入...", zap.String("params", item.ToString()))
+	item.Logger.Info("开始执行导入...")
 	maxRetryTimes := item.MaxRetryTimes()
 	times := 0
 	retryAble := item.RetryAble()

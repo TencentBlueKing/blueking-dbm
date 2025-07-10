@@ -183,7 +183,6 @@ func (job *Job) createTasks() {
 			job.Tasks = append(job.Tasks, task)
 		}
 	}
-	mylog.Logger.Debug(fmt.Sprintf("redisfullbackup createTasks tasks:%s", util.ToString(job.Tasks)))
 }
 
 // CheckOldFullbackupStatus 重试备份系统上传失败的,检查备份系统上传中的是否成功

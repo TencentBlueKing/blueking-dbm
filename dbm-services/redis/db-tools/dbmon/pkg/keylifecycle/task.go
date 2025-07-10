@@ -168,8 +168,10 @@ func (t *Task) hotKeyWithMonitor(server Instance) (string, error) {
 	mylog.Logger.Info(fmt.Sprintf("do hot key analyse : %s", server.Addr))
 	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
 		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain, t.logFile, hkfile)
+	hkCmdLog := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
+		consts.TendisKeyLifecycleBin, server.App, server.Addr, "xxxxx", server.Domain, t.logFile, hkfile)
 
-	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmd))
+	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmdLog))
 	r1, r2 := util.RunBashCmd(hkCmd, "", nil, time.Second*(time.Duration(t.conf.HotKeyConf.Duration+10)))
 	mylog.Logger.Info(fmt.Sprintf("tools executed with result %s:%s:%s", server.Addr, r1, r2))
 
@@ -254,7 +256,13 @@ func (t *Task) bigKeyWithAof4Cache(server Instance, bkfile, kmfile string) (int6
 		allkeys, consts.TendisKeyLifecycleBin, bkfile, kmfile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,
 		step, sample, confidence, adjfactor, slptime, t.errFile)
-	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExec))
+	cmdExecLog := fmt.Sprintf(
+		"cat %s | %s keystat --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+		allkeys, consts.TendisKeyLifecycleBin, bkfile, kmfile, t.logFile,
+		server.Addr, "xxxx", server.App, server.Domain,
+		step, sample, confidence, adjfactor, slptime, t.errFile)
+	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExecLog))
 	_, err = util.RunBashCmd(cmdExec, "", nil, time.Second*time.Duration(t.conf.BigKeyConf.Duration))
 	if er1 := os.Remove(allkeys); er1 != nil {
 		mylog.Logger.Warn(fmt.Sprintf("remove keys file err %s:+%v", allkeys, er1))
@@ -310,7 +318,13 @@ func (t *Task) statRawKeysFileDetail(keysFile string, bkFile string, kmFile stri
 		keysFile, consts.TendisKeyLifecycleBin, bkFile, kmFile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,
 		step, sample, confidence, adjfactor, slptime, t.errFile)
-	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExec))
+	cmdExecLog := fmt.Sprintf(
+		"cat %s | %s keystat --ssd --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+		keysFile, consts.TendisKeyLifecycleBin, bkFile, kmFile, t.logFile,
+		server.Addr, "xxxx", server.App, server.Domain,
+		step, sample, confidence, adjfactor, slptime, t.errFile)
+	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExecLog))
 	_, err = util.RunBashCmd(cmdExec, "", nil, time.Second*time.Duration(t.conf.BigKeyConf.Duration))
 	if er1 := os.Remove(keysFile); er1 != nil {
 		mylog.Logger.Warn(fmt.Sprintf("remove keys file err %s:+%v", keysFile, er1))
