@@ -17,16 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constants
+package constant
 
 import "time"
-
-// Kind
-const (
-	ClusterDefinition   = "ClusterDefinition"
-	ComponentDefinition = "ComponentDefinition"
-	ComponentVersion    = "ComponentVersion"
-)
 
 var ResourceInGlobal = map[string]struct{}{
 	ClusterDefinition:   {},

@@ -17,12 +17,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package req
+package entity
 
-// K8sSvcReqVo k8s 的 svc 资源请求
-type K8sSvcReqVo struct {
-	K8sClusterName string `json:"k8sClusterName" binding:"required"`
-	ClusterName    string `json:"clusterName" binding:"required"`
-	Namespace      string `json:"namespace" binding:"required"`
-	ComponentName  string `json:"componentName" binding:"required"`
+// K8sNamespaceEntity k8s 命名空间 entity
+type K8sNamespaceEntity struct {
+	K8sClusterName string            `json:"k8sClusterName,omitempty"`
+	Name           string            `json:"name" binding:"required"`
+	Annotations    map[string]string `json:"annotations,omitempty"`   // 可选注解
+	Labels         map[string]string `json:"labels,omitempty"`        // 可选标签
+	ResourceQuota  *ResourceQuota    `json:"resourceQuota,omitempty"` // 可选资源配额
 }

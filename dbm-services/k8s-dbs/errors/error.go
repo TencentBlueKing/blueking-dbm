@@ -19,15 +19,15 @@ limitations under the License.
 
 package errors
 
-// GlobalError Global Error
-type GlobalError struct {
+// K8sDbsError Error
+type K8sDbsError struct {
 	Code             int    `json:"code"`    // Service Code
 	Message          string `json:"message"` // Text information corresponding to the src code
 	RealErrorMessage string `json:"err_msg"`
 }
 
 // Error string of error
-func (e *GlobalError) Error() string {
+func (e *K8sDbsError) Error() string {
 	return e.Message
 }
 
@@ -47,7 +47,7 @@ const (
 	DeleteMetaDataErr  = 1532112
 )
 
-// 存储集群管理操作异常
+// 存储集群 cluster 操作异常
 const (
 	DescribeClusterError      = 1532201
 	CreateClusterError        = 1532202
@@ -66,6 +66,13 @@ const (
 	UpdateClusterError        = 1532215
 	GetClusterEventError      = 1532216
 	PartialUpdateClusterError = 1532217
+	GetClusterSvcError        = 1532218
+)
+
+// 存储集群 component 操作异常
+const (
+	DescribeComponentError = 1532500
+	GetComponentSvcError   = 1532501
 )
 
 // k8s 集群管理操作异常
@@ -81,12 +88,6 @@ const (
 	InstallAddonError   = 1532400
 	UninstallAddonError = 1532401
 	UpgradeAddonError   = 1532402
-)
-
-// 集群 component 操作异常
-const (
-	DescribeComponentError = 1532500
-	GetComponentSvcError   = 1532501
 )
 
 // 定义错误码对于的message
@@ -123,8 +124,9 @@ var codeTag = map[int]string{
 	GetOpsRequestStatusError:  "查询操作请求状态失败",
 	UpdateClusterError:        "更新集群失败",
 	PartialUpdateClusterError: "局部更新集群失败",
+	GetClusterSvcError:        "获取集群连接失败",
 
-	// k8s apiserver 调用异常
+	// k8s api server 调用异常
 	CreateK8sNsError:         "创建命名空间失败",
 	DeleteK8sNsError:         "删除命名空间失败",
 	GetPodLogError:           "获取 Pod 日志失败",
@@ -140,10 +142,9 @@ var codeTag = map[int]string{
 	GetComponentSvcError:   "查询组件服务信息失败",
 }
 
-// NewGlobalError Create a new custom error instantiation
-func NewGlobalError(code int, err error) error {
-	// The first call must use the Wrap method to instantiate
-	return &GlobalError{
+// NewK8sDbsError 自定义错误
+func NewK8sDbsError(code int, err error) error {
+	return &K8sDbsError{
 		Code:             code,
 		Message:          codeTag[code],
 		RealErrorMessage: err.Error(),

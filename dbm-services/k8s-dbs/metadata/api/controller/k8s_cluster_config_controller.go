@@ -23,7 +23,7 @@ import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/req"
@@ -49,17 +49,17 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	config, err := k.configProvider.FindConfigByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var respVo resp.K8sClusterConfigRespVo
 	if err := copier.Copy(&respVo, config); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, respVo, commconst.Success)
@@ -69,17 +69,17 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context) {
 	nameParam := ctx.Param("clusterName")
 	if nameParam == "" {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, fmt.Errorf("clusterName 参数不能为空")))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, fmt.Errorf("clusterName 参数不能为空")))
 		return
 	}
 	config, err := k.configProvider.FindConfigByName(nameParam)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var respVo resp.K8sClusterConfigRespVo
 	if err := copier.Copy(&respVo, config); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, respVo, commconst.Success)
@@ -89,22 +89,22 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 	var reqVo req.K8sClusterConfigReqVo
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var configEntity entitys.K8sClusterConfigEntity
 	if err := copier.Copy(&configEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	addedConfig, err := k.configProvider.CreateConfig(&configEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var respVo resp.K8sClusterConfigRespVo
 	if err := copier.Copy(&respVo, addedConfig); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, respVo, commconst.Success)
@@ -115,23 +115,23 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var reqVo req.K8sClusterConfigReqVo
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var configEntity entitys.K8sClusterConfigEntity
 	if err := copier.Copy(&configEntity, reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	configEntity.ID = id
 	rows, err := k.configProvider.UpdateConfig(&configEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
@@ -142,12 +142,12 @@ func (k *K8sClusterConfigController) DeleteK8sClusterConfig(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	rows, err := k.configProvider.DeleteConfigByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)

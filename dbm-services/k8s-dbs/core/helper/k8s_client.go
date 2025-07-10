@@ -17,12 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package helper
 
 import (
 	"context"
 	"fmt"
-	"k8s-dbs/core/client/constants"
+	"k8s-dbs/core/constant"
 	entitys "k8s-dbs/metadata/entity"
 	"log"
 
@@ -98,7 +98,7 @@ func (k *K8sClient) BuildHelmConfig(namespace string) (*action.Configuration, er
 	if err := helmActionConfig.Init(
 		configFlags,
 		namespace,
-		constants.HelmDriver,
+		constant.HelmDriver,
 		func(format string, v ...interface{}) {
 			log.Printf(format, v...)
 		},

@@ -23,7 +23,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	metaconst "k8s-dbs/metadata/constant"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -56,12 +56,12 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 	pagination := commentity.Pagination{Limit: fetchSize}
 	addons, err := a.addonProvider.ListStorageAddons(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data []resp.K8sCrdAddonRespVo
 	if err := copier.Copy(&data, addons); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -72,17 +72,17 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	addon, err := a.addonProvider.FindStorageAddonByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data resp.K8sCrdAddonRespVo
 	if err := copier.Copy(&data, addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -92,12 +92,12 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 func (a *AddonController) CreateAddon(ctx *gin.Context) {
 	var addon req.K8sCrdAddonReqVo
 	if err := ctx.ShouldBindJSON(&addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var addonEntity entitys.K8sCrdStorageAddonEntity
 	if err := copier.Copy(&addonEntity, &addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	dbsContext := commentity.DbsContext{
@@ -105,12 +105,12 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 	}
 	addedAddon, err := a.addonProvider.CreateStorageAddon(&dbsContext, &addonEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var data resp.K8sCrdAddonRespVo
 	if err := copier.Copy(&data, addedAddon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -121,17 +121,17 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var addon req.K8sCrdAddonReqVo
 	if err := ctx.ShouldBindJSON(&addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var addonEntity entitys.K8sCrdStorageAddonEntity
 	if err := copier.Copy(&addonEntity, addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	dbsContext := commentity.DbsContext{
@@ -140,7 +140,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 	addonEntity.ID = id
 	rows, err := a.addonProvider.UpdateStorageAddon(&dbsContext, &addonEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
@@ -151,12 +151,12 @@ func (a *AddonController) DeleteAddon(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	rows, err := a.addonProvider.DeleteStorageAddonByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)

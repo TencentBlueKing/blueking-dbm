@@ -23,13 +23,10 @@ import (
 	"errors"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
-	coreapiconst "k8s-dbs/core/api/constant"
-	coreclient "k8s-dbs/core/client"
-	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
+	pventity "k8s-dbs/core/entity"
 	"k8s-dbs/core/helper"
 	corehelper "k8s-dbs/core/helper"
-	pventity "k8s-dbs/core/provider/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -142,7 +139,7 @@ func (a *AddonProvider) validateProvider() error {
 func (a *AddonProvider) ManageAddon(
 	dbsContext *commentity.DbsContext,
 	entity *pventity.AddonEntity,
-	operation coreapiconst.AddonOperation,
+	operation coreconst.AddonOperation,
 ) error {
 	_, err := helper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, a.reqRecordMeta)
 	if err != nil {
@@ -154,13 +151,13 @@ func (a *AddonProvider) ManageAddon(
 		slog.Error("Failed to find k8s cluster config", "error", err)
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		slog.Error("Failed to create k8s client", "error", err)
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
 	switch operation {
-	case coreapiconst.InstallAddonOP:
+	case coreconst.InstallAddonOP:
 		if err = a.installAddonHelmRelease(entity, k8sClient); err != nil {
 			slog.Error("Failed to install helm release", "error", err)
 			return fmt.Errorf("failed to install helm release: %w", err)
@@ -170,7 +167,7 @@ func (a *AddonProvider) ManageAddon(
 			slog.Error("Failed to create cluster addon record", "error", err)
 			return fmt.Errorf("failed to create cluster addon record: %w", err)
 		}
-	case coreapiconst.UninstallAddonOP:
+	case coreconst.UninstallAddonOP:
 		if err = a.UnInstallAddonHelmRelease(entity, k8sClient); err != nil {
 			slog.Error("Failed to uninstall helm release", "error", err)
 			return fmt.Errorf("failed to uninstall helm release: %w", err)
@@ -180,7 +177,7 @@ func (a *AddonProvider) ManageAddon(
 			slog.Error("Failed to delete cluster addon record", "error", err)
 			return fmt.Errorf("failed to delete cluster addon record: %w", err)
 		}
-	case coreapiconst.UpgradeAddonOP:
+	case coreconst.UpgradeAddonOP:
 		if err = a.UpgradeAddonHelmRelease(entity, k8sClient); err != nil {
 			slog.Error("Failed to upgrade helm release", "error", err)
 			return fmt.Errorf("failed to upgrade helm release: %w", err)
@@ -217,9 +214,9 @@ func (a *AddonProvider) getAddonHelmRepository(
 // installAddonHelmRelease 安装 chart
 func (a *AddonProvider) installAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *coreclient.K8sClient,
+	k8sClient *corehelper.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(clientconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err
@@ -232,10 +229,10 @@ func (a *AddonProvider) installAddonHelmRelease(
 
 	install := action.NewInstall(actionConfig)
 	install.ReleaseName = entity.AddonType
-	install.Namespace = clientconst.AddonDefaultNamespace
+	install.Namespace = coreconst.AddonDefaultNamespace
 	install.RepoURL = helmRepo.RepoRepository
 	install.Version = entity.AddonVersion
-	install.Timeout = clientconst.HelmOperationTimeout
+	install.Timeout = coreconst.HelmOperationTimeout
 	install.CreateNamespace = true
 	install.Wait = true
 	install.Username = helmRepo.RepoUsername
@@ -255,11 +252,11 @@ func (a *AddonProvider) installAddonHelmRelease(
 	if err != nil {
 		slog.Error("Addon install failed",
 			"addonName", entity.AddonType,
-			"namespace", clientconst.AddonDefaultNamespace,
+			"namespace", coreconst.AddonDefaultNamespace,
 			"error", err,
 		)
 		return fmt.Errorf("addon install failed for addonName %q in namespace %q: %w",
-			entity.AddonType, clientconst.AddonDefaultNamespace, err)
+			entity.AddonType, coreconst.AddonDefaultNamespace, err)
 	}
 	return nil
 }
@@ -267,22 +264,22 @@ func (a *AddonProvider) installAddonHelmRelease(
 // UnInstallAddonHelmRelease 卸载 chart release
 func (a *AddonProvider) UnInstallAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *coreclient.K8sClient,
+	k8sClient *corehelper.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(clientconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err
 	}
 	unInstall := action.NewUninstall(actionConfig)
-	unInstall.Timeout = clientconst.HelmOperationTimeout
+	unInstall.Timeout = coreconst.HelmOperationTimeout
 	unInstall.Wait = true
 	_, err = unInstall.Run(entity.AddonType)
 	if err != nil {
 		slog.Error("addon uninstall failed", "addonName", entity.AddonType,
-			"namespace", clientconst.AddonDefaultNamespace, "error", err)
+			"namespace", coreconst.AddonDefaultNamespace, "error", err)
 		return fmt.Errorf("addon uninstall failed for addonName %q in namespace %q: %w",
-			entity.AddonType, clientconst.AddonDefaultNamespace, err)
+			entity.AddonType, coreconst.AddonDefaultNamespace, err)
 	}
 	return nil
 }
@@ -290,9 +287,9 @@ func (a *AddonProvider) UnInstallAddonHelmRelease(
 // UpgradeAddonHelmRelease 更新 chart release
 func (a *AddonProvider) UpgradeAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *coreclient.K8sClient,
+	k8sClient *corehelper.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(clientconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err
@@ -303,10 +300,10 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 		return err
 	}
 	upgrade := action.NewUpgrade(actionConfig)
-	upgrade.Namespace = clientconst.AddonDefaultNamespace
+	upgrade.Namespace = coreconst.AddonDefaultNamespace
 	upgrade.RepoURL = helmRepo.RepoRepository
 	upgrade.Version = entity.AddonVersion
-	upgrade.Timeout = clientconst.HelmOperationTimeout
+	upgrade.Timeout = coreconst.HelmOperationTimeout
 	upgrade.Wait = true
 	upgrade.Username = helmRepo.RepoUsername
 	upgrade.Password = helmRepo.RepoPassword
@@ -324,7 +321,7 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 	if err != nil {
 		slog.Error("Addon upgrade failed", "addonName", entity.AddonType, "error", err)
 		return fmt.Errorf("addon upgrade failed for addonName %q in namespace %q: %w",
-			entity.AddonType, clientconst.AddonDefaultNamespace, err)
+			entity.AddonType, coreconst.AddonDefaultNamespace, err)
 
 	}
 	return nil

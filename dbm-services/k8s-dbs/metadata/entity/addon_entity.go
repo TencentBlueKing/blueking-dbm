@@ -41,3 +41,15 @@ type K8sCrdStorageAddonEntity struct {
 	UpdatedBy            string    `json:"updatedBy"`
 	UpdatedAt            time.Time `json:"updatedAt"`
 }
+
+// ClusterTopology 集群拓扑结构
+type ClusterTopology struct {
+	Name       string              `json:"name"`
+	Default    bool                `json:"default"`
+	Components []*ClusterComponent `json:"components"`
+}
+
+// ClusterComponent 拓扑关联的组件信息
+type ClusterComponent struct {
+	Name string `json:"name"`
+}

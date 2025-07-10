@@ -21,6 +21,9 @@ package router
 
 import (
 	"k8s-dbs/core/api/controller"
+	coreprovider "k8s-dbs/core/provider"
+	metadbaccess "k8s-dbs/metadata/dbaccess"
+	metaprovider "k8s-dbs/metadata/provider"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -37,6 +40,7 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 		clusterGroup.POST("/partial_upgrade", clusterController.PartialUpdateCluster)
 		clusterGroup.POST("/delete", clusterController.DeleteCluster)
 		clusterGroup.POST("/describe", clusterController.DescribeCluster)
+		clusterGroup.POST("/service/describe", clusterController.GetClusterLinks)
 		clusterGroup.POST("/status", clusterController.GetClusterStatus)
 		clusterGroup.POST("/event", clusterController.GetClusterEvent)
 
@@ -61,5 +65,14 @@ func buildClusterRouter(db *gorm.DB, router *gin.Engine) {
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := BuildClusterProvider(db)
 	opsRequestProvider := BuildOpsRequestProvider(db, clusterProvider)
-	return controller.NewClusterController(clusterProvider, opsRequestProvider)
+	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
+		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider)
+	return controller.NewClusterController(clusterProvider,
+		clusterMetaProvider, componentProvider, opsRequestProvider)
 }

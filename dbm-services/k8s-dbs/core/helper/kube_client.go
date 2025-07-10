@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-package client
+package helper
 
 import (
 	"context"
 	"fmt"
-	"k8s-dbs/core/client/constants"
+	"k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"log"
 	"log/slog"
@@ -63,7 +63,7 @@ func CreateCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when creating resource")
 	}
-	if _, exists := constants.ResourceInGlobal[crd.ResourceType]; exists {
+	if _, exists := constant.ResourceInGlobal[crd.ResourceType]; exists {
 		_, err := k8sClient.DynamicClient.
 			Resource(crd.GroupVersionResource).
 			Create(context.TODO(), crd.ResourceObject, metav1.CreateOptions{})
@@ -87,7 +87,7 @@ func DeleteCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when deleting resource")
 	}
-	if _, exists := constants.ResourceInGlobal[crd.ResourceType]; exists {
+	if _, exists := constant.ResourceInGlobal[crd.ResourceType]; exists {
 		err := k8sClient.DynamicClient.
 			Resource(crd.GroupVersionResource).
 			Delete(context.TODO(), crd.ResourceName, metav1.DeleteOptions{})
@@ -113,7 +113,7 @@ func GetCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstru
 	}
 	var unstructuredObj *unstructured.Unstructured
 	var err error
-	if _, exists := constants.ResourceInGlobal[crd.ResourceType]; exists {
+	if _, exists := constant.ResourceInGlobal[crd.ResourceType]; exists {
 		unstructuredObj, err = k8sClient.DynamicClient.
 			Resource(crd.GroupVersionResource).
 			Get(context.TODO(), crd.ResourceName, metav1.GetOptions{})
@@ -148,7 +148,7 @@ func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstr
 	var list *unstructured.UnstructuredList
 	var err error
 
-	if _, exists := constants.ResourceInGlobal[crd.ResourceType]; exists {
+	if _, exists := constant.ResourceInGlobal[crd.ResourceType]; exists {
 		list, err = k8sClient.DynamicClient.
 			Resource(crd.GroupVersionResource).
 			List(context.TODO(), listOptions)
@@ -169,7 +169,7 @@ func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstr
 // CheckStorageAddonIsCreated 检查 addon 是否已安装
 func CheckStorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bool, error) {
 	// init helm client
-	actionConfig, err := k8sClient.BuildHelmConfig(constants.AddonDefaultNamespace)
+	actionConfig, err := k8sClient.BuildHelmConfig(constant.AddonDefaultNamespace)
 	if err != nil {
 		return false, err
 	}

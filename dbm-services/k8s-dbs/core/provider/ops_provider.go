@@ -21,7 +21,6 @@ package provider
 
 import (
 	"fmt"
-	coreclient "k8s-dbs/core/client"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
@@ -139,7 +138,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -161,7 +160,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, verticalScaling)
+	err = corehelper.CreateCRD(k8sClient, verticalScaling)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +188,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -211,7 +210,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, horizontalScaling)
+	err = corehelper.CreateCRD(k8sClient, horizontalScaling)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +253,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -281,7 +280,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, volumeExpansion)
+	err = corehelper.CreateCRD(k8sClient, volumeExpansion)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +312,7 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -335,7 +334,7 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, start)
+	err = corehelper.CreateCRD(k8sClient, start)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +363,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -396,7 +395,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, restart)
+	err = corehelper.CreateCRD(k8sClient, restart)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +423,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -446,7 +445,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, stop)
+	err = corehelper.CreateCRD(k8sClient, stop)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +469,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +496,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, upgrade)
+	err = corehelper.CreateCRD(k8sClient, upgrade)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +524,7 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -548,7 +547,7 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 		return nil, err
 	}
 
-	err = coreclient.CreateCRD(k8sClient, expose)
+	err = corehelper.CreateCRD(k8sClient, expose)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +565,7 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -576,7 +575,7 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 		Namespace:            request.Metadata.Namespace,
 		GroupVersionResource: kbtypes.OpsGVR(),
 	}
-	opsRequest, err := coreclient.GetCRD(k8sClient, crd)
+	opsRequest, err := corehelper.GetCRD(k8sClient, crd)
 	if err != nil {
 		return nil, err
 	}
@@ -609,14 +608,14 @@ func (o *OpsRequestProvider) validateProvider() error {
 }
 
 // getClusterInfo Query cluster information and return
-func getClusterInfo(request *coreentity.Request, k8sClient *coreclient.K8sClient) (*kbv1.Cluster, error) {
+func getClusterInfo(request *coreentity.Request, k8sClient *corehelper.K8sClient) (*kbv1.Cluster, error) {
 	// Construct and query crd resources
 	crd := &coreentity.CustomResourceDefinition{
 		ResourceName:         request.Metadata.ClusterName,
 		Namespace:            request.Metadata.Namespace,
 		GroupVersionResource: kbtypes.ClusterGVR(),
 	}
-	clusterCR, err := coreclient.GetCRD(k8sClient, crd)
+	clusterCR, err := corehelper.GetCRD(k8sClient, crd)
 	if err != nil {
 		return nil, err
 	}

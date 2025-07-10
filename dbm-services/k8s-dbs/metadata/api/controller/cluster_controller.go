@@ -23,7 +23,7 @@ import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
@@ -76,17 +76,17 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	cluster, err := c.clusterProvider.FindClusterByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, cluster); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
@@ -98,7 +98,7 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	pagination, err := metahelper.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	params := metahelper.BuildPageParams(ctx)
@@ -106,17 +106,17 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	clusterQueryParams := metaentity.ClusterQueryParams{}
 
 	if err := copier.Copy(&clusterQueryParams, params); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	clusterEntities, count, err := c.clusterProvider.ListClusters(&clusterQueryParams, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 	}
 	var data []resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, clusterEntities); err != nil {
 		slog.Error("fail to copy cluster data", "error", err)
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	for idx, clusterEntity := range data {

@@ -23,9 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"k8s-dbs/common/util"
-	"k8s-dbs/core/client"
-	coreclient "k8s-dbs/core/client"
-	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	metaenitty "k8s-dbs/metadata/entity"
@@ -440,7 +437,7 @@ func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cl
 					currentStorage.Add(compFromReq.Storage)
 					storageClassName := vct.Spec.StorageClassName
 
-					err := coreclient.CheckStorageBySC(*storageClassName, currentStorage)
+					err := CheckStorageBySC(*storageClassName, currentStorage)
 					if err != nil {
 						slog.Error("failed to check storage by SC", "err", err)
 						return nil, err
@@ -510,7 +507,7 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 	// Convert selector key about kb
 	podSelect := request.Service.PodSelect
 	for key, value := range podSelect {
-		if newKey, exists := clientconst.PodSelectLabel[key]; exists {
+		if newKey, exists := coreconst.PodSelectLabel[key]; exists {
 			delete(podSelect, key)
 			podSelect[newKey] = value
 		}
@@ -759,11 +756,11 @@ func UpdateValWithCompList(
 					resources = make(map[string]interface{})
 					compFromVal["resources"] = resources
 				}
-				err = client.MergeObjectToVal(resources, compFromReq.Request, "requests")
+				err = MergeObjectToVal(resources, compFromReq.Request, "requests")
 				if err != nil {
 					return nil, err
 				}
-				err = client.MergeObjectToVal(resources, compFromReq.Limit, "limits")
+				err = MergeObjectToVal(resources, compFromReq.Limit, "limits")
 				if err != nil {
 					return nil, err
 				}

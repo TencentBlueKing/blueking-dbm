@@ -24,7 +24,6 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/common/util"
-	coreclient "k8s-dbs/core/client"
 	coreentity "k8s-dbs/core/entity"
 	providerentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -69,7 +68,7 @@ func CreateRequestRecord(
 // BuildHelmActionConfig 构建 helm action config
 func BuildHelmActionConfig(
 	namespace string,
-	k8sClient *coreclient.K8sClient,
+	k8sClient *K8sClient,
 ) (*action.Configuration, error) {
 	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
 	if err != nil {

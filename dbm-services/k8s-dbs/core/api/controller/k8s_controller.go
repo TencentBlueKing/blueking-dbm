@@ -23,19 +23,15 @@ import (
 	coreconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
+	"k8s-dbs/core/vo/req"
+	"k8s-dbs/core/vo/resp"
+	"k8s-dbs/errors"
 	metahelper "k8s-dbs/metadata/helper"
 	metarespvo "k8s-dbs/metadata/vo/resp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-
-	reqvo "k8s-dbs/core/api/vo/req"
-
-	respvo "k8s-dbs/core/api/vo/resp"
-
-	pventity "k8s-dbs/core/provider/entity"
 )
 
 // K8sController k8s 集群管理 controller
@@ -45,14 +41,14 @@ type K8sController struct {
 
 // CreateNamespace 创建 namespace
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
-	var namespaceReq reqvo.K8sNamespaceReqVo
+	var namespaceReq req.K8sNamespaceReqVo
 	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	var namespaceEntity pventity.K8sNamespaceEntity
+	var namespaceEntity entity.K8sNamespaceEntity
 	if err := copier.Copy(&namespaceEntity, &namespaceReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	dbsContext := commentity.DbsContext{
@@ -60,12 +56,12 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	}
 	added, err := k.k8sProvider.CreateNamespace(&dbsContext, &namespaceEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	var data respvo.K8sNamespaceRespVo
+	var data resp.K8sNamespaceRespVo
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateK8sNsError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, coreconst.Success)
@@ -73,22 +69,22 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 
 // GetPodLogs 获取 pod 日志详情
 func (k *K8sController) GetPodLogs(ctx *gin.Context) {
-	var logReq reqvo.K8sPodLogReqVo
+	var logReq req.K8sPodLogReqVo
 	if err := ctx.ShouldBindJSON(&logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
-	var podLogEntity pventity.K8sPodLogEntity
+	var podLogEntity entity.K8sPodLogEntity
 	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
 	logs, _, err := k.k8sProvider.GetPodLog(&podLogEntity, nil)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
-	data := respvo.K8sPodLogRespVo{
+	data := resp.K8sPodLogRespVo{
 		Logs:           logs,
 		K8sClusterName: logReq.K8sClusterName,
 		ClusterName:    logReq.ClusterName,
@@ -103,22 +99,22 @@ func (k *K8sController) GetPodLogs(ctx *gin.Context) {
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 	pagination, err := metahelper.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var logReq reqvo.K8sPodLogReqVo
+	var logReq req.K8sPodLogReqVo
 	if err := ctx.ShouldBindJSON(&logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
-	var podLogEntity pventity.K8sPodLogEntity
+	var podLogEntity entity.K8sPodLogEntity
 	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
 	logs, count, err := k.k8sProvider.GetPodLog(&podLogEntity, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetPodLogError, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
 

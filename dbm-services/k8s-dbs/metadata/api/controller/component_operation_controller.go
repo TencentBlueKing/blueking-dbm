@@ -23,7 +23,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	metaconst "k8s-dbs/metadata/constant"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -56,12 +56,12 @@ func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	clusterOps, err := c.provider.ListComponentOperations(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data []resp.ComponentOperationRespVo
 	if err := copier.Copy(&data, clusterOps); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -71,22 +71,22 @@ func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context)
 func (c *ComponentOperationController) CreateComponentOperation(ctx *gin.Context) {
 	var reqVo req.ComponentOperationReqVo
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var opEntity entitys.ComponentOperationEntity
 	if err := copier.Copy(&opEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	added, err := c.provider.CreateComponentOperation(&opEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var data resp.ComponentOperationRespVo
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)

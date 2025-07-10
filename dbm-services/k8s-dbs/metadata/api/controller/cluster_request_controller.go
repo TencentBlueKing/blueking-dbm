@@ -22,12 +22,12 @@ package controller
 import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/req"
-	resp2 "k8s-dbs/metadata/vo/resp"
+	corevo "k8s-dbs/metadata/vo/resp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -49,11 +49,11 @@ func NewClusterRequestRecordController(
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 	pagination, err := metahelper.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 	}
 	var searchReqVo req.ClusterRequestRecordSearch
 	if err := ctx.ShouldBindJSON(&searchReqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	requestParams := &metaentity.ClusterRequestQueryParams{
@@ -63,15 +63,15 @@ func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 	}
 	records, count, err := k.clusterRequestProvider.ListRecords(requestParams, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp2.ClusterRequestRecordRespVo
+	var data []corevo.ClusterRequestRecordRespVo
 	if err := copier.Copy(&data, records); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var responseData = resp2.PageResult{
+	var responseData = corevo.PageResult{
 		Count:  count,
 		Result: data,
 	}

@@ -23,7 +23,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	metaconst "k8s-dbs/metadata/constant"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -58,12 +58,12 @@ func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
 	pagination := commentity.Pagination{Limit: fetchSize}
 	acVersions, err := a.acVersionProvider.ListAcVersion(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data []resp.AddonClusterVersionRespVo
 	if err := copier.Copy(&data, acVersions); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -74,17 +74,17 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	addon, err := a.acVersionProvider.FindAcVersionByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data resp.AddonClusterVersionRespVo
 	if err := copier.Copy(&data, addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -94,22 +94,22 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
 	var acVersionVo req.AddonClusterVersionReqVo
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var acVersionEntity entitys.AddonClusterVersionEntity
 	if err := copier.Copy(&acVersionEntity, &acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	added, err := a.acVersionProvider.CreateAcVersion(&acVersionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	var data resp.AddonClusterVersionRespVo
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)
@@ -120,23 +120,23 @@ func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var acVersionVo req.AddonClusterVersionReqVo
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	var acVersionEntity entitys.AddonClusterVersionEntity
 	if err := copier.Copy(&acVersionEntity, acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	acVersionEntity.ID = id
 	rows, err := a.acVersionProvider.UpdateAcVersion(&acVersionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
@@ -147,12 +147,12 @@ func (a *AddonClusterVersionController) DeleteAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	rows, err := a.acVersionProvider.DeleteAcVersionByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)

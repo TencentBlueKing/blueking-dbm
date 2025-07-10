@@ -21,7 +21,7 @@ package entity
 
 import (
 	"encoding/json"
-	coreErrors "k8s-dbs/core/errors"
+	coreErrors "k8s-dbs/errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -58,7 +58,7 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	// 判断错误类型
 	// As - 获取错误的具体实现
 	var code ResponseCode
-	var myError = new(coreErrors.GlobalError)
+	var myError = new(coreErrors.K8sDbsError)
 	if errors.As(err, &myError) {
 		code = ResponseCode(myError.Code)
 	}

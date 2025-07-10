@@ -17,12 +17,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package entity
+package constant
 
-// K8sSvcEntity k8s svc entity
-type K8sSvcEntity struct {
-	K8sClusterName string `json:"k8sClusterName" binding:"required"`
-	ClusterName    string `json:"clusterName" binding:"required"`
-	Namespace      string `json:"namespace" binding:"required"`
-	ComponentName  string `json:"componentName" binding:"required"`
-}
+// AddonOperation addon 操作类别
+type AddonOperation string
+
+// addon 操作
+const (
+	InstallAddonOP   AddonOperation = "installAddon"
+	UninstallAddonOP AddonOperation = "uninstallAddon"
+	UpgradeAddonOP   AddonOperation = "upgradeAddon"
+)
+
+// addon 类型
+const (
+	Surreal = "surrealdb"
+	VM      = "victoria-metrics"
+	RW      = "risingwave"
+	GT      = "greptimedb"
+	MILVUS  = "milvus"
+)

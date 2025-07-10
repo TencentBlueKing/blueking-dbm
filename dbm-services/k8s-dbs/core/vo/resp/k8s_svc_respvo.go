@@ -21,12 +21,19 @@ package resp
 
 import "k8s-dbs/core/entity"
 
-// K8sSvcRespVo k8s 的 svc 资源请求返回
-type K8sSvcRespVo struct {
+// K8sComponentSvcRespVo k8s 的 svc 资源请求返回
+type K8sComponentSvcRespVo struct {
 	K8sClusterName      string                      `json:"k8sClusterName" binding:"required"`
 	ClusterName         string                      `json:"clusterName" binding:"required"`
 	Namespace           string                      `json:"namespace" binding:"required"`
 	ComponentName       string                      `json:"componentName" binding:"required"`
 	InternalServiceInfo []entity.K8sInternalSvcInfo `json:"internalServiceInfo,omitempty"`
 	ExternalServiceInfo []entity.K8sExternalSvcInfo `json:"externalServiceInfo,omitempty"`
+}
+
+type K8sClusterSvcRespVo struct {
+	K8sClusterName    string                   `json:"k8sClusterName" binding:"required"`
+	ClusterName       string                   `json:"clusterName" binding:"required"`
+	Namespace         string                   `json:"namespace" binding:"required"`
+	ComponentServices []*K8sComponentSvcRespVo `json:"componentServices,omitempty" binding:"required"`
 }

@@ -21,9 +21,9 @@ package tests
 
 import (
 	"fmt"
-	coreclient "k8s-dbs/core/client"
-	"k8s-dbs/core/client/constants"
+	"k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
+	"k8s-dbs/core/helper"
 	"testing"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
@@ -41,19 +41,19 @@ func TestCreateCRD(t *testing.T) {
 	gvr := kbtypes.CompDefGVR()
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
 
 	crd := &entity.CustomResourceDefinition{
-		ResourceType:         constants.ComponentDefinition,
+		ResourceType:         constant.ComponentDefinition,
 		ResourceName:         "ComponentDefinitionName",
 		GroupVersionResource: gvr,
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.CreateCRD(k8sClient, crd)
+	err := helper.CreateCRD(k8sClient, crd)
 	assert.NoError(t, err)
 
 	actions := fakeClient.Actions()
@@ -75,19 +75,19 @@ func TestCreateCRDErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
 
 	crd := &entity.CustomResourceDefinition{
-		ResourceType:         constants.ComponentDefinition,
+		ResourceType:         constant.ComponentDefinition,
 		ResourceName:         "test-componentDefinitionName",
 		GroupVersionResource: gvr,
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.CreateCRD(k8sClient, crd)
+	err := helper.CreateCRD(k8sClient, crd)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "模拟 API 错误")
 }
@@ -96,7 +96,7 @@ func TestCreateCRDWithNs(t *testing.T) {
 	gvr := kbtypes.ClusterGVR()
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -109,7 +109,7 @@ func TestCreateCRDWithNs(t *testing.T) {
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.CreateCRD(k8sClient, crd)
+	err := helper.CreateCRD(k8sClient, crd)
 	assert.NoError(t, err)
 
 	actions := fakeClient.Actions()
@@ -129,7 +129,7 @@ func TestCreateCRDWithNsErr(t *testing.T) {
 	fakeClient.PrependReactor("create", "clusters", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -142,7 +142,7 @@ func TestCreateCRDWithNsErr(t *testing.T) {
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.CreateCRD(k8sClient, crd)
+	err := helper.CreateCRD(k8sClient, crd)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "模拟 API 错误")
 }
@@ -152,7 +152,7 @@ func TestDeleteCRD(t *testing.T) {
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -177,7 +177,7 @@ func TestDeleteCRD(t *testing.T) {
 	}
 
 	crd := &entity.CustomResourceDefinition{
-		ResourceType:         constants.ComponentDefinition,
+		ResourceType:         constant.ComponentDefinition,
 		ResourceName:         "ComponentDefinitionName",
 		GroupVersionResource: gvr,
 		ResourceObject:       Obj, // 使用转换后的对象
@@ -190,7 +190,7 @@ func TestDeleteCRD(t *testing.T) {
 	}
 
 	// 执行删除操作
-	err = coreclient.DeleteCRD(k8sClient, crd)
+	err = helper.DeleteCRD(k8sClient, crd)
 	assert.NoError(t, err)
 
 	// 验证行为
@@ -212,19 +212,19 @@ func TestDeleteCRDErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
 
 	crd := &entity.CustomResourceDefinition{
-		ResourceType:         constants.ComponentDefinition,
+		ResourceType:         constant.ComponentDefinition,
 		ResourceName:         "test-componentDefinitionName",
 		GroupVersionResource: gvr,
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.DeleteCRD(k8sClient, crd)
+	err := helper.DeleteCRD(k8sClient, crd)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "模拟 API 错误")
 }
@@ -234,7 +234,7 @@ func TestDeleteCRDWithNs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -273,7 +273,7 @@ func TestDeleteCRDWithNs(t *testing.T) {
 		t.Fatalf("Failed to create resource: %v", err)
 	}
 
-	err = coreclient.DeleteCRD(k8sClient, crd)
+	err = helper.DeleteCRD(k8sClient, crd)
 	assert.NoError(t, err)
 
 	actions := fakeClient.Actions()
@@ -294,7 +294,7 @@ func TestDeleteCRDWithNsErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &coreclient.K8sClient{}
+	k8sClient := &helper.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -307,7 +307,7 @@ func TestDeleteCRDWithNsErr(t *testing.T) {
 		ResourceObject:       &unstructured.Unstructured{},
 	}
 
-	err := coreclient.DeleteCRD(k8sClient, crd)
+	err := helper.DeleteCRD(k8sClient, crd)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "模拟 API 错误")
 }

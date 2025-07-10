@@ -21,12 +21,11 @@ package controller
 
 import (
 	coreconst "k8s-dbs/common/constant"
-	reqvo "k8s-dbs/core/api/vo/req"
-	respvo "k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
-	pventity "k8s-dbs/core/provider/entity"
+	reqvo "k8s-dbs/core/vo/req"
+	respvo "k8s-dbs/core/vo/resp"
+	"k8s-dbs/errors"
 
 	"github.com/jinzhu/copier"
 
@@ -50,12 +49,12 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	responseData, err := c.componentProvider.DescribeComponent(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -65,25 +64,25 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 func (c *ComponentController) GetComponentLinks(ctx *gin.Context) {
 	var svcReq reqvo.K8sSvcReqVo
 	if err := ctx.ShouldBindJSON(&svcReq); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
-	var svcEntity pventity.K8sSvcEntity
+	var svcEntity coreentity.K8sSvcEntity
 	if err := copier.Copy(&svcEntity, &svcReq); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
 	internalServices, err := c.componentProvider.GetComponentInternalSvc(&svcEntity)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
 	externalServices, err := c.componentProvider.GetComponentExternalSvc(&svcEntity)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetComponentSvcError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
-	data := respvo.K8sSvcRespVo{
+	data := respvo.K8sComponentSvcRespVo{
 		K8sClusterName:      svcReq.K8sClusterName,
 		ClusterName:         svcReq.ClusterName,
 		Namespace:           svcReq.Namespace,

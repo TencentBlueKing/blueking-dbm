@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"k8s-dbs/core"
-	"k8s-dbs/core/client"
+	"k8s-dbs/core/helper"
 	"k8s-dbs/router"
 	"log"
 	"log/slog"
@@ -49,7 +49,7 @@ func main() {
 		log.Fatalf("Failed to initialize core: %v", err)
 	}
 
-	r := router.NewRouter(client.Db.GormDb)
+	r := router.NewRouter(helper.Db.GormDb)
 
 	slog.Info("Finish initial configuration...")
 

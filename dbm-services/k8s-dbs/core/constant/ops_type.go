@@ -19,7 +19,7 @@ limitations under the License.
 
 package constant
 
-// These constants define all supported cluster-level or component-level operation types
+// 描述操作类型，主要用于审计日志
 const (
 	CreateCluster        = "CreateCluster"
 	DeleteCluster        = "DeleteCluster"
@@ -36,12 +36,10 @@ const (
 	VExpansion           = "VolumeExpansion"
 	UpgradeComp          = "UpgradeComp"
 	ExposeService        = "ExposeService"
-
-	CreateK8sNs = "CreateK8sNamespace"
+	CreateK8sNs          = "CreateK8sNamespace"
 )
 
-// OpsRequest operation types
-// These constants define the types of operations that can be performed through OpsRequest
+// 定义 OpsRequest 操作类型
 const (
 	Start             = "Start"
 	Stop              = "Stop"

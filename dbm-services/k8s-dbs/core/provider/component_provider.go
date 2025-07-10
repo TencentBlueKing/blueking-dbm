@@ -23,13 +23,11 @@ import (
 	"context"
 	"fmt"
 	commonutil "k8s-dbs/common/util"
-	coreclient "k8s-dbs/core/client"
-	clientconst "k8s-dbs/core/client/constants"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	coreerrors "k8s-dbs/core/errors"
-	pventity "k8s-dbs/core/provider/entity"
+	"k8s-dbs/core/helper"
 	coreutil "k8s-dbs/core/util"
+	coreerrors "k8s-dbs/errors"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"slices"
@@ -60,7 +58,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -74,7 +72,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		},
 	}
 
-	podList, err := coreclient.ListCRD(k8sClient, crd)
+	podList, err := helper.ListCRD(k8sClient, crd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods for component %s: %w", request.ComponentName, err)
 	}
@@ -123,7 +121,7 @@ func getPodRole(pod *corev1.Pod) string {
 
 // extractPodsInfo 从 Pod 列表中提取 Pod 信息
 func extractPodsInfo(
-	k8sClient *coreclient.K8sClient,
+	k8sClient *helper.K8sClient,
 	podList *unstructured.UnstructuredList,
 ) ([]coreentity.Pod, error) {
 	var pods []coreentity.Pod
@@ -159,7 +157,7 @@ func extractPodsInfo(
 }
 
 // getPodStorageCapacity 获取 pod 存储容量大小，单位：GB
-func getPodStorageCapacity(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
+func getPodStorageCapacity(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
 	volumes := pod.Spec.Volumes
 	if len(volumes) == 0 {
 		return nil, nil
@@ -178,7 +176,7 @@ func getPodStorageCapacity(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*c
 	ctx, cancel := context.WithTimeoutCause(
 		context.Background(),
 		coreconst.K8sAPIServerTimeout,
-		coreerrors.NewGlobalError(coreerrors.K8sAPIServerTimeoutError, fmt.Errorf("获取 PVC %s 超时", pvcName)),
+		coreerrors.NewK8sDbsError(coreerrors.K8sAPIServerTimeoutError, fmt.Errorf("获取 PVC %s 超时", pvcName)),
 	)
 	defer cancel()
 
@@ -222,7 +220,7 @@ func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, er
 }
 
 // getPodResourceQuota 从 Pod 的容器中提取资源请求和限制
-func getPodResourceQuota(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
+func getPodResourceQuota(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
 	}
@@ -248,13 +246,13 @@ func getPodResourceQuota(k8sClient *coreclient.K8sClient, pod *corev1.Pod) (*cor
 // filterOutKbEnvVars 过滤掉 KB 特定的环境变量
 func filterOutKbEnvVars(envVars []corev1.EnvVar) []corev1.EnvVar {
 	return slices.DeleteFunc(envVars, func(envVar corev1.EnvVar) bool {
-		_, exists := clientconst.KbEnvVar[envVar.Name]
+		_, exists := coreconst.KbEnvVar[envVar.Name]
 		return exists
 	})
 }
 
 // GetComponentInternalSvc 获取组件的内部服务链接
-func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *pventity.K8sSvcEntity) (
+func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *coreentity.K8sSvcEntity) (
 	[]coreentity.K8sInternalSvcInfo,
 	error,
 ) {
@@ -262,7 +260,7 @@ func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *pventity.K8sSvcEn
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -292,7 +290,7 @@ func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *pventity.K8sSvcEn
 }
 
 // GetComponentExternalSvc 获取组件的外部服务链接
-func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEntity) (
+func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvcEntity) (
 	[]coreentity.K8sExternalSvcInfo,
 	error,
 ) {
@@ -300,7 +298,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *pventity.K8sSvcEn
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -347,7 +345,7 @@ func mapToLabelSelector(labels map[string]string) string {
 func (c *ComponentProvider) convertInternalSvc(clusterIPServices *corev1.ServiceList) []coreentity.K8sInternalSvcInfo {
 	var k8sSvcInfos []coreentity.K8sInternalSvcInfo
 	for _, service := range clusterIPServices.Items {
-		fqdn := fmt.Sprintf("%s.%s.svc.cluster.local", service.Namespace, service.Namespace)
+		fqdn := fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
 		var ports []coreentity.PortInfo
 		for _, port := range service.Spec.Ports {
 			fullAddr := fmt.Sprintf("%s:%d", fqdn, port.Port)
@@ -403,7 +401,7 @@ func (c *ComponentProvider) convertExternalSvc(
 }
 
 func getPodResourceUsage(
-	k8sClient *coreclient.K8sClient,
+	k8sClient *helper.K8sClient,
 	pod *corev1.Pod,
 	resourceQuota *coreentity.PodResourceQuota,
 ) (*coreentity.PodResourceUsage, error) {

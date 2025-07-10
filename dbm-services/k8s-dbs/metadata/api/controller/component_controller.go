@@ -22,7 +22,7 @@ package controller
 import (
 	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
+	"k8s-dbs/errors"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/resp"
 	"strconv"
@@ -46,17 +46,17 @@ func (c *ComponentController) GetComponent(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	component, err := c.componentProvider.FindComponentByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var data resp.K8sCrdComponentRespVo
 	if err := copier.Copy(&data, component); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	entity.SuccessResponse(ctx, data, commconst.Success)

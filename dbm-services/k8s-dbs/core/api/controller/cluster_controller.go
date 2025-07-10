@@ -20,11 +20,17 @@ limitations under the License.
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	coreconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/api/vo/resp"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
+	reqvo "k8s-dbs/core/vo/req"
+	respvo "k8s-dbs/core/vo/resp"
+	"k8s-dbs/errors"
+	metaentity "k8s-dbs/metadata/entity"
+	metaprovider "k8s-dbs/metadata/provider"
+	"log/slog"
 
 	"github.com/jinzhu/copier"
 
@@ -33,18 +39,24 @@ import (
 
 // ClusterController 存储集群管理 Controller
 type ClusterController struct {
-	clusterProvider    *provider.ClusterProvider
-	opsRequestProvider *provider.OpsRequestProvider
+	clusterProvider     *provider.ClusterProvider
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider
+	componentProvider   *provider.ComponentProvider
+	opsRequestProvider  *provider.OpsRequestProvider
 }
 
 // NewClusterController 创建 ClusterController 实例
 func NewClusterController(
 	clusterProvider *provider.ClusterProvider,
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
+	componentProvider *provider.ComponentProvider,
 	opsRequestProvider *provider.OpsRequestProvider,
 ) *ClusterController {
 	return &ClusterController{
-		clusterProvider:    clusterProvider,
-		opsRequestProvider: opsRequestProvider,
+		clusterProvider:     clusterProvider,
+		clusterMetaProvider: clusterMetaProvider,
+		componentProvider:   componentProvider,
+		opsRequestProvider:  opsRequestProvider,
 	}
 }
 
@@ -53,12 +65,12 @@ func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VerticalScalingError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VerticalScalingError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.VerticalScaling(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VerticalScalingError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VerticalScalingError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -69,12 +81,12 @@ func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.HorizontalScalingError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.HorizontalScalingError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.HorizontalScaling(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.HorizontalScalingError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.HorizontalScalingError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -85,12 +97,12 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StartClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StartClusterError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.StartCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StartClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StartClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -101,12 +113,12 @@ func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.RestartClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.RestartClusterError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.RestartCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.RestartClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.RestartClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -117,12 +129,12 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StopClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StopClusterError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.StopCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.StopClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StopClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -133,12 +145,12 @@ func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpgradeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeClusterError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.UpgradeCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpgradeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -149,12 +161,12 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
 		return
 	}
 	err = c.clusterProvider.UpdateCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
@@ -165,12 +177,12 @@ func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.PartialUpdateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.PartialUpdateClusterError, err))
 		return
 	}
 	err = c.clusterProvider.PartialUpdateCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.PartialUpdateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.PartialUpdateClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
@@ -181,12 +193,12 @@ func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VolumeExpansionError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VolumeExpansionError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.VolumeExpansion(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.VolumeExpansionError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VolumeExpansionError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -197,17 +209,17 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeOpsRequestError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeOpsRequestError, err))
 		return
 	}
 	opsRequestData, err := c.opsRequestProvider.DescribeOpsRequest(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeOpsRequestError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeOpsRequestError, err))
 		return
 	}
-	var data resp.OpsRequestDetailRespVo
+	var data respvo.OpsRequestDetailRespVo
 	if err := copier.Copy(&data, opsRequestData); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
@@ -218,17 +230,17 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetOpsRequestStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetOpsRequestStatusError, err))
 		return
 	}
 	opsRequestStatus, err := c.opsRequestProvider.GetOpsRequestStatus(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetOpsRequestStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetOpsRequestStatusError, err))
 		return
 	}
-	var data resp.OpsRequestStatusRespVo
+	var data respvo.OpsRequestStatusRespVo
 	if err := copier.Copy(&data, opsRequestStatus); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
@@ -239,12 +251,12 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
 	err = c.clusterProvider.CreateCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
@@ -255,12 +267,12 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteClusterError, err))
 		return
 	}
 	err = c.clusterProvider.DeleteCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
@@ -271,17 +283,17 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeClusterError, err))
 		return
 	}
 	clusterData, err := c.clusterProvider.DescribeCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeClusterError, err))
 		return
 	}
-	var data resp.ClusterDetailRespVo
+	var data respvo.ClusterDetailRespVo
 	if err := copier.Copy(&data, clusterData); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
@@ -292,17 +304,17 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
 	clusterStatus, err := c.clusterProvider.GetClusterStatus(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
-	var data resp.ClusterStatusRespVo
+	var data respvo.ClusterStatusRespVo
 	if err := copier.Copy(&data, clusterStatus); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterStatusError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
@@ -313,12 +325,12 @@ func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.ExposeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, err))
 		return
 	}
 	responseData, err := c.opsRequestProvider.ExposeCluster(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.ExposeClusterError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
@@ -329,18 +341,119 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	clusterEventList, err := c.clusterProvider.GetClusterEvent(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
-	var data resp.ClusterEventRespVo
+	var data respvo.ClusterEventRespVo
 	if err := copier.Copy(&data, clusterEventList); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetClusterEventError, err))
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
+}
+
+// GetClusterLinks 获取集连接信息
+func (c *ClusterController) GetClusterLinks(ctx *gin.Context) {
+	var svcReq reqvo.K8sSvcReqVo
+	if err := ctx.ShouldBindJSON(&svcReq); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+	var svcEntity coreentity.K8sSvcEntity
+	if err := copier.Copy(&svcEntity, &svcReq); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+	// 查询集群信息
+	clusterParams := &metaentity.ClusterQueryParams{
+		Namespace:   svcEntity.Namespace,
+		ClusterName: svcEntity.ClusterName,
+	}
+	clusterMetaEntity, err := c.clusterMetaProvider.FindByParams(clusterParams)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+	// 获取集群组件列表
+	components, err := c.getClusterComponents(clusterMetaEntity)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+	// 获取集群连接信息
+	componentServices, err := c.getComponentsService(components, svcEntity)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+	clusterService := respvo.K8sClusterSvcRespVo{
+		K8sClusterName:    svcEntity.K8sClusterName,
+		ClusterName:       svcEntity.ClusterName,
+		Namespace:         svcEntity.Namespace,
+		ComponentServices: componentServices,
+	}
+	coreentity.SuccessResponse(ctx, clusterService, coreconst.Success)
+}
+
+// getComponentsService 获取集群组件的 service 信息
+func (c *ClusterController) getComponentsService(
+	components []*metaentity.ClusterComponent,
+	svcEntity coreentity.K8sSvcEntity,
+) ([]*respvo.K8sComponentSvcRespVo, error) {
+	var componentServices []*respvo.K8sComponentSvcRespVo
+	for _, component := range components {
+		componentSvcEntity := coreentity.K8sSvcEntity{
+			K8sClusterName: svcEntity.K8sClusterName,
+			Namespace:      svcEntity.Namespace,
+			ComponentName:  component.Name,
+			ClusterName:    svcEntity.ClusterName,
+		}
+		internalServices, err := c.componentProvider.GetComponentInternalSvc(&componentSvcEntity)
+		if err != nil {
+			return nil, err
+		}
+		externalServices, err := c.componentProvider.GetComponentExternalSvc(&componentSvcEntity)
+		if err != nil {
+			return nil, err
+		}
+		componentSvc := respvo.K8sComponentSvcRespVo{
+			K8sClusterName:      componentSvcEntity.K8sClusterName,
+			ClusterName:         componentSvcEntity.ClusterName,
+			Namespace:           componentSvcEntity.Namespace,
+			ComponentName:       componentSvcEntity.ComponentName,
+			InternalServiceInfo: internalServices,
+			ExternalServiceInfo: externalServices,
+		}
+		componentServices = append(componentServices, &componentSvc)
+	}
+	return componentServices, nil
+}
+
+// getClusterComponents 获取集群组件列表（只是组件名称不是组件实例名）
+func (c *ClusterController) getClusterComponents(clusterMetaEntity *metaentity.K8sCrdClusterEntity) (
+	[]*metaentity.ClusterComponent,
+	error,
+) {
+	topologiesStr := clusterMetaEntity.AddonInfo.Topologies
+	var clusterTopologies []*metaentity.ClusterTopology
+	if err := json.Unmarshal([]byte(topologiesStr), &clusterTopologies); err != nil {
+		slog.Error("failed to unmarshal topologies", "topologies", topologiesStr, "error", err)
+		return nil, err
+	}
+	if clusterTopologies == nil {
+		return nil, fmt.Errorf("failed to find cluster topologies")
+	}
+	var components []*metaentity.ClusterComponent
+	for _, topo := range clusterTopologies {
+		if topo.Name == clusterMetaEntity.TopoName {
+			components = topo.Components
+			break
+		}
+	}
+	return components, nil
 }
