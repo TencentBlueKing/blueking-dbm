@@ -315,7 +315,11 @@ class Ticket(AuditedModel):
         :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
+        if not hosts:
+            return
+
         from backend.db_meta.models import Machine
+        from backend.flow.engine.controller.revoke import RevokeController
 
         revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
         host_ids = [host["bk_host_id"] for host in hosts]
@@ -324,6 +328,13 @@ class Ticket(AuditedModel):
         if ticket_type == TicketType.RECYCLE_OLD_HOST and Machine.objects.filter(bk_host_id__in=host_ids).exists():
             logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))
             return
+
+        # 对应正常流程下架的主机，可以直接发起回收单据
+        # 对于新机回收，如果未定义revoke flow，则不发起回收单
+        if ticket_type == TicketType.RECYCLE_APPLY_HOST:
+            has_revoke_flow = hasattr(RevokeController, revoke_ticket.ticket_type.lower())
+            if not has_revoke_flow:
+                return
 
         # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
@@ -338,6 +349,7 @@ class Ticket(AuditedModel):
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={
                 "parent_ticket": revoke_ticket_id,
+                "parent_ticket_type": revoke_ticket.ticket_type,
                 "group": revoke_ticket.group,
                 "recycle_hosts": hosts,
             },
