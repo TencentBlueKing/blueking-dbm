@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -210,7 +211,8 @@ func (l *LogicalLoader) Execute() (err error) {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("load logical command:", binPath+" ", strings.Join(args, " "))
+	logger.Log.Info("load logical command:", binPath+" ",
+		mysqlcomm.RemoveMysqlCommandPassword(strings.Join(args, " ")))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)

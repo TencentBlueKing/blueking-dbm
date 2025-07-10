@@ -123,6 +123,8 @@ func NewBackupLogReport(cfg *config.BackupConfig) (logReport *BackupLogReport, e
 			logger.Log.Warnf("Not safe because EncryptPublicKey is not set, key=%s", ekey)
 			logReport.EncryptedKey = ekey
 		} else {
+			// 这里本意是生产的临时密码打印到本机，本机管理员可以从这里拿到密码信息来做恢复
+			// 如果本机被登录，本身数据已经无法保证安全
 			logger.Log.Infof("Passphrase encrypted=%s passphrase=%s", ekey, cfg.Public.EncryptOpt.GetPassphrase())
 			logReport.EncryptedKey = ekey
 		}

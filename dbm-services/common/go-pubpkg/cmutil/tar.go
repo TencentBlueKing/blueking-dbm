@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -21,15 +22,19 @@ func ExtractTarGz(gzipStream io.Reader, dstDir string) error {
 
 	for true {
 		header, err := tarReader.Next()
-
 		if err == io.EOF {
 			break
 		}
-
 		if err != nil {
 			return errors.WithMessage(err, "ExtractTarGz: Next() failed")
 		}
-		fileName := filepath.Join(dstDir, header.Name)
+
+		// 防止路径遍历攻击
+		fileName := filepath.Join(dstDir, filepath.Clean(header.Name))
+		if !strings.HasPrefix(fileName, filepath.Clean(dstDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("ExtractTarGz: illegal file path %q", header.Name)
+		}
+
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.Mkdir(fileName, os.FileMode(header.Mode)); err != nil {
@@ -52,7 +57,17 @@ func ExtractTarGz(gzipStream io.Reader, dstDir string) error {
 			}
 			outFile.Close()
 		case tar.TypeSymlink:
-			os.Symlink(header.Linkname, fileName)
+			// 检查符号链接目标是否合法
+			linkTarget := filepath.Clean(header.Linkname)
+			if !strings.HasPrefix(linkTarget, filepath.Clean(dstDir)+string(os.PathSeparator)) {
+				return fmt.Errorf("ExtractTarGz: unsafe symlink target %q", header.Linkname)
+			}
+			if err := os.MkdirAll(filepath.Dir(fileName), 0755); err != nil {
+				return errors.WithMessage(err, "ExtractTarGz: MkdirAll() symlink parent failed")
+			}
+			if err := os.Symlink(linkTarget, fileName); err != nil {
+				return errors.WithMessage(err, "ExtractTarGz: Symlink() failed")
+			}
 		default:
 			return fmt.Errorf(
 				"ExtractTarGz: uknown type: %v in %s",

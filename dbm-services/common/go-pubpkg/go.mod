@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/gofrs/flock v0.12.1
 	github.com/golang/glog v1.1.2
 	github.com/google/go-querystring v1.1.0

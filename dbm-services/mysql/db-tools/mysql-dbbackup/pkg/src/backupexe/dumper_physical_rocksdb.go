@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -176,7 +177,7 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 	err = cmd.Run()
 	if err != nil {
 		logger.Log.Errorf("can not run the rocksdb physical dumper command:%s, engine:%s, errmsg:%s",
-			backupCmd, p.storageEngine, err)
+			mysqlcomm.RemoveMysqlCommandPassword(backupCmd), p.storageEngine, err)
 		return err
 	}
 

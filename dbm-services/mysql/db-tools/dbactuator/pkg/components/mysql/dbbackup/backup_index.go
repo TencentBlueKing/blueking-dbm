@@ -1,9 +1,7 @@
 package dbbackup
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -277,49 +275,4 @@ func (f *BackupIndexFile) GetBackupFileBasename() string {
 
 func (f *BackupIndexFile) GetMetaFileBasename() string {
 	return f.backupIndexBasename
-}
-
-func ExtractTarGz(gzipStream io.Reader) error {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		return errors.New("ExtractTarGz: NewReader failed")
-	}
-
-	tarReader := tar.NewReader(uncompressedStream)
-
-	for true {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return errors.Wrap(err, "ExtractTarGz: Next() failed")
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.Mkdir(header.Name, 0755); err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Mkdir() failed")
-
-			}
-		case tar.TypeReg:
-			outFile, err := os.Create(header.Name)
-			if err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Create() failed")
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Copy() failed")
-
-			}
-			outFile.Close()
-
-		default:
-			return errors.Errorf("ExtractTarGz: uknown type: %s in %s",
-				header.Typeflag,
-				header.Name)
-		}
-	}
-	return nil
 }

@@ -13,7 +13,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/github/gh-ost v1.1.6
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/go-viper/mapstructure/v2 v2.2.1
+	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/gofrs/flock v0.12.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/jmoiron/sqlx v1.3.5

@@ -1,6 +1,8 @@
 module dbm-services/common/bkdata-kafka-consumer
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
@@ -72,11 +74,11 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.9.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
