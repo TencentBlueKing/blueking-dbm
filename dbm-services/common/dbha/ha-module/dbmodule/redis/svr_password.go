@@ -46,7 +46,7 @@ func GetRedisMachinePasswdDBConfig(
 	cachePasswd, ok := passwdCache.Get(key)
 	if ok {
 		log.Logger.Debugf("RedisSSHPWD get cache ok, key:%s,passwd:%s",
-			key, cachePasswd)
+			key, "***")
 		return cachePasswd.(string)
 	}
 
@@ -144,7 +144,7 @@ func GetInstancePassDBConfig(dbType types.DBType,
 		}
 	}
 	log.Logger.Debugf("PassWDClusters cachePasswd:%v,NeedQuery:%v",
-		clusterPasswd, clusters)
+		"***", clusters)
 
 	remoteConfigClient := client.NewRemoteConfigClient(&conf.NameServices.RemoteConf, conf.GetCloudId())
 
@@ -167,8 +167,8 @@ func GetInstancePassDBConfig(dbType types.DBType,
 		} else {
 			err := SetPasswordToInstance(dbType, passwd, ins)
 			if err != nil {
-				log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] cluster[%s] set passwd[%s] fail",
-					host, port, dbType, ins.GetCluster(), passwd)
+				log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] cluster[%s] set passwd[***] fail",
+					host, port, dbType, ins.GetCluster())
 			} else {
 				succCount++
 			}
@@ -427,12 +427,12 @@ func batchGetPassword(pins []client.PasswdInstance, conf *config.Config) {
 		for _, pwd := range newPasswds {
 			pwByte, err := base64.StdEncoding.DecodeString(pwd.Passwd)
 			if err != nil {
-				log.Logger.Errorf("decode redis passwd failed clusterID:%s,dbType:%s:%+v", pwd.Ip, pwd.Component, pwd.Passwd)
+				log.Logger.Errorf("decode redis passwd failed clusterID:%s,dbType:%s:***", pwd.Ip, pwd.Component)
 				continue
 			}
 			exp := GetPassExpireTime()
 			expireAfter := time.Now().Add(exp).Format("2006-01-02 15:04:05")
-			log.Logger.Debugf("add_2_cache k:%s-%s, v:%s e:%s", pwd.Ip, pwd.Component, string(pwByte), expireAfter)
+			log.Logger.Debugf("add_2_cache k:%s-%s, v:*** e:%s", pwd.Ip, pwd.Component, expireAfter)
 			passwdCache.Add(fmt.Sprintf("%s-%s", pwd.Ip, pwd.Component), string(pwByte), exp)
 		}
 	}
@@ -474,7 +474,7 @@ func GetPassByClusterID(clusterID int, dbType string) string {
 			for _, pw := range newPasswds {
 				pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
 				if pwErr != nil {
-					log.Logger.Errorf("decode passwd[%s] failed by ClusterID:%d,dbType:%s", pw.Passwd, clusterID, dbType)
+					log.Logger.Errorf("decode passwd[***] failed by ClusterID:%d,dbType:%s", clusterID, dbType)
 					continue
 				}
 				pwVal := string(pwByte)
@@ -483,7 +483,7 @@ func GetPassByClusterID(clusterID int, dbType string) string {
 				}
 				exp := GetPassExpireTime()
 				expireAfter := time.Now().Add(exp).Format("2006-01-02 15:04:05")
-				log.Logger.Debugf("add_2_cache k:%s-%s, v:%s e:%s", pw.Ip, pw.Component, pwVal, expireAfter)
+				log.Logger.Debugf("add_2_cache k:%s-%s, v:*** e:%s", pw.Ip, pw.Component, expireAfter)
 				passwdCache.Add(fmt.Sprintf("%s-%s", pw.Ip, pw.Component), pwVal, exp)
 			}
 			log.Logger.Debugf("get pass by remote ID:%d,type:%s,pass:%s,ddd:%s", clusterID, dbType, instPswd, passComp)
@@ -514,7 +514,7 @@ func GetInstancePassByClusterId(dbType string, clusterID int,
 		for _, pw := range newPasswds {
 			pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
 			if pwErr != nil {
-				log.Logger.Errorf("decode passwd[%s] failed", pw.Passwd)
+				log.Logger.Errorf("decode passwd[***] failed")
 				continue
 			}
 
@@ -523,7 +523,7 @@ func GetInstancePassByClusterId(dbType string, clusterID int,
 				instPassword = pwVal
 			}
 			passwdCache.Add(fmt.Sprintf("%d-%s", clusterID, pw.Component), pwVal, GetPassExpireTime())
-			log.Logger.Infof("reset password 2 cache ClusterID:%d-%s,:%s by:%s", clusterID, pw.Component, pwVal, dbType)
+			log.Logger.Infof("reset password 2 cache ClusterID:%d-%s,:*** by:%s", clusterID, pw.Component, dbType)
 		}
 	}
 	return instPassword, nil
@@ -562,7 +562,7 @@ func GetRedisMachinePasswd(
 	for _, pw := range newPasswds {
 		pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
 		if pwErr != nil {
-			log.Logger.Errorf("decode passwd[%s] failed", pw.Passwd)
+			log.Logger.Errorf("decode passwd[***] failed")
 			continue
 		}
 
