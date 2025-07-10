@@ -209,14 +209,17 @@ class InnerFlow(BaseTicketFlow):
     def _retry(self) -> Any:
         super()._retry()
 
-    def _revoke(self, operator) -> Any:
-        # 终止运行的pipeline
+    def _revoke(self, operator, remark="") -> Any:
+        # 刷新flow和单据状态 --> 终止
+        self.flush_revoke_status_handler(operator, remark)
+        # 停止相关联的todo
+        todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj, status=TodoStatus.TODO)
+        todos.update(status=TodoStatus.DONE_FAILED, done_by=operator)
+        # 终止正在运行的pipeline
         from backend.db_services.taskflow.handlers import TaskFlowHandler
 
         if FlowTree.objects.filter(root_id=self.flow_obj.flow_obj_id).exists():
-            TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline(operator)
-        # 流转flow的终止状态
-        super()._revoke(operator)
+            TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline(operator, remark)
 
 
 class QuickInnerFlow(InnerFlow):

@@ -344,9 +344,10 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=True, serializer_class=RetryFlowSLZ)
     def revoke_flow(self, request, pk):
-        validated_data = self.params_validate(self.get_serializer_class())
+        data = self.params_validate(self.get_serializer_class())
         user = self.request.user.username
-        TicketHandler.operate_flow(ticket_id=pk, flow_id=validated_data["flow_id"], func="revoke", operator=user)
+        flow_id, remark = data["flow_id"], data["remark"]
+        TicketHandler.operate_flow(ticket_id=pk, flow_id=flow_id, func="revoke", remark=remark, operator=user)
         return Response()
 
     @common_swagger_auto_schema(
@@ -356,8 +357,10 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=RevokeTicketSLZ)
     def revoke_ticket(self, request, *args, **kwargs):
-        ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"]
-        TicketHandler.revoke_ticket(ticket_ids, operator=request.user.username)
+        data = self.params_validate(self.get_serializer_class())
+        ticket_ids = data["ticket_ids"]
+        remark = data["remark"]
+        TicketHandler.revoke_ticket(ticket_ids, operator=request.user.username, remark=remark)
         return Response()
 
     @swagger_auto_schema(

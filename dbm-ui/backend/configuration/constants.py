@@ -149,6 +149,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     DORIS_COS_TAGGING = EnumField("DORIS_COS_TAGGING", _("Doris使用COS标签"))
     # 小额绿通单据申请
     QUICK_MINOR_POAA = EnumField("QUICK_MINOR_POAA", _("小额绿通单据申请"))
+    # 资源池独立业务,如果配置该变量,需要联动修改 MANAGE_TOPO::resource.idle.module的值
+    RESOURCE_INDEPENDENT_BIZ = EnumField("RESOURCE_INDEPENDENT_BIZ", _("资源池独立业务"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -269,6 +271,8 @@ DEFAULT_MACHINE_PROPERTY = {
     "storage_device": True,  # 磁盘
 }
 
+DEFAULT_REVERSE_REPORT_EVENT_TYPES = ["mysql_dbbackup_result", "mysql_dbbackup_progress", "mysql_binlog_result"]
+
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
 
@@ -289,7 +293,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.MACHINE_PROPERTY, "dict", DEFAULT_MACHINE_PROPERTY, _("主机属性开关配置")],
     [SystemSettingsEnum.PADDING_PROXY_APPS, "list", [], _("补全proxy业务")],
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
-    [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", [], _("反向上报事件类型")],
+    [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

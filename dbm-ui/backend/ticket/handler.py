@@ -293,7 +293,7 @@ class TicketHandler:
         getattr(flow_cls, func)(*args, **kwargs)
 
     @classmethod
-    def revoke_ticket(cls, ticket_ids, operator):
+    def revoke_ticket(cls, ticket_ids, operator, remark):
         """
         终止单据
         - 单据状态本身设置为 终止
@@ -313,7 +313,7 @@ class TicketHandler:
                 continue
 
             first_running_flow = ticket.running_flows[0]
-            cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator)
+            cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator, remark=remark)
             logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
 
     @classmethod

@@ -554,7 +554,7 @@ class TicketType(str, StructuredEnum):
     CLOUD_REDIS_DTS_SERVER_REDUCE = EnumField("CLOUD_REDIS_DTS_SERVER_REDUCE", _("云区域redis_dts 服务删除"))
 
     # 资源池
-    RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
+    RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
     RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
     RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
@@ -614,7 +614,9 @@ FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE]
 class FlowContext(str, StructuredEnum):
     """流程上下文枚举"""
 
+    ACK = EnumField("ack", _("当前流程是否确认执行"))
     EXPIRE_TIME = EnumField("expire_time", _("超时时间"))
+    REMARK = EnumField("remark", _("流程备注"))
 
 
 class FlowTypeConfig(str, StructuredEnum):

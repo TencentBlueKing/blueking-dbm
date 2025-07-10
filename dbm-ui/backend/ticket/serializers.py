@@ -168,6 +168,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     # TODO: flow_output 这个key后续废弃。改造为output data字段
     flow_output = serializers.SerializerMethodField(help_text=_("流程输出数据"))
     output_data = serializers.SerializerMethodField(help_text=_("流程输出数据V2"))
+    remark = serializers.SerializerMethodField(help_text=_("备注"))
 
     def to_representation(self, instance):
         self.ticket_flow = TicketFlowManager(ticket=instance.ticket).get_ticket_flow_cls(flow_type=instance.flow_type)(
@@ -212,6 +213,9 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
 
     def get_output_data(self, obj):
         return obj.flow_output_v2
+
+    def get_remark(self, obj):
+        return obj.context.get("remark")
 
     @property
     def translated_fields(self):
@@ -281,10 +285,12 @@ class RetryFlowSLZ(serializers.Serializer):
 
 class RevokeFlowSLZ(serializers.Serializer):
     flow_id = serializers.IntegerField(help_text=_("单据流程的ID"))
+    remark = serializers.CharField(help_text=_("单据终止备注"), required=False, default="")
 
 
 class RevokeTicketSLZ(serializers.Serializer):
     ticket_ids = serializers.ListField(help_text=_("终止单据ID"), child=serializers.IntegerField())
+    remark = serializers.CharField(help_text=_("单据终止备注"), required=False, default="")
 
 
 class GetTodosSLZ(serializers.Serializer):

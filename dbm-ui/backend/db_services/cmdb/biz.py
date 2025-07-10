@@ -248,3 +248,8 @@ def get_or_create_resource_module():
 
 def get_or_create_pending_module():
     return get_or_create_dbm_module(PENDING_MODULE)
+
+
+def get_resource_biz():
+    """获取资源池业务"""
+    return SystemSettings.get_setting_value(key=SystemSettingsEnum.RESOURCE_INDEPENDENT_BIZ) or env.DBA_APP_BK_BIZ_ID

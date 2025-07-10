@@ -302,7 +302,8 @@ class TicketTask(object):
             notify_expire_tickets(expire_type)
 
         # 终止单据
-        TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER)
+        remark = _("超时自动终止")
+        TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER, remark=remark)
 
 
 # ----------------------------- 异步执行任务函数 ----------------------------------------

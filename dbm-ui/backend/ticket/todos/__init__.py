@@ -42,10 +42,16 @@ class TodoActor:
         return cls.__name__
 
     def update_context(self, params):
+        if not params:
+            return
+
         # 更新上下文信息
         if "remark" in params:
             self.todo.context.update(remark=params["remark"])
+            self.todo.flow.context.update(remark=params["remark"])
+
         self.todo.save(update_fields=["context"])
+        self.todo.flow.save(update_fields=["context"])
 
     @property
     def allow_superuser_process(self):

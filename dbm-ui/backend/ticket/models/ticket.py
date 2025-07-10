@@ -28,6 +28,7 @@ from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
+    FlowContext,
     FlowErrCode,
     FlowRetryType,
     FlowType,
@@ -184,15 +185,10 @@ class Ticket(AuditedModel):
         flow = self.current_flow()
         # 系统终止
         if flow.err_code == FlowErrCode.SYSTEM_TERMINATED_ERROR:
-            return _("超时自动终止")
-        # 用户终止，获取所有失败的todo，拿到里面的备注
-        fail_todo = flow.todo_of_flow.filter(status=TodoStatus.DONE_FAILED).first()
-        if not fail_todo:
-            return ""
-        # 格式化终止文案
-        remark = fail_todo.context.get("remark", "")
-        reason = _("{}已处理（人工终止，备注: {}）").format(fail_todo.done_by, remark)
-        return reason
+            return _("system已处理（备注: 超过{}天未处理自动终止）").format(flow.context[FlowContext.EXPIRE_TIME])
+        # 用户终止，获取flow的备注
+        remark = flow.context.get("remark", "")
+        return _("{}已处理（人工终止，备注: {}）").format(self.updater, remark)
 
     def get_current_operators(self):
         # 获取当前流程处理人和协助人

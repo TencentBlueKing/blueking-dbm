@@ -37,6 +37,8 @@ from backend.db_services.taskflow.exceptions import (
 from backend.flow.consts import PENDING_STATES, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
+from backend.ticket.flow_manager.inner import InnerFlow
+from backend.ticket.models import Flow
 from backend.utils.string import format_json_string
 from backend.utils.time import calculate_cost_time, datetime2str
 
@@ -47,11 +49,14 @@ class TaskFlowHandler:
     def __init__(self, root_id: str):
         self.root_id = root_id
 
-    def revoke_pipeline(self, operator: str = ""):
+    def revoke_pipeline(self, operator: str, remark: str = ""):
         """撤销当前流程"""
 
+        # 如果当前任务关联了单据流程，则走单据流程的
         # 如果当前的pipeline未被创建，则直接更新FlowTree的状态为撤销态
         tree = FlowTree.objects.get(root_id=self.root_id)
+        if tree.status == StateType.REVOKED:
+            return EngineAPIResult(result=True, message=_("pipeline已撤销"))
         if tree.status in PENDING_STATES:
             tree.status = StateType.REVOKED
             tree.save()
@@ -67,6 +72,11 @@ class TaskFlowHandler:
             running_node_ids = list(running_nodes.values_list("node_id", flat=True))
             for node_id in running_node_ids:
                 bamboo_engine.runtime.set_state(node_id=node_id, to_state=StateType.REVOKED)
+
+        # 如果当前任务关联了单据流程，则需要联动更新状态
+        flow = Flow.objects.filter(flow_obj_id=self.root_id).first()
+        if flow:
+            InnerFlow(flow).flush_revoke_status_handler(operator, remark)
 
         return result
 

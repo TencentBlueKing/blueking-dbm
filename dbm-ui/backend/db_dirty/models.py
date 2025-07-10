@@ -118,6 +118,10 @@ class MachineEvent(AuditedModel):
     class Meta:
         verbose_name = verbose_name_plural = _("机器事件记录")
 
+    def to_dict(self):
+        # 批量用这个方法前，需要用select_related预取ticket
+        return {**model_to_dict(self), "ticket_type": getattr(self.ticket, "ticket_type", "")}
+
     @classmethod
     def hosts_can_return(cls, bk_host_ids) -> Tuple[bool, str]:
         """判断机器是否能退回"""
@@ -165,9 +169,9 @@ class MachineEvent(AuditedModel):
         # 获得主机ID与主机最后一次事件映射
         events = MachineEvent.objects.filter(bk_host_id__in=bk_host_ids).values("bk_host_id").annotate(last=Max("id"))
         host_last_event_id_map = {event["bk_host_id"]: event["last"] for event in events}
-        event_map = MachineEvent.objects.in_bulk(list(host_last_event_id_map.values()))
+        event_map = MachineEvent.objects.select_related("ticket").in_bulk(list(host_last_event_id_map.values()))
         host_last_event_map = {
-            host_id: model_to_dict(event_map[event_id]) for host_id, event_id in host_last_event_id_map.items()
+            host_id: event_map[event_id].to_dict() for host_id, event_id in host_last_event_id_map.items()
         }
 
         # 补充主机事件

@@ -46,7 +46,14 @@ class ResourceImportSerializer(serializers.Serializer):
         ip = serializers.CharField()
         host_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
-        os_type = serializers.CharField(required=False, default=BkOsTypeCode.LINUX)
+        # 前端展示字段
+        status = serializers.CharField(help_text=_("Agent状态"), required=False, default="")
+        city_name = serializers.CharField(help_text=_("城市"), required=False, default="")
+        sub_zone = serializers.CharField(help_text=_("园区"), required=False, default="")
+        rack_id = serializers.CharField(help_text=_("机架"), required=False, default="")
+        bk_os_name = serializers.CharField(help_text=_("操作系统"), required=False, default="")
+        svr_device_class = serializers.CharField(help_text=_("机型"), required=False, default="")
+        bk_cloud_name = serializers.CharField(help_text=_("云区域"), required=False, default="")
 
     for_biz = serializers.IntegerField(help_text=_("专属业务"))
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True)
@@ -54,6 +61,9 @@ class ResourceImportSerializer(serializers.Serializer):
     hosts = serializers.ListSerializer(help_text=_("资源主机"), child=ResourceHostSerializer())
     labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
     return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
+    os_type = serializers.CharField(required=False, default=BkOsTypeCode.LINUX)
+    # 前端展示参数
+    label_names = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
         host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}

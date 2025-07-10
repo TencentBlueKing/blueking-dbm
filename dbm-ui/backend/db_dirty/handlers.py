@@ -15,7 +15,6 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
@@ -23,6 +22,7 @@ from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_dirty.exceptions import PoolTransferException
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import Machine
+from backend.db_services.cmdb.biz import get_resource_biz
 from backend.env import HCM_APIGW_DOMAIN
 
 logger = logging.getLogger("root")
@@ -52,7 +52,7 @@ class DBDirtyMachineHandler(object):
         @param remark: 备注
         @param hcm_recycle: 是否在hcm创建回收单据，仅针对主机回收场景
         """
-        bk_biz_id = env.DBA_APP_BK_BIZ_ID
+        bk_biz_id = get_resource_biz()
         recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
         hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
         recycle_id = None
