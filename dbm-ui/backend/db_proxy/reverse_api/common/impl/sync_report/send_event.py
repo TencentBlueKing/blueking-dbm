@@ -22,7 +22,7 @@ def inject_fields(bk_cloud_id, ip, data: List) -> List:
             {
                 **ev,
                 "event_source_ip": ip,
-                "event_receive_timestamp": time.time(),
+                "event_receive_timestamp": int(time.time() * 1000 * 1000),  # us
                 "event_bk_cloud_id": bk_cloud_id,
             }
         )
