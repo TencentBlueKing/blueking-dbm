@@ -44,7 +44,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getGlobalInstance } from '@services/source/dbbase';
+  import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
@@ -122,8 +122,8 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
-      trigger: 'blur',
+      message: t('实例格式有误，请输入 IP:Port'),
+      trigger: 'change',
       validator: (value: string) => !value || ipPort.test(value),
     },
     {
@@ -138,10 +138,10 @@
     },
   ];
 
-  const { loading, run: queryInstance } = useRequest(getGlobalInstance, {
+  const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data.results;
+      const [item] = data;
       if (item) {
         modelValue.value = {
           bk_biz_id: item.bk_biz_id,
@@ -185,9 +185,10 @@
     () => {
       if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
         queryInstance({
-          cluster_type: ClusterTypes.TENDBCLUSTER,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
           db_type: DBTypes.TENDBCLUSTER,
-          instance_address: modelValue.value.instance_address,
+          instance_addresses: [modelValue.value.instance_address],
         });
       }
     },

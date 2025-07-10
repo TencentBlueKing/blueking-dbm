@@ -71,13 +71,11 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    cluster_id: number;
     instance_address: string;
     ip: string;
+    master_domain: string;
     port: number;
-    related_clusters: {
-      id: number;
-      master_domain: string;
-    }[];
     role: string;
   }>({
     required: true,
@@ -124,8 +122,8 @@
 
   const rules = [
     {
-      message: t('目标实例输入格式有误'),
-      trigger: 'blur',
+      message: t('实例格式有误，请输入 IP:Port'),
+      trigger: 'change',
       validator: (value: string) => !value || ipPort.test(value),
     },
     {
@@ -140,23 +138,21 @@
     },
   ];
 
-  const { loading, run: queryHost } = useRequest(checkInstance, {
+  const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [currentInstance] = data;
-      if (currentInstance) {
+      const [item] = data;
+      if (item) {
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: currentInstance.bk_cloud_id,
-          bk_host_id: currentInstance.bk_host_id,
-          instance_address: currentInstance.instance_address,
-          ip: currentInstance.ip,
-          port: currentInstance.port,
-          related_clusters: currentInstance.related_clusters.map((item) => ({
-            id: item.id,
-            master_domain: item.master_domain,
-          })),
-          role: currentInstance.role,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          cluster_id: item.cluster_id,
+          instance_address: item.instance_address,
+          ip: item.ip,
+          master_domain: item.master_domain,
+          port: item.port,
+          role: item.role,
         };
       }
     },
@@ -168,13 +164,14 @@
 
   const handleChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: 0,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      cluster_id: 0,
       instance_address: value,
       ip: '',
+      master_domain: '',
       port: 0,
-      related_clusters: [],
       role: '',
     };
   };
@@ -187,7 +184,7 @@
     modelValue,
     () => {
       if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
-        queryHost({
+        queryInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBHA],
           db_type: DBTypes.MYSQL,

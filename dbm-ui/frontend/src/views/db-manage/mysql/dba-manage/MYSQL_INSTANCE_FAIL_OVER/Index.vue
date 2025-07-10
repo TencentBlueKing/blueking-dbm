@@ -56,16 +56,12 @@
             v-model="item.slave"
             :master="item.master" />
           <EditableColumn
-            :label="t('同机关联的集群')"
+            :label="t('所属集群')"
             :min-width="150"
             required>
-            <EditableBlock :placeholder="t('自动生成')">
-              <p
-                v-for="cluster in item.master.related_clusters"
-                :key="cluster.id">
-                {{ cluster.master_domain }}
-              </p>
-            </EditableBlock>
+            <EditableBlock
+              v-model="item.master.master_domain"
+              :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
             :label="t('所属业务')"
@@ -167,10 +163,11 @@
         bk_biz_id: 0,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        cluster_id: 0,
         instance_address: '',
         ip: '',
+        master_domain: '',
         port: 0,
-        related_clusters: [] as RowData['master']['related_clusters'],
         role: '',
       },
       data.master,
@@ -248,7 +245,7 @@
       detailsExtractor: (item) => ({
         infos: [
           {
-            cluster_ids: item.master.related_clusters.map((item) => item.id),
+            cluster_ids: [item.master.cluster_id],
             master_ip: item.master,
             slave_ip: item.slave,
           },
