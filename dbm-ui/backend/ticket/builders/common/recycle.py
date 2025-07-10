@@ -103,10 +103,17 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
         try:
             recycle_hosts = self.ticket.current_flow().output_data[0]["values"]
             recycle_hosts = self.__standardized(recycle_hosts)
+            ticket_flows = list(self.ticket.flows.all())
         except AppBaseException as e:
             BaseTicketFlow(self.ticket.current_flow()).run_error_status_handler(e)
         else:
-            ticket_flows = list(self.ticket.flows.all())
+            # 如果没有回收的机器，则后面两个流程跳过
+            if not recycle_hosts:
+                for flow in ticket_flows[1:]:
+                    flow.status = TicketFlowStatus.SKIPPED
+                    flow.save(update_fields=["status"])
+                return
+
             # 将新机回收同步给分池处理
             recycle_flow = ticket_flows[-1]
             recycle_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
