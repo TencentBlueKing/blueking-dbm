@@ -62,13 +62,13 @@ func GetRedisMachinePasswdDBConfig(
 	passwdVal, ok := passwdMap[constvar.ConfUserPasswd]
 	if !ok {
 		log.Logger.Errorf("RedisSSHPWD not find [%s] in map[%v]",
-			constvar.ConfUserPasswd, passwdMap)
+			constvar.ConfUserPasswd, "***")
 		return conf.SSH.Pass
 	}
 
 	passwd := passwdVal.(string)
 	passwdCache.Add(key, passwd, GetPassExpireTime())
-	log.Logger.Debugf("RedisSSHPWD %s get passwd[%s] ok", key, passwd)
+	log.Logger.Debugf("RedisSSHPWD %s get passwd[%s] ok", key, "***")
 	return passwd
 }
 
@@ -257,14 +257,14 @@ func QueryPasswords(remoteConfigClient *client.RemoteConfigClient, cFile string,
 		cname2passwd, ok := passwdInfo.(map[string]interface{})
 		if !ok {
 			log.Logger.Errorf("PassWDQuery [%v] trans to map[string]interface{} failed",
-				passwdInfo)
+				"***")
 			continue
 		}
 
 		passwd, ok := cname2passwd[cName]
 		if !ok {
 			log.Logger.Errorf("PassWDQuery not find [%s] in cname2passwd[%v]",
-				cName, cname2passwd)
+				cName, "***")
 			continue
 		}
 		clusterPasswd[c] = passwd.(string)
@@ -486,7 +486,7 @@ func GetPassByClusterID(clusterID int, dbType string) string {
 				log.Logger.Debugf("add_2_cache k:%s-%s, v:*** e:%s", pw.Ip, pw.Component, expireAfter)
 				passwdCache.Add(fmt.Sprintf("%s-%s", pw.Ip, pw.Component), pwVal, exp)
 			}
-			log.Logger.Debugf("get pass by remote ID:%d,type:%s,pass:%s,ddd:%s", clusterID, dbType, instPswd, passComp)
+			log.Logger.Debugf("get pass by remote ID:%d,type:%s,pass:%s,ddd:%s", clusterID, dbType, "***", passComp)
 		}
 	}
 	return instPswd

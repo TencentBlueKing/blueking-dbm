@@ -323,7 +323,6 @@ class RedisSlotsMigrateFlow(object):
         cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])
         cluster_info_log = copy.deepcopy(cluster_info)
         cluster_info_log.pop("password", None)
-        logger.info("+===+++++===cluster_info+++++===++++ :: {}".format(cluster_info_log))
 
         flow_data = self.data
         flow_data.update(cluster_info)
