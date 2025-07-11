@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package probe
 
 import (
@@ -38,14 +37,18 @@ import (
 
 // Probe probe main framework
 type Probe struct {
-	*reporter.Reporter
+	report  *reporter.Reporter
 	plugins []plugin.Plugin
 	quit    chan struct{}
 	wg      sync.WaitGroup
 }
 
 func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
-	name, _ := plug.Name()
+	name, err := plug.Name()
+	if err != nil {
+		logger.Warn("get plugin(%s) name failed, errmsg(%v)", name, err)
+		return
+	}
 
 	defer func() {
 		if err := plug.Close(); err != nil {
@@ -74,7 +77,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 				continue
 			}
 
-			if err := p.Reporter.PostToReceiver(dataEncoded); err != nil {
+			if err := p.report.PostToReceiver(dataEncoded); err != nil {
 				logger.Warn("post data to receiver failed, plugin(%s), errmsg(%v)", name, err)
 			}
 		}
@@ -103,10 +106,11 @@ func (p *Probe) loadPlugins(ctx context.Context) error {
 	return nil
 }
 
+// Run probe
 func (p *Probe) Run(ctx context.Context) error {
 	p.quit = make(chan struct{})
 
-	if err := p.Reporter.CreateClients(ctx); err != nil {
+	if err := p.report.CreateClients(ctx); err != nil {
 		return err
 	}
 
@@ -127,6 +131,7 @@ func (p *Probe) Run(ctx context.Context) error {
 	}
 }
 
+// Close close probe
 func (p *Probe) Close() {
 	if p.quit != nil {
 		close(p.quit) // Notify all goroutines exited.

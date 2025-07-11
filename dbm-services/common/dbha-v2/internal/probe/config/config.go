@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package config
 
 var Cfg Configuration
@@ -50,8 +49,12 @@ type ReceiverService struct {
 type HarvesterConfig struct {
 	Name           string `yaml:"name"            mapstructure:"name"`
 	User           string `yaml:"user"            mapstructure:"user"`
+	InstanceName   string `yaml:"instance_name"   mapstructure:"instance_name"`
 	Password       string `yaml:"password"        mapstructure:"password"`
 	ReportInterval int    `yaml:"reportInterval"  mapstructure:"reportInterval"`
+	Port           int    `yaml:"port"            mapstructure:"port"`
+	Host           string `yaml:"host"            mapstructure:"host"`
+	OutputFile     string `yaml:"output_file"     mapstructure:"output_file"`
 }
 
 // Configuration receiver's configuration
@@ -62,4 +65,13 @@ type Configuration struct {
 	Receiver  ReceiverService   `yaml:"receiver"    mapstructure:"receiver"`
 	Harvester []HarvesterConfig `yaml:"harvester"   mapstructure:"harvester"`
 	Log       LogConfig         `yaml:"log"         mapstructure:"log"`
+	GSE       GSEConfig         `yaml:"gse"         mapstructure:"gse"`
+}
+
+// GSEConfig defines the GSE basic config.
+type GSEConfig struct {
+	// DomainSocketPath is the domain socket path.
+	// DataID is the data-id(channel-id) to report.
+	DomainSocketPath string `yaml:"domain_socket_path" mapstructure:"domain_socket_path"`
+	DataID           uint32 `yaml:"data_id"            mapstructure:"data_id"`
 }

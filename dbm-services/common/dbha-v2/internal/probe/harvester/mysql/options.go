@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package mysql
 
+// Option databases option
 type Option interface {
 	apply(*mySqlOptions)
 }
@@ -31,7 +31,11 @@ type Option interface {
 type mySqlOptions struct {
 	user           string
 	password       string
+	host           string
+	port           int
 	reportInterval int
+	instanceName   string
+	outputFile     string
 }
 
 var defaultMySqlOptions = mySqlOptions{}
@@ -44,6 +48,7 @@ func (fdo *funcMySqlOptions) apply(opt *mySqlOptions) {
 	fdo.f(opt)
 }
 
+// OptionUser initialize user
 func OptionUser(val string) *funcMySqlOptions {
 	return &funcMySqlOptions{
 		f: func(opt *mySqlOptions) {
@@ -52,10 +57,47 @@ func OptionUser(val string) *funcMySqlOptions {
 	}
 }
 
+// OptionReportInterval initialize ReportInterval
 func OptionReportInterval(val int) *funcMySqlOptions {
 	return &funcMySqlOptions{
 		f: func(opt *mySqlOptions) {
 			opt.reportInterval = val
+		},
+	}
+}
+
+// OptionHost initialize host
+func OptionHost(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.host = val
+		},
+	}
+}
+
+// OptionPort initialize port
+func OptionPort(val int) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.port = val
+		},
+	}
+}
+
+// OptionPassword initialize password
+func OptionPassword(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.password = val
+		},
+	}
+}
+
+// OptionInstanceName initialize instance name
+func OptionInstanceName(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.instanceName = val
 		},
 	}
 }

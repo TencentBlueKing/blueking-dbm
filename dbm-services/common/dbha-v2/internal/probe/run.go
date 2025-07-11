@@ -83,7 +83,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	clientId := uuid.New()
 
 	p := &Probe{
-		Reporter: &reporter.Reporter{
+		report: &reporter.Reporter{
 			ClientId: clientId.String(),
 		},
 	}
