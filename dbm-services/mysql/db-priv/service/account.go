@@ -168,19 +168,16 @@ func (m *AccountPara) DeleteAccount(jsonPara string, ticket string) error {
 	if m.ClusterType == nil {
 		ct := mysql
 		m.ClusterType = &ct
-		// return errno.ClusterTypeIsEmpty
 	}
-
-	sql := fmt.Sprintf("delete from tb_accounts where id=%d and bk_biz_id = %d and cluster_type='%s'",
-		m.Id, m.BkBizId, *m.ClusterType)
-	result := DB.Self.Exec(sql)
+	result := DB.Self.
+		Where("id = ? AND bk_biz_id = ? AND cluster_type = ?", m.Id, m.BkBizId, *m.ClusterType).
+		Delete(&TbAccounts{})
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
 		return errno.AccountNotExisted
 	}
-
 	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil

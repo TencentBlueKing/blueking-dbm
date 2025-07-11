@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/gorm"
+
 	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
@@ -18,78 +20,65 @@ import (
 // GetPassword 查询密码
 func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 	var passwords []*TbPasswords
-	var where string
 	if len(m.Users) == 0 {
 		return passwords, 0, errno.NameNull
 	}
-	var filterUser, filterInstance []string
-	for _, user := range m.Users {
-		if user.UserName == "" {
-			return passwords, 0, errno.NameNull
-		}
-		if user.Component == "" {
-			return passwords, 0, errno.ComponentNull
-		}
-		// 查询mysql管理密码，请用专用的接口
-		if user.UserName == "ADMIN" && user.Component == "mysql" {
-			return passwords, 0, errno.UseApiForMysqlAdmin
-		}
-		filterUser = append(filterUser, fmt.Sprintf("(username='%s' and component='%s')", user.UserName, user.Component))
-	}
-	userWhere := strings.Join(filterUser, " or ")
-	where = userWhere
 
-	for _, item := range m.Instances {
-		// 查询可以只填写ip，port与bk_biz_id选填
-		if item.Port != nil && item.BkCloudId != nil {
-			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
-				item.Ip, *item.Port, *item.BkCloudId))
-		} else if item.Port != nil && item.BkCloudId == nil {
-			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, *item.Port))
-		} else {
-			filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s')", item.Ip))
+	// Build user where
+	userWhere, userArgs, err := buildUserWhere(m.Users, true)
+	if err != nil {
+		return passwords, 0, err
+	}
+	if userWhere == "" {
+		return passwords, 0, errno.NameNull
+	}
+	where := userWhere
+	args := userArgs
+
+	// Build instance where
+	if len(m.Instances) > 0 {
+		instanceWhere, instanceArgs := buildInstanceWhere(m.Instances)
+		if instanceWhere != "" {
+			where = fmt.Sprintf("(%s) AND (%s)", where, instanceWhere)
+			args = append(args, instanceArgs...)
 		}
 	}
-	instanceWhere := strings.Join(filterInstance, " or ")
-	if instanceWhere != "" {
-		where = fmt.Sprintf(" (%s) and (%s)", where, instanceWhere)
-	}
-	if m.BeginTime != "" && m.EndTime != "" {
-		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s'", where, m.BeginTime, m.EndTime)
-	}
-	if m.BkBizId != nil {
-		where = fmt.Sprintf(" %s and bk_biz_id = %d ", where, *m.BkBizId)
-	}
-	var err error
+
+	// Time filter
+	where, args = addTimeRange(where, m.BeginTime, m.EndTime, args)
+	// bk_biz_id filter
+	where, args = addBkBizId(where, m.BkBizId, args)
+
+	// Count
 	cnt := Cnt{}
-	vsql := fmt.Sprintf("select count(*) as cnt from tb_passwords where %s", where)
-	err = DB.Self.Raw(vsql).Scan(&cnt).Error
+	countQuery := DB.Self.Model(&TbPasswords{}).Where(where, args...)
+	err = countQuery.Count(&cnt.Count).Error
 	if err != nil {
-		slog.Error(vsql, "execute error", err)
+		slog.Error("count query", "where", where, "args", args, "err", err)
 		return nil, 0, err
 	}
 
-	// 分页
-	if m.Limit != nil && m.Offset != nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Limit(*m.Limit).Offset(
-			*m.Offset).Find(&passwords).Error
-	} else if m.Limit == nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Find(&passwords).Error
-	} else if m.Limit != nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order(
-			"update_time DESC").Limit(*m.Limit).Find(&passwords).Error
-	} else {
-		// offset在limit为0时没有意义
-		return passwords, 0, fmt.Errorf("offset not null but limit null")
+	// Query with pagination
+	query := DB.Self.Model(&TbPasswords{}).Where(where, args...).Order("update_time DESC")
+	if m.Limit != nil {
+		query = query.Limit(*m.Limit)
 	}
+	if m.Offset != nil {
+		if m.Limit == nil {
+			return passwords, 0, fmt.Errorf("offset not null but limit null")
+		}
+		query = query.Offset(*m.Offset)
+	}
+	err = query.Find(&passwords).Error
 	if err != nil {
-		slog.Error("msg", "query passwords error", err)
+		slog.Error("query passwords error", "where", where, "err", err)
 		return passwords, 0, err
 	}
-	// 解码
+
+	// Decode
 	err = DecodePassword(passwords)
 	if err != nil {
-		slog.Error("msg", "DecodePassword", err)
+		slog.Error("DecodePassword", "err", err)
 		return passwords, 0, err
 	}
 	return passwords, cnt.Count, nil
@@ -150,20 +139,26 @@ func (m *ModifyPasswordPara) ModifyPassword(jsonPara string, ticket string) erro
 		if item.BkCloudId == nil {
 			return errno.CloudIdRequired
 		}
-		// 更新tb_passwords中实例的密码
-		sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,password,component,operator) "+
-			"values('%s',%d,%d,'%s','%s','%s','%s')",
-			item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+		var (
+			result *gorm.DB
+		)
 		if m.BkBizId != nil {
-			sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,password,component,bk_biz_id,operator) "+
-				"values('%s',%d,%d,'%s','%s','%s',%d,'%s')",
-				item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, *m.BkBizId, m.Operator)
+			result = tx.Debug().Exec(
+				"REPLACE INTO tb_passwords(ip,port,bk_cloud_id,username,password,component,bk_biz_id,operator) "+
+					"VALUES(?,?,?,?,?,?,?,?)",
+				item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, *m.BkBizId, m.Operator,
+			)
+		} else {
+			result = tx.Debug().Exec(
+				"REPLACE INTO tb_passwords(ip,port,bk_cloud_id,username,password,component,operator) "+
+					"VALUES(?,?,?,?,?,?,?)",
+				item.Ip, *item.Port, *item.BkCloudId, m.UserName, encrypt, m.Component, m.Operator,
+			)
 		}
-		err = tx.Debug().Exec(sql).Error
-		if err != nil {
-			slog.Error("msg", sql, err)
+		if result.Error != nil {
+			slog.Error("replace into tb_passwords error", "msg", result.Error)
 			tx.Rollback()
-			return err
+			return result.Error
 		}
 	}
 	err = tx.Commit().Error
@@ -181,43 +176,36 @@ func (m *GetPasswordPara) DeletePassword(jsonPara string, ticket string) error {
 	if len(m.Instances) == 0 {
 		return fmt.Errorf("instances should not be null")
 	}
+
 	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
-	var where string
-	var filterUser, filterInstance []string
-	for _, user := range m.Users {
-		if user.UserName == "" {
-			return errno.NameNull
-		}
-		if user.Component == "" {
-			return errno.ComponentNull
-		}
-		filterUser = append(filterUser, fmt.Sprintf("(username='%s' and component='%s')", user.UserName, user.Component))
-	}
-	userWhere := strings.Join(filterUser, " or ")
-	where = userWhere
-	for _, item := range m.Instances {
-		// 平台通用账号的密码，不允许删除
-		if item.Ip == "0.0.0.0" && *item.Port == 0 {
-			return errno.PlatformPasswordNotAllowedModified
-		}
-		if item.BkCloudId == nil {
-			return errno.CloudIdRequired
-		}
-		if item.Port == nil {
-			return errno.PortRequired
-		}
-		filterInstance = append(filterInstance, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
-			item.Ip, *item.Port, *item.BkCloudId))
-	}
-	instanceWhere := strings.Join(filterInstance, " or ")
-	if instanceWhere != "" {
-		where = fmt.Sprintf(" (%s) and (%s)", where, instanceWhere)
-	}
-	sql := fmt.Sprintf("delete from tb_passwords where %s", where)
-	err := DB.Self.Exec(sql).Error
+
+	// Build user where
+	userWhere, userArgs, err := buildUserWhere(m.Users, false)
 	if err != nil {
-		slog.Error("msg", "sql", sql, "error", err)
 		return err
+	}
+	if userWhere == "" {
+		return errno.NameNull
+	}
+
+	// Build instance where
+	instanceWhere, instanceArgs, err := buildInstanceDeleteWhere(m.Instances)
+	if err != nil {
+		return err
+	}
+	if instanceWhere == "" {
+		return fmt.Errorf("instances should not be null or invalid")
+	}
+
+	where := fmt.Sprintf("(%s) AND (%s)", userWhere, instanceWhere)
+	args := append(userArgs, instanceArgs...)
+
+	result := DB.Self.
+		Where(where, args...).
+		Delete(&TbPasswords{})
+	if result.Error != nil {
+		slog.Error("delete tb_passwords error", "where", where, "args", args, "error", result.Error)
+		return result.Error
 	}
 	return nil
 }
@@ -230,40 +218,51 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		return passwords, 0, errno.NameNull
 	}
 	//  mysql实例中ADMIN用户的密码，仅能查看人为修改密码且在有效期的密码，不可以查看随机化生成的密码
-	where := fmt.Sprintf(" username='%s' and component in ('%s','%s', '%s') and lock_until is not null and "+
-		"lock_until > now()", m.UserName, mysql, tendbcluster, sqlserver)
-	var filter []string
-	for _, item := range m.Instances {
-		if item.Port != nil {
-			filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, *item.Port))
-		} else {
-			filter = append(filter, fmt.Sprintf("(ip='%s')", item.Ip))
+	whereClauses := []string{
+		"username = ?",
+		"component IN (?, ?, ?)",
+		"lock_until IS NOT NULL",
+		"lock_until > NOW()",
+	}
+	args := []interface{}{m.UserName, mysql, tendbcluster, sqlserver}
+
+	if len(m.Instances) > 0 {
+		var instFilters []string
+		for _, item := range m.Instances {
+			if item.Port != nil {
+				instFilters = append(instFilters, "(ip = ? AND port = ?)")
+				args = append(args, item.Ip, *item.Port)
+			} else {
+				instFilters = append(instFilters, "(ip = ?)")
+				args = append(args, item.Ip)
+			}
 		}
+		whereClauses = append(whereClauses, "("+strings.Join(instFilters, " OR ")+")")
 	}
-	filters := strings.Join(filter, " or ")
-	if filters != "" {
-		where = fmt.Sprintf(" %s and (%s) ", where, filters)
-	}
+
+	// 业务ID条件
 	if m.BkBizId != nil {
-		where = fmt.Sprintf(" %s and bk_biz_id = %d ", where, *m.BkBizId)
+		whereClauses = append(whereClauses, "bk_biz_id = ?")
+		args = append(args, *m.BkBizId)
 	}
+
+	// 时间条件
 	if m.BeginTime != "" && m.EndTime != "" {
-		where = fmt.Sprintf(" %s and update_time>='%s' and update_time<='%s' ",
-			where, m.BeginTime, m.EndTime)
+		whereClauses = append(whereClauses, "update_time >= ? AND update_time <= ?")
+		args = append(args, m.BeginTime, m.EndTime)
 	}
-	var err error
+
 	// 分页
-	if m.Limit != nil && m.Offset != nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Limit(*m.Limit).Offset(
-			*m.Offset).Find(&passwords).Error
-	} else if m.Limit == nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Find(&passwords).Error
-	} else if m.Limit != nil && m.Offset == nil {
-		err = DB.Self.Model(&TbPasswords{}).Where(where).Order(
-			"update_time DESC").Limit(*m.Limit).Find(&passwords).Error
-	} else {
-		return passwords, 0, fmt.Errorf("offset not null but limit null")
+	query := DB.Self.Model(&TbPasswords{}).
+		Where(strings.Join(whereClauses, " AND "), args...).
+		Order("update_time DESC")
+	if m.Limit != nil {
+		query = query.Limit(*m.Limit)
 	}
+	if m.Offset != nil {
+		query = query.Offset(*m.Offset)
+	}
+	err := query.Find(&passwords).Error
 	if err != nil {
 		slog.Error("msg", "query passwords error", err)
 		return passwords, 0, err
@@ -359,11 +358,6 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 		if cluster.BkBizId == nil {
 			return batch, errno.BkBizIdIsEmpty
 		}
-
-		if *cluster.BkBizId == 860 {
-			return batch, nil
-		}
-
 		// 一个集群中的各个实例使用同一个密码
 		var psw, encrypt string
 		var errOuter error
@@ -454,21 +448,27 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForSqlserver(
 			}
 
 			// 更新tb_passwords中实例的密码
-			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,bk_biz_id,username,"+
-				"password,component,operator) values('%s',%d,%d,%d,'%s','%s','%s','%s')",
-				address.Ip, address.Port, *cluster.BkCloudId,
-				*cluster.BkBizId, m.UserName, encrypt, m.Component, m.Operator)
+			var result *gorm.DB
 			if m.LockHour != 0 {
-				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,bk_biz_id,username,"+
-					"password,component,operator,lock_until) values('%s',%d,%d,%d,'%s','%s','%s','%s',date_add("+
-					"now(),INTERVAL %d hour))",
+				result = DB.Self.Exec(
+					`REPLACE INTO tb_passwords(
+						ip, port, bk_cloud_id, bk_biz_id, username, password, component, operator, lock_until
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, date_add(now(), INTERVAL ? hour))`,
 					address.Ip, address.Port, *cluster.BkCloudId, *cluster.BkBizId,
-					m.UserName, encrypt, m.Component, m.Operator, m.LockHour)
+					m.UserName, encrypt, m.Component, m.Operator, m.LockHour,
+				)
+			} else {
+				result = DB.Self.Exec(
+					`REPLACE INTO tb_passwords(
+						ip, port, bk_cloud_id, bk_biz_id, username, password, component, operator
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+					address.Ip, address.Port, *cluster.BkCloudId, *cluster.BkBizId,
+					m.UserName, encrypt, m.Component, m.Operator,
+				)
 			}
-			result := DB.Self.Exec(sql)
 			if result.Error != nil {
 				notOK.Addresses = append(notOK.Addresses, address)
-				slog.Error("msg", "sql", sql, "excute sql error", result.Error)
+				slog.Error("msg", "replace into tb_passwords error", result.Error)
 				AddError(errMsg, hostPort, result.Error)
 				continue
 			}
@@ -548,21 +548,27 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 				continue
 			}
 			// 更新tb_passwords中实例的密码
-			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-				"password,component,bk_biz_id,operator) values('%s',%d,%d,'%s','%s','%s',%d,'%s')",
-				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-				*cluster.BkBizId, m.Operator)
+			var result *gorm.DB
 			if m.LockHour != 0 {
-				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-					"password,component,bk_biz_id,operator,lock_until) values("+
-					"'%s',%d,%d,'%s','%s','%s',%d,'%s',date_add(now(),INTERVAL %d hour))",
+				result = DB.Self.Exec(
+					`REPLACE INTO tb_passwords(
+						ip, port, bk_cloud_id, username, password, component, bk_biz_id, operator, lock_until
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?, date_add(now(), INTERVAL ? hour))`,
 					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-					*cluster.BkBizId, m.Operator, m.LockHour)
+					*cluster.BkBizId, m.Operator, m.LockHour,
+				)
+			} else {
+				result = DB.Self.Exec(
+					`REPLACE INTO tb_passwords(
+						ip, port, bk_cloud_id, username, password, component, bk_biz_id, operator
+					) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
+					*cluster.BkBizId, m.Operator,
+				)
 			}
-			result := DB.Self.Exec(sql)
 			if result.Error != nil {
 				notOK.Addresses = append(notOK.Addresses, address)
-				slog.Error("msg", "sql", sql, "excute sql error", result.Error)
+				slog.Error("msg", "replace into tb_passwords error", result.Error)
 				AddError(errMsg, hostPort, result.Error)
 				continue
 			}
