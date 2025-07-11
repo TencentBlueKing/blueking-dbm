@@ -19,8 +19,8 @@ type BaseModel struct {
 	EventReportTimestamp  int64 `json:"event_report_timestamp"`
 	EventReceiveTimestamp int64 `json:"event_receive_timestamp"`
 
-	EventBkCloudId string `json:"event_bk_cloud_id"`
-	EventSourceIp  string `json:"event_source_ip"`
+	EventBkCloudId int    `json:"event_bk_cloud_id"`
+	EventSourceIp  string `json:"event_source_ip" gorm:"type:varchar(30)"`
 	EventBkBizId   int64  `json:"event_bk_biz_id"`
 	//EventClusterType string `json:"event_cluster_type"`
 	//EventType        string `json:"event_type"`
@@ -32,11 +32,11 @@ func (b BaseModel) OmitFields() []string {
 	return []string{"event_cluster_type", "event_type", "cluster_type", "event_uuid"}
 }
 
-// NoManageSchema use map[string]interface to unmarshal kafka msg, and save to db
+// StrictSchema use map[string]interface to unmarshal kafka msg, and save to db
 // no_manage_schema=true still need model_table to determine TableName() and OmitFields() to generate sql
 // default is false means use model_table's definition to unmarshal kafka msg
-func (b BaseModel) NoManageSchema() bool {
-	return false
+func (b BaseModel) StrictSchema() bool {
+	return true
 }
 
 // CreateOrUpdateIndex create index if not exists

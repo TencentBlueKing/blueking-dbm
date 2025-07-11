@@ -9,7 +9,6 @@
 package sinker
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/go-viper/mapstructure/v2"
@@ -30,10 +29,11 @@ func InitDatasource() error {
 	var dsAll []*Datasource
 	content, err := os.ReadFile(datasourceFile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if err = yaml.Unmarshal(content, &dsAll); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		os.Stderr.WriteString(err.Error())
+		return err
 	}
 	for _, d := range dsAll {
 		if _, ok := ModelWriterType[d.Type]; !ok {

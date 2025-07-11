@@ -9,12 +9,17 @@
 package config
 
 type SinkerConfig struct {
-	Topic      string `yaml:"topic"`
+	Topic      string `yaml:"topic" validate:"required"`
 	ModelTable string `yaml:"model_table" validate:"required"`
-	// SkipMigrateSchema do not run model_table migration change
-	// only works when no_manage_schema=false
+	// StrictSchema default strict_schema=true, use defined model struct to unmarshal kafka msg
+	// strict_schema=false: use map[string]interface{} to unmarshal kafka msg, and save to db.
+	//    model_table is used as table_name, and need to be created manually
+	StrictSchema *bool `yaml:"strict_schema"`
+	// SkipMigrateSchema do not run model_table migration change, only works when strict_schema=true
 	SkipMigrateSchema bool `yaml:"skip_migrate_schema"`
-
+	// OmitFields is used to omit fields when save to db
+	//  only works when StrictSchema=false
+	OmitFields *[]string `yaml:"omit_fields"`
 	// ClientIdSuffix is used to generate client_id: topic + client_id_suffix
 	ClientIdSuffix string `yaml:"client_id_suffix"`
 	// GroupIdSuffix is used to generate group_id: topic + group_id_suffix

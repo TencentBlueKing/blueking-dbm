@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
+	"dbm-services/common/db-event-consumer/pkg/cst"
 	"dbm-services/common/db-event-consumer/pkg/model"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
 )
@@ -28,6 +29,7 @@ func init() {
 	SinkerConfigs = make([]*SinkerConfig, 0)
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupResultModel{})
 	_ = sinker.RegisterModelSinker(&model.BinlogFileModel{})
+	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 }
@@ -88,11 +90,15 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			panic(err)
 		}
 		if err = yaml.UnmarshalStrict(content, &sinkers); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			os.Stderr.WriteString(err.Error())
 			continue
 		}
+
 		allSinkers = append(allSinkers, sinkers...)
 		for _, s := range sinkers {
+			if s.StrictSchema == nil {
+				s.StrictSchema = &cst.PtrTrue
+			}
 			name := fmt.Sprintf("%s-%s", s.Topic, s.GroupIdSuffix)
 			if _, ok := checkDup[name]; ok {
 				return nil, fmt.Errorf("duplicate sinker name %s", name)

@@ -8,14 +8,33 @@
 
 package model
 
-type DemoEventModel struct {
-	BaseModel `xorm:"extends"`
+type FakeModelForNoStrictSchema struct {
+	BaseModel
+	tableName  string
+	omitFields []string
 }
 
-func (m DemoEventModel) NoManageSchema() bool {
-	return true
+// TableName Tabler
+func (m *FakeModelForNoStrictSchema) TableName() string {
+	return m.tableName
 }
 
-func (m DemoEventModel) TableName() string {
-	return "demo_event"
+func (m *FakeModelForNoStrictSchema) SetTableName(tableName string) {
+	m.tableName = tableName
+}
+
+func (m *FakeModelForNoStrictSchema) StrictSchema() bool {
+	return false
+}
+
+func (m *FakeModelForNoStrictSchema) OmitFields() []string {
+	return []string{"event_cluster_type", "event_type", "cluster_type", "event_uuid"}
+}
+
+func (m *FakeModelForNoStrictSchema) SetOmitFields(omitFields *[]string) {
+	if omitFields == nil {
+		// use default OmitFields()
+		return
+	}
+	m.omitFields = *omitFields
 }

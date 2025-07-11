@@ -10,7 +10,7 @@ package sinker
 
 type ModelSinker interface {
 	TableName() string
-	NoManageSchema() bool
+	StrictSchema() bool
 }
 
 type ModelFieldOmit interface {

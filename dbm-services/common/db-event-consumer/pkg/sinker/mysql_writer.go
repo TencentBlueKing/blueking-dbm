@@ -10,9 +10,13 @@ package sinker
 
 import (
 	"log/slog"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
+
+	"dbm-services/common/db-event-consumer/pkg/cst"
 )
 
 type MysqlWriter struct {
@@ -38,7 +42,7 @@ func (w *MysqlWriter) Type() string {
 }
 
 func (w *MysqlWriter) AutoMigrate(m interface{}) error {
-	slog.Info("MysqlWriter run common migrate for ", m)
+	slog.Info("MysqlWriter run common migrate for", slog.Any("model", m))
 	return w.db.Migrator().AutoMigrate(m)
 	//return nil
 }
@@ -51,24 +55,24 @@ func (w *MysqlWriter) WriteOne(obj interface{}) error {
 	}
 }
 
-func (w *MysqlWriter) Write2(tableName string, objs interface{}) error {
-	return w.db.Table(tableName).Create(objs).Error
-}
-
-func (w *MysqlWriter) CustomWrite(m interface{}, f func(i interface{}, db *gorm.DB) error) error {
-	// func(interface{}, sinker.DSWriter)
-	if f != nil {
-		return f(m, w.db)
-	}
-	return w.db.Save(m).Error
-	//return nil
-}
-
 func (w *MysqlWriter) WriteBatch(table interface{}, ms interface{}) error {
-	if omitted, ok := table.(ModelFieldOmit); ok {
-		return w.db.Model(table).Omit(omitted.OmitFields()...).Create(ms).Error
+	tableType := reflect.TypeOf(table).Elem().Name()
+	if tableType == cst.NoStrictSchemaModel {
+		t, ok := table.(schema.Tabler)
+		if !ok {
+			return errors.Errorf("FakeModelForNoStrictSchema must implement schema.Tabler")
+		}
+		if omitted, ok := table.(ModelFieldOmit); ok {
+			return w.db.Table(t.TableName()).Omit(omitted.OmitFields()...).Create(ms).Error
+		} else {
+			return w.db.Table(t.TableName()).Create(ms).Error
+		}
 	} else {
-		return w.db.Model(table).Create(ms).Error
+		if omitted, ok := table.(ModelFieldOmit); ok {
+			return w.db.Model(table).Omit(omitted.OmitFields()...).Create(ms).Error
+		} else {
+			return w.db.Model(table).Create(ms).Error
+		}
 	}
 }
 

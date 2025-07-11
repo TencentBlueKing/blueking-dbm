@@ -64,7 +64,7 @@ var rootCmd = &cobra.Command{
 			}
 			consumerHandler, err := sinker.NewSinkHandler()
 			if err != nil {
-				slog.Error("new sink handler", err,
+				slog.Error("new sink handler", slog.String("error", err.Error()),
 					slog.String("topic", sinker.RuntimeConfig.Topic),
 					slog.String("groupId", sinker.RuntimeConfig.Topic+sinker.RuntimeConfig.GroupIdSuffix))
 				continue

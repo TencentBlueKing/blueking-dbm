@@ -10,10 +10,13 @@ package sinker
 
 import (
 	"log/slog"
+	"reflect"
 
 	"github.com/pkg/errors"
-	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	"xorm.io/xorm"
+
+	"dbm-services/common/db-event-consumer/pkg/cst"
 )
 
 type XormWriter struct {
@@ -56,32 +59,28 @@ func (w *XormWriter) WriteOne(obj interface{}) error {
 	return err
 }
 
-// CustomWrite fake implementation
-func (w *XormWriter) CustomWrite(m interface{}, f func(i interface{}, db *gorm.DB) error) error {
-	if f != nil {
-		return f(m, &gorm.DB{})
-	}
-	_, err := w.engine.Table(m).InsertMulti(m)
-	return err
-}
-
-func (w *XormWriter) CustomWrite2(m interface{}, f func(i interface{}, engine *xorm.Engine) error) error {
-	// func(interface{}, sinker.DSWriter)
-	if f != nil {
-		return f(m, w.engine)
-	}
-	_, err := w.engine.Table(m).InsertMulti(m)
-	return err
-	//return nil
-}
-
 func (w *XormWriter) WriteBatch(table interface{}, ms interface{}) error {
+	// xorm table allow &{}, or table name string
 	var err error
-	if omitted, ok := table.(ModelFieldOmit); ok {
-		_, err = w.engine.Omit(omitted.OmitFields()...).Table(table).InsertMulti(ms)
+	tableType := reflect.TypeOf(table).Elem().Name()
+	if tableType == cst.NoStrictSchemaModel {
+		t, ok := table.(schema.Tabler)
+		if !ok {
+			return errors.Errorf("FakeModelForNoStrictSchema must implement schema.Tabler")
+		}
+		if omitted, ok := table.(ModelFieldOmit); ok {
+			_, err = w.engine.Table(t.TableName()).Omit(omitted.OmitFields()...).InsertMulti(ms)
+		} else {
+			_, err = w.engine.Table(t.TableName()).InsertMulti(ms)
+		}
 	} else {
-		_, err = w.engine.Table(table).InsertMulti(ms)
+		if omitted, ok := table.(ModelFieldOmit); ok {
+			_, err = w.engine.Table(table).Omit(omitted.OmitFields()...).InsertMulti(ms)
+		} else {
+			_, err = w.engine.Table(table).InsertMulti(ms)
+		}
 	}
+
 	return err
 }
 

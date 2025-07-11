@@ -15,6 +15,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jinzhu/copier"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -98,7 +99,13 @@ func (m MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
 
 func (m MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) error {
 	if w.Type() == "mysql" {
-		return w.CustomWrite(objs, m.mysqlCreate)
+		if writer, ok := w.(*sinker.MysqlWriter); ok {
+			return m.mysqlCreate(objs, writer.GormDB())
+		} else if writer, ok := w.(*sinker.XormWriter); ok {
+			return errors.Errorf("not implement custom writer: %s", writer.Type())
+		} else {
+			return errors.Errorf("not implement custom writer: %s", w.Type())
+		}
 	} else {
 		newObj := objs.([]MysqlBackupResultModel)
 		return w.WriteBatch(m, newObj)

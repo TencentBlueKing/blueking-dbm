@@ -6,11 +6,15 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-package sinker
+package model
 
-type DSWriter interface {
-	Type() string
-	AutoMigrate(interface{}) error
-	WriteOne(obj interface{}) error
-	WriteBatch(table interface{}, models interface{}) error
+import "dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+
+type MysqlBackupStatusModel struct {
+	BaseModel              `xorm:"extends"`
+	dbareport.BackupStatus `json:",inline" xorm:"extends"`
+}
+
+func (m MysqlBackupStatusModel) TableName() string {
+	return "tb_mysql_backup_progress"
 }

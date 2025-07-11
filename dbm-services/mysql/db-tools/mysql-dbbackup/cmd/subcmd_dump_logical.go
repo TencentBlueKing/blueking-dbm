@@ -18,8 +18,11 @@ import (
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/reverseapi"
+	reapi "dbm-services/common/reverseapi/apis/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
@@ -77,6 +80,7 @@ var dumpLogicalCmd = &cobra.Command{
 			return err
 		}
 		var cnf = config.BackupConfig{}
+		task := newBackupTask("")
 		config.SetDefaults()
 		// --config 不提供时，全部由命令行提供选项
 		if configFile, err := cmd.Flags().GetString("config"); err != nil {
@@ -96,6 +100,18 @@ var dumpLogicalCmd = &cobra.Command{
 				cnf.LogicalBackup.TablesList = ""
 			}
 		}
+		if cnf.Public.BackupId != "" {
+			task.backupId = cnf.Public.BackupId // 使用传入的 backup_id 覆盖临时生成的 id
+		}
+		if cnf.Public.BackupId == "" {
+			cnf.Public.BackupId = task.backupId
+		}
+		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
+		reportCore, err := reverseapi.NewCore(0)
+		if err != nil {
+			return err
+		}
+
 		if err = viper.Unmarshal(&cnf); err != nil {
 			return err
 		}
@@ -109,8 +125,12 @@ var dumpLogicalCmd = &cobra.Command{
 		if cnf.Public.IsFullBackup == 0 {
 			// cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
 		}
-		err = backupData(context.Background(), &cnf)
+		err = task.backupData(context.Background(), &cnf)
 		if err != nil {
+			if resp, err := reapi.SyncReport(reportCore,
+				task.statusReport.SetStatus("Failed", err.Error())); err != nil {
+				logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
+			}
 			logger.Log.Error("dumpbackup logical failed ", err.Error())
 		}
 		return err

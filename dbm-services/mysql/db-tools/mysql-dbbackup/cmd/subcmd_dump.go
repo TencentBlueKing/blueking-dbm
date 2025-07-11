@@ -11,7 +11,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -24,6 +23,9 @@ import (
 	"text/template"
 	"time"
 
+	reapi "dbm-services/common/reverseapi/apis/common"
+	recore "dbm-services/common/reverseapi/pkg/core"
+
 	sshgo "github.com/melbahja/goph"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -34,7 +36,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
-	reapi "dbm-services/common/reverseapi/apis/common"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/assets"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -96,6 +97,24 @@ func init() {
 	_ = dumpCmd.MarkFlagRequired("config")
 
 	dumpCmd.AddCommand(dumpLogicalCmd)
+}
+
+type backupTask struct {
+	backupId      string
+	backupConfig  *config.BackupConfig
+	logReport     *dbareport.BackupLogReport
+	indexFilePath string
+	statusReport  *dbareport.MysqlBackupStatusEvent
+	//SshClient    *sshgo.Client
+}
+
+func newBackupTask(backupId string) *backupTask {
+	if backupId == "" {
+		backupId, _ = dbareport.GenerateUUid()
+	}
+	return &backupTask{
+		backupId: backupId,
+	}
 }
 
 var dumpCmd = &cobra.Command{
@@ -162,13 +181,27 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	}
 	var errList error
 	for _, f := range cnfFiles {
+		task := newBackupTask("")
 		config.SetDefaults()
 		var cnf = config.BackupConfig{}
 		if err := initConfig(f, &cnf, logger.Log); err != nil {
 			errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
+			// 配置初始化失败了，sync report 目前无法上报!!!
 			continue
 		}
+		if cnf.Public.BackupId != "" {
+			task.backupId = cnf.Public.BackupId // 使用传入的 backup_id 覆盖临时生成的 id
+		}
+		if cnf.Public.BackupId == "" {
+			cnf.Public.BackupId = task.backupId
+		}
+		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
+		reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
+		if err != nil {
+			return err
+		}
+
 		body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
 		body.Dimension["cluster_id"] = cnf.Public.ClusterId
 		body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
@@ -195,7 +228,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		ctx := context.Background()
 		done := make(chan error, 1)
 		go func() {
-			err := backupData(ctx, &cnf)
+			err := task.backupData(ctx, &cnf)
 			if err != nil {
 				logger.Log.Error("Create Dbbackup: Failure for ", f)
 			}
@@ -205,21 +238,29 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		select {
 		case doneErr := <-done:
 			if doneErr != nil {
-				errList = errs.Join(errList, doneErr)
+				if resp, err := reapi.SyncReport(reportCore,
+					task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
+					logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
+				}
 				body.Content = fmt.Sprintf("run dbbackup failed for %s, err=%s", f, doneErr.Error())
 				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
 					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
 				}
+				errList = errs.Join(errList, doneErr)
 			}
 			continue
 		case <-time.After(time.Duration(maxTimeoutSeconds) * time.Second):
 			doneErr := fmt.Errorf("backup timeout exceed %s for port %d",
 				cnf.Public.BackupTimeOut, cnf.Public.MysqlPort)
-			errList = errs.Join(errList, doneErr)
+			if resp, err := reapi.SyncReport(reportCore,
+				task.statusReport.SetStatus("Failed", doneErr.Error())); err != nil {
+				logger.Log.Warnf("report backup status, resp: err=%s, resp=%s", err, string(resp))
+			}
 			body.Content = fmt.Sprintf("run dbbackup failed for %s, error=%s", f, doneErr.Error())
 			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
 				logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
 			}
+			errList = errs.Join(errList, doneErr)
 			time.Sleep(cst.KillDelayMilliSec * time.Millisecond)
 			syscall.Kill(os.Getpid(), syscall.SIGINT) // 确保子进程能够获取到中断信号
 			continue                                  //break  // 同一批发起的备份任务，某个任务超时，后续任务也不进行
@@ -231,7 +272,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
-func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
+func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
@@ -259,31 +300,12 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
 	}
-	reportCore, err := core.NewCore(0, core.DefaultRetryOpts...)
-	if err != nil {
-		return err
-	}
-	statusReport, err := dbareport.NewMysqlBackupStatusEvent(cnf,
-		dbareport.BackupStatus{
-			BackupId:        cnf.Public.BackupId,
-			BillId:          cnf.Public.BillId,
-			ClusterId:       cnf.Public.MysqlPort,
-			ClusterDomain:   cnf.Public.ClusterAddress,
-			BackupHost:      cnf.Public.MysqlHost,
-			BackupPort:      cnf.Public.MysqlPort,
-			MysqlRole:       cnf.Public.MysqlRole,
-			BackupType:      cnf.Public.BackupType,
-			IsFullBackup:    cast.ToBool(cnf.Public.IsFullBackup),
-			ShardValue:      cnf.Public.ShardValue,
-			DataSchemaGrant: cnf.Public.DataSchemaGrant,
-			Status:          "",
-		},
-	)
+	reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
 	if err != nil {
 		return err
 	}
 
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Begin", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 
@@ -310,7 +332,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	// check slave status
 
 	// execute backup
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Running", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Running", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	var sshClient *sshgo.Client
@@ -338,11 +360,11 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	}
 	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort, indexFilePath)
 
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Tarball", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Tarball", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	if cnf.BackupToRemote.EnableRemote {
-		if err = runBackupToRemote(cnf, indexFilePath, logReport, sshClient); err != nil {
+		if err = t.runBackupToRemote(cnf, indexFilePath, logReport, sshClient); err != nil {
 			return err
 		}
 	} else {
@@ -352,7 +374,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 		}
 	}
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	if resp, reportErr := reapi.SyncReport(reportCore, statusReport.SetStatus("Success", "")); reportErr != nil {
+	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Success", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
 	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
@@ -491,7 +513,7 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 }
 
 // runBackupToRemote 上远程机器打包
-func runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
+func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath string,
 	logReport *dbareport.BackupLogReport, sshClient *sshgo.Client) (err error) {
 	remoteIndexFile := filepath.Join(cnf.BackupToRemote.SaveDir, filepath.Base(indexFilePath))
 	var remoteConfigFile string

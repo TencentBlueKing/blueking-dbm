@@ -29,12 +29,12 @@ type AnySinker struct {
 	modelObject interface{}
 	modelValue  reflect.Value
 
-	NoManageSchema bool
+	strictSchema bool
 }
 
 func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	var err error
-	if s.Sinker.RuntimeConfig.SkipMigrateSchema {
+	if s.Sinker.RuntimeConfig.SkipMigrateSchema || !s.strictSchema {
 		return nil
 	}
 	if migrator, ok := s.modelObject.(model.CustomMigrator); ok {
@@ -97,7 +97,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (c *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, s *Sinker) error {
-	if c.NoManageSchema {
+	if !c.strictSchema {
 		return c.HandleMessages3(msgs, s)
 	}
 	if c.dsWriter.Type() == "mysql_xorm" {

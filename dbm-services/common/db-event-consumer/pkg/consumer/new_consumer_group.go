@@ -17,6 +17,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"dbm-services/common/db-event-consumer/pkg/config"
+	"dbm-services/common/db-event-consumer/pkg/model"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
 )
 
@@ -28,24 +29,49 @@ type Sinker struct {
 }
 
 func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
+	var handler *AnySinker
 	modelTable, ok := sinker.ModelSinkerRegistered[s.RuntimeConfig.ModelTable]
-	if !ok {
-		return nil, fmt.Errorf("table not config")
+	if ok {
+		if !*s.RuntimeConfig.StrictSchema {
+			return nil, fmt.Errorf("registerd table[%s] need strict_schema=true", s.RuntimeConfig.ModelTable)
+		}
+		modelType := reflect.TypeOf(modelTable).Elem()
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+		modelValue := reflect.New(modelType)
+		handler = &AnySinker{
+			modelType:   modelType,
+			modelValue:  reflect.New(modelType),
+			modelObject: modelValue.Interface(),
+			dsWriter:    s.DSWriter,
+			Ready:       make(chan bool),
+			Sinker:      s,
+			// 如果找到了 model 定义，则一定是按照定义的 StrictSchema 来决定是使用 struct 还是 map 来反序列化
+			strictSchema: modelTable.StrictSchema(),
+		}
+	} else {
+		// 如果没有找到 model 定义，且 strict_schema=false, 则使用 map 来反序列化，自动根据字段名来写 db（没有 schema migrate）
+		if !*s.RuntimeConfig.StrictSchema {
+			fakeModel := &model.FakeModelForNoStrictSchema{}
+			fakeModel.SetTableName(s.RuntimeConfig.ModelTable)
+			fakeModel.SetOmitFields(s.RuntimeConfig.OmitFields)
+			modelType := reflect.TypeOf(fakeModel).Elem()
+			modelValue := reflect.New(modelType)
+			handler = &AnySinker{
+				dsWriter:     s.DSWriter,
+				Ready:        make(chan bool),
+				Sinker:       s,
+				modelObject:  fakeModel,  // use to get table name
+				modelType:    modelType,  //for not panic
+				modelValue:   modelValue, // for not panic
+				strictSchema: false,      // true
+			}
+		} else {
+			return nil, fmt.Errorf("table [%s] is not registered to struct", s.RuntimeConfig.ModelTable)
+		}
 	}
-	modelType := reflect.TypeOf(modelTable).Elem()
-	if modelType.Kind() == reflect.Ptr {
-		modelType = modelType.Elem()
-	}
-	modelValue := reflect.New(modelType)
-	handler := &AnySinker{
-		modelType:      modelType,
-		modelValue:     reflect.New(modelType),
-		modelObject:    modelValue.Interface(),
-		dsWriter:       s.DSWriter,
-		Ready:          make(chan bool),
-		Sinker:         s,
-		NoManageSchema: modelTable.NoManageSchema(),
-	}
+
 	handler.Sinker = s
 	s.consumerHandler = handler
 	return handler, nil

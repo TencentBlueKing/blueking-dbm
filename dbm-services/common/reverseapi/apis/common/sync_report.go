@@ -48,6 +48,9 @@ func (i *innerEvent) MarshalJSON() ([]byte, error) {
 // err != nil && data == nil 时, 是普通的错误, 比如网络问题, django 挂了这类的
 // err != nil && data != nil 时, 是反向 post 的协议错误, 比如 cluster type, event type 未注册啥的
 func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte, error) {
+	if core == nil {
+		return nil, errors.New("SyncReport core is nil")
+	}
 	var innerEvents []innerEvent
 	for _, e := range events {
 		innerEvents = append(innerEvents, innerEvent{

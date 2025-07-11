@@ -3,6 +3,15 @@
 ```shell
 db-event-consumer -c config.yaml
 ```
+## 快速新增一个消费入库
+
+
+## 开发 sinker
+- create
+- migrate
+
+## 开发 writer
+
 
 # 配置
 

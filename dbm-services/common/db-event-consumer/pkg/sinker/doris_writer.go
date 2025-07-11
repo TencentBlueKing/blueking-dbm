@@ -9,6 +9,7 @@
 package sinker
 
 import (
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"xorm.io/xorm"
 )
@@ -16,4 +17,18 @@ import (
 type DorisWriter struct {
 	db     *gorm.DB
 	engine *xorm.Engine
+}
+
+func NewDorisWriter(dsn *InstanceDsn, db *gorm.DB) (*DorisWriter, error) {
+	if db != nil {
+		return &DorisWriter{db: db}, nil
+	}
+	if dsn == nil {
+		return nil, errors.New("dsn is nil")
+	}
+	db, err := GetGormDB(dsn, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &DorisWriter{db: db}, nil
 }
