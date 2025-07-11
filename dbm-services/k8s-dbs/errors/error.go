@@ -73,6 +73,7 @@ const (
 const (
 	DescribeComponentError = 1532500
 	GetComponentSvcError   = 1532501
+	GetComponentPodsError  = 1532502
 )
 
 // k8s 集群管理操作异常
@@ -140,6 +141,7 @@ var codeTag = map[int]string{
 	// 组件操作异常
 	DescribeComponentError: "查询组件失败",
 	GetComponentSvcError:   "查询组件服务信息失败",
+	GetComponentPodsError:  "查询组件实例列表失败",
 }
 
 // NewK8sDbsError 自定义错误

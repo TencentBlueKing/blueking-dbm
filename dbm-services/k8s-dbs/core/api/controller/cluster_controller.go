@@ -23,9 +23,9 @@ import (
 	"encoding/json"
 	"fmt"
 	coreconst "k8s-dbs/common/constant"
+	commhelper "k8s-dbs/common/helper"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
-	reqvo "k8s-dbs/core/vo/req"
 	respvo "k8s-dbs/core/vo/resp"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
@@ -357,19 +357,13 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 	coreentity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
-// GetClusterLinks 获取集连接信息
-func (c *ClusterController) GetClusterLinks(ctx *gin.Context) {
-	var svcReq reqvo.K8sSvcReqVo
-	if err := ctx.ShouldBindJSON(&svcReq); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
-		return
-	}
+// GetClusterService 获取集群连接信息
+func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 	var svcEntity coreentity.K8sSvcEntity
-	if err := copier.Copy(&svcEntity, &svcReq); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &svcEntity, nil); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
-	// 查询集群信息
 	clusterParams := &metaentity.ClusterQueryParams{
 		Namespace:   svcEntity.Namespace,
 		ClusterName: svcEntity.ClusterName,
@@ -386,7 +380,7 @@ func (c *ClusterController) GetClusterLinks(ctx *gin.Context) {
 		return
 	}
 	// 获取集群连接信息
-	componentServices, err := c.getComponentsService(components, svcEntity)
+	componentServices, err := c.getComponentService(components, svcEntity)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
 		return
@@ -400,8 +394,8 @@ func (c *ClusterController) GetClusterLinks(ctx *gin.Context) {
 	coreentity.SuccessResponse(ctx, clusterService, coreconst.Success)
 }
 
-// getComponentsService 获取集群组件的 service 信息
-func (c *ClusterController) getComponentsService(
+// getComponentService 获取集群组件的 service 信息
+func (c *ClusterController) getComponentService(
 	components []*metaentity.ClusterComponent,
 	svcEntity coreentity.K8sSvcEntity,
 ) ([]*respvo.K8sComponentSvcRespVo, error) {

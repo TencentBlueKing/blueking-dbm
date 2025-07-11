@@ -24,7 +24,6 @@ import (
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
-	metaconst "k8s-dbs/metadata/constant"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/req"
@@ -49,12 +48,12 @@ func NewAddonClusterVersionController(
 
 // ListAcVersions 获取 addon cluster version 列表
 func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
-	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
+	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
+		fetchSize = commconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
-	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
+	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	acVersions, err := a.acVersionProvider.ListAcVersion(pagination)
 	if err != nil {

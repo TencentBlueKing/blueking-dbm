@@ -22,27 +22,18 @@ package controller
 import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
+	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
-	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/resp"
-	"log/slog"
+	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
 )
-
-var queryParamsMapping = map[string]string{
-	"createdBy":    "created_by",
-	"updatedBy":    "updated_by",
-	"bkBizID":      "bk_biz_id",
-	"namespace":    "namespace",
-	"clusterName":  "cluster_name",
-	"clusterAlias": "cluster_alias",
-}
 
 var topoNameAliasMapping = map[string]map[string]string{
 	"victoriametrics": {
@@ -96,17 +87,15 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 
 // ListCluster retrieves a clusters by params and pagination.
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
-	pagination, err := metahelper.BuildPagination(ctx)
+	pagination, err := commhelper.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	params := metahelper.BuildPageParams(ctx)
-	params = mapParamsWithMapping(params, queryParamsMapping)
-	clusterQueryParams := metaentity.ClusterQueryParams{}
-
-	if err := copier.Copy(&clusterQueryParams, params); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+	var clusterQueryParams metaentity.ClusterQueryParams
+	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &clusterQueryParams,
+		map[string]reflect.Type{"bkBizId": reflect.TypeOf(uint64(0))}); err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	clusterEntities, count, err := c.clusterProvider.ListClusters(&clusterQueryParams, pagination)
@@ -115,7 +104,6 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	}
 	var data []resp.K8sCrdClusterRespVo
 	if err := copier.Copy(&data, clusterEntities); err != nil {
-		slog.Error("fail to copy cluster data", "error", err)
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
@@ -128,16 +116,4 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		Result: data,
 	}
 	entity.SuccessResponse(ctx, responseData, commconst.Success)
-}
-
-// mapParamsWithMapping 按照 mapping 映射来重新构建请求 map
-func mapParamsWithMapping(rawParams map[string]interface{}, mapping map[string]string) map[string]interface{} {
-	mappedParams := make(map[string]interface{})
-	for rawKey, value := range rawParams {
-		if newKey, exists := mapping[rawKey]; exists {
-			mappedParams[newKey] = value
-		}
-		// 如果 rawKey 不在 mapping 中，则忽略该字段
-	}
-	return mappedParams
 }

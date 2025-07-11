@@ -21,12 +21,11 @@ package controller
 
 import (
 	commconst "k8s-dbs/common/constant"
+	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
-	metahelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
 	corevo "k8s-dbs/metadata/vo/resp"
 
 	"github.com/gin-gonic/gin"
@@ -47,21 +46,16 @@ func NewClusterRequestRecordController(
 
 // ListClusterRecords 根据 k8s_cluster_name, cluster_name, namespace 分页检索集群操作记录.
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
-	pagination, err := metahelper.BuildPagination(ctx)
+	pagination, err := commhelper.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 	}
-	var searchReqVo req.ClusterRequestRecordSearch
-	if err := ctx.ShouldBindJSON(&searchReqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+	var requestParams metaentity.ClusterRequestQueryParams
+	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &requestParams, nil); err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
-	requestParams := &metaentity.ClusterRequestQueryParams{
-		K8sClusterName: searchReqVo.K8sClusterName,
-		ClusterName:    searchReqVo.ClusterName,
-		NameSpace:      searchReqVo.NameSpace,
-	}
-	records, count, err := k.clusterRequestProvider.ListRecords(requestParams, pagination)
+	records, count, err := k.clusterRequestProvider.ListRecords(&requestParams, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return

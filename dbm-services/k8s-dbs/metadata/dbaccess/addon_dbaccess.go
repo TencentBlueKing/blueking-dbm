@@ -22,8 +22,8 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	mconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	mconst "k8s-dbs/metadata/constant"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
 	"log/slog"

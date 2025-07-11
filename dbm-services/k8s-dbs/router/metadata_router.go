@@ -241,8 +241,8 @@ func buildRequestRecordRouter(db *gorm.DB, metaRouter *gin.RouterGroup) {
 	metaProvider := metaprovider.NewClusterRequestRecordProvider(metaDbAccess)
 	metaController := metacontroller.NewClusterRequestRecordController(metaProvider)
 
-	metaGroup := metaRouter.Group("/cluster_request_record")
+	metaGroup := metaRouter.Group("/cluster_operation_log")
 	{
-		metaGroup.POST("/search", metaController.ListClusterRecords)
+		metaGroup.GET("", metaController.ListClusterRecords)
 	}
 }

@@ -22,12 +22,12 @@ package controller
 import (
 	coreconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
+	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/core/vo/req"
 	"k8s-dbs/core/vo/resp"
 	"k8s-dbs/errors"
-	metahelper "k8s-dbs/metadata/helper"
 	metarespvo "k8s-dbs/metadata/vo/resp"
 
 	"github.com/gin-gonic/gin"
@@ -67,57 +67,23 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, coreconst.Success)
 }
 
-// GetPodLogs 获取 pod 日志详情
-func (k *K8sController) GetPodLogs(ctx *gin.Context) {
-	var logReq req.K8sPodLogReqVo
-	if err := ctx.ShouldBindJSON(&logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
-		return
-	}
-	var podLogEntity entity.K8sPodLogEntity
-	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
-		return
-	}
-	logs, _, err := k.k8sProvider.GetPodLog(&podLogEntity, nil)
-	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
-		return
-	}
-	data := resp.K8sPodLogRespVo{
-		Logs:           logs,
-		K8sClusterName: logReq.K8sClusterName,
-		ClusterName:    logReq.ClusterName,
-		Namespace:      logReq.Namespace,
-		PodName:        logReq.PodName,
-		Container:      logReq.Container,
-	}
-	entity.SuccessResponse(ctx, data, coreconst.Success)
-}
-
 // ListPodLogs 获取 pod 日志分页结果
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
-	pagination, err := metahelper.BuildPagination(ctx)
+	pagination, err := commhelper.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var logReq req.K8sPodLogReqVo
-	if err := ctx.ShouldBindJSON(&logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
-		return
-	}
 	var podLogEntity entity.K8sPodLogEntity
-	if err := copier.Copy(&podLogEntity, &logReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
+	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &podLogEntity, nil); err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	logs, count, err := k.k8sProvider.GetPodLog(&podLogEntity, pagination)
+	logs, count, err := k.k8sProvider.ListPodLogs(&podLogEntity, pagination)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
-
 	var responseData = metarespvo.PageResult{
 		Count:  count,
 		Result: logs,

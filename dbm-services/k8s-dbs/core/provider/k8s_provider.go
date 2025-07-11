@@ -110,8 +110,8 @@ func (k *K8sProvider) CreateNamespace(
 	return &responseEntity, nil
 }
 
-// GetPodLog 获取 pod 日志
-func (k *K8sProvider) GetPodLog(
+// ListPodLogs 获取 pod 日志
+func (k *K8sProvider) ListPodLogs(
 	entity *coreentity.K8sPodLogEntity,
 	pagination *entity.Pagination,
 ) ([]*coreentity.K8sLog, uint64, error) {

@@ -22,11 +22,11 @@ package provider
 import (
 	"context"
 	"fmt"
-	commonutil "k8s-dbs/common/util"
+	commentity "k8s-dbs/common/entity"
+	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/helper"
-	coreutil "k8s-dbs/core/util"
 	coreerrors "k8s-dbs/errors"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -123,8 +123,8 @@ func getPodRole(pod *corev1.Pod) string {
 func extractPodsInfo(
 	k8sClient *helper.K8sClient,
 	podList *unstructured.UnstructuredList,
-) ([]coreentity.Pod, error) {
-	var pods []coreentity.Pod
+) ([]*coreentity.Pod, error) {
+	var pods []*coreentity.Pod
 
 	for _, item := range podList.Items {
 		pod, err := convertUnstructuredToPod(item)
@@ -142,7 +142,7 @@ func extractPodsInfo(
 			return nil, err
 		}
 
-		pods = append(pods, coreentity.Pod{
+		pods = append(pods, &coreentity.Pod{
 			PodName:       pod.Name,
 			Status:        pod.Status.Phase,
 			Node:          pod.Spec.NodeName,
@@ -197,7 +197,7 @@ func getPodStorageCapacity(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coree
 	if !ok {
 		return nil, nil
 	}
-	storageSize := coreentity.StorageSize(coreutil.ConvertMemoryToGB(&capacity))
+	storageSize := coreentity.StorageSize(commutil.ConvertMemoryToGB(&capacity))
 	return &storageSize, nil
 }
 
@@ -232,12 +232,12 @@ func getPodResourceQuota(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coreent
 	storage, _ := getPodStorageCapacity(k8sClient, pod)
 	return &coreentity.PodResourceQuota{
 		Request: &coreentity.QuotaSummary{
-			CPU:    commonutil.Float64Ptr(coreutil.ConvertCPUToCores(requestCPU)),
-			Memory: commonutil.Float64Ptr(coreutil.ConvertMemoryToGB(requestMemory)),
+			CPU:    commutil.Float64Ptr(commutil.ConvertCPUToCores(requestCPU)),
+			Memory: commutil.Float64Ptr(commutil.ConvertMemoryToGB(requestMemory)),
 		},
 		Limit: &coreentity.QuotaSummary{
-			CPU:    commonutil.Float64Ptr(coreutil.ConvertCPUToCores(limitCPU)),
-			Memory: commonutil.Float64Ptr(coreutil.ConvertMemoryToGB(limitMemory)),
+			CPU:    commutil.Float64Ptr(commutil.ConvertCPUToCores(limitCPU)),
+			Memory: commutil.Float64Ptr(commutil.ConvertMemoryToGB(limitMemory)),
 		},
 		Storage: storage,
 	}, nil
@@ -400,6 +400,50 @@ func (c *ComponentProvider) convertExternalSvc(
 	return k8sSvcInfos
 }
 
+// ListPods 获取实例列表
+func (c *ComponentProvider) ListPods(
+	params *coreentity.ComponentQueryParams,
+	pagination *commentity.Pagination,
+) ([]*coreentity.Pod, uint64, error) {
+	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(params.K8sClusterName)
+	if err != nil {
+		return nil, 0, err
+	}
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, 0, err
+	}
+	crd := &coreentity.CustomResourceDefinition{
+		GroupVersionResource: kbtypes.PodGVR(),
+		Namespace:            params.Namespace,
+		Labels: map[string]string{
+			coreconst.InstanceName:  params.ClusterName,
+			coreconst.ComponentName: params.ComponentName,
+		},
+	}
+	podList, err := helper.ListCRD(k8sClient, crd)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(podList.Items) == 0 {
+		return []*coreentity.Pod{}, 0, nil
+	}
+	pods, err := extractPodsInfo(k8sClient, podList)
+	if err != nil {
+		return nil, 0, err
+	}
+	count := uint64(len(pods))
+	if pagination == nil {
+		return pods, count, nil
+	}
+	pods, err = commutil.Paginate(pagination, pods)
+	if err != nil {
+		return nil, 0, err
+	}
+	return pods, count, nil
+
+}
+
 func getPodResourceUsage(
 	k8sClient *helper.K8sClient,
 	pod *corev1.Pod,
@@ -417,17 +461,17 @@ func getPodResourceUsage(
 		totalMemory.Add(*container.Usage.Memory())
 	}
 
-	totalCPUCore := coreutil.ConvertCPUToCores(&totalCPU)
-	totalMemoryGB := coreutil.ConvertMemoryToGB(&totalMemory)
+	totalCPUCore := commutil.ConvertCPUToCores(&totalCPU)
+	totalMemoryGB := commutil.ConvertMemoryToGB(&totalMemory)
 
-	totalCPUCore = coreutil.RoundToDecimal(totalCPUCore, 3)
-	totalMemoryGB = coreutil.RoundToDecimal(totalMemoryGB, 3)
+	totalCPUCore = commutil.RoundToDecimal(totalCPUCore, 3)
+	totalMemoryGB = commutil.RoundToDecimal(totalMemoryGB, 3)
 
 	cpuUtilization := totalCPUCore / *resourceQuota.Request.CPU * 100
-	cpuUtilization = coreutil.RoundToDecimal(cpuUtilization, 3)
+	cpuUtilization = commutil.RoundToDecimal(cpuUtilization, 3)
 
 	memoryUtilization := totalMemoryGB / *resourceQuota.Request.Memory * 100
-	memoryUtilization = coreutil.RoundToDecimal(memoryUtilization, 3)
+	memoryUtilization = commutil.RoundToDecimal(memoryUtilization, 3)
 
 	return &coreentity.PodResourceUsage{
 		QuotaSummary: &coreentity.QuotaSummary{

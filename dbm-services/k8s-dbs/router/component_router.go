@@ -32,10 +32,11 @@ import (
 // buildClusterRouter cluster 管理路由构建
 func buildComponentRouter(db *gorm.DB, router *gin.Engine) {
 	componentController := initComponentController(db)
-	clusterGroup := router.Group(basePath + "/component")
+	componentGroup := router.Group(basePath + "/component")
 	{
-		clusterGroup.POST("/describe", componentController.DescribeComponent)
-		clusterGroup.POST("/service/describe", componentController.GetComponentLinks)
+		componentGroup.POST("/describe", componentController.DescribeComponent)
+		componentGroup.GET("/services", componentController.GetComponentService)
+		componentGroup.GET("/pods", componentController.ListPods)
 	}
 }
 

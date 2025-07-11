@@ -28,7 +28,7 @@ import (
 // ComponentDetail 组件详情
 type ComponentDetail struct {
 	Metadata `json:",inline"`
-	Pods     []Pod           `json:"pods,omitempty"`
+	Pods     []*Pod          `json:"pods,omitempty"`
 	Env      []corev1.EnvVar `json:"env,omitempty"`
 }
 

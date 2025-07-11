@@ -20,7 +20,7 @@ limitations under the License.
 package dbaccess
 
 import (
-	metaconst "k8s-dbs/metadata/constant"
+	commconst "k8s-dbs/common/constant"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
 
@@ -72,7 +72,7 @@ func (k K8sCrdClusterTagDbAccessImpl) DeleteByClusterID(clusterID uint64) (uint6
 // FindByClusterID 查找集群关联的 Tag
 func (k K8sCrdClusterTagDbAccessImpl) FindByClusterID(clusterID uint64) ([]*models.K8sCrdClusterTagModel, error) {
 	var tagModels []*models.K8sCrdClusterTagModel
-	if err := k.db.Limit(metaconst.MaxFetchSize).
+	if err := k.db.Limit(commconst.MaxFetchSize).
 		Where("crd_cluster_id = ?", clusterID).
 		Order("created_at DESC").
 		Find(&tagModels).Error; err != nil {
