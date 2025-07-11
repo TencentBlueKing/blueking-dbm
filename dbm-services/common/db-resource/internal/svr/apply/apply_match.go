@@ -279,14 +279,12 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, dev
 				ele.Priority += int64((1 - float32(disk.Size-spec.MinSize)/float32(disk.Size)) * PriorityP2)
 			}
 		}
-	} else {
+	} else if len(ins.Storages) == 0 {
 		// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
-		if len(ins.Storages) == 0 {
-			for _, disk := range ins.Storages {
-				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
-				// 倾向匹配磁盘小的机器
-				ele.Priority += int64(100 - disk.Size/100)
-			}
+		for _, disk := range ins.Storages {
+			// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
+			// 倾向匹配磁盘小的机器
+			ele.Priority += int64(100 - disk.Size/100)
 		}
 	}
 	//  如果请求参数请求了专属db类型，机器的资源类型标签只有一个，且等于请求的资源的类中，则优先级更高

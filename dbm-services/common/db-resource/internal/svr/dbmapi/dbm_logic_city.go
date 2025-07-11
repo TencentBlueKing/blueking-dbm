@@ -18,10 +18,15 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/patrickmn/go-cache"
+
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// GetIdcCityByLogicCityParam TODO
+// CityCache city cache
+var cityCache = cache.New(5*time.Minute, 10*time.Minute)
+
+// GetIdcCityByLogicCityParam get idc city by logic city param
 type GetIdcCityByLogicCityParam struct {
 	LogicCityName string `json:"logic_city_name"`
 }
@@ -36,6 +41,13 @@ type IdcCitysResp struct {
 
 // GetIdcCityByLogicCity 根据逻辑城市获取实际对应城市列表
 func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
+	if idcCacheCitys, ok := cityCache.Get(logicCity); ok {
+		idcCitys, ok = idcCacheCitys.([]string)
+		if ok {
+			logger.Info("get idc citys from cache %s,idcCitys:%v ", logicCity, idcCitys)
+			return idcCitys, nil
+		}
+	}
 	var content []byte
 	cli := NewDbmClient()
 	u, err := url.JoinPath(cli.EndPoint, DBMLogicCityApi)
@@ -90,6 +102,7 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 	if err = json.Unmarshal(content, &d); err != nil {
 		return nil, err
 	}
+	cityCache.Set(logicCity, d.Data, 5*time.Minute)
 	return d.Data, nil
 }
 

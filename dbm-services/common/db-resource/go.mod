@@ -12,6 +12,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/mitchellh/copystructure v1.2.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.39.0

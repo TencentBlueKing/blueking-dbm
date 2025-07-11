@@ -126,7 +126,6 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 			Priority: 0,
 		}
 		if len(dtlp.StorageSpecs) > 0 {
-			// 多磁盘需求前置
 			item.Priority += int64(len(dtlp.StorageSpecs))
 		}
 		if !dtlp.LocationSpec.IsEmpty() {
@@ -138,22 +137,28 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 		if len(dtlp.DeviceClass) > 0 {
 			item.Priority++
 		}
-
 		if dtlp.Count > 1 {
 			item.Priority += int64(dtlp.Count)
 		}
-
 		if err := pq.Push(&item); err != nil {
 			return nil, err
 		}
-
 	}
+
+	// 预分配切片容量
+	dlts = make([]ObjectDetail, 0, len(param.Details))
 	for pq.Len() > 0 {
 		item, err := pq.Pop()
 		if err != nil {
 			return nil, err
 		}
-		dlts = append(dlts, item.Value.(ObjectDetail))
+		// 添加类型检查
+		// nolint
+		if objDetail, ok := item.Value.(ObjectDetail); !ok {
+			dlts = append(dlts, objDetail)
+		} else {
+			return nil, fmt.Errorf("invalid type in PriorityQueue: expected ObjectDetail, got %T", item.Value)
+		}
 	}
 	return dlts, nil
 }

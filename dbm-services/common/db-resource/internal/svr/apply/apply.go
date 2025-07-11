@@ -17,6 +17,11 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/patrickmn/go-cache"
+	"github.com/samber/lo"
+	"gorm.io/gorm"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
@@ -26,12 +31,9 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
-
-	"github.com/samber/lo"
-	"gorm.io/gorm"
 )
 
-// SearchContext TODO
+// SearchContext describe search context
 type SearchContext struct {
 	*ObjectDetail
 	RsType            string
@@ -242,6 +244,8 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		logger.Error("对请求参数排序失败%v", err)
 		return nil, err
 	}
+	cityMapCache := cache.New(2*time.Minute, 30*time.Second)
+	defer cityMapCache.Flush()
 	for _, v := range resourceReqList {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
@@ -404,13 +408,14 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 	}
 
 	// 根据亲和性添加额外检查
-	if o.Affinity == SAME_SUBZONE_CROSS_SWTICH {
+	switch o.Affinity {
+	case SAME_SUBZONE_CROSS_SWTICH:
 		checks = append(checks, checkFunc{
 			name: "netDevice",
 			fn:   o.UseNetDeviceIsNotEmpty,
 			desc: "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源",
 		})
-	} else if o.Affinity == CROSS_RACK {
+	case CROSS_RACK:
 		checks = append(checks, checkFunc{
 			name: "rackId",
 			fn:   o.RackIdIsNotEmpty,
@@ -583,7 +588,11 @@ func (o *SearchContext) MatchIntetionBkBiz(db *gorm.DB) {
 	if o.IntetionBkBizId <= 0 {
 		db.Where("dedicated_biz = 0")
 	} else {
-		db.Where("dedicated_biz in (?)", []int{0, o.IntetionBkBizId})
+		if len(o.Labels) > 0 {
+			db.Where("dedicated_biz  = ?", o.IntetionBkBizId)
+		} else {
+			db.Where("dedicated_biz in (?)", []int{0, o.IntetionBkBizId})
+		}
 	}
 }
 
