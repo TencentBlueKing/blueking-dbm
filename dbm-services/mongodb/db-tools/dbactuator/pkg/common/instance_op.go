@@ -273,8 +273,8 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	code, stdOut, stdErr, err :=
 		mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
 			Run(time.Second * time.Duration(timeout))
-	log.Printf("ExecJs %s return %d %s %s", jsCode, code, stdOut, stdErr)
-	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", jsCode, code, stdOut, stdErr))
+	log.Printf("ExecJs %s return %d %s %s", js, code, stdOut, stdErr)
+	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", js, code, stdOut, stdErr))
 }
 
 func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
