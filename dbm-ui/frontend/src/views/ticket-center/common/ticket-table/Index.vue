@@ -13,7 +13,8 @@
         row-key="id"
         title-ellipsis
         @change="handleFilterChange"
-        @setting-change="handleTableSettings">
+        @setting-change="handleTableSettings"
+        @sort-change="handleSortChange">
         <TableColumn
           v-if="selectable"
           col-key="row-select"
@@ -222,7 +223,7 @@
           width="150" />
         <TableColumn
           col-key="create_at"
-          sort
+          sorter
           :title="t('申请时间')"
           width="250">
           <template #default="{ row }: { row: IRowData }">
@@ -237,7 +238,7 @@
             @clear-search="handleClearSearch"
             @refresh="fetchRefresh" />
         </template>
-        <template #setting>
+        <template #bkUiAppearanceSettings>
           <div>
             <div class="mb-8">{{ t('详情打开方式') }}</div>
             <BkRadioGroup
@@ -336,7 +337,7 @@
   const userProfileStore = useUserProfile();
 
   const { formatValue: formatDateValue, value: datePickerValue } = useDatePicker();
-  const { dataList, fetchTicketList, loading: isLoading, pagination } = useFetchData(props.dataSource);
+  const { dataList, fetchTicketList, loading: isLoading, ordering, pagination } = useFetchData(props.dataSource);
   const { formatSearchValue, searchFieldMap, value: searchSelectValue } = useSearchSelect();
 
   const { getSearchParams } = useUrlSearch();
@@ -489,13 +490,17 @@
     triggerSelection();
   };
 
-  // const handleSortChange = (payload: { field: string; order: string }) => {
-  //   ordering.value = payload.order === 'desc' ? payload.field : `-${payload.field}`;
-  //   fetchData();
-  // };
+  const handleSortChange = (payload: { descending: boolean; sortBy: string }) => {
+    if (payload) {
+      ordering.value = payload.descending ? payload.sortBy : `-${payload.sortBy}`;
+    } else {
+      ordering.value = '';
+    }
+
+    fetchData();
+  };
 
   const handleFilterChange = (payload: { filter?: Record<string, any> }) => {
-    console.log('filter change = ', payload, searchFieldMap.value);
     if (!payload.filter) {
       return;
     }
@@ -654,12 +659,15 @@
     }
 
     .table-footer {
+      position: relative;
+      z-index: 1;
       display: flex;
       height: 60px;
       padding: 0 16px;
+      margin-top: -1px;
       background: #fff;
-      align-items: center;
       border-top: 1px solid var(--td-component-border);
+      align-items: center;
 
       .bk-pagination {
         width: 100%;

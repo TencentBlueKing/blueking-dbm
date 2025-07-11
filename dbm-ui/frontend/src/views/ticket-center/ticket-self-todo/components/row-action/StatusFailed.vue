@@ -1,6 +1,6 @@
 <template>
   <TableColumn
-    col-key="action"
+    col-key="row-operation"
     fixed="right"
     :title="t('操作')"
     :width="70">
