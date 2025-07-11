@@ -89,7 +89,6 @@ export default (options = {} as { exclude: string[] }) => {
       if (item.children) {
         Object.assign(result, {
           [item.id]: {
-            confirmEvents: ['onChange'],
             list: item.children.map((childItem) => ({
               label: childItem.name,
               value: childItem.id,
