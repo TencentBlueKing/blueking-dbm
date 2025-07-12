@@ -21,7 +21,6 @@ package core
 
 import (
 	"k8s-dbs/core/helper"
-	"log"
 	"log/slog"
 )
 
@@ -35,11 +34,11 @@ func Init() error {
 
 // InitDB 集群管理核心服务元数据初始化
 func InitDB() error {
-	log.Println("Start to initial MySql Connection...")
+	slog.Info("Start to initial MySql Connection...")
 	if err := helper.Db.Init(); err != nil {
 		slog.Error("Failed to initial MySql Connection", "error", err)
 		return err
 	}
-	log.Println("Finish initialize MySql Connection...")
+	slog.Info("Finish initialize MySql Connection...")
 	return nil
 }

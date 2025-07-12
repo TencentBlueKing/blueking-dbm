@@ -25,13 +25,19 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"gorm.io/driver/mysql"
+
 	"gorm.io/gorm"
 )
 
-var Db database
+var (
+	once    sync.Once
+	initErr error
+	Db      = &database{}
+)
 
 type database struct {
 	GormDb *gorm.DB
@@ -53,37 +59,43 @@ func dbConfig() (*config.DatabaseConfig, error) {
 }
 
 func (d *database) Init() error {
-	dbCfg, err := dbConfig()
-	if err != nil {
-		slog.Error("Failed to load config", "err", err)
-		return err
-	}
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
-		dbCfg.User, dbCfg.Password, dbCfg.Host, dbCfg.Port, dbCfg.DBName, dbCfg.TLSMode)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		slog.Error("Failed to connect to database", "err", err)
-		return err
-	}
-	// 获取底层数据库对象
-	sqlDb, err := db.DB()
-	if err != nil {
-		slog.Error("failed to get database object", "error", err)
-		return err
-	}
+	once.Do(func() {
+		dbCfg, err := dbConfig()
+		if err != nil {
+			initErr = fmt.Errorf("failed to load config: %w", err)
+			slog.Error("Failed to load config", "err", err)
+			return
+		}
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local&tls=%s",
+			dbCfg.User, dbCfg.Password, dbCfg.Host, dbCfg.Port, dbCfg.DBName, dbCfg.TLSMode)
+		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			initErr = fmt.Errorf("failed to connect to database: %w", err)
+			slog.Error("Failed to connect to database", "err", err)
+			return
+		}
+		// 获取底层数据库对象
+		sqlDb, err := db.DB()
+		if err != nil {
+			initErr = fmt.Errorf("failed to connect to database: %w", err)
+			slog.Error("failed to get database object", "error", err)
+			return
+		}
 
-	// 设置数据库连接池参数
-	sqlDb.SetMaxOpenConns(dbCfg.MaxOpenConns)
-	sqlDb.SetMaxIdleConns(dbCfg.MaxIdleConns)
-	sqlDb.SetConnMaxLifetime(dbCfg.MaxLifetime)
-	sqlDb.SetConnMaxIdleTime(dbCfg.MaxIdleTime)
+		// 设置数据库连接池参数
+		sqlDb.SetMaxOpenConns(dbCfg.MaxOpenConns)
+		sqlDb.SetMaxIdleConns(dbCfg.MaxIdleConns)
+		sqlDb.SetConnMaxLifetime(dbCfg.MaxLifetime)
+		sqlDb.SetConnMaxIdleTime(dbCfg.MaxIdleTime)
 
-	// Ping 数据库，确认连接
-	if err = sqlDb.Ping(); err != nil {
-		slog.Error("Failed to ping database", "err", err)
-		return err
-	}
-	slog.Info("Database connection established")
-	Db.GormDb = db
-	return nil
+		// Ping 数据库，确认连接
+		if err = sqlDb.Ping(); err != nil {
+			initErr = fmt.Errorf("failed to ping database: %w", err)
+			slog.Error("Failed to ping database", "err", err)
+			return
+		}
+		slog.Info("Database connection established")
+		Db.GormDb = db
+	})
+	return initErr
 }
