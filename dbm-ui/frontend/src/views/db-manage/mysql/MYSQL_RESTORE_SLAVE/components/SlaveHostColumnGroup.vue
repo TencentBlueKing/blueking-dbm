@@ -156,7 +156,7 @@
       message: '',
       trigger: 'blur',
       validator: (value: string) =>
-        !value || illegalInstances ? t('主机存在非 Slave 实例 (instances)', [illegalInstances]) : true,
+        !value || illegalInstances ? t('主机包含非 Slave 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 

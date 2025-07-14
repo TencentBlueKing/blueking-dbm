@@ -4753,14 +4753,14 @@
   "目标主库实例": "目标主库实例",
   "非接入层实例": "非接入层实例",
   "Redis 集群": "Redis 集群",
-  "主机存在非 Master 实例 (instances)": "主机存在非 Master 实例 ({0})",
-  "主机存在非 Slave 实例 (instances)": "主机存在非 Slave 实例 ({0})",
+  "主机包含非 Master 实例 (instances)": "主机包含非 Master 实例 ({0})",
+  "主机包含非 Slave 实例 (instances)": "主机包含非 Slave 实例 ({0})",
   "主机不包含任何 Master 实例": "主机不包含任何 Master 实例",
   "主机不包含任何接入层实例": "主机不包含任何接入层实例",
   "主机不包含任何 Proxy 实例": "主机不包含任何 Proxy 实例",
   "该实例为非 Slave 实例，请选择 Slave 实例": "该实例为非 Slave 实例，请选择 Slave 实例",
   "该实例为非 Proxy 实例，请选择 Proxy 实例": "该实例为非 Proxy 实例，请选择 Proxy 实例",
   "该实例为非 Master 实例，请选择 Master 实例": "该实例为非 Master 实例，请选择 Master 实例",
-  "该实例为非接入层实例，请选择接入层实例": "该实例为非接入层实例，请选择接入层实例",
+  "该实例为非 remote_master 实例，请选择 remote_master 实例": "该实例为非 remote_master 实例，请选择 remote_master 实例",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
