@@ -1585,6 +1585,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_SOURCE_ACCESS_VIEW = ActionMeta(
+        id="mongodb_source_access_view",
+        name=_("Mongodb 访问来源查询"),
+        name_en="mongodb_source_access_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_APPLY = ActionMeta(
         id="mongodb_apply",
         name=_("MongoDB 部署"),

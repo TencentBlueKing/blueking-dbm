@@ -35,6 +35,10 @@ SPACE_DIVIDER = " "
 # 主机去向枚举
 IpDest = PoolType
 
+# TCP【建立连接】状态码，【监听】状态码;
+TCP_ESTABLISHED_CODE = 1
+TCP_LISTEN_CODE = 10
+
 
 class IpSource(str, StructuredEnum):
     """主机来源枚举"""

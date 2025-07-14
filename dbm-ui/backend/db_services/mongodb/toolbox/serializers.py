@@ -8,13 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.resources.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.permission.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.restore.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.cluster.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.instance.urls")),
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.toolbox.urls")),
-]
+
+class ExecuteClusterTcpCmdSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+
+    class Meta:
+        swagger_schema_fields = {"example": {"job_instance_id": 0, "job_instance_name": "xxxx"}}
+
+
+class GetClusterTcpResultSerializer(serializers.Serializer):
+    job_instance_id = serializers.IntegerField(help_text=_("job实例ID"))
