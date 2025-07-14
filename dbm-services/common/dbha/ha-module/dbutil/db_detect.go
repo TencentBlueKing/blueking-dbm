@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -138,10 +139,10 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 // ClientConfig's timeout at some scenario may be not work
 func (b *BaseDetectDB) doRawSSH(shellStr string) error {
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
-		// HostKeyCallback: hostKeyCallBackFunc(h.Host),
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
+		User:    b.SshInfo.User,
+		HostKeyCallback: ssh.HostKeyCallback(
+			func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
 	conf.Auth = []ssh.AuthMethod{
 		ssh.KeyboardInteractive(b.ReturnSshInteractive()),
@@ -194,9 +195,10 @@ func (b *BaseDetectDB) DoExtendSSH(shellStr string) error {
 func (b *BaseDetectDB) doSSHWithUptime(shellStr string) error {
 	// 创建 SSH 配置
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout),
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout),
+		User:    b.SshInfo.User,
+		HostKeyCallback: ssh.HostKeyCallback(
+			func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 		Auth: []ssh.AuthMethod{
 			ssh.KeyboardInteractive(b.ReturnSshInteractive()),
 			ssh.Password(b.SshInfo.Pass),

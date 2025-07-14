@@ -110,7 +110,6 @@ func DoCreateDBIfNotExist() error {
 	haDBInfo := initc.GlobalConfig.HadbInfo
 	connStr := fmt.Sprintf("%s:%s@tcp(%s:%d)/",
 		haDBInfo.User, haDBInfo.Password, haDBInfo.Host, haDBInfo.Port)
-	log.Logger.Infof("connect sql:%s", connStr)
 	haDB, err := sql.Open("mysql", connStr)
 	if err != nil {
 		log.Logger.Infof("exec database/sql failed, err:%s", err.Error())
