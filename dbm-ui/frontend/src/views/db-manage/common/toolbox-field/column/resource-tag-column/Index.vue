@@ -13,10 +13,52 @@
 
 <template>
   <EditableColumn
+    field="labels"
     :label="t('资源标签')"
-    :min-width="200">
+    :min-width="200"
+    :rules="rules"
+    required>
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :title="t('资源标签')"
+        type="select"
+        :all-option-id="DEFAULT_TAG_ID"
+        :all-option-text="t('非专用资源')"
+        collapse-tags
+        display-key="value"
+        :placeholder="t('请选择')"
+        filterable
+        id-key="id"
+        :list="tagList"
+        multiple
+        multiple-mode="tag"
+        :popover-min-width="200"
+        show-all
+        :tag-theme="tagTheme"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+        <template #tagRender="{ label, value }">
+          {{ value === DEFAULT_TAG_ID ? t('非专用资源') : label }}
+        </template>
+        <template #allOptionIcon>
+          <BkTag
+            class="mr-4"
+            size="small"
+            theme="info"
+            type="filled">
+            {{ t('享') }}
+          </BkTag>
+        </template>
+      </BatchEditColumn>
+    </template>
     <EditableSelect
-      v-model="modelValue"
+      v-model="ids"
       :all-option-id="DEFAULT_TAG_ID"
       :all-option-text="t('非专用资源')"
       collapse-tags
@@ -49,30 +91,44 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import { listTag } from '@services/source/tag';
 
   type IValue = ServiceReturnType<typeof listTag>['results'][0];
 
-  const modelValue = defineModel<number[]>({
-    required: true,
-  });
+  type Emits = (e: 'batch-edit', value: any, field: string) => void;
 
-  const selected = defineModel<IValue[]>('selected', {
-    default: () => [] as IValue[],
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<
+    {
+      id: number;
+      value: string;
+    }[]
+  >({
     required: true,
   });
 
   const { t } = useI18n();
 
+  const ids = ref<number[]>([]);
   const tagList = ref<IValue[]>([]);
-  const tagInfoById = ref<Record<number, any>>({});
-  const tagInfoByValue = ref<Record<string, any>>({});
+  const tagMap = ref<Record<string, any>>({});
+  const showBatchEdit = ref(false);
   // 默认值为 0，表示非专用资源（指未包含任何标签的主机）
   const DEFAULT_TAG_ID = 0;
 
+  const rules = [
+    {
+      message: t('资源标签不能为空'),
+      trigger: 'change',
+      validator: () => Boolean(ids.value.length),
+    },
+  ];
+
   const tagTheme = computed(() =>
-    modelValue.value.length === 1 && modelValue.value[0] === DEFAULT_TAG_ID ? 'success' : '',
+    modelValue.value.length === 1 && modelValue.value[0].id === DEFAULT_TAG_ID ? 'success' : '',
   );
 
   useRequest(listTag, {
@@ -87,10 +143,11 @@
         return;
       }
       tagList.value = data.results;
-      tagInfoById.value = data.results.reduce<Record<number, any>>(
+      tagMap.value = data.results.reduce<Record<string, any>>(
         (acc, item) => {
           Object.assign(acc, {
             [item.id]: item,
+            [item.value]: item,
           });
           return acc;
         },
@@ -100,16 +157,6 @@
             type: 'resource',
             value: t('非专用资源'),
           },
-        },
-      );
-      tagInfoByValue.value = data.results.reduce<Record<string, any>>(
-        (acc, item) => {
-          Object.assign(acc, {
-            [item.value]: item,
-          });
-          return acc;
-        },
-        {
           [t('非专用资源')]: {
             id: DEFAULT_TAG_ID,
             type: 'resource',
@@ -120,34 +167,49 @@
     },
   });
 
-  const handleChange = (value: number[]) => {
-    selected.value = value.map((id) => tagInfoById.value[id]);
+  const handleChange = (values: number[]) => {
+    ids.value = values;
+    modelValue.value = values.map((item) => tagMap.value[item]);
   };
 
-  const updateModelAndSelected = (data: any[]) => {
-    const list = data.reduce<IValue[]>((acc, item: string | number) => {
-      if (typeof item === 'string' && Boolean(tagInfoByValue.value[item]?.id)) {
-        acc.push(tagInfoByValue.value[item]);
-      }
-      if (typeof item === 'number' && Boolean(tagInfoById.value[item]?.id)) {
-        acc.push(tagInfoById.value[item]);
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (values: number[]) => {
+    const labels = values.map((id) => tagMap.value[id]);
+    emits('batch-edit', labels, 'labels');
+  };
+
+  const updateModel = (data: typeof modelValue.value) => {
+    const list = data.reduce<IValue[]>((acc, item: { id: number; value: string }) => {
+      const tagInfo = Object.assign(item, tagMap.value[item?.value || item?.id]);
+      if (tagInfo.id && tagInfo.value) {
+        acc.push(tagInfo);
       }
       return acc;
     }, []);
     if (!list.length) {
       return;
     }
-    modelValue.value = list.map((item) => item.id);
-    selected.value = modelValue.value.map((id) => tagInfoById.value[id]);
+    modelValue.value = list;
+    ids.value = list.map((item) => item.id);
   };
 
   watch(
-    () => modelValue.value,
+    modelValue,
     (newValue, oldValue) => {
       if (!_.isEqual(newValue, oldValue)) {
-        setTimeout(() => updateModelAndSelected(newValue), 200);
+        setTimeout(() => updateModel(newValue), 200);
       }
     },
     { deep: true, immediate: true },
   );
 </script>
+<style lang="less" scoped>
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>

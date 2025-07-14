@@ -35,8 +35,10 @@
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联集群')"
+    field="slave.related_clusters"
     :loading="loading"
-    :min-width="220">
+    :min-width="220"
+    required>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"

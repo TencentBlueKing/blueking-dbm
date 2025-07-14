@@ -34,10 +34,11 @@
           :current-spec-id="item.originProxy.spec_id"
           :machine-type="MachineTypes.MYSQL_PROXY"
           selectable
-          :show-tag="false" />
+          :show-tag="false"
+          @batch-edit="handleBatchEditColumn" />
         <ResourceTagColumn
           v-model="item.labels"
-          v-model:selected="item.labelSelected" />
+          @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
             for_bizs: [currentBizId, 0],
@@ -84,8 +85,7 @@
   import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
 
   interface RowData {
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     originProxy: ComponentProps<typeof InstanceColumnGroup>['modelValue'];
     specId: number;
     targetProxy: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
@@ -171,8 +171,7 @@
   });
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     originProxy: Object.assign(
       {
         bk_cloud_id: 0,
@@ -259,7 +258,7 @@
           tableData.value = infos.map((item) => {
             const originProxy = item.old_nodes.origin_proxy[0];
             return createTableRow({
-              labels: (item.resource_spec.target_proxy.labels || []).map((label) => Number(label)),
+              labels: (item.resource_spec.target_proxy.labels || []).map((item) => ({ id: Number(item) })),
               originProxy: {
                 instance_address: `${originProxy.ip}:${originProxy.port}`,
               },
@@ -292,7 +291,7 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           originProxy: {
             instance_address: item.instance_address,
           },
@@ -313,6 +312,14 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    tableData.value.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 
   defineExpose<Exposes>({
@@ -341,8 +348,9 @@
             count: 1,
             hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.targetProxy] : undefined,
             label_values:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
-            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
+            labels:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
             spec_id: item.specId,
           },
         },

@@ -73,7 +73,7 @@
               :current-spec-id="item.slave.spec_id" />
             <ResourceTagColumn
               v-model="item.labels"
-              v-model:selected="item.labelSelected" />
+              @batch-edit="handleBatchEditColumn" />
             <AvailableResourceColumn
               :params="{
                 for_bizs: [currentBizId, 0],
@@ -151,8 +151,7 @@
   import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     slave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
     specId: number;
@@ -164,8 +163,7 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     newSlave: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -245,7 +243,7 @@
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
-            labels: (item.resource_spec.new_slave.labels || []).map((item) => Number(item)),
+            labels: (item.resource_spec.new_slave.labels || []).map((item) => ({ id: Number(item) })),
             newSlave: item.resource_spec.new_slave.hosts?.[0],
             slave: {
               ip: item.old_nodes.old_slave?.[0]?.ip || '',
@@ -318,11 +316,11 @@
                 count: 1,
                 hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
                 label_values:
-                  sourceType.value === SourceType.RESOURCE_AUTO
-                    ? item.labelSelected.map((item) => item.value)
-                    : undefined,
+                  sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
                 labels:
-                  sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+                  sourceType.value === SourceType.RESOURCE_AUTO
+                    ? item.labels.map((item) => String(item.id))
+                    : undefined,
                 spec_id: item.slave.spec_id,
               },
             },
@@ -360,7 +358,7 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           newSlave: {
             ip: item.new_slave_ip,
           },
@@ -381,5 +379,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

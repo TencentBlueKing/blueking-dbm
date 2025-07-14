@@ -59,10 +59,11 @@
               :current-spec-id="item.cluster.spec_id"
               :machine-type="MachineTypes.MYSQL_PROXY"
               selectable
-              :show-tag="false" />
+              :show-tag="false"
+              @batch-edit="handleBatchEditColumn" />
             <ResourceTagColumn
               v-model="item.labels"
-              v-model:selected="item.labelSelected" />
+              @batch-edit="handleBatchEditColumn" />
             <AvailableResourceColumn
               :params="{
                 for_bizs: [currentBizId, 0],
@@ -138,8 +139,7 @@
 
   interface RowData {
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     newProxy: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     specId: number;
   }
@@ -160,8 +160,7 @@
       },
       data.cluster,
     ),
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     newProxy: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -293,7 +292,7 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.new_proxy.labels || []).map((item) => Number(item)),
+            labels: (item.resource_spec.new_proxy.labels || []).map((item) => ({ id: Number(item) })),
             newProxy: {
               ip: item.resource_spec.new_proxy.hosts?.[0]?.ip || '',
             },
@@ -343,11 +342,9 @@
               count: 1,
               hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newProxy] : undefined,
               label_values:
-                sourceType.value === SourceType.RESOURCE_AUTO
-                  ? item.labelSelected.map((item) => item.value)
-                  : undefined,
+                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
               labels:
-                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
               spec_id: item.cluster.spec_id,
             },
           },
@@ -386,7 +383,7 @@
           cluster: {
             master_domain: item.master_domain,
           },
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           newProxy: {
             ip: item.new_proxy_ip,
           },
@@ -404,6 +401,14 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>
 <style lang="less" scoped>

@@ -39,6 +39,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
+            @batch-edit="handleBatchEditColumn"
             selectable />
           <EditableColumn
             field="count"
@@ -53,7 +54,7 @@
           </EditableColumn>
           <ResourceTagColumn
             v-model="item.labels"
-            v-model:selected="item.labelSelected" />
+            @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
               for_bizs: [currentBizId, 0],
@@ -118,8 +119,7 @@
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     count: string;
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
   }
 
@@ -160,8 +160,7 @@
       data.cluster,
     ),
     count: data.count || '',
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
   });
 
@@ -187,7 +186,7 @@
               master_domain: details.clusters[item.cluster_id]?.immute_domain || '',
             },
             count: String(item.resource_spec.spider_slave_ip_list.count),
-            labels: (item.resource_spec.spider_slave_ip_list.labels || []).map((item) => Number(item)),
+            labels: (item.resource_spec.spider_slave_ip_list.labels || []).map((item) => ({ id: Number(item) })),
             specId: item.resource_spec.spider_slave_ip_list.spec_id,
           }),
         ),
@@ -222,8 +221,8 @@
           resource_spec: {
             spider_slave_ip_list: {
               count: Number(item.count),
-              label_values: item.labelSelected.map((item) => item.value),
-              labels: item.labels.map((item) => String(item)),
+              label_values: item.labels.map((item) => item.value),
+              labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
             },
           },
@@ -262,7 +261,7 @@
             master_domain: item.master_domain,
           },
           count: item.count,
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           specId: item.spec_name,
         }),
       );
@@ -277,5 +276,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>
