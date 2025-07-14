@@ -153,7 +153,7 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非 Proxy IP'),
+      message: t('主机不包含任何 Proxy 实例'),
       trigger: 'blur',
       validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },

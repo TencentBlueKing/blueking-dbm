@@ -81,6 +81,7 @@
 
   const showSelector = ref(false);
   const dataList = shallowRef<IValue[]>([]);
+  let illegalInstances = '';
 
   const rules = [
     {
@@ -94,7 +95,7 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非 Master IP'),
+      message: t('主机不包含任何 Master 实例'),
       trigger: 'blur',
       validator: (value: string) => !value || modelValue.value.role === 'backend_master',
     },
@@ -125,6 +126,7 @@
   };
 
   const handleChange = (value: string) => {
+    illegalInstances = '';
     modelValue.value = {
       bk_biz_id: 0,
       bk_cloud_id: 0,
@@ -146,7 +148,6 @@
         queryMachine({
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
-          instance_role: 'backend_master',
           ip: modelValue.value.ip,
         });
       }
