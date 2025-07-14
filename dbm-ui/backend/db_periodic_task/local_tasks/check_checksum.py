@@ -12,6 +12,7 @@ from backend import env
 from backend.components import BKLogApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
@@ -100,8 +101,11 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
         {"field": "cloudId", "operator": "is", "value": cluster.bk_cloud_id},
     ]
 
+    tenant_id = TenantCache.get_tenant_with_app(Cluster.bk_biz_id)
+
     resp = BKLogApi.esquery_search(
         {
+            "tenant_id": tenant_id,
             "indices": "{}_bklog.mysql_checksum_result".format(env.DBA_APP_BK_BIZ_ID),
             "start_time": datetime2str(log_start_time),
             "end_time": datetime2str(end_time),
