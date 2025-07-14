@@ -20,7 +20,7 @@ from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandl
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import ClusterEntryType, InstanceRole
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
@@ -143,6 +143,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
@@ -185,20 +186,10 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             cluster_spec = model_to_dict(spec) if spec else {}
             cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
-        # dns是否指向clb
-        dns_to_clb = any(
-            entry.cluster_entry_type == ClusterEntryType.DNS.value
-            and entry.entry == cluster.immute_domain
-            and entry.forward_to is not None
-            and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
-            for entry in cluster.entries
-        )
-
         # 集群额外信息
         cluster_extra_info = {
             "cluster_spec": cluster_spec,
             "cluster_capacity": cluster_capacity,
-            "dns_to_clb": dns_to_clb,
             "proxy": [m.simple_desc for m in cluster.proxies],
             "redis_master": remote_infos[InstanceRole.REDIS_MASTER.value],
             "redis_slave": remote_infos[InstanceRole.REDIS_SLAVE.value],
@@ -215,6 +206,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info

@@ -56,6 +56,7 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -72,6 +73,7 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
             **kwargs
         )
         cluster_info.update({**cluster_role_info, **sync_mode_info})

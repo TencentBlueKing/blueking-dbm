@@ -106,6 +106,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -124,7 +125,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
         # 获取集群规格
         spec_id = cluster.storages[0].machine.spec_id
         spec = kwargs["remote_spec_map"].get(spec_id)
-
         cluster_extra_info = {
             "cluster_spec": model_to_dict(spec) if spec else None,
             "cluster_capacity": spec.capacity * machine_pair_cnt if spec else None,
@@ -147,6 +147,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
             **kwargs,
         )
         cluster_info.update(cluster_extra_info)

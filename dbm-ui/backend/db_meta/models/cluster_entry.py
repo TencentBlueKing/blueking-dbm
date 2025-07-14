@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 
 logger = logging.getLogger("root")
@@ -118,6 +118,9 @@ class ClusterEntry(AuditedModel):
         if proxy:
             detail.update({"port": proxy.port})
 
+        # ES没有proxy，需额外处理
+        if not proxy and self.cluster.cluster_type == ClusterType.Es:
+            detail.update({"port": self.storageinstance_set.filter(instance_role=InstanceRole.ES_MASTER).first().port})
         return detail
 
     def __str__(self):

@@ -506,7 +506,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_list = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
-            Prefetch("clusterentry_set", to_attr="entries"),
+            Prefetch(
+                "clusterentry_set", queryset=ClusterEntry.objects.select_related("forward_to"), to_attr="entries"
+            ),
             "tags",
         )
         # 由于对 queryset 切片工作方式的模糊性，这里的values可能会获得非预期的排序，所以不要在切片后用values
@@ -553,18 +555,33 @@ class ListRetrieveResource(BaseListRetrieveResource):
         }
 
         for cluster in cluster_list:
+            cluster_entry = []
+            dns_to_clb = False
+            for entry in cluster.entries:
+                # 处理条目数据收集
+                cluster_entry.append(
+                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
+                )
+
+                # 并行进行DNS->CLB检查
+                if (
+                    not dns_to_clb
+                    and entry.cluster_entry_type == ClusterEntryType.DNS.value
+                    and entry.entry == cluster.immute_domain
+                    and entry.forward_to is not None
+                    and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
+                ):
+                    dns_to_clb = True
             cluster_info = cls._to_cluster_representation(
                 cluster=cluster,
-                cluster_entry=[
-                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
-                    for entry in cluster.entries
-                ],
+                cluster_entry=cluster_entry,
                 db_module_names_map=db_module_names_map,
                 cluster_entry_map=cluster_entry_map,
                 cluster_operate_records_map=cluster_operate_records_map,
                 cloud_info=cloud_info,
                 biz_info=biz_info,
                 cluster_stats_map=cluster_stats_map,
+                dns_to_clb=dns_to_clb,
                 **kwargs,
             )
             clusters.append(cluster_info)
@@ -582,6 +599,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -609,6 +627,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
             "operations": cluster_operate_records_map.get(cluster.id, []),
+            "dns_to_clb": dns_to_clb,
             "cluster_time_zone": cluster.time_zone,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
