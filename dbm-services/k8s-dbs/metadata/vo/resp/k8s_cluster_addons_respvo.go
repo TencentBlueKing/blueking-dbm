@@ -21,7 +21,7 @@ package resp
 
 import "time"
 
-// K8sClusterAddonsRespVo resp vo 定义
+// K8sClusterAddonsRespVo response vo 定义
 type K8sClusterAddonsRespVo struct {
 	ID             uint64            `json:"id"`
 	AddonID        uint64            `json:"addonId"`

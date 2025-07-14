@@ -59,13 +59,7 @@ func (o *OperationDefinitionDbAccessImpl) Create(model *models.OperationDefiniti
 		slog.Error("Create operation definition error", "error", err)
 		return nil, err
 	}
-	var addedModel models.OperationDefinitionModel
-	if err := o.db.First(&addedModel, "operation_name = ? and operation_target= ?",
-		model.OperationName, model.OperationTarget).Error; err != nil {
-		slog.Error("Find operation definition error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // ListByPage 分页查询 operation definition 元数据接口实现

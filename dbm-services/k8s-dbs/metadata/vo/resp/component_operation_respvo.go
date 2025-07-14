@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// ComponentOperationRespVo represents the RespVo of component operation
+// ComponentOperationRespVo response vo 定义
 type ComponentOperationRespVo struct {
 	ID               uint64                    `json:"id"`
 	AddonType        string                    `json:"addonType"`

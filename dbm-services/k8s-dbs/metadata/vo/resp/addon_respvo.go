@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-// K8sCrdAddonRespVo defines the response data structure of addon meta.
+// K8sCrdAddonRespVo response vo 定义
 type K8sCrdAddonRespVo struct {
 	ID                   uint64    `json:"id"`
 	AddonName            string    `json:"addonName"`

@@ -30,10 +30,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// buildAddonRouter 存储插件管理路由构建
-func buildAddonRouter(db *gorm.DB, router *gin.Engine) {
+// BuildAddonRouter 存储插件管理路由构建
+func BuildAddonRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	addonController := initAddonController(db)
-	addonGroup := router.Group(basePath + "/addon")
+	addonGroup := baseRouter.Group("/addon")
 	{
 		addonGroup.POST("/install", addonController.InstallAddon)
 		addonGroup.POST("/uninstall", addonController.UninstallAddon)
@@ -71,4 +71,8 @@ func initAddonController(db *gorm.DB) *controller.AddonController {
 		panic(err)
 	}
 	return controller.NewAddonController(addonProvider)
+}
+
+func init() {
+	RegisterAPIRouterBuilder(BuildAddonRouter)
 }

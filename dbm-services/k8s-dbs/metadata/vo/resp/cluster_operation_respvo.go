@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// ClusterOperationRespVo represents the RespVo of cluster operation
+// ClusterOperationRespVo response vo 定义
 type ClusterOperationRespVo struct {
 	ID           uint64                    `json:"id"`
 	AddonType    string                    `json:"addonType"`

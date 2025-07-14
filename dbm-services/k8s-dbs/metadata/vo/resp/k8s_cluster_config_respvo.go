@@ -21,7 +21,7 @@ package resp
 
 import "time"
 
-// K8sClusterConfigRespVo defines the response data structure of k8sClusterConfig.
+// K8sClusterConfigRespVo response vo 定义
 type K8sClusterConfigRespVo struct {
 	ID           uint64    `json:"id"`
 	ClusterName  string    `json:"clusterName"`

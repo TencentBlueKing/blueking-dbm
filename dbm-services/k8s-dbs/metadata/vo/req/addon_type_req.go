@@ -17,25 +17,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package req
 
 import (
-	"time"
+	commentity "k8s-dbs/common/entity"
 )
 
-// ClusterRequestRecordRespVo response vo 定义
-type ClusterRequestRecordRespVo struct {
-	ID             uint64    `json:"id"`
-	RequestID      string    `json:"requestId"`
-	K8sClusterName string    `json:"k8sClusterName"`
-	ClusterName    string    `json:"clusterName"`
-	NameSpace      string    `json:"namespace"`
-	RequestType    string    `json:"requestType"`
-	RequestParams  string    `json:"requestParams"`
-	Status         string    `json:"status"`
-	Description    string    `json:"description"`
-	CreatedBy      string    `json:"createdBy"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+// AddonTypeReq request 定义
+type AddonTypeReq struct {
+	ID                uint64 `json:"id"`
+	CategoryID        uint64 `json:"categoryId"`
+	TypeName          string `json:"typeName"`
+	TypeAlias         string `json:"typeAlias"`
+	Description       string `json:"description"`
+	commentity.BKAuth `json:",inline"`
 }

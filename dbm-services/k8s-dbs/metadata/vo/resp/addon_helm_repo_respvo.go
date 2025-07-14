@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// AddonHelmRepoRespVo addon helm repo resp vo 定义
+// AddonHelmRepoRespVo response vo 定义
 type AddonHelmRepoRespVo struct {
 	ID             int64     `json:"id"`
 	RepoName       string    `json:"repoName"`

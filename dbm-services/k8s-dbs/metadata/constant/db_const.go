@@ -38,4 +38,6 @@ const (
 	TbAddonHelmRepo        = "tb_addon_helm_repository"
 	TbK8sClusterAddons     = "tb_k8s_cluster_addons"
 	TbAddonClusterVersion  = "tb_addoncluster_version"
+	TbAddonCategory        = "tb_addon_category"
+	TBAddonType            = "tb_addon_type"
 )

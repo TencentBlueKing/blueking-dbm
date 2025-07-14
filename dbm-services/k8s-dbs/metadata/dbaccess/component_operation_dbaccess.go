@@ -47,16 +47,7 @@ func (c *ComponentOperationDbAccessImpl) Create(model *models.ComponentOperation
 		slog.Error("Create component operation error", "error", err)
 		return nil, err
 	}
-	var addedModel models.ComponentOperationModel
-	if err := c.db.First(&addedModel,
-		"addon_type = ? and addon_version= ? "+
-			"and component_name= ? and component_version= ? and operation_id= ?",
-		model.AddonType, model.AddonVersion, model.ComponentName,
-		model.ComponentVersion, model.OperationID).Error; err != nil {
-		slog.Error("Find component operation error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // ListByPage 分页查询 component operation 元数据接口实现

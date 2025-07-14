@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// AddonClusterReleaseRespVo addon cluster release 定义
+// AddonClusterReleaseRespVo response vo 定义
 type AddonClusterReleaseRespVo struct {
 	ID                 uint64                 `json:"id"`
 	RepoName           string                 `json:"repoName"`

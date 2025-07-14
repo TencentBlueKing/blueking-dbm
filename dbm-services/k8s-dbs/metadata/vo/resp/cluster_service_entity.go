@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// K8sClusterServiceRespVo defines the response data structure of clusterServcie meta.
+// K8sClusterServiceRespVo response vo 定义
 type K8sClusterServiceRespVo struct {
 	ID            uint64    `json:"id"`
 	CrdClusterID  uint64    `json:"crdClusterId"`

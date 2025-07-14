@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-// OperationDefinitionRespVo represents the RespVo of operation definition
+// OperationDefinitionRespVo response vo 定义
 type OperationDefinitionRespVo struct {
 	ID              uint64    `json:"id"`
 	OperationName   string    `json:"operationName"`

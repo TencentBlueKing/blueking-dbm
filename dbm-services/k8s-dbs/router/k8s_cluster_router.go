@@ -29,10 +29,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// buildK8sClusterRouter k8s集群管理路由构建
-func buildK8sClusterRouter(db *gorm.DB, router *gin.Engine) {
+// BuildK8sClusterRouter k8s集群管理路由构建
+func BuildK8sClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	k8sClusterController := initK8sClusterController(db)
-	k8sClusterGroup := router.Group(basePath + "/k8s_cluster")
+	k8sClusterGroup := baseRouter.Group("/k8s_cluster")
 	{
 		namespaceGroup := k8sClusterGroup.Group("/namespace")
 		namespaceGroup.POST("", k8sClusterController.CreateNamespace)
@@ -54,4 +54,8 @@ func initK8sClusterController(db *gorm.DB) *controller.K8sController {
 	k8cClusterProvider := provider.NewK8sProvider(requestRecordProvider, k8sClusterConfigProvider)
 
 	return controller.NewK8sController(k8cClusterProvider)
+}
+
+func init() {
+	RegisterAPIRouterBuilder(BuildK8sClusterRouter)
 }

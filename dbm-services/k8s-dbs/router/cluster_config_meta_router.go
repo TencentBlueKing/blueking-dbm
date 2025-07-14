@@ -20,8 +20,7 @@ limitations under the License.
 package router
 
 import (
-	"k8s-dbs/core/api/controller"
-	coreprovider "k8s-dbs/core/provider"
+	metacontroller "k8s-dbs/metadata/api/controller"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 
@@ -29,25 +28,22 @@ import (
 	"gorm.io/gorm"
 )
 
-// BuildComponentRouter component 管理路由构建
-func BuildComponentRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
-	componentController := initComponentController(db)
-	componentGroup := baseRouter.Group("/component")
+// BuildClusterConfigMetaRouter clusterConfigMeta 管理路由构建
+func BuildClusterConfigMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
+	metaRouter := baseRouter.Group("/metadata")
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
+	k8sClusterConfigMetaGroup := metaRouter.Group("/k8s_cluster_config")
 	{
-		componentGroup.POST("/describe", componentController.DescribeComponent)
-		componentGroup.GET("/services", componentController.GetComponentService)
-		componentGroup.GET("/pods", componentController.ListPods)
+		k8sClusterConfigMetaGroup.GET("/id/:id", k8sClusterConfigController.GetK8sClusterConfigByID)
+		k8sClusterConfigMetaGroup.GET("/name/:cluster_name", k8sClusterConfigController.GetK8sClusterConfigByName)
+		k8sClusterConfigMetaGroup.DELETE("/:id", k8sClusterConfigController.DeleteK8sClusterConfig)
+		k8sClusterConfigMetaGroup.POST("", k8sClusterConfigController.CreateK8sClusterConfig)
+		k8sClusterConfigMetaGroup.PUT("/:id", k8sClusterConfigController.UpdateK8sClusterConfig)
 	}
 }
 
-// initComponentController 初始化 ComponentController
-func initComponentController(db *gorm.DB) *controller.ComponentController {
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider)
-	return controller.NewComponentController(componentProvider)
-}
-
 func init() {
-	RegisterAPIRouterBuilder(BuildComponentRouter)
+	RegisterAPIRouterBuilder(BuildClusterConfigMetaRouter)
 }

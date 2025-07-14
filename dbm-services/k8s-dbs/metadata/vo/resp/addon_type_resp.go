@@ -19,23 +19,11 @@ limitations under the License.
 
 package resp
 
-import (
-	"time"
-)
-
-// ClusterRequestRecordRespVo response vo 定义
-type ClusterRequestRecordRespVo struct {
-	ID             uint64    `json:"id"`
-	RequestID      string    `json:"requestId"`
-	K8sClusterName string    `json:"k8sClusterName"`
-	ClusterName    string    `json:"clusterName"`
-	NameSpace      string    `json:"namespace"`
-	RequestType    string    `json:"requestType"`
-	RequestParams  string    `json:"requestParams"`
-	Status         string    `json:"status"`
-	Description    string    `json:"description"`
-	CreatedBy      string    `json:"createdBy"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+// AddonTypeResp 插件类型响应结构体
+type AddonTypeResp struct {
+	ID            uint64             `json:"id"`
+	AddonCategory *AddonCategoryResp `json:"addonCategory"`
+	TypeName      string             `json:"typeName"`
+	TypeAlias     string             `json:"typeAlias"`
+	Description   string             `json:"description"`
 }

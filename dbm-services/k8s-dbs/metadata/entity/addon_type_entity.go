@@ -17,25 +17,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package entity
 
 import (
 	"time"
 )
 
-// ClusterRequestRecordRespVo response vo 定义
-type ClusterRequestRecordRespVo struct {
-	ID             uint64    `json:"id"`
-	RequestID      string    `json:"requestId"`
-	K8sClusterName string    `json:"k8sClusterName"`
-	ClusterName    string    `json:"clusterName"`
-	NameSpace      string    `json:"namespace"`
-	RequestType    string    `json:"requestType"`
-	RequestParams  string    `json:"requestParams"`
-	Status         string    `json:"status"`
-	Description    string    `json:"description"`
-	CreatedBy      string    `json:"createdBy"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+// AddonTypeEntity represents the entity of addon type
+type AddonTypeEntity struct {
+	ID            uint64               `json:"id"`
+	CategoryID    uint64               `json:"categoryId"`
+	AddonCategory *AddonCategoryEntity `json:"addonCategory"`
+	TypeName      string               `json:"typeName"`
+	TypeAlias     string               `json:"typeAlias"`
+	Active        bool                 `json:"active"`
+	Description   string               `json:"description"`
+	CreatedBy     string               `json:"createdBy"`
+	CreatedAt     time.Time            `json:"createdAt"`
+	UpdatedBy     string               `json:"updatedBy"`
+	UpdatedAt     time.Time            `json:"updatedAt"`
 }

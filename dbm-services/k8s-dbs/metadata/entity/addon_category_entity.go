@@ -17,19 +17,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package entity
 
-import "time"
+import (
+	"time"
+)
 
-// K8sCrdComponentRespVo response vo 定义
-type K8sCrdComponentRespVo struct {
+// AddonCategoryEntity represents the entity of addon category
+type AddonCategoryEntity struct {
 	ID            uint64    `json:"id"`
-	CrdClusterID  uint64    `json:"crdClusterId"`
-	ComponentName string    `json:"componentName"`
-	Status        string    `json:"status"`
+	CategoryName  string    `json:"categoryName"`
+	CategoryAlias string    `json:"categoryAlias"`
+	Active        bool      `json:"active"`
 	Description   string    `json:"description"`
 	CreatedBy     string    `json:"createdBy"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedBy     string    `json:"updatedBy"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+// AddonCategoryTypesEntity represents the entity of addon categoryTypes
+type AddonCategoryTypesEntity struct {
+	ID            uint64             `json:"id"`
+	CategoryName  string             `json:"categoryName"`
+	CategoryAlias string             `json:"categoryAlias"`
+	AddonTypes    []*AddonTypeEntity `json:"addonTypes"`
+	Active        bool               `json:"active"`
+	Description   string             `json:"description"`
+	CreatedBy     string             `json:"createdBy"`
+	CreatedAt     time.Time          `json:"createdAt"`
+	UpdatedBy     string             `json:"updatedBy"`
+	UpdatedAt     time.Time          `json:"updatedAt"`
 }

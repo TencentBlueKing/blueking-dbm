@@ -21,7 +21,7 @@ package resp
 
 import "time"
 
-// K8sCrdOpsRequestRespVo defines the response data structure of opsRequest meta.
+// K8sCrdOpsRequestRespVo response vo 定义
 type K8sCrdOpsRequestRespVo struct {
 	ID                 uint64    `json:"id"`
 	CrdClusterID       uint64    `json:"crdClusterId"`
