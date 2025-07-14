@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -272,19 +273,35 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, dev
 		storageSpecMap := lo.SliceToMap(o.StorageSpecs, func(item meta.DiskSpec) (string, meta.DiskSpec) {
 			return item.MountPoint, item
 		})
+		var scores []int64
+		var weights []float64
 		for mp, disk := range ins.Storages {
 			if spec, ok := storageSpecMap[mp]; ok {
 				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
 				// 倾向匹配磁盘小的机器
-				ele.Priority += int64((1 - float32(disk.Size-spec.MinSize)/float32(disk.Size)) * PriorityP2)
+				scores = append(scores, int64((1-float32(disk.Size-spec.MinSize)/float32(disk.Size))*PriorityP2))
+				weights = append(weights, 1/float64(len(ins.Storages)))
 			}
 		}
-	} else if len(ins.Storages) == 0 {
-		// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
-		for _, disk := range ins.Storages {
-			// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
-			// 倾向匹配磁盘小的机器
-			ele.Priority += int64(100 - disk.Size/100)
+		if len(scores) > 0 {
+			ele.Priority += weightedScore(scores, weights)
+		}
+	} else {
+		if len(ins.Storages) == 0 {
+			ele.Priority += PriorityP2
+		} else {
+			var scores []int64
+			var weights []float64
+			// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
+			for _, disk := range ins.Storages {
+				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
+				// 倾向匹配磁盘小的机器
+				scores = append(scores, 10000000-int64(disk.Size))
+				weights = append(weights, 1/float64(len(ins.Storages))*0.00001)
+			}
+			if len(scores) > 0 {
+				ele.Priority += weightedScore(scores, weights)
+			}
 		}
 	}
 	//  如果请求参数请求了专属db类型，机器的资源类型标签只有一个，且等于请求的资源的类中，则优先级更高
@@ -296,6 +313,30 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, dev
 	if lo.Contains([]string{RsRedis}, o.RsType) {
 		ele.Priority += int64((1.0 - float32(ins.CPUNum-o.Spec.Cpu.Min)/float32(ins.CPUNum)) * PriorityP2)
 	}
+	// 根据资源的导入的时间create_time,导入时间越早，优先级越高
+	// create_time 字段类型是 timestamp
+	if !ins.CreateTime.IsZero() {
+		// 计算时间差（单位：小时），时间越早，hoursSinceCreation越大
+		hoursSinceCreation := time.Since(ins.CreateTime).Hours()
+		// 限制时间差不超过一年
+		if hoursSinceCreation > 365*24 {
+			hoursSinceCreation = 365 * 24
+		}
+		// 优先级与时间差成正比，时间越早，优先级越高
+		ele.Priority += int64((hoursSinceCreation / (365 * 24)) * 50)
+	}
+}
+
+// weightedScore 加权评分
+func weightedScore(scores []int64, weights []float64) int64 {
+	if len(scores) != len(weights) {
+		panic("评分与权重数量不匹配")
+	}
+	var total float64
+	for i := range scores {
+		total += float64(scores[i]) * weights[i]
+	}
+	return int64(total)
 }
 
 // AnalysisResourcePriority 分析资源的优先级
