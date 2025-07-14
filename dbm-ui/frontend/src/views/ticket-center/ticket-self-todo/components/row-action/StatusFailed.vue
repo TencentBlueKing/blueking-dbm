@@ -3,7 +3,7 @@
     col-key="row-operation"
     fixed="right"
     :title="t('操作')"
-    :width="70">
+    :width="140">
     <template #default="{ row }: { row: TicketModel }">
       <BkButton
         :loading="isProcessing"
@@ -12,6 +12,14 @@
         @click="() => handleGoProcess(row)">
         {{ t('去处理') }}
       </BkButton>
+      <ProcessTerminate :data="row">
+        <BkButton
+          class="ml-8"
+          text
+          theme="primary">
+          {{ t('终止单据') }}
+        </BkButton>
+      </ProcessTerminate>
     </template>
   </TableColumn>
 </template>
@@ -22,6 +30,8 @@
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
+
+  import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
 
   import { getBusinessHref } from '@utils';
 
