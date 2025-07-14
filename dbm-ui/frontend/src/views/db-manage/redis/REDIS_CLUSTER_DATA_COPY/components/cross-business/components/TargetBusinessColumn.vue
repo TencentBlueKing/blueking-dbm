@@ -20,6 +20,7 @@
     <EditableSelect
       v-model="modelValue"
       :clearable="false"
+      filterable
       :list="list" />
   </EditableColumn>
 </template>
