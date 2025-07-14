@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from typing import Callable
@@ -17,7 +18,7 @@ from django.conf import settings
 from django.utils.translation import get_language
 
 from backend.core.translation.context import RespectsLanguage
-from backend.utils.local import local
+from backend.utils.local import local, new_request_id
 
 QUERY_CMDB_LIMIT = 500
 WRITE_CMDB_LIMIT = 500
@@ -25,13 +26,31 @@ QUERY_CMDB_MODULE_LIMIT = 500
 QUERY_CLOUD_LIMIT = 200
 QUERY_ITSM_LIMIT = 200
 
+logger = logging.getLogger("root")
+
+
+def activate_request(request, request_id=None):
+    if request_id is None:
+        request_id = new_request_id
+    request.request_id = request_id
+    local.request = request
+    tenant_id = local.tenant_id
+    header_tenant_id = request.headers.get("X-Bk-Tenant-Id", None)
+    logger.info("=========================[activate_request]==================")
+    logger.info(f"[activate_request] local.tenant:{tenant_id}")
+    logger.info(f"[activate_request] header_tenant_id:{header_tenant_id}")
+    local.tenant_id = (
+        getattr(request.user, "tenant_id", None) or tenant_id or header_tenant_id or settings.DEFAULT_TENANT_ID
+    )
+    return request
+
 
 def inject_request(func: Callable):
     request = local.request
 
     def inner(*args, **kwargs):
         if request:
-            local.request = request
+            activate_request(request)
         return func(*args, **kwargs)
 
     return inner
@@ -70,7 +89,7 @@ def batch_request(
     limit=QUERY_CMDB_LIMIT,
     sort=None,
     split_params=False,
-    **kwargs
+    **kwargs,
 ):
     """
     异步并发请求接口
@@ -156,16 +175,34 @@ def request_multi_thread(func, params_list, get_data=lambda x: [], in_order=Fals
     :param in_order: 按顺序处理线程结果，默认和请求参数有关，因此get_data要同时处理请求参数和结果
     :param workers: 最大并发数
     :return: 请求结果累计
+
+
+    租户改造说明：
+    1. 自动继承主线程的租户上下文
+    2. 每个子线程都会激活正确的request和tenant_id
+    3. 保持原有并发特性不变
     """
+
+    # 获取主线程上下文
+    request = local.request
+
+    def _wrap_func(params):
+        """包装函数，确保租户上下文"""
+        # 激活请求上下文（含租户ID）
+        if request:
+            activate_request(request)
+        # 执行实际函数
+        return RespectsLanguage(language=get_language())(func)(**params)
 
     # 参数预处理，添加request_id
     for params in params_list:
         if isinstance(params, dict) and "params" in params:
-            params["params"]["_request"] = local.request
+            params["params"]["_request"] = request
 
     result = []
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        tasks = [ex.submit(RespectsLanguage(language=get_language())(func), **params) for params in params_list]
+        # 使用包装函数提交任务
+        tasks = [ex.submit(_wrap_func, params) for params in params_list]
 
     if in_order:
         for index, future in enumerate(tasks):
