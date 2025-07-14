@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from backend.configuration.constants import DBType
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import InstancePhase, InstanceStatus, MachineType
 from backend.db_meta.models import ProxyInstance
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
+from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import GroupedTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.exception import MySQLDBHAAutofixBadInstanceStatus
 from backend.db_services.dbbase.constants import IpSource
@@ -25,7 +26,7 @@ def proxy_autofix(gtd: GroupedTodo):
     """
     新机替换, 自动过单, 自动执行
     """
-    records = MySQLAutofixTodo.objects.filter(check_id=gtd.check_id)
+    records = MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id)
 
     proxies = list(
         ProxyInstance.objects.filter(
@@ -39,6 +40,7 @@ def proxy_autofix(gtd: GroupedTodo):
     if len(proxies) != records.count():
         raise MySQLDBHAAutofixBadInstanceStatus(machine_type=gtd.machine_type, ip=gtd.ip)
 
+    dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=gtd.bk_biz_id, db_type=DBType.MySQL.value)
     detail = {
         "bk_cloud_id": gtd.bk_cloud_id,
         "bk_biz_id": gtd.bk_biz_id,
@@ -77,11 +79,12 @@ def proxy_autofix(gtd: GroupedTodo):
     }
     tk = Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_PROXY_SWITCH,
-        creator="system",
+        creator=dbas[0],
+        helpers=dbas[1:],
         bk_biz_id=gtd.bk_biz_id,
         remark=TicketType.MYSQL_PROXY_SWITCH,
         details=detail,
     )
-    MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(
+    MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
         ticket_id=tk.id, status=MySQLAutofixTicketStatus.PENDING
     )

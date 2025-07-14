@@ -229,9 +229,7 @@ class SysInit(BkJobService):
         echo '{}' >> /home/mysql/common_config/nginx_proxy.list
         chown mysql /home/mysql/common_config/nginx_proxy.list
         """.format(
-            "\n".join(
-                ["{}:{}".format(kwargs["bk_cloud_id"], line) for line in list_nginx_addrs(kwargs["bk_cloud_id"])]
-            )
+            "\n".join(list_nginx_addrs(kwargs["bk_cloud_id"]))
         )
 
         # 脚本内容

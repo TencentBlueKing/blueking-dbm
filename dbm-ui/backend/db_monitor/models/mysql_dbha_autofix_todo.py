@@ -65,7 +65,7 @@ class ReplaceStatusFlag(IntFlag):
 # class FooFlag(IntFlag):
 
 
-class MySQLAutofixTodo(AuditedModel):
+class MySQLDBHAAutofixTodo(AuditedModel):
     bk_cloud_id = models.IntegerField(default=0)
     bk_biz_id = models.IntegerField(default=0)
     check_id = models.BigIntegerField(default=0)

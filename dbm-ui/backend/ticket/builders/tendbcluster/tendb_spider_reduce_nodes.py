@@ -38,6 +38,7 @@ class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     shrink_type = serializers.ChoiceField(
         help_text=_("缩容方式"), choices=ShrinkType.get_choices(), default=ShrinkType.QUANTITY.value
     )
+    disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -95,13 +96,3 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     def patch_ticket_detail(self):
         self.calc_reduce_spider()
         super().patch_ticket_detail()
-
-
-@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE, is_recycle=True)
-class MysqlAutofixSpiderReduce(TendbSpiderReduceNodesFlowBuilder):
-    """
-    自愈专用
-    """
-
-    default_need_itsm = False
-    default_need_manual_confirm = False

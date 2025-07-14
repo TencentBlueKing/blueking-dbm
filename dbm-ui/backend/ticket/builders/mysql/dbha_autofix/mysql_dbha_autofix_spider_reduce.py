@@ -8,8 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.ticket import builders
+from backend.ticket.builders.tendbcluster.tendb_spider_reduce_nodes import TendbSpiderReduceNodesFlowBuilder
+from backend.ticket.constants import TicketType
 
-from .alarm import *
-from .collect import *
-from .dashboard import *
-from .mysql_dbha_autofix_todo import *
+
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE, is_recycle=True)
+class MysqlAutofixSpiderReduce(TendbSpiderReduceNodesFlowBuilder):
+    """
+    自愈专用
+    """
+
+    default_need_itsm = False
+    default_need_manual_confirm = False

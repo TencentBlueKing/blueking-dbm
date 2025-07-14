@@ -16,7 +16,7 @@ from django_mysql.models import GroupConcat
 
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import ProxyInstance, StorageInstance
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
+from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.exception import (
     MySQLDBHAAutofixBadTodoRecord,
     MySQLDBHAAutofixMissingRecord,
@@ -51,7 +51,7 @@ class GroupedTodo(object):
 def group_todo() -> List[GroupedTodo]:
     res = []
     for row in (
-        MySQLAutofixTodo.objects.filter(
+        MySQLDBHAAutofixTodo.objects.filter(
             status__in=[
                 MySQLAutofixTicketStatus.UNSUBMITTED,
                 MySQLAutofixTicketStatus.PENDING,
@@ -101,7 +101,9 @@ def validate_group(row: Dict) -> (str, int, str):
     sts = list(set([st.strip(" ") for st in row["statuses"].split(",")]))
 
     if len(mts) > 1 or len(ticket_ids) > 1 or len(sts) > 1:
-        MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).update(status=MySQLAutofixTicketStatus.TERMINATED)
+        MySQLDBHAAutofixTodo.objects.filter(check_id=row["check_id"]).update(
+            status=MySQLAutofixTicketStatus.TERMINATED
+        )
         raise MySQLDBHAAutofixBadTodoRecord(check_id=row["check_id"])
 
     if sts[0] == MySQLAutofixTicketStatus.UNSUBMITTED and ticket_ids[0] != 0:
@@ -118,13 +120,13 @@ def validate_group(row: Dict) -> (str, int, str):
     # 还没提单的自愈请求, 需要做超时检查
     if sts[0] == MySQLAutofixTicketStatus.UNSUBMITTED:
         if row["cnt"] < instance_count.count():
-            event_create_time_min = MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).aggregate(
+            event_create_time_min = MySQLDBHAAutofixTodo.objects.filter(check_id=row["check_id"]).aggregate(
                 event_create_time=Min("event_create_time")
             )["event_create_time"]
 
             # 等太久了, 超时放弃
             if event_create_time_min > datetime.now(timezone.utc) - timedelta(minutes=15):
-                MySQLAutofixTodo.objects.filter(check_id=row["check_id"]).update(
+                MySQLDBHAAutofixTodo.objects.filter(check_id=row["check_id"]).update(
                     status=MySQLAutofixTicketStatus.TIMEOUT
                 )
                 raise MySQLDBHAAutofixWaitTimeout(check_id=row["check_id"])

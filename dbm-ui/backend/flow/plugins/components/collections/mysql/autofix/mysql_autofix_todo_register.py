@@ -16,7 +16,7 @@ from pipeline.component_framework.component import Component
 
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.db_monitor.models import MySQLAutofixTodo
+from backend.db_monitor.models import MySQLDBHAAutofixTodo
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("celery")
@@ -54,7 +54,7 @@ class MySQLAutofixTodoRegisterService(BaseService):
             }
 
             # 按表唯一键做 replace 操作, 防止实例重复上报
-            MySQLAutofixTodo.objects.update_or_create(
+            MySQLDBHAAutofixTodo.objects.update_or_create(
                 defaults=new_record,
                 check_id=new_record["check_id"],
                 ip=new_record["ip"],

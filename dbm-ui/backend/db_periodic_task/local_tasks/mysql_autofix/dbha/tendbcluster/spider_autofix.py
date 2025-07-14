@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from backend.configuration.constants import DBType
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import InstancePhase, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
+from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import GroupedTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.exception import (
     MySQLDBHAAutofixBadInstanceStatus,
@@ -30,9 +31,9 @@ def spider_autofix(gtd: GroupedTodo):
     2. 提一个扩容单, 自动过单, 人工执行
     代码顺序实现为先生成扩容, 再踢除. 会比较好写
     """
-    records = MySQLAutofixTodo.objects.filter(check_id=gtd.check_id)
+    records = MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id)
 
-    proxies = list(
+    spiders = list(
         ProxyInstance.objects.filter(
             machine__ip=gtd.ip,
             machine__bk_cloud_id=gtd.bk_cloud_id,
@@ -41,7 +42,7 @@ def spider_autofix(gtd: GroupedTodo):
             machine_type=MachineType.SPIDER,
         ).prefetch_related("machine")
     )
-    if len(proxies) != records.count():
+    if len(spiders) != records.count():
         raise MySQLDBHAAutofixBadInstanceStatus(machine_type=gtd.machine_type, ip=gtd.ip)
 
     if len(gtd.cluster_ids) > 1:
@@ -50,10 +51,12 @@ def spider_autofix(gtd: GroupedTodo):
     cluster_id = gtd.cluster_ids[0]
     cluster_obj = Cluster.objects.get(pk=cluster_id)
 
+    dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=gtd.bk_biz_id, db_type=DBType.TenDBCluster.value)
     # 自动审核, 人工执行, 不跟踪状态
     Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_ADD,
-        creator="system",
+        creator=dbas[0],
+        helpers=dbas[1:],
         bk_biz_id=gtd.bk_biz_id,
         remark=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_ADD,
         details={
@@ -63,14 +66,14 @@ def spider_autofix(gtd: GroupedTodo):
             "infos": [
                 {
                     "cluster_id": cluster_id,
-                    "add_spider_role": proxies[0].tendbclusterspiderext.spider_role,
+                    "add_spider_role": spiders[0].tendbclusterspiderext.spider_role,
                     "resource_spec": {
-                        "spider": {
-                            "spec_id": proxies[0].machine.spec_id,
+                        "spider_ip_list": {
+                            "spec_id": spiders[0].machine.spec_id,
                             "count": 1,
                             "location_spec": {
                                 "city": cluster_obj.region,
-                                "sub_zone_ids": [proxies[0].machine.bk_sub_zone_id],
+                                "sub_zone_ids": [spiders[0].machine.bk_sub_zone_id],
                             },
                         }
                     },
@@ -81,7 +84,8 @@ def spider_autofix(gtd: GroupedTodo):
 
     tk = Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE,
-        creator="system",
+        creator=dbas[0],
+        helpers=dbas[1:],
         bk_biz_id=gtd.bk_biz_id,
         remark=TicketType.MYSQL_DBHA_AUTOFIX_SPIDER_REDUCE,
         details={
@@ -89,6 +93,7 @@ def spider_autofix(gtd: GroupedTodo):
             "bk_biz_id": gtd.bk_biz_id,
             "is_safe": False,
             "ip_recycle": HostRecycleSerializer.DEFAULT,
+            "disable_manual_confirm": True,
             "shrink_type": ShrinkType.HOST,
             "infos": [
                 {
@@ -102,15 +107,16 @@ def spider_autofix(gtd: GroupedTodo):
                                 "bk_biz_id": gtd.bk_biz_id,
                                 "port": p.port,
                             }
-                            for p in proxies
+                            for p in spiders
                         ]
                     },
-                    "reduce_spider_role": proxies[0].tendbclusterspiderext.spider_role,
+                    "spider_reduced_to_count": cluster_obj.proxyinstance_set.count() - len(spiders),
+                    "reduce_spider_role": spiders[0].tendbclusterspiderext.spider_role,
                 }
             ],
         },
     )
-    MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(
+    MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
         ticket_id=tk.id,
         status=MySQLAutofixTicketStatus.PENDING,
     )

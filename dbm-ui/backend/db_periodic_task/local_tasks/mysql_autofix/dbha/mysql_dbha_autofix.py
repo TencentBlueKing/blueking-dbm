@@ -15,7 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 
 from backend.db_meta.enums import MachineType
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLAutofixTodo
+from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import group_todo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbcluster.spider_autofix import spider_autofix
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbha.proxy_autofix import proxy_autofix
@@ -35,7 +35,7 @@ def mysql_dbha_autofix():
     for gtd in group_todo():
         if gtd.status in [MySQLAutofixTicketStatus.PENDING, MySQLAutofixTicketStatus.RUNNING]:
             tk = Ticket.objects.get(pk=gtd.ticket_id)
-            MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(status=tk.status)
+            MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(status=tk.status)
             continue
 
         try:
@@ -44,12 +44,18 @@ def mysql_dbha_autofix():
             elif gtd.machine_type == MachineType.SPIDER:
                 spider_autofix(gtd=gtd)
             else:  # 未实现的全都跳过, 这是保护代码
-                MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(status=MySQLAutofixTicketStatus.SKIPPED)
+                MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
+                    status=MySQLAutofixTicketStatus.SKIPPED
+                )
         except MySQLAutofixException:
             # ToDo warning all
-            MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(status=MySQLAutofixTicketStatus.TERMINATED)
+            MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
+                status=MySQLAutofixTicketStatus.TERMINATED
+            )
             pass
         except ObjectDoesNotExist:
             # 集群没找到. 理论上概率很低的
-            MySQLAutofixTodo.objects.filter(check_id=gtd.check_id).update(status=MySQLAutofixTicketStatus.TERMINATED)
+            MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
+                status=MySQLAutofixTicketStatus.TERMINATED
+            )
             pass

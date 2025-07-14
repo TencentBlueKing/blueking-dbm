@@ -124,6 +124,8 @@ class TenDBClusterReduceNodesFlow(object):
         @param spider_reduced_to_count_snapshot 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
+        disable_manual_confirm = self.data.get("disable_manual_confirm", False)
+
         # 获取对应集群相关对象
         try:
             cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
@@ -199,7 +201,8 @@ class TenDBClusterReduceNodesFlow(object):
         )
         sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
         # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
-        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        if not disable_manual_confirm:
+            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         # 根据场景执行下架spider子流程
         sub_pipeline.add_sub_pipeline(
