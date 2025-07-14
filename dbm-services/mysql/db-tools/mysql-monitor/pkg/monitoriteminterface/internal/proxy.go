@@ -1,15 +1,8 @@
 package internal
 
 import (
-	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
-	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
-	"dbm-services/common/reverseapi/pkg/core"
-
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/proxyutil"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -18,7 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"errors"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/proxyutil"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gofrs/flock"

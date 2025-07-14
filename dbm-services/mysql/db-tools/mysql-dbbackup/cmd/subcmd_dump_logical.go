@@ -18,8 +18,8 @@ import (
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/reverseapi"
 	reapi "dbm-services/common/reverseapi/apis/common"
+	recore "dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -107,7 +107,7 @@ var dumpLogicalCmd = &cobra.Command{
 			cnf.Public.BackupId = task.backupId
 		}
 		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
-		reportCore, err := reverseapi.NewCore(0)
+		reportCore, err := recore.NewCore(0)
 		if err != nil {
 			return err
 		}
