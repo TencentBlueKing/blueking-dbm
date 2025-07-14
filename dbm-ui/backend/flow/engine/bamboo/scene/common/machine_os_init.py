@@ -177,6 +177,12 @@ class ImportResourceInitStepFlow(object):
         hosts = self.data["recycle_hosts"]
         revoke_ticket = Ticket.objects.get(id=self.data["uid"])
 
+        # 检查主机不应该存在于主机池
+        host_ids = [host["bk_host_id"] for host in self.data["recycle_hosts"]]
+        exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True)
+        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and exist_hosts:
+            raise InvalidOperationException(_("流程校验不通过，存在元数据主机: {}").format(exist_hosts))
+
         # 故障池
         fault_hosts: List = []
         # 待回收池主机

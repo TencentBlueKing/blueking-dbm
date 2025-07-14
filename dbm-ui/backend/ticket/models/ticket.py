@@ -315,7 +315,15 @@ class Ticket(AuditedModel):
         :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
+        from backend.db_meta.models import Machine
+
         revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
+        host_ids = [host["bk_host_id"] for host in hosts]
+
+        # 已下架回收单据，如果存在元数据主机，则不允许发起回收单据
+        if ticket_type == TicketType.RECYCLE_OLD_HOST and Machine.objects.filter(bk_host_id__in=host_ids).exists():
+            logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))
+            return
 
         # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)

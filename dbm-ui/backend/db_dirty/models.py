@@ -21,6 +21,8 @@ from django.utils.translation import ugettext_lazy as _
 from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE
 from backend.bk_web.models import AuditedModel
 from backend.db_dirty.constants import MACHINE_EVENT__POOL_MAP, MachineEventType, PoolType
+from backend.db_dirty.exceptions import PoolTransferException
+from backend.db_meta.models import Machine
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
@@ -83,6 +85,10 @@ class DirtyMachine(AuditedModel):
             cls.objects.bulk_create(handle_hosts)
         # 主机回收，删除主机记录
         elif pool == PoolType.Recycled:
+            # 删除前检查一下不存在于machine表
+            if Machine.objects.filter(bk_host_id__in=host_ids).exists():
+                ips = list(handle_hosts.values_list("ip", flat=True))
+                raise PoolTransferException(_("主机记录仍存在元数据，不允许删除: {}").format(ips))
             handle_hosts.delete()
         # 其他情况仅更新主机归属
         elif pool in [PoolType.Resource, PoolType.Recycle, PoolType.Fault]:
