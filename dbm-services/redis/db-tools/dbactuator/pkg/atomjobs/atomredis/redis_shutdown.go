@@ -318,6 +318,7 @@ func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
+	// util.CleanRedisExporter()
 	return nil
 }
 

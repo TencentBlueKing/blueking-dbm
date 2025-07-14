@@ -74,48 +74,45 @@ func (job *Job) Run() {
 		mylog.Logger.Info(fmt.Sprintf("redismaxmemory not enable"))
 		return
 	}
-	mylog.Logger.Info(fmt.Sprintf("redismaxmemory wakeup,start running..."))
+	mylog.Logger.Debug(fmt.Sprintf("wakeup,start running..."))
 	defer func() {
 		if job.Err != nil {
-			mylog.Logger.Info(fmt.Sprintf("redismaxmemory end fail,err:%v", job.Err))
+			mylog.Logger.Error(fmt.Sprintf("end with err:%v", job.Err))
 		} else {
-			mylog.Logger.Info(fmt.Sprintf("redismaxmemory end succ"))
+			mylog.Logger.Info(fmt.Sprintf("end with succ"))
 		}
 	}()
 	job.reInit()
-	if job.Err != nil {
-		return
-	}
 	job.SetEventSender()
 
-	job.getSqlDB()
-	if job.Err != nil {
+	if err := job.getSqlDB(); err != nil {
+		job.Err = err
+		mylog.Logger.Error(fmt.Sprintf("get sqllite db failed :%+v", err))
 		return
 	}
 	defer job.closeDB()
 
 	// 获取本机器上可用内存
-	job.GetHostAvailMem()
-	if job.Err != nil {
+	if err := job.GetHostAvailMem(); err != nil {
+		job.Err = err
+		mylog.Logger.Error(fmt.Sprintf("get host available memory failed :+%v", err))
 		return
 	}
+	defer job.DisConnectAllRedis() // release handle
 	// 获取本机器上所有redis used_memory总和
-	job.GetRedisUsedMemory()
-	if job.Err != nil {
+	if err := job.GetRedisUsedMemory(); err != nil {
+		job.Err = err
+		mylog.Logger.Error(fmt.Sprintf("get host available memory failed :+%v", err))
 		return
 	}
-	if len(job.SortUsedMemItems) == 0 {
-		return
-	}
-	defer job.DisConnectAllRedis()
 
-	isSkip := job.isSkipMaxmemorySet()
-	if job.Err != nil {
+	mylog.Logger.Debug(fmt.Sprintf("checked %d instances total used mem :%d/%d",
+		len(job.SortUsedMemItems), job.UsedMemSum, job.OsAvailMem))
+	if isSkip := job.isSkipMaxmemorySet(); job.Err != nil || isSkip {
+		mylog.Logger.Debug(fmt.Sprintf("job status:%+v , isSkip:%+v", job.Err, isSkip))
 		return
 	}
-	if isSkip {
-		return
-	}
+
 	// 计算每个redis实例的maxmemory
 	job.CalculateRedisMaxMemory()
 	if job.Err != nil {
@@ -130,7 +127,7 @@ func (job *Job) Run() {
 }
 
 // GetRedisUsedMemory 并发获得redis实例的used_memory
-func (job *Job) GetRedisUsedMemory() {
+func (job *Job) GetRedisUsedMemory() (err error) {
 	job.SortUsedMemItems = []*RedisUsedMemItem{}
 	for _, server := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(server.MetaRole) {
@@ -144,15 +141,14 @@ func (job *Job) GetRedisUsedMemory() {
 		}
 	}
 	if len(job.SortUsedMemItems) == 0 {
-		return
+		return fmt.Errorf("no avaiable server found")
 	}
 	// 获取每个redis实例的password
 	for _, item := range job.SortUsedMemItems {
 		redisItem := item
 		redisItem.GetPassword()
 		if redisItem.Err != nil {
-			job.Err = redisItem.Err
-			return
+			return fmt.Errorf("get redis password failed %s:+%v", item.Addr(), redisItem.Err)
 		}
 	}
 	// concurrently get multi redis used memory
@@ -162,18 +158,13 @@ func (job *Job) GetRedisUsedMemory() {
 		wg.Add(1)
 		go func(memItem *RedisUsedMemItem) {
 			defer wg.Done()
-			memItem.redisCli, memItem.Err = myredis.NewRedisClientWithTimeout(memItem.Addr(), memItem.Password,
-				0, consts.TendisTypeRedisInstance, 5*time.Second)
-			if memItem.Err != nil {
+			if memItem.redisCli, memItem.Err = myredis.NewRedisClientWithTimeout(memItem.Addr(), memItem.Password,
+				0, consts.TendisTypeRedisInstance, 5*time.Second); err != nil {
+				mylog.Logger.Warn(fmt.Sprintf("get used memory failed %s:%+v", memItem.Addr(), memItem.Err))
 				return
 			}
-			memItem.DbType, memItem.Err = memItem.redisCli.GetTendisType()
-			if memItem.Err != nil {
+			if memItem.DbType, memItem.Err = memItem.redisCli.GetTendisType(); memItem.Err != nil {
 				memItem.Err = fmt.Errorf("get redis type fail,err:%v", memItem.Err)
-			}
-			if memItem.DbType != consts.TendisTypeRedisInstance {
-				// 如果不是cache redis实例,不用继续
-				return
 			}
 			// redisConn run command "info memory"
 			infoRet, err := memItem.redisCli.Info("memory")
@@ -213,9 +204,7 @@ func (job *Job) GetRedisUsedMemory() {
 	for _, item := range job.SortUsedMemItems {
 		redisItem := item
 		if redisItem.Err != nil {
-			mylog.Logger.Error(redisItem.Err.Error())
-			job.Err = redisItem.Err
-			return
+			return redisItem.Err
 		}
 		job.UsedMemSum += redisItem.UsedMemory
 		job.addrToUsedMem[redisItem.Addr()] = redisItem.UsedMemory
@@ -243,7 +232,6 @@ func (job *Job) GetHostAvailMem() (err error) {
 	if err != nil {
 		err = fmt.Errorf("%s get local host available memory fail,err:%v",
 			job.IP, err)
-		mylog.Logger.Error(err.Error())
 		return err
 	}
 	mylog.Logger.Debug(fmt.Sprintf("get local host available memory(%s): %s",
@@ -281,17 +269,16 @@ func (job *Job) SetEventSender() {
 	return
 }
 
-func (job *Job) getSqlDB() {
-	job.sqdb, job.Err = mysqlite.GetLocalSqDB()
-	if job.Err != nil {
+func (job *Job) getSqlDB() (err error) {
+	if job.sqdb, err = mysqlite.GetLocalSqDB(); err != nil {
 		return
 	}
-	job.Err = job.sqdb.AutoMigrate(&RedisNodesUsedMemSchema{})
-	if job.Err != nil {
-		job.Err = fmt.Errorf("RedisMaxmemoryBackendsSchema AutoMigrate fail,err:%v", job.Err)
-		mylog.Logger.Info(job.Err.Error())
+
+	if err = job.sqdb.AutoMigrate(&RedisNodesUsedMemSchema{}); err != nil {
+		job.Err = fmt.Errorf("RedisMaxmemoryBackendsSchema AutoMigrate fail,err:%v", err)
 		return
 	}
+	return nil
 }
 
 func (job *Job) closeDB() {
@@ -335,11 +322,9 @@ func (job *Job) getOldUsedMem() {
 // isSkipMaxmemorySet 返回 true,表示跳过maxmemory设置; 返回false,表示需要设置maxmemory
 func (job *Job) isSkipMaxmemorySet() bool {
 	// 非cache redis返回true
-	if len(job.SortUsedMemItems) == 0 {
-		return true
-	} else if job.SortUsedMemItems[0].DbType != consts.TendisTypeRedisInstance {
-		mylog.Logger.Debug(fmt.Sprintf("redismaxmemory only support redis,not support %s,addr:%s",
-			job.SortUsedMemItems[0].DbType, job.SortUsedMemItems[0].Addr()))
+	if job.SortUsedMemItems[0].DbType != consts.TendisTypeRedisInstance {
+		mylog.Logger.Info(fmt.Sprintf("not support %s skip, ",
+			job.SortUsedMemItems[0].DbType))
 		return true
 	}
 	// 存在一个redis实例是master 或者 存在一个redis是slave且其master依然是slave(链式slave),则继续执行
@@ -373,6 +358,7 @@ func (job *Job) isSkipMaxmemorySet() bool {
 	}
 	job.getOldUsedMem()
 	if job.Err != nil {
+		mylog.Logger.Info(fmt.Sprintf(" get old used memory from sqlLite failed:%+v", job.Err))
 		return true
 	}
 	// oldAddrToUsedMemRow为空,代表是第一次设置maxmemory
@@ -439,6 +425,7 @@ func (job *Job) isSkipMaxmemorySet() bool {
 			return false
 		}
 	}
+	mylog.Logger.Info(fmt.Sprintf("all instance sames 2 be good, with no incr 200MB or 20% , bye~"))
 	return true
 }
 
