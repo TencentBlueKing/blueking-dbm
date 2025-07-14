@@ -196,7 +196,7 @@ export default class Mongodb extends ClusterBase {
   get entryDomain() {
     if (this.isMongoReplicaSet) {
       const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (!entryItem.entry.includes('backup')) {
+        if (entryItem.instance_role !== 'backup') {
           return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
         }
         return prevDomainList;
