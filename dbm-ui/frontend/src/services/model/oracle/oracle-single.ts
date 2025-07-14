@@ -25,20 +25,24 @@ export default class OracleSingleCluster extends ClusterBase {
   // static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   // static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   // static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
-  // static operationIconMap = {
-  //   [OracleSingleCluster.SQLSERVER_DESTROY]: t('删除中'),
-  //   [OracleSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
-  //   [OracleSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
-  // };
-  // static operationTextMap = {
-  //   [OracleSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
-  //   [OracleSingleCluster.SQLSERVER_DISABLE]: t('禁用任务执行中'),
-  //   [OracleSingleCluster.SQLSERVER_ENABLE]: t('启用任务执行中'),
-  // };
+
+  static operationIconMap: Record<string, string> = {
+    // [OracleSingleCluster.SQLSERVER_DESTROY]: t('删除中'),
+    // [OracleSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    // [OracleSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
+  };
+
+  static operationTextMap: Record<string, string> = {
+    // [OracleSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
+    // [OracleSingleCluster.SQLSERVER_DISABLE]: t('禁用任务执行中'),
+    // [OracleSingleCluster.SQLSERVER_ENABLE]: t('启用任务执行中'),
+  };
+
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
   };
+
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -163,65 +167,71 @@ export default class OracleSingleCluster extends ClusterBase {
     return displayName;
   }
 
-  // get operationDisabled() {
-  //   // 集群异常不支持操作
-  //   if (this.isAbnormal) {
-  //     return true;
-  //   }
-  //   // 被禁用的集群不支持操作
-  //   if (!this.isOnline) {
-  //     return true;
-  //   }
-  //   // 各个操作互斥，有其他任务进行中禁用操作按钮
-  //   if (this.operationTicketId) {
-  //     return true;
-  //   }
-  //   return false;
-  // }
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.isAbnormal) {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (!this.isOnline) {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
+  }
 
-  // // 操作中的状态
-  // get operationRunningStatus() {
-  //   if (this.operations.length < 1) {
-  //     return '';
-  //   }
-  //   const operation = this.runningOperation;
-  //   if (!operation) {
-  //     return '';
-  //   }
-  //   return operation.ticket_type;
-  // }
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
 
-  // get operationStatusIcon() {
-  //   return OracleSingleCluster.operationIconMap[this.operationRunningStatus];
-  // }
+  get operationStatusIcon() {
+    return OracleSingleCluster.operationIconMap[this.operationRunningStatus];
+  }
 
-  // // 操作中的状态描述文本
-  // get operationStatusText() {
-  //   return OracleSingleCluster.operationTextMap[this.operationRunningStatus];
-  // }
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return OracleSingleCluster.operationTextMap[this.operationRunningStatus];
+  }
 
-  // get operationTagTips() {
-  //   return this.operations.map((item) => ({
-  //     icon: OracleSingleCluster.operationIconMap[item.ticket_type],
-  //     ticketId: item.ticket_id,
-  //     tip: OracleSingleCluster.operationTextMap[item.ticket_type],
-  //   }));
-  // }
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: OracleSingleCluster.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: OracleSingleCluster.operationTextMap[item.ticket_type],
+    }));
+  }
 
-  // // 操作中的单据 ID
-  // get operationTicketId() {
-  //   if (this.operations.length < 1) {
-  //     return 0;
-  //   }
-  //   const operation = this.runningOperation;
-  //   if (!operation) {
-  //     return 0;
-  //   }
-  //   return operation.ticket_id;
-  // }
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
 
-  // get runningOperation() {
-  //   const operateTicketTypes = Object.keys(OracleSingleCluster.operationTextMap);
-  //   return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
-  // }
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.primaries),
+    };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(OracleSingleCluster.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
 }

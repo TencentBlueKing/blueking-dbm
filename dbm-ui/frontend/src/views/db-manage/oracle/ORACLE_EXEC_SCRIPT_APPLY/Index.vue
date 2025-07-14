@@ -102,6 +102,7 @@
     execute_db: string[];
   }
 
+  const route = useRoute();
   const { t } = useI18n();
   const { updateDbType, updateUploadFilePath } = useSqlImport();
 
@@ -163,6 +164,21 @@
   const resetFormKey = ref(0);
 
   const formData = reactive(createDefaultData());
+
+  // 集群列表跳转
+  const { masterDomain } = route.query as { masterDomain: string };
+  if (masterDomain) {
+    const domainList = masterDomain.split(',');
+    Object.assign(formData, {
+      tableData: domainList.map((domain) =>
+        createRowData({
+          cluster: {
+            master_domain: domain,
+          } as IDataRow['cluster'],
+        }),
+      ),
+    });
+  }
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
