@@ -1,13 +1,26 @@
 name: analysis
 version: v2.0.0
 
-service:
-  listenAddress: 127.0.0.1:22223
-
 discovery:
-  endpoints: http://127.0.0.1:2379;http://127.0.0.2:2379
+  endpoint: http://127.0.0.1:2379;http://127.0.0.2:2379
   user: root
   password: 1234567890
+
+workflow:
+  workerCount: 2
+  scanInterval: 3s
+
+notifier:
+  - name: bkmonitor
+    enable: true
+    endpoint: 127.0.0.1:9090
+
+storage:
+  - name: mysql
+    enable: true
+    endpoint: 127.0.0.1:3306
+    user: root
+    password: 123456
 
 log:
   path: /var/log/dbha/analysis.log

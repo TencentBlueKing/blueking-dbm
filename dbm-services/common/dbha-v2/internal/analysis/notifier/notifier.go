@@ -22,29 +22,16 @@
  * SOFTWARE.
  */
 
-package main
+package notifier
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis"
-	"dbm-services/common/dbha-v2/pkg/logger"
+type Message struct {
+}
 
-	"github.com/spf13/cobra"
-)
+type Notifier interface {
+	Notify(msg Message) error
+	Close()
+}
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "analysis",
-		Short:        "DBHA Analysis Server",
-		SilenceUsage: true,
-		RunE:         analysis.Run,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(&analysis.ConfigFilePath, "config", "c", "./etc/analysis.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(analysis.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start analysis server. errmsg:%s", err.Error())
-		return
-	}
+func New() (Notifier, error) {
+	return nil, nil
 }

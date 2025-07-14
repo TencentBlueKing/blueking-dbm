@@ -22,29 +22,17 @@
  * SOFTWARE.
  */
 
-package main
+package storage
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis"
-	"dbm-services/common/dbha-v2/pkg/logger"
+import "dbm-services/common/dbha-v2/internal/analysis/config"
 
-	"github.com/spf13/cobra"
-)
+type Storage struct {
+	msql *SharedMySQL
+}
 
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "analysis",
-		Short:        "DBHA Analysis Server",
-		SilenceUsage: true,
-		RunE:         analysis.Run,
-	}
+func New(cfgs []config.StorageConfig) (*Storage, error) {
+	return nil, nil
+}
 
-	rootCmd.PersistentFlags().StringVarP(&analysis.ConfigFilePath, "config", "c", "./etc/analysis.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(analysis.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start analysis server. errmsg:%s", err.Error())
-		return
-	}
+func (s *Storage) Close() {
 }
