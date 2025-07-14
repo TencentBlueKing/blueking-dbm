@@ -11,11 +11,13 @@ import functools
 import inspect
 import ipaddress
 import re
+from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import Cluster
-from backend.flow.engine.validate.exceptions import TicketDataException
+from backend.flow.engine.validate.exceptions import DisasterToleranceLevelFailedException, TicketDataException
 
 
 def validator_log_format(func):
@@ -171,3 +173,43 @@ class BaseValidator:
             return f"immute_domain[{immute_domain}] is exist \n"
         except Cluster.DoesNotExist:
             return ""
+
+    @classmethod
+    def check_disaster_tolerance_level(cls, cluster: Cluster, hosts: List[Dict]) -> bool:
+        """
+        根据集群的容灾基级别，判断传入的主机列表信息，是否符合集群容灾基本要求
+        如何符合要求，则返回True, 反之返回False
+        @param cluster: 待判断集群元信息
+        @param hosts: 待判断的机器园区列表信息，dict格式：{"ip":"x", "sub_zone_id":0, "rack_id": 0},
+        其中ip是机器ip，sub_zone_id是园区id，rack_id是机架id
+        """
+        if cluster.disaster_tolerance_level in (
+            AffinityEnum.NONE,
+            AffinityEnum.CROSS_RACK,
+            AffinityEnum.MAX_EACH_ZONE_EQUAL,
+        ):
+            # 这类容灾级别不需要判断容灾级别，属于没有要求
+            return True
+
+        distinct_sub_zones = set([int(i["sub_zone_id"]) if i["sub_zone_id"] else 0 for i in hosts])
+        distinct_racks = set([int(i["rack_id"]) if i["rack_id"] else 0 for i in hosts])
+
+        if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
+            # 属于跨园区的容灾级别，保证sub_zone_id至少要两个以上的
+            if len(distinct_sub_zones) >= 2:
+                return True
+            return False
+        if cluster.disaster_tolerance_level == AffinityEnum.SAME_SUBZONE:
+            # 属于同园区（无机架要求）的容灾级别，保证sub_zone_id有且只有一个
+            if len(distinct_sub_zones) == 1:
+                return True
+            return False
+        if cluster.disaster_tolerance_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
+            # 属于同园区的容灾级别，保证sub_zone_id有且只有一个， 同时机架保证至少两个以上
+            if len(distinct_sub_zones) == 1 and len(distinct_racks) >= 2:
+                return True
+            return False
+
+        else:
+            # 匹配不了以上的平台定义的容灾级别，直接报异常
+            raise DisasterToleranceLevelFailedException(f"not support {cluster.disaster_tolerance_level}")
