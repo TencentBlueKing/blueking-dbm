@@ -1,11 +1,11 @@
 package common
 
 import (
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"time"
 
 	"dbm-services/common/reverseapi/define/common"
-	"dbm-services/common/reverseapi/internal/core"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"

@@ -2,9 +2,9 @@ package dbbackup
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -127,7 +127,7 @@ func addOneCrond(port int) (err error) {
 		return err
 	}
 
-	apiCore, err := reverseapi.NewCore(int64(cfg.Public.BkCloudId))
+	apiCore, err := core.NewCore(int64(cfg.Public.BkCloudId), core.DefaultRetryOpts...)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

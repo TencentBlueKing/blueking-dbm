@@ -1,13 +1,13 @@
 package exporter
 
 import (
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -127,7 +127,7 @@ type exporterConfig struct {
 }
 
 func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
-	apiCore, err := reverseapi.NewCoreWithAddr(bkCloudId, nginxAddrs...)
+	apiCore, err := core.NewCoreWithAddr(bkCloudId, nginxAddrs, core.DefaultRetryOpts...)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

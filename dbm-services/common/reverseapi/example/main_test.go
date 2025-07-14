@@ -2,15 +2,15 @@ package main
 
 import (
 	"dbm-services/common/reverseapi/apis/common"
-	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg/core"
+	"flag"
 	"fmt"
 	"testing"
 )
 
 func benchmarkReport(b *testing.B, buckSize int) {
-	//flag.Parse()
-	//apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
-	apiCore := core.NewCore(0, "1.1.1.1:80")
+	flag.Parse()
+	apiCore := core.NewDebugCore(0, flag.Arg(0), []string{flag.Arg(1)}, core.DefaultRetryOpts...)
 	var events []*demoEvent
 	for i := 0; i < buckSize; i++ {
 		events = append(events, &demoEvent{

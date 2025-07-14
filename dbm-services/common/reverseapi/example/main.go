@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,7 +11,6 @@ import (
 
 	reversecommonapi "dbm-services/common/reverseapi/apis/common"
 	reversecommondef "dbm-services/common/reverseapi/define/common"
-	"dbm-services/common/reverseapi/internal/core"
 )
 
 type demoEvent struct {
@@ -42,7 +42,7 @@ func (c *demoEvent) String() string {
 
 func main() {
 	flag.Parse()
-	apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
+	apiCore := core.NewDebugCore(0, flag.Arg(0), []string{flag.Arg(1)})
 
 	event := &demoEvent{
 		bkBizId:  21,

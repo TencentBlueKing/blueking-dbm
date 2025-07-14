@@ -11,6 +11,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -33,7 +34,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
-	"dbm-services/common/reverseapi"
 	reapi "dbm-services/common/reverseapi/apis/common"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/assets"
@@ -259,7 +259,7 @@ func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
 	}
-	reportCore, err := reverseapi.NewCore(0)
+	reportCore, err := core.NewCore(0, core.DefaultRetryOpts...)
 	if err != nil {
 		return err
 	}

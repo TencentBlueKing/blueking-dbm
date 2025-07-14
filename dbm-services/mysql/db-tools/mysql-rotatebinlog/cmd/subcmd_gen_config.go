@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -43,7 +43,7 @@ var subCmdGenConfig = &cobra.Command{
 		bkCloudId := viper.GetInt("bk-cloud-id")
 		ports := viper.GetIntSlice("port")
 
-		apiCore, err := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		apiCore, err := core.NewCoreWithAddr(int64(bkCloudId), nginxAddrs, core.DefaultRetryOpts...)
 		if err != nil {
 			return err
 		}

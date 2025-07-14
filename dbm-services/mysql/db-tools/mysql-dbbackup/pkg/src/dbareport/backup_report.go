@@ -10,6 +10,7 @@ package dbareport
 
 import (
 	"context"
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -26,7 +27,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/reverseapi"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -407,7 +407,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		return uploadErr
 	}
 
-	reportCore, err := reverseapi.NewCore(int64(metaInfo.BkCloudId))
+	reportCore, err := core.NewCore(int64(metaInfo.BkCloudId), core.DefaultRetryOpts...)
 	if err != nil {
 		return err
 	}

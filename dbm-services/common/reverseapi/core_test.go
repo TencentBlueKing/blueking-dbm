@@ -1,7 +1,7 @@
 package reverseapi
 
 import (
-	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg/core"
 	"reflect"
 	"slices"
 	"testing"
@@ -128,7 +128,7 @@ func TestNewCore(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.Name, func(t *testing.T) {
-			rc, err := newCore(c.BkCloudId, c.MixAddrs...)
+			rc, err := core.NewCoreWithAddr(c.BkCloudId, c.MixAddrs)
 			if !c.IsOK(rc, err) {
 				t.Fatalf("%s not pass", c.Name)
 			}

@@ -1,9 +1,9 @@
 package instance_info_updater
 
 import (
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
@@ -44,7 +44,7 @@ func updater() error {
 }
 
 func Updater() error {
-	apiCore, err := reverseapi.NewCore(int64(*config.RuntimeConfig.BkCloudID))
+	apiCore, err := core.NewCore(int64(*config.RuntimeConfig.BkCloudID), core.DefaultRetryOpts...)
 	if err != nil {
 		slog.Error("create api core", slog.String("err", err.Error()))
 		return err

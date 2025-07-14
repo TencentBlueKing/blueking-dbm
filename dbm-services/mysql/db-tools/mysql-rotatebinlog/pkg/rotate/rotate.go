@@ -2,6 +2,7 @@
 package rotate
 
 import (
+	"dbm-services/common/reverseapi/pkg/core"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
-	"dbm-services/common/reverseapi"
 	reapi "dbm-services/common/reverseapi/apis/common"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	binlog_parser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
@@ -316,7 +316,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 // Backup binlog 提交到备份系统
 // 下一轮运行时判断上一次以及之前的提交任务状态
 func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
-	reportCore, err := reverseapi.NewCore(0)
+	reportCore, err := core.NewCore(0, core.DefaultRetryOpts...)
 	if err != nil {
 		return err
 	}

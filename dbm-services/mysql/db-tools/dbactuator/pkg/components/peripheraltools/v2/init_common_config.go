@@ -2,9 +2,9 @@ package peripheraltools
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
@@ -98,7 +98,7 @@ func (c *InitCommonConfig) initInstanceInfo() (err error) {
 		_ = f.Close()
 	}()
 
-	apiCore, err := reverseapi.NewCoreWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs...)
+	apiCore, err := core.NewCoreWithAddr(c.Param.BkCloudId, c.Param.NginxAddrs, core.DefaultRetryOpts...)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

@@ -3,7 +3,7 @@ package mysql
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/reverseapi/define/mysql"
-	"dbm-services/common/reverseapi/internal/core"
+	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"fmt"
 
