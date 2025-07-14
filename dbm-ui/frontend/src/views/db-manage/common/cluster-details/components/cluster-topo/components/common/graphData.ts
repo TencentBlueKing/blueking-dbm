@@ -278,37 +278,37 @@ export class GraphData {
     if (this.clusterType === ClusterTypes.ES) {
       const nodeMap = Object.fromEntries([...rootNodes, ...nodes].map((node) => [node.id, node]));
 
-      const masterDomainNode = nodeMap[nodeTypes.ENTRY_DNS];
-      const esHotNode = nodeMap[nodeTypes.ES_DATANODE_HOT];
+      const masterDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
 
+      const dnsDomainNode = nodeMap[nodeTypes.DNS_ENTRY_GROUP];
       const clbDomainNode = nodeMap[nodeTypes.CLB_DNS_ENTRY_GROUP];
       const clbIpNode = nodeMap[nodeTypes.CLB_ENTRY_GROUP];
 
       // 开启 clb / 恢复主域名直连接入层
-      if (masterDomainNode && esHotNode && clbDomainNode && clbIpNode) {
+      if (masterDomainNode && !dnsDomainNode && clbDomainNode && clbIpNode) {
         clbDomainNode.style.x = masterDomainNode.style.x - masterDomainNode.style.width - this.nodeConfig.offsetX;
         clbDomainNode.style.y = masterDomainNode.style.y;
         this.calcChildrenNodeLocations(clbDomainNode);
 
-        clbIpNode.style.x = esHotNode.style.x - esHotNode.style.width - this.nodeConfig.offsetX;
-        clbIpNode.style.y = esHotNode.style.y;
+        clbIpNode.style.x = clbDomainNode.style.x;
+        clbIpNode.style.y = clbDomainNode.style.y + clbDomainNode.style.height + this.nodeConfig.offsetY;
         this.calcChildrenNodeLocations(clbIpNode);
         return;
       }
-
-      const dnsDomainNode = nodeMap[nodeTypes.DNS_ENTRY_GROUP];
-      const polarisDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
 
       // 配置主域名指向 clb
       if (dnsDomainNode && clbDomainNode && clbIpNode) {
         clbDomainNode.style.x = dnsDomainNode.style.x - dnsDomainNode.style.width - this.nodeConfig.offsetX;
         clbDomainNode.style.y = dnsDomainNode.style.y;
         this.calcChildrenNodeLocations(clbDomainNode);
-      }
-      if (esHotNode && polarisDomainNode) {
-        polarisDomainNode.style.x = esHotNode.style.x - esHotNode.style.width - this.nodeConfig.offsetX;
-        polarisDomainNode.style.y = esHotNode.style.y;
-        this.calcChildrenNodeLocations(polarisDomainNode);
+
+        // 此时北极星为单独的节点
+        const polarisDomainNode = nodeMap[nodeTypes.MASTER_ENTRY_GROUP];
+        if (polarisDomainNode) {
+          polarisDomainNode.style.x = dnsDomainNode.style.x + dnsDomainNode.style.width + this.nodeConfig.offsetX;
+          polarisDomainNode.style.y = dnsDomainNode.style.y;
+          this.calcChildrenNodeLocations(polarisDomainNode);
+        }
       }
     }
   }

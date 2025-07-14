@@ -117,7 +117,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="!data.isOnlineCLBMaster"
-            v-db-console="'tendbCluster.clusterManage.enableCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -139,7 +139,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="!data.isOnlineCLBSlave"
-            v-db-console="'tendbCluster.clusterManage.enableCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -161,7 +161,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="data.isOnlineCLBMaster"
-            v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -190,7 +190,7 @@
           </BkDropdownItem>
           <BkDropdownItem
             v-if="data.isOnlineCLBSlave"
-            v-db-console="'tendbCluster.clusterManage.DNSDomainToCLB'">
+            v-db-console="'common.clb'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
