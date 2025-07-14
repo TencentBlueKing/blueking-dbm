@@ -32,6 +32,7 @@ from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
 from backend.ticket.todos import TodoActionType
 from backend.utils.cache import func_cache_decorator
+from backend.utils.tenant import TenantHandler
 
 logger = logging.getLogger("root")
 
@@ -252,6 +253,8 @@ class NotifyAdapter:
         self.clusters = [cluster["immute_domain"] for cluster in self.ticket.details.pop("clusters", {}).values()]
         # 单据终止时间，用于终止提醒
         self.deadline = deadline
+
+        TenantHandler.local_set_tenant_by_biz(self.ticket.bk_biz_id)
 
     @classmethod
     def get_support_msg_types(cls):

@@ -68,7 +68,7 @@ class TenantCache(AuditedModel):
         return cls.get_cloud_tenant_cache().get(bk_cloud_id, "")
 
     @classmethod
-    def get_tenant_with_app(cls, bk_biz_id):
+    def get_tenant_with_app(cls, bk_biz_id=str):
         """根据业务ID获取租户ID"""
         if not settings.ENABLE_MULTI_TENANT_MODE:
             return settings.DEFAULT_TENANT_ID
@@ -88,6 +88,18 @@ class TenantCache(AuditedModel):
         if not settings.ENABLE_MULTI_TENANT_MODE:
             return env.JOB_BLUEKING_BIZ_ID
         return cls.get_tenant_attr(tenant_id, "dba_job_id", env.JOB_BLUEKING_BIZ_ID)
+
+    def to_dict(self):
+        """对象转换为字典格式"""
+        return {
+            "tenant_id": self.tenant_id,
+            "tenant_name": self.tenant_name,
+            "status": self.status,
+            "admin": self.admin,
+            "clouds": self.clouds,
+            "dba_app_id": self.dba_app_id,
+            "dba_job_id": self.dba_job_id,
+        }
 
 
 class AppCache(AuditedModel):

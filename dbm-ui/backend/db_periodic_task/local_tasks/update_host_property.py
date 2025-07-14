@@ -13,12 +13,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from celery.schedules import crontab
+from django.conf import settings
 from django.core.cache import cache
 from django.utils.translation import ugettext as _
 
 from backend.components import CCApi
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_proxy.constants import DB_CLOUD_MACHINE_EXPIRE_TIME
 from backend.utils.redis import RedisConn
@@ -64,8 +66,7 @@ def update_hosts(host_dict, update_map):
     return machines_to_update
 
 
-@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
-def update_host_property():
+def update_host_property_for_tenant(tenant_id=None):
     """
     更新主机属性：
     第一次拿前一小时的主机更新事件 后面用拿到更新事件的最后一条事件的bk_cursor继续监听获取事件
@@ -73,6 +74,10 @@ def update_host_property():
     try:
         # 初始化请求参数
         params = {"bk_event_types": DEFAULT_BK_EVENT_TYPES, "bk_fields": DEFAULT_BK_FIELDS, "bk_resource": "host"}
+
+        # 设置租户ID
+        if tenant_id:
+            params["tenant_id"] = tenant_id
 
         # 检查缓存中的游标
         machine_cursor = cache.get("machine_cursor")
@@ -148,9 +153,23 @@ def update_host_property():
                 dirty_machines_to_update,
                 fields=[field for field, __ in dirty_machine_fields if hasattr(DirtyMachine, field)],
             )
-
     except Exception as e:
         logger.exception(f"Error during sync_update_host_property: {e}")
+
+
+@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
+def update_host_property():
+    """
+    周期任务入口：更新主机属性
+    """
+    if not settings.ENABLE_MULTI_TENANT_MODE:
+        # 非租户模式
+        update_host_property_for_tenant()
+    else:
+        # 租户模式：为每个租户执行更新
+        tenant_cache = TenantCache.get_tenant_cache()
+        for tenant_id in tenant_cache.keys():
+            update_host_property_for_tenant(tenant_id)
 
 
 @register_periodic_task(run_every=crontab(hour=1, minute=0))

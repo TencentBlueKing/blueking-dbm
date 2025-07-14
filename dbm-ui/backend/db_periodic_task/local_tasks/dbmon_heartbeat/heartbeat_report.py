@@ -25,6 +25,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.db_meta.constants import QUERY_TEMPLATE, UNIFY_QUERY_PARAMS
 from backend.db_report.enums import DbmonHeartbeatReportSubType
 from backend.db_report.models import DbmonHeartbeatReport
@@ -52,6 +53,10 @@ def query_by_cluster_dimension(cluster_domain, cap_key="heartbeat", cluster_type
     params["end_time"] = int(end_time.timestamp())
     # 设置要查询的 cluster_domain 变量
     params["query_configs"][0]["promql"] = query_template[cap_key].format(cluster_domain=cluster_domain)
+
+    tenant_id = TenantCache.get_tenant_with_app(params["bk_biz_id"])
+    params["tenant_id"] = tenant_id
+
     try:
         series = BKMonitorV3Api.unify_query(params, use_admin=True)["series"]
     except Exception as e:
