@@ -22,7 +22,7 @@ class DelCCServiceInstService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         del_instance_list = kwargs["del_instance_list"]
 
-        if kwargs["domain"]:
+        if "domain" in kwargs:
             cluster = Cluster.objects.get(immute_domain=kwargs["domain"])
         else:
             cluster_id = kwargs["cluster_id"]
