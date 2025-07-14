@@ -41,7 +41,7 @@
             :cluster="item.cluster" />
           <ResourceTagColumn
             v-model="item.labels"
-            v-model:selected="item.labelSelected" />
+            @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
               for_bizs: [currentBizId, 0],
@@ -115,8 +115,7 @@
 
   interface RowData {
     cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     targetCapacity: ComponentProps<typeof CapacityColumn>['modelValue'];
   }
 
@@ -153,8 +152,7 @@
       },
       data.cluster,
     ),
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     targetCapacity: Object.assign(
       {
         cluster_capacity: 0,
@@ -194,7 +192,7 @@
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            labels: (item.resource_spec.backend_group.labels || []).map((item) => Number(item)),
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             targetCapacity: {
               cluster_capacity: item.resource_spec.backend_group.futureCapacity,
               machine_pair: item.resource_spec.backend_group.count,
@@ -255,8 +253,8 @@
               affinity: item.cluster.disaster_tolerance_level,
               count: item.targetCapacity.machine_pair,
               futureCapacity: item.targetCapacity.cluster_capacity,
-              label_values: item.labelSelected.map((item) => item.value),
-              labels: item.labels.map((item) => String(item)),
+              label_values: item.labels.map((item) => item.value),
+              labels: item.labels.map((item) => String(item.id)),
               spec_id: item.targetCapacity.spec_id,
               specName: item.targetCapacity.spec_name,
             },
@@ -296,7 +294,7 @@
           cluster: {
             master_domain: item.master_domain,
           },
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
         }),
       );
       return acc;
@@ -310,5 +308,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

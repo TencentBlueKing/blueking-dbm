@@ -52,7 +52,7 @@
             :current-spec-id="item.oldMaster.spec_id" />
           <ResourceTagColumn
             v-model="item.labels"
-            v-model:selected="item.labelSelected" />
+            @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
               for_bizs: [currentBizId, 0],
@@ -125,8 +125,7 @@
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     oldMaster: ComponentProps<typeof MasterHostColumnGroup>['modelValue'];
     oldSlave: ComponentProps<typeof SlaveHostColumnGroup>['modelValue'];
     specId: number;
@@ -150,8 +149,7 @@
   ];
 
   const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     oldMaster: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -203,7 +201,7 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
-            labels: (item.resource_spec.backend_group.labels || []).map((item) => Number(item)),
+            labels: (item.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
             oldMaster: {
               ip: item.old_nodes.old_master?.[0]?.ip || '',
             },
@@ -251,8 +249,8 @@
           resource_spec: {
             backend_group: {
               count: 1,
-              label_values: item.labelSelected.map((item) => item.value),
-              labels: item.labels.map((item) => String(item)),
+              label_values: item.labels.map((item) => item.value),
+              labels: item.labels.map((item) => String(item.id)),
               spec_id: item.oldMaster.spec_id,
             },
           },
@@ -288,7 +286,7 @@
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           oldMaster: {
             ip: item.master_ip,
           },
@@ -305,5 +303,13 @@
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

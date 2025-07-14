@@ -4763,5 +4763,6 @@
   "该实例为非 Master 实例，请选择 Master 实例": "该实例为非 Master 实例，请选择 Master 实例",
   "该实例为非 remote_master 实例，请选择 remote_master 实例": "该实例为非 remote_master 实例，请选择 remote_master 实例",
   "Excel 文件": "Excel 文件",
+  "资源标签不能为空": "资源标签不能为空",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

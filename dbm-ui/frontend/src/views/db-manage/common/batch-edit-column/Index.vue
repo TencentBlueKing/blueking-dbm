@@ -25,29 +25,48 @@
               :disabled="disabled"
               filterable
               :list="dataList"
+              v-bind="{ ...attrs, ...props }"
               :model-value="localValue"
-              @change="handleChange" />
+              @change="handleChange">
+              <template
+                v-if="slots.allOptionIcon"
+                #allOptionIcon>
+                <slot name="allOptionIcon" />
+              </template>
+              <template
+                v-if="slots.tagRender"
+                #tagRender="{ label, value }">
+                <slot
+                  :label="label"
+                  name="tagRender"
+                  :value="value" />
+              </template>
+            </BkSelect>
             <BkInput
               v-else-if="type === 'textarea'"
               ref="inputRef"
               v-model="localValue"
+              v-bind="{ ...attrs, ...props }"
               :placeholder="placeholder"
               :rows="5"
               type="textarea"
               @change="handleChange" />
             <BkInput
               v-else-if="type === 'input'"
+              v-bind="{ ...attrs, ...props }"
               :disabled="disabled"
               :model-value="localValue"
               @change="handleChange" />
             <BkInput
               v-else-if="type === 'number-input'"
+              v-bind="{ ...attrs, ...props }"
               :disabled="disabled"
               :model-value="localValue"
               type="number"
               @change="handleChange" />
             <BkTagInput
               v-else-if="type === 'taginput'"
+              v-bind="{ ...attrs, ...props }"
               allow-auto-match
               allow-create
               :disabled="disabled"
@@ -58,6 +77,7 @@
               @change="handleChange" />
             <BkDatePicker
               v-else-if="type === 'datetime'"
+              v-bind="{ ...attrs, ...props }"
               :clearable="false"
               :disabled-date="disableFn"
               :model-value="localValue"
@@ -73,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { UnwrapRef } from 'vue';
+  import { type UnwrapRef, useAttrs, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { batchSplitRegex } from '@common/regex';
@@ -107,9 +127,10 @@
   const isShow = defineModel<boolean>({
     default: false,
   });
-  // const slots = useSlots();
+  const slots = useSlots();
 
   const { t } = useI18n();
+  const attrs = useAttrs();
 
   const titlePrefixTypeMap = {
     edit: t('统一设置'),
@@ -117,7 +138,7 @@
   };
 
   const inputRef = ref();
-  const localValue = ref<string | string[]>(props.type === 'taginput' ? [] : '');
+  const localValue = ref<any>(props.type === 'taginput' ? [] : '');
 
   const disabled = computed(() => props.disableFn());
 

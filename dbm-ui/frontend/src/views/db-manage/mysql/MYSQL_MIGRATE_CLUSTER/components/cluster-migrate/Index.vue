@@ -34,10 +34,11 @@
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
           :current-spec-id="item.batchCluster.specId"
-          selectable />
+          selectable
+          @batch-edit="handleBatchEditColumn" />
         <ResourceTagColumn
           v-model="item.labels"
-          v-model:selected="item.labelSelected" />
+          @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
             for_bizs: [currentBizId, 0],
@@ -104,8 +105,7 @@
       renderText: string;
       specId: number;
     };
-    labels: number[];
-    labelSelected: ComponentProps<typeof ResourceTagColumn>['selected'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     specId: number;
@@ -206,8 +206,7 @@
       },
       data.batchCluster,
     ),
-    labels: (data.labels as number[]) || ([] as number[]),
-    labelSelected: [] as ComponentProps<typeof ResourceTagColumn>['selected'],
+    labels: (data.labels || []) as RowData['labels'],
     newMaster: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -326,7 +325,7 @@
             });
             return createTableRow({
               batchCluster,
-              labels: (item.resource_spec.new_master.labels || []).map((label) => Number(label)),
+              labels: (item.resource_spec.new_master.labels || []).map((item) => ({ id: Number(item) })),
               newMaster: {
                 ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
               },
@@ -364,7 +363,7 @@
           batchCluster: {
             renderText: item.master_domain,
           },
-          labels: item.labels?.split(','),
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           newMaster: {
             ip: item.new_master_ip,
           },
@@ -387,6 +386,14 @@
     }, 200);
   };
 
+  const handleBatchEditColumn = (value: any, field: string) => {
+    tableData.value.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       const validateResult = await tableRef.value?.validate();
@@ -401,16 +408,18 @@
             count: 1,
             hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newMaster] : undefined,
             label_values:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
-            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
+            labels:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
             spec_id: item.specId,
           },
           new_slave: {
             count: 1,
             hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
             label_values:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labelSelected.map((item) => item.value) : undefined,
-            labels: props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item)) : undefined,
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
+            labels:
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
             spec_id: item.specId,
           },
         },
