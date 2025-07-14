@@ -92,7 +92,7 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非接入层 IP'),
+      message: t('主机不包含任何接入层实例'),
       trigger: 'blur',
       validator: (value: string) => !value || modelValue.value.role === 'remote_master',
     },

@@ -128,7 +128,7 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非 Slave 实例'),
+      message: t('该实例为非 Slave 实例，请选择 Slave 实例'),
       trigger: 'blur',
       validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
     },
