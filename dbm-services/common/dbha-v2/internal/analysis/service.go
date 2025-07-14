@@ -27,62 +27,59 @@ package analysis
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/notifier"
+	"dbm-services/common/dbha-v2/internal/analysis/storage"
+	"dbm-services/common/dbha-v2/internal/analysis/workflow"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func setupGracefulShutdown(svr *Service) {
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigC
-		logger.Info("shutdown analysis server")
-		svr.Close()
-		os.Exit(0)
-	}()
+type Service struct {
+	db           *storage.Storage
+	wflow        *workflow.Workflow
+	notifierAsst notifier.Notifier
 }
 
-// Run run analysis service
-func Run(cmd *cobra.Command, args []string) error {
-
-	viper.SetConfigName("analysis")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
+func (s *Service) Run(ctx context.Context) error {
+	if len(config.Cfg.Storage) == 0 {
+		return gerrors.Newf(gerrors.InvalidConfiguration, "not set any inputter")
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	// 1. create storage
+	sdb, err := storage.New(config.Cfg.Storage)
+	if err != nil {
+		logger.Error("create storage failed, errmsg(%v)", err)
 		return err
 	}
+	s.db = sdb
+	defer s.db.Close()
 
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
+	// 2. create notifier
+	notifierAsst, err := notifier.New()
+	if err != nil {
+		logger.Error("create notifier failed, errmsg(%v)", err)
 		return err
 	}
+	s.notifierAsst = notifierAsst
+	defer s.notifierAsst.Close()
 
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileCount,
-		MaxBackups: config.Cfg.Log.FileCount,
+	// 3. create workflow
+	wflow, err := workflow.New(config.Cfg.Workflow, s.db, s.notifierAsst)
+	if err != nil {
+		logger.Error("create workflow failed, errmsg(%v)", err)
+		return err
 	}
+	s.wflow = wflow
+	defer s.wflow.Close()
 
-	log := logger.NewZapLogger(logCfg)
-	logger.SetLogger(log)
+	// 4. run workflow
+	return s.wflow.Run(ctx)
+}
 
-	logger.Debug("analysis configuration:%v", config.Cfg)
+func (s *Service) Close() {
+	s.wflow.Close()
 
-	ctx := context.Background()
-	svr := &Service{}
-
-	setupGracefulShutdown(svr)
-
-	return svr.Run(ctx)
+	if s.notifierAsst != nil {
+		s.notifierAsst.Close()
+	}
 }

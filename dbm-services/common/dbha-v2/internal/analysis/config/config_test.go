@@ -22,67 +22,27 @@
  * SOFTWARE.
  */
 
-package analysis
+package config_test
 
 import (
-	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"os"
-	"os/signal"
-	"syscall"
+	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func setupGracefulShutdown(svr *Service) {
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+var analysisCfgFile = "../../../configs/analysis.yaml"
 
-	go func() {
-		<-sigC
-		logger.Info("shutdown analysis server")
-		svr.Close()
-		os.Exit(0)
-	}()
-}
-
-// Run run analysis service
-func Run(cmd *cobra.Command, args []string) error {
-
-	viper.SetConfigName("analysis")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
+func TestConfig(t *testing.T) {
+	viper.SetConfigFile(analysisCfgFile)
 
 	if err := viper.ReadInConfig(); err != nil {
-		return err
+		t.Fatalf("viper read in config failed, errmsg(%v)", err)
 	}
 
 	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		return err
+		t.Fatalf("viper unmarshal failed, errmsg(%v)", err)
 	}
 
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileCount,
-		MaxBackups: config.Cfg.Log.FileCount,
-	}
-
-	log := logger.NewZapLogger(logCfg)
-	logger.SetLogger(log)
-
-	logger.Debug("analysis configuration:%v", config.Cfg)
-
-	ctx := context.Background()
-	svr := &Service{}
-
-	setupGracefulShutdown(svr)
-
-	return svr.Run(ctx)
+	t.Log("analysis cfg:", config.Cfg)
 }
