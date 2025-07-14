@@ -19,6 +19,24 @@
       <DisplayBox
         cluster-detail-router-name="OracleHaDetail"
         :data="data">
+        <BkDropdownItem v-db-console="'oracle.toolbox.sqlExecute'">
+          <OperationBtnStatusTips :data="data">
+            <RouterLink
+              target="_blank"
+              :to="{
+                name: TicketTypes.ORACLE_EXEC_SCRIPT_APPLY,
+                query: {
+                  masterDomain: data.master_domain,
+                },
+              }">
+              <BkButton
+                class="ml-4"
+                size="small">
+                {{ t('变更 SQL 执行') }}
+              </BkButton>
+            </RouterLink>
+          </OperationBtnStatusTips>
+        </BkDropdownItem>
         <!-- <ClusterDomainDnsRelation :data="data" /> -->
       </DisplayBox>
       <ActionPanel
@@ -36,14 +54,16 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import OraclehaModel from '@services/model/oracle/oracle-ha';
   import { getOracleHaClusterDetail } from '@services/source/oracleHaCluster';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   // import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import BaseInfo from './components/BaseInfo.vue';
@@ -53,6 +73,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const data = ref<OraclehaModel>();
 

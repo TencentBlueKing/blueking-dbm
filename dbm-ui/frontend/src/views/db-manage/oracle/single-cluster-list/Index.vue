@@ -17,7 +17,7 @@
       <DropdownExportExcel
         v-db-console="'oracle.singleClusterList.export'"
         :ids="selectedIds"
-        type="oracle_single" />
+        type="oracle_single_none" />
       <ClusterIpCopy
         v-db-console="'oracle.singleClusterList.batchCopy'"
         class="ml-8"
@@ -46,6 +46,26 @@
         @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings">
+        <template #operation>
+          <OperationColumn :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE">
+            <template #default="{ data }">
+              <div v-db-console="'oracle.toolbox.sqlExecute'">
+                <OperationBtnStatusTips :data="data">
+                  <RouterLink
+                    target="_blank"
+                    :to="{
+                      name: TicketTypes.ORACLE_EXEC_SCRIPT_APPLY,
+                      query: {
+                        masterDomain: data.master_domain,
+                      },
+                    }">
+                    {{ t('变更 SQL 执行') }}
+                  </RouterLink>
+                </OperationBtnStatusTips>
+              </div>
+            </template>
+          </OperationColumn>
+        </template>
         <template #masterDomain>
           <MasterDomainColumn
             :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE"
@@ -91,14 +111,19 @@
 
   import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
-  import ClusterTable, { MasterDomainColumn, RoleColumn } from '@views/db-manage/common/cluster-table/Index.vue';
+  import ClusterTable, {
+    MasterDomainColumn,
+    OperationColumn,
+    RoleColumn,
+  } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/oracle/common/ha-cluster-detail/Index.vue';
 
