@@ -27,7 +27,7 @@ type MysqlBackupResultModel struct {
 	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:4"`
 	BackupType      string `json:"backup_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
 	ClusterId       int    `json:"cluster_id" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL"`
-	ClusterAddress  string `json:"cluster_address" db:"cluster_address" gorm:"column:cluster_address;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:1"`
+	ClusterAddress  string `json:"cluster_address" db:"cluster_address" gorm:"column:cluster_address;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
 	BackupHost      string `json:"backup_host" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_hostport,unique,priority:1"`
 	BackupPort      int    `json:"backup_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_hostport,unique,priority:2"`
 	MysqlRole       string `json:"mysql_role" db:"mysql_role" gorm:"column:mysql_role;type:varchar(32);NOT NULL;index:uk_hostport,unique,priority:3;;index:uk_cluster,unique,priority:3"`
