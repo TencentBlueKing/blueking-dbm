@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -268,9 +269,12 @@ func (b *BaseDetectDB) doSSHWithUptime(shellStr string) error {
 // todo 后面需要考虑去掉cygwin的依赖
 func (b *BaseDetectDB) DoSSHForWindows(shellStr string) error {
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            b.SshInfo.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
+		Timeout: time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
+		User:    b.SshInfo.User,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			log.Logger.Infof("connection to host %s, accepting temporary key (%s)", hostname, ssh.FingerprintSHA256(key))
+			return nil
+		},
 		Config: ssh.Config{
 			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},
