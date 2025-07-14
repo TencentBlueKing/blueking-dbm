@@ -28,7 +28,7 @@ var Cfg = Configuration{}
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
+	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
 	User      string `yaml:"user"      mapstructure:"user"`
 	Password  string `yaml:"password"  mapstructure:"password"`
 }
@@ -37,7 +37,7 @@ type DiscoveryConfig struct {
 type IntputConfig struct {
 	Name      string   `yaml:"name"      mapstructure:"name"`
 	Enable    bool     `yaml:"enable"    mapstructure:"enable"`
-	Endpoints string   `yaml:"endpoints" mapstructure:"endpoints"`
+	Endpoints string   `yaml:"endpoint" mapstructure:"endpoint"`
 	User      string   `yaml:"user"      mapstructure:"user"`
 	Password  string   `yaml:"password"  mapstructure:"password"`
 	Mechanism string   `yaml:"mechanism" mapstructure:"mechanism"`
@@ -48,7 +48,7 @@ type IntputConfig struct {
 type OutputConfig struct {
 	Name      string `yaml:"name"      mapstructure:"name"`
 	Enable    bool   `yaml:"enable"    mapstructure:"enable"`
-	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
+	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
 	User      string `yaml:"user"      mapstructure:"user"`
 	Password  string `yaml:"password"  mapstructure:"password"`
 }

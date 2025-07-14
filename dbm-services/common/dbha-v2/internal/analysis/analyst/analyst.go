@@ -22,33 +22,13 @@
  * SOFTWARE.
  */
 
-package analysis
+package analyst
 
-// ServiceConfig service configuration
-type ServiceConfig struct {
-	ListenAddress string `yaml:"listenAddress"`
+import "dbm-services/common/dbha-v2/internal/analysis/notifier"
+
+type Analyst interface {
 }
 
-// DiscoveryConfig discovery configuration
-type DiscoveryConfig struct {
-	Endpoints string `yaml:"endpoints"`
-	User      string `yaml:"user"`
-	Password  string `yaml:"password"`
-}
-
-// LogConfig log configuration
-type LogConfig struct {
-	Path       string `yaml:"path"`
-	Level      string `yaml:"level"`
-	FileCount  int    `yaml:"fileCount"`
-	FileSizeMB int    `yaml:"fileSize"`
-}
-
-// Configuration receiver's configuration
-type Configuration struct {
-	Name      string          `yaml:"name"`
-	Version   string          `yaml:"version"`
-	Service   ServiceConfig   `yaml:"service"`
-	Discovery DiscoveryConfig `yaml:"discovery"`
-	Log       LogConfig       `yaml:"log"`
+func New(asst notifier.Notifier) (Analyst, error) {
+	return nil, nil
 }

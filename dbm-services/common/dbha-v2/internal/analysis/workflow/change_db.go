@@ -22,29 +22,7 @@
  * SOFTWARE.
  */
 
-package main
+package workflow
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"github.com/spf13/cobra"
-)
-
-func main() {
-	rootCmd := &cobra.Command{
-		Use:          "analysis",
-		Short:        "DBHA Analysis Server",
-		SilenceUsage: true,
-		RunE:         analysis.Run,
-	}
-
-	rootCmd.PersistentFlags().StringVarP(&analysis.ConfigFilePath, "config", "c", "./etc/analysis.yaml", "")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	rootCmd.AddCommand(analysis.VersionCmd)
-
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start analysis server. errmsg:%s", err.Error())
-		return
-	}
+type changeDB struct {
 }
