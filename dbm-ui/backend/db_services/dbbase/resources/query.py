@@ -59,7 +59,9 @@ class CommonQueryResourceMixin(abc.ABC):
     @classmethod
     def query_cluster_entry_details(cls, cluster_details, **kwargs):
         """查询集群访问入口详情"""
-        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"], **kwargs)
+        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"], **kwargs).prefetch_related(
+            "storageinstance_set"
+        )
         entry_details = []
         for entry in entries:
             if entry.cluster_entry_type == ClusterEntryType.DNS:
@@ -69,12 +71,17 @@ class CommonQueryResourceMixin(abc.ABC):
             else:
                 target_details = [entry.detail]
 
+            # 预取第一个存储实例的角色
+            storage_instances = entry.storageinstance_set.all()
+            instance_role = storage_instances[0].instance_role if storage_instances else None
+
             entry_details.append(
                 {
                     "cluster_entry_type": entry.cluster_entry_type,
                     "role": entry.role,
                     "entry": entry.entry,
                     "target_details": target_details,
+                    "instance_role": instance_role,
                 }
             )
         return entry_details
