@@ -19,6 +19,8 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 
@@ -127,6 +129,28 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
             )
 
+        # 在做一下容灾级别检查，因为flow validator 只能做前置检验，这是没有申请到机器，所以只能在flow构建时判断
+
+        # 计算出剩余spider节点
+        remaining_spiders = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=spider_role).exclude(
+            machine__ip__in=[i["ip"] for i in old_spider_hosts]
+        )
+
+        check_hosts = [
+            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+            for i in remaining_spiders
+        ]
+        if len(new_spider_hosts + check_hosts) > 1:
+            # 大于1做亲和性检测
+            if not BaseValidator.check_disaster_tolerance_level(cluster, new_spider_hosts + check_hosts):
+                raise CheckDisasterToleranceException(
+                    message=_(
+                        "[{}]集群spider节点不满足容灾要求[{}]，请检查，替换后后预期节点信息:{}".format(
+                            cluster.immute_domain, cluster.disaster_tolerance_level, new_spider_hosts + check_hosts
+                        )
+                    )
+                )
+
         sub_pipeline = SubBuilder(root_id=self.root_id, data=sub_flow_context)
 
         # 执行扩容实例
@@ -136,6 +160,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 add_spider_role=spider_role,
                 add_spider_hosts=new_spider_hosts,
                 resource_spec=resource_spec,
+                is_check_disaster_tolerance_level=False,
             )
         )
 
@@ -150,6 +175,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 reduce_spider_role=spider_role,
                 spider_reduced_to_count_snapshot=spider_count - len(old_spider_hosts),
                 is_check_min_count=False,
+                is_check_disaster_tolerance_level=False,
             )
         )
         return sub_pipeline.build_sub_process(sub_name=_("[{}]替换spider节点流程".format(cluster.immute_domain)))

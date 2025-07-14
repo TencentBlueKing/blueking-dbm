@@ -24,6 +24,8 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
@@ -58,6 +60,7 @@ class TenDBClusterReduceNodesFlow(object):
         spider_reduced_hosts: list,
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
+        is_check_disaster_tolerance_level: bool = True,
     ):
         """
         根据每个子单据的操作spider角色和缩容剩余数量，来计算出合理的待回收spider节点列表
@@ -66,13 +69,21 @@ class TenDBClusterReduceNodesFlow(object):
         @param spider_reduced_hosts: 缩容指定的主机
         @param spider_reduced_to_count_snapshot: 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
+        @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
         # 检测
         # 如果是指定缩容IP，则直接返回
         if not spider_reduced_hosts:
             raise NormalSpiderFlowException(message=_("传入的spider_reduced_hosts参数为空，请联系系统管理员"))
 
+        # spider节点数量
         spiders_count = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=reduce_spider_role).count()
+
+        # 计算出剩余spider节点
+        remaining_spiders = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=reduce_spider_role
+        ).exclude(machine__ip__in=[i["ip"] for i in spider_reduced_hosts])
+
         if spider_reduced_to_count_snapshot + len(spider_reduced_hosts) != spiders_count:
             # 此时计算的单据传入的spider数量， 不等于此时的集群的spider数量总数，则认为该单据运行前拓扑发生变更，如果执行下去就会有风险
             raise NormalSpiderFlowException(
@@ -105,6 +116,22 @@ class TenDBClusterReduceNodesFlow(object):
             raise NormalSpiderFlowException(
                 message=_("[{}]集群最后不能少于{}个spider_slave实例".format(cluster.immute_domain, self.mix_spider_slave_count))
             )
+        # 判断剩余的spider节点是否满足集群的容灾要求, 如果只剩一个spider节点，则不做判断.
+        check_hosts = [
+            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+            for i in remaining_spiders
+        ]
+        if len(check_hosts) > 1:
+            if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
+                cluster=cluster, hosts=check_hosts
+            ):
+                raise CheckDisasterToleranceException(
+                    message=_(
+                        "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
+                            cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
+                        )
+                    )
+                )
 
         return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
@@ -115,6 +142,7 @@ class TenDBClusterReduceNodesFlow(object):
         reduce_spider_role: TenDBClusterSpiderRole,
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
+        is_check_disaster_tolerance_level: bool = True,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -123,6 +151,7 @@ class TenDBClusterReduceNodesFlow(object):
         @param reduce_spider_role: 下架角色
         @param spider_reduced_to_count_snapshot 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
+        @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         """
         disable_manual_confirm = self.data.get("disable_manual_confirm", False)
 
@@ -141,6 +170,7 @@ class TenDBClusterReduceNodesFlow(object):
             spider_reduced_hosts=spider_reduced_hosts,
             spider_reduced_to_count_snapshot=spider_reduced_to_count_snapshot,
             is_check_min_count=is_check_min_count,
+            is_check_disaster_tolerance_level=is_check_disaster_tolerance_level,
         )
 
         # 拼接子流程全局变量

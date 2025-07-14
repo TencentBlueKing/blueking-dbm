@@ -61,7 +61,7 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: st
                 "conf_file": db_version,
                 "conf_type": ConfigTypeEnum.DBConf,
                 "namespace": ClusterType.TenDBCluster,
-                "format": FormatType.MAP,
+                "format": FormatType.MAP_LEVEL,
             }
         )["content"]["mysqld"]
 

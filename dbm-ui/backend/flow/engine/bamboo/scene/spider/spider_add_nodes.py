@@ -25,6 +25,8 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_slaves_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
@@ -76,6 +78,7 @@ class TenDBClusterAddNodesFlow(object):
         resource_spec: dict,
         new_db_module_id: int = 0,
         new_pkg_id: int = 0,
+        is_check_disaster_tolerance_level: bool = True,
     ):
         """
         定义添加节点的子流程
@@ -87,6 +90,23 @@ class TenDBClusterAddNodesFlow(object):
         except Cluster.DoesNotExist:
             raise ClusterNotExistException(
                 cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
+
+        # 在做一下容灾级别检查，因为flow validator 只能做前置检验，这是没有申请到机器，所以只能在flow构建时判断
+        # 查询出集群已经存在的spider信息
+        exists_hosts = [
+            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+            for i in cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=add_spider_role)
+        ]
+        if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
+            cluster, add_spider_hosts + exists_hosts
+        ):
+            raise CheckDisasterToleranceException(
+                message=_(
+                    "[{}]集群spider节点不满足容灾要求[{}]，请检查，添加后预期节点信息:{}".format(
+                        cluster.immute_domain, cluster.disaster_tolerance_level, add_spider_hosts + exists_hosts
+                    )
+                )
             )
 
         # 补充这次单据需要的隐形参数，spider版本以及字符集

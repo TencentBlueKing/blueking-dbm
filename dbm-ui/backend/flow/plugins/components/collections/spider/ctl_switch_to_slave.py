@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from time import sleep
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DBConfigApi, DRSApi
@@ -126,10 +126,17 @@ class CtlSwitchToSlaveService(BaseService):
 
         return True
 
-    def _new_master_enable_primary(self, cluster: Cluster, new_master: ProxyInstance, reduce_ctl_primary: str):
+    def _new_master_enable_primary(
+        self, cluster: Cluster, new_master: ProxyInstance, reduce_ctl_primary: str, is_force: bool = False
+    ):
         """
         提升新节点作为主节点的逻辑
+        @param cluster: 集群元数据
+        @param new_master: 待升主的tdbctl元数据
+        @param reduce_ctl_primary: 旧的tdbctl信息，格式ip:port
+        @param is_force: 是否强制模式，默认不开启
         """
+        enable_primary_sql = "TDBCTL ENABLE PRIMARY FORCE" if is_force else "TDBCTL ENABLE PRIMARY"
         rpc_params = {
             "addresses": [f"{new_master.machine.ip}{IP_PORT_DIVIDER}{new_master.admin_port}"],
             "cmds": [],
@@ -165,7 +172,7 @@ class CtlSwitchToSlaveService(BaseService):
             )
 
         # 提升新主节点
-        exec_sql = ["set tc_admin=1", f"TDBCTL DROP NODE IF EXISTS {server_name}", "TDBCTL ENABLE PRIMARY"]
+        exec_sql = ["set tc_admin=1", f"TDBCTL DROP NODE IF EXISTS {server_name}", enable_primary_sql]
         rpc_params["cmds"] = exec_sql
         res = DRSApi.rpc(rpc_params)
         if res[0]["error_msg"]:
@@ -269,13 +276,22 @@ class CtlSwitchToSlaveService(BaseService):
         # 阶段3 根据传入新的primary节点,计算出其余的从节点
         other_secondary = ctl_set.exclude(machine__ip=new_ctl_primary.machine.ip)
 
-        # 阶段4 其余节点同步新的primary节点
-        self._sync_to_new_master(cluster, new_ctl_primary, other_secondary)
-        self.log_info(_("在其余节点同步新的primary节点[{}]成功").format(new_ctl_primary))
+        # 这里考虑到ctl集群只有一个节点的情况，则需要用Standalone模式提示为primary
+        if not other_secondary:
+            # Standalone 模式
+            self.log_info(_("目前只有一个tdbctl节点，使用Standalone集群模式， 强制提升为primary"))
+            # 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY FORCE
+            self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary, is_force=True)
+            self.log_info(_("节点[{}:{}]提升自己为primary成功").format(new_ctl_primary.machine.ip, new_ctl_primary.admin_port))
+        else:
+            # 集群模式
+            # 阶段4 其余节点同步新的primary节点
+            self._sync_to_new_master(cluster, new_ctl_primary, other_secondary)
+            self.log_info(_("在其余节点同步新的primary节点[{}]成功").format(new_ctl_primary))
 
-        # 阶段5 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY
-        self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary)
-        self.log_info(_("节点[{}:{}]提升自己为primary成功").format(new_ctl_primary.machine.ip, new_ctl_primary.admin_port))
+            # 阶段5 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY
+            self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary)
+            self.log_info(_("节点[{}:{}]提升自己为primary成功").format(new_ctl_primary.machine.ip, new_ctl_primary.admin_port))
 
         # 阶段6 其余tdbctl slave执行flush routing，确保路由是同步的
         self.log_info("exec flush routing ....")

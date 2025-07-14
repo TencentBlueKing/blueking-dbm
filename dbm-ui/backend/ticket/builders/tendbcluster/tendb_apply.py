@@ -86,6 +86,10 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         )
         # 校验分片数合法
         TendbBaseOperateDetailSerializer.validate_cluster_shard_num(attrs)
+
+        # 检查spider_master数量上限
+        TendbBaseOperateDetailSerializer.validate_spider_count_for_apply(self.context["bk_biz_id"], attrs)
+
         return attrs
 
 
