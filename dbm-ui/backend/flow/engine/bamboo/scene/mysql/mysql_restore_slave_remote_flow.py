@@ -163,6 +163,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "install_ip": self.data["new_slave_ip"],
                 "cluster_ids": self.data["cluster_ids"],
                 "package": self.data["package"],
+                # "spec_config": self.data["resource_spec"]["new_slave"],
+                # "spec_id": self.data["resource_spec"]["new_slave"]["id"],
             }
             install_sub_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),

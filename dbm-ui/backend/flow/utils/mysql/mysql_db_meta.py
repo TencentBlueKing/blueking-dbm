@@ -730,11 +730,20 @@ class MySQLDBMeta(object):
 
     def slave_recover_add_instance(self):
         # tendb ha从节点重建
+        if "resource_spec" in self.ticket_data:
+            resource_spec = self.ticket_data["resource_spec"]["new_slave"]
+        else:
+            cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+            resource_spec = cluster.storageinstance_set.first(
+                instance_inner_role=InstanceInnerRole.MASTER.value
+            ).machine.spec_config
         machines = [
             {
                 "ip": self.cluster["install_ip"],
                 "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec,
+                "spec_id": resource_spec.get(["id"], 0),
             }
         ]
         storage_instances = []
@@ -928,17 +937,29 @@ class MySQLDBMeta(object):
         mysql_pkg = Package.get_latest_package(
             version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
         )
-
+        if "resource_spec" in self.ticket_data:
+            resource_spec_master = self.ticket_data["resource_spec"]["master"]
+            resource_spec_slave = self.ticket_data["resource_spec"]["slave"]
+        else:
+            cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+            resource_spec_master = cluster.storageinstance_set.first(
+                instance_inner_role=InstanceInnerRole.MASTER.value
+            ).machine.spec_config
+            resource_spec_slave = resource_spec_master
         machines = [
             {
                 "ip": self.cluster["new_master_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec_master,
+                "spec_id": resource_spec_master.get(["id"], 0),
             },
             {
                 "ip": self.cluster["new_slave_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
+                "spec_config": resource_spec_slave,
+                "spec_id": resource_spec_slave.get(["id"], 0),
             },
         ]
         storage_instances = []

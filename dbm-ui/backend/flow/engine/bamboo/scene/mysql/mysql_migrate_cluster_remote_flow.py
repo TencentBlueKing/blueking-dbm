@@ -211,6 +211,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                 "new_master_ip": self.data["new_master_ip"],
                 "new_slave_ip": self.data["new_slave_ip"],
                 "bk_cloud_id": cluster_class.bk_cloud_id,
+                # "master_spec_config": self.data["resource_spec"]["master"],
+                # "slave_spec_config": self.data["resource_spec"]["slave"],
             }
             install_sub_pipeline.add_act(
                 act_name=_("安装完毕,写入初始化实例的db_meta元信息"),
