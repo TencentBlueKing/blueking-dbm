@@ -35,7 +35,7 @@
           <ClusterColumn
             ref="clusterRef"
             v-model="item.cluster"
-            allows-duplicates
+            allow-repeat
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <DbNameColumn
@@ -107,7 +107,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
@@ -119,6 +119,8 @@
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/db-name-column/Index.vue';
 
+  import { random } from '@utils';
+
   interface RowData {
     cluster: TendbClusterModel;
     fromDatabase: string[];
@@ -128,7 +130,7 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
   const clusterRef = ref<InstanceType<typeof ClusterColumn>[]>();
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const batchInputConfig = [
     {
@@ -149,12 +151,14 @@
   ];
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster:
-      data.cluster ||
-      ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
         id: 0,
         master_domain: '',
-      } as TendbClusterModel),
+      } as unknown as TendbClusterModel,
+      data.cluster,
+    ),
     fromDatabase: data.fromDatabase || [],
     toDatabase: data.toDatabase || [],
   });
@@ -166,9 +170,8 @@
   });
 
   const formData = reactive(defaultData());
-  const selected = computed(() => ({
-    [ClusterTypes.TENDBCLUSTER]: formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster),
-  }));
+
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
@@ -310,21 +313,10 @@
       }),
     );
     if (isClear) {
-      tableKey.value = Date.now();
-      formData.tableData = [...dataList]; // 覆盖
+      tableKey.value = random();
+      formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      formData.tableData.forEach((item, index) => {
-        clusterRef.value?.[index]
-          ?.fetch?.({
-            exact_domain: item.cluster.master_domain,
-          })
-          .then(() => {
-            tableRef.value?.validateByRowIndex(index);
-          });
-      });
-    });
   };
 </script>
