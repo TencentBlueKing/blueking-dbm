@@ -93,6 +93,8 @@
     .region-group {
       display: flex;
       align-items: center;
+      width: 100% !important;
+      flex-wrap: wrap;
 
       :deep(.bk-radio-button-label) {
         min-width: 100px;
@@ -101,6 +103,7 @@
 
       .region-group-item {
         position: relative;
+        margin-bottom: 4px;
         margin-left: -1px;
       }
     }
