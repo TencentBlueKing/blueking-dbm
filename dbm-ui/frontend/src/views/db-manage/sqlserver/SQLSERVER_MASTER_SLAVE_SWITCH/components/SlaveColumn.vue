@@ -27,7 +27,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
+  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/sqlserverCluster';
 
   interface Props {
     master: {
