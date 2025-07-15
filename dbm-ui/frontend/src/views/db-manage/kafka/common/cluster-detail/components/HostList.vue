@@ -172,37 +172,23 @@
         </template>
       </BkTableColumn>
     </DbTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="clusterData"
       v-model:is-show="isShowExpandsion"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="clusterData"
-        :data="clusterData"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      @change="handleOperationChange" />
+    <ClusterShrink
+      v-if="clusterData"
       v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="clusterData"
-        :cluster-id="clusterData.id"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      :machine-list="operationNodeList"
+      @change="handleOperationChange" />
+    <ClusterReplace
+      v-if="clusterData"
       v-model:is-show="isShowReplace"
-      :title="t('xx替换【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
-      :width="1050">
-      <ClusterReplace
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
+      :cluster-data="clusterData"
+      :machine-list="operationNodeList"
+      @change="handleOperationChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -251,20 +237,6 @@
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('节点类型不支持缩容');
-    } else {
-      // 其它类型的节点数不能全部被缩容，至少保留一个
-      let brokerNum = 0;
-      tableRef.value!.getData<KafkaMachineModel>().forEach((nodeItem) => {
-        if (nodeItem.isBroker) {
-          brokerNum = brokerNum + 1;
-        }
-      });
-
-      if (node.isBroker && brokerNum < 2) {
-        options.disabled = true;
-        options.tooltips.disabled = false;
-        options.tooltips.content = t('Broker类型节点至少保留一个');
-      }
     }
 
     return options;
@@ -338,13 +310,6 @@
   const selectedMachineList = shallowRef<Array<KafkaMachineModel>>([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
-  const selectedMachineMap = computed(() => {
-    return selectedMachineList.value.reduce<Record<number, KafkaMachineModel>>((result, item) => {
-      return Object.assign(result, {
-        [item.bk_host_id]: item,
-      });
-    }, {});
-  });
 
   const batchShrinkDisabledInfo = computed(() => {
     const options = {
@@ -366,21 +331,7 @@
       options.tooltips.content = t('仅Broker类型节点支持缩容');
       return options;
     }
-    let brokerNum = 0;
-    tableRef.value!.getData<KafkaMachineModel>().forEach((nodeItem) => {
-      if (selectedMachineMap.value[nodeItem.bk_host_id]) {
-        return;
-      }
-      if (nodeItem.isBroker) {
-        brokerNum = brokerNum + 1;
-      }
-    });
 
-    if (brokerNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Broker类型节点至少保留一个');
-    }
     return options;
   });
 

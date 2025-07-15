@@ -296,7 +296,6 @@
   };
 
   const handleChangeFontSize = (fontSize: number) => {
-    console.log('fontSize = ', fontSize);
     editor.updateOptions({ fontSize });
   };
 

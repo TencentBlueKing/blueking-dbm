@@ -170,36 +170,23 @@
         </template>
       </BkTableColumn>
     </DbTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="clusterData"
       v-model:is-show="isShowExpandsion"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'Pulsar', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="clusterData"
-        :data="clusterData"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      @change="handleOperationChange" />
+    <ClusterShrink
+      v-if="clusterData"
       v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', { title: 'Pulsar', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      :machine-list="operationNodeList"
+      @change="handleOperationChange" />
+    <ClusterReplace
+      v-if="clusterData"
       v-model:is-show="isShowReplace"
-      :title="t('xx替换【name】', { title: 'Pulsar', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterReplace
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
+      :cluster-data="clusterData"
+      :machine-list="operationNodeList"
+      @change="handleOperationChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -307,27 +294,6 @@
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('节点类型不支持缩容');
-    } else {
-      // 其它类型的节点数不能全部被缩容，至少保留一个
-      let bookkeeperNodeNum = 0;
-      let brokerNodeNum = 0;
-      (tableRef.value?.getData<PulsarMachineModel>() || []).forEach((nodeItem) => {
-        if (nodeItem.isBookkeeper) {
-          bookkeeperNodeNum = bookkeeperNodeNum + 1;
-        } else if (nodeItem.isBroker) {
-          brokerNodeNum = brokerNodeNum + 1;
-        }
-      });
-
-      if (node.isBookkeeper && bookkeeperNodeNum < 3) {
-        options.disabled = true;
-        options.tooltips.disabled = false;
-        options.tooltips.content = t('Bookkeeper 类型节点至少保留两个');
-      } else if (node.isBroker && brokerNodeNum < 2) {
-        options.disabled = true;
-        options.tooltips.disabled = false;
-        options.tooltips.content = t('Broker 类型节点至少保留一个');
-      }
     }
 
     return options;
@@ -342,14 +308,6 @@
   const operationNodeList = shallowRef<Array<PulsarMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<PulsarMachineModel>>([]);
   const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
-
-  const selectedMachineMap = computed(() => {
-    return selectedMachineList.value.reduce<Record<number, PulsarMachineModel>>((result, item) => {
-      return Object.assign(result, {
-        [item.bk_host_id]: item,
-      });
-    }, {});
-  });
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -372,30 +330,6 @@
       options.tooltips.disabled = false;
       options.tooltips.content = t('Zookeeper 节点不支持缩容');
       return options;
-    }
-
-    // 其它类型的节点数不能全部被缩容，至少保留一个
-    let bookkeeperNodeNum = 0;
-    let brokerNodeNum = 0;
-    tableRef.value?.getData<PulsarMachineModel>().forEach((nodeItem) => {
-      if (selectedMachineMap.value[nodeItem.bk_host_id]) {
-        return;
-      }
-      if (nodeItem.isBookkeeper) {
-        bookkeeperNodeNum = bookkeeperNodeNum + 1;
-      } else if (nodeItem.isBroker) {
-        brokerNodeNum = brokerNodeNum + 1;
-      }
-    });
-
-    if (bookkeeperNodeNum < 2) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Bookkeeper类型节点至少保留两个');
-    } else if (brokerNodeNum < 1) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('Broker类型节点至少保留一个');
     }
 
     return options;

@@ -12,89 +12,27 @@
 -->
 
 <template>
-  <div class="kafka-cluster-replace-box">
-    <template v-if="!isEmpty">
-      <BkRadioGroup
-        v-model="ipSource"
-        class="ip-srouce-box">
-        <BkRadioButton label="resource_pool">
-          {{ t('资源池自动匹配') }}
-        </BkRadioButton>
-        <BkRadioButton label="manual_input">
-          {{ t('资源池手动选择') }}
-        </BkRadioButton>
-      </BkRadioGroup>
-      <div
-        v-show="nodeInfoMap.broker.oldHostList.length > 0"
-        class="item">
-        <div class="item-label">Broker</div>
-        <HostReplace
-          ref="brokerRef"
-          v-model:host-list="nodeInfoMap.broker.hostList"
-          v-model:old-host-list="nodeInfoMap.broker.oldHostList"
-          v-model:resource-spec="nodeInfoMap.broker.resourceSpec"
-          :cloud-info="{
-            id: data.bk_cloud_id,
-            name: data.bk_cloud_name,
-          }"
-          :data="nodeInfoMap.broker"
-          :db-type="DBTypes.KAFKA"
-          :ip-source="ipSource"
-          @remove-node="handleRemoveNode" />
-      </div>
-      <div
-        v-show="nodeInfoMap.zookeeper.oldHostList.length > 0"
-        class="item">
-        <div class="item-label">Zookeeper</div>
-        <HostReplace
-          ref="zookeeperRef"
-          v-model:host-list="nodeInfoMap.zookeeper.hostList"
-          v-model:old-host-list="nodeInfoMap.zookeeper.oldHostList"
-          v-model:resource-spec="nodeInfoMap.zookeeper.resourceSpec"
-          :cloud-info="{
-            id: data.bk_cloud_id,
-            name: data.bk_cloud_name,
-          }"
-          :data="nodeInfoMap.zookeeper"
-          :db-type="DBTypes.KAFKA"
-          :ip-source="ipSource"
-          @remove-node="handleRemoveNode" />
-      </div>
-    </template>
-    <div
-      v-else
-      class="node-empty">
-      <BkException
-        scene="part"
-        type="empty">
-        <template #description>
-          <DbIcon type="attention" />
-          <span>{{ t('请先返回列表选择要替换的节点 IP') }}</span>
-        </template>
-      </BkException>
-    </div>
-  </div>
+  <MachineReplace
+    v-model="nodeInfoMap"
+    v-model:is-show="isShow"
+    :cluster-data="clusterData"
+    :title="t('xx替换【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
+    @remove-node="handleRemoveNode"
+    @submit="handleChange" />
 </template>
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
-  import { computed, reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import KafkaModel from '@services/model/kafka/kafka';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { ClusterTypes } from '@common/const';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
-
-  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
-
-  import { messageError } from '@utils';
+  import MachineReplace, { type TReplaceNode } from '@views/db-manage/common/machine-replace/Index.vue';
 
   interface Props {
-    data: KafkaModel;
-    machineList: KafkaMachineModel[];
+    clusterData: KafkaModel;
+    machineList?: KafkaMachineModel[];
   }
 
   interface Emits {
@@ -102,34 +40,22 @@
     (e: 'removeNode', bkHostId: number): void;
   }
 
-  interface Exposes {
-    cancel: () => Promise<any>;
-    submit: () => Promise<any>;
-  }
-
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    machineList: () => [],
+  });
   const emits = defineEmits<Emits>();
 
-  // const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
-  //   hostList.reduce(
-  //     (result, item) => ({
-  //       ...result,
-  //       [item.bk_host_id]: true,
-  //     }),
-  //     {} as Record<number, boolean>,
-  //   );
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const brokerRef = ref();
-  const zookeeperRef = ref();
-
-  const ipSource = ref('resource_pool');
   const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     broker: {
-      clusterId: props.data.id,
+      clusterId: props.clusterData.id,
       hostList: [],
+      label: 'Broker',
       oldHostList: [],
       resourceSpec: {
         count: 3,
@@ -140,8 +66,9 @@
       specMachineType: 'broker',
     },
     zookeeper: {
-      clusterId: props.data.id,
+      clusterId: props.clusterData.id,
       hostList: [],
+      label: 'Zookeeper',
       oldHostList: [],
       resourceSpec: {
         count: 0,
@@ -151,11 +78,6 @@
       specClusterType: ClusterTypes.KAFKA,
       specMachineType: 'zookeeper',
     },
-  });
-
-  const isEmpty = computed(() => {
-    const { broker, zookeeper } = nodeInfoMap;
-    return broker.oldHostList.length < 1 && zookeeper.oldHostList.length < 1;
   });
 
   watch(
@@ -184,143 +106,7 @@
     emits('removeNode', node.bk_host_id);
   };
 
-  defineExpose<Exposes>({
-    cancel() {
-      return Promise.resolve();
-    },
-    submit() {
-      return new Promise((resolve, reject) => {
-        if (isEmpty.value) {
-          messageError(t('至少替换一种节点类型'));
-          return reject();
-        }
-
-        Promise.all([brokerRef.value.getValue(), zookeeperRef.value.getValue()]).then(
-          ([brokerValue, zookeeperValue]) => {
-            const isEmptyValue = () => {
-              if (ipSource.value === 'manual_input') {
-                return brokerValue.new_nodes.length + zookeeperValue.new_nodes.length < 1;
-              }
-
-              return !(
-                (brokerValue.resource_spec.spec_id > 0 && brokerValue.resource_spec.count > 0) ||
-                (zookeeperValue.resource_spec.spec_id > 0 && zookeeperValue.resource_spec.count > 0)
-              );
-            };
-
-            if (isEmptyValue()) {
-              messageError(t('替换节点不能为空'));
-              return reject();
-            }
-
-            const getReplaceNodeNums = () => {
-              if (ipSource.value === 'manual_input') {
-                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-              }
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-                if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.oldHostList.length;
-                }
-                return result;
-              }, 0);
-            };
-
-            InfoBox({
-              cancelText: t('取消'),
-              confirmText: t('确认'),
-              contentAlign: 'center',
-              footerAlign: 'center',
-              headerAlign: 'center',
-              onCancel: () => reject(),
-              onConfirm: () => {
-                const nodeData = {};
-                if (ipSource.value === 'manual_input') {
-                  const formatHost = (hostList: TReplaceNode['hostList'] = []) => {
-                    const hosts = hostList.map((hostItem) => ({
-                      bk_biz_id: hostItem.dedicated_biz,
-                      bk_cloud_id: hostItem.bk_cloud_id,
-                      bk_host_id: hostItem.bk_host_id,
-                      ip: hostItem.ip,
-                    }));
-                    return {
-                      count: hostList.length,
-                      hosts,
-                      spec_id: 0,
-                    };
-                  };
-                  Object.assign(nodeData, {
-                    resource_spec: {
-                      broker: formatHost(brokerValue.new_nodes),
-                      zookeeper: formatHost(zookeeperValue.new_nodes),
-                    },
-                  });
-                } else {
-                  Object.assign(nodeData, {
-                    resource_spec: {
-                      broker: brokerValue.resource_spec,
-                      zookeeper: zookeeperValue.resource_spec,
-                    },
-                  });
-                }
-                createTicket({
-                  bk_biz_id: currentBizId,
-                  details: {
-                    cluster_id: props.data.id,
-                    ip_source: 'resource_pool',
-                    old_nodes: {
-                      broker: brokerValue.old_nodes,
-                      zookeeper: zookeeperValue.old_nodes,
-                    },
-                    ...nodeData,
-                  },
-                  ticket_type: TicketTypes.KAFKA_REPLACE,
-                }).then(() => {
-                  emits('change');
-                  resolve('success');
-                });
-              },
-              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            });
-          },
-          () => reject(),
-        );
-      });
-    },
-  });
+  const handleChange = () => {
+    emits('change');
+  };
 </script>
-<style lang="less">
-  .kafka-cluster-replace-box {
-    padding: 18px 43px 18px 37px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-
-    .ip-srouce-box {
-      display: flex;
-      margin-bottom: 16px;
-
-      .bk-radio-button {
-        flex: 1;
-        background: #fff;
-      }
-    }
-
-    .item {
-      & ~ .item {
-        margin-top: 24px;
-      }
-
-      .item-label {
-        margin-bottom: 6px;
-        font-weight: bold;
-        color: #313238;
-      }
-    }
-
-    .node-empty {
-      height: calc(100vh - 58px);
-      padding-top: 168px;
-    }
-  }
-</style>

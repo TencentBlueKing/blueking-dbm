@@ -20,6 +20,7 @@
       class="mb-16"
       :columns="tableColumns"
       :data="originalNodeList"
+      style="max-height: calc(100vh - 300px)"
       @row-click="handleRowClick" />
     <template #footer>
       <I18nT
@@ -159,10 +160,7 @@
     {
       label: t('类型'),
       render: ({ data }: { data: IRowData }) => {
-        if (data.role_set && data.role_set.length > 1) {
-          return <RenderClusterRole data={data.role_set} />;
-        }
-        return <RenderClusterRole data={[data.role || '']} />;
+        return <RenderClusterRole data={data.role_set || [data.role as string]} />;
       },
       width: 300,
     },

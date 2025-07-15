@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes, TicketTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -73,6 +73,7 @@ export default class Doris extends ClusterBase {
   cluster_type_name: string;
   create_at: string;
   creator: string;
+  db_type: DBTypes.DORIS;
   disaster_tolerance_level: Affinity;
   domain: string;
   doris_backend_cold: Array<ClusterListNode>;
@@ -119,6 +120,7 @@ export default class Doris extends ClusterBase {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.doris_backend_cold = payload.doris_backend_cold;

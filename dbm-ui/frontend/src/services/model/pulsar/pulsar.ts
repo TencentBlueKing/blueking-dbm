@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -72,6 +72,7 @@ export default class Pulsar extends ClusterBase {
   cluster_type_name: string;
   create_at: string;
   creator: string;
+  db_type: DBTypes.PULSAR;
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
@@ -124,6 +125,7 @@ export default class Pulsar extends ClusterBase {
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.id = payload.id;
