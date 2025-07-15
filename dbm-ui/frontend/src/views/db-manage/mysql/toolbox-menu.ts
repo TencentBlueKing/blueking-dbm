@@ -153,6 +153,12 @@ export default [
         name: t('版本升级'),
         parentId: 'migrate',
       },
+      {
+        dbConsoleValue: 'mysql.toolbox.clusterStandardize',
+        id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
+        parentId: 'migrate',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'migrate',

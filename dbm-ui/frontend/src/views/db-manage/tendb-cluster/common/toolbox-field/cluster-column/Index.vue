@@ -36,7 +36,7 @@
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-    :selected="selected"
+    :selected="selectedClusters"
     :support-offline-data="supportOfflineData"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -46,9 +46,9 @@
   import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getTendbClusterList } from '@services/source/tendbcluster';
+  import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -58,8 +58,8 @@
      * @description 是否允许重复选择集群
      * @default false
      */
-    allowsDuplicates?: boolean;
-    selected: Record<ClusterTypes.TENDBCLUSTER, TendbClusterModel[]>;
+    allowRepeat?: boolean;
+    selected: TendbClusterModel[];
     /**
      * @description 是否支持离线数据
      * @default false
@@ -70,12 +70,8 @@
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
-  interface Exposes {
-    fetch: typeof queryCluster;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
-    allowsDuplicates: false,
+    allowRepeat: false,
     supportOfflineData: false,
     tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
   });
@@ -89,22 +85,21 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
+  const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({
+    [ClusterTypes.TENDBCLUSTER]: props.selected,
+  }));
 
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'blur',
-      validator: (value: string) => domainRegex.test(value),
+      trigger: 'change',
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
-      trigger: 'blur',
-      validator: (value: string) => {
-        if (props.allowsDuplicates) {
-          return true;
-        }
-        return props.selected[ClusterTypes.TENDBCLUSTER].filter((item) => item.master_domain === value).length < 2;
-      },
+      trigger: 'change',
+      validator: (value: string) =>
+        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
@@ -113,12 +108,12 @@
     },
   ];
 
-  const { loading, runAsync: queryCluster } = useRequest(getTendbClusterList, {
+  const { loading, runAsync: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess(data) {
-      const [cluster] = data.results;
-      if (cluster) {
-        modelValue.value = cluster;
+      const [currentCluster] = data;
+      if (currentCluster) {
+        modelValue.value = currentCluster;
       }
     },
   });
@@ -130,20 +125,28 @@
   const handleChange = (value: string) => {
     modelValue.value.id = 0;
     modelValue.value.master_domain = value;
-    if (value) {
-      queryCluster({
-        exact_domain: value,
-      });
-    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
-  defineExpose<Exposes>({
-    fetch: queryCluster,
-  });
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: ClusterTypes.TENDBCLUSTER,
+          db_type: DBTypes.TENDBCLUSTER,
+          exact_domain: modelValue.value.master_domain,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

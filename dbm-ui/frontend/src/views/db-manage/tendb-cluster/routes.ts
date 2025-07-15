@@ -252,6 +252,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
     },
+    createRouteItem(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, t('集群标准化'), {
+      dbConsole: 'tendbCluster.toolbox.clusterStandardize',
+    }),
   ],
 };
 

@@ -97,6 +97,7 @@
     [TicketTypes.MYSQL_CLB_BIND_DOMAIN]: 'DatabaseTendbha', // mysql 主域名指向CLB ip
     [TicketTypes.MYSQL_CLB_UNBIND_DOMAIN]: 'DatabaseTendbha', // mysql 解绑主域名指向clb
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
+    [TicketTypes.MYSQL_CLUSTER_STANDARDIZE]: TicketTypes.MYSQL_CLUSTER_STANDARDIZE, // mysql 集群标准化
     [TicketTypes.MYSQL_DATA_MIGRATE]: 'MySQLDataMigrate', // Mysql DB克隆
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
     [TicketTypes.MYSQL_FLASHBACK]: 'MySQLDBFlashback', // Mysql 闪回
@@ -181,6 +182,7 @@
     [TicketTypes.TENDBCLUSTER_CLB_BIND_DOMAIN]: 'tendbClusterList', // tendbcluster 主域名指向CLB ip
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
     [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
+    [TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE]: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, // spider 集群标准化
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
