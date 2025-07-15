@@ -6,6 +6,7 @@ export * from './checkSum';
 export * from './clbBindDomain';
 export * from './clbUnbindDomain';
 export * from './clientCloneRules';
+export * from './clusterStandardize';
 export * from './dataMigrate';
 export * from './dataRepair';
 export * from './deleteClearDb';

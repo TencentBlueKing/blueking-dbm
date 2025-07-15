@@ -94,6 +94,11 @@ export default [
         name: t('重建从库'),
         parentId: 'spider_cluster_maintain',
       },
+      {
+        id: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
+        parentId: 'spider_cluster_maintain',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'spider_cluster_maintain',

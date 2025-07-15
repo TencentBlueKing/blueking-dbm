@@ -65,7 +65,7 @@
   import { filterClusters } from '@services/source/dbbase';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -74,7 +74,7 @@
     /**
      * 是否允许重复
      */
-    allowRepeat?: boolean
+    allowRepeat?: boolean;
     /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
@@ -131,13 +131,14 @@
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
@@ -193,6 +194,8 @@
       if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+          db_type: DBTypes.MYSQL,
           exact_domain: modelValue.value.master_domain,
         });
       }

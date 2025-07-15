@@ -129,6 +129,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
+  createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
