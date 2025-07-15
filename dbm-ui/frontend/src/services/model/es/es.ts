@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -71,6 +71,7 @@ export default class Es extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: number;
+  db_type: DBTypes.ES;
   disaster_tolerance_level: Affinity;
   dns_to_clb: boolean;
   domain: string;
@@ -127,6 +128,7 @@ export default class Es extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.es_datanode_cold = payload.es_datanode_cold;
