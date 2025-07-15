@@ -220,6 +220,7 @@
   import { getRedisClusterList, getRedisInstances, getRedisMachineList } from '@services/source/redis';
   import {
     getHaClusterWholeList as getSqlServerHaCluster,
+    getMachineList as getSqlserverhaMachineList,
     getSqlServerInstanceList,
   } from '@services/source/sqlserveHaCluster';
   import {
@@ -319,6 +320,7 @@
       | 'mongoCluster'
       | 'TendbSingleHost'
       | 'SpiderHost'
+      | 'SqlserverHaHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -799,6 +801,52 @@
               },
             ],
           },
+        },
+      },
+    ],
+    SqlserverHaHost: [
+      {
+        content: TendbHaHostContent,
+        id: 'SqlserverHaHost',
+        name: t('SQLServer 主从'),
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+          firsrColumn: {
+            field: 'ip',
+            label: 'IP',
+            role: 'backend_master',
+          },
+          getTableList: getSqlserverhaMachineList,
+        },
+        topoConfig: {
+          countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
+          getTopoList: getSqlServerHaCluster,
+        },
+      },
+      {
+        content: ManualInputHostContent,
+        id: 'manualInput',
+        manualConfig: {
+          activePanelId: 'SqlserverHaHost',
+          checkInstances: getSqlserverhaMachineList,
+          checkKey: 'ip',
+          checkType: 'ip',
+        },
+        name: t('手动输入'),
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+          firsrColumn: {
+            field: 'ip',
+            label: 'IP',
+            role: 'backend_master',
+          },
+          getTableList: getSqlserverhaMachineList,
         },
       },
     ],
