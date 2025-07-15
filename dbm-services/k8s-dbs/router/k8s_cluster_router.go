@@ -40,6 +40,7 @@ func BuildK8sClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	{
 		podGroup := k8sClusterGroup.Group("/pod")
 		podGroup.GET("/logs", k8sClusterController.ListPodLogs)
+		podGroup.GET("", k8sClusterController.GetPodDetail)
 	}
 }
 

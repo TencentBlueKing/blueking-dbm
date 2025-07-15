@@ -17,16 +17,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resp
+package entity
 
-import "k8s-dbs/core/entity"
-
-// K8sPodLogRespVo k8s 的 pod 日志请求返回
-type K8sPodLogRespVo struct {
-	K8sClusterName string           `json:"k8sClusterName" binding:"required"`
-	ClusterName    string           `json:"clusterName" binding:"required"`
-	Namespace      string           `json:"namespace" binding:"required"`
-	PodName        string           `json:"podName" binding:"required"`
-	Container      string           `json:"container,omitempty"`
-	Logs           []*entity.K8sLog `json:"logs,omitempty"`
+// K8sPodDetail k8s 实例详情结构体
+type K8sPodDetail struct {
+	K8sClusterName string `json:"k8sClusterName"`
+	ClusterName    string `json:"clusterName" `
+	Namespace      string `json:"namespace"`
+	ComponentName  string `json:"componentName"`
+	*Pod           `json:",inline"`
+	Manifest       string `json:"manifest"`
 }

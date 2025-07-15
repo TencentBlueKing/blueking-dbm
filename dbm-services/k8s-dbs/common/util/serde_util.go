@@ -17,12 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package entity
+package util
 
-import "time"
+import "sigs.k8s.io/yaml"
 
-// K8sLog 封装 k8s 日志消息
-type K8sLog struct {
-	Timestamp time.Time `json:"timestamp"`
-	Message   string    `json:"message"`
+// MarshalToYAML 将对象序列化为 YAML 字符串
+func MarshalToYAML(obj interface{}) string {
+	yamlBytes, err := yaml.Marshal(obj)
+	if err != nil {
+		panic(err.Error())
+	}
+	return string(yamlBytes)
 }

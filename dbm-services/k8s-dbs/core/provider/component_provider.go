@@ -26,20 +26,14 @@ import (
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/helper"
-	coreerrors "k8s-dbs/errors"
+	corehelper "k8s-dbs/core/helper"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
-
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -58,7 +52,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -72,7 +66,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		},
 	}
 
-	podList, err := helper.ListCRD(k8sClient, crd)
+	podList, err := corehelper.ListCRD(k8sClient, crd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods for component %s: %w", request.ComponentName, err)
 	}
@@ -102,15 +96,6 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	return componentDetail, nil
 }
 
-// convertUnstructuredToPod 将 Unstructured 对象转换为 Pod 类型
-func convertUnstructuredToPod(item unstructured.Unstructured) (*corev1.Pod, error) {
-	pod := &corev1.Pod{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod); err != nil {
-		return nil, fmt.Errorf("cannot convert to Pod format: %w", err)
-	}
-	return pod, nil
-}
-
 // getPodRole 从 Pod 的标签中提取角色信息
 func getPodRole(pod *corev1.Pod) string {
 	if role, exists := pod.Labels["kubeblocks.io/role"]; exists {
@@ -121,23 +106,23 @@ func getPodRole(pod *corev1.Pod) string {
 
 // extractPodsInfo 从 Pod 列表中提取 Pod 信息
 func extractPodsInfo(
-	k8sClient *helper.K8sClient,
+	k8sClient *corehelper.K8sClient,
 	podList *unstructured.UnstructuredList,
 ) ([]*coreentity.Pod, error) {
 	var pods []*coreentity.Pod
 
 	for _, item := range podList.Items {
-		pod, err := convertUnstructuredToPod(item)
+		pod, err := corehelper.ConvertUnstructuredToPod(item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
 		}
 
-		resourceQuota, err := getPodResourceQuota(k8sClient, pod)
+		resourceQuota, err := corehelper.GetPodResourceQuota(k8sClient, pod)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract resource quota for pod %s: %w", pod.Name, err)
 		}
 
-		usage, err := getPodResourceUsage(k8sClient, pod, resourceQuota)
+		usage, err := corehelper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
 		if err != nil {
 			return nil, err
 		}
@@ -156,51 +141,6 @@ func extractPodsInfo(
 	return pods, nil
 }
 
-// getPodStorageCapacity 获取 pod 存储容量大小，单位：GB
-func getPodStorageCapacity(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
-	volumes := pod.Spec.Volumes
-	if len(volumes) == 0 {
-		return nil, nil
-	}
-	var pvcName string
-	for _, volume := range volumes {
-		// 只取第一个
-		if volume.PersistentVolumeClaim != nil {
-			pvcName = volume.PersistentVolumeClaim.ClaimName
-			break
-		}
-	}
-	if pvcName == "" {
-		return nil, nil
-	}
-	ctx, cancel := context.WithTimeoutCause(
-		context.Background(),
-		coreconst.K8sAPIServerTimeout,
-		coreerrors.NewK8sDbsError(coreerrors.K8sAPIServerTimeoutError, fmt.Errorf("获取 PVC %s 超时", pvcName)),
-	)
-	defer cancel()
-
-	pvc, err := k8sClient.ClientSet.CoreV1().PersistentVolumeClaims(pod.Namespace).Get(
-		ctx,
-		pvcName,
-		metav1.GetOptions{},
-	)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			slog.Error("获取 PVC 超时", "pvcName", pvcName, "podName", pod.Name, "error", err)
-		} else {
-			slog.Error("获取 PVC 失败", "pvcName", pvcName, "podName", pod.Name, "error", err)
-		}
-		return nil, err
-	}
-	capacity, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
-	if !ok {
-		return nil, nil
-	}
-	storageSize := coreentity.StorageSize(commutil.ConvertMemoryToGB(&capacity))
-	return &storageSize, nil
-}
-
 // extractEnvVars 从 Pod 列表中提取环境变量（仅取第一个容器的 Env）
 func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, error) {
 	if len(podList.Items) == 0 {
@@ -208,7 +148,7 @@ func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, er
 	}
 	// 只取第一个 Pod 的第一个容器的 Env（根据你的业务逻辑调整）
 	firstPod := podList.Items[0]
-	pod, err := convertUnstructuredToPod(firstPod)
+	pod, err := corehelper.ConvertUnstructuredToPod(firstPod)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", firstPod.GetName(), err)
 	}
@@ -217,30 +157,6 @@ func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, er
 		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
 	}
 	return pod.Spec.Containers[0].Env, nil
-}
-
-// getPodResourceQuota 从 Pod 的容器中提取资源请求和限制
-func getPodResourceQuota(k8sClient *helper.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
-	if len(pod.Spec.Containers) == 0 {
-		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
-	}
-	container := pod.Spec.Containers[0]
-	requestMemory := container.Resources.Requests.Memory()
-	requestCPU := container.Resources.Requests.Cpu()
-	limitMemory := container.Resources.Limits.Memory()
-	limitCPU := container.Resources.Limits.Cpu()
-	storage, _ := getPodStorageCapacity(k8sClient, pod)
-	return &coreentity.PodResourceQuota{
-		Request: &coreentity.QuotaSummary{
-			CPU:    commutil.Float64Ptr(commutil.ConvertCPUToCores(requestCPU)),
-			Memory: commutil.Float64Ptr(commutil.ConvertMemoryToGB(requestMemory)),
-		},
-		Limit: &coreentity.QuotaSummary{
-			CPU:    commutil.Float64Ptr(commutil.ConvertCPUToCores(limitCPU)),
-			Memory: commutil.Float64Ptr(commutil.ConvertMemoryToGB(limitMemory)),
-		},
-		Storage: storage,
-	}, nil
 }
 
 // filterOutKbEnvVars 过滤掉 KB 特定的环境变量
@@ -260,7 +176,7 @@ func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -298,7 +214,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -409,7 +325,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -421,7 +337,7 @@ func (c *ComponentProvider) ListPods(
 			coreconst.ComponentName: params.ComponentName,
 		},
 	}
-	podList, err := helper.ListCRD(k8sClient, crd)
+	podList, err := corehelper.ListCRD(k8sClient, crd)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -442,47 +358,6 @@ func (c *ComponentProvider) ListPods(
 	}
 	return pods, count, nil
 
-}
-
-func getPodResourceUsage(
-	k8sClient *helper.K8sClient,
-	pod *corev1.Pod,
-	resourceQuota *coreentity.PodResourceQuota,
-) (*coreentity.PodResourceUsage, error) {
-	podMetrics, err := k8sClient.MetricsClient.
-		MetricsV1beta1().PodMetricses(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	var totalCPU resource.Quantity
-	var totalMemory resource.Quantity
-	for _, container := range podMetrics.Containers {
-		totalCPU.Add(*container.Usage.Cpu())
-		totalMemory.Add(*container.Usage.Memory())
-	}
-
-	totalCPUCore := commutil.ConvertCPUToCores(&totalCPU)
-	totalMemoryGB := commutil.ConvertMemoryToGB(&totalMemory)
-
-	totalCPUCore = commutil.RoundToDecimal(totalCPUCore, 3)
-	totalMemoryGB = commutil.RoundToDecimal(totalMemoryGB, 3)
-
-	cpuUtilization := totalCPUCore / *resourceQuota.Request.CPU * 100
-	cpuUtilization = commutil.RoundToDecimal(cpuUtilization, 3)
-
-	memoryUtilization := totalMemoryGB / *resourceQuota.Request.Memory * 100
-	memoryUtilization = commutil.RoundToDecimal(memoryUtilization, 3)
-
-	return &coreentity.PodResourceUsage{
-		QuotaSummary: &coreentity.QuotaSummary{
-			CPU:     &totalCPUCore,
-			Memory:  &totalMemoryGB,
-			Storage: nil, // 待补充
-		},
-		CPUPercent:     &cpuUtilization,
-		MemoryPercent:  &memoryUtilization,
-		StoragePercent: nil, // 待补充
-	}, nil
 }
 
 // NewComponentProvider 创建 ComponentProvider 实例

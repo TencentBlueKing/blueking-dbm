@@ -17,29 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package entity
+package resp
 
-// ComponentQueryParams 封装 component 请求
-type ComponentQueryParams struct {
-	K8sClusterName string `json:"k8sClusterName"`
-	ClusterName    string `json:"clusterName"`
-	Namespace      string `json:"namespace"`
-	ComponentName  string `json:"componentName"`
-}
-
-// K8sPodDetailQueryParams 封装 pod detail 请求
-type K8sPodDetailQueryParams struct {
-	K8sClusterName string `json:"k8sClusterName"`
-	ClusterName    string `json:"clusterName"`
-	Namespace      string `json:"namespace"`
-	PodName        string `json:"podName"`
-}
-
-// K8sPodLogQueryParams 封装 pod logs 请求
-type K8sPodLogQueryParams struct {
+// K8sPodDetailResp k8s 的 pod 详情响应结构体
+type K8sPodDetailResp struct {
 	K8sClusterName string `json:"k8sClusterName" binding:"required"`
 	ClusterName    string `json:"clusterName" binding:"required"`
 	Namespace      string `json:"namespace" binding:"required"`
 	PodName        string `json:"podName" binding:"required"`
-	Container      string `json:"container,omitempty"`
 }

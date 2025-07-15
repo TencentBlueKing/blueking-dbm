@@ -22,7 +22,7 @@ package provider
 import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/dbaccess"
-	entity2 "k8s-dbs/metadata/entity"
+	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
 
@@ -31,8 +31,8 @@ import (
 
 // ClusterOperationProvider 定义 cluster operation 业务逻辑层访问接口
 type ClusterOperationProvider interface {
-	CreateClusterOperation(entity *entity2.ClusterOperationEntity) (*entity2.ClusterOperationEntity, error)
-	ListClusterOperations(pagination entity.Pagination) ([]*entity2.ClusterOperationEntity, error)
+	CreateClusterOperation(entity *metaentity.ClusterOperationEntity) (*metaentity.ClusterOperationEntity, error)
+	ListClusterOperations(pagination entity.Pagination) ([]*metaentity.ClusterOperationEntity, error)
 }
 
 // ClusterOperationProviderImpl ClusterOperationProvider 具体实现
@@ -42,8 +42,8 @@ type ClusterOperationProviderImpl struct {
 }
 
 // CreateClusterOperation 创建 cluster operation
-func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *entity2.ClusterOperationEntity) (
-	*entity2.ClusterOperationEntity, error,
+func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *metaentity.ClusterOperationEntity) (
+	*metaentity.ClusterOperationEntity, error,
 ) {
 	model := models.ClusterOperationModel{}
 	err := copier.Copy(&model, entity)
@@ -56,7 +56,7 @@ func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *entity2.Cl
 		slog.Error("Failed to create model", "error", err)
 		return nil, err
 	}
-	addedEntity := entity2.ClusterOperationEntity{}
+	addedEntity := metaentity.ClusterOperationEntity{}
 	if err := copier.Copy(&addedEntity, addedModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -66,7 +66,7 @@ func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *entity2.Cl
 
 // ListClusterOperations 获取 cluster operation 列表
 func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.Pagination) (
-	[]*entity2.ClusterOperationEntity,
+	[]*metaentity.ClusterOperationEntity,
 	error,
 ) {
 	clusterOpModels, _, err := o.clusterOpDBAccess.ListByPage(pagination)
@@ -75,7 +75,7 @@ func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.P
 		return nil, err
 	}
 
-	var clusterOpEntities []*entity2.ClusterOperationEntity
+	var clusterOpEntities []*metaentity.ClusterOperationEntity
 	if err := copier.Copy(&clusterOpEntities, clusterOpModels); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
@@ -86,7 +86,7 @@ func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.P
 		if err != nil {
 			return nil, err
 		}
-		opDefEntity := entity2.OperationDefinitionEntity{}
+		opDefEntity := metaentity.OperationDefinitionEntity{}
 		if err := copier.Copy(&opDefEntity, opDefModel); err != nil {
 			slog.Error("Failed to copy entity to copied model", "error", err)
 			return nil, err

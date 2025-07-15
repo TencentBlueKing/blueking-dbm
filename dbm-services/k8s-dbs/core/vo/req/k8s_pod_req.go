@@ -19,11 +19,13 @@ limitations under the License.
 
 package req
 
-// K8sPodLogReqVo k8s 的 pod 日志请求
-type K8sPodLogReqVo struct {
-	K8sClusterName string `json:"k8sClusterName" binding:"required"`
-	ClusterName    string `json:"clusterName" binding:"required"`
-	Namespace      string `json:"namespace" binding:"required"`
-	PodName        string `json:"podName" binding:"required"`
-	Container      string `json:"container,omitempty"`
+import commentity "k8s-dbs/common/entity"
+
+// K8sPodDetailReq 集群实例详情请求结构体
+type K8sPodDetailReq struct {
+	K8sClusterName    string `json:"k8sClusterName" binding:"required"`
+	ClusterName       string `json:"clusterName" binding:"required"`
+	Namespace         string `json:"namespace" binding:"required"`
+	PodName           string `json:"podName" binding:"required"`
+	commentity.BKAuth `json:",inline"`
 }

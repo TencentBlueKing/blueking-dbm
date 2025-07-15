@@ -74,7 +74,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var podLogEntity entity.K8sPodLogEntity
+	var podLogEntity entity.K8sPodLogQueryParams
 	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &podLogEntity, nil); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -89,6 +89,23 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 		Result: logs,
 	}
 	entity.SuccessResponse(ctx, responseData, coreconst.Success)
+}
+
+// GetPodDetail 获取实例详情
+func (k *K8sController) GetPodDetail(ctx *gin.Context) {
+	var podDetailParams entity.K8sPodDetailQueryParams
+	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &podDetailParams, nil); err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	podDetail, err := k.k8sProvider.GetPodDetail(&podDetailParams)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodDetailError, err))
+		return
+	}
+
+	entity.SuccessResponse(ctx, podDetail, coreconst.Success)
+
 }
 
 // NewK8sController 构建 K8sController

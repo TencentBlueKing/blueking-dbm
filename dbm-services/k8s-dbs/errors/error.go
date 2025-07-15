@@ -82,6 +82,7 @@ const (
 	DeleteK8sNsError         = 1532301
 	GetPodLogError           = 1532302
 	K8sAPIServerTimeoutError = 1532303
+	GetPodDetailError        = 1532304
 )
 
 // addon 管理操作异常
@@ -132,6 +133,7 @@ var codeTag = map[int]string{
 	DeleteK8sNsError:         "删除命名空间失败",
 	GetPodLogError:           "获取 Pod 日志失败",
 	K8sAPIServerTimeoutError: "K8s API Server 请求超时",
+	GetPodDetailError:        "获取 Pod 详情失败",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",

@@ -26,3 +26,33 @@ type K8sSvcEntity struct {
 	Namespace      string `json:"namespace" binding:"required"`
 	ComponentName  string `json:"componentName"`
 }
+
+// K8sInternalSvcInfo 封装 Service 内部访问信息
+type K8sInternalSvcInfo struct {
+	Name      string     `json:"name"`
+	Namespace string     `json:"namespace"`
+	FQDN      string     `json:"fqdn"`
+	Ports     []PortInfo `json:"ports"`
+}
+
+// PortInfo 表示单个端口的信息（内部访问）
+type PortInfo struct {
+	Port     int32  `json:"port"`
+	Protocol string `json:"protocol"`
+	FullAddr string `json:"fullAddr"`
+}
+
+// K8sExternalSvcInfo 封装 LoadBalancer 的外部访问信息
+type K8sExternalSvcInfo struct {
+	Name      string         `json:"name"`
+	Namespace string         `json:"namespace"`
+	Hostname  string         `json:"hostname,omitempty"` // 外部域名（仅 LoadBalancer 有）
+	Ports     []ExternalPort `json:"ports,omitempty"`    // 外部端口信息（仅 LoadBalancer 有）
+}
+
+// ExternalPort 表示单个外部端口的信息
+type ExternalPort struct {
+	Port     int32  `json:"port"`     // Service 暴露的端口
+	Protocol string `json:"protocol"` // 协议（TCP/UDP）
+	FullAddr string `json:"fullAddr"` // 外部完整地址（IP/Hostname:Port）
+}

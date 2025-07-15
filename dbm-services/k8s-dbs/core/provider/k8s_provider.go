@@ -26,6 +26,7 @@ import (
 	"io"
 	"k8s-dbs/common/entity"
 	commentity "k8s-dbs/common/entity"
+	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/helper"
@@ -34,14 +35,17 @@ import (
 	"strings"
 	"time"
 
-	commutil "k8s-dbs/common/util"
+	kbtypes "github.com/apecloud/kbcli/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MaxPodLogLines pod log 返回最大行数
 const MaxPodLogLines = 2000
+
+// MaxPodLogSize pod log 返回最大字节数
 const MaxPodLogSize = 5 * 1024 * 1024
 
 // K8sProvider K8sProvider 结构体
@@ -75,14 +79,14 @@ func (k *K8sProvider) CreateNamespace(
 			return nil, fmt.Errorf("failed to validate resource quota format: %w", err)
 		}
 	}
-
 	ns := k.buildNsFromEntity(entity)
-
+	// 创建命名空间资源
 	createdNs, err := k8sClient.ClientSet.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create namespace: %w", err)
 	}
 
+	// 创建命名空间配额
 	var resourceQuota *coreentity.ResourceQuota
 	if entity.ResourceQuota != nil {
 		quota, err := k.buildQuotaFromEntity(entity)
@@ -112,7 +116,7 @@ func (k *K8sProvider) CreateNamespace(
 
 // ListPodLogs 获取 pod 日志
 func (k *K8sProvider) ListPodLogs(
-	entity *coreentity.K8sPodLogEntity,
+	entity *coreentity.K8sPodLogQueryParams,
 	pagination *entity.Pagination,
 ) ([]*coreentity.K8sLog, uint64, error) {
 	// 1. 获取集群配置
@@ -166,9 +170,66 @@ func (k *K8sProvider) ListPodLogs(
 		return nil, 0, err
 	}
 	return logs, count, nil
-
 }
 
+// GetPodDetail 获取 pod 详情
+func (k *K8sProvider) GetPodDetail(
+	entity *coreentity.K8sPodDetailQueryParams,
+) (*coreentity.K8sPodDetail, error) {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return nil, err
+	}
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+	namespace := entity.Namespace
+	podName := entity.PodName
+	crd := &coreentity.CustomResourceDefinition{
+		ResourceName:         podName,
+		Namespace:            namespace,
+		GroupVersionResource: kbtypes.PodGVR(),
+	}
+	podCR, err := helper.GetCRD(k8sClient, crd)
+	if err != nil {
+		slog.Error("failed to get pod CRD", "err", err)
+		return nil, err
+	}
+	pod, err := helper.ConvertUnstructuredToPod(*podCR)
+	if err != nil {
+		return nil, err
+	}
+	// 获取资源配额
+	resourceQuota, err := helper.GetPodResourceQuota(k8sClient, pod)
+	if err != nil {
+		return nil, err
+	}
+	// 获取资源利用率
+	resourceUsage, err := helper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
+	if err != nil {
+		return nil, err
+	}
+	podDetail := &coreentity.K8sPodDetail{
+		K8sClusterName: entity.K8sClusterName,
+		ClusterName:    entity.ClusterName,
+		Namespace:      entity.Namespace,
+		ComponentName:  pod.Labels["apps.kubeblocks.io/component-name"],
+		Manifest:       commutil.MarshalToYAML(pod),
+		Pod: &coreentity.Pod{
+			PodName:       podName,
+			Node:          pod.Spec.NodeName,
+			Status:        pod.Status.Phase,
+			Role:          getPodRole(pod),
+			ResourceQuota: resourceQuota,
+			ResourceUsage: resourceUsage,
+			CreatedTime:   pod.CreationTimestamp.String(),
+		},
+	}
+	return podDetail, nil
+}
+
+// buildQuotaFromCreated 从 k8s quota 构建 ResourceQuota
 func (k *K8sProvider) buildQuotaFromCreated(
 	createdQuota *corev1.ResourceQuota,
 ) *coreentity.ResourceQuota {
@@ -188,6 +249,7 @@ func (k *K8sProvider) buildQuotaFromCreated(
 	}
 }
 
+// buildQuotaFromEntity 从 entity 构建资源配额
 func (k *K8sProvider) buildQuotaFromEntity(entity *coreentity.K8sNamespaceEntity) (*corev1.ResourceQuota, error) {
 	quota := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -206,6 +268,7 @@ func (k *K8sProvider) buildQuotaFromEntity(entity *coreentity.K8sNamespaceEntity
 	return &quota, nil
 }
 
+// validateResourceQuota 验证资源配额信息
 func (k *K8sProvider) validateResourceQuota(entity *coreentity.K8sNamespaceEntity) error {
 	if entity.ResourceQuota.Limit.CPU.IsZero() {
 		slog.Error("invalid resource quota: CPU limit cannot be zero", "namespace", entity.Name)
@@ -226,6 +289,7 @@ func (k *K8sProvider) validateResourceQuota(entity *coreentity.K8sNamespaceEntit
 	return nil
 }
 
+// buildNsFromEntity 从 entity 构建 namespace
 func (k *K8sProvider) buildNsFromEntity(entity *coreentity.K8sNamespaceEntity) corev1.Namespace {
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,6 +301,7 @@ func (k *K8sProvider) buildNsFromEntity(entity *coreentity.K8sNamespaceEntity) c
 	return ns
 }
 
+// readK8sPodLog 读取 pod 日志信息
 func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog, error) {
 	var k8sLogEntries []*coreentity.K8sLog
 	scanner := bufio.NewScanner(stream)
