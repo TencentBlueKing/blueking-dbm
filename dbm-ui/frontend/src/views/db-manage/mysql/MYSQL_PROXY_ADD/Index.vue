@@ -21,7 +21,7 @@
       class="mb-20"
       form-type="vertical"
       :model="formData">
-      <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
+      <!-- <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
       <BkRadioGroup
         v-model="sourceType"
         class="mb-16"
@@ -34,7 +34,7 @@
         <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
           {{ t('资源池手动选择') }}
         </BkRadioButton>
-      </BkRadioGroup>
+      </BkRadioGroup> -->
       <BatchInput
         :config="batchInputConfig"
         @change="handleBatchInput" />
@@ -324,9 +324,9 @@
     source_type: SourceType;
   }>(TicketTypes.MYSQL_PROXY_ADD);
 
-  const handleChangeMode = () => {
-    tableKey.value = random();
-  };
+  // const handleChangeMode = () => {
+  //   tableKey.value = random();
+  // };
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
