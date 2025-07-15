@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="master.ip"
     fixed="left"
-    :label="t('目标主库主机')"
+    :label="t('故障主库主机')"
     :loading="loading"
     :min-width="150"
     required>
@@ -30,13 +30,13 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')"
-      @change="handleInputChange" />
+      :placeholder="t('请输入如: 192.168.10.2')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
-    :selected="selectedHosts"
+    :cluster-types="['SqlserverHaHost']"
+    :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
@@ -50,9 +50,9 @@
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
-    type PanelListType,
     type InstanceSelectorValues,
     type IValue,
+    type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
@@ -71,9 +71,11 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    cluster_id: number;
     ip: string;
-    master_domain: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
     role: string;
   }>({
     required: true,
@@ -82,15 +84,15 @@
   const { t } = useI18n();
 
   const tabListConfig = {
-    TendbClusterHost: [
+    SqlserverHaHost: [
       {
-        id: 'TendbClusterHost',
-        name: t('目标主库主机'),
+        id: 'SqlserverHaHost',
+        name: t('故障主库主机'),
         tableConfig: {
           firsrColumn: {
             field: 'ip',
             label: t('Master 主机'),
-            role: 'remote_master',
+            role: 'backend_master',
           },
         },
       },
@@ -101,7 +103,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('Master 主机'),
-            role: 'remote_master',
+            role: 'backend_master',
           },
         },
       },
@@ -109,8 +111,8 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    SqlserverHaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -134,7 +136,7 @@
       message: '',
       trigger: 'blur',
       validator: (value: string) =>
-        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
+        !value || illegalInstances ? t('主机存在非 Master 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 
@@ -142,19 +144,21 @@
     manual: true,
     onSuccess: (data) => {
       illegalInstances = data
-        .filter((item) => item.role !== 'remote_master')
+        .filter((item) => item.role !== 'backend_master')
         .map((item) => item.instance_address)
         .join('、');
-      const [item] = data;
-      if (item) {
+      const [currentHost] = data;
+      if (currentHost) {
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          cluster_id: item.cluster_id,
-          ip: item.ip,
-          master_domain: item.master_domain,
-          role: item.role,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          ip: currentHost.ip,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
+          role: currentHost.role,
         };
       }
     },
@@ -164,21 +168,20 @@
     showSelector.value = true;
   };
 
-  const handleInputChange = (value: string) => {
+  const handleChange = (value: string) => {
     illegalInstances = '';
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
-      cluster_id: 0,
       ip: value,
-      master_domain: '',
+      related_clusters: [],
       role: '',
     };
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+    emits('batch-edit', selected.SqlserverHaHost);
   };
 
   watch(
@@ -187,8 +190,8 @@
       if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: [ClusterTypes.TENDBCLUSTER],
-          db_type: DBTypes.TENDBCLUSTER,
+          cluster_type: [ClusterTypes.SQLSERVER_HA],
+          db_type: DBTypes.SQLSERVER,
           instance_addresses: [modelValue.value.ip],
         });
       }
