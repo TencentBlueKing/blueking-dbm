@@ -141,22 +141,8 @@ const toolboxRouters: RouteRecordRaw[] = [
       createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
-      {
-        path: 'master-slave-swap/:page?',
-        name: 'sqlServerMasterSlaveSwap',
-        meta: {
-          navName: t('主从互切'),
-        },
-        component: () => import('@views/db-manage/sqlserver/master-slave-swap/index.vue'),
-      },
-      {
-        path: 'master-failover/:page?',
-        name: 'sqlServerMasterFailover',
-        meta: {
-          navName: t('主库故障切换'),
-        },
-        component: () => import('@views/db-manage/sqlserver/master-failover/index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH, t('主从互切')),
+      createRouteItem(TicketTypes.SQLSERVER_MASTER_FAIL_OVER, t('主库故障切换')),
       createRouteItem(TicketTypes.SQLSERVER_CLEAR_DBS, t('清档')),
       createRouteItem(TicketTypes.SQLSERVER_ROLLBACK, t('定点构造')),
       createRouteItem(TicketTypes.SQLSERVER_BACKUP_DBS, t('数据库备份')),

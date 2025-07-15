@@ -76,12 +76,12 @@ export default [
         parentId: 'migrate',
       },
       {
-        id: 'sqlServerMasterSlaveSwap',
+        id: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'migrate',
       },
       {
-        id: 'sqlServerMasterFailover',
+        id: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
       },
