@@ -175,6 +175,8 @@
         return;
       }
 
+      flowGraphInstance.updateFocusNode(target.data.id);
+
       if (target.data.type === FlowTypes.ServiceActivity) {
         emits('clickSingleNode', target);
       }
@@ -190,20 +192,22 @@
         }
         flowGraphInstance.collapseNode(target.data, target.data.collapsed);
         flowGraphInstance.render();
-        if (flowGraphInstance.searchObj.key) {
-          setTimeout(() => {
-            flowGraphInstance.focusElement(target.data.id);
-          });
-        }
+        // if (flowGraphInstance.searchObj.key) {
+        //   setTimeout(() => {
+        //     flowGraphInstance.focusElement(target.data.id);
+        //   });
+        // }
       }
     });
 
     flowGraphInstance.on(NodeEvent.POINTER_ENTER, (e: any) => {
-      if (e.originalTarget.className === 'todoBackground') {
+      const { originalTarget } = e;
+      const targetName = originalTarget.className;
+      if (targetName === 'todoBackground') {
         handleShowTooltip('todo', e);
         return;
       }
-      if (e.originalTarget.className === 'loadingBackground') {
+      if (targetName === 'loadingBackground') {
         handleShowTooltip('running', e);
         return;
       }
@@ -227,6 +231,9 @@
     });
 
     flowGraphInstance.on(GraphEvent.AFTER_RENDER, () => {
+      if (flowGraphInstance.focusNodeId) {
+        flowGraphInstance.updateFocusNode(flowGraphInstance.focusNodeId, true);
+      }
       setTimeout(() => {
         toolsRef.value!.showMiniMap();
       }, 500);
@@ -389,8 +396,17 @@
     }, 100);
   };
 
+  const handleInitGraph = () => {
+    initGraph();
+  };
+
+  onMounted(() => {
+    window.addEventListener('resize', handleInitGraph);
+  });
+
   onUnmounted(() => {
     flowGraphInstance?.destroy();
+    window.removeEventListener('resize', handleInitGraph);
   });
 
   defineExpose<Exposes>({
@@ -400,7 +416,7 @@
       if (width > canvasWidth) {
         await initGraph();
         flowGraphInstance.isInit = true;
-        flowGraphInstance.fitView();
+        flowGraphInstance.graph?.translateTo([0, 100]);
       }
     },
     getGraph: () => flowGraphInstance,

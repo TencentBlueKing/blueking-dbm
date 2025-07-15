@@ -2,13 +2,13 @@ import _ from 'lodash';
 
 import { encodeRegexp, getCostTimeDisplay } from '@utils';
 
-import manualConfirmImage from '@images/check.png';
 import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
 import MinusImage from '@images/minus-fill.png';
 import AddImage from '@images/plus-fill.png';
+import manualConfirmImage from '@images/querenjixu.png';
 import RetryImage from '@images/refresh-2.png';
-import SkipImage from '@images/stop.png';
+import SkipImage from '@images/skip.png';
 import PendingImage from '@images/sync-pending.png';
 import WaitToRunImage from '@images/wait-to-run.png';
 import WaitTodoImage from '@images/wait-todo.png';
@@ -56,10 +56,10 @@ function adjustLinesText(linesText: string[], keyword: string) {
   return adjustLines.filter((item) => !!item);
 }
 
-function getTextWidth(text: string, fontStyle = '12px Arial') {
+function getTextWidth(text: string, fontStyle = '12px MicrosoftYaHei') {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
-  ctx.font = fontStyle; // 如 '16px Arial'
+  ctx.font = fontStyle; // 如 '16px MicrosoftYaHei'
   return ctx.measureText(text).width;
 }
 
@@ -136,6 +136,21 @@ export class NormalNode extends Rect {
     this.upsert('collapseIcon', GImage, collapseIconStyle, container);
   }
 
+  drawFocusBackgroundShape(attributes: any, container: Group) {
+    const [width, height] = this.getSize(attributes);
+    const focusBackgroundStyle = {
+      fill: '#E1ECFF',
+      height: height + 16,
+      radius: 2,
+      stroke: '#3A84FF',
+      visibility: attributes.focusState,
+      width: width + (this.isSubProcess ? 9 : 16),
+      x: -width / 2 - (this.isSubProcess ? 1 : 8),
+      y: -height / 2 - 8,
+    };
+    this.upsert('focusBackground', GRect, focusBackgroundStyle, container);
+  }
+
   drawNodeTitleShape(attributes: any, container: Group) {
     const [width] = this.getSize(attributes);
     const { name } = this.data;
@@ -154,8 +169,8 @@ export class NormalNode extends Rect {
 
     const nodeTitleStyleList = lines.map((text, index) => {
       return {
-        fill: '#000',
-        fontFamily: 'Arial',
+        fill: '#4D4F56',
+        fontFamily: 'MicrosoftYaHei',
         fontSize: 12,
         maxLines: lines.length > 1 ? 1 : 2,
         text,
@@ -205,7 +220,7 @@ export class NormalNode extends Rect {
       if (skippable) {
         // 跳过
         const skipWraperStyle = {
-          fill: '#EAEBF0',
+          fill: attributes.skipOptFill,
           height: 24,
           radius: 2,
           width: 56,
@@ -239,7 +254,7 @@ export class NormalNode extends Rect {
       if (retryable) {
         // 失败重试
         const retryWraperStyle = {
-          fill: '#EAEBF0',
+          fill: attributes.retryOptFill,
           height: 24,
           radius: 2,
           width: 56,
@@ -275,7 +290,7 @@ export class NormalNode extends Rect {
     if (todoId) {
       // 人工确认
       const manualConfirmWraperStyle = {
-        fill: '#EAEBF0',
+        fill: attributes.manualOptFill,
         height: 24,
         radius: 2,
         width: 80,
@@ -287,11 +302,11 @@ export class NormalNode extends Rect {
         attributes: { x: mcwX, y: mcwY },
       } = this.getShape('manualConfirmWraper');
       const manualConfirmIconStyle = {
-        height: 12,
+        height: 14,
         src: manualConfirmImage,
-        width: 12,
+        width: 14,
         x: mcwX + 5,
-        y: mcwY + 6,
+        y: mcwY + 5,
       };
       this.upsert('manualConfirmIcon', GImage, manualConfirmIconStyle, container);
       const {
@@ -302,12 +317,12 @@ export class NormalNode extends Rect {
         fontSize: 12,
         text: '确认继续',
         x: mciX + 18,
-        y: mciY + 15,
+        y: mciY + 16,
       };
       this.upsert('manualConfirmText', GText, manualConfirmTextStyle, container);
       // 强制失败
       const forceFailWraperStyle = {
-        fill: '#EAEBF0',
+        fill: attributes.forceFailOptFill,
         height: 24,
         radius: 2,
         width: 80,
@@ -342,7 +357,7 @@ export class NormalNode extends Rect {
     if (status === 'RUNNING') {
       // 强制失败
       const forceFailWraperStyle = {
-        fill: '#EAEBF0',
+        fill: attributes.forceFailOptFill,
         height: 24,
         radius: 2,
         width: 80,
@@ -377,7 +392,7 @@ export class NormalNode extends Rect {
   }
 
   drawRetryDisplayShape(_: any, container: Group) {
-    if (!this.isFailed || this.isSubProcess) {
+    if (!this.isFailed || this.isSubProcess || !this.data.retry) {
       return;
     }
 
@@ -410,7 +425,6 @@ export class NormalNode extends Rect {
       y: timeY,
     };
     this.upsert('retryCountBackground', GRect, retryCountBackgroundStyle, container);
-    console.log('retryCount = ', this.data.retry);
     const retryCountNumberStyle = {
       fill: '#4D4F56',
       fontSize: 9,
@@ -544,7 +558,7 @@ export class NormalNode extends Rect {
       fontSize: 9,
       text: timeDisplayText,
       x: -width * 2 + 4,
-      y: -height / 4 + 26,
+      y: -height / 4 + 26 + 2,
       zIndex: 2,
     };
     this.upsert('timeDisplayText', GText, timeDisplayTextStyle, container);
@@ -552,12 +566,12 @@ export class NormalNode extends Rect {
     const {
       attributes: { x: textX, y: textY },
     } = this.getShape('timeDisplayText');
-    const backgroundWidth = getTextWidth(timeDisplayText, '9px Arial');
+    const backgroundWidth = getTextWidth(timeDisplayText, '9px MicrosoftYaHei');
     const timeDisplayBackgroundStyle = {
       fill: '#979BA5',
       height: 14,
       radius: 2,
-      width: backgroundWidth + 8,
+      width: backgroundWidth + 6,
       x: textX - 2,
       y: textY - 14,
       zindex: 1,
@@ -566,7 +580,41 @@ export class NormalNode extends Rect {
     this.upsert('timeDisplayBackground', GRect, timeDisplayBackgroundStyle, container);
   }
 
+  render(attributes = this.parsedAttributes as any, container: Group) {
+    super.render(attributes, container);
+    this.renderNode(attributes, container);
+  }
+
+  // onCreate() {
+  // TODO: 原地旋转的效果后续再研究下
+  // const todoImage = this.shapeMap.todoImage;
+  // if (todoImage) {
+  //   console.log('todoImage = ', todoImage);
+  //   todoImage.animate(
+  //     [
+  //       { transform: 'rotate(0deg)', },
+  //       { transform: 'rotate(360deg)' },
+  //     ],
+  //     {
+  //       direction: 'normal',
+  //       duration: 15000,
+  //       iterations: Infinity,
+  //     },
+  //   );
+  // }
+  // const loadingImage = this.shapeMap.loadingImage;
+  // if (loadingImage) {
+  //   console.log('loadingImage = ', loadingImage);
+  //   loadingImage.animate([{ lineWidth: 5 }, { lineWidth: 10 }], {
+  //     direction: 'alternate',
+  //     duration: 1000,
+  //     iterations: Infinity,
+  //   });
+  // }
+  // }
+
   renderNode(attributes: any, container: Group) {
+    this.drawFocusBackgroundShape(attributes, container);
     this.drawBackgroundShape(attributes, container);
     this.drawTimeDisplayShape(attributes, container);
     this.drawStatusShape(attributes, container);
@@ -574,11 +622,5 @@ export class NormalNode extends Rect {
     this.drawCollapseShape(attributes, container);
     this.drawOperationShape(attributes, container);
     this.drawRetryDisplayShape(attributes, container);
-  }
-
-  // eslint-disable-next-line perfectionist/sort-classes
-  render(attributes = this.parsedAttributes as any, container: Group) {
-    super.render(attributes, container);
-    this.renderNode(attributes, container);
   }
 }

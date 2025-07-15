@@ -19,6 +19,7 @@
       collapsible
       :initial-divide="340"
       :is-collapsed="isCollapsed"
+      :max="600"
       :min="340"
       @after-resize="handleResizeLayout"
       @collapse-change="handleResizeLayout">
@@ -28,6 +29,8 @@
           :data="treeData"
           :root-id="rootId"
           @node-click="handleNodeClick"
+          @node-collapse="(node) => handleTreeCollapse(node, true)"
+          @node-expand="(node) => handleTreeCollapse(node, false)"
           @refresh="handleRefresh"
           @search="handleTreeSearch" />
       </template>
@@ -50,6 +53,8 @@
     @refresh="handleRefresh" />
 </template>
 <script setup lang="tsx">
+  import { FlowTypes } from '@services/source/taskflow';
+
   import { type GraphData } from '@antv/g6';
 
   import FlowCanvas from './components/flow-canvas/Index.vue';
@@ -59,7 +64,6 @@
     generateTreeData,
     getCurrentNodeChildenDataAndEdges,
     type Node,
-    NormalNode,
     type TreeNode,
   } from './components/flow-canvas/utils';
   import NodeDetail from './components/node-detail/Index.vue';
@@ -147,17 +151,45 @@
     flowCanvasRef.value!.initGraph()!;
   };
 
+  const handleTreeCollapse = (node: TreeNode, isCollapsed: boolean) => {
+    const flowGraphInstance = flowCanvasRef.value!.getGraph()!;
+    const currentNode = flowGraphInstance.graphData.nodes.find((item) => item.id === node.id);
+    if (!currentNode || currentNode.collapsed === !isCollapsed) {
+      return;
+    }
+
+    // 设置collapsed到内部属性
+    flowGraphInstance.graph?.updateNodeData([
+      {
+        collapsed: !node.collapsed,
+        id: node.id,
+      },
+    ]);
+    // 同步collapsed到全局node
+    if (currentNode) {
+      currentNode.collapsed = !currentNode.collapsed;
+    }
+    flowGraphInstance.collapseNode(currentNode, currentNode.collapsed);
+    flowGraphInstance.render();
+    setTimeout(async () => {
+      await flowGraphInstance.focusElement(node.id);
+      flowGraphInstance.updateFocusNode(node.id);
+    });
+  };
+
   const handleNodeClick = (node: TreeNode, parentNodes: TreeNode[]) => {
-    // 展开并定位到目标节点
-    // console.log('node = ', node);
-    const graph = flowCanvasRef.value!.getGraph()!;
+    // 展开并定位到目标节点，打开节点详情
+    if (node.type === FlowTypes.ServiceActivity) {
+      handleShowLog(node);
+    }
+    const flowGraphInstance = flowCanvasRef.value!.getGraph()!;
     const subProcessNodes = parentNodes.filter((item) => !!item.pipeline);
     if (subProcessNodes.length) {
       const { collapsedMap, graphData } = flowCanvasRef.value!.getShareData();
       const addAllEdges: Edge[] = [];
       const AddAllNodes: Node[] = [];
       subProcessNodes.forEach((subProcessNode) => {
-        const realProcessNode = graph.getNodeData().find((item) => item.id === subProcessNode.id);
+        const realProcessNode = flowGraphInstance.getNodeData().find((item) => item.id === subProcessNode.id);
         if (realProcessNode) {
           realProcessNode.collapsed = true;
         }
@@ -172,28 +204,28 @@
         addAllEdges.push(...edges);
         AddAllNodes.push(...nodes);
       });
-      const existedEdgeIds = new Set(graph.getEdgeData().map((item) => item.id));
-      const existedNodeIds = new Set(graph.getNodeData().map((item) => item.id));
+      const existedEdgeIds = new Set(flowGraphInstance.getEdgeData().map((item) => item.id));
+      const existedNodeIds = new Set(flowGraphInstance.getNodeData().map((item) => item.id));
       const addEdges = addAllEdges.filter((item) => !existedEdgeIds.has(item.id));
       const addNodes = AddAllNodes.filter((item) => !existedNodeIds.has(item.id));
       if (addEdges.length || addNodes.length) {
-        graphData.edges = [...addEdges, ...graph.getEdgeData()] as Edge[];
-        graphData.nodes = [...addNodes, ...graph.getNodeData()] as Node[];
-        graph.setData(graphData as unknown as GraphData);
-        graph.render();
+        graphData.edges = [...addEdges, ...flowGraphInstance.getEdgeData()] as Edge[];
+        graphData.nodes = [...addNodes, ...flowGraphInstance.getNodeData()] as Node[];
+        flowGraphInstance.setData(graphData as unknown as GraphData);
+        flowGraphInstance.render();
       }
     }
     setTimeout(async () => {
-      await graph.focusElement(node.id);
+      await flowGraphInstance.focusElement(node.id);
+      flowGraphInstance.updateFocusNode(node.id);
       flowCanvasRef.value!.updateCanvasState();
     });
   };
 
-  const handleShowLog = (node: NormalNode) => {
-    if (node.data.status === 'CREATED') {
+  const handleShowLog = (node: any) => {
+    if (node.data?.status === 'CREATED' || node.status === 'CREATED') {
       return;
     }
-
     nodeOperationState.log.isShow = true;
     const targetNode = nodesMap[node.id];
     if (targetNode) {
@@ -220,6 +252,10 @@
     .resize-layout-main {
       width: 100%;
       height: 100%;
+    }
+
+    .bk-resize-layout-aside {
+      border-right: none !important;
     }
   }
 </style>

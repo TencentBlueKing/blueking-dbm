@@ -27,6 +27,7 @@ export interface Edge {
 
 export type TreeNode = {
   children?: TreeNode[];
+  collapsed: boolean;
   id: string;
   name: string;
   parentProcessNodeId?: string;

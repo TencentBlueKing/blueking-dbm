@@ -331,12 +331,14 @@
         display: flex;
         width: 28px;
         height: 28px;
+        color: #979ba5;
         border-radius: 2px;
         align-items: center;
         justify-content: center;
 
         &:hover {
           color: #3a84ff;
+          background-color: #e1ecff;
         }
 
         &.tool-item-active {
