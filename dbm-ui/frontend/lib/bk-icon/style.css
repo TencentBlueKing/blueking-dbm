@@ -767,3 +767,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-waiting-shalou:before {
 	content: "\e227";
 }
+.db-icon-zhiding:before {
+	content: "\e229";
+}
+.db-icon-quxiaozhiding:before {
+	content: "\e22a";
+}

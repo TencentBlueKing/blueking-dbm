@@ -1,147 +1,149 @@
 <template>
-  <FunController module-id="mysql">
-    <BkMenuGroup name="MySQL">
-      <FunController
-        controller-id="tendbha"
-        module-id="mysql">
-        <BkSubmenu key="MysqlManage">
-          <template #icon>
-            <DbIcon type="cluster" />
-          </template>
-          <template #title>
-            <span>{{ t('主从') }}</span>
-            <CountTag
-              :cluster-type="ClusterTypes.TENDBHA"
-              role="cluster" />
-          </template>
-          <BkMenuItem key="tendbha">
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('集群视图') }}
-              <CountTag
-                :cluster-type="ClusterTypes.TENDBHA"
-                role="cluster" />
-            </span>
-          </BkMenuItem>
-          <BkMenuItem
-            key="DatabaseTendbhaInstance"
-            v-db-console="'mysql.haInstanceList'">
-            <span
-              v-overflow-tips.right
-              class="text-overflow">
-              {{ t('实例视图') }}
-              <CountTag
-                :cluster-type="ClusterTypes.TENDBHA"
-                role="instance" />
-            </span>
-          </BkMenuItem>
-        </BkSubmenu>
-      </FunController>
-      <FunController
-        controller-id="tendbsingle"
-        module-id="mysql">
-        <BkMenuItem
-          key="tendbsingle"
-          v-db-console="'mysql.singleClusterList'">
-          <template #icon>
-            <DbIcon type="node" />
-          </template>
+  <!-- <FunController module-id="mysql"> -->
+  <!-- <MenuGroup :db-type="DBTypes.MYSQL"> -->
+  <BkMenuGroup name="MySQL">
+    <FunController
+      controller-id="tendbha"
+      module-id="mysql">
+      <BkSubmenu key="MysqlManage">
+        <template #icon>
+          <DbIcon type="cluster" />
+        </template>
+        <template #title>
+          <span>{{ t('主从') }}</span>
+          <CountTag
+            :cluster-type="ClusterTypes.TENDBHA"
+            role="cluster" />
+        </template>
+        <BkMenuItem key="tendbha">
           <span
             v-overflow-tips.right
             class="text-overflow">
-            {{ t('单节点') }}
+            {{ t('集群视图') }}
             <CountTag
-              :cluster-type="ClusterTypes.TENDBSINGLE"
+              :cluster-type="ClusterTypes.TENDBHA"
               role="cluster" />
           </span>
         </BkMenuItem>
-      </FunController>
+        <BkMenuItem
+          key="DatabaseTendbhaInstance"
+          v-db-console="'mysql.haInstanceList'">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('实例视图') }}
+            <CountTag
+              :cluster-type="ClusterTypes.TENDBHA"
+              role="instance" />
+          </span>
+        </BkMenuItem>
+      </BkSubmenu>
+    </FunController>
+    <FunController
+      controller-id="tendbsingle"
+      module-id="mysql">
       <BkMenuItem
-        key="mysqlPartitionManage"
-        v-db-console="'mysql.partitionManage'">
+        key="tendbsingle"
+        v-db-console="'mysql.singleClusterList'">
         <template #icon>
-          <DbIcon type="mobanshili" />
+          <DbIcon type="node" />
         </template>
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('分区管理') }}
+          {{ t('单节点') }}
+          <CountTag
+            :cluster-type="ClusterTypes.TENDBSINGLE"
+            role="cluster" />
         </span>
       </BkMenuItem>
-      <BkSubmenu
-        key="database-permission"
-        v-db-console="'mysql.permissionManage'"
-        :title="t('权限管理')">
+    </FunController>
+    <BkMenuItem
+      key="mysqlPartitionManage"
+      v-db-console="'mysql.partitionManage'">
+      <template #icon>
+        <DbIcon type="mobanshili" />
+      </template>
+      <span
+        v-overflow-tips.right
+        class="text-overflow">
+        {{ t('分区管理') }}
+      </span>
+    </BkMenuItem>
+    <BkSubmenu
+      key="database-permission"
+      v-db-console="'mysql.permissionManage'"
+      :title="t('权限管理')">
+      <template #icon>
+        <DbIcon type="history" />
+      </template>
+      <BkMenuItem key="PermissionRules">
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('授权规则') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="MysqlPermissionRetrieve">
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('权限查询') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="mysqlWhitelist">
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('授权白名单') }}
+        </span>
+      </BkMenuItem>
+    </BkSubmenu>
+    <FunController
+      :controller-id="dumperControlId"
+      module-id="mysql">
+      <BkMenuItem
+        key="DumperDataSubscription"
+        v-db-console="'mysql.dataSubscription'">
         <template #icon>
-          <DbIcon type="history" />
+          <i class="db-icon-mobanshili" />
         </template>
-        <BkMenuItem key="PermissionRules">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('授权规则') }}
-          </span>
-        </BkMenuItem>
-        <BkMenuItem key="MysqlPermissionRetrieve">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('权限查询') }}
-          </span>
-        </BkMenuItem>
-        <BkMenuItem key="mysqlWhitelist">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('授权白名单') }}
-          </span>
-        </BkMenuItem>
-      </BkSubmenu>
-      <FunController
-        :controller-id="dumperControlId"
-        module-id="mysql">
-        <BkMenuItem
-          key="DumperDataSubscription"
-          v-db-console="'mysql.dataSubscription'">
-          <template #icon>
-            <i class="db-icon-mobanshili" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('数据订阅') }}
-          </span>
-        </BkMenuItem>
-      </FunController>
-      <div
-        v-if="Object.keys(favorMeunMap).length > 0"
-        class="split-line" />
-      <ToolboxMenu
-        v-for="toolboxGroupId in toolboxMenuSortList"
-        :id="toolboxGroupId"
-        :key="toolboxGroupId"
-        v-db-console="'mysql.toolbox'"
-        :favor-map="favorMeunMap"
-        :toolbox-menu-config="toolboxMenuConfig" />
-      <FunController
-        controller-id="toolbox"
-        module-id="mysql">
-        <BkMenuItem
-          key="MySQLToolbox"
-          v-db-console="'mysql.toolbox'">
-          <template #icon>
-            <DbIcon type="tools" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('工具箱') }}
-          </span>
-        </BkMenuItem>
-      </FunController>
-    </BkMenuGroup>
-  </FunController>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('数据订阅') }}
+        </span>
+      </BkMenuItem>
+    </FunController>
+    <div
+      v-if="Object.keys(favorMeunMap).length > 0"
+      class="split-line" />
+    <ToolboxMenu
+      v-for="toolboxGroupId in toolboxMenuSortList"
+      :id="toolboxGroupId"
+      :key="toolboxGroupId"
+      v-db-console="'mysql.toolbox'"
+      :favor-map="favorMeunMap"
+      :toolbox-menu-config="toolboxMenuConfig" />
+    <FunController
+      controller-id="toolbox"
+      module-id="mysql">
+      <BkMenuItem
+        key="MySQLToolbox"
+        v-db-console="'mysql.toolbox'">
+        <template #icon>
+          <DbIcon type="tools" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('工具箱') }}
+        </span>
+      </BkMenuItem>
+    </FunController>
+  </BkMenuGroup>
+  <!-- </MenuGroup> -->
+  <!-- </FunController> -->
 </template>
 <script setup lang="ts">
   import { onBeforeUnmount, shallowRef } from 'vue';
@@ -160,6 +162,7 @@
   import { makeMap } from '@utils';
 
   import CountTag from './components/CountTag.vue';
+  // import MenuGroup from './components/MenuGroup.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();
