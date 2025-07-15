@@ -120,7 +120,8 @@ class ClusterEntry(AuditedModel):
 
         # ES没有proxy，需额外处理
         if not proxy and self.cluster.cluster_type == ClusterType.Es:
-            detail.update({"port": self.storageinstance_set.filter(instance_role=InstanceRole.ES_MASTER).first().port})
+            storage_instance = self.cluster.storageinstance_set.filter(instance_role=InstanceRole.ES_MASTER).first()
+            detail.update({"port": storage_instance.port})
         return detail
 
     def __str__(self):
