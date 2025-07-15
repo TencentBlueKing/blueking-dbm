@@ -276,30 +276,16 @@
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="operationData"
       v-model:is-show="isShowExpandsion"
-      background-color="#F5F7FA"
-      class="es-manage-sideslider"
-      :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="operationData"
-        :data="operationData"
-        @change="fetchTableData" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="operationData"
+      @change="fetchTableData" />
+    <ClusterShrink
+      v-if="operationData"
       v-model:is-show="isShowShrink"
-      background-color="#F5F7FA"
-      class="es-manage-sideslider"
-      :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="operationData"
-        :cluster-id="operationData.id"
-        :data="operationData"
-        :node-list="[]"
-        @change="fetchTableData" />
-    </DbSideslider>
+      :cluster-data="operationData"
+      @change="fetchTableData" />
     <BkDialog
       v-model:is-show="isShowPassword"
       render-directive="if"

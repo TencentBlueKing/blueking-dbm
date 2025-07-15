@@ -172,35 +172,19 @@
         </template>
       </BkTableColumn>
     </DbTable>
-    <DbSideslider
+    <ClusterExpansion
       v-model:is-show="isShowExpandsion"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="clusterData"
-        :data="clusterData"
-        @change="handleOperationChange" />
-    </DbSideslider>
-    <DbSideslider
-      v-model:is-show="isShowShrink"
-      :title="t('xx缩容【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="clusterData"
+      @change="handleOperationChange" />
+    <ClusterReplace
       v-model:is-show="isShowReplace"
-      :title="t('xx替换【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
-      :width="960">
-      <ClusterReplace
-        v-if="clusterData"
-        :data="clusterData"
-        :machine-list="operationNodeList"
-        @change="handleOperationChange" />
-    </DbSideslider>
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList"
+      @change="handleOperationChange" />
+    <ClusterShrink
+      v-model:is-show="isShowShrink"
+      :cluster-data="clusterData"
+      :machine-list="operationMachineList" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -307,20 +291,6 @@
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('节点类型不支持缩容');
-    } else {
-      // 其它类型的节点数不能全部被缩容，至少保留一个
-      let dataNodeNum = 0;
-      tableRef.value!.getData<HdfsMachineModel>().forEach((nodeItem) => {
-        if (nodeItem.isDataNode) {
-          dataNodeNum = dataNodeNum + 1;
-        }
-      });
-
-      if (dataNodeNum < 3) {
-        options.disabled = true;
-        options.tooltips.disabled = false;
-        options.tooltips.content = t('DataNode类型节点至少保留两个');
-      }
     }
     return options;
   };
@@ -350,16 +320,8 @@
   const isCopyDropdown = ref(false);
   const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
-  const operationNodeList = shallowRef<Array<HdfsMachineModel>>([]);
+  const operationMachineList = shallowRef<Array<HdfsMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<HdfsMachineModel>>([]);
-
-  const selectedMachineMap = computed(() => {
-    return selectedMachineList.value.reduce<Record<number, HdfsMachineModel>>((result, item) => {
-      return Object.assign(result, {
-        [item.bk_host_id]: item,
-      });
-    }, {});
-  });
 
   const batchShrinkDisabledInfo = computed(() => {
     const options = {
@@ -380,23 +342,6 @@
       options.tooltips.disabled = false;
       options.tooltips.content = t('仅DataNode类型的节点支持缩容');
       return options;
-    }
-
-    // 其它类型的节点数不能全部被缩容，至少保留一个
-    let dataNodeNum = 0;
-    tableRef.value!.getData<HdfsMachineModel>().forEach((machineItem) => {
-      if (selectedMachineMap.value[machineItem.bk_host_id]) {
-        return;
-      }
-      if (machineItem.isDataNode) {
-        dataNodeNum = dataNodeNum + 1;
-      }
-    });
-
-    if (dataNodeNum < 2) {
-      options.disabled = true;
-      options.tooltips.disabled = false;
-      options.tooltips.content = t('DataNode类型节点至少保留两个');
     }
 
     return options;
@@ -467,22 +412,22 @@
 
   // 批量缩容
   const handleShowShrink = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowShrink.value = true;
   };
 
   // 批量扩容
   const handleShowReplace = () => {
-    operationNodeList.value = selectedMachineList.value;
+    operationMachineList.value = selectedMachineList.value;
     isShowReplace.value = true;
   };
   const handleShrinkOne = (data: HdfsMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowShrink.value = true;
   };
 
   const handleReplaceOne = (data: HdfsMachineModel) => {
-    operationNodeList.value = [data];
+    operationMachineList.value = [data];
     isShowReplace.value = true;
   };
 

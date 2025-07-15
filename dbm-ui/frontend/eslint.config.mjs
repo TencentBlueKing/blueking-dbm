@@ -76,12 +76,6 @@ export default defineConfigWithVueTs(
           format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
         },
       ],
-      '@typescript-eslint/no-misused-promises': [
-        'error',
-        {
-          checksVoidReturn: false,
-        },
-      ],
       '@typescript-eslint/unified-signatures': 'off',
       'no-underscore-dangle': ['error', { enforceInMethodNames: false }],
       'no-param-reassign': ['error', { props: true }],

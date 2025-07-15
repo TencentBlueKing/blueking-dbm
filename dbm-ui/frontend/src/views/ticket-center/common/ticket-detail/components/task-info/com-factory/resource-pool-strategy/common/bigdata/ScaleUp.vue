@@ -27,7 +27,7 @@
         {{ item.isManulSelect ? t('从资源池手动选择') : t('从资源池自动匹配') }}
       </InfoItem>
       <InfoItem :label="t('扩容容量')">
-        {{ t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.expectDisk }) }}
+        {{ t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.totalDisk + item.expectDisk }) }}
       </InfoItem>
       <InfoItem :label="t('扩容数量')">
         {{ t('n台', [item.count]) }}({{
