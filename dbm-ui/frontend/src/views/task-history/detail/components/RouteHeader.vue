@@ -14,8 +14,8 @@
 <template>
   <Teleport to="#dbContentTitleAppend">
     <span v-if="data?.flow_info">
-      <span> - </span>
-      {{ baseInfo.ticket_type_display }}【{{ baseInfo.root_id }}】
+      <span class="ml-8 mr-6">|</span>
+      {{ baseInfo.ticket_type_display }}
     </span>
   </Teleport>
   <Teleport to="#dbContentHeaderAppend">
@@ -23,7 +23,7 @@
       <div
         v-if="statusText"
         class="mission-detail-status-info">
-        <span class="mr-8">{{ t('状态') }}: </span>
+        <!-- <span class="mr-8">{{ t('状态') }}: </span> -->
         <BkTag :theme="statueTheme">
           {{ statusText }}
           <span
@@ -279,6 +279,7 @@
 <style lang="less">
   .mission-detail-status-box {
     display: flex;
+    margin-left: 12px;
     font-size: 12px;
 
     .mission-detail-status-info {

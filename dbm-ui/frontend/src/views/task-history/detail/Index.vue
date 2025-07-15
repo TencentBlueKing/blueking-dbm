@@ -23,7 +23,7 @@
       <div class="basic-info-main">
         <div class="item">
           <div class="title">ID：</div>
-          <div class="content">{{ baseInfo.uid }}</div>
+          <div class="content">{{ currentTaskflowDetail?.id }}</div>
         </div>
         <div class="item">
           <div class="title">{{ t('业务') }}：</div>
@@ -47,6 +47,10 @@
         <div class="item">
           <div class="title">{{ t('创建时间') }}：</div>
           <div class="content">{{ utcDisplayTime(baseInfo.created_at) }}</div>
+        </div>
+        <div class="item">
+          <div class="title">{{ t('结束时间') }}：</div>
+          <div class="content">{{ utcDisplayTime(baseInfo.updated_at) }}</div>
         </div>
         <div class="item">
           <div class="title">{{ t('已耗时') }}：</div>

@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { FlowTypes } from '@services/source/taskflow';
 
-import { ExtensionCategory, Graph, type GraphData, GraphEvent, register } from '@antv/g6';
+import { ExtensionCategory, Graph, type GraphData, GraphEvent, NodeEvent, register } from '@antv/g6';
 
 import {
   type Edge,
@@ -18,6 +18,13 @@ import { NormalNode, searchObj } from './normalNode';
 import { StartEndNode } from './startEndNode';
 
 const roundFlowTypes = [FlowTypes.EmptyEndEvent, FlowTypes.EmptyStartEvent, ...getewayTypes];
+
+const targetNameHoverTypeMap: Record<string, string> = {
+  forceFailWraper: 'hoverForceFail',
+  manualConfirmWraper: 'hoverManual',
+  retryWraper: 'hoverRetry',
+  skipWraper: 'hoverSkip',
+};
 
 register(ExtensionCategory.NODE, FlowTypes.ConditionalParallelGateway, GatewayNode);
 register(ExtensionCategory.NODE, FlowTypes.ConvergeGateway, GatewayNode);
@@ -38,6 +45,7 @@ export class FlowGraph {
   > = {};
   containerId = '';
   edgesMap: Record<string, Set<string>> = {};
+  focusNodeId = '';
   graph: Graph | null = null;
   graphData: {
     edges: Edge[];
@@ -46,6 +54,7 @@ export class FlowGraph {
     edges: [],
     nodes: [],
   };
+  hoverNodeId = '';
   isInit = false;
   nodesMap: Record<string, Node> = {};
   oldviewCenterPointer = [0, 0] as [number, number];
@@ -150,7 +159,6 @@ export class FlowGraph {
       animation: false,
       behaviors: ['drag-canvas', 'zoom-canvas'],
       container: this.containerId,
-      cursor: 'pointer',
       data: this.graphData as any,
       edge: {
         style: {
@@ -167,8 +175,29 @@ export class FlowGraph {
         type: 'dagre',
       },
       node: {
+        state: {
+          focus: {
+            focusState: 'visible',
+          },
+          hoverForceFail: {
+            forceFailOptFill: '#DCDEE5',
+          },
+          hoverManual: {
+            manualOptFill: '#DCDEE5',
+          },
+          hoverRetry: {
+            retryOptFill: '#DCDEE5',
+          },
+          hoverSkip: {
+            skipOptFill: '#DCDEE5',
+          },
+        },
         style: {
+          cursor: 'pointer',
           fill: '#F5F7FA',
+          focusState: 'hidden',
+          forceFailOptFill: '#EAEBF0',
+          manualOptFill: '#EAEBF0',
           ports: [{ placement: 'left' }, { placement: 'right' }],
           radius: (d: Node) => {
             if (roundFlowTypes.includes(d.type)) {
@@ -176,6 +205,7 @@ export class FlowGraph {
             }
             return 4;
           },
+          retryOptFill: '#EAEBF0',
           size: (d: any) => {
             if (roundFlowTypes.includes(d.type)) {
               return 48;
@@ -184,9 +214,10 @@ export class FlowGraph {
             }
             return [240, 60];
           },
+          skipOptFill: '#EAEBF0',
         },
       },
-      padding: 0,
+      // padding: 0,
       plugins: [
         {
           key: 'minimap',
@@ -196,6 +227,24 @@ export class FlowGraph {
         },
       ],
       zoom: this.viewZoom,
+    });
+
+    this.graph.on(NodeEvent.POINTER_ENTER, (e: any) => {
+      const { originalTarget, target } = e;
+      const targetName = originalTarget.className;
+      const hoverType = targetNameHoverTypeMap[targetName];
+      if (hoverType) {
+        this.hoverNodeId = target.data.id;
+        const state = this.graph!.getElementState(target.data.id) || [];
+        this.graph!.setElementState(target.data.id, [...state, hoverType]);
+      }
+    });
+
+    this.graph.on(NodeEvent.POINTER_LEAVE, () => {
+      if (this.hoverNodeId) {
+        this.graph?.setElementState(this.hoverNodeId, this.focusNodeId === this.hoverNodeId ? 'focus' : '');
+        this.hoverNodeId = '';
+      }
     });
 
     this.graph.on(
@@ -278,9 +327,34 @@ export class FlowGraph {
     this.graph?.setData(data);
   }
 
+  setElementState(nodeId: string, state: string | string[]) {
+    this.graph?.setElementState(nodeId, state);
+  }
+
   updateCanvasState() {
     this.viewZoom = this.graph!.getZoom();
     this.oldviewCenterPointer = this.graph!.getViewportCenter() as [number, number];
+  }
+
+  updateFocusNode(nodeId: string, isForce = false) {
+    if (this.focusNodeId === nodeId && !isForce) {
+      return;
+    }
+
+    if (!isForce) {
+      if (this.focusNodeId) {
+        const node = this.graphData.nodes.find((item) => item.id === this.focusNodeId);
+        if (node) {
+          this.graph?.setElementState(this.focusNodeId, []);
+        }
+      }
+    }
+    this.focusNodeId = nodeId;
+    this.graph?.setElementState(nodeId, 'focus');
+  }
+
+  updateNodeData(data: any) {
+    this.graph?.updateNodeData(data);
   }
 
   zoomTo(zoom: number, animate: any) {

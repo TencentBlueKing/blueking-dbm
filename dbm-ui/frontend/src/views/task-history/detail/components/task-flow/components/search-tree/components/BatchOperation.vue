@@ -78,6 +78,7 @@
         </BkButton>
       </BkPopConfirm>
       <BkButton
+        v-if="data.length"
         :disabled="isDisabled"
         @click="handleClickCancel">
         {{ t('取消') }}

@@ -4,10 +4,13 @@
     class="flow-sign-icon-main"
     :style="{ color: iconColor }"
     :type="iconType" />
-  <StatusSign
+  <div
     v-else
-    class="mr-16"
-    :data="status" />
+    style="width: 24px">
+    <StatusSign
+      class="ml-4 mr-12"
+      :data="status" />
+  </div>
 </template>
 <script setup lang="ts">
   import { FlowTypes } from '@services/source/taskflow';

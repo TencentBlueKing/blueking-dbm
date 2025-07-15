@@ -59,13 +59,13 @@
       <template #node="item">
         <div
           class="task-detail-tree-node"
-          :class="{ 'is-sub-process': !!item.pipeline }">
+          :class="{ 'is-sub-process': !!item.children }">
           <FlowSign
             :status="item.todoId ? 'TODO' : item.status"
             :type="item.type" />
           <span
             v-overflow-tips
-            class="text-overflow">
+            class="text-overflow node-name">
             {{ item.name }}
           </span>
         </div>
@@ -83,6 +83,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { FlowTypes } from '@/services/source/taskflow';
@@ -102,6 +103,8 @@
     (e: 'search', value: string): void;
     (e: 'node-click', node: TreeNode, parentNodes: TreeNode[]): void;
     (e: 'refresh'): void;
+    (e: 'node-collapse', node: TreeNode): void;
+    (e: 'node-expand', node: TreeNode): void;
   }
 
   interface Exposes {
@@ -206,25 +209,79 @@
 
   const openedTreeNodesSet = new Set<string>();
   const checkedTreeNodesSet = new Set<string>();
+  // 可展开父节点对应的全部子孙可展开id
+  const treeIdChildrenMap: Record<string, Set<string>> = {};
   let currentClickNode = '';
+  let isCheckedClick = false;
+
+  const initTreeIdChildrenMap = (dataList: TreeNode[]) => {
+    const deepInit = (list: TreeNode[]) => {
+      list.forEach((item) => {
+        if (item.children) {
+          treeIdChildrenMap[item.id] = new Set<string>();
+          item.children.forEach((child) => {
+            if (child.children) {
+              treeIdChildrenMap[item.id].add(child.id);
+              deepInit(child.children);
+            }
+          });
+          deepInit(item.children);
+        }
+      });
+    };
+    deepInit(dataList);
+
+    const deepSetId = (parentId: string, idSet: Set<string>) => {
+      idSet.forEach((item) => {
+        if (treeIdChildrenMap[item]) {
+          treeIdChildrenMap[parentId].add(item);
+          if (treeIdChildrenMap[item].size) {
+            deepSetId(parentId, treeIdChildrenMap[item]);
+          }
+        }
+      });
+    };
+
+    Object.keys(treeIdChildrenMap).forEach((key) => {
+      const children = treeIdChildrenMap[key];
+      if (children.size) {
+        deepSetId(key, children);
+      }
+    });
+  };
+
+  watch(treeSearch, () => {
+    if (!treeSearch.value) {
+      return;
+    }
+
+    batchSetTreeNodeOpen();
+  });
 
   // 恢复展开和点击状态
   watch(
     () => props.data,
     () => {
       setTimeout(() => {
-        const newTreeDataList = treeRef.value!.getData().data as TreeNode[];
-        newTreeDataList.forEach((item) => {
-          if (openedTreeNodesSet.has(item.id)) {
-            treeRef.value!.setOpen(item);
-          }
-          if (checkedTreeNodesSet.has(item.id)) {
-            treeRef.value!.setChecked(item, true);
-          }
-          if (item.id === currentClickNode) {
-            treeRef.value!.setSelect(item);
-          }
-        });
+        if (!Object.keys(treeIdChildrenMap).length) {
+          initTreeIdChildrenMap(props.data);
+        }
+        if (treeSearch.value) {
+          batchSetTreeNodeOpen();
+        } else {
+          const newTreeDataList = treeRef.value!.getData().data as TreeNode[];
+          newTreeDataList.forEach((item) => {
+            if (openedTreeNodesSet.has(item.id)) {
+              treeRef.value!.setOpen(item);
+            }
+            if (checkedTreeNodesSet.has(item.id)) {
+              treeRef.value!.setChecked(item, true);
+            }
+            if (item.id === currentClickNode) {
+              treeRef.value!.setSelect(item);
+            }
+          });
+        }
       });
     },
     {
@@ -232,6 +289,13 @@
       immediate: true,
     },
   );
+
+  const batchSetTreeNodeOpen = _.debounce(() => {
+    const list = flattenTreeData(renderTreeData.value);
+    list.forEach((item) => {
+      treeRef.value!.setOpen(item);
+    });
+  }, 500);
 
   const handleSelectChange = () => {
     selectedNodes.value = [];
@@ -260,10 +324,21 @@
 
   const handleNodeExpand = (node: TreeNode) => {
     openedTreeNodesSet.add(node.id);
+    if (node.pipeline) {
+      emits('node-expand', node);
+    }
   };
 
   const handleNodeCollapse = (node: TreeNode) => {
+    // 收起时，已展开所有子孙都要跟着收起
     openedTreeNodesSet.delete(node.id);
+    const childIds = treeIdChildrenMap[node.id];
+    childIds.forEach((item) => {
+      openedTreeNodesSet.delete(item);
+    });
+    if (node.pipeline) {
+      emits('node-collapse', node);
+    }
   };
 
   const handleSelectToggle = (isOpen: boolean) => {
@@ -279,6 +354,10 @@
   };
 
   const handleNodeClick = (node: TreeNode) => {
+    if (isCheckedClick) {
+      isCheckedClick = false;
+      return;
+    }
     currentClickNode = node.id;
     const parentNodes: TreeNode[] = [];
     let parentNode = treeRef.value!.getParentNode(node);
@@ -290,6 +369,7 @@
   };
 
   const handleNodeChecked = (list: TreeNode[]) => {
+    isCheckedClick = true;
     checkedTreeNodesSet.clear();
     list.forEach((item) => checkedTreeNodesSet.add(item.id));
     selectFlows.value = list;
@@ -388,6 +468,16 @@
         display: flex;
         width: 100%;
         align-items: center;
+
+        &.is-sub-process {
+          .flow-sign-icon-main {
+            margin-right: 6px;
+          }
+        }
+
+        .node-name {
+          font-size: 12px;
+        }
       }
 
       .node-check-box {

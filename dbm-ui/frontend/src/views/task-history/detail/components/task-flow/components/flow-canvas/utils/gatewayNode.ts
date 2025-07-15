@@ -20,22 +20,7 @@ export class GatewayNode extends Rect {
     return this.context.model.getNodeLikeDatum(this.id) as Node;
   }
 
-  // 基类方法覆盖
-  drawIconShape(attributes: any, container: Group) {
-    const [width, height] = this.getSize(attributes);
-    const gatewayIconStyle = {
-      height: 30,
-      src: iconMap[this.data.type as keyof typeof iconMap],
-      width: 30,
-      x: -width / 2 + 8,
-      y: -height / 2 + 8,
-      zIndex: 1,
-    };
-
-    this.upsert('gatewayIcon', GImage, gatewayIconStyle, container);
-  }
-
-  renderBackground(_: any, container: Group) {
+  drawBackground(_: any, container: Group) {
     const backgroundShapeStyle = {
       fill: '#fff',
       height: 48,
@@ -50,11 +35,55 @@ export class GatewayNode extends Rect {
       zIndex: 0,
     };
     this.upsert('backgroundShape', GRect, backgroundShapeStyle, container);
+    const iconWraperShapeStyle = {
+      fill: '#F0F1F5',
+      height: 40,
+      radius: 20,
+      width: 40,
+      x: -20,
+      y: -20,
+      zIndex: 0,
+    };
+    this.upsert('iconWraperShape', GRect, iconWraperShapeStyle, container);
+  }
+
+  drawFocusBackgroundShape(attributes: any, container: Group) {
+    const [width, height] = this.getSize(attributes);
+    const focusBackgroundStyle = {
+      fill: '#E1ECFF',
+      height: height + 16,
+      radius: 2,
+      stroke: '#3A84FF',
+      visibility: attributes.focusState,
+      width: width + 16,
+      x: -width / 2 - 8,
+      y: -height / 2 - 8,
+    };
+    this.upsert('focusBackground', GRect, focusBackgroundStyle, container);
+  }
+
+  // 基类方法覆盖
+  drawIconShape(attributes: any, container: Group) {
+    const [width, height] = this.getSize(attributes);
+    const gatewayIconStyle = {
+      height: 25,
+      src: iconMap[this.data.type as keyof typeof iconMap],
+      width: 25,
+      x: -width / 2 + 11.5,
+      y: -height / 2 + 11.5,
+      zIndex: 1,
+    };
+    this.upsert('gatewayIcon', GImage, gatewayIconStyle, container);
+  }
+
+  renderNode(attributes: any, container: Group) {
+    this.drawFocusBackgroundShape(attributes, container);
+    this.drawBackground(attributes, container);
   }
 
   // eslint-disable-next-line perfectionist/sort-classes
   render(attributes = this.parsedAttributes as any, container: Group) {
     super.render(attributes, container);
-    this.renderBackground(attributes, container);
+    this.renderNode(attributes, container);
   }
 }
