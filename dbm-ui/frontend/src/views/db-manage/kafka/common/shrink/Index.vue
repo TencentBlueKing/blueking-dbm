@@ -12,71 +12,41 @@
 -->
 
 <template>
-  <BkLoading
-    class="kafka-cluster-shrink-box"
-    :loading="isLoading">
-    <div class="wrapper">
-      <NodeStatusList
-        v-show="false"
-        ref="nodeStatusListRef"
-        v-model="nodeType"
-        :list="nodeStatusList"
-        :node-info="nodeInfoMap" />
-      <div class="node-panel">
-        <HostShrink
-          v-if="!isLoading"
-          :key="nodeType"
-          :data="nodeInfoMap[nodeType]"
-          @change="handleNodeHostChange" />
-      </div>
-    </div>
-  </BkLoading>
+  <MachineShrink
+    v-model="nodeInfoMap"
+    v-model:is-show="isShow"
+    :data="clusterData"
+    :loading="isLoading"
+    :title="t('xx缩容【name】', { title: 'Kafka', name: clusterData?.cluster_name })"
+    @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import KafkaModel from '@services/model/kafka/kafka';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
   import { getKafkaNodeList } from '@services/source/kafka';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { TicketTypes } from '@common/const';
-
-  import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
-  import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
-
-  import { messageError } from '@utils';
+  import MachineShrink, { type TShrinkNode } from '@views/db-manage/common/machine-shrink/Index.vue';
 
   interface Props {
-    data: KafkaModel;
+    clusterData: KafkaModel;
     machineList?: KafkaMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
-
-  interface Exposes {
-    submit: () => Promise<any>;
-  }
 
   const props = withDefaults(defineProps<Props>(), {
     machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
+
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
 
-  const nodeStatusList = [
-    {
-      key: 'broker',
-      label: 'Broker',
-    },
-  ];
-
-  const nodeStatusListRef = ref();
   const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     broker: {
       hostList: [],
@@ -94,7 +64,6 @@
   });
 
   const isLoading = ref(false);
-  const nodeType = ref('broker');
 
   const fetchListNode = () => {
     const brokerOriginalNodeList: TShrinkNode['originalNodeList'] = [];
@@ -102,7 +71,7 @@
     isLoading.value = true;
     getKafkaNodeList({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_id: props.data.id,
+      cluster_id: props.clusterData.id,
       no_limit: 1,
     })
       .then((data) => {
@@ -117,7 +86,6 @@
 
         nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
         nodeInfoMap.broker.totalDisk = brokerDiskTotal;
-        console.log('nodeInfoMap', nodeInfoMap);
       })
       .finally(() => {
         isLoading.value = false;
@@ -155,121 +123,7 @@
   );
 
   // 缩容节点主机修改
-  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
-    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
-    nodeInfoMap[nodeType.value].hostList = hostList;
-    nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
+  const handleChange = () => {
+    emits('change');
   };
-
-  defineExpose<Exposes>({
-    submit() {
-      return new Promise((resolve, reject) => {
-        if (!nodeStatusListRef.value.validate()) {
-          messageError(t('Broker 缩容主机未填写'));
-          return reject();
-        }
-
-        const renderSubTitle = () => {
-          const renderShrinkDiskTips = () =>
-            Object.values(nodeInfoMap).map((nodeData) => {
-              if (nodeData.shrinkDisk) {
-                return (
-                  <div>
-                    {t('name容量从nG缩容至nG', {
-                      name: nodeData.label,
-                      targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
-                      totalDisk: nodeData.totalDisk,
-                    })}
-                  </div>
-                );
-              }
-              return null;
-            });
-
-          return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderShrinkDiskTips()}</div>;
-        };
-
-        InfoBox({
-          cancelText: t('取消'),
-          confirmText: t('确认'),
-          contentAlign: 'center',
-          footerAlign: 'center',
-          headerAlign: 'center',
-          onCancel: () => reject(),
-          onConfirm: () => {
-            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
-              hostList.map((hostItem) => ({
-                bk_cloud_id: hostItem.bk_cloud_id,
-                bk_host_id: hostItem.bk_host_id,
-                ip: hostItem.ip,
-              }));
-
-            const generateExtInfo = () =>
-              Object.entries(nodeInfoMap).reduce(
-                (results, [key, item]) => {
-                  Object.assign(results, {
-                    [key]: {
-                      shrink_disk: item.shrinkDisk,
-                      total_disk: item.totalDisk,
-                      total_hosts: item.originalNodeList.length,
-                    },
-                  });
-                  return results;
-                },
-                {} as Record<string, TShrinkNode>,
-              );
-
-            createTicket({
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              details: {
-                cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'resource_pool',
-                old_nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
-                },
-              },
-              ticket_type: TicketTypes.KAFKA_SHRINK,
-            }).then((data) => {
-              ticketMessage(data.id);
-              resolve('success');
-              emits('change');
-            });
-          },
-          subTitle: renderSubTitle,
-          title: t('确认缩容【name】集群', {
-            name: props.data.cluster_name,
-          }),
-        });
-      });
-    },
-  });
 </script>
-<style lang="less">
-  .kafka-cluster-shrink-box {
-    padding: 18px 43px 18px 37px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-    background: #f5f7fa;
-
-    .wrapper {
-      display: flex;
-      background: #fff;
-      border-radius: 2px;
-      box-shadow: 0 2px 4px 0 #1919290d;
-
-      .node-panel {
-        flex: 1;
-      }
-    }
-
-    .item-label {
-      margin-top: 24px;
-      margin-bottom: 6px;
-      font-weight: bold;
-      line-height: 20px;
-      color: #313238;
-    }
-  }
-</style>

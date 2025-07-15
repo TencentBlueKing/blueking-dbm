@@ -213,28 +213,14 @@
             :cluster-type="ClusterTypes.ES" />
         </template>
       </ActionPanel>
-      <DbSideslider
+      <ClusterExpansion
+        v-if="data"
         v-model:is-show="isShowExpandsion"
-        background-color="#F5F7FA"
-        class="es-manage-sideslider"
-        :title="t('xx扩容【name】', { title: 'ES', name: data?.cluster_name })"
-        :width="960">
-        <ClusterExpansion
-          v-if="data"
-          :data="data" />
-      </DbSideslider>
-      <DbSideslider
+        :cluster-data="data" />
+      <ClusterShrink
+        v-if="data"
         v-model:is-show="isShowShrink"
-        background-color="#F5F7FA"
-        class="es-manage-sideslider"
-        :title="t('xx缩容【name】', { title: 'ES', name: data?.cluster_name })"
-        :width="960">
-        <ClusterShrink
-          v-if="data"
-          :cluster-id="data.id"
-          :data="data"
-          :node-list="[]" />
-      </DbSideslider>
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"

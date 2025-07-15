@@ -148,20 +148,12 @@
             :cluster-type="ClusterTypes.DORIS" />
         </template>
       </ActionPanel>
-      <DbSideslider
+      <ClusterExpansion
         v-model:is-show="isShowExpandsion"
-        :title="t('xx扩容【name】', { title: 'Doris', name: data?.cluster_name })"
-        :width="960">
-        <ClusterExpansion :data="data" />
-      </DbSideslider>
-      <DbSideslider
+        :cluster-data="data" />
+      <ClusterShrink
         v-model:is-show="isShowShrink"
-        :title="t('xx缩容【name】', { title: 'Doris', name: data?.cluster_name })"
-        :width="960">
-        <ClusterShrink
-          :cluster-id="data.id"
-          :data="data" />
-      </DbSideslider>
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"

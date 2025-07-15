@@ -12,90 +12,44 @@
 -->
 
 <template>
-  <BkLoading
-    class="kafka-cluster-expansion-box"
-    :loading="isLoading">
-    <BkRadioGroup
-      v-model="ipSource"
-      class="ip-srouce-box">
-      <BkRadioButton label="resource_pool">
-        {{ $t('资源池自动匹配') }}
-      </BkRadioButton>
-      <BkRadioButton label="manual_input">
-        {{ $t('资源池手动选择') }}
-      </BkRadioButton>
-    </BkRadioGroup>
-    <div class="wrapper">
-      <NodeStatusList
-        v-show="false"
-        ref="nodeStatusListRef"
-        v-model="nodeType"
-        :ip-source="ipSource"
-        :list="nodeStatusList"
-        :node-info="nodeInfoMap" />
-      <div class="node-panel">
-        <HostExpansion
-          v-if="!isLoading"
-          :key="nodeType"
-          v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
-          v-model:host-list="nodeInfoMap[nodeType].hostList"
-          v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-          :cloud-info="{
-            id: data.bk_cloud_id,
-            name: data.bk_cloud_name,
-          }"
-          :data="nodeInfoMap[nodeType]"
-          :db-type="DBTypes.KAFKA"
-          :ip-source="ipSource" />
-      </div>
-    </div>
-  </BkLoading>
+  <MachineExpansion
+    v-model="nodeInfoMap"
+    v-model:is-show="isShow"
+    :cluster-data="clusterData"
+    :loading="isLoading"
+    :title="t('xx扩容【name】', { title: 'Kafka', name: clusterData.cluster_name })"
+    @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import kafkaMachineModel from '@services/model/kafka/kafka-machine';
   import { getKafkaMachineList } from '@services/source/kafka';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
+  import { ClusterTypes } from '@common/const';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
-
-  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
-  import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
-
-  import { messageError } from '@utils';
+  import MachineExpansion, { type TExpansionNode } from '@views/db-manage/common/machine-expansion/Index.vue';
 
   interface Props {
-    data: KafkaModel;
+    clusterData: KafkaModel;
   }
 
   type Emits = (e: 'change') => void;
 
-  interface Exposes {
-    submit: () => Promise<any>;
-  }
-
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
-  const nodeStatusList = [
-    {
-      key: 'broker',
-      label: 'Broker',
-    },
-  ];
+  const { t } = useI18n();
 
   const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
     broker: {
-      clusterId: props.data.id,
+      clusterId: props.clusterData.id,
       // targetDisk: 0,
       expansionDisk: 0,
       hostList: [],
@@ -114,16 +68,13 @@
     },
   });
 
-  const nodeStatusListRef = ref();
   const isLoading = ref(false);
-  const ipSource = ref('resource_pool');
-  const nodeType = ref('broker');
 
   // 获取主机详情
   const fetchHostDetail = () => {
     isLoading.value = true;
     getKafkaMachineList({
-      cluster_ids: String(props.data.id),
+      cluster_ids: String(props.clusterData.id),
       limit: -1,
       offset: 0,
     })
@@ -149,136 +100,7 @@
 
   fetchHostDetail();
 
-  defineExpose<Exposes>({
-    submit() {
-      if (!nodeStatusListRef.value.validate()) {
-        messageError(t('Broker 扩容主机未填写'));
-        return Promise.reject();
-      }
-
-      const renderSubTitle = () => {
-        const renderExpansionDiskTips = () =>
-          Object.values(nodeInfoMap).map((nodeData) => {
-            if (nodeData.expansionDisk) {
-              return (
-                <div>
-                  {t('name容量从nG扩容至nG', {
-                    expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
-                    name: nodeData.label,
-                    totalDisk: nodeData.totalDisk,
-                  })}
-                </div>
-              );
-            }
-            return null;
-          });
-
-        return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderExpansionDiskTips()}</div>;
-      };
-
-      return new Promise((resolve, reject) => {
-        InfoBox({
-          cancelText: t('取消'),
-          confirmText: t('确认'),
-          contentAlign: 'center',
-          footerAlign: 'center',
-          headerAlign: 'center',
-          onCancel: () => reject(),
-          onConfirm: () => {
-            const hostData = {};
-
-            const generateExtInfo = () =>
-              Object.entries(nodeInfoMap).reduce(
-                (results, [key, item]) => {
-                  Object.assign(results, {
-                    [key]: {
-                      expansion_disk: item.expansionDisk,
-                      total_disk: item.totalDisk,
-                      total_hosts: item.originalHostList.length,
-                    },
-                  });
-                  return results;
-                },
-                {} as Record<string, any>,
-              );
-
-            if (ipSource.value === 'manual_input') {
-              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
-                const hosts = hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.dedicated_biz,
-                  bk_cloud_id: hostItem.bk_cloud_id,
-                  bk_disk: hostItem.bk_disk,
-                  bk_host_id: hostItem.bk_host_id,
-                  ip: hostItem.ip,
-                }));
-                return {
-                  count: hostList.length,
-                  hosts,
-                  spec_id: 0,
-                };
-              };
-              Object.assign(hostData, {
-                resource_spec: {
-                  broker: formatHost(nodeInfoMap.broker.hostList),
-                },
-              });
-            } else {
-              Object.assign(hostData, {
-                resource_spec: {
-                  broker: nodeInfoMap.broker.resourceSpec,
-                },
-              });
-            }
-
-            createTicket({
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              details: {
-                cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'resource_pool',
-                ...hostData,
-              },
-              ticket_type: TicketTypes.KAFKA_SCALE_UP,
-            }).then((data) => {
-              ticketMessage(data.id);
-              resolve('success');
-              emits('change');
-            });
-          },
-          subTitle: renderSubTitle,
-          title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
-        });
-      });
-    },
-  });
+  const handleChange = () => {
+    emits('change');
+  };
 </script>
-<style lang="less">
-  .kafka-cluster-expansion-box {
-    padding: 18px 43px 18px 37px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-    background: #f5f7fa;
-
-    .ip-srouce-box {
-      display: flex;
-      margin-bottom: 16px;
-
-      .bk-radio-button {
-        flex: 1;
-        background: #fff;
-      }
-    }
-
-    .wrapper {
-      display: flex;
-      background: #fff;
-      border-radius: 2px;
-      box-shadow: 0 2px 4px 0 #1919290d;
-
-      .node-panel {
-        flex: 1;
-      }
-    }
-  }
-</style>

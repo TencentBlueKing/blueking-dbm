@@ -154,24 +154,12 @@
             :cluster-type="ClusterTypes.PULSAR" />
         </template>
       </ActionPanel>
-      <DbSideslider
+      <ClusterExpansion
         v-model:is-show="isShowExpandsion"
-        background-color="#F5F7FA"
-        class="pulsar-manage-sideslider"
-        quick-close
-        :title="t('xx扩容【name】', { title: 'Pulsar', name: data?.cluster_name })"
-        :width="960">
-        <ClusterExpansion :data="data" />
-      </DbSideslider>
-      <DbSideslider
+        :cluster-data="data" />
+      <ClusterShrink
         v-model:is-show="isShowShrink"
-        background-color="#F5F7FA"
-        class="pulsar-manage-sideslider"
-        quick-close
-        :title="t('xx缩容【name】', { title: 'Pulsar', name: data?.cluster_name })"
-        :width="960">
-        <ClusterShrink :data="data" />
-      </DbSideslider>
+        :cluster-data="data" />
       <BkDialog
         v-model:is-show="isShowPassword"
         render-directive="if"

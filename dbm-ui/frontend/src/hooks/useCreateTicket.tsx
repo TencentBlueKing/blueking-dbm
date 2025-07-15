@@ -65,55 +65,58 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
       if (code === duplicateCode) {
         const id = data.duplicate_ticket_id;
 
-        InfoBox({
-          cancelText: t('取消提单'),
-          confirmText: t('继续提单'),
-          content: () => {
-            const route = router.resolve({
-              name: 'bizTicketManage',
-              params: {
-                ticketId: id,
-              },
-            });
+        // fix InfoBox
+        setTimeout(() => {
+          InfoBox({
+            cancelText: t('取消提单'),
+            confirmText: t('继续提单'),
+            content: () => {
+              const route = router.resolve({
+                name: 'bizTicketManage',
+                params: {
+                  ticketId: id,
+                },
+              });
 
-            if (locale.value === 'en') {
+              if (locale.value === 'en') {
+                return (
+                  <span>
+                    The system has detected that a similar ticket has already been submitted
+                    <a
+                      href={route.href}
+                      target='_blank'>
+                      {' '}
+                      ticket[{id}]{' '}
+                    </a>
+                    with the same target cluster, continue?
+                  </span>
+                );
+              }
+
               return (
                 <span>
-                  The system has detected that a similar ticket has already been submitted
+                  系统检测到已提交过包含相同集群的同类
                   <a
                     href={route.href}
                     target='_blank'>
-                    {' '}
-                    ticket[{id}]{' '}
+                    单据[{id}]
                   </a>
-                  with the same target cluster, continue?
+                  ，是否继续？
                 </span>
               );
-            }
-
-            return (
-              <span>
-                系统检测到已提交过包含相同集群的同类
-                <a
-                  href={route.href}
-                  target='_blank'>
-                  单据[{id}]
-                </a>
-                ，是否继续？
-              </span>
-            );
-          },
-          onConfirm: async () => {
-            try {
-              await run({
-                ...params,
-                ignore_duplication: true,
-              });
-            } catch (e: any) {
-              messageError(e?.message);
-            }
-          },
-          title: t('是否继续提交单据'),
+            },
+            onConfirm: async () => {
+              try {
+                await run({
+                  ...params,
+                  ignore_duplication: true,
+                });
+              } catch (e: any) {
+                messageError(e?.message);
+              }
+            },
+            title: t('是否继续提交单据'),
+          });
         });
       } else {
         messageError(message);

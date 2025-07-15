@@ -12,83 +12,41 @@
 -->
 
 <template>
-  <BkLoading
-    class="es-cluster-shrink-box"
-    :loading="isLoading">
-    <BkAlert
-      class="mb-16"
-      theme="warning"
-      :title="$t('热节点，冷节点，Client节点至少缩容一个类型')" />
-    <div class="wrapper">
-      <NodeStatusList
-        ref="nodeStatusListRef"
-        v-model="nodeType"
-        :list="nodeStatusList"
-        :node-info="nodeInfoMap" />
-      <div class="node-panel">
-        <HostShrink
-          v-if="!isLoading"
-          :key="nodeType"
-          :data="nodeInfoMap[nodeType]"
-          @change="handleNodeHostChange" />
-      </div>
-    </div>
-  </BkLoading>
+  <MachineShrink
+    v-model="nodeInfoMap"
+    v-model:is-show="isShow"
+    :data="clusterData"
+    :loading="isLoading"
+    :title="t('xx缩容【name】', { title: 'ES', name: clusterData?.cluster_name })"
+    @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import EsModel from '@services/model/es/es';
   import EsMachineModel from '@services/model/es/es-machine';
   import { getEsNodeList } from '@services/source/es';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage } from '@hooks';
-
-  import { TicketTypes } from '@common/const';
-
-  import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
-  import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
-
-  import { messageError } from '@utils';
+  import MachineShrink, { type TShrinkNode } from '@views/db-manage/common/machine-shrink/Index.vue';
 
   interface Props {
-    data: EsModel;
+    clusterData: EsModel;
     machineList?: EsMachineModel[];
   }
 
   type Emits = (e: 'change') => void;
-
-  interface Exposes {
-    submit: () => Promise<any>;
-  }
 
   const props = withDefaults(defineProps<Props>(), {
     machineList: () => [],
   });
   const emits = defineEmits<Emits>();
 
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
   const { t } = useI18n();
-  const ticketMessage = useTicketMessage();
 
-  const nodeStatusList = [
-    {
-      key: 'cold',
-      label: '冷节点',
-    },
-    {
-      key: 'hot',
-      label: '热节点',
-    },
-    {
-      key: 'client',
-      label: 'Client',
-    },
-  ];
-
-  const nodeStatusListRef = ref();
   const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
     client: {
       hostList: [],
@@ -129,8 +87,8 @@
 
     isLoading.value = true;
     getEsNodeList({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_id: props.data.id,
+      bk_biz_id: props.clusterData.bk_biz_id,
+      cluster_id: props.clusterData.id,
       no_limit: 1,
     })
       .then((data) => {
@@ -219,133 +177,7 @@
     },
   );
 
-  // 缩容节点主机修改
-  const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
-    const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
-    nodeInfoMap[nodeType.value].hostList = hostList;
-    nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
-    if (nodeInfoMap.hot.hostList.length === nodeInfoMap.hot.originalNodeList.length) {
-      // 热节点全缩容后，限制冷节点至少留1台
-      nodeInfoMap.cold.minHost = 1;
-    } else if (nodeInfoMap.cold.hostList.length === nodeInfoMap.cold.originalNodeList.length) {
-      // 冷节点全缩容后，限制热节点至少留1台
-      nodeInfoMap.hot.minHost = 1;
-    } else {
-      // 取消限制
-      nodeInfoMap.cold.minHost = 0;
-      nodeInfoMap.hot.minHost = 0;
-    }
+  const handleChange = () => {
+    emits('change');
   };
-
-  defineExpose<Exposes>({
-    submit() {
-      return new Promise((resolve, reject) => {
-        if (!nodeStatusListRef.value.validate()) {
-          messageError(t('热节点，冷节点，Client节点至少缩容一个类型'));
-          return reject();
-        }
-
-        const renderSubTitle = () => {
-          const renderShrinkDiskTips = () =>
-            Object.values(nodeInfoMap).map((nodeData) => {
-              if (nodeData.shrinkDisk) {
-                return (
-                  <div>
-                    {t('name容量从nG缩容至nG', {
-                      name: nodeData.label,
-                      targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
-                      totalDisk: nodeData.totalDisk,
-                    })}
-                  </div>
-                );
-              }
-              return null;
-            });
-
-          return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderShrinkDiskTips()}</div>;
-        };
-
-        InfoBox({
-          cancelText: t('取消'),
-          confirmText: t('确认'),
-          contentAlign: 'center',
-          footerAlign: 'center',
-          headerAlign: 'center',
-          onCancel: () => reject(),
-          onConfirm: () => {
-            const fomatHost = (hostList: TShrinkNode['hostList'] = []) =>
-              hostList.map((hostItem) => ({
-                bk_cloud_id: hostItem.bk_cloud_id,
-                bk_host_id: hostItem.bk_host_id,
-                ip: hostItem.ip,
-              }));
-
-            const generateExtInfo = () =>
-              Object.entries(nodeInfoMap).reduce(
-                (results, [key, item]) => {
-                  Object.assign(results, {
-                    [key]: {
-                      shrink_disk: item.shrinkDisk,
-                      total_disk: item.totalDisk,
-                      total_hosts: item.originalNodeList.length,
-                    },
-                  });
-                  return results;
-                },
-                {} as Record<string, TShrinkNode>,
-              );
-
-            return createTicket({
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              details: {
-                cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'resource_pool',
-                old_nodes: {
-                  client: fomatHost(nodeInfoMap.client.hostList),
-                  cold: fomatHost(nodeInfoMap.cold.hostList),
-                  hot: fomatHost(nodeInfoMap.hot.hostList),
-                },
-              },
-              ticket_type: TicketTypes.ES_SHRINK,
-            }).then((data) => {
-              ticketMessage(data.id);
-              resolve('success');
-              emits('change');
-            });
-          },
-          subTitle: renderSubTitle,
-          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
-        });
-      });
-    },
-  });
 </script>
-<style lang="less">
-  .es-cluster-shrink-box {
-    padding: 18px 43px 18px 37px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-    background: #f5f7fa;
-
-    .wrapper {
-      display: flex;
-      background: #fff;
-      border-radius: 2px;
-      box-shadow: 0 2px 4px 0 #1919290d;
-
-      .node-panel {
-        flex: 1;
-      }
-    }
-
-    .item-label {
-      margin-top: 24px;
-      margin-bottom: 6px;
-      font-weight: bold;
-      line-height: 20px;
-      color: #313238;
-    }
-  }
-</style>
