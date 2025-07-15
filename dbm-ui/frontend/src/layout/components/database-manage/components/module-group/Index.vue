@@ -4,6 +4,8 @@
 <script setup lang="ts">
   import { computed } from 'vue';
 
+  import { DBTypes } from '@common/const';
+
   import Doris from './Doris.vue';
   import Es from './Es.vue';
   import Hdfs from './Hdfs.vue';
@@ -25,19 +27,19 @@
   const props = defineProps<Props>();
 
   const comMap = {
-    doris: Doris,
-    es: Es,
-    hdfs: Hdfs,
-    influxdb: Influxdb,
-    kafka: Kafka,
-    mongodb: MongoDB,
-    mysql: Mysql,
+    [DBTypes.DORIS]: Doris,
+    [DBTypes.ES]: Es,
+    [DBTypes.HDFS]: Hdfs,
+    [DBTypes.INFLUXDB]: Influxdb,
+    [DBTypes.KAFKA]: Kafka,
+    [DBTypes.MONGODB]: MongoDB,
+    [DBTypes.MYSQL]: Mysql,
+    [DBTypes.PULSAR]: Pulsar,
+    [DBTypes.REDIS]: Redis,
+    [DBTypes.RIAK]: Riak,
+    [DBTypes.SQLSERVER]: SqlServer,
+    [DBTypes.TENDBCLUSTER]: TendbCluster,
     oracle: Oracle,
-    pulsar: Pulsar,
-    redis: Redis,
-    riak: Riak,
-    sqlserver: SqlServer,
-    tendbCluster: TendbCluster,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

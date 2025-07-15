@@ -12,6 +12,8 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
+import { registerBusinessModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -192,5 +194,30 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes() {
+  if (checkDbConsole('personalWorkbench.serviceApply')) {
+    registerBusinessModule([
+      {
+        path: 'service-apply',
+        name: 'BussinessServiceApply',
+        meta: {
+          navName: t('服务申请'),
+        },
+        redirect: {
+          name: 'BussinessServiceApplyIndex',
+        },
+        children: [
+          {
+            path: 'index',
+            name: 'BussinessServiceApplyIndex',
+            meta: {
+              navName: t('服务申请'),
+            },
+            component: () => import('@views/service-apply/index/Index.vue'),
+          },
+        ],
+      },
+    ]);
+  }
+
   return checkDbConsole('personalWorkbench.serviceApply') ? routes : [];
 }

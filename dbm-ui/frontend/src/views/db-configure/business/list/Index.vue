@@ -13,26 +13,41 @@
 
 <template>
   <div class="business-db-configure-list-page">
-    <ClusterTab v-model="activeTab" />
-    <div class="content-main">
-      <Content
-        v-if="activeTab"
-        :key="activeTab" />
+    <div
+      v-show="isTabShow"
+      style="height: 100%">
+      <ClusterTabForBiz
+        v-model="activeTab"
+        v-model:is-show="isTabShow" />
+      <div class="content-main">
+        <Content
+          v-if="activeTab"
+          :key="activeTab" />
+      </div>
     </div>
+    <BkException
+      v-show="!isTabShow"
+      class="empty-exception"
+      :description="t('暂无数据')"
+      scene="part"
+      type="empty" />
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { ClusterTypes } from '@common/const';
 
-  import ClusterTab from '@components/cluster-tab/Index.vue';
+  import ClusterTabForBiz from '@components/cluster-tab-for-biz/Index.vue';
 
   import Content from './components/Content.vue';
 
   const router = useRouter();
   const route = useRoute();
+  const { t } = useI18n();
 
-  const activeTab = ref<ClusterTypes>((route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
-
+  const activeTab = ref<ClusterTypes>(route.params.clusterType as ClusterTypes);
+  const isTabShow = ref(false);
   /**
    * provide active tab
    */
@@ -49,13 +64,22 @@
 </script>
 <style lang="less">
   .business-db-configure-list-page {
-    display: flex;
+    // display: flex;
     height: calc(100vh - var(--notice-height) - 105px);
-    flex-direction: column;
+    // flex-direction: column;
 
     .content-main {
-      flex: 1;
-      overflow: hidden;
+      height: calc(100% - 42px);
+      //   flex: 1;
+      //   overflow: hidden;
+    }
+
+    .empty-exception {
+      display: flex;
+      height: 100%;
+      background-color: #fff;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>
