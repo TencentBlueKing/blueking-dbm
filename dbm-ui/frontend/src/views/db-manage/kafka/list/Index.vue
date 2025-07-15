@@ -196,31 +196,16 @@
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
-    <DbSideslider
+    <ClusterExpansion
+      v-if="operationData"
       v-model:is-show="isShowExpandsion"
-      background-color="#F5F7FA"
-      class="kafka-manage-sideslider"
-      quick-close
-      :title="t('xx扩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterExpansion
-        v-if="operationData"
-        :data="operationData"
-        @change="fetchTableData" />
-    </DbSideslider>
-    <DbSideslider
+      :cluster-data="operationData"
+      @change="fetchTableData" />
+    <ClusterShrink
+      v-if="operationData"
       v-model:is-show="isShowShrink"
-      background-color="#F5F7FA"
-      class="kafka-manage-sideslider"
-      quick-close
-      :title="t('xx缩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
-      :width="960">
-      <ClusterShrink
-        v-if="operationData"
-        :data="operationData"
-        :node-list="[]"
-        @change="fetchTableData" />
-    </DbSideslider>
+      :cluster-data="operationData"
+      @change="fetchTableData" />
     <TopicRebalance
       v-if="operationData"
       v-model:is-show="isShowRebalance"

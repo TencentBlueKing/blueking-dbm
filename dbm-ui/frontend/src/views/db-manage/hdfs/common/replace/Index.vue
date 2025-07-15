@@ -12,69 +12,29 @@
 -->
 
 <template>
-  <div class="hdfs-cluster-replace-box">
-    <template v-if="!isEmpty">
-      <BkRadioGroup
-        v-model="ipSource"
-        class="ip-srouce-box">
-        <BkRadioButton label="resource_pool">
-          {{ t('资源池自动匹配') }}
-        </BkRadioButton>
-        <BkRadioButton label="manual_input">
-          {{ t('资源池手动选择') }}
-        </BkRadioButton>
-      </BkRadioGroup>
-      <div
-        v-show="nodeInfoMap.datanode.oldHostList.length > 0"
-        class="item">
-        <div class="item-label">DataNode</div>
-        <HostReplace
-          ref="datanodeRef"
-          v-model:host-list="nodeInfoMap.datanode.hostList"
-          v-model:old-host-list="nodeInfoMap.datanode.oldHostList"
-          v-model:resource-spec="nodeInfoMap.datanode.resourceSpec"
-          :cloud-info="{
-            id: data.bk_cloud_id,
-            name: data.bk_cloud_name,
-          }"
-          :data="nodeInfoMap.datanode"
-          :db-type="DBTypes.HDFS"
-          :ip-source="ipSource"
-          @remove-node="handleRemoveNode" />
-      </div>
-    </template>
-    <div
-      v-else
-      class="node-empty">
-      <BkException
-        scene="part"
-        type="empty">
-        <template #description>
-          <DbIcon type="attention" />
-          <span>{{ t('请先返回列表选择要替换的节点 IP') }}</span>
-        </template>
-      </BkException>
-    </div>
-  </div>
+  <MachineReplace
+    v-if="clusterData"
+    v-model="nodeInfoMap"
+    v-model:is-show="isShow"
+    :cluster-data="clusterData"
+    :title="t('xx替换【name】', { title: 'HDFS', name: clusterData?.cluster_name })"
+    @remove-node="handleRemoveNode"
+    @submit="handleChange" />
 </template>
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
-  import { computed, reactive, ref } from 'vue';
+  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
   import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
-  import { createTicket } from '@services/source/ticket';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
-
-  import { messageError } from '@utils';
+  import MachineReplace, { type TReplaceNode } from '@views/db-manage/common/machine-replace/Index.vue';
 
   interface Props {
-    data: HdfsModel;
-    machineList: HdfsMachineModel[];
+    clusterData: HdfsModel;
+    machineList?: HdfsMachineModel[];
   }
 
   interface Emits {
@@ -82,23 +42,22 @@
     (e: 'removeNode', bkHostId: number): void;
   }
 
-  interface Exposes {
-    cancel: () => Promise<any>;
-    submit: () => Promise<any>;
-  }
-
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    machineList: () => [],
+  });
   const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
 
-  const datanodeRef = ref();
-
-  const ipSource = ref('resource_pool');
   const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
     datanode: {
-      clusterId: props.data.id,
+      clusterId: props.clusterData.id,
       hostList: [],
+      label: 'Datanode',
       oldHostList: [],
       resourceSpec: {
         count: 0,
@@ -108,11 +67,6 @@
       specClusterType: ClusterTypes.HDFS,
       specMachineType: 'hdfs_datanode',
     },
-  });
-
-  const isEmpty = computed(() => {
-    const { datanode } = nodeInfoMap;
-    return datanode.oldHostList.length < 1;
   });
 
   watch(
@@ -137,128 +91,7 @@
     emits('removeNode', node.bk_host_id);
   };
 
-  defineExpose<Exposes>({
-    cancel() {
-      return Promise.resolve();
-    },
-    submit() {
-      return new Promise((resolve, reject) => {
-        if (isEmpty.value) {
-          messageError(t('至少替换一种节点类型'));
-          return reject();
-        }
-        datanodeRef.value.getValue().then(
-          (datanodeValue) => {
-            const isEmptyValue = () => {
-              if (ipSource.value === 'manual_input') {
-                return datanodeValue.new_nodes.length < 1;
-              }
-
-              return !(datanodeValue.resource_spec.spec_id > 0 && datanodeValue.resource_spec.count > 0);
-            };
-
-            if (isEmptyValue()) {
-              messageError(t('替换节点不能为空'));
-              return reject();
-            }
-
-            const getReplaceNodeNums = () => {
-              if (ipSource.value === 'manual_input') {
-                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-              }
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-                if (nodeData.resourceSpec.spec_id > 0) {
-                  return result + nodeData.oldHostList.length;
-                }
-                return result;
-              }, 0);
-            };
-
-            InfoBox({
-              cancelText: t('取消'),
-              confirmText: t('确认'),
-              contentAlign: 'center',
-              footerAlign: 'center',
-              headerAlign: 'center',
-              onCancel: () => reject(),
-              onConfirm: () => {
-                const nodeData = {};
-                if (ipSource.value === 'manual_input') {
-                  Object.assign(nodeData, {
-                    resource_spec: {
-                      datanode: {
-                        count: datanodeValue.new_nodes.length,
-                        hosts: datanodeValue.new_nodes,
-                        spec_id: 0,
-                      },
-                    },
-                  });
-                } else {
-                  Object.assign(nodeData, {
-                    resource_spec: {
-                      datanode: datanodeValue.resource_spec,
-                    },
-                  });
-                }
-
-                createTicket({
-                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                  details: {
-                    cluster_id: props.data.id,
-                    ip_source: 'resource_pool',
-                    old_nodes: {
-                      datanode: datanodeValue.old_nodes,
-                    },
-                    ...nodeData,
-                  },
-                  ticket_type: TicketTypes.HDFS_REPLACE,
-                }).then(() => {
-                  emits('change');
-                  resolve('success');
-                });
-              },
-              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            });
-          },
-          () => reject(),
-        );
-      });
-    },
-  });
+  const handleChange = () => {
+    emits('change');
+  };
 </script>
-<style lang="less">
-  .hdfs-cluster-replace-box {
-    padding: 18px 43px 18px 37px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #63656e;
-
-    .ip-srouce-box {
-      display: flex;
-      margin-bottom: 16px;
-
-      .bk-radio-button {
-        flex: 1;
-        background: #fff;
-      }
-    }
-
-    .item {
-      & ~ .item {
-        margin-top: 24px;
-      }
-
-      .item-label {
-        margin-bottom: 6px;
-        font-weight: bold;
-        color: #313238;
-      }
-    }
-
-    .node-empty {
-      height: calc(100vh - 58px);
-      padding-top: 168px;
-    }
-  }
-</style>
