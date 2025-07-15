@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { Affinity, affinityMap, ClusterTypes } from '@common/const';
+import { Affinity, affinityMap, ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -75,6 +75,7 @@ export default class Kafka extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: number;
+  db_type: DBTypes.KAFKA;
   disaster_tolerance_level: Affinity;
   domain: string;
   id: number;
@@ -124,6 +125,7 @@ export default class Kafka extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.db_type = payload.db_type;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.id = payload.id;
