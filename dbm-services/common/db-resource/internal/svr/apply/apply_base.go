@@ -154,7 +154,7 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 		}
 		// 添加类型检查
 		// nolint
-		if objDetail, ok := item.Value.(ObjectDetail); !ok {
+		if objDetail, ok := item.Value.(ObjectDetail); ok {
 			dlts = append(dlts, objDetail)
 		} else {
 			return nil, fmt.Errorf("invalid type in PriorityQueue: expected ObjectDetail, got %T", item.Value)
