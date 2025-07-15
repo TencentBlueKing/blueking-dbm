@@ -17,11 +17,11 @@
     :show-overflow="false">
     <BkTableColumn
       field="master.ip"
-      :label="t('目标主库IP')">
+      :label="t('目标主库主机')">
     </BkTableColumn>
     <BkTableColumn
       field="slave.ip"
-      :label="t('目标从库IP')">
+      :label="t('从库主机')">
     </BkTableColumn>
     <BkTableColumn
       field="slave.ip"
