@@ -14,7 +14,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
+from backend.db_services.mysql.cluster.serializers import (
+    GetIntersectedSlavaMachinesResponseSerializer,
+    GetIntersectedSlavaMachinesSerializer,
+)
 from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler
 from backend.db_services.sqlserver.cluster.serializers import (
     CheckDBExistResponseSerializer,
@@ -78,3 +83,20 @@ class ClusterViewSet(BaseClusterViewSet):
     def import_db_struct(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         return Response(ClusterServiceHandler(bk_biz_id).import_db_struct(**data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取关联集群从库的交集"),
+        request_body=GetIntersectedSlavaMachinesSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: GetIntersectedSlavaMachinesResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetIntersectedSlavaMachinesSerializer)
+    def get_intersected_slave_machines_from_clusters(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            ClusterServiceHandler(bk_biz_id).get_intersected_machines_from_clusters(
+                cluster_ids=validated_data["cluster_ids"],
+                role=InstanceInnerRole.SLAVE.value,
+                is_stand_by=validated_data["is_stand_by"],
+            )
+        )
