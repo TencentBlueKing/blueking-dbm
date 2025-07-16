@@ -151,6 +151,7 @@
             const clusterInfo = clusters[clusterIds[0]];
             const ip = hostInfo.master_ip || hostInfo.ip;
             const specId = hostInfo.master_spec_id || hostInfo.spec_id;
+            const isRelatedSlave = !!hostInfo.master_ip; // 是否是关联带出的slave
             if (!ipInfoMap[ip]) {
               Object.assign(ipInfoMap, {
                 [ip]: {
@@ -160,7 +161,7 @@
                   spec_config: specs[specId],
                 },
               });
-            } else {
+            } else if (isRelatedSlave) {
               ipInfoMap[ip].related_slave_ip = hostInfo.ip;
               ipInfoMap[ip].related_slave_spec = specs[specId];
             }
