@@ -96,7 +96,7 @@ class GetOldBackupRecordsAndSave(BkJobService):
 
         # 脚本内容
         shell_command = f"""
-cat > {save_file} << EOF
+cat > {save_file} << 'EOF'
 {encode_str}
 EOF
     """
