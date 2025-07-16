@@ -98,7 +98,6 @@
           bk_biz_id: props.bizId,
           cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes].join(','),
           limit: -1,
-          phase: 'online',
         });
       }
     },
