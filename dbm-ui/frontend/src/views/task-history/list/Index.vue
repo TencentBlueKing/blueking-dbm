@@ -341,7 +341,7 @@
   };
 
   const handleGoDetail = (data: TaskFlowModel) => {
-    router.push({
+    const { href } = router.resolve({
       name: 'taskHistoryDetail',
       params: {
         root_id: data.root_id,
@@ -350,6 +350,7 @@
         from: route.name as string,
       },
     });
+    window.open(href, '_blank');
   };
 
   const handleGoTicketDetail = (data: TaskFlowModel) => {

@@ -415,9 +415,9 @@
       const [canvasWidth] = flowGraphInstance.getSize();
       if (width > canvasWidth) {
         await initGraph();
-        flowGraphInstance.isInit = true;
-        flowGraphInstance.graph?.translateTo([0, 100]);
+        // flowGraphInstance.isInit = true;
       }
+      flowGraphInstance.graph?.translateTo([0, 100]);
     },
     getGraph: () => flowGraphInstance,
     getShareData: () => ({
