@@ -21,7 +21,9 @@ package dbaccess
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
 
@@ -36,11 +38,28 @@ type K8sClusterConfigDbAccess interface {
 	FindByClusterName(name string) (*models.K8sClusterConfigModel, error)
 	Update(model *models.K8sClusterConfigModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sClusterConfigModel, int64, error)
+	FindRegionsByParams(params *metaentity.RegionQueryParams) ([]*models.RegionModel, error)
 }
 
 // K8sClusterConfigDbAccessImpl K8sClusterConfigDbAccess 的具体实现
 type K8sClusterConfigDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindRegionsByParams 根据参数查找区域列表
+func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.RegionQueryParams) (
+	[]*models.RegionModel,
+	error,
+) {
+	var regions []*models.RegionModel
+	if err := k.db.Model(&models.K8sClusterConfigModel{}).
+		Select("is_public,region_name,region_code, provider").
+		Where(params).
+		Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
+		slog.Error("find regions by params error", "param", params, "error", err)
+		return nil, err
+	}
+	return regions, nil
 }
 
 // FindByClusterName 通过集群名称查找

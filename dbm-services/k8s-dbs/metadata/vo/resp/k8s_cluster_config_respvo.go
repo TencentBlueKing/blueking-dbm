@@ -32,10 +32,22 @@ type K8sClusterConfigRespVo struct {
 	Token        string    `json:"token"`
 	Username     string    `json:"username"`
 	Password     string    `json:"password"`
+	IsPublic     bool      `json:"isPublic"`
+	RegionName   string    `json:"regionName"`
+	RegionCode   string    `json:"regionCode"`
+	Provider     string    `json:"provider"`
 	Active       bool      `json:"active"`
 	Description  string    `json:"description"`
 	CreatedBy    string    `json:"createdBy"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedBy    string    `json:"updatedBy"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// RegionResp 区域信息响应结构体
+type RegionResp struct {
+	IsPublic   bool   `json:"isPublic"`
+	RegionName string `json:"regionName"`
+	RegionCode string `json:"regionCode"`
+	Provider   string `json:"provider"`
 }

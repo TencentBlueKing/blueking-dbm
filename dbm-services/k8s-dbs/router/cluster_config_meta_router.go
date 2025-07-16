@@ -36,11 +36,10 @@ func BuildClusterConfigMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	k8sClusterConfigController := metacontroller.NewK8sClusterConfigController(k8sClusterConfigProvider)
 	k8sClusterConfigMetaGroup := metaRouter.Group("/k8s_cluster_config")
 	{
-		k8sClusterConfigMetaGroup.GET("/id/:id", k8sClusterConfigController.GetK8sClusterConfigByID)
-		k8sClusterConfigMetaGroup.GET("/name/:cluster_name", k8sClusterConfigController.GetK8sClusterConfigByName)
 		k8sClusterConfigMetaGroup.DELETE("/:id", k8sClusterConfigController.DeleteK8sClusterConfig)
 		k8sClusterConfigMetaGroup.POST("", k8sClusterConfigController.CreateK8sClusterConfig)
 		k8sClusterConfigMetaGroup.PUT("/:id", k8sClusterConfigController.UpdateK8sClusterConfig)
+		k8sClusterConfigMetaGroup.GET("/regions", k8sClusterConfigController.GetRegionsByVisibility)
 	}
 }
 

@@ -23,19 +23,28 @@ import "time"
 
 // K8sClusterConfigEntity k8s cluster config entity 定义
 type K8sClusterConfigEntity struct {
-	ID           uint64    `json:"id"`
-	ClusterName  string    `json:"clusterName"`
-	APIServerURL string    `json:"apiServerUrl"`
-	CACert       string    `json:"caCert"`
-	ClientCert   string    `json:"clientCert"`
-	ClientKey    string    `json:"clientKey"`
-	Token        string    `json:"token"`
-	Username     string    `json:"username"`
-	Password     string    `json:"password"`
-	Active       bool      `json:"active"`
-	Description  string    `json:"description"`
-	CreatedBy    string    `json:"createdBy"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedBy    string    `json:"updatedBy"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID            uint64 `json:"id"`
+	ClusterName   string `json:"clusterName"`
+	APIServerURL  string `json:"apiServerUrl"`
+	CACert        string `json:"caCert"`
+	ClientCert    string `json:"clientCert"`
+	ClientKey     string `json:"clientKey"`
+	Token         string `json:"token"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	*RegionEntity `json:",inline"`
+	Active        bool      `json:"active"`
+	Description   string    `json:"description"`
+	CreatedBy     string    `json:"createdBy"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedBy     string    `json:"updatedBy"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+// RegionEntity 区域信息 entity
+type RegionEntity struct {
+	IsPublic   bool   `json:"isPublic"`
+	RegionName string `json:"regionName"`
+	RegionCode string `json:"regionCode"`
+	Provider   string `json:"provider"`
 }

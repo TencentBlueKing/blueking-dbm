@@ -105,3 +105,11 @@ type ClusterReleaseQueryParams struct {
 	CreatedBy          string `gorm:"column:created_by" json:"createdBy"`
 	UpdatedBy          string `gorm:"column:updated_by" json:"updatedBy"`
 }
+
+// RegionQueryParams region 元数据查询参数
+type RegionQueryParams struct {
+	IsPublic   bool   `gorm:"type:tinyint(1);not null;default:1;column:is_public" json:"isPublic"`
+	RegionName string `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
+	RegionCode string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
+	Provider   string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
+}

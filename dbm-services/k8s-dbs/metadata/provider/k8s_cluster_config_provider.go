@@ -35,11 +35,30 @@ type K8sClusterConfigProvider interface {
 	FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error)
 	FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error)
 	UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error)
+	GetRegionsByVisibility(public bool) ([]*metaentity.RegionEntity, error)
 }
 
 // K8sClusterConfigProviderImpl K8sClusterConfigProvider 具体实现
 type K8sClusterConfigProviderImpl struct {
 	dbAccess dbaccess.K8sClusterConfigDbAccess
+}
+
+// GetRegionsByVisibility 根据可访问性（公有/私有）筛选并返回符合条件的区域列表。
+func (k *K8sClusterConfigProviderImpl) GetRegionsByVisibility(isPublic bool) ([]*metaentity.RegionEntity, error) {
+	params := &metaentity.RegionQueryParams{
+		IsPublic: isPublic,
+	}
+	regionModels, err := k.dbAccess.FindRegionsByParams(params)
+	if err != nil {
+		slog.Error("Failed to find regions by params", "params", params, "error", err)
+		return nil, err
+	}
+	var regions []*metaentity.RegionEntity
+	if err := copier.Copy(&regions, regionModels); err != nil {
+		slog.Error("Failed to copy entity to copied model", "error", err)
+		return nil, err
+	}
+	return regions, nil
 }
 
 // CreateConfig 创建 k8s cluster config

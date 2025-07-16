@@ -65,6 +65,27 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
+// GetRegionsByVisibility 按照k8s集群可见性来获取集群区域列表
+func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
+	isPublicStr := ctx.Query("isPublic")
+	isPublic, err := strconv.ParseBool(isPublicStr)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	regions, err := k.configProvider.GetRegionsByVisibility(isPublic)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	var respRegions []*resp.RegionResp
+	if err := copier.Copy(&respRegions, regions); err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	entity.SuccessResponse(ctx, respRegions, commconst.Success)
+}
+
 // GetK8sClusterConfigByName get clusterConfig by its Name.
 func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context) {
 	nameParam := ctx.Param("clusterName")
