@@ -12,9 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData">
     <EditableRow
       v-for="(item, index) in tableData"
@@ -36,10 +39,15 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
+
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { random } from '@utils';
 
   import BackupModeColumn, { ROLLBACK_TYPE } from '../backup-mode-column/Index.vue';
   import ClusterColumn from '../ClusterColumn.vue';
@@ -82,20 +90,41 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const batchInputConfig = [
+    {
+      case: 'tendbha.test.dba.db',
+      key: 'master_domain',
+      label: t('待回档集群'),
+    },
+    {
+      case: 'NULL',
+      key: 'rollback',
+      label: t('回档类型'),
+    },
+  ];
+
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      id: 0,
-      master_domain: '',
-    },
-    rollback: data.rollback || {
-      backupid: '',
-      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
-    },
+    cluster: Object.assign(
+      {
+        id: 0,
+        master_domain: '',
+      },
+      data.cluster,
+    ),
+    rollback: Object.assign(
+      {
+        backupid: '',
+        rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+      },
+      data.rollback,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -149,6 +178,25 @@
         [field as keyof RowData]: _.cloneDeep(value),
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.master_domain,
+        } as TendbClusterModel,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({

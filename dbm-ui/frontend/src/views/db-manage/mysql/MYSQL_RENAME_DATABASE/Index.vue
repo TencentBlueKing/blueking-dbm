@@ -45,6 +45,7 @@
             :cluster-id="item.cluster.id"
             field="fromDatabase"
             :label="t('源 DB 名')"
+            required
             :rules="rules.fromDatabase"
             single
             @batch-edit="handleBatchEdit" />
@@ -54,6 +55,7 @@
             :cluster-id="item.cluster.id"
             field="toDatabase"
             :label="t('新 DB 名')"
+            required
             :rules="rules.toDatabase"
             single
             @batch-edit="handleBatchEdit" />
