@@ -162,15 +162,13 @@
   }
 
   interface Exposes {
-    getData: (backupid: string) => Promise<BackupLogRecord>;
+    getData: (backupid: string) => Promise<BackupLogRecord> | undefined;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    backupid: '',
     backupSource: '',
     clearable: false,
     disabled: false,
-    modelValue: '',
   });
 
   const backupinfo = defineModel<BackupLogRecord>('backupinfo');
@@ -342,6 +340,7 @@
   );
 
   onMounted(() => {
+    localValue.value = (backupinfo.value?.backup_id as string) || '';
     tippyIns = tippy(rootRef.value as SingleTarget, {
       appendTo: () => document.body,
       arrow: false,
@@ -377,6 +376,9 @@
 
   defineExpose<Exposes>({
     getData(backupid: string) {
+      if (!isDateType(backupid)) {
+        return;
+      }
       return queryLatesBackupLog({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.clusterId,

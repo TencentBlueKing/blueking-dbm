@@ -12,9 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="table"
-    class="mb-20"
+    class="mt-16 mb-20"
     :model="tableData">
     <EditableRow
       v-for="(item, index) in tableData"
@@ -32,7 +35,7 @@
         v-model="item.rollback"
         :cluster="item.cluster"
         @batch-edit="handleBatchEdit" />
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.databases"
         allow-asterisk
         check-not-exist
@@ -41,14 +44,14 @@
         :label="t('回档DB')"
         required
         @batch-edit="handleBatchEdit" />
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.databases_ignore"
         check-exist
         :cluster-id="item.cluster.id"
         field="databases_ignore"
         :label="t('忽略DB')"
         @batch-edit="handleBatchEdit" />
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.tables"
         allow-asterisk
         :cluster-id="item.cluster.id"
@@ -56,7 +59,7 @@
         :label="t('回档表名')"
         required
         @batch-edit="handleBatchEdit" />
-      <TagDbNameColumn
+      <DbNameColumn
         v-model="item.tables_ignore"
         :cluster-id="item.cluster.id"
         field="tables_ignore"
@@ -77,7 +80,10 @@
   import { type TendbCluster } from '@services/model/ticket/ticket';
   import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
-  import TagDbNameColumn from '@views/db-manage/common/toolbox-field/column/tag-db-name-column/Index.vue';
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import DbNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/db-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   import BackupModeColumn, { ROLLBACK_TYPE } from '../backup-mode-column/Index.vue';
   import ClusterColumn from '../ClusterColumn.vue';
@@ -133,26 +139,74 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      id: 0,
-      master_domain: '',
+  const batchInputConfig = [
+    {
+      case: 'tendbha.test.dba.db',
+      key: 'master_domain',
+      label: t('待回档集群'),
     },
+    {
+      case: 'tendbha.test2.dba.db',
+      key: 'target_master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'NULL',
+      key: 'rollback',
+      label: t('回档类型'),
+    },
+    {
+      case: 'db1',
+      key: 'databases',
+      label: t('回档DB'),
+    },
+    {
+      case: 'db2',
+      key: 'databases_ignore',
+      label: t('忽略DB'),
+    },
+    {
+      case: 'tb1',
+      key: 'tables',
+      label: t('回档表名'),
+    },
+    {
+      case: 'tb2',
+      key: 'tables_ignore',
+      label: t('忽略表名'),
+    },
+  ];
+
+  const createTableRow = (data = {} as Partial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        id: 0,
+        master_domain: '',
+      },
+      data.cluster,
+    ),
     databases: data.databases || ['*'],
     databases_ignore: data.databases_ignore || [],
-    rollback: data.rollback || {
-      backupid: '',
-      rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
-    },
+    rollback: Object.assign(
+      {
+        backupid: '',
+        rollback_type: ROLLBACK_TYPE.REMOTE_AND_BACKUPID,
+      },
+      data.rollback,
+    ),
     tables: data.tables || ['*'],
     tables_ignore: data.tables_ignore || [],
-    target_cluster: data.target_cluster || {
-      id: 0,
-      master_domain: '',
-    },
+    target_cluster: Object.assign(
+      {
+        id: 0,
+        master_domain: '',
+      },
+      data.target_cluster,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -218,6 +272,32 @@
         [field as keyof RowData]: _.cloneDeep(value),
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.master_domain,
+        } as TendbClusterModel,
+        databases: item.databases ? [item.databases] : [],
+        databases_ignore: item.databases_ignore ? [item.databases_ignore] : [],
+        tables: item.tables ? [item.tables] : [],
+        tables_ignore: item.tables_ignore ? [item.tables_ignore] : [],
+        target_cluster: {
+          master_domain: item.target_master_domain,
+        } as TendbClusterModel,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   defineExpose<Exposes>({
