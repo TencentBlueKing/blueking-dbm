@@ -66,7 +66,8 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 		sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k,
 			base64.URLEncoding.EncodeToString([]byte(cast.ToString(v)))))
 	}
-	tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // we use UTC to get and set rather than Local
+	//tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // we use UTC to get and set rather than Local
+	tz := "loc=Local"
 	sessionParams = append(sessionParams, tz)
 	if dsn.Charset == "" {
 		dsn.Charset = "utf8mb4"

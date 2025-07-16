@@ -22,8 +22,8 @@ fast_transfer_file_common_kwargs = {
 
 # mysql actuator 执行的shell命令，引入文件MD5值的比较，避免并发执行过程中输出错误信息，误导日志的捕捉
 actuator_template = """
-find /data/install/ -maxdepth 1  -type d -name "dbactuator-*"  -mtime +90 |xargs -i rm -r {} || true 
-find /data/install/dbactuator-*/ -mtime +10 -name dbactuator -delete || true
+find /data/install/ -maxdepth 1  -type d -name "dbactuator-*"  -mtime +90 |xargs -i rm -r {}  2>/dev/null || true 
+find /data/install/dbactuator-*/ -mtime +10 -name dbactuator -delete 2>/dev/null || true
 lock_file="/tmp/dbm-mysql-{{uid}}.lock"
 trap 'rm -f "$lock_file"' EXIT
 (

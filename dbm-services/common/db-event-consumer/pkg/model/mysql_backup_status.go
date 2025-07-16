@@ -11,7 +11,7 @@ package model
 import "dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 
 type MysqlBackupStatusModel struct {
-	BaseModel              `xorm:"extends"`
+	BaseModel              `json:",inline" gorm:"embedded" xorm:"extends"`
 	dbareport.BackupStatus `json:",inline" xorm:"extends"`
 }
 

@@ -14,17 +14,20 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/go-playground/validator/v10"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-event-consumer/pkg/sinker"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
 
 type MysqlBackupResultModel struct {
-	BaseModel `xorm:"extends"`
+	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
+	//dbareport.ModelBackupReport
 
-	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:4"`
+	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(60);NOT NULL;index:uk_cluster,unique,priority:4" validate:"required"`
 	BackupType      string `json:"backup_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
 	ClusterId       int    `json:"cluster_id" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL"`
 	ClusterAddress  string `json:"cluster_address" db:"cluster_address" gorm:"column:cluster_address;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
@@ -59,11 +62,11 @@ type MysqlBackupResultModel struct {
 	// UNIQUE KEY `uk_cluster` (`cluster_address`,`shard_value`,`mysql_role`,`backup_id`),
 }
 
-func (m MysqlBackupResultModel) TableName() string {
+func (m *MysqlBackupResultModel) TableName() string {
 	return "tb_mysql_backup_result"
 }
 
-func (m MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
+func (m *MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
 	slog.Info("run migrate for MysqlBackupResultModel", slog.String("table", m.TableName()))
 	if w.Type() == "mysql" {
 		dbWriter := w.(*sinker.MysqlWriter)
@@ -97,7 +100,7 @@ func (m MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
 	}
 }
 
-func (m MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) error {
+func (m *MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) error {
 	if w.Type() == "mysql" {
 		if writer, ok := w.(*sinker.MysqlWriter); ok {
 			return m.mysqlCreate(objs, writer.GormDB())
@@ -112,7 +115,7 @@ func (m MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) erro
 	}
 }
 
-func (m MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
+func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 	sqlBuilder := sq.Replace(m.TableName()).Columns("cluster_address",
 		"backup_host",
 		"backup_port",
@@ -135,15 +138,8 @@ func (m MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"binlog_info",
 		"extra_fields",
 		"file_list",
+		"event_report_timestamp",
 	)
-	/*
-		var kafkaObjs []*MysqlBackupResultModel
-		aaa := i.([]sinker.ModelSinker)
-		for _, a := range aaa {
-			kafkaObjs = append(kafkaObjs, a.(*MysqlBackupResultModel))
-		}
-
-	*/
 	kafkaObjs, ok := i.([]MysqlBackupResultModel)
 	if !ok {
 		kafkaObjs = []MysqlBackupResultModel{i.(MysqlBackupResultModel)}
@@ -154,6 +150,7 @@ func (m MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		if err := copier.Copy(modelObj, kafkaObj); err != nil {
 			return err
 		}
+
 		modelObj.FileList, _ = json.Marshal(kafkaObj.FileList)
 		modelObj.BinlogInfo, _ = json.Marshal(kafkaObj.BinlogInfo)
 		modelObj.ExtraFields, _ = json.Marshal(kafkaObj.ExtraFields)
@@ -183,6 +180,7 @@ func (m MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BinlogInfo,
 			modelObj.ExtraFields,
 			modelObj.FileList,
+			modelObj.EventReportTimestamp,
 		)
 	}
 
@@ -199,85 +197,33 @@ func (m MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 	return nil
 }
 
-type BackupMetaFileBase struct {
-	// BackupId backup uuid 代表一次备份
-	BackupId       string `json:"backup_id" db:"backup_id"`
-	BackupType     string `json:"backup_type" db:"backup_type"`
-	ClusterId      int    `json:"cluster_id" db:"cluster_id"`
-	ClusterAddress string `json:"cluster_address" db:"cluster_address"`
-	BackupHost     string `json:"backup_host" db:"backup_host"`
-	BackupPort     int    `json:"backup_port" db:"backup_port"`
-	MysqlRole      string `json:"mysql_role" db:"mysql_role"`
-	// ShardValue 分片 id，仅 spider 有用
-	ShardValue int    `json:"shard_value" db:"shard_value"`
-	BillId     string `json:"bill_id" db:"bill_id"`
-	// BkBizId 被清洗过了
-	BkBizId         int    `json:"bk_biz_id" db:"bk_biz_id"`
-	MysqlVersion    string `json:"mysql_version" db:"mysql_version"`
-	DataSchemaGrant string `json:"data_schema_grant" db:"data_schema_grant"`
-	// IsFullBackup 是否包含数据的全备
-	IsFullBackup bool `json:"is_full_backup" db:"is_full_backup"`
-	// BackupConsistentTime 备份的一致性时间点，逻辑备份是备份开始时间，物理备份是备份结束时间， format time.RFC3339
-	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time"`
-	// BackupBeginTime use time.RFC3339
-	BackupBeginTime time.Time `json:"backup_begin_time" db:"backup_begin_time"`
-	BackupEndTime   time.Time `json:"backup_end_time" db:"backup_end_time"`
-
-	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
-	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`
+func (m *MysqlBackupResultModel) Validate() error {
+	validate := validator.New()
+	return validate.Struct(m)
+	//validationErrors := err.(validator.ValidationErrors)
 }
 
-type ExtraFields struct {
-	BkCloudId        int    `json:"bk_cloud_id" db:"bk_cloud_id"`
-	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag"`
-	TotalFilesize    uint64 `json:"total_filesize" db:"total_filesize"`
-	// TotalSizeKBUncompress 压缩前大小，如果是zstd压缩会提供压缩前大小，-1,0 都是无效值。这不是精确大小，可能存在四舍五入
-	TotalSizeKBUncompress int64 `json:"total_size_kb_uncompress" db:"total_size_kb_uncompress"`
-	EncryptEnable         bool  `json:"encrypt_enable" db:"encrypt_enable"`
-	// StorageEngine 物理备份使用
-	StorageEngine string `json:"storage_engine" db:"storage_engine"`
-	TimeZone      string `json:"time_zone" db:"time_zone"`
-	// BackupCharset 逻辑备份使用
-	BackupCharset  string `json:"backup_charset" db:"backup_charset"`
-	SqlMode        string `json:"sql_mode" db:"sql_mode"`
-	BinlogFormat   string `json:"binlog_format" db:"binlog_format"`
-	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
-	// BackupTool command name xtrabackup / mydumper / mysqldump
-	BackupTool string `json:"backup_tool" db:"backup_tool"`
+func (m *MysqlBackupResultModel) UnmarshalJSON(data []byte) error {
+	msg := MysqlBackupResultMsg{}
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return err
+	}
+	if err := copier.Copy(&m, msg); err != nil {
+		return err
+	}
+
+	m.FileList, _ = json.Marshal(msg.FileList)
+	m.BinlogInfo, _ = json.Marshal(msg.BinlogInfo)
+	m.ExtraFields, _ = json.Marshal(msg.ExtraFields)
+	m.BkBizId = msg.BkBizId
+	return nil
 }
 
-type BinlogStatusInfo struct {
-	// ShowMasterStatus 当前实例 show master status 输出，本机位点
-	ShowMasterStatus *StatusInfo `json:"show_master_status"`
-	// ShowSlaveStatus 显示的是当前实例的 master 的位点
-	ShowSlaveStatus *StatusInfo `json:"show_slave_status"`
-}
-
-type StatusInfo struct {
-	BinlogFile string `json:"binlog_file"`
-	BinlogPos  string `json:"binlog_pos"`
-	Gtid       string `json:"gtid"`
-	MasterHost string `json:"master_host"`
-	MasterPort int    `json:"master_port"`
-}
-
-type TarFileItem struct {
-	FileName      string   `json:"file_name"`
-	FileSize      int64    `json:"file_size"`
-	FileType      string   `json:"file_type" enums:"schema,data,metadata,priv"`
-	ContainFiles  []string `json:"contain_files"`
-	ContainTables []string `json:"contain_tables"`
-	// TaskId backup task_id
-	TaskId string `json:"task_id"`
-}
-
-type IndexContent struct {
-	BackupMetaFileBase
-	// ExtraFields 这里不能展开
-	ExtraFields
-
-	// BinlogInfo show slave status / show master status
-	BinlogInfo BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
-
-	FileList []*TarFileItem `json:"file_list" db:"file_list"`
+type MysqlBackupResultMsg struct {
+	BaseModel `json:",inline"`
+	//dbareport.IndexContent `json:",inline"`
+	dbareport.BackupMetaFileBase `json:",inline"`
+	dbareport.ExtraFields        `json:",inline"`
+	BinlogInfo                   dbareport.BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
+	FileList                     []*dbareport.TarFileItem   `json:"file_list" db:"file_list"`
 }
