@@ -53,3 +53,9 @@ type ClusterTopology struct {
 type ClusterComponent struct {
 	Name string `json:"name"`
 }
+
+// AddonVersionEntity addon version entity 定义
+type AddonVersionEntity struct {
+	AddonVersion      string `json:"addonVersion"`
+	SupportedVersions string `json:"supportedVersions"`
+}

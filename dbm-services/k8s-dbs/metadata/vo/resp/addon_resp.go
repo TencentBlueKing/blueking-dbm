@@ -22,6 +22,7 @@ package resp
 import (
 	"encoding/json"
 	commtypes "k8s-dbs/common/types"
+	"log/slog"
 )
 
 // K8sCrdAddonRespVo response vo 定义
@@ -45,7 +46,7 @@ type K8sCrdAddonRespVo struct {
 	UpdatedAt            commtypes.JSONDatetime `json:"updatedAt"`
 }
 
-// MarshalJSON 自定义 K8sCrdAddonRespVo JSON 序列化逻辑
+// MarshalJSON 自定义 K8sCrdAddonResp JSON 序列化逻辑
 func (k K8sCrdAddonRespVo) MarshalJSON() ([]byte, error) {
 	var topologiesArray []map[string]any
 	err := json.Unmarshal([]byte(k.Topologies), &topologiesArray)
@@ -85,6 +86,27 @@ func (k K8sCrdAddonRespVo) MarshalJSON() ([]byte, error) {
 		"createdAt":            k.CreatedAt,
 		"updatedBy":            k.UpdatedBy,
 		"updatedAt":            k.UpdatedAt,
+	}
+	return json.Marshal(output)
+}
+
+// AddonVersionResp addon 版本响应结构体
+type AddonVersionResp struct {
+	AddonVersion      string `json:"addonVersion"`
+	SupportedVersions string `json:"supportedVersions"`
+}
+
+// MarshalJSON 自定义 AddonVersionResp JSON 序列化逻辑
+func (k AddonVersionResp) MarshalJSON() ([]byte, error) {
+	var supportedVersionsArray []string
+	err := json.Unmarshal([]byte(k.SupportedVersions), &supportedVersionsArray)
+	if err != nil {
+		slog.Error("got error unmarshalling supported versions", "error", err)
+		return nil, err
+	}
+	output := map[string]interface{}{
+		"addonVersion":      k.AddonVersion,
+		"supportedVersions": supportedVersionsArray,
 	}
 	return json.Marshal(output)
 }

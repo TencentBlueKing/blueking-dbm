@@ -35,6 +35,7 @@ type K8sCrdStorageAddonProvider interface {
 		*metaentity.K8sCrdStorageAddonEntity, error)
 	DeleteStorageAddonByID(id uint64) (uint64, error)
 	FindStorageAddonByID(id uint64) (*metaentity.K8sCrdStorageAddonEntity, error)
+	FindVersionsByParams(params *metaentity.AddonVersionQueryParams) ([]*metaentity.AddonVersionEntity, error)
 	FindStorageAddonByParams(params *metaentity.AddonQueryParams) ([]*metaentity.K8sCrdStorageAddonEntity, error)
 	UpdateStorageAddon(dbsContext *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (uint64, error)
 	ListStorageAddons(pagination commentity.Pagination) ([]*metaentity.K8sCrdStorageAddonEntity, error)
@@ -43,6 +44,24 @@ type K8sCrdStorageAddonProvider interface {
 // K8sCrdStorageAddonProviderImpl K8sCrdStorageAddonProvider 具体实现
 type K8sCrdStorageAddonProviderImpl struct {
 	dbAccess dbaccess.K8sCrdStorageAddonDbAccess
+}
+
+// FindVersionsByParams 按照参数查询 addon 版本信息
+func (k *K8sCrdStorageAddonProviderImpl) FindVersionsByParams(params *metaentity.AddonVersionQueryParams) (
+	[]*metaentity.AddonVersionEntity,
+	error,
+) {
+	versionModels, err := k.dbAccess.FindVersionsByParams(params)
+	if err != nil {
+		slog.Error("Failed to find versions by params", "params", params, "err", err)
+		return nil, err
+	}
+	var versionEntities []*metaentity.AddonVersionEntity
+	if err := copier.Copy(&versionEntities, versionModels); err != nil {
+		slog.Error("failed to copy models", "error", err)
+		return nil, err
+	}
+	return versionEntities, nil
 }
 
 // FindStorageAddonByParams 按照参数进行查询
