@@ -133,7 +133,7 @@ func SetupAddonRouter() *gin.Engine {
 func TestCreateAddon(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupAddonRouter()
-	addonRequest := req.K8sCrdAddonReqVo{
+	addonRequest := req.AddonReq{
 		AddonName:            "surrealdb-2.2.0",
 		AddonCategory:        "Graph",
 		AddonType:            "SurrealDB",
@@ -255,7 +255,7 @@ func TestUpdateAddon(t *testing.T) {
 	router := SetupAddonRouter()
 	err := AddSampleAddon()
 	assert.NoError(t, err)
-	addonRequest := req.K8sCrdAddonReqVo{
+	addonRequest := req.AddonReq{
 		AddonName:            "surrealdb-2.2.2",
 		AddonType:            "SurrealDB-2",
 		AddonCategory:        "Graph-2",

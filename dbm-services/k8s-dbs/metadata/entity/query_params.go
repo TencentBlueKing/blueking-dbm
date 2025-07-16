@@ -113,3 +113,9 @@ type RegionQueryParams struct {
 	RegionCode string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
 	Provider   string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
 }
+
+// AddonVersionQueryParams addon 版本查询参数
+type AddonVersionQueryParams struct {
+	AddonCategory string `gorm:"column:addon_category" json:"addonCategory"`
+	AddonType     string `gorm:"column:addon_type" json:"addonType"`
+}

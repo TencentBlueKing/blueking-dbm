@@ -22,7 +22,7 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
-	mconst "k8s-dbs/common/constant"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
@@ -39,11 +39,32 @@ type K8sCrdStorageAddonDbAccess interface {
 	FindByParams(params *metaentity.AddonQueryParams) ([]*metamodel.K8sCrdStorageAddonModel, error)
 	Update(model *metamodel.K8sCrdStorageAddonModel) (uint64, error)
 	ListByPage(pagination commentity.Pagination) ([]metamodel.K8sCrdStorageAddonModel, int64, error)
+	FindVersionsByParams(params *metaentity.AddonVersionQueryParams) ([]*metamodel.AddonVersionModel, error)
 }
 
 // K8sCrdStorageAddonDbAccessImpl K8sCrdStorageAddonDbAccess 的具体实现
 type K8sCrdStorageAddonDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindVersionsByParams 查询 addon 版本信息
+func (k *K8sCrdStorageAddonDbAccessImpl) FindVersionsByParams(params *metaentity.AddonVersionQueryParams) (
+	[]*metamodel.AddonVersionModel,
+	error,
+) {
+	var versions []*metamodel.AddonVersionModel
+	if err := k.db.Debug().Model(&metamodel.K8sCrdStorageAddonModel{}).
+		Where(params).
+		Find(&versions).
+		Limit(commconst.MaxFetchSize).Error; err != nil {
+		slog.Error("Failed to find versions by params", "params", params, "error", err)
+		return nil, err
+	}
+	for _, version := range versions {
+		slog.Info("Found version", "addonVersion", version.AddonVersion,
+			"supportedVersions", version.SupportedVersions)
+	}
+	return versions, nil
 }
 
 // FindByParams 参数查询实现
@@ -54,7 +75,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params *metaentity.AddonQu
 	var addonModels []*metamodel.K8sCrdStorageAddonModel
 	if err := k.db.
 		Where(params).
-		Limit(mconst.MaxFetchSize).
+		Limit(commconst.MaxFetchSize).
 		Find(&addonModels).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return []*metamodel.K8sCrdStorageAddonModel{}, nil

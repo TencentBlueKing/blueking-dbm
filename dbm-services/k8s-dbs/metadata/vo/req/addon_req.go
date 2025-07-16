@@ -21,8 +21,8 @@ package req
 
 import commentity "k8s-dbs/common/entity"
 
-// K8sCrdAddonReqVo represents the request data structure of addon meta.
-type K8sCrdAddonReqVo struct {
+// AddonReq represents the request data structure of addon meta.
+type AddonReq struct {
 	AddonName            string `json:"addonName" binding:"required"`
 	AddonCategory        string `json:"addonCategory" binding:"required"`
 	AddonType            string `json:"addonType" binding:"required"`
@@ -35,4 +35,10 @@ type K8sCrdAddonReqVo struct {
 	Releases             string `json:"releases" binding:"required"`
 	Description          string `json:"description" binding:"required"`
 	commentity.BKAuth    `json:",inline"`
+}
+
+// AddonVersionReq addon 版本查询请求参数
+type AddonVersionReq struct {
+	AddonType     string `json:"addonType"`
+	AddonCategory string `json:"addonCategory"`
 }

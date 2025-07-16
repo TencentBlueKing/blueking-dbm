@@ -24,7 +24,7 @@ import (
 	"k8s-dbs/metadata/constant"
 )
 
-// K8sCrdStorageAddonModel represents the database model of addon
+// K8sCrdStorageAddonModel addon model定义
 type K8sCrdStorageAddonModel struct {
 	ID                   uint64                 `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
 	AddonName            string                 `gorm:"size:32;not null;column:addon_name" json:"addonName"`
@@ -43,6 +43,12 @@ type K8sCrdStorageAddonModel struct {
 	CreatedAt            commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
 	UpdatedBy            string                 `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
 	UpdatedAt            commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
+}
+
+// AddonVersionModel addon version model定义
+type AddonVersionModel struct {
+	AddonVersion      string `gorm:"size:32;not null;column:addon_version" json:"addonVersion"`
+	SupportedVersions string `gorm:"size:1000;not null;column:supported_versions" json:"supportedVersions"`
 }
 
 // TableName 获取 model 对应的数据库表名
