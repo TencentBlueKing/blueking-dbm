@@ -36,7 +36,7 @@
         :filter="filterOption.instance_role"
         :label="t('角色类型')"
         :min-width="120" />
-        <BkTableColumn
+      <BkTableColumn
         field="bk_cloud_name"
         :label="t('云区域')"
         :min-width="100" />
@@ -127,16 +127,24 @@
   const searchSelectValue = ref<NonNullable<SearchSelectProps['modelValue']>>([]);
   const dbTableRef = useTemplateRef('table');
 
+  const getNodeParams = (node?: TopoTreeNode) => (node?.obj === 'cluster' ? `${node?.id}` : undefined);
+
   watchEffect(() => {
     dbTableRef.value?.fetchData(getSearchSelectorParams(searchSelectValue.value), {
-      cluster_ids: props.node?.obj === 'cluster' ? `${props.node.id}` : undefined
+      cluster_ids: getNodeParams(props.node),
     });
   });
 
   const dataSource = (params: Parameters) =>
-    getRedisMachineList({
-      ...params,
-      cluster_ids: props.node?.obj === 'cluster' ? `${props.node.id}` : undefined
+    new Promise((resolve) => {
+      getRedisMachineList({
+        ...params,
+        cluster_ids: getNodeParams(props.node),
+      }).then((data) => {
+        if (params.cluster_ids === getNodeParams(props.node)) {
+          resolve(data);
+        }
+      });
     });
 
   const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
