@@ -16,7 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  bind?: string[]
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -52,9 +52,9 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
-        bind: [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER],
+        bind: [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER],
         dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
-        id: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER,
+        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'spider_cluster_maintain',
       },
