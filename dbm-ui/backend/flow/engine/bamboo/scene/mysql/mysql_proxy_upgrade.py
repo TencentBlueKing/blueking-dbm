@@ -136,7 +136,7 @@ class MySQLProxyLocalUpgradeFlow(object):
                         pkg_id=pkg_id,
                         proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
                         proxy_ports=ports,
-                        force_upgrade=self.force_upgrade,
+                        force_upgrade=True,
                     )
                 )
                 # 最后一个节点无需再确认
