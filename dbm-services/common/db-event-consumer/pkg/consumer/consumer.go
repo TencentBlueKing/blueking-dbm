@@ -132,7 +132,7 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 		objValue := reflect.New(s.modelType)
 		obj := objValue.Interface()
 
-		err := json.Unmarshal(message.Value, &obj)
+		err := json.Unmarshal(message.Value, obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
 			return err

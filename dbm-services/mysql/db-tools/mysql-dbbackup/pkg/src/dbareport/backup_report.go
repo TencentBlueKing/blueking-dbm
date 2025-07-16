@@ -10,13 +10,14 @@ package dbareport
 
 import (
 	"context"
-	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	errs "errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/common/reverseapi/pkg/core"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -387,7 +388,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			// 注意：在执行 backup_client 上传之后，.index 文件的内容就不能再修改，也就是 .index 文件里不能记录自身的 task_id
 			// 上面修改的是 metaInfo 内存里面的数据，转存到文件系统 .index.remote，这个文件不上传
 			// .index.remote 会比 .index 多 task_id 信息。远程备份的发起方，需要这个 task_id 去上报备份记录
-			if _, err := metaInfo.SaveIndexContent(indexFilePath + ".remote"); err != nil {
+			if err := metaInfo.SaveIndexContent(indexFilePath + ".remote"); err != nil {
 				return err
 			}
 		}

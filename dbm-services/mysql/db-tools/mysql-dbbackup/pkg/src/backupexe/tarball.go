@@ -391,11 +391,6 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
 	}
-	if cnf.Public.IfBackupGrantOnly() {
-		metaInfo.AddPrivFileItem(packageFile.dstDir)
-		return metaInfo.SaveIndexContent(indexFilePath)
-	}
-	//backupType := cnf.Public.BackupType
 	backupType := metaInfo.BackupType
 	// package files, and produce the index file at the same time
 	if strings.EqualFold(backupType, cst.BackupLogical) {
@@ -416,7 +411,10 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		return "", errors.New("backup type not support")
 	}
 	metaInfo.AddPrivFileItem(packageFile.dstDir)
-	return metaInfo.SaveIndexContent(indexFilePath)
+	if err = metaInfo.SaveIndexContent(indexFilePath); err != nil {
+		return "", err
+	}
+	return indexFilePath, nil
 }
 
 // readUncompressSizeForZstd godoc

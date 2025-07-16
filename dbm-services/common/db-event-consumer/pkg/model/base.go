@@ -12,15 +12,15 @@ import (
 
 type BaseModel struct {
 	ID        uint64    `gorm:"primaryKey;autoIncrement:true"  xorm:"pk autoincr"`
-	CreatedAt time.Time `json:"created_at" db:"created_at" gorm:"autoCreateTime" xorm:"created"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at" gorm:"autoUpdateTime" xorm:"updated"`
+	CreatedAt time.Time `db:"created_at" gorm:"autoCreateTime" xorm:"created"`
+	UpdatedAt time.Time `db:"updated_at" gorm:"autoUpdateTime" xorm:"updated"`
 
 	EventCreateTimestamp  int64 `json:"event_create_timestamp"`
 	EventReportTimestamp  int64 `json:"event_report_timestamp"`
 	EventReceiveTimestamp int64 `json:"event_receive_timestamp"`
 
-	EventBkCloudId int    `json:"event_bk_cloud_id"`
 	EventSourceIp  string `json:"event_source_ip" gorm:"type:varchar(30)"`
+	EventBkCloudId int    `json:"event_bk_cloud_id"`
 	EventBkBizId   int64  `json:"event_bk_biz_id"`
 	//EventClusterType string `json:"event_cluster_type"`
 	//EventType        string `json:"event_type"`

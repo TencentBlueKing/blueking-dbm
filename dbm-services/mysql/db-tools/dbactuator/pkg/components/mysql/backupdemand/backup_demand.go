@@ -9,7 +9,6 @@
 package backupdemand
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -72,7 +71,7 @@ type context struct {
 
 type Report struct {
 	Result *dbareport.IndexContent `json:"report_result"`
-	Status *dbareport.BackupStatus `json:"report_status"`
+	//Status *dbareport.BackupStatus `json:"report_status"`
 }
 
 func (c *Component) Init() (err error) {
@@ -292,44 +291,7 @@ func (c *Component) generateReport() (report *Report, indexFile string, err erro
 	if report.Result == nil {
 		return nil, indexFile, errors.Errorf("backup index file not found for %d", c.backupPort)
 	}
-
-	statusLogFile, err := os.Open(c.statusReportPath)
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, indexFile, err
-	}
-	defer func() {
-		_ = statusLogFile.Close()
-	}()
-
-	thisBillFlag := fmt.Sprintf(`"bill_id":"%s"`, c.Params.BillId)
-	var thisBillLatestStatus dbareport.BackupStatus
-	var thisBillLatestStatusLine string
-	scanner := bufio.NewScanner(statusLogFile)
-	for scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			logger.Error("scan status report failed: %s", err.Error())
-			return nil, indexFile, err
-		}
-		line := scanner.Text()
-		if strings.Contains(line, thisBillFlag) {
-			thisBillLatestStatusLine = line
-		}
-	}
-	err = json.Unmarshal([]byte(thisBillLatestStatusLine), &thisBillLatestStatus)
-	if err != nil {
-		logger.Error("unmarshal %s failed: %s", thisBillLatestStatusLine, err.Error())
-		return nil, indexFile, err
-	}
-	logger.Info("backup status: %v", thisBillLatestStatus)
-
-	// ToDo Success 应该是 mysql-dbbackup 的常量
-	if thisBillLatestStatus.Status != "Success" {
-		err := fmt.Errorf("report status is not Success: %s", thisBillLatestStatusLine)
-		logger.Error(err.Error())
-		return nil, indexFile, err
-	}
-	report.Status = &thisBillLatestStatus
+	// no need to check status file. it's deprecated
 	return
 }
 
@@ -370,7 +332,7 @@ func (c *Component) OutPutForTBinlogDumper() error {
 		return err
 	}
 	ret["report_result"] = report.Result
-	ret["report_status"] = report.Status
+	//ret["report_status"] = report.Status
 	ret["backup_dir"] = c.backupDir
 	ret["backup_index"] = indexFile
 

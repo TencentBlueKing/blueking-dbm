@@ -64,7 +64,7 @@ type BackupMetaFileBase struct {
 type IndexContent struct {
 	BackupMetaFileBase
 	// ExtraFields 这里不能展开
-	ExtraFields
+	ExtraFields // `json:"extra_fields" db:"extra_fields"`
 
 	// BinlogInfo show slave status / show master status
 	BinlogInfo BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
@@ -196,16 +196,16 @@ func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 
 // SaveIndexContent record some server info and fileIndex info,
 // and then write these content to [targetName].index
-func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
+func (i *IndexContent) SaveIndexContent(indexFilePath string) error {
 	contentJson, err := json.Marshal(i)
 	if err != nil {
 		logger.Log.Error("Failed to marshal json encoding data from IndexContent, err: ", err)
-		return "", err
+		return err
 	}
 	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)
-		return "", err
+		return err
 	}
 	defer func() {
 		_ = indexFile.Close()
@@ -214,9 +214,9 @@ func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
 	_, err = indexFile.Write(contentJson)
 	if err != nil {
 		logger.Log.Error("Failed to write json encoding data into Index file :", indexFilePath, ", err: ", err)
-		return "", err
+		return err
 	}
-	return indexFilePath, nil
+	return nil
 }
 
 // AddPrivFileItem add .priv to index file

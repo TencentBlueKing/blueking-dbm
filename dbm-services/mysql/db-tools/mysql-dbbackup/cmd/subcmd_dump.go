@@ -354,7 +354,7 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 		return exeErr
 	}
 	indexFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
-	indexFilePath, err = metaInfo.SaveIndexContent(indexFilePath)
+	err = metaInfo.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return err
 	}
@@ -588,11 +588,18 @@ func backupTarAndUpload(
 		}
 	}
 	targetDirName := strings.TrimSuffix(filepath.Base(indexFilePath), ".index")
+	targetDir := path.Join(cnf.Public.BackupDir, targetDirName)
+	if cnf.Public.IfBackupGrantOnly() {
+		metaInfo.AddPrivFileItem(targetDir)
+		return metaInfo.SaveIndexContent(indexFilePath)
+	}
+
 	cnf.Public.SetTargetName(targetDirName)
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)
 	cnf.Public.BackupType = metaInfo.BackupType
-	cnf.Public.DataSchemaGrant = "all" // 远程备份，都是要备份数据的
-
+	if cnf.BackupToRemote.EnableRemote {
+		cnf.Public.DataSchemaGrant = "all" // 远程备份，到这一步打包，都是有数据备份的
+	}
 	// build regex used for package
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {
 		return err

@@ -19,6 +19,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
@@ -59,6 +60,10 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {
 		return nil, errors.Errorf("backup stream to remote only support physical but got %s for port=%d",
 			cnf.Public.BackupType, cnf.Public.MysqlPort)
+	}
+	if cnf.BackupToRemote.EnableRemote && !cnf.Public.IfBackupData() {
+		logger.Log.Warnf("backup-to-remote=true only works with DataSchemaGrant include data. set EnableRemote=false")
+		cnf.BackupToRemote.EnableRemote = false
 	}
 	// BuildDumper 里面会修正备份方式，所以 SetEnv 要放在后面执行
 	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {

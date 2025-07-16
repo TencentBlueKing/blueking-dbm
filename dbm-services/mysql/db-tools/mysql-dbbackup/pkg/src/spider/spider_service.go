@@ -141,6 +141,21 @@ func (b GlobalBackupModel) checkBackupStatus(db *sqlx.DB) (string, error) {
 
 // queryBackupTasks 以本机 ip:port 来查询本实例的备份任务
 func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTasks []*GlobalBackupModel, err error) {
+	/*
+		builder := sb.Select("BackupId", "ServerName", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
+			From(b.TableName())
+		builder.Where(builder.EQ("Host", b.Host), builder.EQ("Port", b.Port)).
+			In("BackupStatus", StatusInit, StatusReplicated, StatusRunning)
+		if b.BackupId != "" {
+			builder.Where(builder.EQ("BackupId", b.BackupId))
+		}
+		if b.Wrapper == cst.WrapperSpider { // 可以避免在 spider node 上备份时，跨分片查询
+			builder.Where(builder.EQ("ShardValue", cst.SpiderNodeShardValue))
+			b.Wrapper = "" // 避免后续可能干扰后续查询条件
+		}
+		sqlStr, sqlArgs := builder.Build()
+		query, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
+	*/
 	sqlBuilder := sq.Select("BackupId", "ServerName", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
 		From(b.TableName()).
 		Where("Host = ? and Port = ?", b.Host, b.Port).

@@ -9,7 +9,7 @@
 package model
 
 type BinlogFileModel struct {
-	BaseModel `xorm:"extends"`
+	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
 	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id" gorm:"column:bk_biz_id;type:varchar(32);NOT NULL;index:id_bkbizid,priority:1"`
 	ClusterId int `json:"cluster_id,omitempty" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL;index:id_clusterid,priority:1"`
