@@ -4679,5 +4679,6 @@
   "该实例为非 Proxy 实例，请选择 Proxy 实例": "该实例为非 Proxy 实例，请选择 Proxy 实例",
   "该实例为非 Master 实例，请选择 Master 实例": "该实例为非 Master 实例，请选择 Master 实例",
   "该实例为非 remote_master 实例，请选择 remote_master 实例": "该实例为非 remote_master 实例，请选择 remote_master 实例",
+  "实例切换仅用于主机发生了【部分切换】后的修复场景，请谨慎操作！": "实例切换仅用于主机发生了【部分切换】后的修复场景，请谨慎操作！",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
