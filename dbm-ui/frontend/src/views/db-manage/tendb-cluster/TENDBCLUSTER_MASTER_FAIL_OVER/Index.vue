@@ -43,7 +43,7 @@
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-10"
+        class="mb-16"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"

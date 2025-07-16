@@ -32,22 +32,22 @@
         icon="rebuild"
         :title="t('实例切换')"
         :true-value="OperaObejctType.INSTANCE" />
+      <BkAlert
+        class="mt-10"
+        theme="warning"
+        :title="t('实例切换仅用于主机发生了【部分切换】后的修复场景，请谨慎操作！')" />
     </div>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
-    <BkAlert
-      class="mt-10 mb-10"
-      theme="warning"
-      :title="t('实例切换仅用于主机发生了【部分切换】后的修复场景，请谨慎操作！')" />
     <BkForm
-      class="mb-20"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-10"
+        class="mb-16"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
