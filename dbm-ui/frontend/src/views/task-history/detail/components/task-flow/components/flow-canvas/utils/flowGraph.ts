@@ -255,9 +255,9 @@ export class FlowGraph {
     );
 
     this.graph.on(GraphEvent.AFTER_RENDER, () => {
-      if (!this.isInit) {
-        return;
-      }
+      // if (!this.isInit) {
+      //   return;
+      // }
       const newViewCenterPointer = this.graph!.getViewportCenter() as [number, number];
       this.graph!.translateBy([
         (newViewCenterPointer[0] - this.oldviewCenterPointer[0]) * this.viewZoom,
