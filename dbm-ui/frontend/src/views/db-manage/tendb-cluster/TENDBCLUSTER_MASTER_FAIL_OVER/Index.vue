@@ -21,29 +21,29 @@
       <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
       <CardCheckbox
         v-model="operaObjectType"
-        :desc="t('用于强制执行实例级别切换')"
-        icon="rebuild"
-        :title="t('实例切换')"
-        :true-value="OperaObejctType.INSTANCE" />
-      <CardCheckbox
-        v-model="operaObjectType"
-        class="ml-8"
         :desc="t('用于强制执行主机级别切换')"
         icon="host"
         :title="t('主机切换')"
         :true-value="OperaObejctType.MACHINE" />
+      <CardCheckbox
+        v-model="operaObjectType"
+        class="ml-8"
+        :desc="t('用于强制执行实例级别切换')"
+        icon="rebuild"
+        :title="t('实例切换')"
+        :true-value="OperaObejctType.INSTANCE" />
     </div>
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
     <BkForm
-      class="mt-16 mb-16"
+      class="mt-16 mb-20"
       form-type="vertical"
       :model="formData">
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
+        class="mb-10"
         :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
