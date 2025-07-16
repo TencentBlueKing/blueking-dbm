@@ -46,7 +46,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -71,13 +71,10 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    id?: number;
+    id: number;
     master_domain: string;
   }>({
-    default: () => ({
-      id: undefined,
-      master_domain: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -97,7 +94,7 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
@@ -112,12 +109,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -140,20 +132,31 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      id: undefined,
+      id: 0,
       master_domain: value,
     };
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value,
-      });
-    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (!modelValue.value.id && modelValue.value.master_domain) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: ClusterTypes.TENDBCLUSTER,
+          db_type: DBTypes.TENDBCLUSTER,
+          exact_domain: modelValue.value.master_domain,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

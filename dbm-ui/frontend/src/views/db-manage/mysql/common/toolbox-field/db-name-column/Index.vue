@@ -99,7 +99,7 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
-    required: true,
+    required: false,
     rules: () => [],
     showBatchEdit: true,
     single: false,
