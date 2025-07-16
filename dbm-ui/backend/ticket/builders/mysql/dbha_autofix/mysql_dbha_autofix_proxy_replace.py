@@ -13,8 +13,8 @@ from backend.ticket.builders.mysql.mysql_proxy_switch import MysqlProxySwitchFlo
 from backend.ticket.constants import TicketType
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AUTOFIX_PROXY_SWITCH, is_apply=True, is_recycle=True)
-class MysqlDBHAAutofixProxySwitchFlowBuilder(MysqlProxySwitchFlowBuilder):
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_PROXY_REPLACE, is_apply=True, is_recycle=True)
+class MysqlDBHAAutofixProxyReplaceFlowBuilder(MysqlProxySwitchFlowBuilder):
     """
     自愈专用
     """

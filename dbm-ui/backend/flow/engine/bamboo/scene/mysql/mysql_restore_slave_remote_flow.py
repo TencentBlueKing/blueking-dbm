@@ -105,6 +105,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
         3 mysql_restore_slave_change_cluster_info
         4 mysql_restore_remove_old_slave
         """
+        disable_manual_confirm = self.ticket_data.get("disable_manual_confirm", False)
+
         cluster_ids = []
         for i in self.ticket_data["infos"]:
             cluster_ids.extend(i["cluster_ids"])
@@ -412,7 +414,10 @@ class MySQLRestoreSlaveRemoteFlow(object):
 
             if not self.add_slave_only:
                 # 人工确认切换迁移实例
-                tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+                if not disable_manual_confirm:
+                    tendb_migrate_pipeline.add_act(
+                        act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={}
+                    )
                 # 切换迁移实例
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
                 # 切换后再次刷新周边
@@ -427,7 +432,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         with_bk_plugin=False,
                         with_instance_standardize=False,
                         with_cc_standardize=False,
-                        with_collect_sysinfo=False,
+                        with_collect_sysinfo=True,
                         with_backup_client=False,
                     )
                 )
@@ -445,9 +450,10 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     ),
                 )
                 # 卸载流程人工确认
-                tendb_migrate_pipeline.add_act(
-                    act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
-                )
+                if not disable_manual_confirm:
+                    tendb_migrate_pipeline.add_act(
+                        act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
+                    )
                 # # 卸载remote节点
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_list.append(

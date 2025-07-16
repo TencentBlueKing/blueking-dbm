@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.tendb_spider_reduce_nodes import TendbSpiderReduceNodesFlowBuilder
+from backend.ticket.builders.mysql.mysql_restore_slave import MysqlRestoreSlaveFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_SPIDER_REDUCE, is_recycle=True)
-class MysqlAutofixSpiderReduce(TendbSpiderReduceNodesFlowBuilder):
+@builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE, is_apply=True, is_recycle=True)
+class MysqlDBHAAutofixBackendReplaceFlowBuilder(MysqlRestoreSlaveFlowBuilder):
     """
     自愈专用
     """

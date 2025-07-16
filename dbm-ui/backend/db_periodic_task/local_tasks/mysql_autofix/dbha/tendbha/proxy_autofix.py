@@ -41,49 +41,49 @@ def proxy_autofix(gtd: GroupedTodo):
         raise MySQLDBHAAutofixBadInstanceStatus(machine_type=gtd.machine_type, ip=gtd.ip)
 
     dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=gtd.bk_biz_id, db_type=DBType.MySQL.value)
-    detail = {
-        "bk_cloud_id": gtd.bk_cloud_id,
-        "bk_biz_id": gtd.bk_biz_id,
-        "ip_source": IpSource.RESOURCE_POOL,
-        "ip_recycle": HostRecycleSerializer.DEFAULT,
-        "disable_manual_confirm": True,
-        "force": True,
-        "opera_object": OperaObjType.MACHINE,
-        "infos": [
-            {
-                "cluster_ids": gtd.cluster_ids,
-                "old_nodes": {
-                    "origin_proxy": [
-                        {
-                            "bk_cloud_id": gtd.bk_cloud_id,
-                            "ip": gtd.ip,
-                            "bk_host_id": p.machine.bk_host_id,
-                            "bk_biz_id": gtd.bk_biz_id,
-                            "port": p.port,
-                        }
-                        for p in proxies
-                    ]
-                },
-                "resource_spec": {
-                    "target_proxy": {
-                        "spec_id": proxies[0].machine.spec_id,
-                        "count": 1,
-                        "location_spec": {
-                            "city": proxies[0].machine.bk_city.bk_idc_city_name,
-                            "sub_zone_ids": [proxies[0].machine.bk_sub_zone_id],
-                        },
-                    }
-                },
-            }
-        ],
-    }
+
     tk = Ticket.create_ticket(
-        ticket_type=TicketType.MYSQL_DBHA_AUTOFIX_PROXY_SWITCH,
+        ticket_type=TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
         creator=dbas[0],
         helpers=dbas[1:],
         bk_biz_id=gtd.bk_biz_id,
-        remark=TicketType.MYSQL_PROXY_SWITCH,
-        details=detail,
+        remark=TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE,
+        details={
+            "bk_cloud_id": gtd.bk_cloud_id,
+            "bk_biz_id": gtd.bk_biz_id,
+            "ip_source": IpSource.RESOURCE_POOL,
+            "ip_recycle": HostRecycleSerializer.DEFAULT,
+            "disable_manual_confirm": True,
+            "force": True,
+            "opera_object": OperaObjType.MACHINE,
+            "infos": [
+                {
+                    "cluster_ids": gtd.cluster_ids,
+                    "old_nodes": {
+                        "origin_proxy": [
+                            {
+                                "bk_cloud_id": gtd.bk_cloud_id,
+                                "ip": gtd.ip,
+                                "bk_host_id": p.machine.bk_host_id,
+                                "bk_biz_id": gtd.bk_biz_id,
+                                "port": p.port,
+                            }
+                            for p in proxies
+                        ]
+                    },
+                    "resource_spec": {
+                        "target_proxy": {
+                            "spec_id": proxies[0].machine.spec_id,
+                            "count": 1,
+                            "location_spec": {
+                                "city": proxies[0].machine.bk_city.bk_idc_city_name,
+                                "sub_zone_ids": [proxies[0].machine.bk_sub_zone_id],
+                            },
+                        }
+                    },
+                }
+            ],
+        },
     )
     MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
         ticket_id=tk.id, status=MySQLAutofixTicketStatus.PENDING

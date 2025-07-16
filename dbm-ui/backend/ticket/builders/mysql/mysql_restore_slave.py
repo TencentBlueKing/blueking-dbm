@@ -45,6 +45,7 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
     def validate(self, attrs):
         cluster_ids = fetch_cluster_ids(attrs)
