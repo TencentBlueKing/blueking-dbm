@@ -402,8 +402,8 @@ class ClusterServiceHandler:
                     "bk_cloud_id": bk_cloud_id,
                     "addresses": addresses,
                     "cmds": [cmd],
-                    "charset": kwargs["options"].get("charset", SQLCharset.DEFAULT.value),
-                    "timezone": kwargs["options"].get("timezone", get_local_charset()),
+                    "charset": kwargs.get("options", {}).get("charset", SQLCharset.DEFAULT.value),
+                    "timezone": kwargs.get("options", {}).get("timezone", get_local_charset()),
                 }
                 # 使用传入的rpc_function进行rpc调用
                 rpc_results = rpc_function(params)
@@ -462,8 +462,8 @@ class ClusterServiceHandler:
                 "bk_cloud_id": bk_cloud_id,
                 "addresses": addresses,
                 "cmds": cmds,
-                "charset": kwargs["options"].get("charset", SQLCharset.DEFAULT.value),
-                "timezone": kwargs["options"].get("timezone", get_local_charset()),
+                "charset": kwargs.get("options", {}).get("charset", SQLCharset.DEFAULT.value),
+                "timezone": kwargs.get("options", {}).get("timezone", get_local_charset()),
             }
             rpc_results = DRSApi.rpc(params)
             cmd_results = [

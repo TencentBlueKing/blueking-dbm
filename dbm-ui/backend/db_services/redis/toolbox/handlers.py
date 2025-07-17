@@ -171,8 +171,8 @@ class ToolboxHandler(ClusterServiceHandler):
                     "bk_cloud_id": cluster.bk_cloud_id,
                     "addresses": [remote_address],
                     "command": cmd,
-                    "db_num": kwargs["options"].get("db_num", 0),
-                    "raw": kwargs["options"].get("raw", True),
+                    "db_num": kwargs.get("options", {}).get("db_num", 0),
+                    "raw": kwargs.get("options", {}).get("raw", True),
                     "password": password,
                     # redis这里的client_type固定为webconsole，drs会发起redis-cli进行执行
                     "client_type": "webconsole",
