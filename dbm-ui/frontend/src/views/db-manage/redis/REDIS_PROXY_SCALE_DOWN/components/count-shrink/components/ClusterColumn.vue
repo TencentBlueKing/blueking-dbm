@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')" />
+      :placeholder="t('请输入集群域名')"
+      @change="handleChange" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -48,7 +49,7 @@
   import { filterClusters } from '@services/source/dbbase';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
@@ -68,16 +69,11 @@
 
   const modelValue = defineModel<{
     cluster_type_name: string;
-    id?: number;
+    id: number;
     master_domain: string;
     proxyCount: number;
   }>({
-    default: () => ({
-      cluster_type_name: '',
-      id: undefined,
-      master_domain: '',
-      proxyCount: 0,
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -112,32 +108,22 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
       trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
     {
       message: t('数量不足，Proxy至少保留 2 台'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return modelValue.value.proxyCount >= 2;
-      },
+      validator: (value: string) => !value || modelValue.value.proxyCount >= 2,
     },
   ];
 
@@ -161,22 +147,33 @@
     showSelector.value = true;
   };
 
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      cluster_type_name: '',
+      id: 0,
+      master_domain: value,
+      proxyCount: 0,
+    };
+  };
+
   const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
 
   watch(
-    () => modelValue.value.master_domain,
-    (value) => {
-      modelValue.value = {
-        ...modelValue.value,
-        id: undefined,
-        master_domain: value,
-      };
-      if (value) {
+    modelValue,
+    () => {
+      if (!modelValue.value.id && modelValue.value.master_domain) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: value,
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ].join(','),
+          db_type: DBTypes.REDIS,
+          exact_domain: modelValue.value.master_domain,
         });
       }
     },

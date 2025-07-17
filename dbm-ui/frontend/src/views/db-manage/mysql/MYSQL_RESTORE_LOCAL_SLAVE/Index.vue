@@ -85,7 +85,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -113,19 +112,21 @@
   const tableRef = useTemplateRef('table');
   const router = useRouter();
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
-    slave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-      role: '',
-      ...data.slave,
-    },
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        instance_address: '',
+        ip: '',
+        master_domain: '',
+        port: 0,
+        role: '',
+      },
+      data.slave,
+    ),
   });
 
   const defaultData = () => ({
@@ -212,14 +213,7 @@
         acc.push(
           createTableRow({
             slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
-              ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
             },
           }),
         );

@@ -70,12 +70,9 @@
           <EditableColumn
             :label="t('所属业务')"
             :min-width="150">
-            <EditableBlock v-if="item.master.bk_biz_id">
+            <EditableBlock :placeholder="t('自动生成')">
               {{ getBizInfoById(item.master.bk_biz_id)?.name || item.master.bk_biz_id }}
             </EditableBlock>
-            <EditableBlock
-              v-else
-              :placeholder="t('自动生成')" />
           </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -121,7 +118,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -164,7 +160,7 @@
     },
   ];
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     master: Object.assign(
       {
         bk_biz_id: 0,

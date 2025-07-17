@@ -105,7 +105,7 @@
       id: number;
       master_domain: string;
     }[];
-    spec_id: number;
+    spec_id?: number;
   }>({
     required: true,
   });

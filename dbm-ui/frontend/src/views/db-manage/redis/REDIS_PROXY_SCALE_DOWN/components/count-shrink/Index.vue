@@ -114,13 +114,16 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_type_name: '',
-      id: 0,
-      master_domain: '',
-      proxyCount: 0,
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        cluster_type_name: '',
+        id: 0,
+        master_domain: '',
+        proxyCount: 0,
+      },
+      data.cluster,
+    ),
     online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
     reduced_count: data.reduced_count || '',
     target_proxy_count: data.target_proxy_count || '',
@@ -147,14 +150,10 @@
         const { clusters, infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const clusterInfo = clusters[item.cluster_id];
             return createTableRow({
               // 集群缺失信息会被ClusterColumn组件会填
               cluster: {
-                cluster_type_name: clusterInfo.cluster_type_name,
-                id: clusterInfo.id,
-                master_domain: clusterInfo.immute_domain,
-                proxyCount: 0,
+                master_domain: clusters[item.cluster_id].immute_domain,
               },
               online_switch_type: item.online_switch_type,
               reduced_count: `${item.old_nodes.proxy_reduced_hosts.length}`,
@@ -172,10 +171,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type_name: item.cluster_type_name,
-              id: item.id,
               master_domain: item.master_domain,
-              proxyCount: item.proxyCount || item.proxy.length,
             },
           }),
         );

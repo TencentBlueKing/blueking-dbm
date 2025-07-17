@@ -65,7 +65,6 @@
   </EditableTable>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import { useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -135,7 +134,7 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     labels: (data.labels || []) as RowData['labels'],
     originProxy: Object.assign(
       {
@@ -250,14 +249,15 @@
         const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const originProxy = item.old_nodes.origin_proxy[0];
             return createTableRow({
               labels: (item.resource_spec.target_proxy.labels || []).map((item) => ({ id: Number(item) })),
               originProxy: {
-                ip: originProxy.ip,
+                ip: item.old_nodes.origin_proxy?.[0]?.ip || '',
               },
               specId: item.resource_spec.target_proxy.spec_id,
-              targetProxy: item.resource_spec.target_proxy.hosts?.[0],
+              targetProxy: {
+                ip: item.resource_spec.target_proxy.hosts?.[0]?.ip || '',
+              },
             });
           });
         }

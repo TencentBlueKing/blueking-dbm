@@ -46,6 +46,7 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Redis } from '@services/model/ticket/ticket';
@@ -56,15 +57,7 @@
 
   interface RowData {
     online_switch_type: string;
-    proxy_reduced_host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-      role: string;
-    };
+    proxy_reduced_host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   interface Props {
@@ -94,17 +87,20 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
-    proxy_reduced_host: data.proxy_reduced_host || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: 'proxy',
-    },
+    proxy_reduced_host: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        ip: '',
+        master_domain: '',
+        role: 'proxy',
+      },
+      data.proxy_reduced_host,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -129,22 +125,15 @@
     () => props.ticketDetails,
     () => {
       if (props.ticketDetails) {
-        const { clusters, infos } = props.ticketDetails;
+        const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.reduce<typeof tableData.value>((acc, item) => {
-            const clusterInfo = clusters[item.cluster_id];
             item.old_nodes.proxy_reduced_hosts.forEach((host) => {
               acc.push(
                 createTableRow({
                   online_switch_type: item.online_switch_type,
                   proxy_reduced_host: {
-                    bk_biz_id: host.bk_biz_id,
-                    bk_cloud_id: host.bk_cloud_id,
-                    bk_host_id: host.bk_host_id,
-                    cluster_id: clusterInfo.id,
                     ip: host.ip,
-                    master_domain: clusterInfo.immute_domain,
-                    role: 'proxy',
                   },
                 }),
               );
@@ -163,13 +152,7 @@
           createTableRow({
             online_switch_type: item.online_switch_type,
             proxy_reduced_host: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.related_clusters[0].id,
               ip: item.ip,
-              master_domain: item.related_clusters[0].immute_domain,
-              role: item.role,
             },
           }),
         );
