@@ -54,10 +54,14 @@ def cluster_reduce_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs: A
         act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # 获取mongos信息
-    mongos_host = sub_get_kwargs.payload["mongos_nodes"][0]
+    # 获取mongod信息
+    shard_mongod_host = sub_get_kwargs.payload["shards_nodes"][0]["nodes"][0]
     sub_get_kwargs.payload["nodes"] = [
-        {"ip": mongos_host["ip"], "port": mongos_host["port"], "bk_cloud_id": mongos_host["bk_cloud_id"]}
+        {
+            "ip": shard_mongod_host["ip"],
+            "port": shard_mongod_host["port"],
+            "bk_cloud_id": shard_mongod_host["bk_cloud_id"],
+        }
     ]
 
     # 获取密码

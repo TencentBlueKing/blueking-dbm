@@ -234,6 +234,7 @@ def update_storage_cluster_type(ins_obj: StorageInstance, cluster_type: str):
         ClusterType.MongoReplicaSet.value,
         ClusterType.MongoShardedCluster.value,
         ClusterType.OraclePrimaryStandby.value,
+        ClusterType.OracleSingleNone.value,
     ):
         slave_obj = ins_obj.as_ejector.get().receiver
         slave_obj.cluster_type = cluster_type
