@@ -53,20 +53,20 @@ class MySQLSingleDestroyFlow(object):
         self.data = data
 
     @staticmethod
-    def __get_cluster_info_by_domain(domain: str, bk_biz_id: int) -> dict:
+    def __get_single_cluster_info(cluster_id: int, bk_biz_id: int) -> dict:
         """
         根据cluster_id 获取到单节点集群实例信息，单节点只有一个实例
         @param cluster_id: 需要下架的集群id
         @param bk_biz_id: 需要下架集群的对应的业务id
         """
         try:
-            cluster = Cluster.objects.get(immute_domain=domain, bk_biz_id=bk_biz_id)
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
         except Cluster.DoesNotExist:
-            raise ClusterNotExistException(immute_domain=domain, bk_biz_id=bk_biz_id, message=_("集群不存在"))
+            raise ClusterNotExistException(cluster_id=cluster_id, bk_biz_id=bk_biz_id, message=_("集群不存在"))
 
         backend_info = StorageInstance.objects.get(cluster=cluster)
         return {
-            "id": cluster.id,
+            "id": cluster_id,
             "name": cluster.name,
             "backend_port": backend_info.port,
             "backend_ip": backend_info.machine.ip,

@@ -16,7 +16,7 @@ from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.dbmon_heartbeat import *
 from backend.db_periodic_task.local_tasks.mongodb_tasks import mongodb_backup_check_task, mongodb_metric_check_task
 from backend.db_periodic_task.local_tasks.mysql_backup import *
-from backend.db_periodic_task.local_tasks.mysql_backup_rollback import backup_data_recovry_task
+from backend.db_periodic_task.local_tasks.mysql_backup_rollback import backup_data_recovery_task
 from backend.db_periodic_task.local_tasks.mysql_check_partition import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
