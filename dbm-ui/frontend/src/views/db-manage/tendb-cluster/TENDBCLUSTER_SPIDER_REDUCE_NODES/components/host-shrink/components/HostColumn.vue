@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')" />
+      :placeholder="t('请输入IP')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -44,6 +45,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
@@ -51,12 +53,7 @@
   export type SelectorHost = IValue;
 
   interface Props {
-    selected: {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -68,21 +65,13 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     ip: string;
     master_domain: string;
     role: string;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -143,22 +132,31 @@
     showSelector.value = true;
   };
 
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      ip: value,
+      master_domain: '',
+      role: '',
+    };
+  };
+
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected.SpiderHost);
   };
 
   watch(
-    () => modelValue.value.ip,
-    (value) => {
-      modelValue.value = {
-        ...modelValue.value,
-        bk_host_id: undefined,
-        ip: value,
-      };
-      if (value) {
+    modelValue,
+    () => {
+      if (!modelValue.value.bk_host_id && modelValue.value.ip) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          instance_addresses: [value],
+          cluster_type: [ClusterTypes.TENDBCLUSTER],
+          db_type: DBTypes.TENDBCLUSTER,
+          instance_addresses: [modelValue.value.ip],
         });
       }
     },

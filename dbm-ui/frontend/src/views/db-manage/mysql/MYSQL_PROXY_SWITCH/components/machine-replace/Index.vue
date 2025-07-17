@@ -40,6 +40,7 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
@@ -51,21 +52,8 @@
   import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
   interface RowData {
-    originProxy: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_ids: number[];
-      ip: string;
-      port: number;
-      related_clusters: string[];
-      related_instances: string[];
-    };
-    targetProxy: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    originProxy: ComponentProps<typeof HostColumnGroup>['modelValue'];
+    targetProxy: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
   }
 
   interface Props {
@@ -108,22 +96,30 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    originProxy: data.originProxy || {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_ids: [],
-      ip: '',
-      port: 0,
-      related_clusters: [],
-      related_instances: [],
-    },
-    targetProxy: data.targetProxy || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    originProxy: Object.assign(
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_ids: [],
+        ip: '',
+        port: 0,
+        related_clusters: [] as RowData['originProxy']['related_clusters'],
+        related_instances: [] as RowData['originProxy']['related_instances'],
+        role: '',
+        spec_id: 0,
+      },
+      data.originProxy,
+    ),
+    targetProxy: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.targetProxy,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -180,15 +176,13 @@
         const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const originProxy = item.old_nodes.origin_proxy[0];
             return createTableRow({
               originProxy: {
-                ...originProxy,
-                cluster_ids: [],
-                related_clusters: [],
-                related_instances: [],
+                ip: item.old_nodes.origin_proxy?.[0]?.ip || '',
               },
-              targetProxy: item.resource_spec.target_proxy.hosts[0],
+              targetProxy: {
+                ip: item.resource_spec.target_proxy.hosts?.[0]?.ip || '',
+              },
             });
           });
         }
@@ -199,27 +193,10 @@
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
         acc.push(
           createTableRow({
             originProxy: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_ids: clusterIds,
               ip: item.ip,
-              port: adminPort,
-              related_clusters: relatedClusters,
-              related_instances: relatedInstances,
             },
           }),
         );

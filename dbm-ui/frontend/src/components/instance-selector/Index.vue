@@ -212,6 +212,7 @@
   import _ from 'lodash';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
@@ -868,6 +869,9 @@
           getTableList: getTendbhaMachineList,
         },
         topoConfig: {
+          countFunc: (cluster: TendbhaModel) => {
+            return cluster.masters.length;
+          },
           getTopoList: queryMysqlCluster,
         },
       },

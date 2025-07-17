@@ -50,6 +50,7 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
@@ -61,28 +62,9 @@
   import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
 
   interface RowData {
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_ids: number[];
-      ip: string;
-      port: number;
-      related_clusters: string[];
-      related_instances: string[];
-    };
-    newMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    newSlave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    master: ComponentProps<typeof HostColumnGroup>['modelValue'];
+    newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
+    newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
   }
 
   interface Props {
@@ -125,29 +107,38 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_ids: [],
-      ip: '',
-      port: 0,
-      related_clusters: [],
-      related_instances: [],
-    },
-    newMaster: data.newMaster || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
-    newSlave: data.newSlave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    master: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_ids: [],
+        ip: '',
+        port: 0,
+        related_clusters: [],
+        related_instances: [],
+      },
+      data.master,
+    ),
+    newMaster: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newMaster,
+    ),
+    newSlave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      },
+      data.newSlave,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -256,17 +247,16 @@
         const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const oldMaster = item.old_nodes.old_master[0];
             return createTableRow({
               master: {
-                ...oldMaster,
-                cluster_ids: [],
-                port: 0,
-                related_clusters: [],
-                related_instances: [],
+                ip: item.old_nodes.old_master?.[0]?.ip,
               },
-              newMaster: item.resource_spec.new_master.hosts[0],
-              newSlave: item.resource_spec.new_slave.hosts[0],
+              newMaster: {
+                ip: item.resource_spec.new_master.hosts?.[0]?.ip,
+              },
+              newSlave: {
+                ip: item.resource_spec.new_slave.hosts?.[0]?.ip,
+              },
             });
           });
         }
@@ -277,28 +267,10 @@
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
-        const clusterIds: number[] = [];
-        const relatedClusters: string[] = [];
-        const relatedInstances: string[] = [];
-        const adminPort = item.related_instances[0].admin_port;
-        item.related_clusters.forEach((item) => {
-          clusterIds.push(item.id);
-          relatedClusters.push(item.immute_domain);
-        });
-        item.related_instances.forEach((item) => {
-          relatedInstances.push(item.instance);
-        });
         acc.push(
           createTableRow({
             master: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_ids: clusterIds,
               ip: item.ip,
-              port: adminPort,
-              related_clusters: relatedClusters,
-              related_instances: relatedInstances,
             },
           }),
         );
