@@ -13,13 +13,13 @@
 
 <template>
   <EditableColumn
+    :rules="rules"
     field="master.ip"
     fixed="left"
     :label="t('目标主机')"
     :loading="loading"
     :min-width="150"
-    required
-    :rules="rules">
+    required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
