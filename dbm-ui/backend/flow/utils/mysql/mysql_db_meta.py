@@ -743,7 +743,7 @@ class MySQLDBMeta(object):
                 "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
                 "machine_type": MachineType.BACKEND.value,
                 "spec_config": resource_spec,
-                "spec_id": resource_spec.get(["id"], 0),
+                "spec_id": resource_spec.get("id", 0),
             }
         ]
         storage_instances = []
@@ -952,14 +952,14 @@ class MySQLDBMeta(object):
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
                 "spec_config": resource_spec_master,
-                "spec_id": resource_spec_master.get(["id"], 0),
+                "spec_id": resource_spec_master.get("id", 0),
             },
             {
                 "ip": self.cluster["new_slave_ip"],
                 "bk_biz_id": int(self.bk_biz_id),
                 "machine_type": MachineType.BACKEND.value,
                 "spec_config": resource_spec_slave,
-                "spec_id": resource_spec_slave.get(["id"], 0),
+                "spec_id": resource_spec_slave.get("id", 0),
             },
         ]
         storage_instances = []
