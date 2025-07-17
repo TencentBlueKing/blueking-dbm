@@ -92,6 +92,7 @@ class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, Li
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
+    db_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
