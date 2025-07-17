@@ -12,11 +12,13 @@ from rest_framework.routers import DefaultRouter
 
 from .bf.views import BFPluginViewSet
 from .db_dirty.views import DBDirtyMachineViewSet
+from .mysql.apply.views import ApplyPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
 from .ticket.views import TicketViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
+routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
 routers.register("bf", BFPluginViewSet, basename="bfplugin")
 routers.register("ticket", TicketViewSet, basename="ticket")
 routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")

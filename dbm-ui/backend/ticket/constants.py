@@ -233,6 +233,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库主机故障切换"), _("集群维护"))
     MYSQL_INSTANCE_FAIL_OVER = TicketEnumField("MYSQL_INSTANCE_FAIL_OVER", _("MySQL 主库实例故障切换"), _("集群维护"))
     MYSQL_HA_APPLY = TicketEnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"), register_iam=False)
+    MYSQL_HA_APPLY_QUICK_MINOR_PASS = TicketEnumField("MYSQL_HA_APPLY_QUICK_MINOR_PASS", _("MySQL 高可用部署小额绿通"))  # noqa
     MYSQL_IMPORT_SQLFILE = TicketEnumField("MYSQL_IMPORT_SQLFILE", _("MySQL 变更SQL执行"), _("SQL 任务"))
     MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE", _("MySQL 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
     MYSQL_DELETE_CLEAR_DB = TicketEnumField("MYSQL_DELETE_CLEAR_DB", _("MySQL 删除清档备份库"), _("数据处理"), register_iam=False)  # noqa

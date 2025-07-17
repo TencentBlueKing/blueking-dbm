@@ -145,6 +145,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     DORIS_COS_REGION = EnumField("DORIS_COS_REGION", _("Doris使用COS地域映射"))
     # Doris使用COS标签
     DORIS_COS_TAGGING = EnumField("DORIS_COS_TAGGING", _("Doris使用COS标签"))
+    # 小额绿通单据申请
+    QUICK_MINOR_POAA = EnumField("QUICK_MINOR_POAA", _("小额绿通单据申请"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
