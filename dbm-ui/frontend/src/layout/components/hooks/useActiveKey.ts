@@ -3,7 +3,14 @@ import _ from 'lodash';
 import { nextTick, type Ref, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey: string, peending = ref(false)) => {
+export const useActiveKey = (
+  menuRef: Ref<InstanceType<typeof Menu>>,
+  defaultKey: string,
+  peending = ref(false),
+  options = {} as {
+    handleDefaultRouteChange?: () => void;
+  },
+) => {
   const route = useRoute();
   const router = useRouter();
 
@@ -54,11 +61,14 @@ export const useActiveKey = (menuRef: Ref<InstanceType<typeof Menu>>, defaultKey
             parentKey.value = allMunuRouteNameMap[routeName];
           }
         });
-
         if (!currentRouteName.value) {
-          router.push({
-            name: defaultKey,
-          });
+          if (options.handleDefaultRouteChange) {
+            options.handleDefaultRouteChange();
+          } else {
+            router.push({
+              name: defaultKey,
+            });
+          }
         }
       });
     },

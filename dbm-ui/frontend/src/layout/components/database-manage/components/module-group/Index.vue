@@ -34,12 +34,12 @@
     [DBTypes.KAFKA]: Kafka,
     [DBTypes.MONGODB]: MongoDB,
     [DBTypes.MYSQL]: Mysql,
+    [DBTypes.ORACLE]: Oracle,
     [DBTypes.PULSAR]: Pulsar,
     [DBTypes.REDIS]: Redis,
     [DBTypes.RIAK]: Riak,
     [DBTypes.SQLSERVER]: SqlServer,
     [DBTypes.TENDBCLUSTER]: TendbCluster,
-    oracle: Oracle,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

@@ -18,7 +18,7 @@ import { queryClusterInstanceCount } from '@services/source/dbbase';
 
 import { useFunController } from '@stores';
 
-import { ClusterTypes, DBTypeInfos, DBTypes, type InfoItem } from '@common/const';
+import { ClusterTypes, type DBInfoItem, DBTypeInfos, DBTypes } from '@common/const';
 
 export function useBizDbDisplay() {
   const funControllerStore = useFunController();
@@ -42,13 +42,13 @@ export function useBizDbDisplay() {
     const countKeyMap: Record<string, string[]> = {
       [DBTypes.MONGODB]: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
       [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
+      [DBTypes.ORACLE]: [ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE],
       [DBTypes.REDIS]: [ClusterTypes.REDIS_INSTANCE, 'redis_cluster'],
       [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA],
       [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
-      // TODO ORACLE
     };
 
-    const resultList = Object.keys(DBTypeInfos).reduce<InfoItem[]>((prevList, dbType) => {
+    const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
       const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
       if (dbTypeInfo) {
         if (dbTypeInfo.moduleId === 'bigdata') {
@@ -60,7 +60,7 @@ export function useBizDbDisplay() {
         } else {
           const controllerData = funControllerStore.funControllerData[dbTypeInfo.moduleId];
           const clusterCount = countKeyMap[dbTypeInfo.id as string].reduce(
-            (prevCount, key) => prevCount + clusterInstanceCount.value![key as ClusterTypes].cluster_count,
+            (prevCount, key) => prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
             0,
           );
           if (controllerData.is_enabled && clusterCount) {
