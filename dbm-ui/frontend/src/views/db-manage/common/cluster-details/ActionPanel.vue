@@ -11,11 +11,11 @@
         @change="handlePanelChange">
         <slot name="topo">
           <BkTabPanel
+            :key="clusterData.id"
             :label="t('集群拓扑')"
             name="topo">
             <ClusterTopo
               v-if="activePanel === 'topo'"
-              :key="clusterData.id"
               :cluster-id="clusterData.id"
               :cluster-role-node-group="clusterRoleNodeGroup"
               :cluster-type="clusterType"
@@ -24,6 +24,7 @@
         </slot>
         <slot name="info">
           <BkTabPanel
+            :key="clusterData.id"
             :label="t('基本信息')"
             name="info">
             <slot
@@ -37,6 +38,7 @@
         </slot>
         <slot name="instance">
           <BkTabPanel
+            :key="clusterData.id"
             :label="t('实例列表')"
             name="instance">
             <slot
@@ -52,6 +54,7 @@
         </slot>
         <slot name="host">
           <BkTabPanel
+            :key="clusterData.id"
             :label="t('主机列表')"
             name="host">
             <slot
@@ -78,6 +81,7 @@
         </template>
         <slot name="record">
           <BkTabPanel
+            :key="clusterData.id"
             :label="t('单据记录')"
             name="record">
             <OperationRecord

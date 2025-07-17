@@ -247,7 +247,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import EsModel from '@services/model/es/es';
+  import EsDetailModel from '@services/model/es/es-detail';
   import { getEsDetail } from '@services/source/es';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -289,7 +289,7 @@
     cluster_id: number;
   }>(ClusterTypes.ES);
 
-  const data = ref<EsModel>();
+  const data = ref<EsDetailModel>();
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -308,7 +308,7 @@
 
   const { loading: isLoading, run: fetchClusterDetail } = useRequest(getEsDetail, {
     manual: true,
-    onSuccess(result: EsModel) {
+    onSuccess(result: EsDetailModel) {
       data.value = result;
     },
   });
