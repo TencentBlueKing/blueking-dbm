@@ -62,6 +62,7 @@
         :container-height="contentHeight - 110"
         :data-source="fetchListDbaHost"
         :disable-select-method="disableSelectMethod"
+        ignore-biz
         primary-key="host_id"
         :releate-url-query="false"
         selectable
