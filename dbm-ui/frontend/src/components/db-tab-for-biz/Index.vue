@@ -15,7 +15,7 @@
   <BkTab
     :key="renderKey"
     v-model:active="moduleValue"
-    class="db-tab"
+    class="db-tab-for-biz"
     type="unborder-card">
     <BkTabPanel
       v-for="tab of renderTabs"

@@ -97,15 +97,6 @@
   const { t } = useI18n();
   const { isLoading: isModuleLoading, tabList } = useBizDbDisplay();
 
-  watch(tabList, () => {
-    if (tabList.value.length === 0) {
-      renderModuleList.value = [];
-      router.replace({ name: 'BussinessServiceApply' });
-    } else {
-      renderModuleList.value = tabList.value.map((tabItem) => tabItem.id);
-    }
-  });
-
   const menuBoxRef = ref<HTMLElement>();
   const menuRef = ref<InstanceType<typeof Menu>>();
   const renderModuleList = ref<string[]>([]);
@@ -117,4 +108,16 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'BussinessServiceApply', isModuleLoading);
 
   const styles = useMenuStyles(menuBoxRef);
+
+  watch(tabList, () => {
+    setTimeout(() => {
+      if (tabList.value.length === 0) {
+        renderModuleList.value = [];
+        router.replace({ name: 'BussinessServiceApply' });
+      } else {
+        renderModuleList.value = tabList.value.map((tabItem) => tabItem.id);
+        router.replace({ name: `${tabList.value[0].routeIndexName}` });
+      }
+    });
+  });
 </script>
