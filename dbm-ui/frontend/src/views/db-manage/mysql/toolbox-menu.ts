@@ -135,6 +135,12 @@ export default [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.proxyReduce',
+        id: TicketTypes.MYSQL_PROXY_REDUCE,
+        name: t('缩容Proxy'),
+        parentId: 'migrate',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
         name: t('添加Proxy'),

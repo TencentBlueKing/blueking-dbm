@@ -13,7 +13,7 @@
 
 <template>
   <EditableColumn
-    field="master.ip"
+    field="host.ip"
     fixed="left"
     :label="t('目标主机')"
     :loading="loading"
@@ -106,7 +106,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('Proxy 主机'),
-            role: 'backend_master',
+            role: 'proxy',
           },
         },
       },
@@ -117,7 +117,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('Proxy 主机'),
-            role: 'backend_master',
+            role: 'proxy',
           },
         },
       },
@@ -133,7 +133,6 @@
         }) as IValue,
     ),
   }));
-  let illegalInstances = '';
 
   const rules = [
     {
@@ -147,20 +146,15 @@
       validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: '',
+      message: t('该实例为非 Proxy 实例，请选择 Proxy 实例'),
       trigger: 'blur',
-      validator: (value: string) =>
-        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      illegalInstances = data
-        .filter((item) => item.role !== 'backend_master')
-        .map((item) => item.instance_address)
-        .join('、');
       const [currentHost] = data;
       if (currentHost) {
         modelValue.value = {
@@ -183,7 +177,6 @@
   };
 
   const handleChange = (value: string) => {
-    illegalInstances = '';
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,

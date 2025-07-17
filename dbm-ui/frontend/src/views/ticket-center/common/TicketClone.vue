@@ -119,6 +119,7 @@
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
+    [TicketTypes.MYSQL_PROXY_REDUCE]: TicketTypes.MYSQL_PROXY_REDUCE, // mysql 缩容 proxy
     [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
     [TicketTypes.MYSQL_PROXY_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL Proxy 升级
     [TicketTypes.MYSQL_RENAME_DATABASE]: TicketTypes.MYSQL_RENAME_DATABASE, // Mysql DB重命名
