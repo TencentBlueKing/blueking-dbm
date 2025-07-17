@@ -215,7 +215,7 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: string[], field: string) => {
+  const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });

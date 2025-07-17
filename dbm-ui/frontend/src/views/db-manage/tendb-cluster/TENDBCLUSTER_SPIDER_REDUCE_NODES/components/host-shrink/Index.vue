@@ -48,6 +48,7 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import type { TendbCluster } from '@services/model/ticket/ticket';
@@ -57,15 +58,7 @@
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
   interface RowData {
-    spider_reduced_host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      cluster_id: number;
-      ip: string;
-      master_domain: string;
-      role: string;
-    };
+    spider_reduced_host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   interface Props {
@@ -95,16 +88,19 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    spider_reduced_host: data.spider_reduced_host || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: '',
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    spider_reduced_host: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        ip: '',
+        master_domain: '',
+        role: '',
+      },
+      data.spider_reduced_host,
+    ),
   });
 
   const tableData = ref<RowData[]>([createTableRow()]);
@@ -138,21 +134,14 @@
     () => props.ticketDetails,
     () => {
       if (props.ticketDetails) {
-        const { clusters, infos } = props.ticketDetails;
+        const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.reduce<typeof tableData.value>((acc, item) => {
-            const clusterInfo = clusters[item.cluster_id];
             item.old_nodes.spider_reduced_hosts.forEach((host) => {
               acc.push(
                 createTableRow({
                   spider_reduced_host: {
-                    bk_biz_id: host.bk_biz_id,
-                    bk_cloud_id: host.bk_cloud_id,
-                    bk_host_id: host.bk_host_id,
-                    cluster_id: clusterInfo.id,
-                    ip: host.ip,
-                    master_domain: clusterInfo.immute_domain,
-                    role: item.reduce_spider_role,
+                    ip: host.ip || '',
                   },
                 }),
               );
@@ -170,13 +159,7 @@
         acc.push(
           createTableRow({
             spider_reduced_host: {
-              bk_biz_id: item.bk_biz_id,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               ip: item.ip,
-              master_domain: item.master_domain,
-              role: item.role,
             },
           }),
         );

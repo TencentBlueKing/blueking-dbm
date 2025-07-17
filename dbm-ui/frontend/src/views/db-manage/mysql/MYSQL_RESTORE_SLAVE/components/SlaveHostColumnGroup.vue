@@ -34,8 +34,8 @@
       @change="handleInputChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('同机关联集群')"
     field="slave.related_clusters"
+    :label="t('同机关联集群')"
     :loading="loading"
     :min-width="220"
     required>
@@ -58,6 +58,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type TendbhaModel from '@services/model/mysql/tendbha';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -110,6 +111,11 @@
             field: 'ip',
             label: t('Slave 主机'),
             role: 'backend_slave',
+          },
+        },
+        topoConfig: {
+          countFunc: (cluster: TendbhaModel) => {
+            return cluster.slaves.length;
           },
         },
       },

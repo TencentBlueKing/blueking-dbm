@@ -39,8 +39,8 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            @batch-edit="handleBatchEditColumn"
-            selectable />
+            selectable
+            @batch-edit="handleBatchEditColumn" />
           <EditableColumn
             field="count"
             :label="t('部署台数')"
@@ -91,7 +91,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -150,7 +149,7 @@
     },
   ];
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
