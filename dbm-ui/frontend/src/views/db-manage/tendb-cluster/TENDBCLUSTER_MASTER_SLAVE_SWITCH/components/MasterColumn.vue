@@ -37,6 +37,7 @@
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
     :selected="selectedHosts"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -48,7 +49,11 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
@@ -75,6 +80,33 @@
   });
 
   const { t } = useI18n();
+
+  const tabListConfig = {
+    TendbClusterHost: [
+      {
+        id: 'TendbClusterHost',
+        name: t('目标主库主机'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            field: 'ip',
+            label: t('Master 主机'),
+            role: 'remote_master',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const showSelector = ref(false);
   const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
