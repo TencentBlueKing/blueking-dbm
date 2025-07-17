@@ -20,18 +20,18 @@ limitations under the License.
 package resp
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // OperationDefinitionRespVo response vo 定义
 type OperationDefinitionRespVo struct {
-	ID              uint64    `json:"id"`
-	OperationName   string    `json:"operationName"`
-	OperationTarget string    `json:"operationTarget"`
-	Active          bool      `json:"active"`
-	Description     string    `json:"description"`
-	CreatedBy       string    `json:"createdBy"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedBy       string    `json:"updatedBy"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID              uint64                 `json:"id"`
+	OperationName   string                 `json:"operationName"`
+	OperationTarget string                 `json:"operationTarget"`
+	Active          bool                   `json:"active"`
+	Description     string                 `json:"description"`
+	CreatedBy       string                 `json:"createdBy"`
+	CreatedAt       commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy       string                 `json:"updatedBy"`
+	UpdatedAt       commtypes.JSONDatetime `json:"updatedAt"`
 }

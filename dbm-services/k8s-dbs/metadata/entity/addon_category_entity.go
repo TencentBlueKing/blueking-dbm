@@ -20,32 +20,32 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // AddonCategoryEntity represents the entity of addon category
 type AddonCategoryEntity struct {
-	ID            uint64    `json:"id"`
-	CategoryName  string    `json:"categoryName"`
-	CategoryAlias string    `json:"categoryAlias"`
-	Active        bool      `json:"active"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"createdBy"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID            uint64                 `json:"id"`
+	CategoryName  string                 `json:"categoryName"`
+	CategoryAlias string                 `json:"categoryAlias"`
+	Active        bool                   `json:"active"`
+	Description   string                 `json:"description"`
+	CreatedBy     string                 `json:"createdBy"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }
 
 // AddonCategoryTypesEntity represents the entity of addon categoryTypes
 type AddonCategoryTypesEntity struct {
-	ID            uint64             `json:"id"`
-	CategoryName  string             `json:"categoryName"`
-	CategoryAlias string             `json:"categoryAlias"`
-	AddonTypes    []*AddonTypeEntity `json:"addonTypes"`
-	Active        bool               `json:"active"`
-	Description   string             `json:"description"`
-	CreatedBy     string             `json:"createdBy"`
-	CreatedAt     time.Time          `json:"createdAt"`
-	UpdatedBy     string             `json:"updatedBy"`
-	UpdatedAt     time.Time          `json:"updatedAt"`
+	ID            uint64                 `json:"id"`
+	CategoryName  string                 `json:"categoryName"`
+	CategoryAlias string                 `json:"categoryAlias"`
+	AddonTypes    []*AddonTypeEntity     `json:"addonTypes"`
+	Active        bool                   `json:"active"`
+	Description   string                 `json:"description"`
+	CreatedBy     string                 `json:"createdBy"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

@@ -20,17 +20,17 @@ limitations under the License.
 package resp
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // K8sCrdClusterTagRespVo response vo 定义
 type K8sCrdClusterTagRespVo struct {
-	ID           uint64    `json:"id"`
-	CrdClusterID uint64    `json:"crdClusterId"`
-	ClusterTag   string    `json:"clusterTag"`
-	Active       bool      `json:"active"`
-	CreatedBy    string    `json:"createdBy"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedBy    string    `json:"updatedBy"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID           uint64                 `json:"id"`
+	CrdClusterID uint64                 `json:"crdClusterId"`
+	ClusterTag   string                 `json:"clusterTag"`
+	Active       bool                   `json:"active"`
+	CreatedBy    string                 `json:"createdBy"`
+	CreatedAt    commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy    string                 `json:"updatedBy"`
+	UpdatedAt    commtypes.JSONDatetime `json:"updatedAt"`
 }

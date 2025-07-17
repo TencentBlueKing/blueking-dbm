@@ -19,16 +19,16 @@ limitations under the License.
 
 package req
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // ClusterOperationReqVo represents the ReqVo structure of cluster operation.
 type ClusterOperationReqVo struct {
-	AddonType    string    `json:"addonType" binding:"required"`
-	AddonVersion string    `json:"addonVersion" binding:"required"`
-	OperationID  uint64    `json:"operationId" binding:"required"`
-	Description  string    `json:"description" binding:"required"`
-	CreatedBy    string    `json:"createdBy" binding:"required"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedBy    string    `json:"updatedBy"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	AddonType    string                 `json:"addonType" binding:"required"`
+	AddonVersion string                 `json:"addonVersion" binding:"required"`
+	OperationID  uint64                 `json:"operationId" binding:"required"`
+	Description  string                 `json:"description" binding:"required"`
+	CreatedBy    string                 `json:"createdBy" binding:"required"`
+	CreatedAt    commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy    string                 `json:"updatedBy"`
+	UpdatedAt    commtypes.JSONDatetime `json:"updatedAt"`
 }

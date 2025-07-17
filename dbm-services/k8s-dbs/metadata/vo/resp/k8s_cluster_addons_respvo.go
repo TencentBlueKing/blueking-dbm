@@ -19,16 +19,16 @@ limitations under the License.
 
 package resp
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sClusterAddonsRespVo response vo 定义
 type K8sClusterAddonsRespVo struct {
-	ID             uint64            `json:"id"`
-	AddonID        uint64            `json:"addonId"`
-	StorageAddon   K8sCrdAddonRespVo `json:"storageAddon"`
-	K8sClusterName string            `json:"k8sClusterName"`
-	CreatedBy      string            `json:"createdBy"`
-	CreatedAt      time.Time         `json:"createdAt"`
-	UpdatedBy      string            `json:"updatedBy"`
-	UpdatedAt      time.Time         `json:"updatedAt"`
+	ID             uint64                 `json:"id"`
+	AddonID        uint64                 `json:"addonId"`
+	StorageAddon   K8sCrdAddonRespVo      `json:"storageAddon"`
+	K8sClusterName string                 `json:"k8sClusterName"`
+	CreatedBy      string                 `json:"createdBy"`
+	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy      string                 `json:"updatedBy"`
+	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
 }

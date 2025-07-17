@@ -20,7 +20,7 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // ClusterOperationEntity represents the entity of cluster operation
@@ -33,7 +33,7 @@ type ClusterOperationEntity struct {
 	Active       bool                      `json:"active"`
 	Description  string                    `json:"description"`
 	CreatedBy    string                    `json:"createdBy"`
-	CreatedAt    time.Time                 `json:"createdAt"`
+	CreatedAt    commtypes.JSONDatetime    `json:"createdAt"`
 	UpdatedBy    string                    `json:"updatedBy"`
-	UpdatedAt    time.Time                 `json:"updatedAt"`
+	UpdatedAt    commtypes.JSONDatetime    `json:"updatedAt"`
 }

@@ -20,22 +20,22 @@ limitations under the License.
 package req
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // K8sClusterServiceReqVo represents the request data structure of cluster service meta.
 type K8sClusterServiceReqVo struct {
-	CrdClusterID  uint64    `json:"crdClusterId" binding:"required"`
-	ComponentName string    `json:"componentName" binding:"required"`
-	ServiceName   string    `json:"serviceName" binding:"required"`
-	ServiceType   string    `json:"serviceType" binding:"required"`
-	Annotations   string    `json:"annotations" binding:"required"`
-	InternalAddrs string    `json:"internalAddrs" binding:"required"`
-	ExternalAddrs string    `json:"externalAddrs" binding:"required"`
-	Domains       string    `json:"domains" binding:"required"`
-	Description   string    `json:"description" binding:"required"`
-	CreatedBy     string    `json:"createdBy" binding:"required"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	CrdClusterID  uint64                 `json:"crdClusterId" binding:"required"`
+	ComponentName string                 `json:"componentName" binding:"required"`
+	ServiceName   string                 `json:"serviceName" binding:"required"`
+	ServiceType   string                 `json:"serviceType" binding:"required"`
+	Annotations   string                 `json:"annotations" binding:"required"`
+	InternalAddrs string                 `json:"internalAddrs" binding:"required"`
+	ExternalAddrs string                 `json:"externalAddrs" binding:"required"`
+	Domains       string                 `json:"domains" binding:"required"`
+	Description   string                 `json:"description" binding:"required"`
+	CreatedBy     string                 `json:"createdBy" binding:"required"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

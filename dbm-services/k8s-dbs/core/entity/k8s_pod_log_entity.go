@@ -19,10 +19,10 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sLog 封装 k8s 日志消息
 type K8sLog struct {
-	Timestamp time.Time `json:"timestamp"`
-	Message   string    `json:"message"`
+	Timestamp commtypes.JSONDatetime `json:"timestamp"`
+	Message   string                 `json:"message"`
 }

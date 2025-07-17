@@ -28,7 +28,6 @@ import (
 	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -137,7 +136,6 @@ func TestUpdateCluster(t *testing.T) {
 		Namespace:   "default2",
 		Status:      "Disable",
 		Description: "desc desc",
-		UpdatedAt:   time.Now(),
 	}
 	rows, err := clusterProvider.UpdateCluster(newCluster)
 	assert.NoError(t, err)

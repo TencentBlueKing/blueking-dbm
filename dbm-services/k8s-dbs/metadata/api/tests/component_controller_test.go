@@ -29,7 +29,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -62,19 +61,12 @@ func AddSampleComponent() error {
 	}
 	dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
 
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, _ := time.Parse(layout, addDateTime)
-
 	component := &model.K8sCrdComponentModel{
 		ComponentName: "test1",
 		CrdClusterID:  1,
 		Status:        "CREATED",
 		Description:   "just for test",
 		CreatedBy:     "admin",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
 		UpdatedBy:     "admin",
 	}
 	addedComponent, err := dbAccess.Create(component)

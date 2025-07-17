@@ -20,23 +20,23 @@ limitations under the License.
 package model
 
 import (
+	commtypes "k8s-dbs/common/types"
 	"k8s-dbs/metadata/constant"
-	"time"
 )
 
 // AddonClusterHelmRepoModel 对应 tb_addoncluster_helm_repository 表
 type AddonClusterHelmRepoModel struct {
-	ID             int64     `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	RepoName       string    `gorm:"type:varchar(32);not null;column:repo_name" json:"repoName"`
-	RepoRepository string    `gorm:"type:varchar(255);not null;column:repo_repository" json:"repoRepository"`
-	RepoUsername   string    `gorm:"type:varchar(255);column:repo_username;not null" json:"repoUsername"`
-	RepoPassword   string    `gorm:"type:varchar(255);column:repo_password;not null" json:"repoPassword"`
-	ChartName      string    `gorm:"type:varchar(32);not null;column:chart_name" json:"chartName"`
-	ChartVersion   string    `gorm:"type:varchar(32);not null;column:chart_version" json:"chartVersion"`
-	CreatedBy      string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
-	CreatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
-	UpdatedBy      string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
-	UpdatedAt      time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
+	ID             int64                  `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	RepoName       string                 `gorm:"type:varchar(32);not null;column:repo_name" json:"repoName"`
+	RepoRepository string                 `gorm:"type:varchar(255);not null;column:repo_repository" json:"repoRepository"`
+	RepoUsername   string                 `gorm:"type:varchar(255);column:repo_username;not null" json:"repoUsername"`
+	RepoPassword   string                 `gorm:"type:varchar(255);column:repo_password;not null" json:"repoPassword"`
+	ChartName      string                 `gorm:"type:varchar(32);not null;column:chart_name" json:"chartName"`
+	ChartVersion   string                 `gorm:"type:varchar(32);not null;column:chart_version" json:"chartVersion"`
+	CreatedBy      string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt      commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy      string                 `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt      commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

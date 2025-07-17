@@ -149,7 +149,6 @@ func TestUpdateStorageAddon(t *testing.T) {
 		AddonVersion:  "1.0.0",
 		Active:        false,
 		Description:   "desc",
-		UpdatedAt:     time.Now(),
 	}
 	dbsContext = &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{

@@ -20,22 +20,22 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // AddonClusterReleaseEntity addon cluster release 定义
 type AddonClusterReleaseEntity struct {
-	ID                 uint64    `json:"id"`
-	RepoName           string    `json:"repoName"`
-	RepoRepository     string    `json:"repoRepository"`
-	ChartVersion       string    `json:"chartVersion"`
-	ChartName          string    `json:"chartName"`
-	Namespace          string    `json:"namespace"`
-	K8sClusterConfigID uint64    `json:"k8sClusterConfigId"`
-	ReleaseName        string    `json:"releaseName"`
-	ChartValues        string    `json:"chartValues"`
-	CreatedBy          string    `json:"createdBy"`
-	CreatedAt          time.Time `json:"createdAt"`
-	UpdatedBy          string    `json:"updatedBy"`
-	UpdatedAt          time.Time `json:"updatedAt"`
+	ID                 uint64                 `json:"id"`
+	RepoName           string                 `json:"repoName"`
+	RepoRepository     string                 `json:"repoRepository"`
+	ChartVersion       string                 `json:"chartVersion"`
+	ChartName          string                 `json:"chartName"`
+	Namespace          string                 `json:"namespace"`
+	K8sClusterConfigID uint64                 `json:"k8sClusterConfigId"`
+	ReleaseName        string                 `json:"releaseName"`
+	ChartValues        string                 `json:"chartValues"`
+	CreatedBy          string                 `json:"createdBy"`
+	CreatedAt          commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy          string                 `json:"updatedBy"`
+	UpdatedAt          commtypes.JSONDatetime `json:"updatedAt"`
 }

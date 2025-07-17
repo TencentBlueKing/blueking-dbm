@@ -20,29 +20,29 @@ limitations under the License.
 package model
 
 import (
+	commtypes "k8s-dbs/common/types"
 	"k8s-dbs/metadata/constant"
-	"time"
 )
 
 // K8sCrdStorageAddonModel represents the database model of addon
 type K8sCrdStorageAddonModel struct {
-	ID                   uint64    `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	AddonName            string    `gorm:"size:32;not null;column:addon_name" json:"addonName"`
-	AddonCategory        string    `gorm:"size:32;not null;column:addon_category" json:"addonCategory"`
-	AddonType            string    `gorm:"size:32;not null;column:addon_type" json:"addonType"`
-	AddonVersion         string    `gorm:"size:32;not null;column:addon_version" json:"addonVersion"`
-	Topologies           string    `gorm:"type:text;column:topologies" json:"topologies"`
-	RecommendedVersion   string    `gorm:"size:32;not null;column:recommended_version" json:"recommendedVersion"`
-	SupportedVersions    string    `gorm:"size:1000;not null;column:supported_versions" json:"supportedVersions"`
-	RecommendedAcVersion string    `gorm:"size:32;not null;column:recommended_addoncluster_version" json:"recommendedAcVersion"` //nolint:lll
-	SupportedAcVersions  string    `gorm:"size:1000;not null;column:supported_addoncluster_versions" json:"supportedAcVersions"` //nolint:lll
-	Releases             string    `gorm:"type:text;column:releases" json:"releases"`
-	Active               bool      `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
-	Description          string    `gorm:"size:100;column:description" json:"description"`
-	CreatedBy            string    `gorm:"size:50;not null;column:created_by" json:"createdBy"`
-	CreatedAt            time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
-	UpdatedBy            string    `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
-	UpdatedAt            time.Time `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
+	ID                   uint64                 `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	AddonName            string                 `gorm:"size:32;not null;column:addon_name" json:"addonName"`
+	AddonCategory        string                 `gorm:"size:32;not null;column:addon_category" json:"addonCategory"`
+	AddonType            string                 `gorm:"size:32;not null;column:addon_type" json:"addonType"`
+	AddonVersion         string                 `gorm:"size:32;not null;column:addon_version" json:"addonVersion"`
+	Topologies           string                 `gorm:"type:text;column:topologies" json:"topologies"`
+	RecommendedVersion   string                 `gorm:"size:32;not null;column:recommended_version" json:"recommendedVersion"`                //nolint:lll
+	SupportedVersions    string                 `gorm:"size:1000;not null;column:supported_versions" json:"supportedVersions"`                //nolint:lll
+	RecommendedAcVersion string                 `gorm:"size:32;not null;column:recommended_addoncluster_version" json:"recommendedAcVersion"` //nolint:lll
+	SupportedAcVersions  string                 `gorm:"size:1000;not null;column:supported_addoncluster_versions" json:"supportedAcVersions"` //nolint:lll
+	Releases             string                 `gorm:"type:text;column:releases" json:"releases"`
+	Active               bool                   `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
+	Description          string                 `gorm:"size:100;column:description" json:"description"`
+	CreatedBy            string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
+	CreatedAt            commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
+	UpdatedBy            string                 `gorm:"size:50;not null;column:updated_by" json:"updatedBy"`
+	UpdatedAt            commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP;column:updated_at" json:"updatedAt"` //nolint:lll
 }
 
 // TableName 获取 model 对应的数据库表名

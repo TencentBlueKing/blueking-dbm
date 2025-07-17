@@ -19,7 +19,7 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sClusterAddonsEntity entity 定义
 type K8sClusterAddonsEntity struct {
@@ -28,7 +28,7 @@ type K8sClusterAddonsEntity struct {
 	StorageAddon   K8sCrdStorageAddonEntity `json:"storageAddon"`
 	K8sClusterName string                   `json:"k8sClusterName"`
 	CreatedBy      string                   `json:"createdBy"`
-	CreatedAt      time.Time                `json:"createdAt"`
+	CreatedAt      commtypes.JSONDatetime   `json:"createdAt"`
 	UpdatedBy      string                   `json:"updatedBy"`
-	UpdatedAt      time.Time                `json:"updatedAt"`
+	UpdatedAt      commtypes.JSONDatetime   `json:"updatedAt"`
 }
