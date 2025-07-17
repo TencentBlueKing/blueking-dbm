@@ -31,8 +31,8 @@
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterColumn
-            v-model="item.master"
+          <HostColumn
+            v-model="item.host"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
@@ -91,10 +91,10 @@
 
   import { random } from '@utils';
 
-  import MasterColumn, { type SelectorHost } from './components/MasterColumn.vue';
+  import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
 
   interface RowData {
-    master: ComponentProps<typeof MasterColumn>['modelValue'];
+    host: ComponentProps<typeof HostColumn>['modelValue'];
   }
 
   const { t } = useI18n();
@@ -109,21 +109,21 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    master: Object.assign(
+    host: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
         ip: '',
-        related_clusters: [] as RowData['master']['related_clusters'],
+        related_clusters: [] as RowData['host']['related_clusters'],
         role: '',
       },
-      data.master,
+      data.host,
     ),
   });
 
   const defaultData = () => ({
-    is_safe: false,
+    is_safe: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -131,9 +131,7 @@
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
-  const selected = computed(() =>
-    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
-  );
+  const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   useTicketDetail<Mysql.ProxyReduce>(TicketTypes.MYSQL_PROXY_REDUCE, {
@@ -144,7 +142,7 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) =>
           createTableRow({
-            master: {
+            host: {
               ip: item.origin_proxy_ip.ip,
             },
           }),
@@ -182,11 +180,11 @@
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
-          cluster_ids: item.master.related_clusters.map((item) => item.id),
+          cluster_ids: item.host.related_clusters.map((item) => item.id),
           old_nodes: {
-            origin_proxy: [item.master],
+            origin_proxy: [item.host],
           },
-          origin_proxy_ip: item.master,
+          origin_proxy_ip: item.host,
         })),
         is_safe: formData.is_safe,
       },
@@ -203,7 +201,7 @@
       if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
-            master: {
+            host: {
               ip: item.ip,
             },
           }),
@@ -217,7 +215,7 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
-        master: {
+        host: {
           ip: item.ip,
         },
       }),
