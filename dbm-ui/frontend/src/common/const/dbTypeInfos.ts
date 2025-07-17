@@ -13,6 +13,7 @@ export interface InfoItem {
   }[];
   moduleId: ExtractedControllerDataKeys;
   name: string;
+  routeIndexName: string;
 }
 
 type InfoType = {
@@ -38,6 +39,7 @@ const mysql: InfoType = {
     ],
     moduleId: 'mysql',
     name: 'MySQL',
+    routeIndexName: 'MysqlManage',
   },
   [DBTypes.TENDBCLUSTER]: {
     id: DBTypes.TENDBCLUSTER,
@@ -53,6 +55,7 @@ const mysql: InfoType = {
     ],
     moduleId: 'mysql',
     name: 'TenDBCluster',
+    routeIndexName: 'SpiderManage',
   },
 };
 const redis: InfoType = {
@@ -86,6 +89,7 @@ const redis: InfoType = {
     ],
     moduleId: 'redis',
     name: 'Redis',
+    routeIndexName: 'RedisManage',
   },
 };
 const mongo: InfoType = {
@@ -107,6 +111,7 @@ const mongo: InfoType = {
     ],
     moduleId: 'mongodb',
     name: 'MongoDB',
+    routeIndexName: 'MongoDBManage',
   },
 };
 const sqlserver: InfoType = {
@@ -120,6 +125,7 @@ const sqlserver: InfoType = {
     ],
     moduleId: 'sqlserver',
     name: 'SQLServer',
+    routeIndexName: 'SqlServerManage',
   },
 };
 const bigdata: InfoType = {
@@ -141,6 +147,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Doris',
+    routeIndexName: 'DorisManage',
   },
   [DBTypes.ES]: {
     id: DBTypes.ES,
@@ -160,6 +167,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'ElasticSearch',
+    routeIndexName: 'EsManage',
   },
   [DBTypes.HDFS]: {
     id: DBTypes.HDFS,
@@ -175,6 +183,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'HDFS',
+    routeIndexName: 'HdfsManage',
   },
   [DBTypes.INFLUXDB]: {
     id: DBTypes.INFLUXDB,
@@ -186,6 +195,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'InfuxDB',
+    routeIndexName: 'InfluxDBManage',
   },
   [DBTypes.KAFKA]: {
     id: DBTypes.KAFKA,
@@ -201,6 +211,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Kafka',
+    routeIndexName: 'KafkaManage',
   },
   [DBTypes.PULSAR]: {
     id: DBTypes.PULSAR,
@@ -220,6 +231,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Pulsar',
+    routeIndexName: 'PulsarManage',
   },
   [DBTypes.RIAK]: {
     id: DBTypes.RIAK,
@@ -231,6 +243,7 @@ const bigdata: InfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Riak',
+    routeIndexName: 'RiakManage',
   },
 };
 export const DBTypeInfos = {
