@@ -29,6 +29,7 @@ export * from './migrateUpgrade';
 export * from './openArea';
 export * from './partition';
 export * from './proxyAdd';
+export * from './proxyReduce';
 export * from './proxySwitch';
 export * from './proxyUpgrade';
 export * from './renameDataBase';

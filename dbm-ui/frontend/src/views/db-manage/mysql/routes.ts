@@ -57,6 +57,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),
   createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切')),
   createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换Proxy')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('缩容Proxy')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
   {
