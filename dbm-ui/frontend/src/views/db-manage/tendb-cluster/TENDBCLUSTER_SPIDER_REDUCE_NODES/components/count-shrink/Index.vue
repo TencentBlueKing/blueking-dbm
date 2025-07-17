@@ -62,6 +62,7 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -72,13 +73,7 @@
   import RoleColumn from './components/RoleColumn.vue';
 
   interface RowData {
-    cluster: {
-      id: number;
-      master_count: number;
-      master_domain: string;
-      role: string;
-      slave_count: number;
-    };
+    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     reduced_count: string;
     spider_reduced_to_count: string;
   }
@@ -103,14 +98,17 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      id: 0,
-      master_count: 0,
-      master_domain: '',
-      role: '',
-      slave_count: 0,
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        id: 0,
+        master_count: 0,
+        master_domain: '',
+        role: '',
+        slave_count: 0,
+      },
+      data.cluster,
+    ),
     reduced_count: data.reduced_count || '',
     spider_reduced_to_count: data.spider_reduced_to_count || '',
   });
@@ -151,11 +149,7 @@
             return createTableRow({
               // 集群缺失信息会被ClusterColumn组件会填
               cluster: {
-                id: clusterInfo.id,
-                master_count: 0,
                 master_domain: clusterInfo.immute_domain,
-                role: item.reduce_spider_role,
-                slave_count: 0,
               },
               reduced_count: `${item.old_nodes.spider_reduced_hosts.length}`,
               spider_reduced_to_count: `${item.spider_reduced_to_count}`,
@@ -172,11 +166,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              id: item.id,
-              master_count: item.spider_master.length,
               master_domain: item.master_domain,
-              role: 'spider_master',
-              slave_count: item.spider_slave.length,
             },
             spider_reduced_to_count: `${item.spider_master.length}`,
           }),
@@ -185,6 +175,19 @@
       return acc;
     }, []);
     tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
+  };
+
+  const handleChange = (row: RowData) => {
+    if (row.cluster.role === 'spider_master') {
+      Object.assign(row, {
+        spider_reduced_to_count: row.cluster.master_count - (Number(row.reduced_count) || 0),
+      });
+    }
+    if (row.cluster.role === 'spider_slave') {
+      Object.assign(row, {
+        spider_reduced_to_count: row.cluster.slave_count - (Number(row.reduced_count) || 0),
+      });
+    }
   };
 
   const handleRoleBatchEdit = (value: string | string[]) => {
@@ -203,19 +206,6 @@
       });
       handleChange(item);
     });
-  };
-
-  const handleChange = (row: RowData) => {
-    if (row.cluster.role === 'spider_master') {
-      Object.assign(row, {
-        spider_reduced_to_count: row.cluster.master_count - (Number(row.reduced_count) || 0),
-      });
-    }
-    if (row.cluster.role === 'spider_slave') {
-      Object.assign(row, {
-        spider_reduced_to_count: row.cluster.slave_count - (Number(row.reduced_count) || 0),
-      });
-    }
   };
 
   defineExpose<Exposes>({

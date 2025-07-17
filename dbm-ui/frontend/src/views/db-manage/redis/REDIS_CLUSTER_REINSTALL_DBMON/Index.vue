@@ -73,29 +73,30 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+
   import RedisModel from '@services/model/redis/redis';
+  import { type Redis } from '@services/model/ticket/ticket';
+
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-  import { type Redis } from '@services/model/ticket/ticket';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
-
-  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
   interface RowData {
     cluster: {
       bk_cloud_id: number;
+      cluster_type: string;
       id: number;
       master_domain: string;
-      cluster_type: string;
     };
   }
 
@@ -110,22 +111,22 @@
     },
   ];
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
+        cluster_type: '',
         id: 0,
         master_domain: '',
-        cluster_type: '',
       },
       data.cluster,
     ),
   });
 
   const defaultData = () => ({
+    payload: createTickePayload(),
     restart_exporter: false,
     tableData: [createTableRow()],
-    payload: createTickePayload(),
   });
 
   const formData = reactive(defaultData());
@@ -137,7 +138,7 @@
   useTicketDetail<Redis.ClusterReinstallDbmon>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, cluster_ids } = details;
+      const { cluster_ids, clusters } = details;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
         restart_exporter: details.restart_exporter,

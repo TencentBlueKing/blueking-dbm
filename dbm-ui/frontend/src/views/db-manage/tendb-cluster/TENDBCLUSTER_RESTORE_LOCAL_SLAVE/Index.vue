@@ -85,7 +85,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import type { _DeepPartial } from 'pinia';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -113,7 +112,7 @@
   const tableRef = useTemplateRef('table');
   const router = useRouter();
 
-  const createTableRow = (data: _DeepPartial<RowData> = {}) => ({
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     slave: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,

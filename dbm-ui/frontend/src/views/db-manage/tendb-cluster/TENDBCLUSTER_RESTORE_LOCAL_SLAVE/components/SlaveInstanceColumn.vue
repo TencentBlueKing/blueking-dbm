@@ -130,7 +130,7 @@
     {
       message: t('该实例为非 Slave 实例，请选择 Slave 实例'),
       trigger: 'blur',
-      validator: (value: string) => !value || modelValue.value.role === 'backend_slave',
+      validator: (value: string) => !value || modelValue.value.role === 'remote_slave',
     },
   ];
 
@@ -179,12 +179,12 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+      if (modelValue.value.instance_address && !modelValue.value.bk_host_id) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: [ClusterTypes.TENDBCLUSTER],
           db_type: DBTypes.TENDBCLUSTER,
-          instance_addresses: [modelValue.value.ip],
+          instance_addresses: [modelValue.value.instance_address],
         });
       }
     },
