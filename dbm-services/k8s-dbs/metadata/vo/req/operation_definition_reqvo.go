@@ -19,15 +19,15 @@ limitations under the License.
 
 package req
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // OperationDefinitionReqVo represents the ReqVo structure of addon meta.
 type OperationDefinitionReqVo struct {
-	OperationName   string    `json:"operatioName" binding:"required"`
-	OperationTarget string    `json:"operationTarget" binding:"required"`
-	Description     string    `json:"description" binding:"required"`
-	CreatedBy       string    `json:"createdBy" binding:"required"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedBy       string    `json:"updatedBy"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	OperationName   string                 `json:"operatioName" binding:"required"`
+	OperationTarget string                 `json:"operationTarget" binding:"required"`
+	Description     string                 `json:"description" binding:"required"`
+	CreatedBy       string                 `json:"createdBy" binding:"required"`
+	CreatedAt       commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy       string                 `json:"updatedBy"`
+	UpdatedAt       commtypes.JSONDatetime `json:"updatedAt"`
 }

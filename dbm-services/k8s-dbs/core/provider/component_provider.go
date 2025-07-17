@@ -135,7 +135,6 @@ func extractPodsInfo(
 			Role:          getPodRole(pod),
 			ResourceQuota: resourceQuota,
 			ResourceUsage: usage,
-			CreatedTime:   pod.CreationTimestamp.String(),
 		})
 	}
 

@@ -19,22 +19,22 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdOpsRequestEntity opsRequest entity 定义
 type K8sCrdOpsRequestEntity struct {
-	ID                 uint64    `json:"id"`
-	CrdClusterID       uint64    `json:"crdClusterId"`
-	K8sClusterConfigID uint64    `json:"k8sClusterConfigId"`
-	RequestID          string    `json:"requestId"`
-	OpsRequestName     string    `json:"opsrequestName"`
-	OpsRequestType     string    `json:"opsrequestType"`
-	Metadata           string    `json:"metadata"`
-	Spec               string    `json:"spec"`
-	Status             string    `json:"status"`
-	Description        string    `json:"description"`
-	CreatedBy          string    `json:"createdBy"`
-	CreatedAt          time.Time `json:"createdAt"`
-	UpdatedBy          string    `json:"updatedBy"`
-	UpdatedAt          time.Time `json:"updatedAt"`
+	ID                 uint64                 `json:"id"`
+	CrdClusterID       uint64                 `json:"crdClusterId"`
+	K8sClusterConfigID uint64                 `json:"k8sClusterConfigId"`
+	RequestID          string                 `json:"requestId"`
+	OpsRequestName     string                 `json:"opsrequestName"`
+	OpsRequestType     string                 `json:"opsrequestType"`
+	Metadata           string                 `json:"metadata"`
+	Spec               string                 `json:"spec"`
+	Status             string                 `json:"status"`
+	Description        string                 `json:"description"`
+	CreatedBy          string                 `json:"createdBy"`
+	CreatedAt          commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy          string                 `json:"updatedBy"`
+	UpdatedAt          commtypes.JSONDatetime `json:"updatedAt"`
 }

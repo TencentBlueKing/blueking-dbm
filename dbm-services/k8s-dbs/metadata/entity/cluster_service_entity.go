@@ -20,23 +20,23 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // K8sClusterServiceEntity cluster service entity 定义
 type K8sClusterServiceEntity struct {
-	ID            uint64    `json:"id"`
-	CrdClusterID  uint64    `json:"crdClusterId"`
-	ComponentName string    `json:"componentName"`
-	ServiceName   string    `json:"serviceName"`
-	ServiceType   string    `json:"serviceType"`
-	Annotations   string    `json:"annotations"`
-	InternalAddrs string    `json:"internalAddrs"`
-	ExternalAddrs string    `json:"externalAddrs"`
-	Domains       string    `json:"domains"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"createdBy"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID            uint64                 `json:"id"`
+	CrdClusterID  uint64                 `json:"crdClusterId"`
+	ComponentName string                 `json:"componentName"`
+	ServiceName   string                 `json:"serviceName"`
+	ServiceType   string                 `json:"serviceType"`
+	Annotations   string                 `json:"annotations"`
+	InternalAddrs string                 `json:"internalAddrs"`
+	ExternalAddrs string                 `json:"externalAddrs"`
+	Domains       string                 `json:"domains"`
+	Description   string                 `json:"description"`
+	CreatedBy     string                 `json:"createdBy"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

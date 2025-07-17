@@ -20,7 +20,7 @@ limitations under the License.
 package resp
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // AddonClusterReleaseRespVo response vo 定义
@@ -35,7 +35,7 @@ type AddonClusterReleaseRespVo struct {
 	ReleaseName        string                 `json:"releaseName"`
 	ChartValues        map[string]interface{} `json:"chartValues"`
 	CreatedBy          string                 `json:"createdBy"`
-	CreatedAt          time.Time              `json:"createdAt"`
+	CreatedAt          commtypes.JSONDatetime `json:"createdAt"`
 	UpdatedBy          string                 `json:"updatedBy"`
-	UpdatedAt          time.Time              `json:"updatedAt"`
+	UpdatedAt          commtypes.JSONDatetime `json:"updatedAt"`
 }

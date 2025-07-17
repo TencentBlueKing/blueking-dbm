@@ -26,7 +26,8 @@ import (
 	"io"
 	"k8s-dbs/common/entity"
 	commentity "k8s-dbs/common/entity"
-	helper2 "k8s-dbs/common/helper"
+	commhelper "k8s-dbs/common/helper"
+	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -69,7 +70,7 @@ func (k *K8sProvider) CreateNamespace(
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 
-	k8sClient, err := helper2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -127,7 +128,7 @@ func (k *K8sProvider) ListPodLogs(
 	}
 
 	// 2. 创建 Kubernetes Client
-	k8sClient, err := helper2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
 	}
@@ -181,7 +182,7 @@ func (k *K8sProvider) GetPodDetail(
 	if err != nil {
 		return nil, err
 	}
-	k8sClient, err := helper2.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +225,7 @@ func (k *K8sProvider) GetPodDetail(
 			Role:          getPodRole(pod),
 			ResourceQuota: resourceQuota,
 			ResourceUsage: resourceUsage,
-			CreatedTime:   pod.CreationTimestamp.String(),
+			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
 		},
 	}
 	return podDetail, nil
@@ -321,7 +322,7 @@ func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog,
 			continue
 		}
 		k8sLogEntries = append(k8sLogEntries, &coreentity.K8sLog{
-			Timestamp: timestamp,
+			Timestamp: commtypes.JSONDatetime(timestamp),
 			Message:   message,
 		})
 	}

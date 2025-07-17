@@ -19,18 +19,18 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // AddonClusterVersionEntity entity 定义
 type AddonClusterVersionEntity struct {
-	ID               uint64    `json:"id"`
-	AddonID          uint64    `json:"addonId"`
-	Version          string    `json:"version"`
-	AddonClusterName string    `json:"addonClusterName"`
-	Active           bool      `json:"active"`
-	Description      string    `json:"description"`
-	CreatedBy        string    `json:"createdBy"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedBy        string    `json:"updatedBy"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID               uint64                 `json:"id"`
+	AddonID          uint64                 `json:"addonId"`
+	Version          string                 `json:"version"`
+	AddonClusterName string                 `json:"addonClusterName"`
+	Active           bool                   `json:"active"`
+	Description      string                 `json:"description"`
+	CreatedBy        string                 `json:"createdBy"`
+	CreatedAt        commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy        string                 `json:"updatedBy"`
+	UpdatedAt        commtypes.JSONDatetime `json:"updatedAt"`
 }

@@ -20,20 +20,20 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // AddonTypeEntity represents the entity of addon type
 type AddonTypeEntity struct {
-	ID            uint64               `json:"id"`
-	CategoryID    uint64               `json:"categoryId"`
-	AddonCategory *AddonCategoryEntity `json:"addonCategory"`
-	TypeName      string               `json:"typeName"`
-	TypeAlias     string               `json:"typeAlias"`
-	Active        bool                 `json:"active"`
-	Description   string               `json:"description"`
-	CreatedBy     string               `json:"createdBy"`
-	CreatedAt     time.Time            `json:"createdAt"`
-	UpdatedBy     string               `json:"updatedBy"`
-	UpdatedAt     time.Time            `json:"updatedAt"`
+	ID            uint64                 `json:"id"`
+	CategoryID    uint64                 `json:"categoryId"`
+	AddonCategory *AddonCategoryEntity   `json:"addonCategory"`
+	TypeName      string                 `json:"typeName"`
+	TypeAlias     string                 `json:"typeAlias"`
+	Active        bool                   `json:"active"`
+	Description   string                 `json:"description"`
+	CreatedBy     string                 `json:"createdBy"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

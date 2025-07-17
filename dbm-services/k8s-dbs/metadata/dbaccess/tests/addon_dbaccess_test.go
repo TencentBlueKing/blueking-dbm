@@ -26,7 +26,6 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/model"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -138,7 +137,6 @@ func TestUpdateStorageAddon(t *testing.T) {
 		Releases:           "[{\"name\":\"vmstorage-1.93.10\",\"serviceVersion\":\"1.93.10\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.93.10-cluster\"}},{\"name\":\"vmstorage-1.115.0\",\"serviceVersion\":\"1.115.0\",\"images\":{\"vmstorage\":\"victoriametrics/vmstorage:v1.115.0-cluster\"}}]",
 		Active:             false,
 		Description:        "desc",
-		UpdatedAt:          time.Now(),
 	}
 	rows, err := dbAccess.Update(updateStorageAddon)
 	assert.NoError(t, err)

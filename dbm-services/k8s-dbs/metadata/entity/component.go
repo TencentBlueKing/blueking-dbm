@@ -19,17 +19,17 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdComponentEntity component entity 定义
 type K8sCrdComponentEntity struct {
-	ID            uint64    `json:"id"`
-	CrdClusterID  uint64    `json:"crdClusterId"`
-	ComponentName string    `json:"componentName"`
-	Status        string    `json:"status"`
-	Description   string    `json:"description"`
-	CreatedBy     string    `json:"createdBy"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID            uint64                 `json:"id"`
+	CrdClusterID  uint64                 `json:"crdClusterId"`
+	ComponentName string                 `json:"componentName"`
+	Status        string                 `json:"status"`
+	Description   string                 `json:"description"`
+	CreatedBy     string                 `json:"createdBy"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

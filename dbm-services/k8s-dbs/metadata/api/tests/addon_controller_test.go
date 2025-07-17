@@ -32,7 +32,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -64,12 +63,6 @@ func AddSampleAddon() error {
 		return err
 	}
 	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, _ := time.Parse(layout, addDateTime)
-
 	addon := &model.K8sCrdStorageAddonModel{
 		AddonName:     "surrealdb-2.2.0",
 		AddonCategory: "Graph",
@@ -78,8 +71,6 @@ func AddSampleAddon() error {
 		Active:        true,
 		Description:   "just for test",
 		CreatedBy:     "admin",
-		CreatedAt:     parsedTime,
-		UpdatedAt:     parsedTime,
 		UpdatedBy:     "admin",
 	}
 	added, _ := dbAccess.Create(addon)
@@ -94,11 +85,6 @@ func AddSampleAddons() error {
 		return err
 	}
 	dbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, _ := time.Parse(layout, addDateTime)
-
 	addons := []model.K8sCrdStorageAddonModel{
 		{
 			AddonName:     "surreal",
@@ -108,8 +94,6 @@ func AddSampleAddons() error {
 			Active:        true,
 			Description:   "just for test",
 			CreatedBy:     "admin",
-			CreatedAt:     parsedTime,
-			UpdatedAt:     parsedTime,
 			UpdatedBy:     "admin",
 		},
 		{
@@ -120,8 +104,6 @@ func AddSampleAddons() error {
 			Active:        true,
 			Description:   "just for test",
 			CreatedBy:     "admin",
-			CreatedAt:     parsedTime,
-			UpdatedAt:     parsedTime,
 			UpdatedBy:     "admin",
 		},
 	}

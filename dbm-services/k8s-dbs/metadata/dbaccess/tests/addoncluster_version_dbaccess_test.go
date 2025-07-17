@@ -22,7 +22,6 @@ package tests
 import (
 	"k8s-dbs/metadata/model"
 	"testing"
-	"time"
 
 	testhelper "k8s-dbs/metadata/helper"
 
@@ -67,7 +66,6 @@ func TestUpdateAcVersion(t *testing.T) {
 		AddonClusterName: "victoriametrics-2.0.0",
 		Version:          "2.0.0",
 		Description:      "desc",
-		UpdatedAt:        time.Now(),
 	}
 	rows, err := dbAccess.Update(newVersion)
 	assert.NoError(t, err)

@@ -19,17 +19,17 @@ limitations under the License.
 
 package req
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // AddonClusterVersionReqVo request vo 定义
 type AddonClusterVersionReqVo struct {
-	AddonID          uint64    `json:"addonId" binding:"required"`
-	Version          string    `json:"version" binding:"required"`
-	AddonClusterName string    `json:"addonClusterName" binding:"required"`
-	Active           bool      `json:"active"`
-	Description      string    `json:"description" binding:"required"`
-	CreatedBy        string    `json:"createdBy"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedBy        string    `json:"updatedBy"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	AddonID          uint64                 `json:"addonId" binding:"required"`
+	Version          string                 `json:"version" binding:"required"`
+	AddonClusterName string                 `json:"addonClusterName" binding:"required"`
+	Active           bool                   `json:"active"`
+	Description      string                 `json:"description" binding:"required"`
+	CreatedBy        string                 `json:"createdBy"`
+	CreatedAt        commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy        string                 `json:"updatedBy"`
+	UpdatedAt        commtypes.JSONDatetime `json:"updatedAt"`
 }

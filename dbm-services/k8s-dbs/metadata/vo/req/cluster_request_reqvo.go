@@ -20,20 +20,20 @@ limitations under the License.
 package req
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // ClusterRequestRecordReqVo represents the request data structure of record.
 type ClusterRequestRecordReqVo struct {
-	RequestID      string    `json:"requestId" required:"true"`
-	K8sClusterName string    `json:"k8sClusterName" required:"true"`
-	ClusterName    string    `json:"clusterName" required:"true"`
-	NameSpace      string    `json:"namespace" required:"true"`
-	RequestType    string    `json:"requestType" required:"true"`
-	RequestParams  string    `json:"requestParams" required:"true"`
-	Description    string    `json:"description" required:"true"`
-	CreatedBy      string    `json:"createdBy" required:"true"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	RequestID      string                 `json:"requestId" required:"true"`
+	K8sClusterName string                 `json:"k8sClusterName" required:"true"`
+	ClusterName    string                 `json:"clusterName" required:"true"`
+	NameSpace      string                 `json:"namespace" required:"true"`
+	RequestType    string                 `json:"requestType" required:"true"`
+	RequestParams  string                 `json:"requestParams" required:"true"`
+	Description    string                 `json:"description" required:"true"`
+	CreatedBy      string                 `json:"createdBy" required:"true"`
+	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy      string                 `json:"updatedBy"`
+	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
 }

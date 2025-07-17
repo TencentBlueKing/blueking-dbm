@@ -20,7 +20,7 @@ limitations under the License.
 package resp
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // ComponentOperationRespVo response vo 定义
@@ -35,7 +35,7 @@ type ComponentOperationRespVo struct {
 	Active           bool                      `json:"active"`
 	Description      string                    `json:"description"`
 	CreatedBy        string                    `json:"createdBy"`
-	CreatedAt        time.Time                 `json:"createdAt"`
+	CreatedAt        commtypes.JSONDatetime    `json:"createdAt"`
 	UpdatedBy        string                    `json:"updatedBy"`
-	UpdatedAt        time.Time                 `json:"updatedAt"`
+	UpdatedAt        commtypes.JSONDatetime    `json:"updatedAt"`
 }

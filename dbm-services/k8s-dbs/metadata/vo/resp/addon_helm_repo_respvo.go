@@ -20,20 +20,20 @@ limitations under the License.
 package resp
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // AddonHelmRepoRespVo response vo 定义
 type AddonHelmRepoRespVo struct {
-	ID             int64     `json:"id"`
-	RepoName       string    `json:"repoName"`
-	RepoRepository string    `json:"repoRepository"`
-	RepoUsername   string    `json:"repoUsername"`
-	RepoPassword   string    `json:"repoPassword"`
-	ChartName      string    `json:"chartName"`
-	ChartVersion   string    `json:"chartVersion"`
-	CreatedBy      string    `json:"createdBy"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedBy      string    `json:"updatedBy"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID             int64                  `json:"id"`
+	RepoName       string                 `json:"repoName"`
+	RepoRepository string                 `json:"repoRepository"`
+	RepoUsername   string                 `json:"repoUsername"`
+	RepoPassword   string                 `json:"repoPassword"`
+	ChartName      string                 `json:"chartName"`
+	ChartVersion   string                 `json:"chartVersion"`
+	CreatedBy      string                 `json:"createdBy"`
+	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy      string                 `json:"updatedBy"`
+	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
 }

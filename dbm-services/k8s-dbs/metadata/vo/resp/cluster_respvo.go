@@ -19,7 +19,7 @@ limitations under the License.
 
 package resp
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdClusterRespVo response vo 定义
 type K8sCrdClusterRespVo struct {
@@ -42,7 +42,7 @@ type K8sCrdClusterRespVo struct {
 	Status              string                    `json:"status"`
 	Description         string                    `json:"description"`
 	CreatedBy           string                    `json:"createdBy"`
-	CreatedAt           time.Time                 `json:"createdAt"`
+	CreatedAt           commtypes.JSONDatetime    `json:"createdAt"`
 	UpdatedBy           string                    `json:"updatedBy"`
-	UpdatedAt           time.Time                 `json:"updatedAt"`
+	UpdatedAt           commtypes.JSONDatetime    `json:"updatedAt"`
 }

@@ -21,28 +21,28 @@ package resp
 
 import (
 	"encoding/json"
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // K8sCrdAddonRespVo response vo 定义
 type K8sCrdAddonRespVo struct {
-	ID                   uint64    `json:"id"`
-	AddonName            string    `json:"addonName"`
-	AddonCategory        string    `json:"addonCategory"`
-	AddonType            string    `json:"addonType"`
-	AddonVersion         string    `json:"addonVersion"`
-	RecommendedVersion   string    `json:"recommendedVersion"`
-	SupportedVersions    string    `json:"supportedVersions"`
-	RecommendedAcVersion string    `json:"recommendedAcVersion"`
-	SupportedAcVersions  string    `json:"supportedAcVersions"`
-	Topologies           string    `json:"topologies"`
-	Releases             string    `json:"releases"`
-	Active               bool      `json:"active"`
-	Description          string    `json:"description"`
-	CreatedBy            string    `json:"createdBy"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedBy            string    `json:"updatedBy"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                   uint64                 `json:"id"`
+	AddonName            string                 `json:"addonName"`
+	AddonCategory        string                 `json:"addonCategory"`
+	AddonType            string                 `json:"addonType"`
+	AddonVersion         string                 `json:"addonVersion"`
+	RecommendedVersion   string                 `json:"recommendedVersion"`
+	SupportedVersions    string                 `json:"supportedVersions"`
+	RecommendedAcVersion string                 `json:"recommendedAcVersion"`
+	SupportedAcVersions  string                 `json:"supportedAcVersions"`
+	Topologies           string                 `json:"topologies"`
+	Releases             string                 `json:"releases"`
+	Active               bool                   `json:"active"`
+	Description          string                 `json:"description"`
+	CreatedBy            string                 `json:"createdBy"`
+	CreatedAt            commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy            string                 `json:"updatedBy"`
+	UpdatedAt            commtypes.JSONDatetime `json:"updatedAt"`
 }
 
 // MarshalJSON 自定义 K8sCrdAddonRespVo JSON 序列化逻辑

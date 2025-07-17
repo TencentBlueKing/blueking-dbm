@@ -23,6 +23,8 @@ import (
 	"encoding/json"
 
 	corev1 "k8s.io/api/core/v1"
+
+	commtypes "k8s-dbs/common/types"
 )
 
 // ComponentDetail 组件详情
@@ -37,13 +39,13 @@ type StorageSize int64
 
 // Pod K8s 的 Pod 资源
 type Pod struct {
-	PodName       string            `json:"podName,omitempty"`
-	Role          string            `json:"role,omitempty"`
-	Status        corev1.PodPhase   `json:"status,omitempty"`
-	Node          string            `json:"node,omitempty"`
-	ResourceQuota *PodResourceQuota `json:"resourceQuota,omitempty"`
-	ResourceUsage *PodResourceUsage `json:"resourceUsage,omitempty"`
-	CreatedTime   string            `json:"createdTime,omitempty"`
+	PodName       string                 `json:"podName,omitempty"`
+	Role          string                 `json:"role,omitempty"`
+	Status        corev1.PodPhase        `json:"status,omitempty"`
+	Node          string                 `json:"node,omitempty"`
+	ResourceQuota *PodResourceQuota      `json:"resourceQuota,omitempty"`
+	ResourceUsage *PodResourceUsage      `json:"resourceUsage,omitempty"`
+	CreatedTime   commtypes.JSONDatetime `json:"createdTime,omitempty"`
 }
 
 // PodResourceQuota Pod 资源配额

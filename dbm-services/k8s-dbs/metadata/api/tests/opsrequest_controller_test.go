@@ -29,7 +29,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -62,11 +61,6 @@ func AddSampleOps() error {
 	}
 	dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
 
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, _ := time.Parse(layout, addDateTime)
-
 	ops := &model.K8sCrdOpsRequestModel{
 		RequestID:          "1",
 		OpsRequestName:     "ops_request_1",
@@ -78,8 +72,6 @@ func AddSampleOps() error {
 		Status:             "CREATED",
 		Description:        "just for test",
 		CreatedBy:          "admin",
-		CreatedAt:          parsedTime,
-		UpdatedAt:          parsedTime,
 		UpdatedBy:          "admin",
 	}
 	addedOps, err := dbAccess.Create(ops)

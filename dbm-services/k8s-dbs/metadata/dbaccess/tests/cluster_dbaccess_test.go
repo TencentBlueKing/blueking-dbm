@@ -22,12 +22,12 @@ package tests
 import (
 	"fmt"
 	"k8s-dbs/common/entity"
+	commtypes "k8s-dbs/common/types"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/model"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -117,7 +117,7 @@ func TestUpdateCluster(t *testing.T) {
 		Namespace:   "default2",
 		Status:      "Disable",
 		Description: "desc desc",
-		UpdatedAt:   time.Now(),
+		UpdatedAt:   commtypes.JSONDatetime{},
 	}
 	rows, err := dbAccess.Update(newCluster)
 	assert.NoError(t, err)

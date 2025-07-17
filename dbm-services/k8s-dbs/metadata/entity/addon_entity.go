@@ -19,27 +19,27 @@ limitations under the License.
 
 package entity
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdStorageAddonEntity addon entity 定义
 type K8sCrdStorageAddonEntity struct {
-	ID                   uint64    `json:"id"`
-	AddonName            string    `json:"addonName"`
-	AddonCategory        string    `json:"addonCategory"`
-	AddonType            string    `json:"addonType"`
-	AddonVersion         string    `json:"addonVersion"`
-	Topologies           string    `json:"topologies"`
-	RecommendedVersion   string    `json:"recommendedVersion"`
-	SupportedVersions    string    `json:"supportedVersions"`
-	RecommendedAcVersion string    `json:"recommendedAcVersion"`
-	SupportedAcVersions  string    `json:"supportedAcVersions"`
-	Releases             string    `json:"releases"`
-	Active               bool      `json:"active"`
-	Description          string    `json:"description"`
-	CreatedBy            string    `json:"createdBy"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedBy            string    `json:"updatedBy"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                   uint64                 `json:"id"`
+	AddonName            string                 `json:"addonName"`
+	AddonCategory        string                 `json:"addonCategory"`
+	AddonType            string                 `json:"addonType"`
+	AddonVersion         string                 `json:"addonVersion"`
+	Topologies           string                 `json:"topologies"`
+	RecommendedVersion   string                 `json:"recommendedVersion"`
+	SupportedVersions    string                 `json:"supportedVersions"`
+	RecommendedAcVersion string                 `json:"recommendedAcVersion"`
+	SupportedAcVersions  string                 `json:"supportedAcVersions"`
+	Releases             string                 `json:"releases"`
+	Active               bool                   `json:"active"`
+	Description          string                 `json:"description"`
+	CreatedBy            string                 `json:"createdBy"`
+	CreatedAt            commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy            string                 `json:"updatedBy"`
+	UpdatedAt            commtypes.JSONDatetime `json:"updatedAt"`
 }
 
 // ClusterTopology 集群拓扑结构

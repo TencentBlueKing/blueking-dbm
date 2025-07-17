@@ -19,20 +19,20 @@ limitations under the License.
 
 package req
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdOpsRequestReqVo represents the request data structure of opsRequest meta.
 type K8sCrdOpsRequestReqVo struct {
-	CrdClusterID       uint64    `json:"crdClusterId" binding:"required"`
-	K8sClusterConfigID uint64    `json:"k8sClusterConfigId" binding:"required"`
-	RequestID          string    `json:"requestId" binding:"required"`
-	OpsRequestName     string    `json:"opsRequestName" binding:"required"`
-	OpsRequestType     string    `json:"opsRequestType" binding:"required"`
-	Metadata           string    `json:"metadata" binding:"required"`
-	Spec               string    `json:"spec" binding:"required"`
-	Description        string    `json:"description" binding:"required"`
-	CreatedBy          string    `json:"createdBy" binding:"required"`
-	CreatedAt          time.Time `json:"createdAt"`
-	UpdatedBy          string    `json:"updatedBy"`
-	UpdatedAt          time.Time `json:"updatedAt"`
+	CrdClusterID       uint64                 `json:"crdClusterId" binding:"required"`
+	K8sClusterConfigID uint64                 `json:"k8sClusterConfigId" binding:"required"`
+	RequestID          string                 `json:"requestId" binding:"required"`
+	OpsRequestName     string                 `json:"opsRequestName" binding:"required"`
+	OpsRequestType     string                 `json:"opsRequestType" binding:"required"`
+	Metadata           string                 `json:"metadata" binding:"required"`
+	Spec               string                 `json:"spec" binding:"required"`
+	Description        string                 `json:"description" binding:"required"`
+	CreatedBy          string                 `json:"createdBy" binding:"required"`
+	CreatedAt          commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy          string                 `json:"updatedBy"`
+	UpdatedAt          commtypes.JSONDatetime `json:"updatedAt"`
 }

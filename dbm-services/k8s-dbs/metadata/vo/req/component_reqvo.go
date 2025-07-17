@@ -19,15 +19,15 @@ limitations under the License.
 
 package req
 
-import "time"
+import commtypes "k8s-dbs/common/types"
 
 // K8sCrdComponentReqVo represents the request data structure of component meta.
 type K8sCrdComponentReqVo struct {
-	CrdClusterID  uint64    `json:"crdClusterId" binding:"required"`
-	ComponentName string    `json:"componentName" binding:"required"`
-	Description   string    `json:"description" binding:"required"`
-	CreatedBy     string    `json:"createdBy" binding:"required"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedBy     string    `json:"updatedBy"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	CrdClusterID  uint64                 `json:"crdClusterId" binding:"required"`
+	ComponentName string                 `json:"componentName" binding:"required"`
+	Description   string                 `json:"description" binding:"required"`
+	CreatedBy     string                 `json:"createdBy" binding:"required"`
+	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`
+	UpdatedBy     string                 `json:"updatedBy"`
+	UpdatedAt     commtypes.JSONDatetime `json:"updatedAt"`
 }

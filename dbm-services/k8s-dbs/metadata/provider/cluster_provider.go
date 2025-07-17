@@ -114,6 +114,16 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sC
 	}
 	clusterEntity.Tags = tagEntities
 
+	k8sConfigModel, err := k.k8sClusterConfigDbAccess.FindByID(clusterEntity.K8sClusterConfigID)
+	if err != nil {
+		return nil, err
+	}
+	k8sConfigEntity := &metaentity.K8sClusterConfigEntity{}
+	if err := copier.Copy(k8sConfigEntity, k8sConfigModel); err != nil {
+		return nil, err
+	}
+	clusterEntity.K8sClusterConfig = k8sConfigEntity
+
 	clusterResource, err := k.getClusterResource(clusterEntity)
 	if err != nil {
 		slog.Warn("Failed to get cluster resource", "error", err)

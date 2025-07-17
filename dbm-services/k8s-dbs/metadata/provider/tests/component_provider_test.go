@@ -27,7 +27,6 @@ import (
 	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -120,7 +119,6 @@ func TestUpdateComponent(t *testing.T) {
 		CrdClusterID:  1,
 		Status:        "Disable",
 		Description:   "update component",
-		UpdatedAt:     time.Now(),
 	}
 	rows, err := componentProvider.UpdateComponent(newComponent)
 	assert.NoError(t, err)

@@ -20,7 +20,7 @@ limitations under the License.
 package entity
 
 import (
-	"time"
+	commtypes "k8s-dbs/common/types"
 )
 
 // ComponentOperationEntity represents the entity of component definition
@@ -35,7 +35,7 @@ type ComponentOperationEntity struct {
 	Active           bool                      `json:"active"`
 	Description      string                    `json:"description"`
 	CreatedBy        string                    `json:"createdBy"`
-	CreatedAt        time.Time                 `json:"createdAt"`
+	CreatedAt        commtypes.JSONDatetime    `json:"createdAt"`
 	UpdatedBy        string                    `json:"updatedBy"`
-	UpdatedAt        time.Time                 `json:"updatedAt"`
+	UpdatedAt        commtypes.JSONDatetime    `json:"updatedAt"`
 }
