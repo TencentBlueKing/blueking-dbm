@@ -348,7 +348,7 @@
   };
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
-    ClusterTypes.REDIS_CLUSTER,
+    ClusterTypes.REDIS,
     {
       onSuccess: () => {
         fetchDetailData();
