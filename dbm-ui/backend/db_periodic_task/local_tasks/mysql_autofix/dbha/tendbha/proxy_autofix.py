@@ -8,13 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.configuration.constants import DBType
-from backend.configuration.models import DBAdministrator
-from backend.db_meta.enums import InstancePhase, InstanceStatus, MachineType
+from typing import List
+
 from backend.db_meta.models import ProxyInstance
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import GroupedTodo
-from backend.db_periodic_task.local_tasks.mysql_autofix.exception import MySQLDBHAAutofixBadInstanceStatus
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import OperaObjType
@@ -22,26 +19,10 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
-def proxy_autofix(gtd: GroupedTodo):
+def proxy_autofix(gtd: GroupedTodo, proxies: List[ProxyInstance], dbas: List[str], resource_spec: dict) -> Ticket:
     """
     新机替换, 自动过单, 自动执行
     """
-    records = MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id)
-
-    proxies = list(
-        ProxyInstance.objects.filter(
-            machine__ip=gtd.ip,
-            machine__bk_cloud_id=gtd.bk_cloud_id,
-            status=InstanceStatus.UNAVAILABLE,
-            phase=InstancePhase.ONLINE,
-            machine_type=MachineType.PROXY,
-        ).prefetch_related("machine")
-    )
-    if len(proxies) != records.count():
-        raise MySQLDBHAAutofixBadInstanceStatus(machine_type=gtd.machine_type, ip=gtd.ip)
-
-    dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=gtd.bk_biz_id, db_type=DBType.MySQL.value)
-
     tk = Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AF_PROXY_REPLACE,
         creator=dbas[0],
@@ -72,19 +53,11 @@ def proxy_autofix(gtd: GroupedTodo):
                         ]
                     },
                     "resource_spec": {
-                        "target_proxy": {
-                            "spec_id": proxies[0].machine.spec_id,
-                            "count": 1,
-                            "location_spec": {
-                                "city": proxies[0].machine.bk_city.bk_idc_city_name,
-                                "sub_zone_ids": [proxies[0].machine.bk_sub_zone_id],
-                            },
-                        }
+                        "target_proxy": resource_spec,
                     },
                 }
             ],
         },
     )
-    MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
-        ticket_id=tk.id, status=MySQLAutofixTicketStatus.PENDING
-    )
+
+    return tk

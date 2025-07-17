@@ -18,6 +18,11 @@ class MySQLAutofixException(AppBaseException):
     MESSAGE = _("MySQL 自愈异常")
 
 
+class MySQLDBHAAutofixUnsupportedMachineType(MySQLAutofixException):
+    ERROR_CODE = "000"
+    MESSAGE_TPL = _("check_id: {}, ip: {}, machine_type: {machine_type} 未支持")
+
+
 class MySQLDBHAAutofixBadTodoRecord(MySQLAutofixException):
     ERROR_CODE = "001"
     MESSAGE_TPL = _("check_id: {check_id} 上报记录异常")
@@ -39,4 +44,9 @@ class MySQLDBHAAutofixBadInstanceStatus(MySQLAutofixException):
 
 class MySQLDBHAAutofixSpiderMultiClusters(MySQLAutofixException):
     ERROR_CODE = "005"
+    MESSAGE_TPL = _("check_id: {check_id} {ip} 属于多个集群 {cluster_ids}")
+
+
+class MySQLDBHAAutofixRemoteMultiClusters(MySQLAutofixException):
+    ERROR_CODE = "006"
     MESSAGE_TPL = _("check_id: {check_id} {ip} 属于多个集群 {cluster_ids}")

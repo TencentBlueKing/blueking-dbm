@@ -8,16 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.configuration.constants import DBType
-from backend.configuration.models import DBAdministrator
-from backend.db_meta.enums import InstancePhase, InstanceStatus, MachineType
+from typing import List
+
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.db_monitor.models import MySQLAutofixTicketStatus, MySQLDBHAAutofixTodo
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.group_todo import GroupedTodo
-from backend.db_periodic_task.local_tasks.mysql_autofix.exception import (
-    MySQLDBHAAutofixBadInstanceStatus,
-    MySQLDBHAAutofixSpiderMultiClusters,
-)
+from backend.db_periodic_task.local_tasks.mysql_autofix.exception import MySQLDBHAAutofixSpiderMultiClusters
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import ShrinkType
@@ -25,33 +20,18 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
-def spider_autofix(gtd: GroupedTodo):
+def spider_autofix(gtd: GroupedTodo, spiders: List[ProxyInstance], dbas: List[str], resource_spec: dict) -> Ticket:
     """
     1. 踢除故障 spider, 自动过单, 自动执行
     2. 提一个扩容单, 自动过单, 人工执行
     代码顺序实现为先生成扩容, 再踢除. 会比较好写
     """
-    records = MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id)
-
-    spiders = list(
-        ProxyInstance.objects.filter(
-            machine__ip=gtd.ip,
-            machine__bk_cloud_id=gtd.bk_cloud_id,
-            status=InstanceStatus.UNAVAILABLE,
-            phase=InstancePhase.ONLINE,
-            machine_type=MachineType.SPIDER,
-        ).prefetch_related("machine")
-    )
-    if len(spiders) != records.count():
-        raise MySQLDBHAAutofixBadInstanceStatus(machine_type=gtd.machine_type, ip=gtd.ip)
-
     if len(gtd.cluster_ids) > 1:
         raise MySQLDBHAAutofixSpiderMultiClusters(check_id=gtd.check_id, ip=gtd.ip, cluster_ids=gtd.cluster_ids)
 
     cluster_id = gtd.cluster_ids[0]
     cluster_obj = Cluster.objects.get(pk=cluster_id)
 
-    dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=gtd.bk_biz_id, db_type=DBType.TenDBCluster.value)
     # 自动审核, 人工执行, 不跟踪状态
     Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AF_SPIDER_ADD,
@@ -68,14 +48,7 @@ def spider_autofix(gtd: GroupedTodo):
                     "cluster_id": cluster_id,
                     "add_spider_role": spiders[0].tendbclusterspiderext.spider_role,
                     "resource_spec": {
-                        "spider_ip_list": {
-                            "spec_id": spiders[0].machine.spec_id,
-                            "count": 1,
-                            "location_spec": {
-                                "city": cluster_obj.region,
-                                "sub_zone_ids": [spiders[0].machine.bk_sub_zone_id],
-                            },
-                        }
+                        "spider_ip_list": resource_spec,
                     },
                 }
             ],
@@ -116,7 +89,5 @@ def spider_autofix(gtd: GroupedTodo):
             ],
         },
     )
-    MySQLDBHAAutofixTodo.objects.filter(check_id=gtd.check_id).update(
-        ticket_id=tk.id,
-        status=MySQLAutofixTicketStatus.PENDING,
-    )
+
+    return tk
