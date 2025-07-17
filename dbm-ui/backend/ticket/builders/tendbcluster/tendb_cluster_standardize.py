@@ -11,14 +11,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import DBType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class MySQLClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
+class TenDBClusterStandardizeDetailSerializer(TendbBaseOperateDetailSerializer):
     """
     单据参数对比 flow 参数做了简化
     with_deploy_binary: [with_deploy_binary, with_bk_plugin, with_backup_client]
@@ -33,16 +32,15 @@ class MySQLClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
     with_instance_standardize = serializers.BooleanField(help_text=_("是否实例标准化. 高危"), default=False)
 
 
-class MySQLClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
+class TenDBClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.cluster_standardize
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_CLUSTER_STANDARDIZE)
-class MySQLClusterStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CLUSTER_STANDARDIZE)
+class TenDBClusterStandardizeFlowBuilder(BaseTendbTicketFlowBuilder):
     default_need_itsm = False
     default_need_manual_confirm = True
-    serializer = MySQLClusterStandardizeDetailSerializer
-    inner_flow_builder = MySQLClusterStandardizeFlowParamBuilder
-    inner_flow_name = _("MySQL集群标准化")
+    serializer = TenDBClusterStandardizeDetailSerializer
+    inner_flow_builder = TenDBClusterStandardizeFlowParamBuilder
+    inner_flow_name = _("TenDBCluster集群标准化")
     retry_type = FlowRetryType.MANUAL_RETRY
-    group = DBType.MySQL
