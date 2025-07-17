@@ -16,7 +16,8 @@
     field="slave.ip"
     :label="t('从库主机')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    required>
     <EditableBlock
       v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
