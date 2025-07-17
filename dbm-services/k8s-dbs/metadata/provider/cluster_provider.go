@@ -20,11 +20,17 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"k8s-dbs/common/entity"
+	corehelper "k8s-dbs/common/helper"
+	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
+
+	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/jinzhu/copier"
 )
@@ -108,15 +114,12 @@ func (k *K8sCrlClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sC
 	}
 	clusterEntity.Tags = tagEntities
 
-	k8sConfigModel, err := k.k8sClusterConfigDbAccess.FindByID(clusterEntity.K8sClusterConfigID)
+	clusterResource, err := k.getClusterResource(clusterEntity)
 	if err != nil {
-		return nil, err
+		slog.Warn("Failed to get cluster resource", "error", err)
+	} else {
+		clusterEntity.Status = string(clusterResource.ClusterStatus.Phase)
 	}
-	k8sConfigEntity := &metaentity.K8sClusterConfigEntity{}
-	if err := copier.Copy(k8sConfigEntity, k8sConfigModel); err != nil {
-		return nil, err
-	}
-	clusterEntity.K8sClusterConfig = k8sConfigEntity
 	return clusterEntity, nil
 }
 
@@ -181,17 +184,58 @@ func (k *K8sCrlClusterProviderImpl) ListClusters(
 	for _, clusterEntity := range clusterEntities {
 		addonModel, err := k.addonDbAccess.FindByID(clusterEntity.AddonID)
 		if err != nil {
-			slog.Error("Failed to find entity", "error", err)
-			return nil, 0, err
+			slog.Warn("Failed to find addonModel by ID", "ID", clusterEntity.AddonID, "error", err)
+			continue
 		}
 		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 		if err := copier.Copy(addonEntity, addonModel); err != nil {
-			slog.Error("Failed to copy model to copied model", "error", err)
-			return nil, 0, err
+			slog.Warn("Failed to copy model to copied model", "error", err)
+			continue
 		}
 		clusterEntity.AddonInfo = addonEntity
+		clusterResource, err := k.getClusterResource(clusterEntity)
+		if err != nil {
+			slog.Warn("Failed to get cluster resource", "error", err)
+			continue
+		}
+		clusterEntity.Status = string(clusterResource.ClusterStatus.Phase)
 	}
 	return clusterEntities, count, nil
+}
+
+// getClusterResource 获取 cluster 资源对象
+func (k *K8sCrlClusterProviderImpl) getClusterResource(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) (*coreentity.ClusterResponseData, error) {
+	k8sClusterConfigModel, err := k.k8sClusterConfigDbAccess.FindByID(clusterEntity.K8sClusterConfigID)
+	if err != nil {
+		slog.Warn("Failed to find k8sCluster by ID", "ID", clusterEntity.K8sClusterConfigID, "error", err)
+		return nil, err
+	}
+	k8sClusterConfigEntity := &metaentity.K8sClusterConfigEntity{}
+	if err := copier.Copy(k8sClusterConfigEntity, k8sClusterConfigModel); err != nil {
+		slog.Warn("Failed to copy k8sClusterConfigModel to k8sClusterConfigEntity", "error", err)
+		return nil, err
+	}
+	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfigEntity)
+	if err != nil {
+		slog.Warn("Failed to create k8sClient", "error", err)
+		return nil, err
+	}
+	clusterUnStructured, err := k8sClient.DynamicClient.
+		Resource(kbtypes.ClusterGVR()).
+		Namespace(clusterEntity.Namespace).
+		Get(context.TODO(), clusterEntity.ClusterName, metav1.GetOptions{})
+	if err != nil {
+		slog.Warn("Failed to get cluster resource", "error", err)
+		return nil, err
+	}
+	clusterResource, err := coreentity.GetClusterResponseData(clusterUnStructured)
+	if err != nil {
+		slog.Warn("Failed to get cluster resource from k8s api server", "error", err)
+		return nil, err
+	}
+	return clusterResource, nil
 }
 
 // NewK8sCrdClusterProvider 创建 K8sCrdClusterProvider 接口实现实例

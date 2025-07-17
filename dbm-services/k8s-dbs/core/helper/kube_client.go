@@ -22,9 +22,9 @@ package helper
 import (
 	"context"
 	"fmt"
+	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -38,7 +38,6 @@ import (
 
 	"github.com/imdario/mergo"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -59,7 +58,7 @@ var maxStorageForSC = map[string]resource.Quantity{
 }
 
 // CreateCRD create crd by k8sClient client
-func CreateCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error {
+func CreateCRD(k8sClient *commhelper.K8sClient, crd *entity.CustomResourceDefinition) error {
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when creating resource")
 	}
@@ -83,7 +82,7 @@ func CreateCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error
 }
 
 // DeleteCRD delete crd by k8sClient client
-func DeleteCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error {
+func DeleteCRD(k8sClient *commhelper.K8sClient, crd *entity.CustomResourceDefinition) error {
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when deleting resource")
 	}
@@ -107,7 +106,7 @@ func DeleteCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) error
 }
 
 // GetCRD get crd by k8sClient client
-func GetCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstructured.Unstructured, error) {
+func GetCRD(k8sClient *commhelper.K8sClient, crd *entity.CustomResourceDefinition) (*unstructured.Unstructured, error) {
 	if crd == nil {
 		return nil, fmt.Errorf("CustomResourceDefinition can't be nil when getting resource")
 	}
@@ -133,7 +132,10 @@ func GetCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstru
 }
 
 // ListCRD 获取 crd 资源列表
-func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstructured.UnstructuredList, error) {
+func ListCRD(
+	k8sClient *commhelper.K8sClient,
+	crd *entity.CustomResourceDefinition,
+) (*unstructured.UnstructuredList, error) {
 	if crd == nil {
 		return nil, fmt.Errorf("CustomResourceDefinition can't be nil when listing resources")
 	}
@@ -167,7 +169,7 @@ func ListCRD(k8sClient *K8sClient, crd *entity.CustomResourceDefinition) (*unstr
 }
 
 // CheckStorageAddonIsCreated 检查 addon 是否已安装
-func CheckStorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string) (bool, error) {
+func CheckStorageAddonIsCreated(k8sClient *commhelper.K8sClient, targetChartFullName string) (bool, error) {
 	// init helm client
 	actionConfig, err := k8sClient.BuildHelmConfig(constant.AddonDefaultNamespace)
 	if err != nil {
@@ -193,112 +195,8 @@ func CheckStorageAddonIsCreated(k8sClient *K8sClient, targetChartFullName string
 	return false, nil
 }
 
-// CreateStorageAddonCluster installs a Storage Addon Cluster using Helm with the given request.
-func CreateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
-	// Initialize Helm client configuration
-	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
-	if err != nil {
-		slog.Error("failed to build Helm configuration",
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return nil, fmt.Errorf("failed to build Helm configuration for namespace %q: %w", request.Namespace, err)
-
-	}
-
-	// Define the chart path based on storage addon type
-	chartPath := filepath.Join("k8s-utils", "helm", "storageAddonCluster", request.StorageAddonType+"-cluster")
-
-	// Create Helm install action
-	install := action.NewInstall(actionConfig)
-	install.ReleaseName = request.ClusterName
-	install.Namespace = request.Namespace
-
-	// Read values.yaml file from the chart
-	values, err := ReadValuesYaml(chartPath)
-	if err != nil {
-		slog.Error("failed to read values.yaml file",
-			"chartPath", chartPath,
-			"error", err,
-		)
-		return nil, fmt.Errorf("failed to read values.yaml from chart %q: %w", chartPath, err)
-	}
-
-	// Merge dynamic values from the request
-	err = MergeValues(values, request)
-	if err != nil {
-		slog.Error("failed to merge dynamic values",
-			"error", err,
-		)
-		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
-	}
-
-	// Load the Helm chart
-	chart, err := loader.Load(chartPath)
-	if err != nil {
-		slog.Error("failed to load Helm chart",
-			"chartPath", chartPath,
-			"error", err,
-		)
-		return nil, fmt.Errorf("failed to load Helm chart from %q: %w", chartPath, err)
-	}
-
-	// Execute the Helm install
-	_, err = install.Run(chart, values)
-	if err != nil {
-		slog.Error("Helm install failed",
-			"chart", request.StorageAddonType+"-cluster",
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return nil, fmt.Errorf("helm install failed for chart %q in namespace %q: %w",
-			request.StorageAddonType+"-cluster", request.Namespace, err)
-	}
-	return values, nil
-}
-
-// UpdateStorageAddonCluster helm upgrade Storage Addon Cluster with request
-func UpdateStorageAddonCluster(k8sClient *K8sClient, request *entity.Request) (map[string]interface{}, error) {
-
-	// init helm client
-	actionConfig, err := k8sClient.BuildHelmConfig(request.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	// install helm chart
-	chartPath := filepath.Join("k8s-utils", "helm", "storageAddonCluster", request.StorageAddonType+"-cluster")
-	upgrade := action.NewUpgrade(actionConfig)
-	// request.ClusterName
-	upgrade.Namespace = request.Namespace
-
-	// Reading the values.yaml file
-	values, err := ReadValuesYaml(chartPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read values.yaml: %v", err)
-	}
-
-	// merge dynamic values
-	err = MergeValues(values, request)
-	if err != nil {
-		return nil, err
-	}
-
-	chart, err := loader.Load(chartPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load chart: %v", err)
-	}
-
-	release, err := upgrade.Run(request.ClusterName, chart, values)
-	if err != nil {
-		return nil, fmt.Errorf("update failed (chart=%s, ns=%s): %v", request.StorageAddonType, request.Namespace, err)
-	}
-	log.Printf("Helm release %s installed successfully", release.Name)
-	return values, nil
-}
-
 // DeleteStorageAddonCluster helm uninstall storage addon cluster
-func DeleteStorageAddonCluster(k8sClient *K8sClient, clusterName, namespace string) error {
+func DeleteStorageAddonCluster(k8sClient *commhelper.K8sClient, clusterName, namespace string) error {
 
 	// init helm client
 	actionConfig, err := k8sClient.BuildHelmConfig(namespace)

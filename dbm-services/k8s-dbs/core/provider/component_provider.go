@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
+	"k8s-dbs/common/helper"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -52,7 +53,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -106,7 +107,7 @@ func getPodRole(pod *corev1.Pod) string {
 
 // extractPodsInfo 从 Pod 列表中提取 Pod 信息
 func extractPodsInfo(
-	k8sClient *corehelper.K8sClient,
+	k8sClient *helper.K8sClient,
 	podList *unstructured.UnstructuredList,
 ) ([]*coreentity.Pod, error) {
 	var pods []*coreentity.Pod
@@ -176,7 +177,7 @@ func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -214,7 +215,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -325,7 +326,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	k8sClient, err := corehelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, 0, err
 	}

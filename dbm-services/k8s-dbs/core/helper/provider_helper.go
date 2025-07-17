@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
+	helper2 "k8s-dbs/common/helper"
 	"k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -79,7 +80,7 @@ func CreateRequestRecord(
 // BuildHelmActionConfig 构建 helm action config
 func BuildHelmActionConfig(
 	namespace string,
-	k8sClient *K8sClient,
+	k8sClient *helper2.K8sClient,
 ) (*action.Configuration, error) {
 	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
 	if err != nil {
@@ -123,7 +124,7 @@ func SaveAuditLog(
 }
 
 // GetPodStorageCapacity 获取 pod 存储容量大小，单位：GB
-func GetPodStorageCapacity(k8sClient *K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
+func GetPodStorageCapacity(k8sClient *helper2.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
 	volumes := pod.Spec.Volumes
 	if len(volumes) == 0 {
 		return nil, nil
@@ -168,7 +169,7 @@ func GetPodStorageCapacity(k8sClient *K8sClient, pod *corev1.Pod) (*coreentity.S
 }
 
 // GetPodResourceQuota 从 Pod 的容器中提取资源请求和限制
-func GetPodResourceQuota(k8sClient *K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
+func GetPodResourceQuota(k8sClient *helper2.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
 	}
@@ -202,7 +203,7 @@ func ConvertUnstructuredToPod(item unstructured.Unstructured) (*corev1.Pod, erro
 
 // GetPodResourceUsage 获取 Pod 资源利用率
 func GetPodResourceUsage(
-	k8sClient *K8sClient,
+	k8sClient *helper2.K8sClient,
 	pod *corev1.Pod,
 	resourceQuota *coreentity.PodResourceQuota,
 ) (*coreentity.PodResourceUsage, error) {

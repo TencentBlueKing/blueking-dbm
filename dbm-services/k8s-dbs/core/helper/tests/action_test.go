@@ -21,6 +21,7 @@ package tests
 
 import (
 	"fmt"
+	helper2 "k8s-dbs/common/helper"
 	"k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/helper"
@@ -41,7 +42,7 @@ func TestCreateCRD(t *testing.T) {
 	gvr := kbtypes.CompDefGVR()
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -75,7 +76,7 @@ func TestCreateCRDErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -96,7 +97,7 @@ func TestCreateCRDWithNs(t *testing.T) {
 	gvr := kbtypes.ClusterGVR()
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -129,7 +130,7 @@ func TestCreateCRDWithNsErr(t *testing.T) {
 	fakeClient.PrependReactor("create", "clusters", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -152,7 +153,7 @@ func TestDeleteCRD(t *testing.T) {
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -212,7 +213,7 @@ func TestDeleteCRDErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -234,7 +235,7 @@ func TestDeleteCRDWithNs(t *testing.T) {
 	scheme := runtime.NewScheme()
 	fakeClient := dynamicfake.NewSimpleDynamicClient(scheme)
 
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
@@ -294,7 +295,7 @@ func TestDeleteCRDWithNsErr(t *testing.T) {
 		return true, nil, fmt.Errorf("模拟 API 错误")
 	})
 
-	k8sClient := &helper.K8sClient{}
+	k8sClient := &helper2.K8sClient{}
 	origClient := k8sClient.DynamicClient
 	k8sClient.DynamicClient = fakeClient
 	defer func() { k8sClient.DynamicClient = origClient }()
