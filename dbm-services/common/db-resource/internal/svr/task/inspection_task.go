@@ -32,7 +32,7 @@ import (
 func InspectCheckResource() (err error) {
 	//  获取空闲机器
 	var machines []model.TbRpDetail
-	var allowCCMouduleInfo dbmapi.DbmEnvData
+	var allowCCModuleInfo dbmapi.DbmEnvData
 	// 获取不需要要检查的业务
 	nocheckBizIds := []int{}
 	logger.Info("apply not inspection bizids %s", config.AppConfig.NotInspectionBizids)
@@ -55,14 +55,14 @@ func InspectCheckResource() (err error) {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
 	}
-	allowCCMouduleInfo, err = dbmapi.GetDbmEnv()
+	allowCCModuleInfo, err = dbmapi.GetDbmEnv()
 	if err != nil {
 		logger.Error("get dbm env failed %s", err.Error())
 		return err
 	}
-	logger.Info("dba bk bizid %v", allowCCMouduleInfo.DBA_APP_BK_BIZ_ID)
-	logger.Info("空闲模块id %v", allowCCMouduleInfo.CC_IDLE_MODULE_ID)
-	logger.Info("资源模块信息 %v", allowCCMouduleInfo.CC_MANAGE_TOPO)
+	logger.Info("dba bk biz id %v", allowCCModuleInfo.RESOURCE_INDEPENDENT_BIZ)
+	logger.Info("空闲模块id %v", allowCCModuleInfo.CC_IDLE_MODULE_ID)
+	logger.Info("资源模块信息 %v", allowCCModuleInfo.CC_MANAGE_TOPO)
 	// hostIdMap := make(map[int][]int)
 	// for _, machine := range machines {
 	// 	hostIdMap[machine.BkBizId] = append(hostIdMap[machine.BkBizId], machine.BkHostID)
@@ -73,7 +73,7 @@ func InspectCheckResource() (err error) {
 	}
 	for _, hostgp := range cmutil.SplitGroup(hostIds, 200) {
 		resp, ori, err := cc.NewFindHostTopoRelation(bk.BkCmdbClient).Query(&cc.FindHostTopoRelationParam{
-			BkBizID:   allowCCMouduleInfo.DBA_APP_BK_BIZ_ID,
+			BkBizID:   allowCCModuleInfo.RESOURCE_INDEPENDENT_BIZ,
 			BkHostIds: hostgp,
 			Page: cc.BKPage{
 				Start: 0,
@@ -83,7 +83,7 @@ func InspectCheckResource() (err error) {
 		if err != nil {
 			logger.Error("get host topo relation failed %s", err.Error())
 			if ori != nil {
-				logger.Error("requesty id:%s,code:%d,messgae:%s", ori.RequestId, ori.Code, ori.Message)
+				logger.Error("request id:%s,code:%d,message:%s", ori.RequestId, ori.Code, ori.Message)
 			}
 			continue
 			// return err
@@ -106,8 +106,8 @@ func InspectCheckResource() (err error) {
 			return nil
 		}
 		for _, m := range resp.Data {
-			if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID || (m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId &&
-				m.BKModuleId == allowCCMouduleInfo.CC_MANAGE_TOPO.ResourceModuleId) {
+			if m.BKSetId == allowCCModuleInfo.CC_MANAGE_TOPO.SetId && m.BKModuleId ==
+				allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId {
 				continue
 			}
 			logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
