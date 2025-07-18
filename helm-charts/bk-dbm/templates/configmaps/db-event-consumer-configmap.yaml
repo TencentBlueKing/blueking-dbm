@@ -1,0 +1,48 @@
+{{- $statsDB := fromYaml (include "bk-dbm.database" (list . "dbmStats")) -}}
+{{- $reportDB := fromYaml (include "bk-dbm.database" (list . "dbmReport")) -}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-event-consumer-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+# todo bk_data_id 应该调整为从日志平台接口获取
+  config.yaml: |-
+    kafka_info:
+      cluster_config:
+        domain_name: {{ index .Values "db-event-consumer" "kafka_info" "domain_name" }}
+        port: {{ index .Values "db-event-consumer" "kafka_info" "broker_port" }}
+      auth_info:
+        username: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_username" }}
+        password: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_password" }}
+        sasl_mechanisms: SCRAM-SHA-512
+        security_protocol: SASL_PLAINTEXT
+    log:
+      console: true
+      debug: true
+      source: true
+      json: false
+      log_file_dir: logs
+  datasource.yaml: |-
+    - name: prod_bk_dbm_report
+      type: mysql
+      dsn:
+        address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
+        user: "{{ $reportDB.user }}"
+        password: "{{ $reportDB.password }}"
+        database: "bk_dbm_report"
+        charset: utf8
+    - name: doris_bk_dbm_stats
+      type: mysql
+      dsn:
+        address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
+        user: "{{ $statsDB.user }}"
+        password: "{{ $statsDB.password }}"
+        database: "bk_dbm_stats"
+        charset: utf8
+  data.sinkers.yaml: |
+    {{- toYaml (index .Values "db-event-consumer").sinkers | nindent 4 }}

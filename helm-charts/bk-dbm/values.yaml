@@ -558,6 +558,47 @@ bkdata-kafka-consumer:
     fetch_min_bytes: 1024
     dsn_connection_per_partition: 2
 
+db-event-consumer:
+  enabled: true
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  kafka_info:
+    # same with REVERSE_REPORT_KAFKA_OPTIONS
+    domain_name: "xx.xx.db"
+    broker_port: 3306
+    auth_info_username: "xxx"
+    auth_info_password: "xxx"
+  sinkers:
+    - topic: "mysql_dbbackup_result"
+      model_table: "tb_mysql_backup_result"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
+    - topic: "mysql_binlog_result"
+      model_table: "tb_mysql_binlog_result"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
+    - topic: "mysql_dbbackup_progress"
+      model_table: "tb_mysql_backup_progress"
+      strict_schema: true
+      skip_migrate_schema: false
+      datasource: "prod_bk_dbm_report"
+      from_beginning: false
+      client_id_suffix: ""
+      group_id_suffix: ""
+
 # reloader
 stakater:
   enabled: true
