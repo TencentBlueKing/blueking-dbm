@@ -126,17 +126,17 @@ class SpiderClusterDisableFlow(object):
             )
             # disable clb
             if self.data["is_only_delete_slave_domain"]:
-                cluster_enterys = ClusterEntry.objects.filter(
+                cluster_entries = ClusterEntry.objects.filter(
                     cluster__id=cluster_id,
                     cluster_entry_type=ClusterEntryType.CLB,
                     role=ClusterEntryRole.SLAVE_ENTRY.value,
                 ).all()
             else:
-                cluster_enterys = ClusterEntry.objects.filter(
+                cluster_entries = ClusterEntry.objects.filter(
                     cluster__id=cluster_id,
                     cluster_entry_type=ClusterEntryType.CLB,
                 ).all()
-            for ce in cluster_enterys:
+            for ce in cluster_entries:
                 instance_list = ce.proxyinstance_set.all()
                 act_lists.append(
                     {
