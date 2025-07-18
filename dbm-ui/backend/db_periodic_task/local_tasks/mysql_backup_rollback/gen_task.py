@@ -122,6 +122,19 @@ def get_last_week_range():
     return start_time, end_time
 
 
+# 查询集群是否存在备份记录
+def cluster_has_backup_record(cluster_id: int) -> bool:
+    """
+    查询集群是否存在备份记录
+    """
+    handler = FixPointRollbackHandler(cluster_id, check_full_backup=True)
+    start_time, end_time = get_last_week_range()
+    backup_records = handler.query_recover_backup_logs(start_time, end_time)
+    if not backup_records:
+        return False
+    return True
+
+
 # 查询备份记录生成回档任务
 def gen_rollback_task():
     rs_list = get_resource_list()
@@ -273,9 +286,10 @@ def get_exercise_clusters(num: int) -> list:
         if not pq:
             break
         task = heapq.heappop(pq)
-        rs.append(task.cluster)
-        if len(rs) >= num:
-            break
+        if cluster_has_backup_record(task.cluster.id):
+            rs.append(task.cluster)
+            if len(rs) >= num:
+                break
     return rs
 
 
