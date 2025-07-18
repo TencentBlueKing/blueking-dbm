@@ -36,5 +36,6 @@ export const redis: DbInfoType = {
     ],
     moduleId: 'redis',
     name: 'Redis',
+    routeIndexName: 'RedisManage',
   },
 };

@@ -17,6 +17,7 @@ export interface DBInfoItem {
   }[];
   moduleId: ExtractedControllerDataKeys;
   name: string;
+  routeIndexName: string;
 }
 
 type RequiredInfoType = {
