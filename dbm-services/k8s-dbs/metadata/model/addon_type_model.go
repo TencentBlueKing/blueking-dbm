@@ -40,5 +40,5 @@ type AddonTypeModel struct {
 
 // TableName 获取 model 对应的数据库表名
 func (AddonTypeModel) TableName() string {
-	return constant.TBAddonType
+	return constant.TbAddonType
 }

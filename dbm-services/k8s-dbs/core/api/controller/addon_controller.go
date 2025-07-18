@@ -25,7 +25,7 @@ import (
 	coreapiconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
-	reqvo "k8s-dbs/core/vo/req"
+	reqvo "k8s-dbs/core/vo/request"
 	"k8s-dbs/errors"
 
 	"github.com/gin-gonic/gin"
@@ -39,7 +39,7 @@ type AddonController struct {
 
 // InstallAddon 安装 addon 插件
 func (a *AddonController) InstallAddon(ctx *gin.Context) {
-	var installReqVo reqvo.AddonOperationReqVo
+	var installReqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&installReqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
 		return
@@ -61,7 +61,7 @@ func (a *AddonController) InstallAddon(ctx *gin.Context) {
 
 // UninstallAddon 卸载 addon 插件
 func (a *AddonController) UninstallAddon(ctx *gin.Context) {
-	var uninstallReqVo reqvo.AddonOperationReqVo
+	var uninstallReqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&uninstallReqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UninstallAddonError, err))
 		return
@@ -84,7 +84,7 @@ func (a *AddonController) UninstallAddon(ctx *gin.Context) {
 
 // UpgradeAddon 更新 addon 插件
 func (a *AddonController) UpgradeAddon(ctx *gin.Context) {
-	var upgradeReqVo reqvo.AddonOperationReqVo
+	var upgradeReqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&upgradeReqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeAddonError, err))
 		return

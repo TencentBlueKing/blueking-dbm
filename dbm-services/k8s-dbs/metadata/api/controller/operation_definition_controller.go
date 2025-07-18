@@ -26,8 +26,8 @@ import (
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -58,7 +58,7 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.OperationDefinitionRespVo
+	var data []response.OperationDefinitionResponse
 	if err := copier.Copy(&data, opDefs); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -68,7 +68,7 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 
 // CreateOperationDefinition creates a new operation definition.
 func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Context) {
-	var reqVo req.OperationDefinitionReqVo
+	var reqVo request.OperationDefinitionRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -83,7 +83,7 @@ func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Conte
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.OperationDefinitionRespVo
+	var data response.OperationDefinitionResponse
 	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return

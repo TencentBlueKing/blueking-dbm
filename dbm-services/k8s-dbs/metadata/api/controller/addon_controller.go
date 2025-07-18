@@ -27,8 +27,8 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	metareq "k8s-dbs/metadata/vo/request"
+	metaresp "k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +59,7 @@ func (a *AddonController) ListAddons(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.K8sCrdAddonRespVo
+	var data []metaresp.AddonResponse
 	if err := copier.Copy(&data, addons); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -80,7 +80,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdAddonRespVo
+	var data metaresp.AddonResponse
 	if err := copier.Copy(&data, addon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -90,7 +90,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 
 // GetVersions 获取组件版本
 func (a *AddonController) GetVersions(ctx *gin.Context) {
-	var paramsReq req.AddonVersionReq
+	var paramsReq metareq.AddonVersionRequest
 	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &paramsReq, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -105,7 +105,7 @@ func (a *AddonController) GetVersions(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []*resp.AddonVersionResp
+	var data []*metaresp.AddonVersionResp
 	if err := copier.Copy(&data, versionEntities); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -115,7 +115,7 @@ func (a *AddonController) GetVersions(ctx *gin.Context) {
 
 // CreateAddon creates a new addon.
 func (a *AddonController) CreateAddon(ctx *gin.Context) {
-	var addon req.AddonReq
+	var addon metareq.AddonRequest
 	if err := ctx.ShouldBindJSON(&addon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -133,7 +133,7 @@ func (a *AddonController) CreateAddon(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdAddonRespVo
+	var data metaresp.AddonResponse
 	if err := copier.Copy(&data, addedAddon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -149,7 +149,7 @@ func (a *AddonController) UpdateAddon(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	var addon req.AddonReq
+	var addon metareq.AddonRequest
 	if err := ctx.ShouldBindJSON(&addon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return

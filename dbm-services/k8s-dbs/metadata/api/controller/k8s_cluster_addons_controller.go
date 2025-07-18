@@ -25,7 +25,7 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -55,7 +55,7 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sClusterAddonsRespVo
+	var data response.K8sClusterAddonResponse
 	if err := copier.Copy(&data, addon); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -74,7 +74,7 @@ func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.K8sClusterAddonsRespVo
+	var data []response.K8sClusterAddonResponse
 	if err := copier.Copy(&data, clusterAddons); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return

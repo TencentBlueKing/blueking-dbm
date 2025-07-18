@@ -27,8 +27,8 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	metareq "k8s-dbs/metadata/vo/request"
+	metaresp "k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -60,7 +60,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.AddonHelmRepoRespVo
+	var data metaresp.AddonHelmRepoResponse
 	if err := copier.Copy(&data, repo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -70,7 +70,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 
 // CreateAddonHelmRepo create addon helm repo
 func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
-	var reqVo req.AddonHelmRepoRespVo
+	var reqVo metareq.AddonHelmRepoRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -88,7 +88,7 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.AddonHelmRepoRespVo
+	var data metaresp.AddonHelmRepoResponse
 	if err := copier.Copy(&data, addedRepo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -114,7 +114,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respVo resp.AddonHelmRepoRespVo
+	var respVo metaresp.AddonHelmRepoResponse
 	if err = copier.Copy(&respVo, repo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return

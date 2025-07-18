@@ -26,7 +26,7 @@ import (
 	commhelper "k8s-dbs/common/helper"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
-	respvo "k8s-dbs/core/vo/resp"
+	coreresp "k8s-dbs/core/vo/response"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -217,7 +217,7 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeOpsRequestError, err))
 		return
 	}
-	var data respvo.OpsRequestDetailRespVo
+	var data coreresp.OpsRequestDetailResponse
 	if err := copier.Copy(&data, opsRequestData); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
@@ -238,7 +238,7 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetOpsRequestStatusError, err))
 		return
 	}
-	var data respvo.OpsRequestStatusRespVo
+	var data coreresp.OpsRequestStatusResponse
 	if err := copier.Copy(&data, opsRequestStatus); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
@@ -291,7 +291,7 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeClusterError, err))
 		return
 	}
-	var data respvo.ClusterDetailRespVo
+	var data coreresp.ClusterDetailResponse
 	if err := copier.Copy(&data, clusterData); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
@@ -312,7 +312,7 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
 	}
-	var data respvo.ClusterStatusRespVo
+	var data coreresp.ClusterStatusResponse
 	if err := copier.Copy(&data, clusterStatus); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
 		return
@@ -349,7 +349,7 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
-	var data respvo.ClusterEventRespVo
+	var data coreresp.ClusterEventResponse
 	if err := copier.Copy(&data, clusterEventList); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
@@ -385,7 +385,7 @@ func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
 		return
 	}
-	clusterService := respvo.K8sClusterSvcRespVo{
+	clusterService := coreresp.K8sClusterSvcResponse{
 		K8sClusterName:    svcEntity.K8sClusterName,
 		ClusterName:       svcEntity.ClusterName,
 		Namespace:         svcEntity.Namespace,
@@ -398,8 +398,8 @@ func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 func (c *ClusterController) getComponentService(
 	components []*metaentity.ClusterComponent,
 	svcEntity coreentity.K8sSvcEntity,
-) ([]*respvo.K8sComponentSvcRespVo, error) {
-	var componentServices []*respvo.K8sComponentSvcRespVo
+) ([]*coreresp.K8sComponentSvcResponse, error) {
+	var componentServices []*coreresp.K8sComponentSvcResponse
 	for _, component := range components {
 		componentSvcEntity := coreentity.K8sSvcEntity{
 			K8sClusterName: svcEntity.K8sClusterName,
@@ -415,7 +415,7 @@ func (c *ClusterController) getComponentService(
 		if err != nil {
 			return nil, err
 		}
-		componentSvc := respvo.K8sComponentSvcRespVo{
+		componentSvc := coreresp.K8sComponentSvcResponse{
 			K8sClusterName:      componentSvcEntity.K8sClusterName,
 			ClusterName:         componentSvcEntity.ClusterName,
 			Namespace:           componentSvcEntity.Namespace,

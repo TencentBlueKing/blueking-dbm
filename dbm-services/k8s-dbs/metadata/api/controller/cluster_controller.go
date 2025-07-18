@@ -27,7 +27,7 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/response"
 	"reflect"
 	"strconv"
 
@@ -75,7 +75,7 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdClusterRespVo
+	var data response.K8sCrdClusterResponse
 	if err := copier.Copy(&data, cluster); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -102,7 +102,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 	}
-	var data []resp.K8sCrdClusterRespVo
+	var data []response.K8sCrdClusterResponse
 	if err := copier.Copy(&data, clusterEntities); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -111,7 +111,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		data[idx].BkBizTitle = fmt.Sprintf("[%d]%s", clusterEntity.BkBizID, clusterEntity.BkBizName)
 		data[idx].TopoNameAlias = getTopoNameAlias(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
 	}
-	var responseData = resp.PageResult{
+	var responseData = response.PageResult{
 		Count:  count,
 		Result: data,
 	}

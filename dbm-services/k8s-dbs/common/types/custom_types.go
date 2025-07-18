@@ -1,6 +1,7 @@
 package types
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,6 +61,35 @@ func (j *JSONDatetime) UnmarshalJSON(data []byte) error {
 	}
 	*j = JSONDatetime(parsedTime)
 	return nil
+}
+
+// Value 实现 driver.Valuer 接口（写入数据库）
+func (j JSONDatetime) Value() (driver.Value, error) {
+	return time.Time(j), nil // 直接转换为 time.Time
+}
+
+// Scan 实现 sql.Scanner（从数据库读取）
+func (j *JSONDatetime) Scan(src interface{}) error {
+	if src == nil {
+		*j = JSONDatetime(time.Time{})
+		return nil
+	}
+	switch v := src.(type) {
+	case time.Time:
+		// 数据库直接返回 time.Time（如 timestamp/datetime 列）
+		*j = JSONDatetime(v)
+		return nil
+	case []byte:
+		// 数据库返回 []byte（如 RFC 3339 format）
+		var t time.Time
+		if err := t.UnmarshalText(v); err != nil {
+			return errors.New("failed to unmarshal time from []byte")
+		}
+		*j = JSONDatetime(t)
+		return nil
+	default:
+		return errors.New("unsupported type for JSONDatetime: " + fmt.Sprintf("%T", src))
+	}
 }
 
 // ToDateString 将 JSONDatetime 格式化为 "yyyy-MM-dd HH:mm:ss" 字符串

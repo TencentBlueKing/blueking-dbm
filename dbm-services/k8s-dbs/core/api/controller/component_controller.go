@@ -24,9 +24,9 @@ import (
 	commhelper "k8s-dbs/common/helper"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
-	respvo "k8s-dbs/core/vo/resp"
+	coreresp "k8s-dbs/core/vo/response"
 	"k8s-dbs/errors"
-	metarespvo "k8s-dbs/metadata/vo/resp"
+	metaresp "k8s-dbs/metadata/vo/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -76,7 +76,7 @@ func (c *ComponentController) ListPods(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
-	var responseData = metarespvo.PageResult{
+	var responseData = metaresp.PageResult{
 		Count:  count,
 		Result: pods,
 	}
@@ -100,7 +100,7 @@ func (c *ComponentController) GetComponentService(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
-	data := respvo.K8sComponentSvcRespVo{
+	data := coreresp.K8sComponentSvcResponse{
 		K8sClusterName:      svcEntity.K8sClusterName,
 		ClusterName:         svcEntity.ClusterName,
 		Namespace:           svcEntity.Namespace,

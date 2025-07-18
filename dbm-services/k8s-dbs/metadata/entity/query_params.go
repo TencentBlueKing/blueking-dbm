@@ -119,3 +119,11 @@ type AddonVersionQueryParams struct {
 	AddonCategory string `gorm:"column:addon_category" json:"addonCategory"`
 	AddonType     string `gorm:"column:addon_type" json:"addonType"`
 }
+
+// AddonTopologyQueryParams addon topology 查询参数
+type AddonTopologyQueryParams struct {
+	AddonCategory string `gorm:"column:addon_category" json:"addonCategory"`
+	AddonType     string `gorm:"column:addon_type" json:"addonType"`
+	AddonVersion  string `gorm:"column:addon_version" json:"addonVersion"`
+	TopologyName  string `gorm:"column:topology_name" json:"topologyName"`
+}

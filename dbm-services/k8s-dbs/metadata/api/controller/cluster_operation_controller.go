@@ -26,8 +26,8 @@ import (
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -58,7 +58,7 @@ func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.ClusterOperationRespVo
+	var data []response.ClusterOperationResponse
 	if err := copier.Copy(&data, clusterOps); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -68,7 +68,7 @@ func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
 
 // CreateClusterOperation creates a new cluster operation.
 func (c *ClusterOperationController) CreateClusterOperation(ctx *gin.Context) {
-	var reqVo req.ClusterOperationReqVo
+	var reqVo request.ClusterOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -83,7 +83,7 @@ func (c *ClusterOperationController) CreateClusterOperation(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.ClusterOperationRespVo
+	var data response.ClusterOperationResponse
 	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return

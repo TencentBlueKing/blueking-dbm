@@ -27,7 +27,7 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +59,7 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdClusterRespVo
+	var data response.K8sCrdClusterResponse
 	if err := copier.Copy(&data, cluster); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -84,7 +84,7 @@ func (c *ClusterReleaseController) GetClusterReleaseByParam(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respVo resp.AddonClusterReleaseRespVo
+	var respVo response.AddonClusterReleaseResponse
 	if err = copier.Copy(&respVo, clusterRelease); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
