@@ -60,14 +60,14 @@ export interface ClbTargetDetails {
 export default class ClusterEntryDetail<T extends unknown | DnsTargetDetails | ClbPolarisTargetDetails = unknown> {
   cluster_entry_type: string; // 'dns' | 'clb' | 'polaris' | 'clbDns'
   entry: string;
-  instance_role: string;
+  instance_role: string; // 当前只在 get_cluster_entries 接口返回，集群列表和详情暂时没有
   role: string;
   target_details: T[];
 
   constructor(payload = {} as ClusterEntryDetail<T>) {
     this.cluster_entry_type = payload.cluster_entry_type;
     this.entry = payload.entry;
-    this.instance_role = payload.instance_role;
+    this.instance_role = payload.instance_role || '';
     this.role = payload.role;
     this.target_details = payload.target_details;
   }
