@@ -24,6 +24,7 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/common/helper"
+	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -135,6 +136,7 @@ func extractPodsInfo(
 			Role:          getPodRole(pod),
 			ResourceQuota: resourceQuota,
 			ResourceUsage: usage,
+			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
 		})
 	}
 
