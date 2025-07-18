@@ -159,16 +159,6 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
             details = request.data.get("details", {})
             process_authorize_data(details)
 
-        # 处理特殊授权单据
-        if self.batch:
-            if request.data["tickets"][0]["ticket_type"] in [
-                TicketType.SQLSERVER_AUTHORIZE_RULES,
-                TicketType.MONGODB_AUTHORIZE_RULES,
-            ]:
-                authorize_data_list = authorize_data_list[0]
-        elif request.data["ticket_type"] in [TicketType.SQLSERVER_AUTHORIZE_RULES, TicketType.MONGODB_AUTHORIZE_RULES]:
-            authorize_data_list = authorize_data_list[0]
-
         for data in authorize_data_list:
             authorize_resource_tuples.extend(list(itertools.product([data["account_id"]], data["cluster_ids"])))
         return authorize_resource_tuples
