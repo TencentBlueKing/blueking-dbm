@@ -302,8 +302,5 @@ export function getGlobalCluster<
   limit?: number;
   offset?: number;
 }) {
-  return http.get<T[]>(`${path}/filter_clusters/`, params).then((data) => ({
-    count: data.length || 0,
-    results: data,
-  }));
+  return http.get<T[]>(`${path}/filter_clusters_by_type/`, params);
 }
