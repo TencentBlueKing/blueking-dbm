@@ -76,6 +76,10 @@ dependencies:
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
     version: 0.0.7
+  - condition: db-event-consumer.enabled
+    name: db-event-consumer
+    repository: file://charts/db-event-consumer
+    version: 0.0.6
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service
@@ -99,5 +103,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-alpha.61
-appVersion: 1.5.0-alpha.61
+version: 1.5.0-alpha.62
+appVersion: 1.5.0-alpha.62

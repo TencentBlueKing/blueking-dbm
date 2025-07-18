@@ -81,6 +81,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewCheckProcesslistExecSQLFilCommand(),
 				// NewPushMySQLCrondConfigCommand(),
 				ChangeServerIdCommand(),
+				RestartMysqldCommand(),
 				GoFlashbackBinlogCommand(),
 				NewFastExecuteSqlActCommand(),
 				// v2
