@@ -85,7 +85,7 @@
                 :permission="data.permission.mongodb_plugin_create_clb"
                 :resource="data.id"
                 text
-                @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                @click="handleAddClb({ details: { cluster_id: data.id } })">
                 {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>

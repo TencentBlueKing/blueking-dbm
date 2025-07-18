@@ -151,7 +151,7 @@
                 :resource="data.id"
                 style="width: 100%; height: 32px"
                 text
-                @click="() => handleAddClb({ details: { cluster_id: data.id } })">
+                @click="handleAddClb({ details: { cluster_id: data.id } })">
                 {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
@@ -169,7 +169,7 @@
                 :resource="data.id"
                 style="width: 100%; height: 32px"
                 text
-                @click="() => handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
+                @click="handleBindOrUnbindClb({ details: { cluster_id: data.id } }, data.dns_to_clb)">
                 {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
@@ -187,7 +187,7 @@
                 :resource="data.id"
                 style="width: 100%; height: 32px"
                 text
-                @click="() => handleAddPolaris({ details: { cluster_id: data.id } })">
+                @click="handleAddPolaris({ details: { cluster_id: data.id } })">
                 {{ t('启用北极星') }}
               </AuthButton>
             </OperationBtnStatusTips>

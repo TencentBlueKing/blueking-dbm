@@ -90,7 +90,7 @@
                 :permission="data.permission.mysql_add_clb"
                 :resource="data.id"
                 text
-                @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                @click="handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
                 {{ t('启用接入层负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
@@ -108,11 +108,10 @@
                 :resource="data.id"
                 text
                 @click="
-                  () =>
-                    handleBindOrUnbindClb(
-                      { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
-                      data.dns_to_clb,
-                    )
+                  handleBindOrUnbindClb(
+                    { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                    data.dns_to_clb,
+                  )
                 ">
                 {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
               </AuthButton>
