@@ -27,25 +27,25 @@
         {{ t('复制信息') }}
       </BkButton>
     </div>
-    <div class="mongo-access-entry-content">
-      <div
-        v-for="(item, index) in dataList"
-        :key="index"
-        class="mongo-access-entry-item">
-        <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
-        <span class="mongo-access-entry-item-value">{{ item.value || '--' }}</span>
-        <BkButton
-          v-bk-tooltips="t('复制xxx', [item.label])"
-          class="copy-btn"
-          text
-          theme="primary">
-          <DbIcon
-            type="copy"
-            @click="execCopy(item.value)" />
-        </BkButton>
-      </div>
-    </div>
     <BkLoading :loading="clbLoading">
+      <div class="mongo-access-entry-content">
+        <div
+          v-for="(item, index) in dataList"
+          :key="index"
+          class="mongo-access-entry-item">
+          <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
+          <span class="mongo-access-entry-item-value">{{ item.value || '--' }}</span>
+          <BkButton
+            v-bk-tooltips="t('复制xxx', [item.label])"
+            class="copy-btn"
+            text
+            theme="primary">
+            <DbIcon
+              type="copy"
+              @click="execCopy(item.value)" />
+          </BkButton>
+        </div>
+      </div>
       <div
         v-if="entryInfo"
         class="cluster-clb-main">
@@ -114,8 +114,44 @@
     title: string;
   }>();
 
+  const getEntryAccess = (data: Props['data'], entryDomain: string) => {
+    if (data.isMongoReplicaSet) {
+      return `mongodb://{username}:{password}@${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
+    }
+    return `mongodb://{username}:{password}@${entryDomain}/?authSource=admin`;
+  };
+
+  const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[]) => {
+    if (!data.isMongoReplicaSet) {
+      const clbItem = clusterEntry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
+      if (clbItem) {
+        return `mongodb://{username}:{password}@${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
+      }
+    }
+    return '';
+  };
+
+  const getEntryDomain = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[]) => {
+    if (data.isMongoReplicaSet) {
+      const domainList = clusterEntry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (entryItem.instance_role !== 'backup') {
+          return prevDomainList.concat(`${entryItem.entry}:${data.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${data.master_domain}:${data.cluster_access_port}`;
+  };
+
   const dataList = computed(() => {
     const { data } = props;
+    const clusterEntryList = clusterEntryData.value || [];
+
+    const entryDomain = getEntryDomain(data, clusterEntryList);
+    const entryAccess = getEntryAccess(data, entryDomain);
+    const entryAccessClb = getEntryAccessClb(data, clusterEntryList);
+
     const infoList = [
       {
         label: t('集群名称'),
@@ -123,25 +159,29 @@
       },
       {
         label: t('域名'),
-        value: data.entryDomain,
+        value: entryDomain,
       },
       {
         label: t('连接字符串'),
-        value: data.entryAccess,
+        value: entryAccess,
       },
     ];
 
-    if (data.entryAccessClb) {
+    if (entryAccessClb) {
       infoList.push({
         label: t('连接字符串（CLB）'),
-        value: data.entryAccessClb,
+        value: entryAccessClb,
       });
     }
 
     return infoList;
   });
 
-  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
+  const {
+    data: clusterEntryData,
+    loading: clbLoading,
+    run: runGetClusterEntries,
+  } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
       res.forEach((item) => {

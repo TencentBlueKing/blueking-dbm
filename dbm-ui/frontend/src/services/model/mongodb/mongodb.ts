@@ -176,36 +176,6 @@ export default class Mongodb extends ClusterBase {
     return affinityMap[this.disaster_tolerance_level];
   }
 
-  get entryAccess() {
-    if (this.isMongoReplicaSet) {
-      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
-    }
-    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
-  }
-
-  get entryAccessClb() {
-    if (!this.isMongoReplicaSet) {
-      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
-      if (clbItem) {
-        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
-      }
-    }
-    return '';
-  }
-
-  get entryDomain() {
-    if (this.isMongoReplicaSet) {
-      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (entryItem.instance_role !== 'backup') {
-          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
-        }
-        return prevDomainList;
-      }, []);
-      return domainList.join(',');
-    }
-    return `${this.master_domain}:${this.cluster_access_port}`;
-  }
-
   get instanceCount() {
     if (this.cluster_type === Mongodb.MongoShardedCluster) {
       return this.mongo_config.length + this.mongos.length + this.mongodb.length;
