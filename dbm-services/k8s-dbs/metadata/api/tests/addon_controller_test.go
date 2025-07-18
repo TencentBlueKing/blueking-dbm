@@ -28,7 +28,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
+	"k8s-dbs/metadata/vo/request"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -133,7 +133,7 @@ func SetupAddonRouter() *gin.Engine {
 func TestCreateAddon(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupAddonRouter()
-	addonRequest := req.AddonReq{
+	addonRequest := request.AddonRequest{
 		AddonName:            "surrealdb-2.2.0",
 		AddonCategory:        "Graph",
 		AddonType:            "SurrealDB",
@@ -255,7 +255,7 @@ func TestUpdateAddon(t *testing.T) {
 	router := SetupAddonRouter()
 	err := AddSampleAddon()
 	assert.NoError(t, err)
-	addonRequest := req.AddonReq{
+	addonRequest := request.AddonRequest{
 		AddonName:            "surrealdb-2.2.2",
 		AddonType:            "SurrealDB-2",
 		AddonCategory:        "Graph-2",

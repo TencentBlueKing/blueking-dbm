@@ -25,8 +25,8 @@ import (
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	metareqvo "k8s-dbs/metadata/vo/request"
+	metarespvo "k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -56,7 +56,7 @@ func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.AddonCategoryTypesResp
+	var data []metarespvo.AddonCategoryResponse
 	if err := copier.Copy(&data, categoryTypesEntities); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -66,7 +66,7 @@ func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
 
 // Create 创建 addon category
 func (c *AddonCategoryController) Create(ctx *gin.Context) {
-	var reqVo req.AddonCategoryReq
+	var reqVo metareqvo.AddonCategoryRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -83,7 +83,7 @@ func (c *AddonCategoryController) Create(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.AddonCategoryResp
+	var data metarespvo.AddonCategoryResponse
 	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return

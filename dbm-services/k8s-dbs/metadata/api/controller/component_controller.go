@@ -24,7 +24,7 @@ import (
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -54,7 +54,7 @@ func (c *ComponentController) GetComponent(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.K8sCrdComponentRespVo
+	var data response.K8sCrdComponentResponse
 	if err := copier.Copy(&data, component); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return

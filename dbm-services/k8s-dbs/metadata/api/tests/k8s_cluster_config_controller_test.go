@@ -28,7 +28,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
+	"k8s-dbs/metadata/vo/request"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -103,7 +103,7 @@ func TestCreateConfig(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupConfigRouter()
 
-	reqVo := req.K8sClusterConfigReqVo{
+	reqVo := request.K8sClusterConfigRequest{
 		ClusterName:  "BCS-K8S-000",
 		APIServerURL: "https://127.0.0.1:60002",
 		CACert:       "test_ca_cert",
@@ -113,8 +113,6 @@ func TestCreateConfig(t *testing.T) {
 		Username:     "test_username",
 		Password:     "test_password",
 		Description:  "just for test",
-		CreatedBy:    "admin",
-		UpdatedBy:    "admin",
 	}
 
 	requestBody, err := json.Marshal(&reqVo)
@@ -258,7 +256,7 @@ func TestUpdateConfig(t *testing.T) {
 	router := SetupConfigRouter()
 	err := AddSampleConfig()
 	assert.NoError(t, err)
-	configReq := req.K8sClusterConfigReqVo{
+	configReq := request.K8sClusterConfigRequest{
 		ClusterName:  "BCS-K8S-001",
 		APIServerURL: "https://127.0.0.1:60001",
 		CACert:       "test_ca_cert1",
@@ -268,8 +266,6 @@ func TestUpdateConfig(t *testing.T) {
 		Username:     "test_username1",
 		Password:     "test_password1",
 		Description:  "just for test2",
-		CreatedBy:    "admin2",
-		UpdatedBy:    "admin2",
 	}
 
 	requestBody, err := json.Marshal(&configReq)

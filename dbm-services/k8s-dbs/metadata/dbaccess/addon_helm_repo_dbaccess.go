@@ -82,18 +82,17 @@ func (a *AddonHelmRepoDbAccessImpl) FindByParams(params *metaentity.HelmRepoQuer
 	*metamodel.AddonHelmRepoModel,
 	error,
 ) {
-	var helmRepo metamodel.AddonHelmRepoModel
-	result := a.db.Where(params).First(&helmRepo)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+	helmRepo := &metamodel.AddonHelmRepoModel{}
+	err := a.db.Where(params).First(&helmRepo).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Error("Not found model", "params", params)
+		return helmRepo, nil
 	}
-	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+	if err != nil {
+		slog.Error("Find model error", "error", err)
+		return nil, err
 	}
-
-	return &helmRepo, nil
+	return helmRepo, nil
 }
 
 // Update 更新接口实现

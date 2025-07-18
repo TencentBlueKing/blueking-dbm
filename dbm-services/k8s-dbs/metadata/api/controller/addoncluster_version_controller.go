@@ -26,8 +26,8 @@ import (
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -60,7 +60,7 @@ func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []resp.AddonClusterVersionRespVo
+	var data []response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, acVersions); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -81,7 +81,7 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data resp.AddonClusterVersionRespVo
+	var data response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, addon); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -91,7 +91,7 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 
 // CreateAcVersion 创建 addon cluster version
 func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
-	var acVersionVo req.AddonClusterVersionReqVo
+	var acVersionVo request.AddonClusterVersionRequest
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -106,7 +106,7 @@ func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var data resp.AddonClusterVersionRespVo
+	var data response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -122,7 +122,7 @@ func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	var acVersionVo req.AddonClusterVersionReqVo
+	var acVersionVo request.AddonClusterVersionRequest
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return

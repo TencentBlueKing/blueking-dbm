@@ -25,10 +25,10 @@ import (
 	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
-	"k8s-dbs/core/vo/req"
-	"k8s-dbs/core/vo/resp"
+	"k8s-dbs/core/vo/request"
+	"k8s-dbs/core/vo/response"
 	"k8s-dbs/errors"
-	metarespvo "k8s-dbs/metadata/vo/resp"
+	metarespvo "k8s-dbs/metadata/vo/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -41,7 +41,7 @@ type K8sController struct {
 
 // CreateNamespace 创建 namespace
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
-	var namespaceReq req.K8sNamespaceReqVo
+	var namespaceReq request.K8sNamespaceRequest
 	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
@@ -59,7 +59,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	var data resp.K8sNamespaceRespVo
+	var data response.K8sNamespaceResponse
 	if err := copier.Copy(&data, added); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return

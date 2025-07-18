@@ -26,7 +26,7 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	corevo "k8s-dbs/metadata/vo/resp"
+	corevo "k8s-dbs/metadata/vo/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -60,7 +60,7 @@ func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []corevo.ClusterRequestRecordRespVo
+	var data []corevo.ClusterOperationLogResponse
 	if err := copier.Copy(&data, records); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return

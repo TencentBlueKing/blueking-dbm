@@ -26,8 +26,8 @@ import (
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	"k8s-dbs/metadata/vo/req"
-	"k8s-dbs/metadata/vo/resp"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +57,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respVo resp.K8sClusterConfigRespVo
+	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, config); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -78,7 +78,7 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respRegions []*resp.RegionResp
+	var respRegions []*response.RegionResp
 	if err := copier.Copy(&respRegions, regions); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -98,7 +98,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var respVo resp.K8sClusterConfigRespVo
+	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, config); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
@@ -108,7 +108,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 
 // CreateK8sClusterConfig create a new clusterConfig.
 func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
-	var reqVo req.K8sClusterConfigReqVo
+	var reqVo request.K8sClusterConfigRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -123,7 +123,7 @@ func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
 	}
-	var respVo resp.K8sClusterConfigRespVo
+	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, addedConfig); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
 		return
@@ -139,7 +139,7 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return
 	}
-	var reqVo req.K8sClusterConfigReqVo
+	var reqVo request.K8sClusterConfigRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
 		return

@@ -1,0 +1,65 @@
+[
+  {
+    "addonCategory": "TimeSeries",
+    "addonType": "victoriametrics",
+    "addonName": "victoriametrics",
+    "addonVersion": "1.0.0",
+    "topologies": [
+      {
+        "name": "cluster",
+        "alias": "集群模式",
+        "description":"涵盖 VM 服务所需组件（存储、查询和写入），适用于需要完整 VM 存储服务的场景。",
+        "default": true,
+        "components": [
+          {
+            "name": "vminsert",
+            "alias": "插入组件",
+            "description": "负责数据写入，接收并缓冲时间序列数据，然后高效分发给 vmstorage 进行持久化。"
+          },
+          {
+            "name": "vmselect",
+            "alias": "查询组件",
+            "description": "负责查询处理，接收 PromQL 查询请求并从存储中检索匹配的时间序列数据。"
+          },
+          {
+            "name": "vmstorage",
+            "alias": "存储组件",
+            "description": "负责数据存储，长期保存时间序列数据，并支持高效的数据读取和压缩"
+          }
+        ],
+        "relations": [
+          {
+            "name": "write_data",
+            "type": "write",
+            "type_alias": "写入",
+            "from": "vminsert",
+            "to": "vmstorage",
+            "direction": "single"
+          },
+          {
+            "name": "query_data",
+            "type": "read",
+            "type_alias": "读取",
+            "from": "vmselect",
+            "to": "vmstorage",
+            "direction": "single"
+          }
+        ]
+      },
+      {
+        "name": "select",
+        "alias": "查询模式",
+        "default": false,
+        "description": "仅部署 VM 查询组件，适用于查询压力过大，需额外部署更大查询集群的场景。",
+        "components": [
+          {
+            "name": "vmselect",
+            "alias": "查询组件",
+            "description": "负责查询处理，接收 PromQL 查询请求并从存储中检索匹配的时间序列数据。"
+          }
+        ],
+        "relations": null
+      }
+    ]
+  }
+]
