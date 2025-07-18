@@ -54,10 +54,14 @@ def scan_cluster(cluster: Cluster) -> Graphic:
             graph.add_line(source=slave_be_group, target=receiver_instance_group, label=LineLabel.Bind)
 
         for otr in StorageInstanceTuple.objects.filter(ejector=ejector_instance).exclude(receiver__cluster=cluster):
+            if not otr.receiver.cluster.exists():
+                continue
             foreign_receiver_cluster = otr.receiver.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepTo, foreign_receiver_cluster)
 
         for otr in StorageInstanceTuple.objects.filter(receiver=ejector_instance).exclude(ejector__cluster=cluster):
+            if not otr.receiver.cluster.exists():
+                continue
             foreign_ejector_cluster = otr.ejector.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepFrom, foreign_ejector_cluster)
 
