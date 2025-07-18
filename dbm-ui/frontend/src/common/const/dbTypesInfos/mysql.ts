@@ -20,6 +20,7 @@ export const mysql: DbInfoType = {
     ],
     moduleId: 'mysql',
     name: 'MySQL',
+    routeIndexName: 'MysqlManage',
   },
   [DBTypes.TENDBCLUSTER]: {
     id: DBTypes.TENDBCLUSTER,
@@ -35,5 +36,6 @@ export const mysql: DbInfoType = {
     ],
     moduleId: 'mysql',
     name: 'TenDBCluster',
+    routeIndexName: 'SpiderManage',
   },
 };

@@ -24,6 +24,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Doris',
+    routeIndexName: 'DorisManage',
   },
   [DBTypes.ES]: {
     id: DBTypes.ES,
@@ -43,6 +44,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'ElasticSearch',
+    routeIndexName: 'EsManage',
   },
   [DBTypes.HDFS]: {
     id: DBTypes.HDFS,
@@ -58,6 +60,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'HDFS',
+    routeIndexName: 'HdfsManage',
   },
   [DBTypes.INFLUXDB]: {
     id: DBTypes.INFLUXDB,
@@ -69,6 +72,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'InfuxDB',
+    routeIndexName: 'InfluxDBManage',
   },
   [DBTypes.KAFKA]: {
     id: DBTypes.KAFKA,
@@ -84,6 +88,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Kafka',
+    routeIndexName: 'KafkaManage',
   },
   [DBTypes.PULSAR]: {
     id: DBTypes.PULSAR,
@@ -103,6 +108,7 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Pulsar',
+    routeIndexName: 'PulsarManage',
   },
   [DBTypes.RIAK]: {
     id: DBTypes.RIAK,
@@ -114,5 +120,6 @@ export const bigdata: DbInfoType = {
     ],
     moduleId: 'bigdata',
     name: 'Riak',
+    routeIndexName: 'RiakManage',
   },
 };
