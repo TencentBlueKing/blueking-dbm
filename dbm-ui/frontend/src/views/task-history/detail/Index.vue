@@ -256,7 +256,9 @@
     <Teleport to="#dbContentTitleAppend">
       <span v-if="flowState.details.flow_info">
         <span> - </span>
-        {{ flowState.details.flow_info.ticket_type_display }}【{{ flowState.details.flow_info.root_id }}】
+        {{ flowState.details.flow_info.flow_alias || flowState.details.flow_info.ticket_type_display }}【{{
+          flowState.details.flow_info.root_id
+        }}】
       </span>
     </Teleport>
     <Teleport to="#dbContentHeaderAppend">
@@ -553,6 +555,7 @@
         {
           key: 'ticket_type_display',
           label: t('任务类型'),
+          render: () => baseInfo.value.flow_alias || baseInfo.value.ticket_type_display,
         },
       ],
       [
