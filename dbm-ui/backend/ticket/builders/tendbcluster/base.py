@@ -16,6 +16,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 from backend.flow.utils.spider.spider_bk_config import calc_spider_max_count, get_spider_version_and_charset
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
@@ -172,6 +173,25 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             raise serializers.ValidationError(
                 _("集群总分片数{}与单机分片数{}、机器部署组数{}不匹配").format(
                     attrs["cluster_shard_num"], attrs["remote_shard_num"], machine_group_count
+                )
+            )
+
+    @classmethod
+    def validate_spider_count_for_apply(cls, attrs):
+        """
+        针对集群部署单据，校验spider_master初始化部署数量是否符合要求
+        这里的数量要求是：不能操作集群上限的一半
+        """
+        result, upper_limit_count = MysqlBaseValidator.pre_check_spider_master_count(
+            bk_biz_id=int(attrs["bk_biz_id"]),
+            db_module_id=int(attrs["db_module_id"]),
+            ready_to_add_count=int(attrs["resource_spec"]["spider"]["count"]) * 2,
+            existing_count=0,
+        )
+        if not result:
+            raise serializers.ValidationError(
+                _("部署的spider_master节点数量[{}]，禁止超过集群上限[{}]的一半").format(
+                    attrs["resource_spec"]["spider"]["count"], upper_limit_count
                 )
             )
 

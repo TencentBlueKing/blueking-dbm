@@ -21,3 +21,15 @@ class TicketDataException(FlowValidateBaseException):
     ERROR_CODE = "001"
     MESSAGE = _("参数结构异常")
     MESSAGE_TPL = _("{message}")
+
+
+class DisasterToleranceLevelFailedException(FlowValidateBaseException):
+    ERROR_CODE = "002"
+    MESSAGE = _("不支持这类集群容灾级别的校验")
+    MESSAGE_TPL = _("{message}")
+
+
+class CheckDisasterToleranceException(FlowValidateBaseException):
+    ERROR_CODE = "003"
+    MESSAGE = _("校验集群容灾级别不通过")
+    MESSAGE_TPL = _("{message}")

@@ -19,6 +19,8 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import add_spider_slaves_sub_flow
+from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
@@ -66,6 +68,16 @@ class TenDBSlaveClusterApplyFlow(object):
             except Cluster.DoesNotExist:
                 raise ClusterNotExistException(
                     cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                )
+
+            # 在做一下容灾级别检查，因为flow validator 只能做前置检验，这是没有申请到机器，所以只能在flow构建时判断
+            if not BaseValidator.check_disaster_tolerance_level(cluster, info["spider_slave_ip_list"]):
+                raise CheckDisasterToleranceException(
+                    message=_(
+                        "[{}]集群spider节点不满足容灾要求，请检查，剩余的节点信息:{}".format(
+                            cluster.immute_domain, info["spider_slave_ip_list"]
+                        )
+                    )
                 )
 
             # 根据集群去bk-config获取对应spider版本和字符集
