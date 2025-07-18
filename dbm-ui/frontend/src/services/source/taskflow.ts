@@ -138,6 +138,7 @@ interface FlowsDetail {
     cost_time: number;
     created_at: string;
     created_by: string;
+    flow_alias: string;
     root_id: string;
     status: string;
     ticket_type: string;
