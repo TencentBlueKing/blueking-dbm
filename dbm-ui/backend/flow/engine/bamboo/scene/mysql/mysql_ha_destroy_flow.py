@@ -119,11 +119,11 @@ class MySQLHADestroyFlow(object):
             )
             # delete clb
             acts_list = []
-            cluster_enterys = ClusterEntry.objects.filter(
+            cluster_entries = ClusterEntry.objects.filter(
                 cluster__id=cluster_id,
                 cluster_entry_type=ClusterEntryType.CLB,
             ).all()
-            for ce in cluster_enterys:
+            for ce in cluster_entries:
                 acts_list.append(
                     {
                         "act_name": _("删除CLB"),
@@ -136,7 +136,7 @@ class MySQLHADestroyFlow(object):
                         ),
                     }
                 )
-                sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
             # 阶段1 下发db-actuator介质包
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),
