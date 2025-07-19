@@ -19,6 +19,7 @@ from celery import current_app
 from celery.schedules import crontab
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
@@ -60,7 +61,7 @@ def query_cluster_exporter_up(db_type, exporter):
     return cluster_exporter_up_map
 
 
-def query_cap(bk_biz_id, cluster_type, cap_key="used"):
+def query_cap(bk_biz_id, cluster_type, cap_key="used", clusters=None):
     """查询某类集群的某种容量: used/total"""
 
     cluster_type = SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP.get(cluster_type, cluster_type)
@@ -82,8 +83,12 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used"):
     params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     params["start_time"] = int(start_time.timestamp())
     params["end_time"] = int(end_time.timestamp())
+    filters = 'appid="{}"'.format(bk_biz_id)
 
-    params["query_configs"][0]["promql"] = query_template[cap_key] % f'appid="{bk_biz_id}"'
+    # 获取指定域名的指标数据
+    if clusters:
+        filters = '{}, cluster_domain=~"{}"'.format(filters, "|".join(c for c in clusters))
+    params["query_configs"][0]["promql"] = query_template[cap_key] % filters
     series = BKMonitorV3Api.unify_query(params)["series"]
 
     cluster_bytes = {}
@@ -104,7 +109,6 @@ def query_cluster_capacity(bk_biz_id, cluster_type):
     """查询集群容量"""
 
     cluster_cap_bytes = defaultdict(dict)
-
     domains = list(
         Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
         .values_list("immute_domain", flat=True)
@@ -125,6 +129,26 @@ def query_cluster_capacity(bk_biz_id, cluster_type):
             continue
         cluster_cap_bytes[cluster]["total"] = used
 
+    return cluster_cap_bytes
+
+
+def query_capacity_for_clusters(bk_biz_id, cluster_type, clusters) -> dict:
+    """查询指定的集群的容量"""
+
+    if not clusters:
+        raise Exception(_("参数clusters不应该为空"))
+    cluster_cap_bytes = defaultdict(dict)
+    no_stats = []
+    used_data = query_cap(bk_biz_id, cluster_type, "used", clusters)
+    total_data = query_cap(bk_biz_id, cluster_type, "total", clusters)
+    for cluster in clusters:
+        if cluster in used_data and cluster in total_data:
+            cluster_cap_bytes[cluster]["used"] = used_data[cluster]
+            cluster_cap_bytes[cluster]["total"] = total_data[cluster]
+        else:
+            no_stats.append(cluster)
+    if no_stats:
+        raise Exception(_("没有[{}]集群的统计信息").format(no_stats))
     return cluster_cap_bytes
 
 

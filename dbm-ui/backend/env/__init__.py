@@ -227,3 +227,8 @@ HCM_COS_ACCOUNT_ID = get_type_env(key="HCM_COS_ACCOUNT_ID", _type=str, default="
 COS_INTERNAL_ENDPOINT_TMPL = get_type_env(key="COS_INTERNAL_ENDPOINT_TMPL", _type=str, default="")
 # COS 服务域名
 COS_SERVICE_DOMAIN = get_type_env(key="COS_SERVICE_DOMAIN", _type=str, default="")
+# DBM Stats DB
+DBM_STATSDB_USER = get_type_env(key="DBM_STATSDB_USER", _type=str, default="")
+DBM_STATSDB_PASSWORD = get_type_env(key="DBM_STATSDB_PASSWORD", _type=str, default="")
+DBM_STATSDB_URL = get_type_env(key="DBM_STATSDB_URL", _type=str, default="")
+DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")

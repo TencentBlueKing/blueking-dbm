@@ -251,18 +251,24 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		whereClauses = append(whereClauses, "update_time >= ? AND update_time <= ?")
 		args = append(args, m.BeginTime, m.EndTime)
 	}
-
-	// 分页
+	// count
 	query := DB.Self.Model(&TbPasswords{}).
-		Where(strings.Join(whereClauses, " AND "), args...).
-		Order("update_time DESC")
+		Where(strings.Join(whereClauses, " AND "), args...)
+	cnt := Cnt{}
+	err := query.Count(&cnt.Count).Error
+	if err != nil {
+		slog.Error("Count query error", "where", whereClauses, "args", args, "err", err)
+		return nil, 0, err
+	}
+	// 分页
+	query.Order("update_time DESC")
 	if m.Limit != nil {
 		query = query.Limit(*m.Limit)
 	}
 	if m.Offset != nil {
 		query = query.Offset(*m.Offset)
 	}
-	err := query.Find(&passwords).Error
+	err = query.Find(&passwords).Error
 	if err != nil {
 		slog.Error("msg", "query passwords error", err)
 		return passwords, 0, err
@@ -272,7 +278,7 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		slog.Error("msg", "DecodePassword", err)
 		return passwords, 0, err
 	}
-	return passwords, len(passwords), nil
+	return passwords, cnt.Count, nil
 }
 
 // ModifyAdminPassword 修改mysql实例中用户的密码，可用于随机化密码

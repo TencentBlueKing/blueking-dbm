@@ -20,6 +20,9 @@ DBHA_PASSWORD = get_type_env(key="DBHA_PASSWORD", _type=str, default="")
 TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[])
 WEBCONSOLE_USERNAME = get_type_env(key="WEBCONSOLE_USERNAME", _type=str, default="")
 WEBCONSOLE_PASSWORD = get_type_env(key="WEBCONSOLE_PASSWORD", _type=str, default="")
+STATSDB_USERNAME = get_type_env(key="STATSDB_USERNAME", _type=str, default="")
+STATSDB_PASSWORD = get_type_env(key="STATSDB_PASSWORD", _type=str, default="")
+STATSDB_DBNAME = get_type_env(key="STATSDB_DBNAME", _type=str, default="")
 
 # 跳过审批开关，默认关闭，方便本地联调
 ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=bool, default=False)
