@@ -21,8 +21,7 @@ package router
 
 import (
 	metacontroller "k8s-dbs/metadata/api/controller"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
+	routerhelper "k8s-dbs/router/helper"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -31,16 +30,13 @@ import (
 // BuildClusterMetaRouter clusterMeta 管理路由构建
 func BuildClusterMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group("/metadata")
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
-		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
+	clusterMetaProvider := routerhelper.BuildClusterMetaProvider(db)
+
 	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
 	clusterMetaGroup := metaRouter.Group("/cluster")
 	{
-		clusterMetaGroup.GET("/:id", clusterMetaController.GetCluster)
+		clusterMetaGroup.GET("/:id", clusterMetaController.GetClusterInfo)
+		clusterMetaGroup.GET("/topology/:id", clusterMetaController.GetClusterTopology)
 		clusterMetaGroup.GET("/search", clusterMetaController.ListCluster)
 	}
 }

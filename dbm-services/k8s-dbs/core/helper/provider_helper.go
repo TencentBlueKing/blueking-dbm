@@ -21,14 +21,14 @@ package helper
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	commentity "k8s-dbs/common/entity"
-	helper2 "k8s-dbs/common/helper"
+	commhelper "k8s-dbs/common/helper"
 	"k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreerrors "k8s-dbs/errors"
+
+	"log/slog"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -37,50 +37,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	providerentity "k8s-dbs/metadata/entity"
-	metaprovider "k8s-dbs/metadata/provider"
-	"log/slog"
-
 	"helm.sh/helm/v3/pkg/action"
 )
-
-// CreateRequestRecord Save request
-func CreateRequestRecord(
-	dbsContext *commentity.DbsContext,
-	requestParams interface{},
-	requestType string,
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-) (*providerentity.ClusterRequestRecordEntity, error) {
-	if requestParams == nil {
-		return nil, fmt.Errorf("requestParams is nil")
-	}
-
-	if requestType == "" {
-		return nil, fmt.Errorf("requestType is empty")
-	}
-	serializedRequest, err := json.Marshal(requestParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize request parameters: %w", err)
-	}
-
-	requestRecord := &providerentity.ClusterRequestRecordEntity{
-		RequestID:     util.RequestID(),
-		RequestType:   requestType,
-		RequestParams: string(serializedRequest),
-		CreatedBy:     dbsContext.BkAuth.BkUserName,
-		UpdatedBy:     dbsContext.BkAuth.BkUserName,
-	}
-	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request record entity: %w", err)
-	}
-	return addedRequestRecord, nil
-}
 
 // BuildHelmActionConfig 构建 helm action config
 func BuildHelmActionConfig(
 	namespace string,
-	k8sClient *helper2.K8sClient,
+	k8sClient *commhelper.K8sClient,
 ) (*action.Configuration, error) {
 	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
 	if err != nil {
@@ -94,37 +57,8 @@ func BuildHelmActionConfig(
 	return actionConfig, nil
 }
 
-// SaveAuditLog 记录审计日志
-func SaveAuditLog(
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-	request *coreentity.Request,
-	requestType string,
-) (*providerentity.ClusterRequestRecordEntity, error) {
-	requestBytes, err := json.Marshal(request)
-	if err != nil {
-		return nil, fmt.Errorf("serialization request failed: %v", err)
-	}
-
-	requestRecord := &providerentity.ClusterRequestRecordEntity{
-		K8sClusterName: request.K8sClusterName,
-		ClusterName:    request.ClusterName,
-		NameSpace:      request.Namespace,
-		RequestID:      util.RequestID(),
-		RequestType:    requestType,
-		RequestParams:  string(requestBytes),
-		CreatedBy:      request.BKAuth.BkUserName,
-		UpdatedBy:      request.BKAuth.BkUserName,
-	}
-
-	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request entity: %w", err)
-	}
-	return addedRequestRecord, nil
-}
-
 // GetPodStorageCapacity 获取 pod 存储容量大小，单位：GB
-func GetPodStorageCapacity(k8sClient *helper2.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
+func GetPodStorageCapacity(k8sClient *commhelper.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
 	volumes := pod.Spec.Volumes
 	if len(volumes) == 0 {
 		return nil, nil
@@ -169,7 +103,7 @@ func GetPodStorageCapacity(k8sClient *helper2.K8sClient, pod *corev1.Pod) (*core
 }
 
 // GetPodResourceQuota 从 Pod 的容器中提取资源请求和限制
-func GetPodResourceQuota(k8sClient *helper2.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
+func GetPodResourceQuota(k8sClient *commhelper.K8sClient, pod *corev1.Pod) (*coreentity.PodResourceQuota, error) {
 	if len(pod.Spec.Containers) == 0 {
 		return nil, fmt.Errorf("pod %s has no containers", pod.Name)
 	}
@@ -203,7 +137,7 @@ func ConvertUnstructuredToPod(item unstructured.Unstructured) (*corev1.Pod, erro
 
 // GetPodResourceUsage 获取 Pod 资源利用率
 func GetPodResourceUsage(
-	k8sClient *helper2.K8sClient,
+	k8sClient *commhelper.K8sClient,
 	pod *corev1.Pod,
 	resourceQuota *coreentity.PodResourceQuota,
 ) (*coreentity.PodResourceUsage, error) {

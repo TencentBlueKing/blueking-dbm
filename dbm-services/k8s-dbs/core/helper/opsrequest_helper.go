@@ -20,13 +20,12 @@ limitations under the License.
 package helper
 
 import (
-	"encoding/json"
 	"fmt"
 	"k8s-dbs/common/util"
+	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	metaenitty "k8s-dbs/metadata/entity"
-	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"strings"
 
@@ -614,71 +613,12 @@ func createOpsService(request *entity.Request, podSelect map[string]string) (opv
 	return service, nil
 }
 
-// CreateOpsRequestMetaData 构建 opsRequest 元数据
-func CreateOpsRequestMetaData(
-	opsRequestProvider metaprovider.K8sCrdOpsRequestProvider,
-	crdClusterProvider metaprovider.K8sCrdClusterProvider,
-	request *entity.Request,
-	crd *entity.CustomResourceDefinition,
-	requestID string,
-	k8sClusterConfigID uint64,
-) error {
-	opsReqEntity, err := getEntityFromReq(crd)
-	if err != nil {
-		return err
-	}
-	params := metaenitty.ClusterQueryParams{
-		ClusterName: request.ClusterName,
-		Namespace:   request.Namespace,
-	}
-	clusterEntity, err := crdClusterProvider.FindByParams(&params)
-	if err != nil {
-		return err
-	}
-
-	opsReqEntity.CrdClusterID = clusterEntity.ID
-	opsReqEntity.RequestID = requestID
-	opsReqEntity.K8sClusterConfigID = k8sClusterConfigID
-
-	_, err = opsRequestProvider.CreateOpsRequest(opsReqEntity)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// getEntityFromReq 解析 request 构建 K8sCrdOpsRequestEntity
-func getEntityFromReq(crd *entity.CustomResourceDefinition) (*metaenitty.K8sCrdOpsRequestEntity, error) {
-	var opsRequestObject opv1.OpsRequest
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(crd.ResourceObject.Object, &opsRequestObject)
-	if err != nil {
-		return nil, err
-	}
-
-	metaDataJSON, err := json.Marshal(opsRequestObject.ObjectMeta)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal metaData to JSON: %w", err)
-	}
-	specJSON, err := json.Marshal(opsRequestObject.Spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal spec to JSON: %w", err)
-	}
-
-	opsReqEntity := &metaenitty.K8sCrdOpsRequestEntity{
-		OpsRequestName: opsRequestObject.Name,
-		OpsRequestType: crd.ResourceType,
-		Metadata:       string(metaDataJSON),
-		Spec:           string(specJSON),
-	}
-	return opsReqEntity, nil
-}
-
 // UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
 func UpdateValWithHScaling(
 	request *entity.Request,
 	releaseEntity *metaenitty.AddonClusterReleaseEntity,
 ) (*metaenitty.AddonClusterReleaseEntity, error) {
-	values, err := stringToMap(releaseEntity.ChartValues)
+	values, err := commutil.JSONStrToMap(releaseEntity.ChartValues)
 	if err != nil {
 		return nil, err
 	}
@@ -705,109 +645,12 @@ func UpdateValWithHScaling(
 	}
 	values["componentList"] = compListFromVal
 
-	jsonStr, err := mapToString(values, request)
+	jsonStr, err := commutil.MapToJSONStr(values)
 	if err != nil {
 		return nil, err
 	}
 	releaseEntity.ChartValues = jsonStr
 	return releaseEntity, nil
-}
-
-// UpdateValWithCompList updates the release entity's chart values with component configurations.
-func UpdateValWithCompList(
-	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
-	request *entity.Request,
-	k8sClusterConfigID uint64,
-) (*metaenitty.AddonClusterReleaseEntity, error) {
-
-	params := &metaenitty.ClusterReleaseQueryParams{
-		K8sClusterConfigID: k8sClusterConfigID,
-		ReleaseName:        request.ClusterName,
-		Namespace:          request.Namespace,
-	}
-	releaseEntity, err := releaseMetaProvider.FindByParams(params)
-	if err != nil {
-		return nil, err
-	}
-
-	values, err := stringToMap(releaseEntity.ChartValues)
-	if err != nil {
-		return nil, err
-	}
-
-	compListFromVal, _ := values["componentList"].([]interface{})
-	for _, compFromReq := range request.ComponentList {
-		for i, itemFromVal := range compListFromVal {
-			compFromVal, ok := itemFromVal.(map[string]interface{})
-			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
-
-				if compFromReq.Version != "" {
-					compFromVal["serviceVersion"] = compFromReq.Version
-				}
-
-				volumeClaimTemplates, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
-				if vctOk && !compFromReq.Storage.IsZero() {
-					volumeClaimTemplates["storage"] = compFromReq.Storage
-					compFromVal["volumeClaimTemplates"] = volumeClaimTemplates
-				}
-
-				resources, resOk := compFromVal["resources"].(map[string]interface{})
-				if !resOk {
-					resources = make(map[string]interface{})
-					compFromVal["resources"] = resources
-				}
-				err = MergeObjectToVal(resources, compFromReq.Request, "requests")
-				if err != nil {
-					return nil, err
-				}
-				err = MergeObjectToVal(resources, compFromReq.Limit, "limits")
-				if err != nil {
-					return nil, err
-				}
-
-				compListFromVal[i] = compFromVal
-			}
-		}
-	}
-	values["componentList"] = compListFromVal
-
-	jsonStr, err := mapToString(values, request)
-	if err != nil {
-		return nil, err
-	}
-	releaseEntity.ChartValues = jsonStr
-
-	_, err = releaseMetaProvider.UpdateClusterRelease(releaseEntity)
-	if err != nil {
-		return nil, err
-	}
-	return releaseEntity, nil
-}
-
-func stringToMap(value string) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	// convert string to byte array and then parse
-	if err := json.Unmarshal([]byte(value), &result); err != nil {
-		slog.Error("Failed to unmarshal chart values",
-			"error", err,
-			"value", value,
-		)
-		return nil, fmt.Errorf("unmarshal failed: %w", err)
-	}
-	return result, nil
-}
-
-func mapToString(value map[string]interface{}, request *entity.Request) (string, error) {
-	jsonData, err := json.Marshal(value)
-	if err != nil {
-		slog.Error("failed to marshal release values",
-			"release_name", request.ClusterName,
-			"error", err,
-		)
-		return "", fmt.Errorf("failed to marshal release values: %w", err)
-	}
-
-	return string(jsonData), nil
 }
 
 func checkResourceFromComp(comp entity.ComponentResource) error {

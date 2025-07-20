@@ -24,7 +24,6 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/common/helper"
-	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
@@ -76,7 +75,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		return nil, fmt.Errorf("no pods found for component %s in namespace %s", request.ComponentName, request.Namespace)
 	}
 
-	pods, err := extractPodsInfo(k8sClient, podList)
+	pods, err := corehelper.ExtractPodsInfo(k8sClient, podList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract pod details: %w", err)
 	}
@@ -96,51 +95,6 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		Env:  envVars,
 	}
 	return componentDetail, nil
-}
-
-// getPodRole 从 Pod 的标签中提取角色信息
-func getPodRole(pod *corev1.Pod) string {
-	if role, exists := pod.Labels["kubeblocks.io/role"]; exists {
-		return role
-	}
-	return "" // 默认为空字符串
-}
-
-// extractPodsInfo 从 Pod 列表中提取 Pod 信息
-func extractPodsInfo(
-	k8sClient *helper.K8sClient,
-	podList *unstructured.UnstructuredList,
-) ([]*coreentity.Pod, error) {
-	var pods []*coreentity.Pod
-
-	for _, item := range podList.Items {
-		pod, err := corehelper.ConvertUnstructuredToPod(item)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
-		}
-
-		resourceQuota, err := corehelper.GetPodResourceQuota(k8sClient, pod)
-		if err != nil {
-			return nil, fmt.Errorf("failed to extract resource quota for pod %s: %w", pod.Name, err)
-		}
-
-		usage, err := corehelper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
-		if err != nil {
-			return nil, err
-		}
-
-		pods = append(pods, &coreentity.Pod{
-			PodName:       pod.Name,
-			Status:        pod.Status.Phase,
-			Node:          pod.Spec.NodeName,
-			Role:          getPodRole(pod),
-			ResourceQuota: resourceQuota,
-			ResourceUsage: usage,
-			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
-		})
-	}
-
-	return pods, nil
 }
 
 // extractEnvVars 从 Pod 列表中提取环境变量（仅取第一个容器的 Env）
@@ -331,22 +285,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	crd := &coreentity.CustomResourceDefinition{
-		GroupVersionResource: kbtypes.PodGVR(),
-		Namespace:            params.Namespace,
-		Labels: map[string]string{
-			coreconst.InstanceName:  params.ClusterName,
-			coreconst.ComponentName: params.ComponentName,
-		},
-	}
-	podList, err := corehelper.ListCRD(k8sClient, crd)
-	if err != nil {
-		return nil, 0, err
-	}
-	if len(podList.Items) == 0 {
-		return []*coreentity.Pod{}, 0, nil
-	}
-	pods, err := extractPodsInfo(k8sClient, podList)
+	pods, err := corehelper.GetComponentPods(params, k8sClient)
 	if err != nil {
 		return nil, 0, err
 	}

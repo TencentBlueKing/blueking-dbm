@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	commhelper "k8s-dbs/common/helper"
+	commtypes "k8s-dbs/common/types"
 	"k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"log/slog"
@@ -31,6 +32,9 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	kbtypes "github.com/apecloud/kbcli/pkg/types"
+	corev1 "k8s.io/api/core/v1"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -549,4 +553,73 @@ func CheckStorageBySC(storageClassName string, currentStorage resource.Quantity)
 	}
 
 	return nil
+}
+
+// GetComponentPods 获取组件实例列表
+func GetComponentPods(params *entity.ComponentQueryParams, k8sClient *commhelper.K8sClient) ([]*entity.Pod, error) {
+	crd := &entity.CustomResourceDefinition{
+		GroupVersionResource: kbtypes.PodGVR(),
+		Namespace:            params.Namespace,
+		Labels: map[string]string{
+			constant.InstanceName:  params.ClusterName,
+			constant.ComponentName: params.ComponentName,
+		},
+	}
+	podList, err := ListCRD(k8sClient, crd)
+	if err != nil {
+		return nil, err
+	}
+	if len(podList.Items) == 0 {
+		return []*entity.Pod{}, nil
+	}
+	pods, err := ExtractPodsInfo(k8sClient, podList)
+	if err != nil {
+		return nil, err
+	}
+	return pods, err
+}
+
+// ExtractPodsInfo 从 Pod 列表中提取 Pod 信息
+func ExtractPodsInfo(
+	k8sClient *commhelper.K8sClient,
+	podList *unstructured.UnstructuredList,
+) ([]*entity.Pod, error) {
+	var pods []*entity.Pod
+
+	for _, item := range podList.Items {
+		pod, err := ConvertUnstructuredToPod(item)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
+		}
+
+		resourceQuota, err := GetPodResourceQuota(k8sClient, pod)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract resource quota for pod %s: %w", pod.Name, err)
+		}
+
+		usage, err := GetPodResourceUsage(k8sClient, pod, resourceQuota)
+		if err != nil {
+			return nil, err
+		}
+
+		pods = append(pods, &entity.Pod{
+			PodName:       pod.Name,
+			Status:        pod.Status.Phase,
+			Node:          pod.Spec.NodeName,
+			Role:          GetPodRole(pod),
+			ResourceQuota: resourceQuota,
+			ResourceUsage: usage,
+			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
+		})
+	}
+
+	return pods, nil
+}
+
+// GetPodRole 从 Pod 的标签中提取角色信息
+func GetPodRole(pod *corev1.Pod) string {
+	if role, exists := pod.Labels["kubeblocks.io/role"]; exists {
+		return role
+	}
+	return "" // 默认为空字符串
 }

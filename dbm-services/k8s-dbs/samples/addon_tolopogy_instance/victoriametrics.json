@@ -69,16 +69,16 @@
         "relations": [
           {
             "name": "write_data",
-            "type": "write",
-            "type_alias": "写入",
+            "typeName": "write",
+            "typeAlias": "写入",
             "from": "vminsert",
             "to": "vmstorage",
             "direction": "single"
           },
           {
             "name": "query_data",
-            "type": "read",
-            "type_alias": "读取",
+            "typeName": "read",
+            "typeAlias": "读取",
             "from": "vmselect",
             "to": "vmstorage",
             "direction": "single"

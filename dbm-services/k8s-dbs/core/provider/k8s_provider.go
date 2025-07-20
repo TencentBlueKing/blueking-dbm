@@ -31,7 +31,8 @@ import (
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/helper"
+	corehelper "k8s-dbs/core/helper"
+	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"strings"
@@ -61,7 +62,7 @@ func (k *K8sProvider) CreateNamespace(
 	dbsContext *commentity.DbsContext,
 	entity *coreentity.K8sNamespaceEntity,
 ) (*coreentity.K8sNamespaceEntity, error) {
-	_, err := helper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
+	_, err := metahelper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -193,22 +194,22 @@ func (k *K8sProvider) GetPodDetail(
 		Namespace:            namespace,
 		GroupVersionResource: kbtypes.PodGVR(),
 	}
-	podCR, err := helper.GetCRD(k8sClient, crd)
+	podCR, err := corehelper.GetCRD(k8sClient, crd)
 	if err != nil {
 		slog.Error("failed to get pod CRD", "err", err)
 		return nil, err
 	}
-	pod, err := helper.ConvertUnstructuredToPod(*podCR)
+	pod, err := corehelper.ConvertUnstructuredToPod(*podCR)
 	if err != nil {
 		return nil, err
 	}
 	// 获取资源配额
-	resourceQuota, err := helper.GetPodResourceQuota(k8sClient, pod)
+	resourceQuota, err := corehelper.GetPodResourceQuota(k8sClient, pod)
 	if err != nil {
 		return nil, err
 	}
 	// 获取资源利用率
-	resourceUsage, err := helper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
+	resourceUsage, err := corehelper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +223,7 @@ func (k *K8sProvider) GetPodDetail(
 			PodName:       podName,
 			Node:          pod.Spec.NodeName,
 			Status:        pod.Status.Phase,
-			Role:          getPodRole(pod),
+			Role:          corehelper.GetPodRole(pod),
 			ResourceQuota: resourceQuota,
 			ResourceUsage: resourceUsage,
 			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),

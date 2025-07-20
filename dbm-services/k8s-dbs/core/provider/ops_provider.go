@@ -21,11 +21,12 @@ package provider
 
 import (
 	"fmt"
-	"k8s-dbs/common/helper"
+	commhelper "k8s-dbs/common/helper"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
 	metaentity "k8s-dbs/metadata/entity"
+	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 
@@ -129,7 +130,7 @@ func (o *OpsRequestProvider) GetOpsRequestStatus(request *coreentity.Request) (*
 
 // VerticalScaling Create a verticalScaling of opsRequest
 func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VScaling)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VScaling)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +140,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -149,7 +150,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -166,7 +167,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
+	_, err = metahelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +181,7 @@ func (o *OpsRequestProvider) VerticalScaling(request *coreentity.Request) (*core
 
 // HorizontalScaling Create a horizontalScaling of opsRequest
 func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.HScaling)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.HScaling)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +190,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -199,7 +200,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -245,7 +246,7 @@ func (o *OpsRequestProvider) HorizontalScaling(request *coreentity.Request) (*co
 
 // VolumeExpansion Create a volumeExpansion of opsRequest
 func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VExpansion)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.VExpansion)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +255,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -269,7 +270,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -286,7 +287,7 @@ func (o *OpsRequestProvider) VolumeExpansion(request *coreentity.Request) (*core
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
+	_, err = metahelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +305,7 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 	if request.ComponentList != nil {
 		requestType = coreconst.StartComp
 	}
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +314,7 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -323,7 +324,7 @@ func (o *OpsRequestProvider) StartCluster(request *coreentity.Request) (*coreent
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -355,7 +356,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 		requestType = coreconst.RestartComp
 	}
 
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +365,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -384,7 +385,7 @@ func (o *OpsRequestProvider) RestartCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -415,7 +416,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 		requestType = coreconst.StopComp
 	}
 
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, requestType)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +425,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -434,7 +435,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -461,7 +462,7 @@ func (o *OpsRequestProvider) StopCluster(request *coreentity.Request) (*coreenti
 
 // UpgradeCluster create crd if needed and Create a upgradeCluster of opsRequest
 func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.UpgradeComp)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.UpgradeComp)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +471,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -485,7 +486,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -502,7 +503,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 		return nil, err
 	}
 
-	_, err = corehelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
+	_, err = metahelper.UpdateValWithCompList(o.releaseMeta, request, k8sClusterConfig.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +517,7 @@ func (o *OpsRequestProvider) UpgradeCluster(request *coreentity.Request) (*coree
 
 // ExposeCluster create crd if needed and Create a exposeCluster of opsRequest
 func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreentity.Metadata, error) {
-	addedRequestEntity, err := corehelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.ExposeService)
+	addedRequestEntity, err := metahelper.SaveAuditLog(o.reqRecordMeta, request, coreconst.ExposeService)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +526,7 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -536,7 +537,7 @@ func (o *OpsRequestProvider) ExposeCluster(request *coreentity.Request) (*coreen
 		return nil, err
 	}
 
-	err = corehelper.CreateOpsRequestMetaData(
+	err = metahelper.CreateOpsRequestMetaData(
 		o.opsRequestMeta,
 		o.clusterMeta,
 		request,
@@ -566,7 +567,7 @@ func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*c
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -609,7 +610,7 @@ func (o *OpsRequestProvider) validateProvider() error {
 }
 
 // getClusterInfo Query cluster information and return
-func getClusterInfo(request *coreentity.Request, k8sClient *helper.K8sClient) (*kbv1.Cluster, error) {
+func getClusterInfo(request *coreentity.Request, k8sClient *commhelper.K8sClient) (*kbv1.Cluster, error) {
 	// Construct and query crd resources
 	crd := &coreentity.CustomResourceDefinition{
 		ResourceName:         request.Metadata.ClusterName,

@@ -828,8 +828,8 @@ func GetMaster(immuteDomain, clusterType string) (Host, error) {
 	var host Host
 	cluster, err := GetCluster(Domain{immuteDomain}, clusterType)
 	if err != nil {
-		slog.Error("msg", "GetCluster err", err)
-		return host, fmt.Errorf("GetCluster err: %s", err.Error())
+		slog.Error("msg", "GetClusterInfo err", err)
+		return host, fmt.Errorf("GetClusterInfo err: %s", err.Error())
 	}
 	for _, storage := range cluster.Storages {
 		if storage.InstanceRole == Orphan || storage.InstanceRole == BackendMaster {

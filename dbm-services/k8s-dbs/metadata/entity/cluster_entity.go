@@ -21,6 +21,8 @@ package entity
 
 import (
 	commtypes "k8s-dbs/common/types"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // K8sCrdClusterEntity cluster entity 定义
@@ -47,4 +49,47 @@ type K8sCrdClusterEntity struct {
 	CreatedAt           commtypes.JSONDatetime    `json:"createdAt"`
 	UpdatedBy           string                    `json:"updatedBy"`
 	UpdatedAt           commtypes.JSONDatetime    `json:"updatedAt"`
+}
+
+// ClusterTopologyEntity cluster topology entity 定义
+type ClusterTopologyEntity struct {
+	AddonName      string                     `json:"addonName"`
+	AddonCategory  string                     `json:"addonCategory"`
+	AddonType      string                     `json:"addonType"`
+	AddonVersion   string                     `json:"addonVersion"`
+	K8sClusterName string                     `json:"k8sClusterName"`
+	ClusterName    string                     `json:"clusterName"`
+	ClusterAlias   string                     `json:"clusterAlias"`
+	Namespace      string                     `json:"namespace"`
+	IsDefault      bool                       `json:"isDefault"`
+	TopoName       string                     `json:"topoName"`
+	Status         string                     `json:"status"`
+	Components     []*TopologyComponentEntity `json:"components"`
+	Relations      []*ComponentRelationEntity `json:"relations"`
+	Description    string                     `json:"description"`
+}
+
+// TopologyComponentEntity topology 组件定义
+type TopologyComponentEntity struct {
+	Name        string                `json:"name"`
+	Alias       string                `json:"alias"`
+	Description string                `json:"description"`
+	Instances   []*ComponentPodEntity `json:"instances"`
+}
+
+// ComponentPodEntity topology 组件包含的实例 pod 定义
+type ComponentPodEntity struct {
+	PodName     string                 `json:"podName"`
+	Status      corev1.PodPhase        `json:"status"`
+	CreatedTime commtypes.JSONDatetime `json:"createdTime"`
+}
+
+// ComponentRelationEntity 组件关系描述
+type ComponentRelationEntity struct {
+	Name      string `json:"name"`
+	TypeName  string `json:"typeName"`
+	TypeAlias string `json:"typeAlias"`
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Direction string `json:"direction"`
 }

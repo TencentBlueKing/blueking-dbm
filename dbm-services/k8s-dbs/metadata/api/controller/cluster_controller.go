@@ -52,18 +52,34 @@ func getTopoNameAlias(addonType, topoName string) string {
 	return ""
 }
 
-// ClusterController manages metadata for cluster.
+// ClusterController 负责管理维护存储集群元数据
 type ClusterController struct {
 	clusterProvider provider.K8sCrdClusterProvider
 }
 
-// NewClusterController creates a new instance of cluster.
+// NewClusterController 创建 ClusterController 实例
 func NewClusterController(clusterProvider provider.K8sCrdClusterProvider) *ClusterController {
 	return &ClusterController{clusterProvider}
 }
 
-// GetCluster retrieves a cluster by its ID.
-func (c *ClusterController) GetCluster(ctx *gin.Context) {
+// GetClusterTopology 按照 ID 获取集群实例拓扑
+func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
+	idParam := ctx.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	clusterTopology, err := c.clusterProvider.FindClusterTopology(id)
+	if err != nil {
+		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		return
+	}
+	entity.SuccessResponse(ctx, clusterTopology, commconst.Success)
+}
+
+// GetClusterInfo 按照 ID 获取存储集群实例
+func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -85,7 +101,7 @@ func (c *ClusterController) GetCluster(ctx *gin.Context) {
 	entity.SuccessResponse(ctx, data, commconst.Success)
 }
 
-// ListCluster retrieves a clusters by params and pagination.
+// ListCluster 分页检索集群实例列表
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	pagination, err := commhelper.BuildPagination(ctx)
 	if err != nil {

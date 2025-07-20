@@ -24,6 +24,7 @@ import (
 	coreprovider "k8s-dbs/core/provider"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
+	routerhelper "k8s-dbs/router/helper"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
@@ -70,8 +71,19 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
 	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
 	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
-		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
+	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
+	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
+	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
+		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
+		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
+		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
+		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
+		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+	)
+	if err != nil {
+		slog.Error("failed to build cluster meta provider", "error", err)
+		panic(err)
+	}
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
 	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider)
 	return controller.NewClusterController(clusterProvider,
@@ -121,17 +133,11 @@ type CoreAPIProviders struct {
 
 // buildCoreAPIProviders 构建 core api providers
 func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	clusterMetaProvider := metaprovider.NewK8sCrdClusterProvider(clusterMetaDbAccess,
-		addonMetaDbAccess, clusterTagDbAccess, k8sClusterConfigDbAccess)
-
+	clusterMetaProvider := routerhelper.BuildClusterMetaProvider(db)
 	componentMetaDbAccess := metadbaccess.NewK8sCrdComponentAccess(db)
 	componentMetaProvider := metaprovider.NewK8sCrdComponentProvider(componentMetaDbAccess)
 
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(db))
 
 	requestRecordDbAccess := metadbaccess.NewClusterRequestRecordDbAccess(db)
 	requestRecordProvider := metaprovider.NewClusterRequestRecordProvider(requestRecordDbAccess)
@@ -142,9 +148,9 @@ func buildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	helmRepoDbAccess := metadbaccess.NewAddonClusterHelmRepoDbAccess(db)
 	helmRepoProvider := metaprovider.NewAddonClusterHelmRepoProvider(helmRepoDbAccess)
 
-	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(addonMetaDbAccess)
+	addonMetaProvider := metaprovider.NewK8sCrdStorageAddonProvider(metadbaccess.NewK8sCrdStorageAddonDbAccess(db))
 
-	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(clusterTagDbAccess)
+	clusterTagProvider := metaprovider.NewK8sCrdClusterTagProvider(metadbaccess.NewK8sCrdClusterTagDbAccess(db))
 
 	return &CoreAPIProviders{
 		ClusterMetaProvider:    clusterMetaProvider,
