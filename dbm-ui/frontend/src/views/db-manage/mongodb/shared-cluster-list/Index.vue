@@ -15,6 +15,7 @@
   <div class="mongodb-shared-cluster-list-page">
     <div class="header-action">
       <BkButton
+        v-db-console="'mongodb.sharedClusterList.instanceApply'"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
@@ -29,6 +30,7 @@
           disabled: hasData,
           content: t('请先申请集群'),
         }"
+        v-db-console="'mongodb.sharedClusterList.importAuthorize'"
         class="inline-block">
         <BkButton
           :disabled="!hasData"
@@ -37,10 +39,13 @@
         </BkButton>
       </span>
       <DropdownExportExcel
+        v-db-console="'mongodb.sharedClusterList.export'"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'mongodb.sharedClusterList.batchCopy'"
+        :selected="selected" />
       <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="header-action-search-select"
@@ -74,7 +79,7 @@
                 {{ t('获取访问方式') }}
               </BkButton>
             </div>
-            <div>
+            <div v-db-console="'mongodb.sharedClusterList.webconsole'">
               <AuthRouterLink
                 action-id="mongodb_webconsole"
                 :disabled="data.isOffline"
@@ -90,7 +95,7 @@
                 Webconsole
               </AuthRouterLink>
             </div>
-            <div v-db-console="'mongodb.sharedClusterList.capacityChange'">
+            <div v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="data.isOffline || data.operationDisabled"

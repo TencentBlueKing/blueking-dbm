@@ -103,13 +103,13 @@
     [ClusterTypes.ES]: 'es.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.HDFS]: 'hdfs.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.replicaSetList.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.sharedClusterList.modifyEntryConfiguration',
     // [ClusterTypes.ORACLE_PRIMARY_STANDBY]: 'oracle.singleClusterList.modifyEntryConfiguration',
     // [ClusterTypes.ORACLE_SINGLE_NONE]: 'oracle.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.PULSAR]: 'pulsar.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS]: 'redis.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.REDIS_INSTANCE]: 'redis.haClusterManage.modifyEntryConfiguration',
     [ClusterTypes.RIAK]: 'riak.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_HA]: 'sqlserver.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver.singleClusterList.modifyEntryConfiguration',
@@ -178,6 +178,16 @@
   const tableData = ref<ClusterEntryInfo[]>([]);
 
   const accessEntryDbConsole = computed(() => {
+    if (
+      [
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(props.data.cluster_type)
+    ) {
+      return dbConsoleMap[ClusterTypes.REDIS];
+    }
     return dbConsoleMap[props.data.cluster_type as keyof typeof dbConsoleMap] || false;
   });
 
