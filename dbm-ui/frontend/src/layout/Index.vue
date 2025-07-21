@@ -113,6 +113,7 @@
       value: menuEnum.globalConfigManage,
     },
     userProfile.platformManage && {
+      dbConsoleValue: 'platformManage',
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
