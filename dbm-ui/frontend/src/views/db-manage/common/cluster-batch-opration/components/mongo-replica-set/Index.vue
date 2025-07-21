@@ -31,9 +31,7 @@
       {{ t('移除标签') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mongodb.replicaSetList.disable'"
-    @click="handleDisableCluster(selected)">
+  <BkDropdownItem v-db-console="'mongodb.replicaSetList.disable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDisabledDisabled,

@@ -22,7 +22,7 @@ export type RedisFunctions =
   | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
-export type MongoFunctions = 'mongodb' | 'MongoReplicaSet' | 'MongoShardedCluster';
+export type MongoFunctions = 'mongodb' | 'replicaSetList' | 'sharedClusterList' | 'toolbox';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
 export type OracleFunctions = 'oracle_single_none' | 'oracle_primary_standby' | 'toolbox';
 export type FunctionKeys =
@@ -92,9 +92,12 @@ export default class FunctionController {
   'kafka.clusterManage.changeLog': ControllerItem<string>;
   'kafka.clusterManage.clusterTopo': ControllerItem<string>;
   'kafka.clusterManage.nodeList': ControllerItem<string>;
+  'mongodb.permissionManage': ControllerItem<string>;
+  'mongodb.replicaSetInstanceManage': ControllerItem<string>;
   'mongodb.replicaSetList.basicInfo': ControllerItem<string>;
   'mongodb.replicaSetList.changeLog': ControllerItem<string>;
   'mongodb.replicaSetList.clusterTopo': ControllerItem<string>;
+  'mongodb.sharedClusterInstanceManage': ControllerItem<string>;
   'mongodb.sharedClusterList.basicInfo': ControllerItem<string>;
   'mongodb.sharedClusterList.changeLog': ControllerItem<string>;
   'mongodb.sharedClusterList.clusterTopo': ControllerItem<string>;
@@ -230,6 +233,7 @@ export default class FunctionController {
   oracle: ControllerItem<string>;
   // dbconsole 路由有关的开关
   personalWorkbench: ControllerItem<string>;
+  platformManage: ControllerItem<string>;
   redis: ControllerItem<RedisFunctions>;
   resourceManage: ControllerItem<string>;
   sqlserver: ControllerItem<SqlServerFunctions>;
@@ -250,6 +254,7 @@ export default class FunctionController {
     this.resourceManage = payload.resourceManage;
     this.bizConfigManage = payload.bizConfigManage;
     this.databaseManage = payload.databaseManage;
+    this.platformManage = payload.platformManage;
 
     // 批处理 dbconsole 的开关
     Object.assign(this, payload);

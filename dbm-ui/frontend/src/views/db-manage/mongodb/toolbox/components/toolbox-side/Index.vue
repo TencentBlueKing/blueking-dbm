@@ -38,7 +38,8 @@
               <RenderMenuGroup
                 :id="element.id"
                 v-model:favor-map="favorRouteNameMap"
-                :draggable="!Boolean(serachKey)" />
+                :draggable="!Boolean(serachKey)"
+                :serach-key="serachKey" />
             </template>
           </Vuedraggable>
         </BkCollapse>

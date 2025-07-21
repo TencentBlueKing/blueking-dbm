@@ -1,70 +1,83 @@
 <template>
   <FunController module-id="mongodb">
     <BkMenuGroup name="MongoDB">
-      <BkSubmenu>
-        <template #icon>
-          <DbIcon type="cluster" />
-        </template>
-        <template #title>
-          <span>{{ t('副本集群') }}</span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-            role="cluster" />
-        </template>
-        <BkMenuItem key="MongoDBReplicaSet">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('集群管理') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-            role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem key="mongodbReplicaSetInstanceList">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-            role="cluster" />
-        </BkMenuItem>
-      </BkSubmenu>
-      <BkSubmenu>
-        <template #icon>
-          <DbIcon type="history" />
-        </template>
-        <template #title>
-          <span>{{ t('分片集群') }}</span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-            role="cluster" />
-        </template>
-        <BkMenuItem key="MongoDBSharedCluster">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('集群管理') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-            role="cluster" />
-        </BkMenuItem>
-        <BkMenuItem key="mongodbShareClusterInstanceList">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('实例视图') }}
-          </span>
-          <CountTag
-            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-            role="cluster" />
-        </BkMenuItem>
-      </BkSubmenu>
+      <FunController
+        controller-id="replicaSetList"
+        module-id="mongodb">
+        <BkSubmenu>
+          <template #icon>
+            <DbIcon type="cluster" />
+          </template>
+          <template #title>
+            <span>{{ t('副本集群') }}</span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+              role="cluster" />
+          </template>
+          <BkMenuItem key="MongoDBReplicaSet">
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('集群管理') }}
+            </span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+              role="cluster" />
+          </BkMenuItem>
+          <BkMenuItem
+            key="mongodbReplicaSetInstanceList"
+            v-db-console="'mongodb.replicaSetInstanceManage'">
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('实例视图') }}
+            </span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+              role="cluster" />
+          </BkMenuItem>
+        </BkSubmenu>
+      </FunController>
+      <FunController
+        controller-id="sharedClusterList"
+        module-id="mongodb">
+        <BkSubmenu>
+          <template #icon>
+            <DbIcon type="history" />
+          </template>
+          <template #title>
+            <span>{{ t('分片集群') }}</span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+              role="cluster" />
+          </template>
+          <BkMenuItem key="MongoDBSharedCluster">
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('集群管理') }}
+            </span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+              role="cluster" />
+          </BkMenuItem>
+          <BkMenuItem
+            key="mongodbShareClusterInstanceList"
+            v-db-console="'mongodb.sharedClusterInstanceManage'">
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('实例视图') }}
+            </span>
+            <CountTag
+              :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+              role="cluster" />
+          </BkMenuItem>
+        </BkSubmenu>
+      </FunController>
       <BkSubmenu
         key="mongodb-permission"
+        v-db-console="'mongodb.permissionManage'"
         :title="t('权限管理')">
         <template #icon>
           <DbIcon type="history" />
@@ -77,27 +90,30 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
+      <ToolboxMenu
+        v-for="toolboxGroupId in toolboxMenuSortList"
+        :id="toolboxGroupId"
+        :key="toolboxGroupId"
+        v-db-console="'mongodb.toolbox'"
+        :favor-map="favorMeunMap"
+        :toolbox-menu-config="toolboxMenuConfig" />
+      <FunController
+        controller-id="toolbox"
+        module-id="mongodb">
+        <BkMenuItem
+          key="MongoToolbox"
+          v-db-console="'mongodb.toolbox'">
+          <template #icon>
+            <DbIcon type="tools" />
+          </template>
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('工具箱') }}
+          </span>
+        </BkMenuItem>
+      </FunController>
     </BkMenuGroup>
-    <ToolboxMenu
-      v-for="toolboxGroupId in toolboxMenuSortList"
-      :id="toolboxGroupId"
-      :key="toolboxGroupId"
-      :favor-map="favorMeunMap"
-      :toolbox-menu-config="toolboxMenuConfig" />
-    <FunController
-      controller-id="toolbox"
-      module-id="mongodb">
-      <BkMenuItem key="MongoToolbox">
-        <template #icon>
-          <DbIcon type="tools" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('工具箱') }}
-        </span>
-      </BkMenuItem>
-    </FunController>
   </FunController>
 </template>
 <script setup lang="ts">

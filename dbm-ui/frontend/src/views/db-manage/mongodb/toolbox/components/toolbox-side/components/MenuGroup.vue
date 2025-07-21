@@ -23,6 +23,8 @@
           v-for="item of currentConfig.children"
           :key="item.id">
           <div
+            v-show="calcRender(item)"
+            v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
               'toolbox-side-item--active': item.id === activeViewName,
@@ -59,11 +61,12 @@
 
   import MenuConfig, { type MenuChild } from '@views/db-manage/mongodb/toolbox-menu';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
   interface Props {
     draggable: boolean;
     id: string;
+    serachKey: string;
   }
 
   const props = defineProps<Props>();
@@ -71,7 +74,7 @@
   const favorMap = defineModel<Record<string, boolean>>('favorMap', {
     required: true,
   });
-  
+
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
@@ -80,32 +83,40 @@
 
   const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
 
-  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item)=>{
+  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item) => {
     if ('bind' in item && Array.isArray(item.bind)) {
-        item.bind.forEach(routerName=>{
-          Object.assign(acc, {
-            [routerName]: item
-          })
-        })
-      }
-      Object.assign(acc, {
-        [item.id]: item
-      })
-      return acc
-    }, {})
+      item.bind.forEach((routerName) => {
+        Object.assign(acc, {
+          [routerName]: item,
+        });
+      });
+    }
+    Object.assign(acc, {
+      [item.id]: item,
+    });
+    return acc;
+  }, {});
 
   const activeViewName = ref('');
 
   watch(
     route,
     () => {
-      const routeName = route.name as string || ''
+      const routeName = (route.name as string) || '';
       activeViewName.value = configChildrenMap[routeName]?.id;
     },
     {
       immediate: true,
     },
   );
+
+  const calcRender = (payload: (typeof MenuConfig)[number]['children'][number]) => {
+    if (!props.serachKey) {
+      return true;
+    }
+    const reg = new RegExp(encodeRegexp(props.serachKey), 'i');
+    return reg.test(payload.name);
+  };
 
   const handleRouterChange = (routerName: string) => {
     router.push({
