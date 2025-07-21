@@ -56,7 +56,7 @@ func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
-	var data []metarespvo.AddonCategoryResponse
+	var data []metarespvo.AddonCategoryTypesResponse
 	if err := copier.Copy(&data, categoryTypesEntities); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
