@@ -175,13 +175,13 @@ class TendbClusterUpgradeFlow(object):
         self.add_slave_only = self.ticket_data.get("add_slave_only", False)
         self.check_client_conn = not self.ticket_data.get("force", False)
 
-    def __precheck(self):
+    def __pre_check(self):
         """
         升级前置检查
         """
         for info in self.ticket_data["infos"]:
             cluster_class = Cluster.objects.get(id=info["cluster_ids"][0])
-            origin_chaset, origin_mysql_ver = get_version_and_charset(
+            origin_charset, origin_mysql_ver = get_version_and_charset(
                 self.ticket_data["bk_biz_id"],
                 db_module_id=cluster_class.db_module_id,
                 cluster_type=cluster_class.cluster_type,
@@ -192,16 +192,16 @@ class TendbClusterUpgradeFlow(object):
                 db_module_id=info["new_db_module_id"],
                 cluster_type=cluster_class.cluster_type,
             )
-            if new_charset != origin_chaset:
+            if new_charset != origin_charset:
                 raise DBMetaException(
                     message=_("{}升级前后字符集不一致,原字符集：{},新模块的字符集{}").format(
-                        cluster_class.immute_domain, origin_chaset, new_charset
+                        cluster_class.immute_domain, origin_charset, new_charset
                     )
                 )
             upgrade_version_check(origin_mysql_ver, new_mysql_ver)
 
     def upgrade_ro_slaves(self):
-        self.__precheck()
+        self.__pre_check()
         cluster_ids = []
         for info in self.ticket_data["infos"]:
             cluster_ids.extend(info["cluster_ids"])
@@ -211,7 +211,7 @@ class TendbClusterUpgradeFlow(object):
             data=copy.deepcopy(self.ticket_data),
             need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
-        subflows = []
+        sub_flows = []
         created_by = self.ticket_data["ticket_type"]
         for info in self.ticket_data["infos"]:
             subflow = non_standby_slaves_upgrade_subflow(
@@ -227,9 +227,9 @@ class TendbClusterUpgradeFlow(object):
                 created_by=created_by,
                 force_uninstall=False,
             )
-            subflows.append(subflow)
+            sub_flows.append(subflow)
 
-        p.add_parallel_sub_pipeline(subflows)
+        p.add_parallel_sub_pipeline(sub_flows)
 
         p.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
@@ -279,7 +279,7 @@ class TendbClusterUpgradeFlow(object):
             ]
         }
         """
-        self.__precheck()
+        self.__pre_check()
         cluster_ids = []
         for info in self.ticket_data["infos"]:
             cluster_ids.extend(info["cluster_ids"])
@@ -289,7 +289,7 @@ class TendbClusterUpgradeFlow(object):
             data=copy.deepcopy(self.ticket_data),
             need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
-        subflows = []
+        sub_flows = []
         created_by = self.ticket_data["created_by"]
         for info in self.ticket_data["infos"]:
             subflow = tendbha_cluster_upgrade_subflow(
@@ -307,9 +307,9 @@ class TendbClusterUpgradeFlow(object):
                 ticket_type=self.ticket_data["ticket_type"],
                 check_client_conn=self.check_client_conn,
             )
-            subflows.append(subflow)
+            sub_flows.append(subflow)
 
-        p.add_parallel_sub_pipeline(subflows)
+        p.add_parallel_sub_pipeline(sub_flows)
 
         p.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
@@ -373,10 +373,10 @@ def tendbha_cluster_upgrade_subflow(
         local_backup = True
 
     if len(ro_slaves) > 0:
-        ro_sub_piplelines = []
-        ro_switch_ro_sub_piplelines = []
+        ro_sub_pipelines = []
+        ro_switch_ro_sub_pipelines = []
         for ro_slave in ro_slaves:
-            ro_sub_pipleline = SubBuilder(root_id=root_id, data=parent_global_data)
+            ro_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
             old_ro_slave = ro_slave["old_ro_slave"]
             new_ro_slave = ro_slave["new_ro_slave"]
             new_ro_slave_ip = new_ro_slave["ip"]
@@ -400,20 +400,20 @@ def tendbha_cluster_upgrade_subflow(
                 cluster_ids,
                 new_db_module_id,
             )
-            ro_sub_pipleline.add_sub_pipeline(sub_flow=install_ro_slave_sub_pipeline)
+            ro_sub_pipeline.add_sub_pipeline(sub_flow=install_ro_slave_sub_pipeline)
             # 恢复主从数据
             sync_data_sub_pipeline_list = build_sync_data_sub_pipelines(
                 root_id, parent_global_data, cluster_ids, new_ro_slave_ip, local_backup, charset
             )
-            ro_sub_pipleline.add_parallel_sub_pipeline(sync_data_sub_pipeline_list)
-            ro_sub_piplelines.append(ro_sub_pipleline.build_sub_process(sub_name=_("安装非stanbySlave节点并数据同步")))
-            # 切换换subpipeline
-            ro_switch_ro_sub_pipleline = SubBuilder(root_id=root_id, data=parent_global_data)
+            ro_sub_pipeline.add_parallel_sub_pipeline(sync_data_sub_pipeline_list)
+            ro_sub_pipelines.append(ro_sub_pipeline.build_sub_process(sub_name=_("安装非 standby Slave节点并数据同步")))
+            # 切换换sub pipeline
+            ro_switch_ro_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
             switch_sub_pipeline_list = build_switch_sub_pipelines(
                 root_id, parent_global_data, cluster_ids, old_ro_slave_ip, new_ro_slave_ip
             )
-            ro_switch_ro_sub_pipleline.add_parallel_sub_pipeline(switch_sub_pipeline_list)
-            ro_switch_ro_sub_pipleline.add_act(
+            ro_switch_ro_sub_pipeline.add_parallel_sub_pipeline(switch_sub_pipeline_list)
+            ro_switch_ro_sub_pipeline.add_act(
                 act_name=_("更新[NewSlave]{} db module id".format(new_ro_slave_ip)),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
@@ -427,7 +427,7 @@ def tendbha_cluster_upgrade_subflow(
                     )
                 ),
             )
-            ro_switch_ro_sub_piplelines.append(ro_switch_ro_sub_pipleline.build_sub_process(sub_name=_("切换RO从节点")))
+            ro_switch_ro_sub_pipelines.append(ro_switch_ro_sub_pipeline.build_sub_process(sub_name=_("切换RO从节点")))
     # 安装mysql
     ms_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     bk_host_ids = [new_master["bk_host_id"], new_slave["bk_host_id"]]
@@ -464,7 +464,7 @@ def tendbha_cluster_upgrade_subflow(
     ms_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
     ms_process = ms_sub_pipeline.build_sub_process(sub_name=_("安装主从节点,并同步数据"))
     if len(ro_slaves) > 0:
-        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=[ms_process] + ro_sub_piplelines)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=[ms_process] + ro_sub_pipelines)
     else:
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=[ms_process])
 
@@ -489,10 +489,10 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
     # 先切ro slaves
     if len(ro_slaves) > 0:
-        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ro_switch_ro_sub_piplelines)
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ro_switch_ro_sub_pipelines)
     logger.info(_("old_ro_slave ip list {}").format(old_ro_slave_ips))
     # 切换主从对
-    ms_switch_subflows = build_ms_pair_switch_sub_pipelines(
+    ms_switch_sub_flows = build_ms_pair_switch_sub_pipelines(
         root_id=root_id,
         parent_global_data=parent_global_data,
         relation_cluster_ids=cluster_ids,
@@ -504,7 +504,7 @@ def tendbha_cluster_upgrade_subflow(
         new_ro_slave_ips=new_ro_slave_ips,
         check_client_conn=check_client_conn,
     )
-    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ms_switch_subflows)
+    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ms_switch_sub_flows)
 
     # 重新安装备份,监控等
     sub_pipeline.add_sub_pipeline(
@@ -605,7 +605,7 @@ def non_standby_slaves_upgrade_subflow(
     force_uninstall: bool,
 ):
     """
-    一主多从非stanby slaves升级subflow
+    一主多从非standby slaves升级subflow
     """
     cluster_cls = Cluster.objects.get(id=relation_cluster_ids[0])
     ports = get_ports(relation_cluster_ids)
@@ -1015,6 +1015,7 @@ def build_install_ms_pair_sub_pipeline(
         "new_master_ip": new_master_ip,
         "new_slave_ip": new_slave_ip,
         "bk_cloud_id": cluster.bk_cloud_id,
+        "cluster_ids": [cluster],
     }
 
     install_sub_pipeline.add_act(
