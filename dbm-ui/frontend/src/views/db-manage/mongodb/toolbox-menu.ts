@@ -25,6 +25,7 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.scriptExecute',
         id: 'MongoScriptExecute',
         name: t('变更脚本执行'),
         parentId: 'mongo_script',
@@ -37,31 +38,37 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.shardScaleUp',
         id: TicketTypes.MONGODB_ADD_SHARD_NODES,
         name: t('扩容Shard节点数'),
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.shardScaleDown',
         id: TicketTypes.MONGODB_REDUCE_SHARD_NODES,
         name: t('缩容Shard节点数'),
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.scaleUpDown',
         id: TicketTypes.MONGODB_SCALE_UPDOWN,
         name: t('集群容量变更'),
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.proxyScaleUp',
         id: TicketTypes.MONGODB_ADD_MONGOS,
         name: t('扩容接入层'),
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.reduceMongos',
         id: TicketTypes.MONGODB_REDUCE_MONGOS,
         name: t('缩容接入层'),
         parentId: 'mongo_manage',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.cutoff',
         id: TicketTypes.MONGODB_CUTOFF,
         name: t('整机替换'),
         parentId: 'mongo_manage',
@@ -74,11 +81,13 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.pitrRestore',
         id: TicketTypes.MONGODB_PITR_RESTORE,
         name: t('定点构造'),
         parentId: 'mongo_rollback',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.structureInstance',
         id: 'MongoStructureInstance',
         name: t('构造实例'),
         parentId: 'mongo_rollback',
@@ -91,11 +100,13 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.dbTableBackup',
         id: TicketTypes.MONGODB_BACKUP,
         name: t('库表备份'),
         parentId: 'mongo_backup',
       },
       {
+        dbConsoleValue: 'mongodb.toolbox.dbBackup',
         id: TicketTypes.MONGODB_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'mongo_backup',
@@ -108,6 +119,7 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.dbClear',
         id: TicketTypes.MONGODB_REMOVE_NS,
         name: t('清档'),
         parentId: 'mongo_data',
@@ -120,6 +132,7 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.webconsole',
         id: 'MongodbWebconsole',
         name: 'Webconsole',
         parentId: 'redis_data_query',

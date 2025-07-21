@@ -20,7 +20,7 @@
         cluster-detail-router-name="MongoDBReplicaSetDetail"
         :data="data">
         <BkButton
-          v-db-console="'mongodb.replicaSetList.authorize'"
+          v-db-console="'mongodb.replicaSetList.importAuthorize'"
           class="ml-4"
           :disabled="data.isOffline"
           size="small"
@@ -36,6 +36,7 @@
           {{ t('获取访问方式') }}
         </BkButton>
         <AuthRouterLink
+          v-db-console="'mongodb.replicaSetList.webconsole'"
           action-id="mongodb_webconsole"
           class="ml-4"
           :disabled="data.isOffline"
@@ -64,7 +65,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.replicaSetList.capacityChange'">
+          <BkDropdownItem v-db-console="'mongodb.replicaSetList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="Boolean(data.isStructCluster) || data.operationDisabled"

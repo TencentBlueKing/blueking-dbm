@@ -20,7 +20,7 @@
         cluster-detail-router-name="MongoDBSharedClusterDetail"
         :data="data">
         <BkButton
-          v-db-console="'mongodb.sharedClusterList.authorize'"
+          v-db-console="'mongodb.sharedClusterList.importAuthorize'"
           class="ml-4"
           :disabled="data.isOffline"
           size="small"
@@ -36,6 +36,7 @@
           {{ t('获取访问方式') }}
         </BkButton>
         <AuthRouterLink
+          v-db-console="'mongodb.sharedClusterList.webconsole'"
           action-id="mongodb_webconsole"
           class="ml-4"
           :permission="data.permission.mongodb_webconsole"
@@ -63,7 +64,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
+          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || data.operationDisabled"
