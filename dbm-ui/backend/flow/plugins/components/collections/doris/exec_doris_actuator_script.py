@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import base64
 import json
 import logging
+from dataclasses import asdict
 from typing import List
 
 from django.utils.translation import ugettext as _
@@ -70,8 +71,7 @@ class ExecuteDorisActuatorScriptService(BkJobService):
         db_act_template = getattr(trans_data.doris_act_payload, kwargs["get_doris_payload_func"])(
             ip=exec_ips[0],
             role=kwargs["doris_role"],
-            # instance_num=kwargs["instance_num"],
-            # instance_name=kwargs["instance_name"]
+            trans_data=asdict(trans_data),
         )
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id

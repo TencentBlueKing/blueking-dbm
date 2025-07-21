@@ -36,10 +36,13 @@ class GetDorisResourceService(BaseService):
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        #  页面输入
         # 由于flow传参基本不变，无需判断 IP来源 属于 手动选择/资源池
+        """
+        以下属性暂无调用
+        """
         trans_data.new_hot_ips = []
         trans_data.new_cold_ips = []
+        trans_data.new_warm_ips = []
         trans_data.new_follower_ips = []
         trans_data.new_observer_ips = []
         # 存在Observer cold 节点角色 非必选节点
@@ -48,6 +51,8 @@ class GetDorisResourceService(BaseService):
                 trans_data.new_hot_ips = [node["ip"] for node in global_data["nodes"][role]]
             elif role == DorisRoleEnum.COLD:
                 trans_data.new_cold_ips = [node["ip"] for node in global_data["nodes"][role]]
+            elif role == DorisRoleEnum.WARM:
+                trans_data.new_warm_ips = [node["ip"] for node in global_data["nodes"][role]]
             elif role == DorisRoleEnum.FOLLOWER:
                 trans_data.new_follower_ips = [node["ip"] for node in global_data["nodes"][role]]
             elif role == DorisRoleEnum.OBSERVER:

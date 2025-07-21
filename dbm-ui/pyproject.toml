@@ -69,6 +69,7 @@ kafka-python = "^2.2.12"
 virtualenv = "20.26.6"
 future = "0.18.3"
 
+cos-python-sdk-v5 = "^1.9.38"
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"
 pytest = "6.2.4"

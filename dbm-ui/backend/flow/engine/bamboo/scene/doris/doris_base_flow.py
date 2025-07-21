@@ -46,7 +46,7 @@ def make_fe_map_from_ticket(data: dict) -> dict:
 def make_be_map_from_ticket(data: dict) -> dict:
     host_map = {}
     for role in data["nodes"]:
-        if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.COLD.value]:
+        if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.WARM.value, DorisRoleEnum.COLD.value]:
             ips = [node["ip"] for node in data["nodes"][role]]
             host_map[role] = ips
     return host_map
@@ -72,6 +72,9 @@ class DorisBaseFlow(object):
         :param data: 单据传递过来的参数列表，字典格式
         """
         self.root_id = root_id
+        # 直接将data赋值作为Flow属性
+        self.data = data
+        # 后续优化不使用属性来传递单据data, 不易扩展
         self.ticket_type = data.get("ticket_type")
         self.cluster_type = ClusterType.Doris.value
         self.created_by = data.get("created_by")
@@ -89,7 +92,7 @@ class DorisBaseFlow(object):
             self.http_port = data.get("http_port")
             self.query_port = data.get("query_port")
             self.bk_cloud_id = data.get("bk_cloud_id")
-
+            self.city_code = data.get("city_code")
             # 从dbconfig获取配置信息
             dbconfig = DBConfigApi.query_conf_item(
                 {
@@ -105,12 +108,12 @@ class DorisBaseFlow(object):
             self.doris_config = dbconfig["content"]
             self.be_conf = self.doris_config[DorisConfigEnum.Backend]
             self.fe_conf = self.doris_config[DorisConfigEnum.Frontend]
-
             self.username = data.get("username")
             self.password = data.get("password")
         else:
             self.cluster_id = data.get("cluster_id")
             cluster = Cluster.objects.get(id=self.cluster_id)
+            self.cluster = cluster
             self.cluster_name = cluster.name
             masters = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.DORIS_FOLLOWER)
             if not masters:
@@ -120,6 +123,7 @@ class DorisBaseFlow(object):
             self.domain = cluster.immute_domain
             self.http_port = masters.first().port
             self.bk_cloud_id = cluster.bk_cloud_id
+            self.city_code = cluster.region
 
             # 从dbconfig获取配置信息
             dbconfig = DBConfigApi.query_conf_item(
@@ -166,7 +170,19 @@ class DorisBaseFlow(object):
             "fe_conf": self.fe_conf,
             "be_conf": self.be_conf,
             "resource_spec": self.resource_spec,
+            "city_code": self.city_code,
         }
+        # 若单据类型非上架集群，需要从密码服务获取admin/root 密码用于集群变更
+        if self.ticket_type != TicketType.DORIS_APPLY.value:
+            admin_pwd = PayloadHandler.get_bigdata_password_by_cluster(self.cluster, 0, "admin")
+            root_pwd = PayloadHandler.get_bigdata_password_by_cluster(self.cluster, 0, "root")
+            # 兼容旧集群, 若admin / root 密码未录入，使用旧的自定义用户密码
+            if not admin_pwd:
+                admin_pwd = self.password
+            if not root_pwd:
+                root_pwd = self.password
+            flow_data["admin_password"] = admin_pwd
+            flow_data["root_password"] = root_pwd
         return flow_data
 
     def __get_flow_data(self) -> dict:
@@ -270,7 +286,7 @@ class DorisBaseFlow(object):
     def new_be_sub_acts(act_kwargs: DorisActKwargs, data: dict) -> list:
         be_acts = []
         for role, role_nodes in data["nodes"].items():
-            if role in [DorisRoleEnum.COLD.value, DorisRoleEnum.HOT.value]:
+            if role in [DorisRoleEnum.WARM.value, DorisRoleEnum.HOT.value, DorisRoleEnum.COLD.value]:
                 for be_node in role_nodes:
                     act_kwargs.exec_ip = be_node["ip"]
                     act_kwargs.doris_role = role
@@ -354,7 +370,7 @@ class DorisBaseFlow(object):
 
         stop_be_acts = []
         for role, role_nodes in data["nodes"].items():
-            if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.COLD.value]:
+            if role in [DorisRoleEnum.HOT.value, DorisRoleEnum.WARM.value, DorisRoleEnum.COLD.value]:
                 for be_node in role_nodes:
                     act_kwargs.exec_ip = be_node["ip"]
                     act_kwargs.doris_role = role
@@ -390,8 +406,10 @@ def fe_exists_in_ticket(data: dict) -> bool:
 
 
 def be_exists_in_ticket(data: dict) -> bool:
-    return role_exists_in_ticket(data=data, role=DorisRoleEnum.HOT) or role_exists_in_ticket(
-        data=data, role=DorisRoleEnum.COLD
+    return (
+        role_exists_in_ticket(data=data, role=DorisRoleEnum.HOT)
+        or role_exists_in_ticket(data=data, role=DorisRoleEnum.WARM)
+        or role_exists_in_ticket(data=data, role=DorisRoleEnum.COLD)
     )
 
 

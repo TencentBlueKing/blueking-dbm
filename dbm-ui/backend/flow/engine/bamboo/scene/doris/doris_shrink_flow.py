@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.doris.doris_base_flow import (
     get_all_node_ips_in_ticket,
     get_node_ips_in_ticket_by_role,
 )
+from backend.flow.engine.bamboo.scene.doris.doris_resource_flow import DorisResourceFlow
 from backend.flow.engine.bamboo.scene.doris.exceptions import (
     BeMachineCountException,
     FollowerScaleUpUnsupportedException,
@@ -45,6 +46,7 @@ from backend.flow.utils.doris.consts import (
     DORIS_BACKEND_NOT_COUNT,
     DORIS_FOLLOWER_MUST_COUNT,
     DORIS_OBSERVER_NOT_COUNT,
+    DorisResourceTag,
 )
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs, DorisActKwargs, DorisApplyContext
@@ -153,6 +155,14 @@ class DorisShrinkFlow(DorisBaseFlow):
         doris_pipeline.add_act(
             act_name=_("更新DBMeta"), act_component_code=DorisMetaComponent.code, kwargs=asdict(act_kwargs)
         )
+        # TODO 暂不放开缩容冷存储资源，涉及缩容节点判断，集群使用资源状态的判断。
+        if self.data.get("disable_cold_storage"):
+            resource_flow = DorisResourceFlow(root_id=self.root_id, data=shrink_data)
+            if not resource_flow.cluster_exists_resource(res_tag=DorisResourceTag.PRIVATE):
+                logger.warning("cluster: {} not exists private resource.".format(shrink_data["cluster_name"]))
+            else:
+                shrink_resource_flow = resource_flow.shrink_resource_sub_flow(data=shrink_data)
+                doris_pipeline.add_sub_pipeline(shrink_resource_flow.build_sub_process(sub_name=_("缩容冷存储资源")))
 
         doris_pipeline.run_pipeline()
 
@@ -162,14 +172,19 @@ class DorisShrinkFlow(DorisBaseFlow):
             logger.error(_("Doris缩容未选择机器"))
             raise NoShrinkMachineException()
 
+        # TODO 暂时兼容保留cold角色
         former_cold_cnt = len(self.get_role_ips_in_dbmeta(InstanceRole.DORIS_BACKEND_COLD))
         del_cold_cnt = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.COLD))
 
+        former_warm_cnt = len(self.get_role_ips_in_dbmeta(InstanceRole.DORIS_BACKEND_WARM))
+        del_warm_cnt = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.WARM))
         former_hot_cnt = len(self.get_role_ips_in_dbmeta(InstanceRole.DORIS_BACKEND_HOT))
         del_hot_cnt = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.HOT))
 
+        former_be_cnt = former_hot_cnt + former_warm_cnt + former_cold_cnt
+        del_be_cnt = del_hot_cnt + del_warm_cnt + del_cold_cnt
         # 检查 所有数据节点 剩余数量不能为0
-        if former_cold_cnt + former_hot_cnt - del_cold_cnt - del_hot_cnt == DORIS_BACKEND_NOT_COUNT:
+        if former_be_cnt - del_be_cnt == DORIS_BACKEND_NOT_COUNT:
             logger.error(_("Doris 缩容后数据节点数量不能为{}".format(DORIS_BACKEND_NOT_COUNT)))
             raise BeMachineCountException(must_count=DORIS_BACKEND_NOT_COUNT)
 

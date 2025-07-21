@@ -36,12 +36,14 @@ class DorisDnsManageService(BaseService):
             DorisRoleEnum.OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value,
             DorisRoleEnum.HOT.value,
+            DorisRoleEnum.WARM.value,
             DorisRoleEnum.COLD.value,
         ]
         self.instance_role_map = {
             DorisRoleEnum.OBSERVER.value: InstanceRole.DORIS_OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value: InstanceRole.DORIS_FOLLOWER.value,
             DorisRoleEnum.HOT.value: InstanceRole.DORIS_BACKEND_HOT.value,
+            DorisRoleEnum.WARM.value: InstanceRole.DORIS_BACKEND_WARM.value,
             DorisRoleEnum.COLD.value: InstanceRole.DORIS_BACKEND_COLD.value,
         }
 

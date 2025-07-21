@@ -33,11 +33,16 @@ class ScaleUpDorisSceneApiView(FlowTestView):
         "db_app_abbr": "blueking",
         "uid": "111",
         "created_by": "rtx",
+        "enable_cold_storage": true|false,
         "nodes": {
             "hot": [
                 {"ip": "127.1.1.1", "bk_cloud_id": 0}
             ],
+            # 后续不保留cold
             "cold": [
+                {"ip": "127.1.1.2", "bk_cloud_id": 0}
+            ],
+            "warm": [
                 {"ip": "127.1.1.2", "bk_cloud_id": 0}
             ],
             "observer": [

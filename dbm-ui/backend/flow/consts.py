@@ -708,6 +708,8 @@ class DorisActuatorActionEnum(str, StructuredEnum):
     UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
     CheckDecommission = EnumField("check_decommission", _("check_decommission"))
     CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
+    CreateResource = EnumField("create_resource", _("create_resource"))
+    DropResource = EnumField("drop_resource", _("drop_resource"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -1184,6 +1186,7 @@ class TBinlogDumperAddType(str, StructuredEnum):
 
 class DorisRoleEnum(str, StructuredEnum):
     HOT = EnumField("hot", _("hot"))
+    WARM = EnumField("warm", _("warm"))
     COLD = EnumField("cold", _("cold"))
     FOLLOWER = EnumField("follower", _("follower"))
     OBSERVER = EnumField("observer", _("observer"))
@@ -1234,6 +1237,7 @@ class MySQLPrivComponent(str, StructuredEnum):
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
     DORIS_FAKE_USER = EnumField("doris_user", _("doris_user"))
     VM_FAKE_USER = EnumField("vm_user", _("vm_user"))
+    DORIS_CLOUD_APP_ID = EnumField("doris_cloud_app_id", _("doris_cloud_app_id"))
 
 
 class RequestResultCode(int, StructuredEnum):

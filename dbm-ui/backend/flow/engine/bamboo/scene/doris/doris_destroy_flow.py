@@ -15,10 +15,12 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums.instance_role import InstanceRole
 from backend.flow.consts import DnsOpType, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.doris.doris_base_flow import DorisBaseFlow
+from backend.flow.engine.bamboo.scene.doris.doris_resource_flow import DorisResourceFlow, get_cluster_res
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
 from backend.flow.plugins.components.collections.doris.doris_db_meta import DorisMetaComponent
 from backend.flow.plugins.components.collections.doris.doris_dns_manage import DorisDnsManageComponent
@@ -27,6 +29,7 @@ from backend.flow.plugins.components.collections.doris.exec_doris_actuator_scrip
 )
 from backend.flow.plugins.components.collections.doris.get_doris_payload import GetDorisActPayloadComponent
 from backend.flow.plugins.components.collections.doris.trans_files import TransFileComponent
+from backend.flow.utils.doris.consts import DorisResourceGrant, DorisResourceTag
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs, DorisActKwargs, DorisApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
@@ -48,12 +51,22 @@ class DorisDestroyFlow(DorisBaseFlow):
         self.root_id = root_id
         self.data = data
 
+    def __get_flow_data(self) -> dict:
+        flow_data = self.get_flow_base_data()
+        flow_data["nodes"] = self.nodes
+        follower_ips = self.get_role_ips_in_dbmeta(InstanceRole.DORIS_FOLLOWER)
+
+        # 随机选取follower 作为添加元数据的操作IP
+        flow_data["master_fe_ip"] = follower_ips[0]
+
+        return flow_data
+
     def destroy_doris_flow(self):
         """
         删除Doris集群
         """
         # Builder 传参 为封装好角色IP的数据结构
-        destroy_data = self.get_flow_base_data()
+        destroy_data = self.__get_flow_data()
         doris_pipeline = Builder(root_id=self.root_id, data=destroy_data)
         trans_files = GetFileList(db_type=DBType.Doris)
 
@@ -101,10 +114,30 @@ class DorisDestroyFlow(DorisBaseFlow):
             service_type=ManagerServiceType.DORIS_WEB_UI,
         )
         doris_pipeline.add_act(
-            act_name=_("删除PULSAR_MANAGER实例信息"),
+            act_name=_("删除Doris WebUI实例信息"),
             act_component_code=BigdataManagerComponent.code,
             kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
         )
+
+        # 清理集群绑定资源
+        resource_flow = DorisResourceFlow(root_id=self.root_id, data=destroy_data)
+        if not resource_flow.cluster_exists_resource(res_tag=DorisResourceTag.PRIVATE):
+            logger.info("cluster: {} not exists private resource.".format(destroy_data["domain"]))
+        else:
+            private_res = get_cluster_res(cluster_id=self.data["cluster_id"], res_tag=DorisResourceTag.PRIVATE)
+            if private_res.get("control") != DorisResourceGrant.DBM.value:
+                logger.warning("private res {} need cleaning data manually.".format(private_res["name"]))
+            else:
+                private_res_flow = resource_flow.delete_resource_sub_flow(data=destroy_data, res_info=private_res)
+            doris_pipeline.add_sub_pipeline(private_res_flow.build_sub_process(sub_name=_("删除独立冷存储资源")))
+
+        if not resource_flow.cluster_exists_resource(res_tag=DorisResourceTag.PUBLIC):
+            logger.info("cluster: {} not exists public resource.".format(destroy_data["domain"]))
+        else:
+            public_res = get_cluster_res(cluster_id=self.data["cluster_id"], res_tag=DorisResourceTag.PUBLIC)
+            public_res_flow = resource_flow.untie_resource_sub_flow(data=destroy_data, res_info=public_res)
+            doris_pipeline.add_sub_pipeline(public_res_flow.build_sub_process(sub_name=_("删除公共存储资源")))
+
         # 修改DBMeta + 将机器挪到空闲机模块
         doris_pipeline.add_act(
             act_name=_("修改Meta"), act_component_code=DorisMetaComponent.code, kwargs=asdict(act_kwargs)

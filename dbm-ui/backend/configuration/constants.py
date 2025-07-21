@@ -141,6 +141,10 @@ class SystemSettingsEnum(str, StructuredEnum):
     REVERSE_REPORT_EVENT_TYPES = EnumField("REVERSE_REPORT_EVENT_TYPES", _("反向上报事件类型"))
     # 大数据管理端域名映射
     DBM_MANAGE_ADDRESS = EnumField("DBM_MANAGE_ADDRESS", _("大数据管理端域名映射"))
+    # Doris使用COS地域映射
+    DORIS_COS_REGION = EnumField("DORIS_COS_REGION", _("Doris使用COS地域映射"))
+    # Doris使用COS标签
+    DORIS_COS_TAGGING = EnumField("DORIS_COS_TAGGING", _("Doris使用COS标签"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
