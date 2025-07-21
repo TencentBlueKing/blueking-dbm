@@ -42,6 +42,7 @@ const (
 	NetConnectionBroken
 	QueueFull
 	InvalidParameter
+	InvalidURL
 	InvalidConfiguration
 	InternalServerFailure
 	Unimplemented

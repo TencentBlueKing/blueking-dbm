@@ -81,6 +81,7 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	ctxBase, cancel := context.WithCancel(ctx)
 
 	r := &ReceiverClient{
+		clientId:             clientId,
 		conn:                 conn,
 		client:               proto.NewReceiverServiceClient(conn),
 		ctx:                  ctxBase,
