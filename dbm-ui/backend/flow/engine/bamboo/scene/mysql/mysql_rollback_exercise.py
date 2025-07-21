@@ -17,11 +17,13 @@ from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
+from backend.db_services.cmdb.biz import get_or_create_resource_module
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
@@ -30,6 +32,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_backup_recovery_exercise import (
     MySQLBackupRecoverTaskMetaComponent,
@@ -256,6 +259,18 @@ class MySQLRollbackExerciseFlow(object):
                 "api_import_module": "DBResourceApi",
                 "api_call_func": "resource_import",
                 "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+            },
+            is_remote_rewritable=True,
+        )
+        # 转移模块到对应业务的资源池
+        pipeline.add_act(
+            act_name=_("主机转移至资源池空闲模块"),
+            act_component_code=TransferHostServiceComponent.code,
+            kwargs={
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_module_ids": [get_or_create_resource_module()],
+                "bk_host_ids": [self.rollback_host["bk_host_id"]],
+                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
             },
             is_remote_rewritable=True,
         )
