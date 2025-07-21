@@ -22,7 +22,55 @@
  * SOFTWARE.
  */
 
-package workflow
+package hanet
 
-type dbMetadataCache struct {
+import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"net/url"
+	"strconv"
+	"strings"
+)
+
+// Endpoint for parsing DSN addresses
+type Endpoint struct {
+	Proto string
+	Host  string
+	Port  int
+}
+
+// NewEndpoint create new endpoint by DSN
+func NewEndpoint(dsn string) (*Endpoint, error) {
+	parsedURL, err := url.Parse(dsn)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidURL, "invalid DSN(%s)", dsn)
+	}
+
+	epoint := &Endpoint{}
+	epoint.Proto = parsedURL.Scheme
+	epoint.Host = parsedURL.Hostname()
+	port, err := strconv.Atoi(parsedURL.Port())
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidURL, "invalid port in DSN(%s)", dsn)
+	}
+	epoint.Port = port
+
+	return epoint, nil
+}
+
+// NewEndpoints create a group endpoint by DSNs
+//
+// split with ';'
+func NewEndpoints(dsns string) ([]*Endpoint, error) {
+	epoints := []*Endpoint{}
+
+	endpoints := strings.Split(dsns, ";")
+	for _, endpoint := range endpoints {
+		epoint, err := NewEndpoint(endpoint)
+		if err != nil {
+			return nil, err
+		}
+		epoints = append(epoints, epoint)
+	}
+
+	return epoints, nil
 }

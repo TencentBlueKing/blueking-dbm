@@ -22,7 +22,18 @@
  * SOFTWARE.
  */
 
-package workflow
+package hamodel
 
-type changeDBStrategy struct {
+import "time"
+
+type SkipDBInstance struct {
+	BkCloudID    int       `gorm:"column:bk_cloud_id;primaryKey"`
+	BizID        int       `gorm:"column:biz_id;primaryKey"`
+	InstanceIP   string    `gorm:"column:instance_ip;primaryKey"`
+	InstancePort int       `gorm:"column:instance_port;premaryKey"`
+	CreatedAt    time.Time `gorm:"column:created_at"`
+}
+
+func (t SkipDBInstance) TableName() string {
+	return "t_skip_dbinstance"
 }

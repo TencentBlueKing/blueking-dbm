@@ -22,16 +22,28 @@
  * SOFTWARE.
  */
 
-package notifier
+package config_test
 
-type Message struct {
-}
+import (
+	"dbm-services/common/dbha-v2/internal/admin/config"
+	"testing"
 
-type Notifier interface {
-	Notify(msg Message) error
-	Close()
-}
+	"github.com/spf13/viper"
+)
 
-func New() (Notifier, error) {
-	return nil, nil
+var adminCfgFile = "../../../configs/admin.yaml"
+
+func TestConfig(t *testing.T) {
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(adminCfgFile)
+
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("viper read in config failed, errmsg(%v)", err)
+	}
+
+	if err := viper.Unmarshal(&config.Cfg); err != nil {
+		t.Fatalf("viper unmarshal failed, errmsg(%v)", err)
+	}
+
+	t.Log("analysis cfg:", config.Cfg)
 }

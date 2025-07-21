@@ -41,7 +41,10 @@ func main() {
 
 	rootCmd.PersistentFlags().StringVarP(&admin.ConfigFilePath, "config", "c", "./etc/admin.yaml", "")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	rootCmd.AddCommand(admin.VersionCmd)
+	rootCmd.AddCommand(admin.MigrateCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed to start admin server. errmsg:%s", err.Error())
 		return

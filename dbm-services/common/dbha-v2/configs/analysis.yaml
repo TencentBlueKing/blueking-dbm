@@ -2,25 +2,31 @@ name: analysis
 version: v2.0.0
 
 discovery:
-  endpoint: http://127.0.0.1:2379;http://127.0.0.2:2379
+  endpoints: http://127.0.0.1:2379;http://127.0.0.2:2379
   user: root
   password: 1234567890
 
 workflow:
-  workerCount: 2
+  # -1 is unlimited
+  #  0 is autocomputed
+  workerBusinessCount: 0
+  lockBusinessWaitTimeout: 5s
+  scanTimeout: 60s
   scanInterval: 3s
 
 notifier:
-  - name: bkmonitor
-    enable: true
-    endpoint: 127.0.0.1:9090
+  enable: true
+  endpoints: 127.0.0.1:9090
 
-storage:
-  - name: mysql
-    enable: true
-    endpoint: 127.0.0.1:3306
-    user: root
-    password: 123456
+metacache:
+  endpoints: 127.0.0.1:3306
+  user: root
+  password: 123456
+
+dbhadata:
+  endpoints: 127.0.0.1:3306
+  user: root
+  password: 123456
 
 log:
   path: /var/log/dbha/analysis.log
