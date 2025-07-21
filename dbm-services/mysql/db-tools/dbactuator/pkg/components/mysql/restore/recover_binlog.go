@@ -786,7 +786,7 @@ func (r *RecoverBinlog) Start() error {
 			}
 			if originValue != newValue {
 				defer func() {
-					if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+					if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 						logger.Error("fail to set back slave_exec_mode=%s", originValue)
 					}
 				}()
@@ -834,7 +834,7 @@ func (r *RecoverBinlog) Import() error {
 		}
 		if originValue != newValue {
 			defer func() {
-				if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+				if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 					logger.Error("fail to set back slave_exec_mode=%s", originValue)
 				}
 			}()

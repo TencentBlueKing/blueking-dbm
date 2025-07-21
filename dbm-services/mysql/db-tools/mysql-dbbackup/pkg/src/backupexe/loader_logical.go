@@ -140,7 +140,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	defer func() {
 		if l.initConnectOriginal != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnectOriginal)
-			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
+			if _, err := l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
 				//return err
 				logger.Log.Warn("fail set global init_connect back:", l.initConnectOriginal)
 			}

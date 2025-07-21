@@ -115,7 +115,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	defer func() {
 		if l.initConnect != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnect)
-			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnect)); err != nil {
+			if _, err := l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnect)); err != nil {
 				//return err
 				logger.Log.Warn("fail set global init_connect back:", l.initConnect)
 			}

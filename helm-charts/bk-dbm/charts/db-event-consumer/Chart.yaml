@@ -1,6 +1,6 @@
 apiVersion: v2
-appVersion: 0.0.1-alpha.14
+appVersion: 0.0.1-alpha.3
 description: A Helm chart for db-event-consumer
 name: db-event-consumer
 type: application
-version: 0.0.6
+version: 0.0.7

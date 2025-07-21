@@ -199,7 +199,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 		} else {
 			logger.Log.Infof("will set global slave_parallel_workers=%s after backup finished", originVal)
 			defer func() {
-				if err = mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
+				if err := mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
 					logger.Log.Errorf("set global slave_parallel_workers=%s failed, err: %s", originVal, err.Error())
 				}
 			}()

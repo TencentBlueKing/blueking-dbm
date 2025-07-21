@@ -28,5 +28,6 @@ func ExecuteLoad(cnf *config.BackupConfig, indexFileContent *dbareport.IndexCont
 	if err = loader.Execute(); err != nil {
 		return err
 	}
+
 	return nil
 }

@@ -43,11 +43,14 @@ func init() {
 		"overwrite LogicalLoad.MysqlUser")
 	loadLogicalCmd.Flags().StringP("password", "p", "", "User password, overwrite LogicalLoad.MysqlPasswd")
 	loadLogicalCmd.Flags().String("charset", "", "User password, overwrite LogicalLoad.MysqlCharset")
+	loadLogicalCmd.Flags().String("init-command", "", "Init command for conneciton, overwrite LogicalLoad.InitCommand")
+
 	viper.BindPFlag("LogicalLoad.MysqlHost", loadLogicalCmd.Flags().Lookup("host"))
 	viper.BindPFlag("LogicalLoad.MysqlPort", loadLogicalCmd.Flags().Lookup("port"))
 	viper.BindPFlag("LogicalLoad.MysqlUser", loadLogicalCmd.Flags().Lookup("user"))
 	viper.BindPFlag("LogicalLoad.MysqlPasswd", loadLogicalCmd.Flags().Lookup("password"))
 	viper.BindPFlag("LogicalLoad.MysqlCharset", loadLogicalCmd.Flags().Lookup("charset"))
+	viper.BindPFlag("LogicalLoad.InitCommand", loadLogicalCmd.Flags().Lookup("init-command"))
 
 	// Control options
 	loadLogicalCmd.Flags().Bool("enable-binlog", true, "overwrite LogicalLoad.EnableBinlog, "+

@@ -703,7 +703,7 @@ func (r *GoApplyBinlog) Start() error {
 			}
 			if originValue != newValue {
 				defer func() {
-					if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+					if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 						logger.Error("fail to set back slave_exec_mode=%s", originValue)
 					}
 				}()
@@ -759,7 +759,7 @@ func BinlogImport(taskDir, scriptName string, dbWorker *native.DbWorker) error {
 	}
 	if originValue != newValue {
 		defer func() {
-			if err = dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+			if err := dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 				logger.Error("fail to set back slave_exec_mode=%s", originValue)
 			}
 		}()
