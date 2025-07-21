@@ -24,34 +24,22 @@
 
 package config
 
-import "time"
-
 var Cfg = Configuration{}
+
+// ServiceConfig service configuration
+type ServiceConfig struct {
+	ListenAddress string `yaml:"listenAddress"    mapstructure:"listenAddress"`
+}
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
+	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
+	User      string `yaml:"user"      mapstructure:"user"`
+	Password  string `yaml:"password"  mapstructure:"password"`
 }
 
-// WorkflowConfig workflow's configuration
-type WorkflowConfig struct {
-	WorkerBusinessCount     int           `yaml:"workerBusinessCount"     mapstructure:"workerBusinessCount"`
-	LockBusinessWaitTimeout time.Duration `yaml:"lockBusinessWaitTimeout" mapstructure:"lockBusinessWaitTimeout"`
-	ScanTimeout             time.Duration `yaml:"scanTimeout"             mapstructure:"scanTimeout"`
-	ScanInterval            time.Duration `yaml:"scanInterval"            mapstructure:"scanInterval"`
-}
-
-// NotifierConfig notifier's configuration
-type NotifierConfig struct {
-	Name     string `yaml:"name"     mapstructure:"name"`
-	Enable   bool   `yaml:"enable"   mapstructure:"enable"`
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-}
-
-// StorageConfig storage's configuration
-type StorageConfig struct {
+// DBHADataConfig dbha database configuration
+type DBHADataConfig struct {
 	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
 	User      string `yaml:"user"      mapstructure:"user"`
 	Password  string `yaml:"password"  mapstructure:"password"`
@@ -65,13 +53,12 @@ type LogConfig struct {
 	FileSizeMB int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
-// Configuration receiver's configuration
+// Configuration admin's configuration
 type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
+	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
-	MetaCache StorageConfig   `yaml:"metacache" mapstructure:"metacache"`
-	DbhaData  StorageConfig   `yaml:"dbhadata"  mapstructure:"dbhadata"`
+	DBHAData  DBHADataConfig  `yaml:"dbhadata"  mapstructure:"dbhadata"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

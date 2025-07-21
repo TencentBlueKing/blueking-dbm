@@ -27,50 +27,24 @@ package analysis
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/internal/analysis/notifier"
-	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
 type Service struct {
-	db           *storage.Storage
-	wflow        *workflow.Workflow
-	notifierAsst notifier.Notifier
+	wflow *workflow.Workflow
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	if len(config.Cfg.Storage) == 0 {
-		return gerrors.Newf(gerrors.InvalidConfiguration, "not set any inputter")
+	if len(config.Cfg.DbhaData.Endpoints) == 0 {
+		return gerrors.Newf(gerrors.InvalidConfiguration, "not set dbha")
 	}
 
-	// 1. create storage
-	sdb, err := storage.New(config.Cfg.Storage)
-	if err != nil {
-		logger.Error("create storage failed, errmsg(%v)", err)
-		return err
-	}
-	s.db = sdb
-	defer s.db.Close()
+	// 1. create dbha data storage
 
 	// 2. create notifier
-	notifierAsst, err := notifier.New()
-	if err != nil {
-		logger.Error("create notifier failed, errmsg(%v)", err)
-		return err
-	}
-	s.notifierAsst = notifierAsst
-	defer s.notifierAsst.Close()
 
 	// 3. create workflow
-	wflow, err := workflow.New(config.Cfg.Workflow, s.db, s.notifierAsst)
-	if err != nil {
-		logger.Error("create workflow failed, errmsg(%v)", err)
-		return err
-	}
-	s.wflow = wflow
-	defer s.wflow.Close()
 
 	// 4. run workflow
 	return s.wflow.Run(ctx)
@@ -78,8 +52,4 @@ func (s *Service) Run(ctx context.Context) error {
 
 func (s *Service) Close() {
 	s.wflow.Close()
-
-	if s.notifierAsst != nil {
-		s.notifierAsst.Close()
-	}
 }
