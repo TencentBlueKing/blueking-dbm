@@ -59,7 +59,7 @@ def bytes_to_gb(bytes: int) -> float:
     return bytes / 1024 / 1024 / 1024
 
 
-def build_resource_apply_params(task_id: str, min_disk_size: float) -> Dict[str, Union[str, Any]]:
+def build_resource_apply_params(task_id: str, min_disk_size: int) -> Dict[str, Union[str, Any]]:
     """Build resource application parameters
 
     Args:
@@ -90,7 +90,7 @@ def build_resource_apply_params(task_id: str, min_disk_size: float) -> Dict[str,
     }
 
 
-def calculate_min_disk_size(total_filesize: int) -> float:
+def calculate_min_disk_size(total_filesize: int) -> int:
     """Calculate minimum disk size required for backup recovery
 
     Args:
@@ -100,7 +100,7 @@ def calculate_min_disk_size(total_filesize: int) -> float:
         Minimum disk size required in GB
     """
     min_disk_size = bytes_to_gb(total_filesize) * 2  # Double the backup size
-    return max(min_disk_size, 50)  # Ensure minimum of 50GB
+    return int(max(min_disk_size, 50))  # Ensure minimum of 50GB
 
 
 def get_last_week_range():
