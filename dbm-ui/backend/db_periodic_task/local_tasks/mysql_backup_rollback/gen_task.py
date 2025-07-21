@@ -308,7 +308,7 @@ def return_resource(params: Dict[str, Any]) -> None:
                     "bk_cloud_id": mch_info["bk_cloud_id"],
                 }
             ],
-            "labels": mch_info["lables"],
+            "labels": mch_info["labels"],
             "operator": "system",
         }
     """
