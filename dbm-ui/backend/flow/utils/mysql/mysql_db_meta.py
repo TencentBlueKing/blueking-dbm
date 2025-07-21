@@ -746,9 +746,11 @@ class MySQLDBMeta(object):
             resource_spec = self.ticket_data["resource_spec"]["new_slave"]
         else:
             cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
-            resource_spec = cluster.storageinstance_set.first(
-                instance_inner_role=InstanceInnerRole.MASTER.value
-            ).machine.spec_config
+            resource_spec = (
+                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+                .first()
+                .machine.spec_config
+            )
         machines = [
             {
                 "ip": self.cluster["install_ip"],
@@ -954,9 +956,11 @@ class MySQLDBMeta(object):
             resource_spec_slave = self.ticket_data["resource_spec"]["slave"]
         else:
             cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
-            resource_spec_master = cluster.storageinstance_set.first(
-                instance_inner_role=InstanceInnerRole.MASTER.value
-            ).machine.spec_config
+            resource_spec_master = (
+                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+                .first()
+                .machine.spec_config
+            )
             resource_spec_slave = resource_spec_master
         machines = [
             {
