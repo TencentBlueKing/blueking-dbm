@@ -93,7 +93,7 @@
 
   import ModuleGroup from './components/module-group/Index.vue';
 
-  const router = useRouter();
+  // const router = useRouter();
   const { t } = useI18n();
   const { isLoading: isModuleLoading, tabList } = useBizDbDisplay();
 
@@ -113,10 +113,10 @@
     setTimeout(() => {
       if (tabList.value.length === 0) {
         renderModuleList.value = [];
-        router.replace({ name: 'BussinessServiceApply' });
+        // router.replace({ name: 'BussinessServiceApply' });
       } else {
         renderModuleList.value = tabList.value.map((tabItem) => tabItem.id);
-        router.replace({ name: `${tabList.value[0].routeIndexName}` });
+        // router.replace({ name: `${tabList.value[0].routeIndexName}` });
       }
     });
   });
