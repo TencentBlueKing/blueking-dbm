@@ -300,7 +300,13 @@
         label: t('操作'),
         render: ({ data }: { data: MongodbInstanceModel }) => (
           <>
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              v-db-console={
+                instanceListClusterType === ClusterTypes.MONGO_REPLICA_SET
+                  ? 'mongodb.replicaSetInstanceManage.restartInstance'
+                  : 'mongodb.sharedClusterInstanceManage.restartInstance'
+              }
+              data={data}>
               <bk-button
                 class='mr-8'
                 disabled={data.isRebooting}
