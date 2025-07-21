@@ -26,6 +26,7 @@ package probe
 
 import (
 	"dbm-services/common/dbha-v2/internal/receiver/output"
+	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -37,7 +38,7 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers []output.Saver
+	savers []output.Outputter
 	eventC requestEventC
 	quit   chan struct{}
 	wg     sync.WaitGroup
@@ -50,13 +51,16 @@ func (c *connectionHandler) readEvent() {
 			return
 
 		case msg := <-c.eventC:
-			if c.savers == nil || len(c.savers) == 0 {
+			if len(c.savers) == 0 {
 				logger.Debug("no connection handler, drop the data(%v)", msg)
 				continue
 			}
 
 			for _, saver := range c.savers {
-				saver.Save(msg)
+				saver.Save(&storage.Message{
+					Topic: "",
+					Data:  string(msg.Payload),
+				})
 			}
 		}
 	}

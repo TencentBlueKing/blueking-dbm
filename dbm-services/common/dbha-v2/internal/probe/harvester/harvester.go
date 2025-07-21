@@ -40,11 +40,9 @@ func NewPlugin(cfg config.HarvesterConfig) (plugin.Plugin, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mysql.Name):
 		target = mysql.NewMySql(mysql.OptionReportInterval(cfg.ReportInterval))
-		break
 
 	case strings.ToLower(redis.Name):
 		target = redis.NewRedis(redis.OptionReportInterval(cfg.ReportInterval))
-		break
 	}
 
 	return target, gerrors.Newf(gerrors.NotFound, "plugin(%s) is invalid", cfg.Name)

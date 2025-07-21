@@ -27,7 +27,6 @@ package storage
 import "dbm-services/common/dbha-v2/internal/analysis/config"
 
 type Storage struct {
-	msql *SharedMySQL
 }
 
 func New(cfgs []config.StorageConfig) (*Storage, error) {

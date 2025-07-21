@@ -25,9 +25,13 @@
 package admin
 
 import (
+	"dbm-services/common/dbha-v2/internal/admin/config"
+	"dbm-services/common/dbha-v2/internal/admin/migrator"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/version"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var VersionCmd = &cobra.Command{
@@ -35,5 +39,37 @@ var VersionCmd = &cobra.Command{
 	Short: "Print Version Information",
 	Run: func(cmd *cobra.Command, args []string) {
 		version.Print("DBHA Admin Server")
+	},
+}
+
+var MigrateCmd = &cobra.Command{
+	Use:   "migrate",
+	Short: "migrate all databases",
+	Run: func(cmd *cobra.Command, args []string) {
+
+		viper.SetConfigName("admin")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./etc")
+
+		logger.Info("use the configuration:%s", ConfigFilePath)
+
+		if ConfigFilePath != "" {
+			viper.SetConfigFile(ConfigFilePath)
+		}
+
+		if err := viper.ReadInConfig(); err != nil {
+			logger.Error("read admin configuration failed, %v", err)
+			return
+		}
+
+		if err := viper.Unmarshal(&config.Cfg); err != nil {
+			logger.Error("unmarshal admin configuration failed, %v", err)
+			return
+		}
+
+		mig := &migrator.Migrator{}
+		if err := mig.InitDBHAData(); err != nil {
+			logger.Error("migrate dbhadata failed, %v", err)
+		}
 	},
 }

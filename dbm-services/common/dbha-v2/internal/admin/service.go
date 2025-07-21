@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package service
+package admin
 
 import (
 	"context"

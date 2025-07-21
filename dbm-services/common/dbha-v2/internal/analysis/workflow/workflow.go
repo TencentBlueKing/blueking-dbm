@@ -27,9 +27,9 @@ package workflow
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/internal/analysis/notifier"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"sync"
 	"time"
 )
 
@@ -38,43 +38,68 @@ const (
 )
 
 type Workflow struct {
-	cdbStragety  *changeDBStrategy
-	dbcache      *dbMetadataCache
-	cdb          *changeDB
-	db           *storage.Storage
-	notifierAsst notifier.Notifier
-	cfg          config.WorkflowConfig
-	quit         chan struct{}
+	cfg  config.WorkflowConfig
+	quit chan struct{}
+	wg   sync.WaitGroup
 }
 
-func New(cfg config.WorkflowConfig, db *storage.Storage, asst notifier.Notifier) (*Workflow, error) {
-	strategy := &changeDBStrategy{}
-	metadataCache := &dbMetadataCache{}
+func New(cfg config.WorkflowConfig, db *storage.Storage) (*Workflow, error) {
 
 	wflow := &Workflow{
-		cdbStragety:  strategy,
-		dbcache:      metadataCache,
-		notifierAsst: asst,
-		db:           db,
-		cfg:          cfg,
-		quit:         make(chan struct{}, 1),
+		cfg:  cfg,
+		quit: make(chan struct{}, 1),
 	}
 
 	return wflow, nil
 }
 
-func (w *Workflow) lockBusiness() error {
+func (w *Workflow) lockBusiness(ctx context.Context, bizID int, timeout time.Duration) error {
+	// TODO:
+	_ = ctx
+	_ = bizID
+	_ = timeout
+
 	return nil
 }
 
-func (w *Workflow) unlockBusiness() error {
+func (w *Workflow) unlockBusiness(ctx context.Context, bizID int) error {
+	// TODO:
+	_ = ctx
+	_ = bizID
+
 	return nil
+}
+
+func (w *Workflow) checkBusiness(ctx context.Context, bizID int) error {
+	if err := w.lockBusiness(ctx, bizID, w.cfg.LockBusinessWaitTimeout); err != nil {
+	}
+
+	if err := w.unlockBusiness(ctx, bizID); err != nil {
+	}
+
+	return nil
+}
+
+func (w *Workflow) scanBusinesses(ctx context.Context) {
+
+	bizIDs := []int{}
+
+	for _, bizID := range bizIDs {
+		w.wg.Add(1)
+
+		go func(bizID int) {
+			defer w.wg.Done()
+
+			if err := w.checkBusiness(ctx, bizID); err != nil {
+				// TODO: notify admin
+			}
+
+		}(bizID)
+	}
 }
 
 func (w *Workflow) Run(ctx context.Context) error {
-
 	if w.cfg.ScanInterval < scanIntervalLimitMin {
-
 		logger.Warn("scan interval(%v) is too small,reset it to the default value(%v)",
 			w.cfg.ScanInterval, scanIntervalLimitMin)
 
@@ -90,6 +115,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 			return nil
 
 		case <-time.After(w.cfg.ScanInterval):
+			w.scanBusinesses(ctx)
 		}
 	}
 }
@@ -98,6 +124,7 @@ func (w *Workflow) Close() {
 	if w.quit != nil {
 		close(w.quit)
 	}
-	w.quit = nil
 
+	w.wg.Wait()
+	w.quit = nil
 }

@@ -24,11 +24,5 @@
 
 package analyst
 
-import "dbm-services/common/dbha-v2/internal/analysis/notifier"
-
 type Analyst interface {
-}
-
-func New(asst notifier.Notifier) (Analyst, error) {
-	return nil, nil
 }

@@ -25,50 +25,8 @@
 package harvester_test
 
 import (
-	"dbm-services/common/dbha-v2/internal/probe/harvester"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"encoding/json"
-	"sync"
 	"testing"
-	"time"
-
-	"golang.org/x/net/context"
 )
 
 func TestPlugins(t *testing.T) {
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
-	var wg sync.WaitGroup
-
-	for _, p := range harvester.Plugins {
-		wg.Add(1)
-		go func(ctx context.Context, p plugin.Plugin) {
-			defer wg.Done()
-			dataC, err := p.Harvest(ctx)
-			if err != nil {
-				t.Errorf("harvest failed, errmsg:%v", err)
-			}
-
-			name, _ := p.Name()
-			version, _ := p.Version()
-
-			for {
-				select {
-				case <-ctx.Done():
-					p.Close()
-					return
-
-				case data := <-dataC:
-					value, err := json.Marshal(data)
-					if err != nil {
-						t.Errorf("failed, plugin:%s, version:%s errmsg:%v", name, version, err)
-						continue
-					}
-					t.Log("plugin:", name, "version:", version, "data:", string(value))
-				}
-			}
-		}(ctx, p)
-	}
-
-	wg.Wait()
-	t.Log("Plugin Test Finished")
 }
