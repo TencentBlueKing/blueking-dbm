@@ -24,5 +24,7 @@
 
 package workflow
 
-type changeDB struct {
+// Switcher All databases that support siwtching must implement this interface.
+type Switcher interface {
+	Switch() error
 }

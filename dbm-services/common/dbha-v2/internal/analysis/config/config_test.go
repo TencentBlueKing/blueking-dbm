@@ -34,6 +34,7 @@ import (
 var analysisCfgFile = "../../../configs/analysis.yaml"
 
 func TestConfig(t *testing.T) {
+	viper.SetConfigType("yaml")
 	viper.SetConfigFile(analysisCfgFile)
 
 	if err := viper.ReadInConfig(); err != nil {

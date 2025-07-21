@@ -22,7 +22,8 @@
  * SOFTWARE.
  */
 
-package storage
+package workflow
 
-type SharedMySQL struct {
+type Notifier interface {
+	Notify() error
 }
