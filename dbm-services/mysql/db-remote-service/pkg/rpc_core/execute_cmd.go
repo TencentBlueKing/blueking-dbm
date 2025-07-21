@@ -57,7 +57,7 @@ func executeAtom(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64
 
 	result, err := conn.ExecContext(ctx, cmd)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.DeadlineExceeded) && connId > 0 {
 			logger.Error("execute cmd timeout, try to kill conn", slog.String("cmd", cmd), slog.Int64("connId", connId))
 			_, _ = db.Exec(`KILL ?`, connId)
 		}
@@ -100,7 +100,7 @@ func queryAtom(logger *slog.Logger, db *sqlx.DB, conn *sqlx.Conn, connId int64, 
 
 	rows, err := conn.QueryxContext(ctx, cmd)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
+		if errors.Is(err, context.DeadlineExceeded) && connId > 0 {
 			logger.Info("query cmd timeout, try to kill conn", slog.String("cmd", cmd), slog.Int64("connId", connId))
 			_, _ = db.Exec(`KILL ?`, connId)
 		}

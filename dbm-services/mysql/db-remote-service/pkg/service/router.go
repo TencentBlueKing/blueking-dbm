@@ -2,6 +2,8 @@ package service
 
 import (
 	"dbm-services/mysql/db-remote-service/pkg/service/handler_rpc"
+	"dbm-services/mysql/db-remote-service/pkg/v2/mysql/rpc"
+	"dbm-services/mysql/db-remote-service/pkg/v2/mysql/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,4 +36,15 @@ func RegisterRouter(engine *gin.Engine) {
 
 	webConsoleGroup := engine.Group("/webconsole")
 	webConsoleGroup.POST("/rpc", handler_rpc.WebConsoleRPCHandler)
+
+	v2Group(engine)
+}
+
+func v2Group(engine *gin.Engine) {
+	v2Group := engine.Group("/v2")
+	WSGroup := v2Group.Group("/ws")
+	RPCGroup := v2Group.Group("/rpc")
+
+	WSGroup.GET("/mysql", websocket.Handler)
+	RPCGroup.POST("/mysql", rpc.Handler)
 }

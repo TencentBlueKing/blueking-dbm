@@ -67,12 +67,12 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 	}()
 	slog.Info("execute one addr get conn", slog.Any("stat", db.Stats()))
 
-	var connId int64
-	err = conn.GetContext(context.Background(), &connId, `SELECT CONNECTION_ID()`)
-	if err != nil {
-		c.logger.Error("get conn id", slog.String("error", err.Error()))
-		return nil, err
-	}
+	var connId int64 = 0
+	_ = conn.GetContext(context.Background(), &connId, `SELECT CONNECTION_ID()`)
+	//if err != nil {
+	//	c.logger.Error("get conn id", slog.String("error", err.Error()))
+	//	return nil, err
+	//}
 
 	for idx, command := range c.commands {
 		command = strings.TrimSpace(command)

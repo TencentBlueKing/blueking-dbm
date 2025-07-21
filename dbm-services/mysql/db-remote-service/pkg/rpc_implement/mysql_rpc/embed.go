@@ -86,6 +86,10 @@ CONNSTART:
 	}()
 
 	if charset == "default" {
+		defer func() {
+			_ = db.Close()
+		}()
+
 		slog.Info("recursion mysql connection", slog.String("charset", charset))
 		var serverCharset string
 		err = db.QueryRow(`SELECT @@character_set_server`).Scan(&serverCharset)
