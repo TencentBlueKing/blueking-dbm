@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 
 import { createTicketNew } from '@services/source/ticket';
 
+import { useTicketMessage } from '@hooks';
+
 import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
@@ -19,6 +21,7 @@ export function useCreateTicket<T>(
   const router = useRouter();
   const route = useRoute();
   const { locale, t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   const run = async (formData: { details: T; ignore_duplication?: boolean; remark?: string }) => {
     const params = {
@@ -33,6 +36,11 @@ export function useCreateTicket<T>(
       const { id: ticketId } = await createTicketNew<T>(params);
       if (options?.onSuccess) {
         options.onSuccess(ticketId);
+        return;
+      }
+      // 如果当前路由非工具箱路由
+      if (ticketType !== route.meta.routeName) {
+        ticketMessage(ticketId);
         return;
       }
       const toolboxResultMap = {
