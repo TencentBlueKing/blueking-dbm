@@ -3495,10 +3495,6 @@ go.uber.org/multierr v1.3.0/go.mod h1:VgVr7evmIr6uPjLBxg28wmKNXyqE9akIJ5XnfpiKl+
 go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee h1:0mgffUl7nfd+FpvXMVz4IDEaUSmT1ysygQC7qYo7sG4=
 go.uber.org/zap v1.13.0/go.mod h1:zwrFLgMcdUuIBviXEYEH1YKNaOBnKXsx2IPda5bBwHM=
 go.uber.org/zap v1.21.0/go.mod h1:wjWOCqI0f2ZZrJF/UufIOkiC8ii6tm1iqIsLo76RfJw=
-go.yaml.in/yaml/v2 v2.4.2 h1:DzmwEr2rDGHl7lsFgAHxmNz/1NlQ7xLIrlN2h5d1eGI=
-go.yaml.in/yaml/v2 v2.4.2/go.mod h1:081UH+NErpNdqlCXm3TtEran0rJZGxAYx9hb/ELlsPU=
-go.yaml.in/yaml/v3 v3.0.3 h1:bXOww4E/J3f66rav3pX3m8w6jDE4knZjGOw8b5Y6iNE=
-go.yaml.in/yaml/v3 v3.0.3/go.mod h1:tBHosrYAkRZjRAOREWbDnBXUf08JOwYq++0QNwQiWzI=
 go4.org/netipx v0.0.0-20230728184502-ec4c8b891b28 h1:zLxFnORHDFTSkJPawMU7LzsuGQJ4MUFS653jJHpORow=
 go4.org/netipx v0.0.0-20230728184502-ec4c8b891b28/go.mod h1:TQvodOM+hJTioNQJilmLXu08JNb8i+ccq418+KWu1/Y=
 go4.org/netipx v0.0.0-20231129151722-fdeea329fbba h1:0b9z3AuHCjxk0x/opv64kcgZLBseWJUpBw5I82+2U4M=
@@ -3626,6 +3622,7 @@ golang.org/x/oauth2 v0.15.0 h1:s8pnnxNVzjWyrvYdFUQq5llS1PX2zhPXmccZv99h7uQ=
 golang.org/x/oauth2 v0.15.0/go.mod h1:q48ptWNTY5XWf+JNten23lcvHpLJ0ZSxF5ttTHKVCAM=
 golang.org/x/oauth2 v0.16.0/go.mod h1:hqZ+0LWXsiVoZpeld6jVt06P3adbS2Uu911W1SsJv2o=
 golang.org/x/oauth2 v0.17.0/go.mod h1:OzPDGQiuQMguemayvdylqddI7qcD9lnSDb+1FiwQ5HA=
+golang.org/x/oauth2 v0.18.0/go.mod h1:Wf7knwG0MPoWIMMBgFlEaSUDaKskp0dCfrlJRJXbBi8=
 golang.org/x/oauth2 v0.19.0/go.mod h1:vYi7skDa1x015PmRRYZ7+s1cWyPgrPiSYRe4rnsexc8=
 golang.org/x/oauth2 v0.20.0 h1:4mQdhULixXKP1rwYBW0vAijoXnkTG0BLCDRzfe1idMo=
 golang.org/x/oauth2 v0.20.0/go.mod h1:XYTD2NtWslqkgxebSiOHnXEap4TF09sJSc7H1sXbhtI=
@@ -4264,8 +4261,6 @@ sigs.k8s.io/kustomize/kustomize/v5 v5.0.4-0.20230601165947-6ce0bf390ce3/go.mod h
 sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3/go.mod h1:JWP1Fj0VWGHyw3YUPjXSQnRnrwezrZSrApfX5S0nIag=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.3/go.mod h1:qjx8mGObPmV2aSZepjQjbmb2ihdVs8cGKBraizNC69E=
 sigs.k8s.io/structured-merge-diff/v4 v4.4.1/go.mod h1:N8hJocpFajUSSeSJ9bOZ77VzejKZaXsTtZo4/u7Io08=
-sigs.k8s.io/yaml v1.5.0 h1:M10b2U7aEUY6hRtU870n2VTPgR5RZiL/I6Lcc2F4NUQ=
-sigs.k8s.io/yaml v1.5.0/go.mod h1:wZs27Rbxoai4C0f8/9urLZtZtF3avA3gKvGyPdDqTO4=
 tags.cncf.io/container-device-interface v0.7.2/go.mod h1:Xb1PvXv2BhfNb3tla4r9JL129ck1Lxv9KuU6eVOfKto=
 tags.cncf.io/container-device-interface v0.8.1 h1:c0jN4Mt6781jD67NdPajmZlD1qrqQyov/Xfoab37lj0=
 tags.cncf.io/container-device-interface v0.8.1/go.mod h1:Apb7N4VdILW0EVdEMRYXIDVRZfNJZ+kmEUss2kRRQ6Y=

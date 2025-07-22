@@ -144,7 +144,7 @@ class MySQLRollbackExerciseFlow(object):
         )
         install_ticket = copy.deepcopy(self.data)
         datetime_str = datetime.strftime(datetime.now(), "%Y%m%d%H%M%S%f")
-        cluster_name = "{}-{}".format(cluster_class.name, datetime_str)
+        cluster_name = "{}-{}".format(cluster_class.name, datetime_str).replace("_", "")
         if len(cluster_name) > 48:
             cluster_name = get_random_string(24)
         master_domain = "rollback.{}.dba.db".format(cluster_name)
@@ -165,7 +165,7 @@ class MySQLRollbackExerciseFlow(object):
         # 初始化安装mysql
         pipeline.add_sub_pipeline(
             MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow(
-                origin_cluster_domian=cluster_class.immute_domain
+                origin_cluster_domain=cluster_class.immute_domain
             )
         )
         # 更新任务状态

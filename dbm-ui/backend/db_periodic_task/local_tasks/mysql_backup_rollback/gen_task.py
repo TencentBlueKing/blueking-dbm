@@ -132,6 +132,13 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
     backup_records = handler.query_recover_backup_logs(start_time, end_time)
     if not backup_records:
         return False
+    backup_ids = [record["backup_id"] for record in backup_records]
+    # 最近一周回档过就忽略
+    if MySQLBackupRecoverTask.objects.filter(
+        backup_id__in=backup_ids, task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
+    ).exists():
+        logger.info(f"backup_id {backup_ids} already exists, skip.")
+        return False
     return True
 
 
@@ -253,6 +260,8 @@ def get_exercise_clusters(num: int) -> list:
     recover_success_map = {}
     exclude_biz_ids = MySQLBackupRecoverTask.get_all_practiced_biz_ids()
     exclude_cluster_id = MySQLBackupRecoverTask.get_all_practiced_cluster_ids()
+    recent_task_cluster_ids = MySQLBackupRecoverTask.get_recent_24h_task_cluster_ids()
+    exclude_cluster_id.extend(recent_task_cluster_ids)
     # 先获取未演练的业务的集群
     clusters = Cluster.objects.exclude(
         bk_biz_id__in=exclude_biz_ids,
@@ -263,9 +272,7 @@ def get_exercise_clusters(num: int) -> list:
             id__in=exclude_cluster_id,
         )
         if not clusters.exists():
-            clusters = Cluster.objects.filter(
-                cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA, ClusterType.TenDBSingle]
-            )
+            clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
             result = (
                 MySQLBackupRecoverTask.objects.filter(
                     task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS],

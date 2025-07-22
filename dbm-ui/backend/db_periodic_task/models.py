@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import json
 import logging
+from datetime import timedelta
 
 from django.db import models, transaction
 from django.utils import timezone
@@ -147,6 +148,20 @@ class MySQLBackupRecoverTask(AuditedModel):
         return (
             MySQLBackupRecoverTask.objects.filter(
                 task_status__in=[TaskStatus.RECOVER_SUCCESS, TaskStatus.RESOURCE_RETURN_SUCCESS]
+            )
+            .values_list("cluster_id", flat=True)
+            .distinct()
+        )
+
+    @classmethod
+    def get_recent_24h_task_cluster_ids(cls):
+        """
+        获取最近24小时内发起任务集群ID列表
+        """
+        recent_time = timezone.now() - timedelta(hours=24)
+        return (
+            MySQLBackupRecoverTask.objects.filter(
+                create_at__gte=recent_time,
             )
             .values_list("cluster_id", flat=True)
             .distinct()
