@@ -100,7 +100,7 @@
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
     runImport({
-      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
+      bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
       for_biz: data.for_biz as number,
       hosts: hostList.value.map((item) => ({
         bk_cloud_id: item.bk_cloud_id,

@@ -49,7 +49,7 @@ export const useImportResourcePoolTooltip = (
     const routeInfo = router.resolve(ticketRoute);
     const routeInfoHref = params.isCurrentBiz
       ? routeInfo.href
-      : getBusinessHref(routeInfo.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+      : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
 
     Message({
       delay: 6000,
