@@ -48,6 +48,7 @@
         :label="t('资源标签')"
         property="labels">
         <TagSelector
+          ref="tagSelectorRef"
           v-model="formData.labels"
           :bk-biz-id="formData.for_biz"
           :disabled="!formData.for_biz && formData.for_biz !== 0" />
@@ -56,7 +57,6 @@
     <template #footer>
       <div>
         <BkButton
-          v-bk-tooltips="tooltip"
           :loading="isImporting"
           theme="primary"
           @click="handleSubmit">
@@ -105,9 +105,10 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const systemEnvironStore = useSystemEnviron();
-  const { successMessage, tooltip } = useImportResourcePoolTooltip();
+  const { successMessage } = useImportResourcePoolTooltip();
 
   const formRef = useTemplateRef('formRef');
+  const tagSelectorRef = useTemplateRef('tagSelectorRef');
 
   const formData = reactive({
     for_biz: 0,
@@ -138,10 +139,10 @@
 
   const { loading: isImporting, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess({ task_ids: taskIds }) {
+    onSuccess({ ticket_ids: ticketIds }) {
       emits('refresh');
       isShow.value = false;
-      successMessage(taskIds);
+      successMessage(ticketIds);
     },
   });
 
@@ -157,6 +158,7 @@
           ip: props.data.ip,
         },
       ],
+      label_names: tagSelectorRef.value!.getLabelNames(),
       labels: formData.labels,
       resource_type: formData.resource_type,
       return_resource: true,

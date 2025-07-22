@@ -195,6 +195,22 @@ export interface ResourcePoolRecycle extends DetailBase {
   recycle_hosts: ResourcePoolRecycleHost[]; // 已下架主机
 }
 
+/**
+ * 导入资源池
+ */
+export interface ImportResource extends DetailBase {
+  bk_biz_id: number;
+  for_biz: number;
+  hosts: Array<{
+    bk_cloud_id: number;
+    host_id: number;
+    ip: string;
+  }>;
+  label_names: string[];
+  labels: number[];
+  resource_type: string;
+}
+
 export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRecycle, 'group' | 'parent_ticket'> {
   clusters: DetailClusters;
   ip_recycle: {
