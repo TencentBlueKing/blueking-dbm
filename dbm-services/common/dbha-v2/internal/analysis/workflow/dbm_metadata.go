@@ -22,10 +22,63 @@
  * SOFTWARE.
  */
 
-package storage
+package workflow
 
-// Message Data message reported by probe.
-type Message struct {
-	Topic string
-	Data  string
+import (
+	"context"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"sync"
+	"time"
+)
+
+type DBMMetadata struct {
+	db *hamysql.DB
+	wg sync.WaitGroup
+}
+
+func (dbm *DBMMetadata) updateCache() error {
+	// TODO:
+
+	return nil
+}
+
+func (dbm *DBMMetadata) watchUpdatedEvent(ctx context.Context) error {
+	dbm.wg.Add(1)
+
+	go func() {
+		defer dbm.wg.Done()
+
+		ticker := time.NewTicker(5 * time.Second)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case <-ticker.C:
+				// TODO:
+
+			default:
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (dbm *DBMMetadata) Run(ctx context.Context) error {
+	if err := dbm.watchUpdatedEvent(ctx); err != nil {
+		return err
+	}
+
+	if err := dbm.updateCache(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dbm *DBMMetadata) Close() {
+	dbm.wg.Wait()
 }

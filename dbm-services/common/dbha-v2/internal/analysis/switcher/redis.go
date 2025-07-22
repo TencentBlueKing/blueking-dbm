@@ -22,7 +22,4 @@
  * SOFTWARE.
  */
 
-package analyst
-
-type Analyst interface {
-}
+package switcher

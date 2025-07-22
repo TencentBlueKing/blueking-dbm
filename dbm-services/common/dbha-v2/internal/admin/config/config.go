@@ -59,6 +59,6 @@ type Configuration struct {
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	DBHAData  DBHADataConfig  `yaml:"dbhadata"  mapstructure:"dbhadata"`
+	DBHAData  DBHADataConfig  `yaml:"storage"  mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

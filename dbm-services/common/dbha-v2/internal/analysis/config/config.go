@@ -52,9 +52,9 @@ type NotifierConfig struct {
 
 // StorageConfig storage's configuration
 type StorageConfig struct {
-	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
-	User      string `yaml:"user"      mapstructure:"user"`
-	Password  string `yaml:"password"  mapstructure:"password"`
+	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
+	User     string `yaml:"user"      mapstructure:"user"`
+	Password string `yaml:"password"  mapstructure:"password"`
 }
 
 // LogConfig log configuration
@@ -71,7 +71,7 @@ type Configuration struct {
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
-	MetaCache StorageConfig   `yaml:"metacache" mapstructure:"metacache"`
-	DbhaData  StorageConfig   `yaml:"dbhadata"  mapstructure:"dbhadata"`
+	Notifier  NotifierConfig  `yaml:"notifier"  mapstructure:"notifier"`
+	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

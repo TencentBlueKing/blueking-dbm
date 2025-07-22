@@ -167,7 +167,7 @@ func OptionPort(val int) *funcOptions {
 	}
 }
 
-func OptionDbName(val string) *funcOptions {
+func OptionDBName(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.dbName = val

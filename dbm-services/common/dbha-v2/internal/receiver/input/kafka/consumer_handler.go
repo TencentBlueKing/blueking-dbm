@@ -26,7 +26,6 @@ package kafka
 
 import (
 	"dbm-services/common/dbha-v2/internal/receiver/output"
-	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/IBM/sarama"
@@ -50,11 +49,18 @@ func (h *consumerHandler) Cleanup(session sarama.ConsumerGroupSession) error {
 
 func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
+		dataLength := len(msg.Value)
+		data := &output.Message{
+			Topic: msg.Topic,
+			Data:  make([]byte, dataLength),
+		}
+
+		if dataLength > 0 {
+			copy(data.Data, msg.Value)
+		}
+
 		for _, saver := range h.savers {
-			saver.Save(&storage.Message{
-				Topic: msg.Topic,
-				Data:  string(msg.Value),
-			})
+			saver.Save(data)
 		}
 	}
 
