@@ -27,7 +27,10 @@
     <template #footer>
       <div>
         <BkButton
-          v-bk-tooltips="tooltip"
+          v-bk-tooltips="{
+            content: t('请选择主机'),
+            disabled: hostList.length,
+          }"
           :disabled="!hostList.length"
           :loading="isUpdating"
           theme="primary"
@@ -74,7 +77,7 @@
   const systemEnvironStore = useSystemEnviron();
 
   const formPanelRef = useTemplateRef('formPanelRef');
-  const { successMessage, tooltip } = useImportResourcePoolTooltip({ hostList });
+  const { successMessage } = useImportResourcePoolTooltip();
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -84,9 +87,9 @@
 
   const { loading: isUpdating, run: runImport } = useRequest(importResource, {
     manual: true,
-    onSuccess({ task_ids: taskIds }) {
+    onSuccess({ ticket_ids: ticketIds }) {
       handleCancel();
-      successMessage(taskIds);
+      successMessage(ticketIds);
     },
   });
 
@@ -104,6 +107,7 @@
         host_id: item.bk_host_id,
         ip: item.ip,
       })),
+      label_names: data.label_names,
       labels: data.labels,
       resource_type: data.resource_type as string,
       return_resource: true,
