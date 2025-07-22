@@ -6,17 +6,4 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-package model
-
-import "dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
-
-type MysqlBackupStatusModel struct {
-	BaseModel              `json:",inline" gorm:"embedded" xorm:"extends"`
-	dbareport.BackupStatus `json:",inline" xorm:"extends"`
-}
-
-func (m MysqlBackupStatusModel) TableName() string {
-	return "tb_mysql_backup_progress"
-}
-
-// replace
+package sinker

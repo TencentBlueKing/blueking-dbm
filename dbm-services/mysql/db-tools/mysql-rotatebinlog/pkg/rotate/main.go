@@ -149,7 +149,10 @@ func (c *RotateBinlogComp) RemoveConfig(ports []int) (err error) {
 
 	// remove server from main config if possible
 	if c.ConfigObj, err = ReadMainConfig(c.Config); err != nil {
-		return err
+		logger.Warn("remove ReadMainConfig %s with err=%s", c.Config, err.Error())
+	}
+	if c.ConfigObj == nil {
+		return nil
 	}
 	newServers := make([]*ServerObj, 0)
 	for _, binlogInst := range c.ConfigObj.Servers {

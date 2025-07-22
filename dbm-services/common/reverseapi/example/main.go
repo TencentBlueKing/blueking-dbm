@@ -1,13 +1,14 @@
 package main
 
 import (
-	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"dbm-services/common/reverseapi/pkg/core"
 
 	reversecommonapi "dbm-services/common/reverseapi/apis/common"
 	reversecommondef "dbm-services/common/reverseapi/define/common"
@@ -27,7 +28,7 @@ func (c *demoEvent) EventType() string {
 }
 
 func (c *demoEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMilli()
+	return time.Now().UnixMicro()
 }
 
 func (c *demoEvent) EventBkBizId() int64 {

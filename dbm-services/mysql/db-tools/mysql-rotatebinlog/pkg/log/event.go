@@ -18,7 +18,7 @@ func (e *MysqlBinlogResultEvent) EventType() string {
 }
 
 func (e *MysqlBinlogResultEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMilli()
+	return time.Now().UnixMicro()
 }
 
 func (e *MysqlBinlogResultEvent) EventBkBizId() int64 {

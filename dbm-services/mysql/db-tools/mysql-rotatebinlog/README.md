@@ -36,7 +36,7 @@ purge index 的频率由 `purge_interval` 来控制，注意 当 `purge_interval
 
 ## 删除某个 binlog 实例的 rotate
 ```
-./rotate_binlog -c main.yaml --removeConfig 20000,20001
+./rotatebinlog -c main.yaml --removeConfig 20000,20001
 ```
 如果机器上所有实例都被删除，需要外部去停止定时任务。
 

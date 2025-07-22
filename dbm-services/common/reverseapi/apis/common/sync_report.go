@@ -1,9 +1,10 @@
 package common
 
 import (
-	"dbm-services/common/reverseapi/pkg/core"
 	"encoding/json"
 	"time"
+
+	"dbm-services/common/reverseapi/pkg/core"
 
 	"dbm-services/common/reverseapi/define/common"
 
@@ -59,7 +60,7 @@ func SyncReport[T common.ISyncReportEvent](core *core.Core, events ...T) ([]byte
 			ClusterType:          e.ClusterType(),
 			EventType:            e.EventType(),
 			EventCreateTimestamp: e.EventCreateTimeStamp(),
-			EventReportTimestamp: time.Now().UnixMilli(),
+			EventReportTimestamp: time.Now().UnixMicro(),
 			EventUUID:            uuid.New().String(),
 		})
 	}

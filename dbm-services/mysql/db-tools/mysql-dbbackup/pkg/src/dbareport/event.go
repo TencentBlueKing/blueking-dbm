@@ -21,7 +21,7 @@ func (e *MysqlBackupResultEvent) EventType() string {
 }
 
 func (e *MysqlBackupResultEvent) EventCreateTimeStamp() int64 {
-	return e.BackupBeginTime.UnixMilli()
+	return e.BackupBeginTime.UnixMicro()
 }
 
 func (e *MysqlBackupResultEvent) EventBkBizId() int64 {
@@ -74,7 +74,7 @@ func (e *MysqlBackupStatusEvent) EventCreateTimeStamp() int64 {
 	if e.ts.IsZero() {
 		e.ts = time.Now()
 	}
-	return e.ts.UnixMilli()
+	return e.ts.UnixMicro()
 }
 
 func (e *MysqlBackupStatusEvent) EventBkBizId() int64 {

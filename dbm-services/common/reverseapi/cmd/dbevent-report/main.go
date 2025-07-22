@@ -18,7 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	reapisync "dbm-services/common/reverseapi/apis/common"
+	reapi "dbm-services/common/reverseapi/apis/common"
 	recore "dbm-services/common/reverseapi/pkg/core"
 )
 
@@ -50,7 +50,7 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			ret, err := reapisync.SyncReport(apiCore, event)
+			ret, err := reapi.SyncReport(apiCore, event)
 			if err != nil {
 				return errors.WithMessage(err, string(ret))
 			}
@@ -59,7 +59,7 @@ var rootCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			ret, err := reapisync.SyncReport(apiCore, event)
+			ret, err := reapi.SyncReport(apiCore, event)
 			if err != nil {
 				return errors.WithMessage(err, string(ret))
 			}
@@ -88,7 +88,7 @@ type oneEvent struct {
 }
 
 func (c *oneEvent) EventCreateTimeStamp() int64 {
-	return time.Now().UnixMilli()
+	return time.Now().UnixMicro()
 }
 
 func (c *oneEvent) ClusterType() string {
