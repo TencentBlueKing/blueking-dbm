@@ -45,6 +45,8 @@ export function getSystemEnviron() {
     DBA_APP_BK_BIZ_ID: number;
     DBA_APP_BK_BIZ_NAME: number;
     ENABLE_EXTERNAL_PROXY: boolean;
+    RES0URCE_INDEPENDENT_BIZ_NAME: string;
+    RESOURCE_INDEPENDENT_BIZ: number;
   }>(`${path}/environ/`);
 }
 
