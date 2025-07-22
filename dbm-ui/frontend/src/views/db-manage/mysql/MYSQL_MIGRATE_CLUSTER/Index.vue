@@ -45,6 +45,9 @@
       <BkRadioGroup
         v-model="sourceType"
         class="mb-16"
+        :class="{
+          'alert-show': sourceType === SourceType.RESOURCE_MANUAL,
+        }"
         style="width: 450px"
         type="card"
         @change="handleChangeMode">
@@ -55,6 +58,11 @@
           {{ t('资源池手动选择') }}
         </BkRadioButton>
       </BkRadioGroup>
+      <BkAlert
+        v-if="sourceType === SourceType.RESOURCE_MANUAL"
+        class="mt-8 mb-8"
+        theme="warning"
+        :title="t('“资源池手动选择”会丢失规格导致不能自愈，请谨慎操作！')" />
       <Component
         :is="comMap[operaObjectType]"
         :key="comKey"
@@ -217,3 +225,8 @@
     tableRef.value!.reset();
   };
 </script>
+<style lang="less">
+  .alert-show {
+    margin-bottom: 8px !important;
+  }
+</style>

@@ -104,13 +104,14 @@
   const selected = ref<ResourceTagModel[]>([]);
   const isCreateTagDialogShow = ref(false);
 
-  const curBizId = ref(0);
   const curEditId = ref(-1);
   const searchValue = ref([]);
 
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
 
   const isBusiness = route.name === 'BizResourceTag';
+
+  const curBizId = ref(isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0);
 
   const searchSelectData = [
     {
@@ -135,6 +136,11 @@
   });
 
   const tableColumn = computed(() => [
+    {
+      field: 'id',
+      label: 'ID',
+      render: ({ data }: { data: ResourceTagModel }) => data.id || '--',
+    },
     {
       field: 'value',
       label: t('标签'),

@@ -101,11 +101,12 @@
     cluster_type: ClusterTypes;
     id: number;
     master_domain: string;
+    region: string;
     related_clusters: {
       id: number;
       master_domain: string;
     }[];
-    spec_id?: number;
+    spec_id: number;
   }>({
     required: true,
   });
@@ -169,6 +170,7 @@
         modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
         const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
         modelValue.value.spec_id = (currentCluster[roleListKey] as TendbhaModel['masters'])?.[0]?.spec_config?.id || -1;
+        modelValue.value.region = currentCluster.region || '';
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],
@@ -183,6 +185,7 @@
       cluster_type: props.clusterTypes?.[0] || ClusterTypes.TENDBHA,
       id: 0, // 重置ID，表示需要重新查询集群
       master_domain: value,
+      region: '',
       related_clusters: [],
       spec_id: 0,
     };

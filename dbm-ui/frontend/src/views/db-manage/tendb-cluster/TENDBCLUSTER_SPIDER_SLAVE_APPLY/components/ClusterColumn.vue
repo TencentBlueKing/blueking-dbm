@@ -69,6 +69,7 @@
     bk_cloud_id: number;
     id: number;
     master_domain: string;
+    region: string;
   }>({
     required: true,
   });
@@ -120,6 +121,7 @@
           bk_cloud_id: item.bk_cloud_id,
           id: item.id,
           master_domain: item.master_domain,
+          region: item.region,
         };
       }
     },
@@ -134,6 +136,7 @@
       bk_cloud_id: 0,
       id: 0,
       master_domain: value,
+      region: '',
     };
   };
 

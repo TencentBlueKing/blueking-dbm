@@ -96,6 +96,8 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     cluster_ids: number[];
     ip: string;
     port: number;
@@ -183,6 +185,8 @@
         modelValue.value = {
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
+          bk_idc_city_name: item.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: item.host_info?.bk_sub_zone || '',
           cluster_ids: clusterIds,
           ip: item.ip,
           port: item.port,
@@ -203,6 +207,8 @@
     modelValue.value = {
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       cluster_ids: [],
       ip: value,
       port: 0,

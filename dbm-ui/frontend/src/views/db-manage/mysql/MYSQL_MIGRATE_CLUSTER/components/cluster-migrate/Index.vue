@@ -41,10 +41,11 @@
           @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
+            city: generateCity(item.batchCluster.clusters),
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,
-            labels: item.labels.join(','),
+            labels: item.labels.map((item) => item.id).join(','),
           }" />
       </template>
       <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
@@ -93,17 +94,7 @@
   import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    batchCluster: {
-      clusters: Record<
-        string,
-        {
-          id: number;
-          master_domain: string;
-        }
-      >;
-      renderText: string;
-      specId: number;
-    };
+    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
@@ -391,6 +382,11 @@
         [field]: value,
       });
     });
+  };
+
+  const generateCity = (clusters: Record<string, { id: number; master_domain: string; region: string }>) => {
+    const cities = Object.values(clusters).map((item) => item.region);
+    return cities.length ? cities.join(',') : '';
   };
 
   defineExpose<Exposes>({

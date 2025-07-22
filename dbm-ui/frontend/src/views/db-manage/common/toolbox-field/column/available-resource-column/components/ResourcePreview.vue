@@ -25,6 +25,12 @@
           <strong>{{ machineNum }}</strong>
         </I18nT>
         <div class="sub-title">
+          <div class="sub-title-label">{{ t('地域') }}:</div>
+          <div class="sub-title-value">{{ params?.city || '--' }}</div>
+          <template v-if="params?.subzones">
+            <div class="sub-title-label">{{ t('园区') }}:</div>
+            <div class="sub-title-value">{{ params?.subzones || '--' }}</div>
+          </template>
           <div class="sub-title-label">{{ t('规格') }}:</div>
           <div class="sub-title-value">{{ specInfo?.spec_name || '--' }}</div>
           <div class="sub-title-label">{{ t('资源标签') }}:</div>
@@ -126,6 +132,7 @@
   interface Props {
     params?: {
       bk_cloud_ids?: string;
+      city?: string;
       for_biz?: number;
       for_bizs?: number[];
       hosts?: HostInfo[];
@@ -135,6 +142,8 @@
       resource_type?: string;
       resource_types?: string[];
       spec_id?: number;
+      subzone_ids?: string;
+      subzones?: string;
     };
   }
 

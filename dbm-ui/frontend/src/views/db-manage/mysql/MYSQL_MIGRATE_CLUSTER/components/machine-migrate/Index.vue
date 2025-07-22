@@ -40,10 +40,12 @@
           @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
+            city: item.master.bk_idc_city_name,
+            subzones: item.master.bk_sub_zone,
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,
-            labels: item.labels.join(','),
+            labels: item.labels.map((item) => item.id).join(','),
           }" />
       </template>
       <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
@@ -191,6 +193,8 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_ids: [] as number[],
         ip: '',
         port: 0,

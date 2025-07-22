@@ -68,10 +68,12 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
+              city: item.slave.bk_idc_city_name,
+              subzones: item.slave.bk_sub_zone,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.specId,
-              labels: item.labels.join(','),
+              labels: item.labels.map((item) => item.id).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -170,6 +172,8 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_id: 0,
         ip: '',
         master_domain: '',
