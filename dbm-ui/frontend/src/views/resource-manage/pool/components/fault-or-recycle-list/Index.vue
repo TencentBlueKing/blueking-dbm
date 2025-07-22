@@ -192,7 +192,7 @@
   const dateRange = ref(['', ''] as [string, string]);
   const hcmRecycle = ref(true);
 
-  const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
+  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const tableColumn = [
     {
@@ -451,8 +451,8 @@
 
   const handleRecycleRefresh = (data: ServiceReturnType<typeof transferMachinePool>) => {
     if (checkDbConsole('common.hcmRecycle') && data.hcm_recycle_id) {
-      const { BK_HCM_URL, DBA_APP_BK_BIZ_ID } = systemEnvironStore.urls;
-      const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${DBA_APP_BK_BIZ_ID}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
+      const { BK_HCM_URL, RESOURCE_INDEPENDENT_BIZ } = systemEnvironStore.urls;
+      const targetHref = `${BK_HCM_URL}/#/business/applications?bizs=${RESOURCE_INDEPENDENT_BIZ}&filter=order_id=${data.hcm_recycle_id}&type=host_recycle`;
       Message({
         actions: [
           {
