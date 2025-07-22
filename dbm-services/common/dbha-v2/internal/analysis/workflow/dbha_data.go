@@ -22,57 +22,25 @@
  * SOFTWARE.
  */
 
-package storage
+package workflow
 
 import (
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
-
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
+	"context"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
-const NameMySQL = "MySQL"
-
-func NewMySQL(endpoint, user, password string, opts ...MySQLOption) (*MySQL, error) {
-
-	mydb := &MySQL{opts: &mysqlOptions{
-		endpoint: endpoint,
-		user:     user,
-		password: password,
-	}}
-
-	for _, opt := range opts {
-		opt.apply(mydb.opts)
-	}
-
-	dsn := mydb.opts.buildDSN()
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "open the db(%s) failed, errmsg(%v)", dsn, err)
-	}
-	mydb.db = db
-
-	return mydb, nil
+type DBHAData struct {
+	db *hamysql.DB
 }
 
-type MySQL struct {
-	topics map[string]struct{}
-	db     *gorm.DB
-	opts   *mysqlOptions
+func (ha *DBHAData) getBizIDs() ([]int, error) {
+	return nil, nil
 }
 
-func (m *MySQL) migrate(topic string) error {
-	_ = topic
+func (ha *DBHAData) loadData() error {
 	return nil
 }
 
-func (m *MySQL) Save(msg *Message) error {
-
-	logger.Debug("mysql save:%v", *msg)
+func (ha *DBHAData) Run(ctx context.Context) error {
 	return nil
-}
-
-func (m *MySQL) Close() {
-
 }

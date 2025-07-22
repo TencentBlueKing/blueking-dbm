@@ -22,90 +22,84 @@
  * SOFTWARE.
  */
 
-package analysis
+package output
 
 import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/internal/analysis/workflow"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"encoding/json"
+
+	"gorm.io/gorm"
 )
 
-type Service struct {
-	wflow *workflow.Workflow
-	dbs   []*hamysql.DB
+const mySQLName = "MySQL"
+
+// Message Data message reported by probe.
+type Message struct {
+	Topic string
+	Data  []byte
 }
 
-func (s *Service) createStorage() error {
-	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
+type mySQL struct {
+	dbs []*hamysql.DB
+}
+
+func newMySQL(endpoints, user, password string) (*mySQL, error) {
+	epoints, err := hanet.NewEndpoints(endpoints)
 	if err != nil {
-		logger.Error("invalid storage configuration, %v", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
+		return nil, err
 	}
+
+	msql := &mySQL{}
 
 	for _, epoint := range epoints {
+
 		db, err := hamysql.New(
-			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
+			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionDBName(hamodel.DatabaseName),
-			hamysql.OptionUser(config.Cfg.Storage.User),
-			hamysql.OptionPassword(config.Cfg.Storage.Password),
-		)
+			hamysql.OptionUser(user),
+			hamysql.OptionPassword(password))
 
 		if err != nil {
-			logger.Warn("create mysql storage failed, %v", err)
-			continue
+			return nil, err
 		}
 
-		s.dbs = append(s.dbs, db)
+		msql.dbs = append(msql.dbs, db)
 	}
 
-	if len(s.dbs) == 0 {
-		logger.Error("not any usable db, endpoints(%s)", config.Cfg.Storage.Endpoint)
-		return gerrors.Newf(gerrors.ComponentFailure, "not any usable db, endpoints(%s)", config.Cfg.Storage.Endpoint)
+	return msql, nil
+}
+
+func (s *mySQL) Save(msg *Message) error {
+	mysqlMetric := &haprobe.MySQLMetric{}
+	if err := json.Unmarshal([]byte(msg.Data), mysqlMetric); err != nil {
+		return gerrors.Newf(gerrors.InvalidJSOIN, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
+	}
+
+	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
+
+	if len(mysqlMetric.Databases) == 0 {
+		return gerrors.Newf(gerrors.InvalidJSOIN, "unmarshal a mysql metric message failed, topic(%s), data(%v)",
+			msg.Topic, *mysqlMetric)
+	}
+
+	data := hamodel.NewDBHAMySQL(mysqlMetric)
+
+	for _, db := range s.dbs {
+		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).Save(data).Error
+		if err != nil {
+			logger.Warn("save the mysql metric failed, %v", err)
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) createNotifier() error {
-	return nil
-}
-
-func (s *Service) createWorkflow() error {
-	wflow, err := workflow.New(config.Cfg.Workflow, s.dbs)
-	if err != nil {
-		return err
-	}
-	s.wflow = wflow
-	return nil
-}
-
-func (s *Service) Run(ctx context.Context) error {
-	// 1. create db storage
-	if err := s.createStorage(); err != nil {
-		return err
-	}
-
-	// 2. create notifier
-	if err := s.createNotifier(); err != nil {
-		return err
-	}
-
-	// 3. create workflow
-	if err := s.createWorkflow(); err != nil {
-		return err
-	}
-
-	// 4. run workflow
-	return s.wflow.Run(ctx)
-}
-
-func (s *Service) Close() {
-	s.wflow.Close()
+func (s *mySQL) Close() {
 }

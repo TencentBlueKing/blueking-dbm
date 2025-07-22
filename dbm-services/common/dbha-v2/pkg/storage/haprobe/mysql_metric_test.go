@@ -22,44 +22,37 @@
  * SOFTWARE.
  */
 
-package storage
+package haprobe_test
 
-import "fmt"
+import (
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"encoding/json"
+	"testing"
+	"time"
 
-type MySQLOption interface {
-	apply(*mysqlOptions)
-}
+	"github.com/google/uuid"
+)
 
-type mysqlOptions struct {
-	endpoint      string
-	user          string
-	password      string
-	database      string
-	timeoutSecond int
-}
+func TestMySQLMetric(t *testing.T) {
 
-func (o *mysqlOptions) buildDSN() string {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s", o.user, o.password, o.endpoint, o.database)
+	msqlMetric := &haprobe.MySQLMetric{}
 
-	if o.timeoutSecond > 0 {
-		dsn = fmt.Sprintf("%s?timeout=%d", dsn, o.timeoutSecond)
+	msqlMetric.SequenceID = 0
+	msqlMetric.ServiceID = uuid.New().String()
+	msqlMetric.MessageID = uuid.New().String()
+	msqlMetric.MachineID = uuid.New().String()
+	msqlMetric.ReportTimestamp = uint64(time.Now().Unix())
+
+	msqlMetric.Host = &haprobe.HostMetric{}
+	msqlMetric.Databases = make([]*haprobe.DatabaseMetric, 1)
+	msqlMetric.Databases = append(msqlMetric.Databases, &haprobe.DatabaseMetric{
+		ListenPort: 3306,
+	})
+
+	data, err := json.Marshal(&msqlMetric)
+	if err != nil {
+		t.Fatalf("marshal failed, %v", err)
 	}
 
-	return dsn
-}
-
-type funcMySQLOption struct {
-	do func(*mysqlOptions)
-}
-
-func (f *funcMySQLOption) apply(opt *mysqlOptions) {
-	f.do(opt)
-}
-
-func MySQLOptionTimeout(second int) *funcMySQLOption {
-	return &funcMySQLOption{
-		do: func(opt *mysqlOptions) {
-			opt.timeoutSecond = second
-		},
-	}
+	t.Logf("generated data:%s", string(data))
 }

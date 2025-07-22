@@ -61,7 +61,7 @@ func (m *Migrator) InitDBHAData() error {
 	for _, epoint := range epoints {
 		db, err := hamysql.New(hamysql.OptionIP(epoint.Host), hamysql.OptionPort(epoint.Port),
 			hamysql.OptionProto(epoint.Proto), hamysql.OptionUser(config.Cfg.DBHAData.User),
-			hamysql.OptionPassword(config.Cfg.DBHAData.Password), hamysql.OptionDbName(hamodel.DatabaseName))
+			hamysql.OptionPassword(config.Cfg.DBHAData.Password), hamysql.OptionDBName(hamodel.DatabaseName))
 
 		if err != nil {
 			return err
