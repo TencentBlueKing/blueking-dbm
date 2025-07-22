@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-var configFile = "../../../configs/probe.yaml"
+var configFile = "../../../etc/probe.yaml"
 
 func TestConfig(t *testing.T) {
 	content, err := os.ReadFile(configFile)

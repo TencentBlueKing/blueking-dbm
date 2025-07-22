@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var analysisCfgFile = "../../../configs/analysis.yaml"
+var analysisCfgFile = "../../../etc/analysis.yaml"
 
 func TestConfig(t *testing.T) {
 	viper.SetConfigType("yaml")

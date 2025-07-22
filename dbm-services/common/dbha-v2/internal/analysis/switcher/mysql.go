@@ -22,16 +22,7 @@
  * SOFTWARE.
  */
 
-package storage
+package switcher
 
-import "dbm-services/common/dbha-v2/internal/analysis/config"
-
-type Storage struct {
-}
-
-func New(cfgs []config.StorageConfig) (*Storage, error) {
-	return nil, nil
-}
-
-func (s *Storage) Close() {
+type MySQL struct {
 }

@@ -24,6 +24,13 @@
 
 package hamodel
 
+import (
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"strconv"
+	"time"
+)
+
 const (
 	DatabaseName = "dbha_data"
 )
@@ -57,6 +64,11 @@ type HostMetric struct {
 	DiskUsed         uint64  `gorm:"column:disk_used"`
 	DiskAvailable    uint64  `gorm:"column:disk_available"`
 	DiskReadOnly     bool    `gorm:"column:disk_read_only"`
+
+	// Time automatically managed by GORM
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt time.Time `gorm:"column:deleted_at;"`
 }
 
 func (t HostMetric) TableName() string {
@@ -71,9 +83,6 @@ type DatabaseMetric struct {
 
 	// Status
 	Version          string  `gorm:"column:mysql_version"`
-	ThreadID         string  `gorm:"column:mysql_connected_thread_id"`
-	CurrentDatabase  string  `gorm:"column:mysql_current_database"`
-	CurrentUser      string  `gorm:"column:mysql_current_user"`
 	ThreadsConnected uint    `gorm:"column:mysql_threads_connected"`
 	ServerCharset    string  `gorm:"column:mysql_server_charset"`
 	OpenTablesTotal  uint    `gorm:"column:mysql_open_tables_total"`
@@ -144,10 +153,15 @@ type DatabaseMetric struct {
 	SchemaRwlockInstancesLost uint64 `gorm:"column:performance_schema_rwlock_instances_lost"`
 	SchemaThreadInstancesLost uint64 `gorm:"column:performance_schema_thread_instances_lost"`
 	SchemaTableLockStatLost   uint64 `gorm:"column:performance_schema_table_lock_stat_lost"`
+
+	// Time automatically managed by GORM
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt time.Time `gorm:"column:deleted_at;"`
 }
 
 func (t DatabaseMetric) TableName() string {
-	return "t_db_metric"
+	return "t_mysql_metric"
 }
 
 // DBHAMySQL contains system and databases metrics
@@ -160,8 +174,132 @@ type DBHAMySQL struct {
 
 	Host      *HostMetric       `gorm:"foreignKey:machine_id;references:machine_id"`
 	Databases []*DatabaseMetric `gorm:"foreignKey:machine_id;references:machine_id"`
+
+	// Time automatically managed by GORM
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt time.Time `gorm:"column:deleted_at;"`
+}
+
+func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
+	data := &DBHAMySQL{}
+
+	data.MachineID = msg.MachineID
+	data.SequenceID = msg.SequenceID
+	data.MessageID = msg.MessageID
+	data.ServiceID = msg.ServiceID
+	data.ReportTimestamp = msg.ReportTimestamp
+
+	data.Host = &HostMetric{
+		MachineID: msg.MachineID,
+
+		CPUUsagePercent:  msg.Host.CPUUsagePercent,
+		CPUUserPercent:   msg.Host.CPUUserPercent,
+		CPUSystemPercent: msg.Host.CPUSystemPercent,
+		CPUIOWaitPercent: msg.Host.CPUIOWaitPercent,
+		CPULoad1:         msg.Host.CPULoad1,
+		CPULoad5:         msg.Host.CPULoad5,
+		CPULoad15:        msg.Host.CPULoad15,
+
+		MemTotalMB:     msg.Host.MemTotalMB,
+		MemUsedMB:      msg.Host.MemUsedMB,
+		MemFreeMB:      msg.Host.MemFreeMB,
+		MemCacheMB:     msg.Host.MemCacheMB,
+		MemAvailableMB: msg.Host.MemAvailableMB,
+		SwapTotalMB:    msg.Host.SwapTotalMB,
+		SwapUsedMB:     msg.Host.SwapUsedMB,
+
+		DiskUsagePercent: msg.Host.DiskUsagePercent,
+		DiskTotal:        msg.Host.DiskTotal,
+		DiskUsed:         msg.Host.DiskUsed,
+		DiskAvailable:    msg.Host.DiskAvailable,
+		DiskReadOnly:     msg.Host.DiskReadOnly,
+	}
+
+	for _, db := range msg.Databases {
+		if db == nil {
+			logger.Warn("skip this record, db metric is nil, machine(%s)", msg.MachineID)
+			continue
+		}
+		data.loadDatabase(db)
+	}
+
+	return data
 }
 
 func (t DBHAMySQL) TableName() string {
 	return "t_dbha_mysql"
+}
+
+func (t *DBHAMySQL) loadDatabase(db *haprobe.DatabaseMetric) {
+	t.Databases = append(t.Databases, &DatabaseMetric{
+		MachineID:  t.MachineID,
+		InstanceID: strconv.Itoa(db.ListenPort),
+
+		Version:          db.Version,
+		ThreadsConnected: db.ThreadsConnected,
+		ServerCharset:    db.ServerCharset,
+		OpenTablesTotal:  db.OpenTablesTotal,
+		FlushTables:      db.FlushTables,
+		OpenTablesNow:    db.OpenTablesNow,
+		SlowQueriesNow:   db.SlowQueriesNow,
+		TotalQuestions:   db.TotalQuestions,
+		QueriesPerSecond: db.QueriesPerSecond,
+
+		ThreadsRunning:            db.ThreadsRunning,
+		ConnectionsAborted:        db.ConnectionsAborted,
+		Connections:               db.Connections,
+		ConnectionsErrorsAccept:   db.ConnectionsErrorsAccept,
+		ConnectionsErrorsInternal: db.ConnectionsErrorsInternal,
+		ConnectionsErrorsPeerAddr: db.ConnectionsErrorsPeerAddr,
+
+		QueryTotal:     db.QueryTotal,
+		QPS:            db.QPS,
+		TPS:            db.TPS,
+		QueryQuestions: db.QueryQuestions,
+		QuerySelects:   db.QuerySelects,
+		QueryInserts:   db.QueryInserts,
+		QueryUpdates:   db.QueryUpdates,
+		QueryDeletes:   db.QueryDeletes,
+		QuerySlow:      db.QuerySlow,
+
+		KeyReadRequests:   db.KeyReadRequests,
+		KeyReads:          db.KeyReads,
+		KeyBufferHitRate:  db.KeyBufferHitRate,
+		QCacheHits:        db.QCacheHits,
+		QCacheFreeBlocks:  db.QCacheFreeBlocks,
+		QCacheFreeMem:     db.QCacheFreeMem,
+		QCacheInserts:     db.QCacheInserts,
+		QCachePrunes:      db.QCachePrunes,
+		QCacheNotCached:   db.QCacheNotCached,
+		QCacheTotalBlocks: db.QCacheTotalBlocks,
+
+		HandlerReadKey:      db.HandlerReadKey,
+		HandlerReadRndNext:  db.HandlerReadRndNext,
+		HandlerWrite:        db.HandlerWrite,
+		HandlerPrepare:      db.HandlerPrepare,
+		HandlerCommit:       db.HandlerCommit,
+		HandlerExternalLock: db.HandlerExternalLock,
+
+		TableCreatedTmp:     db.TableCreatedTmp,
+		TableCreatedTmpDisk: db.TableCreatedTmpDisk,
+		FileCreatedTmp:      db.FileCreatedTmp,
+		FileOpen:            db.FileOpen,
+		TableOpen:           db.TableOpen,
+
+		BinlogCacheDiskUse:     db.BinlogCacheUse,
+		BinlogCacheUse:         db.BinlogCacheUse,
+		BinlogStmtCacheDiskUse: db.BinlogStmtCacheDiskUse,
+		BinlogStmtCacheUse:     db.BinlogStmtCacheUse,
+
+		SchemaAccountsLost:        db.SchemaAccountsLost,
+		SchemaCondClassesLost:     db.SchemaCondClassesLost,
+		SchemaFileHandlesLost:     db.SchemaFileHandlesLost,
+		SchemaLockerLost:          db.SchemaLockerLost,
+		SchemaDigestLost:          db.SchemaDigestLost,
+		SchemaRwlockInstancesLost: db.SchemaRwlockInstancesLost,
+		SchemaThreadInstancesLost: db.SchemaThreadInstancesLost,
+		SchemaTableLockStatLost:   db.SchemaTableLockStatLost,
+	})
+
 }

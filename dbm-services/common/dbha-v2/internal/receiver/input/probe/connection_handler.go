@@ -26,7 +26,6 @@ package probe
 
 import (
 	"dbm-services/common/dbha-v2/internal/receiver/output"
-	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -56,11 +55,20 @@ func (c *connectionHandler) readEvent() {
 				continue
 			}
 
+			dataLength := len(msg.Payload)
+			data := &output.Message{
+				Topic: "",
+				Data:  make([]byte, dataLength),
+			}
+
+			if dataLength > 0 {
+				copy(data.Data, msg.Payload)
+			}
+
 			for _, saver := range c.savers {
-				saver.Save(&storage.Message{
-					Topic: "",
-					Data:  string(msg.Payload),
-				})
+				if err := saver.Save(data); err != nil {
+					logger.Warn("save probe msg failed, %v", err)
+				}
 			}
 		}
 	}
