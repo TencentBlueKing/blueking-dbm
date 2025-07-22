@@ -110,10 +110,10 @@
       :tip="t('确认后，主机将标记为待回收，等待处理')"
       :title="t('确认批量将 {n} 台主机转入待回收池？', { n: selected.length })"
       @success="handleRefresh" />
-    <ImportResourcePool
+    <!-- <ImportResourcePool
       v-model:is-show="isImportResourcePoolShow"
       :data="curImportData!"
-      @refresh="handleRefresh" />
+      @refresh="handleRefresh" /> -->
     <BatchImportResourcePool
       v-model:is-show="isBatchImportResourcePoolShow"
       :host-list="selected"
@@ -153,7 +153,7 @@
   import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
-  import ImportResourcePool from './components/ImportResourcePool.vue';
+  // import ImportResourcePool from './components/ImportResourcePool.vue';
 
   // const initDate = () => {
   //   const startTime = dayjs().subtract(7, 'day').format('YYYY-MM-DD HH:mm:ss');
@@ -185,10 +185,10 @@
 
   const selected = ref<FaultOrRecycleMachineModel[]>([]);
   const isReviewDataDialogShow = ref(false);
-  const isImportResourcePoolShow = ref(false);
+  // const isImportResourcePoolShow = ref(false);
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
-  const curImportData = ref<FaultOrRecycleMachineModel>();
+  // const curImportData = ref<FaultOrRecycleMachineModel>();
   const dateRange = ref(['', ''] as [string, string]);
   const hcmRecycle = ref(true);
 

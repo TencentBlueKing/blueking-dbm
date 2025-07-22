@@ -81,12 +81,13 @@ export function importResource(params: {
     host_id: number;
     ip: string;
   }>;
+  label_names: string[];
   labels: number[];
   resource_type: string;
   return_resource?: boolean; // 是否 故障池，待回收池 转入资源池
 }) {
   return http.post<{
-    task_ids: string[];
+    ticket_ids: number[];
   }>(`${path}/import/`, params);
 }
 
@@ -137,12 +138,12 @@ export function fetchHostListByHostId(params: { bk_host_ids: string }) {
 /**
  * 查询资源导入任务
  */
-export function fetchImportTask() {
-  return http.get<{
-    bk_biz_id: number;
-    task_ids: string[];
-  }>(`${path}/query_import_tasks/`);
-}
+// export function fetchImportTask() {
+//   return http.get<{
+//     bk_biz_id: number;
+//     task_ids: string[];
+//   }>(`${path}/query_import_tasks/`);
+// }
 
 /**
  * 查询资源操作记录
