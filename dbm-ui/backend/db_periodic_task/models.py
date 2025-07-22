@@ -132,7 +132,7 @@ class MySQLBackupRecoverTask(AuditedModel):
         """
         获取已经回档过的所有业务ID
         """
-        return (
+        return list(
             MySQLBackupRecoverTask.objects.filter(
                 task_status__in=[TaskStatus.RECOVER_SUCCESS, TaskStatus.RESOURCE_RETURN_SUCCESS]
             )
@@ -145,7 +145,7 @@ class MySQLBackupRecoverTask(AuditedModel):
         """
         获取已经成功回档过的所有集群ID
         """
-        return (
+        return list(
             MySQLBackupRecoverTask.objects.filter(
                 task_status__in=[TaskStatus.RECOVER_SUCCESS, TaskStatus.RESOURCE_RETURN_SUCCESS]
             )
@@ -159,7 +159,7 @@ class MySQLBackupRecoverTask(AuditedModel):
         获取最近24小时内发起任务集群ID列表
         """
         recent_time = timezone.now() - timedelta(hours=24)
-        return (
+        return list(
             MySQLBackupRecoverTask.objects.filter(
                 create_at__gte=recent_time,
             )

@@ -136,7 +136,8 @@ class MySQLHADestroyFlow(object):
                         ),
                     }
                 )
-            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            if len(acts_list) > 0:
+                sub_pipeline.add_parallel_acts(acts_list=acts_list)
             # 阶段1 下发db-actuator介质包
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),

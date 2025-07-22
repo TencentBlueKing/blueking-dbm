@@ -283,6 +283,25 @@ func (c *ImportSchemaFromBackendComp) migrateUseMydumper() (err error) {
 	return nil
 }
 
+// DisableTcAdmin set tc_admin=0
+func (c *ImportSchemaFromBackendComp) DisableTcAdmin() (err error) {
+	return c.setTcAdmin(0)
+}
+
+// EnableTcAdmin set tc_admin=1
+func (c *ImportSchemaFromBackendComp) EnableTcAdmin() (err error) {
+	return c.setTcAdmin(1)
+}
+
+// setTcAdmin set tc_admin flag
+func (c *ImportSchemaFromBackendComp) setTcAdmin(flag int) (err error) {
+	_, err = c.tdbctlConn.Exec("set global tc_admin=?;", flag)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // migrateUseMysqlDump 运行备份表结构
 // nolint
 func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
@@ -321,17 +340,6 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		return err
 	}
 	logger.Info("备份表结构成功,开始导入表结构到中控")
-	_, err = c.tdbctlConn.Exec("set global tc_admin=0;")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_, errx := c.tdbctlConn.Exec("set global tc_admin=1;")
-		if errx != nil {
-			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", errx.Error())
-			err = errx
-		}
-	}()
 	dumpfileInfo := dumper.GetDumpFileInfo()
 	loader := mysqlutil.ExecuteSqlAtLocal{
 		IsForce:          false,
@@ -389,9 +397,19 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 	return errors.Join(errs...)
 }
 
-// MigrateRoutinesAndTriger TODO
-func (c *ImportSchemaFromBackendComp) MigrateRoutinesAndTriger() (err error) {
+// MigrateRoutinesAndTrigger 从spider导出存储过程、触发器、event导入到中控
+func (c *ImportSchemaFromBackendComp) MigrateRoutinesAndTrigger() (err error) {
 	logger.Info("will import routines and triggers to tdbctl")
+	conn, err := c.tdbctlConn.Db.Conn(context.Background())
+	if err != nil {
+		logger.Error("从连接池获取连接失败:%s", err.Error())
+		return err
+	}
+	_, err = conn.ExecContext(context.Background(), "set tc_admin=0;")
+	if err != nil {
+		logger.Error("set session tc_admin=0 failed:%s", err.Error())
+		return err
+	}
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
 		DumpSchema:   false,
@@ -445,10 +463,10 @@ func (c *ImportSchemaFromBackendComp) MigrateViewsFromSpider() (err error) {
 	// get all views from spiderconn
 	var views []native.View
 	if views, err = c.spiderconn.GetAllViews(); err != nil {
-		logger.Error("show views from spiderconn failed: %s", err.Error())
+		logger.Error("show views from spider conn failed: %s", err.Error())
 		return err
 	}
-	logger.Info("get all views from spiderconn success, views:%d", len(views))
+	logger.Info("get all views from spider conn success, views:%d", len(views))
 	for _, view := range views {
 		logger.Info("import view: %s.%s", view.DbName, view.Name)
 		var viewName, viewSQL, charsetClient, collationClient string
