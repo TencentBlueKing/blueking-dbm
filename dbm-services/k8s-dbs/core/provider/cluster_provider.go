@@ -571,10 +571,16 @@ func (c *ClusterProvider) createClusterEntity(
 		slog.Error("failed to get storage addon", "error", errMsg)
 		return nil, err
 	}
+	serviceVersion, err := corehelper.SVRFactory.GetResolver(request.StorageAddonType).Resolve(request.ComponentList)
+	if err != nil {
+		slog.Error("failed to get serviceVersion", "error", err)
+		return nil, err
+	}
 
 	clusterEntity := &metaentity.K8sCrdClusterEntity{
 		AddonID:             storageAddon[0].ID,
 		AddonClusterVersion: request.AddonClusterVersion,
+		ServiceVersion:      serviceVersion,
 		TopoName:            request.TopoName,
 		ClusterName:         request.ClusterName,
 		ClusterAlias:        request.ClusterAlias,

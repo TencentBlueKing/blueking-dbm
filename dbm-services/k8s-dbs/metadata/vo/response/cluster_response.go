@@ -26,6 +26,7 @@ type K8sCrdClusterResponse struct {
 	ID                  uint64                      `json:"id"`
 	AddonInfo           *AddonResponse              `json:"addonInfo"`
 	AddonClusterVersion string                      `json:"addonClusterVersion"`
+	ServiceVersion      string                      `json:"serviceVersion"`
 	TopoName            string                      `json:"topoName"`
 	TopoNameAlias       string                      `json:"topoNameAlias"`
 	K8sClusterConfig    *K8sClusterConfigResponse   `json:"k8sClusterConfig"`

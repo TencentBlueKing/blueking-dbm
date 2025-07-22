@@ -25,6 +25,7 @@ import commtypes "k8s-dbs/common/types"
 type K8sCrdClusterRequest struct {
 	AddonID             uint64                 `json:"addonId" binding:"required"`
 	AddonClusterVersion string                 `json:"addonClusterVersion"`
+	ServiceVersion      string                 `json:"serviceVersion"`
 	K8sClusterConfigID  uint64                 `json:"k8sClusterConfigId" binding:"required"`
 	RequestID           string                 `json:"requestId" binding:"required"`
 	ClusterName         string                 `json:"clusterName" binding:"required"`
