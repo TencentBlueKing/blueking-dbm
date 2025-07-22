@@ -109,6 +109,7 @@
           .then((data) => {
             if (data.results.length > 0) {
               if (props.afterInput) {
+                modelValue.value.bk_host_id = data.results[0].bk_host_id;
                 props.afterInput(data.results[0]);
               } else {
                 [modelValue.value] = data.results;

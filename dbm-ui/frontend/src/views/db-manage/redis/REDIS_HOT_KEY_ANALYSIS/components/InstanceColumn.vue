@@ -138,6 +138,7 @@
       if (data.length) {
         const [currentHost] = data;
         if (props.afterInput) {
+          modelValue.value.bk_host_id = currentHost.bk_host_id;
           props.afterInput(data[0]);
         } else {
           modelValue.value = {

@@ -434,34 +434,34 @@
 
   const afterInput = async (data: InstanceInfos, index: number) => {
     const masterSlaveInstaceMap = await getMasterSlaveInstaceMap([data]);
-    const { instance_address: instance } = data;
-    if (!selectedMap.value[instance]) {
-      const { slave } = masterSlaveInstaceMap[data.instance_address];
-      formData.tableData[index] = createRowData({
-        instance: {
-          bk_host_id: data.bk_host_id,
-          cluster_id: data.cluster_id,
-          cluster_type: data.cluster_type,
-          instance_address: data.instance_address,
-          master_domain: data.master_domain,
-          spec_config: data.spec_config,
-        },
-        master: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: data.bk_cloud_id,
-          bk_host_id: data.bk_host_id,
-          ip: data.ip,
-          port: data.port,
-        },
-        slave: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: slave.bk_cloud_id,
-          bk_host_id: slave.bk_host_id,
-          ip: slave.ip,
-          port: slave.port,
-        },
-      });
-    }
+    // const { instance_address: instance } = data;
+    // if (!selectedMap.value[instance]) {
+    const { slave } = masterSlaveInstaceMap[data.instance_address];
+    formData.tableData[index] = createRowData({
+      instance: {
+        bk_host_id: data.bk_host_id,
+        cluster_id: data.cluster_id,
+        cluster_type: data.cluster_type,
+        instance_address: data.instance_address,
+        master_domain: data.master_domain,
+        spec_config: data.spec_config,
+      },
+      master: {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: data.bk_cloud_id,
+        bk_host_id: data.bk_host_id,
+        ip: data.ip,
+        port: data.port,
+      },
+      slave: {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: slave.bk_cloud_id,
+        bk_host_id: slave.bk_host_id,
+        ip: slave.ip,
+        port: slave.port,
+      },
+    });
+    // }
 
     nextTick(() => {
       editableTableRef.value!.validateByField('instance.master_domain');
