@@ -61,10 +61,11 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
+              city: item.cluster.region,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.specId,
-              labels: item.labels.join(','),
+              labels: item.labels.map((item) => item.id).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -167,6 +168,7 @@
         id: 0,
         master_domain: '',
         mnt_count: 0,
+        region: '',
         spider_master: [] as TendbClusterModel['spider_master'],
         spider_slave: [] as TendbClusterModel['spider_slave'],
       },

@@ -70,6 +70,7 @@
     id: number;
     master_domain: string;
     mnt_count: number;
+    region: string;
     spider_master: TendbClusterModel['spider_master'];
     spider_slave: TendbClusterModel['spider_slave'];
   }>({
@@ -111,6 +112,7 @@
           id: item.id,
           master_domain: item.master_domain,
           mnt_count: item.spider_mnt.length,
+          region: item.region,
           spider_master: item.spider_master,
           spider_slave: item.spider_slave,
         };
@@ -128,6 +130,7 @@
       id: 0,
       master_domain: value,
       mnt_count: 0,
+      region: '',
       spider_master: [],
       spider_slave: [],
     };

@@ -72,6 +72,7 @@
       {
         id: number;
         master_domain: string;
+        region: string;
       }
     >;
     renderText: string;
@@ -146,6 +147,7 @@
             [item.master_domain]: {
               id: item.id,
               master_domain: item.master_domain,
+              region: item.region,
             },
           };
         });

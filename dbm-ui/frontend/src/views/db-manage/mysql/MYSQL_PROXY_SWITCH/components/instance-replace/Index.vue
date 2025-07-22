@@ -41,10 +41,12 @@
           @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
+            city: item.originProxy.bk_idc_city_name,
+            subzones: item.originProxy.bk_sub_zone,
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,
-            labels: item.labels.join(','),
+            labels: item.labels.map((item) => item.id).join(','),
           }" />
       </template>
       <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
@@ -175,6 +177,8 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_id: 0,
         instance_address: '',
         ip: '',
@@ -261,10 +265,10 @@
               originProxy: {
                 instance_address: originProxy ? `${originProxy.ip}:${originProxy.port}` : '',
               },
+              specId: item.resource_spec.target_proxy.spec_id,
               targetProxy: {
                 ip: item.resource_spec.target_proxy.hosts?.[0]?.ip || '',
               },
-              specId: item.resource_spec.target_proxy.spec_id,
             });
           });
         }

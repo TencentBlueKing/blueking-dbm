@@ -44,10 +44,11 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
+              city: item.cluster.region,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.targetCapacity.spec_id,
-              labels: item.labels.join(','),
+              labels: item.labels.map((item) => item.id).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -147,6 +148,7 @@
         id: 0,
         machine_pair_cnt: 0,
         master_domain: '',
+        region: '',
         remote_shard_num: 0,
       },
       data.cluster,

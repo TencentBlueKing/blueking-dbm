@@ -88,6 +88,8 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     ip: string;
     related_clusters: {
       id: number;
@@ -181,6 +183,8 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
+          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
           ip: currentHost.ip,
           related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
@@ -203,6 +207,8 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       ip: value,
       related_clusters: [],
       role: '',
