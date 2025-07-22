@@ -6,23 +6,23 @@ import (
 	"github.com/avast/retry-go/v4"
 )
 
-// SQLResultRow
+// sqlResultRow
 /*
 {
 	COLNAME1: COLVALUE1,
 	COLNAME2: COLVALUE2,
 }
 */
-type SQLResultRow map[string]interface{}
+type sqlResultRow map[string]interface{}
 
-// SQLResultRows
+// sqlResultRows
 /*
 [
 	{...}, # row1
 	{...}, # row2
 ]
 */
-type SQLResultRows []SQLResultRow
+type sqlResultRows []sqlResultRow
 
 var retryOpts []retry.Option
 

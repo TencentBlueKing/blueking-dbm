@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func (c *MySQLRPCRequest) oneAddr(addr string) (res []MySQLRPCResponse, err error) {
+func (c *MySQLRPCRequest) oneAddr(addr string) (res []CmdResult, err error) {
 	db, conn, connId, err := impl.Prepare(
 		addr, config.RuntimeConfig.MySQLAdminUser, config.RuntimeConfig.MySQLAdminPassword,
 		c.Timezone, c.Charset, c.ConnectTimeout,
@@ -21,7 +21,7 @@ func (c *MySQLRPCRequest) oneAddr(addr string) (res []MySQLRPCResponse, err erro
 		return nil, err
 	}
 
-	rChan := make(chan MySQLRPCResponse)
+	rChan := make(chan CmdResult)
 	done := make(chan struct{})
 	errChan := make(chan error)
 
@@ -48,14 +48,14 @@ func (c *MySQLRPCRequest) oneAddr(addr string) (res []MySQLRPCResponse, err erro
 			go func(sql string) {
 				defer wg.Done()
 				srs, n, err := impl.DoSQL(conn, sql, c.QueryTimeout)
-				srp := MySQLRPCResponse{
+				srp := CmdResult{
 					Cmd:          sql,
-					Result:       srs,
+					TableData:    srs,
 					RowsAffected: n,
-					Error:        "",
+					ErrorMsg:     "",
 				}
 				if err != nil {
-					srp.Error = err.Error()
+					srp.ErrorMsg = err.Error()
 				}
 				rChan <- srp
 				if err != nil && !c.Force {

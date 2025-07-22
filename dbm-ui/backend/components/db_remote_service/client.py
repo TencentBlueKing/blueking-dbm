@@ -151,5 +151,12 @@ class _DRSApi(object):
             default_timeout=self.DRS_TIMEOUT,
         )
 
-
+        self.mysql_rpc_v2 = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="v2/rpc/mysql",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("mysql rpc v2")
+        )
 DRSApi = _DRSApi()

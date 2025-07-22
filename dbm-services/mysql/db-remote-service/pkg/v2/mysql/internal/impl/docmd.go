@@ -13,14 +13,14 @@ import (
 
 func DoSQL(conn *sqlx.Conn, sql string, timeout int) ([]byte, int64, error) {
 	sql = strings.TrimSpace(sql)
-	var cmdWorker func(*sqlx.Conn, string, int) (SQLResultRows, int64, error)
+	var cmdWorker func(*sqlx.Conn, string, int) (sqlResultRows, int64, error)
 	if IsQueryCommand(sql) {
 		cmdWorker = doQuery
 	} else {
 		cmdWorker = doExecute
 	}
 
-	crs := make(SQLResultRows, 0)
+	crs := make(sqlResultRows, 0)
 	var n int64
 	var err error
 	err = retry.Do(
@@ -39,7 +39,7 @@ func DoSQL(conn *sqlx.Conn, sql string, timeout int) ([]byte, int64, error) {
 	return b, n, errors.Join(rErrs...)
 }
 
-func doQuery(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, error) {
+func doQuery(conn *sqlx.Conn, sql string, timeout int) (sqlResultRows, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -51,7 +51,7 @@ func doQuery(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, er
 		_ = rows.Close()
 	}()
 
-	srs := make(SQLResultRows, 0)
+	srs := make(sqlResultRows, 0)
 	for rows.Next() {
 		data := make(map[string]interface{})
 		if err := rows.MapScan(data); err != nil {
@@ -70,7 +70,7 @@ func doQuery(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, er
 	return srs, 0, nil
 }
 
-func doExecute(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, error) {
+func doExecute(conn *sqlx.Conn, sql string, timeout int) (sqlResultRows, int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	result, err := conn.ExecContext(ctx, sql)

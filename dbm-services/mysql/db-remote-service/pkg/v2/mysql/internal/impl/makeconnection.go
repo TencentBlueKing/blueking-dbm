@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"time"
 
@@ -44,19 +45,22 @@ func makeConnection(addr, user, password, timezone, charset string, timeout int)
 
 	err = retry.Do(
 		func() error {
-			db, err = sqlx.Connect("mysql", dsn)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+			defer cancel()
+
+			db, err = sqlx.ConnectContext(ctx, "mysql", dsn)
 			if err != nil {
+				slog.Error("connect to mysql", slog.String("error", err.Error()), slog.String("dsn", dsn))
 				return err
 			}
+
 			if charset == "default" {
-				defer func() {
-					_ = db.Close()
-				}()
 				var serverCharset string
 				err := db.QueryRow(`SELECT @@character_set_server`).Scan(&serverCharset)
 				if err != nil {
 					return err
 				}
+				_ = db.Close()
 				db, err = makeConnection(addr, user, password, timezone, serverCharset, timeout)
 				if err != nil {
 					return err
