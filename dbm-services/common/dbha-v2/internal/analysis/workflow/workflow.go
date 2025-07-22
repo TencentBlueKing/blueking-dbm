@@ -27,8 +27,8 @@ package workflow
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"sync"
 	"time"
 )
@@ -38,12 +38,14 @@ const (
 )
 
 type Workflow struct {
-	cfg  config.WorkflowConfig
-	quit chan struct{}
-	wg   sync.WaitGroup
+	hadata      *DBHAData
+	dbmMetadata *DBMMetadata
+	cfg         config.WorkflowConfig
+	quit        chan struct{}
+	wg          sync.WaitGroup
 }
 
-func New(cfg config.WorkflowConfig, db *storage.Storage) (*Workflow, error) {
+func New(cfg config.WorkflowConfig, db []*hamysql.DB) (*Workflow, error) {
 
 	wflow := &Workflow{
 		cfg:  cfg,
@@ -81,8 +83,11 @@ func (w *Workflow) checkBusiness(ctx context.Context, bizID int) error {
 }
 
 func (w *Workflow) scanBusinesses(ctx context.Context) {
-
-	bizIDs := []int{}
+	bizIDs, err := w.hadata.getBizIDs()
+	if err != nil {
+		logger.Warn("get business ids failed, %v", err)
+		return
+	}
 
 	for _, bizID := range bizIDs {
 		w.wg.Add(1)

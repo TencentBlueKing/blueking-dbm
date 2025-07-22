@@ -22,29 +22,8 @@
  * SOFTWARE.
  */
 
-package output
+package notifier
 
-import (
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/output/storage"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"strings"
-)
-
-// Outputer Define the interface for storing data.
-type Outputter interface {
-	Save(msg *storage.Message) error
-	Close()
-}
-
-// NewOutputter create a new saver
-func NewOutputter(cfg config.OutputConfig) (Outputter, error) {
-
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(storage.NameMySQL):
-		return storage.NewMySQL(cfg.Endpoints, cfg.User, cfg.Password)
-
-	default:
-		return nil, gerrors.Newf(gerrors.NotFound, "unsupported storage(%s)", cfg.Name)
-	}
+// Options notifier's options
+type Options struct {
 }

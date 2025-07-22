@@ -22,9 +22,12 @@
  * SOFTWARE.
  */
 
-package workflow
+package notifier
 
-// Switcher All databases that support siwtching must implement this interface.
-type Switcher interface {
-	Switch() error
+type Notifier interface {
+	Notify(msg string) error
+}
+
+func New() (Notifier, error) {
+	return nil, nil
 }
