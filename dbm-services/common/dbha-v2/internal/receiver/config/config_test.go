@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var receiverCfgFile = "../../../configs/receiver.yaml"
+var receiverCfgFile = "../../../etc/receiver.yaml"
 
 func TestConfig(t *testing.T) {
 	viper.SetConfigFile(receiverCfgFile)

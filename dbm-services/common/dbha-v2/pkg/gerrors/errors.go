@@ -43,9 +43,12 @@ const (
 	QueueFull
 	InvalidParameter
 	InvalidURL
+	InvalidJSOIN
+	InvalidYAML
 	InvalidConfiguration
 	InternalServerFailure
 	Unimplemented
+	Unsupported
 	OperationFailure
 	ComponentFailure
 )

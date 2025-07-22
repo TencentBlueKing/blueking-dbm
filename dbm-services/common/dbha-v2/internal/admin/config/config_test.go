@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var adminCfgFile = "../../../configs/admin.yaml"
+var adminCfgFile = "../../../etc/admin.yaml"
 
 func TestConfig(t *testing.T) {
 	viper.SetConfigType("yaml")
