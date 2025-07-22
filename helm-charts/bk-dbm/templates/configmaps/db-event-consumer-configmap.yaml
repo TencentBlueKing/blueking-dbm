@@ -14,7 +14,7 @@ data:
   config.yaml: |-
     kafka_info:
       cluster_config:
-        domain_name: {{ index .Values "db-event-consumer" "kafka_info" "domain_name" }}
+        brokers: {{ index .Values "db-event-consumer" "kafka_info" "brokers" }}
         port: {{ index .Values "db-event-consumer" "kafka_info" "broker_port" }}
       auth_info:
         username: {{ index .Values "db-event-consumer" "kafka_info" "auth_info_username" }}

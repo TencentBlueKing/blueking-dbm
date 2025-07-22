@@ -568,9 +568,9 @@ db-event-consumer:
       cpu: 200m
       memory: 256Mi
   kafka_info:
-    # same with REVERSE_REPORT_KAFKA_OPTIONS
-    domain_name: "xx.xx.db"
-    broker_port: 3306
+    # same with REVERSE_REPORT_KAFKA_OPTIONS. domain_name value can be ip list separated by commas
+    brokers: "xx.xx.db,ip2"
+    broker_port: 9092
     auth_info_username: "xxx"
     auth_info_password: "xxx"
   sinkers:

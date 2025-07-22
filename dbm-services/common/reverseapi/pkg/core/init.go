@@ -1,8 +1,6 @@
 package core
 
 import (
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/pkg/errors"
@@ -101,6 +102,7 @@ func NewCoreWithAddr(bkCloudId int64, mixAddrs []string, retryOpts ...retry.Opti
 				MaxIdleConns:        2,
 				MaxConnsPerHost:     5,
 			},
+			Timeout: 2 * time.Second,
 		},
 		retryOpts: retryOpts,
 	}, nil

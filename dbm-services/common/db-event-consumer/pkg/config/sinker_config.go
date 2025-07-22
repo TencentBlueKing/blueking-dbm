@@ -38,8 +38,9 @@ type SinkerConfig struct {
 
 type KafkaMeta struct {
 	ClusterConfig struct {
-		DomainName string `json:"domain_name" yaml:"domain_name"`
-		Port       int    `json:"port" yaml:"port"`
+		// Brokers ip1:port,ip2:port,ip3:port
+		Brokers string `json:"brokers" yaml:"brokers"`
+		Port    int    `json:"port" yaml:"port"`
 	} `json:"cluster_config" yaml:"cluster_config"`
 	AuthInfo struct {
 		Username string `json:"username" yaml:"username"`

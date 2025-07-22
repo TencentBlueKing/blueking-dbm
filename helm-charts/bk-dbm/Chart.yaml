@@ -79,7 +79,7 @@ dependencies:
   - condition: db-event-consumer.enabled
     name: db-event-consumer
     repository: file://charts/db-event-consumer
-    version: 0.0.7
+    version: 0.0.8
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service

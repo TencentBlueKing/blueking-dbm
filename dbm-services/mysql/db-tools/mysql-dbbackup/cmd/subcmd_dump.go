@@ -304,11 +304,9 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 	if err != nil {
 		return err
 	}
-
 	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))
 	}
-
 	logger.Log.Info("parse config file: end")
 	if cnf.Public.DataSchemaGrant == cst.BackupNone {
 		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)

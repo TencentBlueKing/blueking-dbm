@@ -11,9 +11,11 @@ package consumer
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/Shopify/sarama"
+	"github.com/samber/lo"
 	"golang.org/x/exp/slog"
 
 	"dbm-services/common/db-event-consumer/pkg/config"
@@ -122,13 +124,14 @@ func (s *Sinker) NewConsumerGroup() (sarama.ConsumerGroup, error) {
 	slog.Debug("build consumer config", slog.Any("config", consumerConfig))
 
 	groupId := fmt.Sprintf("%s_%s", s.RuntimeConfig.Topic, s.RuntimeConfig.GroupIdSuffix)
-	group, err := sarama.NewConsumerGroup(
-		[]string{
-			fmt.Sprintf(
-				`%s:%d`,
-				s.MetaInfo.ClusterConfig.DomainName,
-				s.MetaInfo.ClusterConfig.Port),
-		},
+	brokerIps := strings.Split(s.MetaInfo.ClusterConfig.Brokers, ",")
+	brokerAddrs := lo.Map(brokerIps, func(item string, index int) string {
+		if strings.Contains(item, ":") {
+			return item
+		}
+		return fmt.Sprintf("%s:%d", item, s.MetaInfo.ClusterConfig.Port)
+	})
+	group, err := sarama.NewConsumerGroup(brokerAddrs,
 		groupId,
 		consumerConfig,
 	)

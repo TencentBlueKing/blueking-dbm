@@ -88,7 +88,7 @@ log:
 
 kafka_info:
   cluster_config:
-    domain_name: xx.xx.xx
+    brokers: xx.xx.xx
     port: 9092
   auth_info:
     username: xx
