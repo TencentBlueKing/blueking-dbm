@@ -41,8 +41,11 @@
     <template #footer>
       <div>
         <BkButton
-          v-bk-tooltips="tooltip"
-          :disabled="hostSelectList.length < 1"
+          v-bk-tooltips="{
+            content: t('请选择主机'),
+            disabled: hostSelectList.length > 0,
+          }"
+          :disabled="hostSelectList.length === 0"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
@@ -94,8 +97,7 @@
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
 
-  const { successMessage, tooltip } = useImportResourcePoolTooltip({
-    hostList: hostSelectList,
+  const { successMessage } = useImportResourcePoolTooltip({
     isCurrentBiz: props.type === 'business',
   });
 
@@ -117,9 +119,9 @@
             host_id: item.host_id,
             ip: item.ip,
           })),
-        }).then(({ task_ids: taskIds }) => {
+        }).then(({ ticket_ids: ticketIds }) => {
           window.changeConfirm = false;
-          successMessage(taskIds);
+          successMessage(ticketIds);
           handleCancel();
           emits('change');
         });

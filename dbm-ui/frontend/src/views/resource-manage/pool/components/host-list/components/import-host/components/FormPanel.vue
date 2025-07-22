@@ -126,6 +126,7 @@
           property="labels">
           <div class="com-input">
             <TagSelector
+              ref="tagSelectorRef"
               v-model="formData.labels"
               :bk-biz-id="formData.for_biz" />
           </div>
@@ -160,7 +161,7 @@
   type Emits = (e: 'update:hostList', value: Props['hostList']) => void;
 
   interface Expose {
-    getValue: () => Promise<UnwrapRef<typeof formData>>;
+    getValue: () => Promise<{ label_names: string[] } & UnwrapRef<typeof formData>>;
   }
 
   const props = defineProps<Props>();
@@ -172,7 +173,9 @@
 
   const isBusiness = route.name === 'BizResourcePool';
 
-  const formRef = ref();
+  const formRef = useTemplateRef('formRef');
+  const tagSelectorRef = useTemplateRef('tagSelectorRef');
+
   const isShowHostActionPop = ref(false);
   const formData = reactive({
     for_biz: isBusiness ? globalBizsStore.currentBizId : 0,
@@ -292,8 +295,9 @@
 
   defineExpose<Expose>({
     getValue() {
-      return formRef.value.validate().then(() => ({
+      return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),
+        label_names: tagSelectorRef.value?.getLabelNames() || [],
         labels: formData.labels,
         resource_type: formData.resource_type,
       }));

@@ -2,9 +2,9 @@
  * 资源池类型枚举值
  */
 export enum ResourcePool {
-  public = 'public',
-  global = 'global',
   business = 'business',
+  global = 'global',
+  public = 'public',
 }
 
 /**
