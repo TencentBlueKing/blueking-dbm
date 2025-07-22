@@ -105,13 +105,20 @@
           type="refresh" />
         {{ t('刷新数据') }}
       </BkButton>
-      <AuthButton
-        action-id="resource_manage"
-        class="quick-search-btn"
-        @click="handleGoTaskHistory">
-        <DbIcon type="history-2" />
-        <span class="ml-4">{{ t('导入记录') }}</span>
-      </AuthButton>
+      <RouterLink
+        style="margin-left: auto"
+        target="_blank"
+        :to="{
+          name: props.type === ResourcePool.global ? 'ticketPlatformManage' : 'bizTicketManage',
+          query: {
+            ticket_type__in: TicketTypes.RESOURCE_IMPORT,
+          },
+        }">
+        <AuthButton action-id="resource_manage">
+          <DbIcon type="history-2" />
+          <span class="ml-4">{{ t('导入记录') }}</span>
+        </AuthButton>
+      </RouterLink>
     </div>
     <RenderTable
       ref="tableRef"
@@ -173,6 +180,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import DbIcon from '@components/db-icon';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -180,7 +189,6 @@
   import { execCopy, messageWarn } from '@utils';
 
   import { ResourcePool } from '../../type';
-  import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
   import BatchAssign from './components/batch-assign/Index.vue';
@@ -207,9 +215,6 @@
   const { currentBizId } = useGlobalBizs();
 
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
-  const { taskHistoryListHref } = useImportResourcePoolTooltip({
-    isCurrentBiz: props.type !== ResourcePool.global,
-  });
 
   const searchBoxRef = useTemplateRef('searchBoxRef');
   const tableRef = useTemplateRef('tableRef');
@@ -474,11 +479,6 @@
     });
   };
 
-  // 跳转历史任务
-  const handleGoTaskHistory = () => {
-    window.open(taskHistoryListHref, '_blank');
-  };
-
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
     selectionList.value = selectionListWholeData;
     isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
@@ -535,10 +535,6 @@
     .action-box {
       display: flex;
       align-items: center;
-
-      .quick-search-btn {
-        margin-left: auto;
-      }
 
       .search-selector {
         width: 560px;

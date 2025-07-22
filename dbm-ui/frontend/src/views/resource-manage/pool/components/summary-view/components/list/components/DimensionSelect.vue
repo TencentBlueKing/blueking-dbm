@@ -83,11 +83,12 @@
     display: flex;
     margin: 16px 0;
     align-items: center;
+    font-size: 12px;
 
     .check-box-wrapper {
       display: flex;
       margin-right: 21px;
-      font-size: 12px;
+      // font-size: 12px;
       color: #4d4f56;
       align-items: center;
     }
@@ -96,7 +97,7 @@
       padding: 0 6px;
 
       .select-trigger {
-        font-size: 12px;
+        // font-size: 12px;
         color: #313238;
         cursor: pointer;
       }

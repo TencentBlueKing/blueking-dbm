@@ -51,6 +51,7 @@
         :label="t('资源标签')"
         property="labels">
         <TagSelector
+          ref="tagSelectorRef"
           v-model="formData.labels"
           :bk-biz-id="formData.for_biz" />
       </BkFormItem>
@@ -73,6 +74,7 @@
   interface Expose {
     getValue: () => Promise<{
       for_biz: number;
+      label_names: string[];
       labels: number[];
       resource_type: string;
     }>;
@@ -82,6 +84,7 @@
   const { t } = useI18n();
 
   const formRef = useTemplateRef('formRef');
+  const tagSelectorRef = useTemplateRef('tagSelectorRef');
 
   const formData = reactive({
     for_biz: 0,
@@ -128,6 +131,7 @@
     getValue() {
       return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),
+        label_names: tagSelectorRef.value?.getLabelNames() || [],
         labels: formData.labels,
         resource_type: formData.resource_type,
       }));
