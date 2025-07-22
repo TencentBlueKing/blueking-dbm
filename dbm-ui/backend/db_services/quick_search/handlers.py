@@ -123,7 +123,8 @@ class QSearchHandler(object):
         for keyword in keyword_list:
             try:
                 ip, port = keyword.split(":")
-                ports.append(port)
+                if port:
+                    ports.append(port)
             except ValueError:
                 ip, port = keyword, None
             ip_list.append(ip)
