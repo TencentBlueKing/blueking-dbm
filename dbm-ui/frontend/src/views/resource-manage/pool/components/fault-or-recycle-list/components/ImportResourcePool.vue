@@ -149,7 +149,7 @@
   const handleSubmit = async () => {
     await formRef.value!.validate();
     runImport({
-      bk_biz_id: systemEnvironStore.urls.DBA_APP_BK_BIZ_ID,
+      bk_biz_id: systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ,
       for_biz: Number(formData.for_biz),
       hosts: [
         {
