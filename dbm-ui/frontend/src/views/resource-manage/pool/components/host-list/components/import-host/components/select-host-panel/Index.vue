@@ -109,7 +109,7 @@
   const systemEnvironStore = useSystemEnviron();
 
   const isBusiness = route.name === 'BizResourcePool';
-  const defaultBizId = systemEnvironStore.urls.DBA_APP_BK_BIZ_ID;
+  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const { t } = useI18n();
 
