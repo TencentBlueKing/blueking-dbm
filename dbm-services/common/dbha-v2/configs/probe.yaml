@@ -11,9 +11,18 @@ receiver:
 
 harvester:
   - name: mysql
-    user: root
-    password: 123456
     reportInterval: 20
+    instances:
+    - host: 127.0.0.1
+      port: 3306
+      user: root
+      password: 123456 
+      name: mysql-1
+    - host: 127.0.0.2
+      port: 3306
+      user: root 
+      password: 123456
+      name: mysql-2
 
   - name: redis
     user: root
@@ -25,3 +34,7 @@ log:
   level: debug
   fileCount: 10
   fileSize: 100
+
+gse:
+  dataId: 123456
+  domainSocketPath: 

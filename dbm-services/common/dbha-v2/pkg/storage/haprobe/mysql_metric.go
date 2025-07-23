@@ -92,18 +92,9 @@ type DatabaseMetric struct {
 	ListenPort int `json:"listen_port"`
 
 	// Status
-	Version          string  `json:"mysql_version"`
-	ThreadID         string  `json:"mysql_connected_thread_id"`
-	CurrentDatabase  string  `json:"mysql_current_database"`
-	CurrentUser      string  `json:"mysql_current_user"`
-	ThreadsConnected uint    `json:"mysql_threads_connected"`
-	ServerCharset    string  `json:"mysql_server_charset"`
-	OpenTablesTotal  uint    `json:"mysql_open_tables_total"`
-	FlushTables      uint    `json:"mysql_flush_tables"`
-	OpenTablesNow    uint    `json:"mysql_open_tables_now"`
-	SlowQueriesNow   uint    `json:"mysql_slow_queries_now"`
-	TotalQuestions   uint    `json:"mysql_total_questions"`
-	QueriesPerSecond float64 `json:"mysql_avg_qps"`
+	Version          string `json:"mysql_version"`
+	ThreadsConnected uint   `json:"mysql_threads_connected"`
+	ServerCharset    string `json:"mysql_server_charset"`
 
 	// Performance Connection metric
 	ThreadsRunning            int `json:"mysql_threads_running"`
@@ -115,6 +106,8 @@ type DatabaseMetric struct {
 
 	// MySQL Performance Query metric
 	QueryTotal     uint64 `json:"mysql_quey_total"`
+	AvgQPS         uint   `json:"mysql_avg_qps"`
+	AvgTPS         uint   `json:"mysql_avg_tps"`
 	QPS            uint   `json:"mysql_QPS"`
 	TPS            uint   `json:"mysql_TPS"`
 	QueryQuestions uint64 `json:"mysql_questions_total"`
@@ -123,6 +116,8 @@ type DatabaseMetric struct {
 	QueryUpdates   uint64 `json:"mysql_updates_times"`
 	QueryDeletes   uint64 `json:"mysql_deletes_times"`
 	QuerySlow      uint64 `json:"mysql_slow_queries_times"`
+	QueryCommits   uint64 `json:"mysql_commits_times"`
+	QueryRollbacks uint64 `json:"mysql_rollbacks_times"`
 
 	// MySQL Performance Query Cache metric
 	KeyReadRequests   uint64  `json:"key_read_requests"`
@@ -150,6 +145,7 @@ type DatabaseMetric struct {
 	FileCreatedTmp      uint64 `json:"files_created_tmp"`
 	FileOpen            uint64 `json:"files_opened"`
 	TableOpen           uint64 `json:"tables_opened"`
+	TableFlush          uint   `json:"tables_flushed"`
 
 	// Performance BinLog metrics
 	BinlogCacheDiskUse     uint64 `json:"binlog_cache_disk_use"`
