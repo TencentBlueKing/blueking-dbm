@@ -13,20 +13,20 @@
 
 <template>
   <EditableColumn
-    field="specId"
-    :label="t('规格')"
-    :min-width="150"
-    :rules="rules"
-    required>
+    :field="field"
+    :label="t(label)"
+    :min-width="minWidth"
+    :required="required"
+    :rules="rules">
     <template
       v-if="selectable"
       #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="t('规格')"
-        :placeholder="t('请选择')"
-        type="select"
         :data-list="batchEditSpecList"
+        :placeholder="t('请选择')"
+        :title="t(label)"
+        type="select"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -72,11 +72,15 @@
   interface Props {
     clusterType: ClusterTypes | DBTypes;
     currentSpecId?: number;
+    field?: string;
+    label?: string;
     /**
      * 机器类型
      * @default backend
      */
     machineType?: MachineTypes;
+    minWidth?: number;
+    required?: boolean;
     selectable?: boolean;
     showTag?: boolean;
   }
@@ -85,7 +89,11 @@
 
   const props = withDefaults(defineProps<Props>(), {
     currentSpecId: 0,
+    field: 'specId',
+    label: '规格',
     machineType: undefined,
+    minWidth: 150,
+    required: false,
     selectable: false,
     showTag: true,
   });
