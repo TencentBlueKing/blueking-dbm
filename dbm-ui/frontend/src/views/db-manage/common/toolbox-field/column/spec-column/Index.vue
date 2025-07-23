@@ -13,8 +13,29 @@
 
 <template>
   <EditableColumn
-    :label="t('规格')"
-    :min-width="150">
+    :field="field"
+    :label="t(label)"
+    :min-width="minWidth"
+    :required="required"
+    :rules="rules">
+    <template
+      v-if="selectable"
+      #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :data-list="batchEditSpecList"
+        :placeholder="t('请选择')"
+        :title="t(label)"
+        type="select"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
     <EditableBlock
       v-if="!selectable"
       v-model="renderSpecName"
@@ -46,24 +67,38 @@
 
   import { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
   interface Props {
     clusterType: ClusterTypes | DBTypes;
     currentSpecId?: number;
+    field?: string;
+    label?: string;
     /**
      * 机器类型
      * @default backend
      */
     machineType?: MachineTypes;
+    minWidth?: number;
+    required?: boolean;
     selectable?: boolean;
     showTag?: boolean;
   }
 
+  type Emits = (e: 'batch-edit', value: number, field: string) => void;
+
   const props = withDefaults(defineProps<Props>(), {
     currentSpecId: 0,
+    field: 'specId',
+    label: '规格',
     machineType: undefined,
+    minWidth: 150,
+    required: false,
     selectable: false,
     showTag: true,
   });
+
+  const emits = defineEmits<Emits>();
 
   /**
    * 绑定当前选择的规格 ID
@@ -75,8 +110,23 @@
 
   const { t } = useI18n();
 
-  const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
+  const rules = [
+    {
+      message: t('规格不能为空'),
+      trigger: 'change',
+      validator: (value: number) => Boolean(value),
+    },
+  ];
 
+  const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
+  const showBatchEdit = ref(false);
+
+  const batchEditSpecList = computed(() =>
+    specList.value.map((item) => ({
+      label: item.spec_name,
+      value: item.spec_id,
+    })),
+  );
   const renderSpecName = computed(
     () => specList.value.find((item) => item.spec_id === modelValue.value)?.spec_name || '',
   );
@@ -123,4 +173,19 @@
       immediate: true,
     },
   );
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: number) => {
+    emits('batch-edit', value, 'specId');
+  };
 </script>
+<style lang="less" scoped>
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>

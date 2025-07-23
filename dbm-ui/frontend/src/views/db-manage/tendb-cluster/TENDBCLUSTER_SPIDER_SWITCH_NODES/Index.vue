@@ -38,7 +38,9 @@
             @batch-edit="handleBatchEditCluster" />
           <SpecColumn
             v-model="item.host.spec_id"
-            :cluster-type="ClusterTypes.TENDBCLUSTER" />
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            field="host.spec_id"
+            :machine-type="MachineTypes.TENDBCLUSTER_PROXY" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -87,7 +89,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
