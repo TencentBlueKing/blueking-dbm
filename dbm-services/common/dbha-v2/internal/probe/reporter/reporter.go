@@ -32,14 +32,18 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"sync"
 	"time"
+
+	agentreport "github.com/TencentBlueKing/bk-gse-sdk/go/service/agent-report"
+	"github.com/TencentBlueKing/bk-gse-sdk/go/types"
 )
 
 type Reporter struct {
-	ClientId string
-	quit     chan struct{}
-	recvCli  *client.ReceiverClient
-	adminCli *client.AdminClient
-	wg       sync.WaitGroup
+	ClientId   string
+	quit       chan struct{}
+	recvCli    *client.ReceiverClient
+	adminCli   *client.AdminClient
+	wg         sync.WaitGroup
+	recvConfig *config.GSEConfig
 }
 
 func (r *Reporter) keepalive() {
@@ -83,11 +87,33 @@ func (r *Reporter) CreateClients(ctx context.Context) error {
 }
 
 func (r *Reporter) PostToReceiver(data []byte) error {
-	if r.recvCli == nil {
-		return gerrors.Newf(gerrors.InvalidParameter, "receiver client is invalid(nil)")
+
+	// Use GSE to generate a new client receiver
+	gseClient, err := agentreport.New(
+		agentreport.WithDomainSocketPath(r.recvConfig.DomainSocketPath),
+		agentreport.WithLogger(types.NewDefaultLogger(1)),
+	)
+	if err != nil {
+		return err
 	}
 
-	return r.recvCli.SendMessage(data)
+	// launch client, it will try to connect to agent and keep the connection.
+	if err = gseClient.Launch(context.Background()); err != nil {
+		return gerrors.Newf(gerrors.ComponentFailure, "GSE client failed to launch.")
+	}
+	// wait for a while to receive keepalive response which provides the agent info.
+	time.Sleep(3 * time.Second) // nolint:mnd
+
+	// after launch successfully, you can report data to agent.
+	// the message will be report to the data-id(channel-id) which you set.
+	if err = gseClient.ReportData(
+		context.Background(),
+		r.recvConfig.DataID,
+		data,
+	); err != nil {
+		return gerrors.Newf(gerrors.Failure, "GSE client failed to report dataS")
+	}
+	return nil
 }
 
 func (r *Reporter) Close() {

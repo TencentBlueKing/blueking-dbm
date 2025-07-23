@@ -33,17 +33,20 @@ import (
 	"strings"
 )
 
+// NewPlugin creates a new probe plugin.
 func NewPlugin(cfg config.HarvesterConfig) (plugin.Plugin, error) {
-
 	var target plugin.Plugin
-
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mysql.Name):
-		target = mysql.NewMySql(mysql.OptionReportInterval(cfg.ReportInterval))
+		target = mysql.NewMySql(mysql.OptionReportInterval(cfg.ReportInterval),
+			mysql.OptionInstances(cfg.Instances),
+		)
+		return target, nil
 
 	case strings.ToLower(redis.Name):
 		target = redis.NewRedis(redis.OptionReportInterval(cfg.ReportInterval))
+		return target, nil
 	}
 
-	return target, gerrors.Newf(gerrors.NotFound, "plugin(%s) is invalid", cfg.Name)
+	return nil, gerrors.Newf(gerrors.NotFound, "plugin(%s) is invalid", cfg.Name)
 }

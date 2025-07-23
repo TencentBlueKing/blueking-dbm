@@ -46,12 +46,20 @@ type ReceiverService struct {
 	SyncInterval int    `yaml:"syncInterval"  mapstructure:"syncInterval"`
 }
 
+// InstanceConfig single instance config
+type InstanceConfig struct {
+	Host     string `yaml:"host"     mapstructure:"host"`
+	Port     int    `yaml:"port"     mapstructure:"port"`
+	User     string `yaml:"user"     mapstructure:"user"`
+	Password string `yaml:"password" mapstructure:"password"`
+	Name     string `yaml:"name"     mapstructure:"name"`
+}
+
 // HarvesterConfig harvester's config
 type HarvesterConfig struct {
-	Name           string `yaml:"name"            mapstructure:"name"`
-	User           string `yaml:"user"            mapstructure:"user"`
-	Password       string `yaml:"password"        mapstructure:"password"`
-	ReportInterval int    `yaml:"reportInterval"  mapstructure:"reportInterval"`
+	Name           string           `yaml:"name"            mapstructure:"name"`
+	ReportInterval int              `yaml:"reportInterval"  mapstructure:"reportInterval"`
+	Instances      []InstanceConfig `yaml:"instances"       mapstructure:"instances"`
 }
 
 // Configuration receiver's configuration
@@ -62,4 +70,13 @@ type Configuration struct {
 	Receiver  ReceiverService   `yaml:"receiver"    mapstructure:"receiver"`
 	Harvester []HarvesterConfig `yaml:"harvester"   mapstructure:"harvester"`
 	Log       LogConfig         `yaml:"log"         mapstructure:"log"`
+	GSE       GSEConfig         `yaml:"gse"         mapstructure:"gse"`
+}
+
+// GSEConfig defines the GSE basic config.
+type GSEConfig struct {
+	// DomainSocketPath is the domain socket path.
+	// DataID is the data-id(channel-id) to report.
+	DomainSocketPath string `yaml:"domain_socket_path" mapstructure:"domain_socket_path"`
+	DataID           uint32 `yaml:"data_id"            mapstructure:"data_id"`
 }
