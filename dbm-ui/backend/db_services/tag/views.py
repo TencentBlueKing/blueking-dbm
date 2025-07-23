@@ -114,4 +114,6 @@ class TagViewSet(AuditedModelViewSet):
         校验
         """
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TagHandler.verify_duplicated(validated_data["bk_biz_id"], validated_data["tags"]))
+        return Response(
+            TagHandler.verify_duplicated(validated_data["type"], validated_data["bk_biz_id"], validated_data["tags"])
+        )
