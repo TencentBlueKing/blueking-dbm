@@ -26,7 +26,28 @@ package harvester_test
 
 import (
 	"testing"
+
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/internal/probe/harvester"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestPlugins(t *testing.T) {
+func TestNewPlugin(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  config.HarvesterConfig
+	}{
+		{"mysql", config.HarvesterConfig{Name: "mysql"}},
+		{"redis", config.HarvesterConfig{Name: "redis"}},
+		{"mysql uppercase", config.HarvesterConfig{Name: "MYSQL"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			plugin, err := harvester.NewPlugin(tt.cfg)
+			assert.NoError(t, err)
+			assert.NotNil(t, plugin)
+		})
+	}
 }
