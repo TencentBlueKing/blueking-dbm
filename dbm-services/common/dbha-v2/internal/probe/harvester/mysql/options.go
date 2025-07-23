@@ -24,14 +24,24 @@
 
 package mysql
 
+import (
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"fmt"
+)
+
+// Option is an option for MySQL probe.
 type Option interface {
 	apply(*mySqlOptions)
 }
 
+// mySqlOptions is the configuration of MySQL probe.
 type mySqlOptions struct {
 	user           string
 	password       string
 	reportInterval int
+	host           string
+	port           int
+	instances      []config.InstanceConfig // support for multiple MySQL instances
 }
 
 var defaultMySqlOptions = mySqlOptions{}
@@ -44,6 +54,7 @@ func (fdo *funcMySqlOptions) apply(opt *mySqlOptions) {
 	fdo.f(opt)
 }
 
+// OptionUser sets the user for MySQL probe.
 func OptionUser(val string) *funcMySqlOptions {
 	return &funcMySqlOptions{
 		f: func(opt *mySqlOptions) {
@@ -52,10 +63,68 @@ func OptionUser(val string) *funcMySqlOptions {
 	}
 }
 
+// OptionReportInterval sets the report interval for MySQL probe.
 func OptionReportInterval(val int) *funcMySqlOptions {
 	return &funcMySqlOptions{
 		f: func(opt *mySqlOptions) {
 			opt.reportInterval = val
+		},
+	}
+}
+
+// OptionHost sets the host for MySQL probe.
+func OptionHost(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.host = val
+		},
+	}
+}
+
+// OptionPort sets the port for MySQL probe.
+func OptionPort(val int) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.port = val
+		},
+	}
+}
+
+// OptionPassword sets the password for MySQL probe.
+func OptionPassword(val string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.password = val
+		},
+	}
+}
+
+// OptionInstances sets multiple MySQL instances
+func OptionInstances(instances []config.InstanceConfig) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.instances = instances
+		},
+	}
+}
+
+// OptionSingleInstance sets single MySQL instance
+func OptionSingleInstance(host string, port int, user, password string) *funcMySqlOptions {
+	return &funcMySqlOptions{
+		f: func(opt *mySqlOptions) {
+			opt.host = host
+			opt.port = port
+			opt.user = user
+			opt.password = password
+			opt.instances = []config.InstanceConfig{
+				{
+					Host:     host,
+					Port:     port,
+					User:     user,
+					Password: password,
+					Name:     fmt.Sprintf("%s:%d", host, port),
+				},
+			}
 		},
 	}
 }

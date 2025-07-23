@@ -73,7 +73,6 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 				logger.Warn("encode data to json failed, plugin(%s), errmsg(%v)", name, err)
 				continue
 			}
-
 			if err := p.Reporter.PostToReceiver(dataEncoded); err != nil {
 				logger.Warn("post data to receiver failed, plugin(%s), errmsg(%v)", name, err)
 			}
