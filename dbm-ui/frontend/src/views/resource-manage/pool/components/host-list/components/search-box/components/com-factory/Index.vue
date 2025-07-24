@@ -52,7 +52,7 @@
   import DiskType from './components/DiskType.vue';
   import ForBiz from './components/ForBiz.vue';
   import Hosts from './components/Hosts.vue';
-  import Label from './components/Label.vue';
+  import LabelNames from './components/LabelNames.vue';
   import Mem from './components/Mem.vue';
   import MountPoint from './components/MountPoint.vue';
   import OSType from './components/OSType.vue';
@@ -88,7 +88,7 @@
     disk_type: DiskType,
     for_biz: ForBiz,
     hosts: Hosts,
-    labels: Label,
+    label_names: LabelNames,
     mem: Mem,
     mount_point: MountPoint,
     os_type: OSType,

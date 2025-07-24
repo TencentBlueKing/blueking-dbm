@@ -62,7 +62,8 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.slave.spec_id" />
+            :current-spec-id="item.slave.spec_id"
+            required />
           <ResourceTagColumn
             v-model="item.labels"
             @batch-edit="handleBatchEditColumn" />
@@ -70,10 +71,10 @@
             :params="{
               city: item.slave.bk_idc_city_name,
               subzones: item.slave.bk_sub_zone,
-              for_bizs: [currentBizId, 0],
+              for_bizs: [currentBizId],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.specId,
-              labels: item.labels.map((item) => item.id).join(','),
+              label_names: item.labels.map((item) => item.value).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -230,7 +231,7 @@
       resource_spec: {
         new_slave: {
           count: number;
-          label_values: string[]; // 标签value列表，单据详情回显用
+          label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
           spec_id: number;
         };
@@ -268,7 +269,7 @@
             resource_spec: {
               new_slave: {
                 count: 1,
-                label_values: item.labels.map((item) => item.value),
+                label_names: item.labels.map((item) => item.value),
                 labels: item.labels.map((item) => String(item.id)),
                 spec_id: item.slave.spec_id,
               },

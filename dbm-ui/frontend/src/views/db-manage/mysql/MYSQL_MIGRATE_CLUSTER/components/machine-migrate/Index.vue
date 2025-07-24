@@ -33,6 +33,7 @@
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
           :current-spec-id="item.master.spec_id"
+          required
           selectable
           @batch-edit="handleBatchEditColumn" />
         <ResourceTagColumn
@@ -42,10 +43,10 @@
           :params="{
             city: item.master.bk_idc_city_name,
             subzones: item.master.bk_sub_zone,
-            for_bizs: [currentBizId, 0],
+            for_bizs: [currentBizId],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,
-            labels: item.labels.map((item) => item.id).join(','),
+            label_names: item.labels.map((item) => item.value).join(','),
           }" />
       </template>
       <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
@@ -118,7 +119,7 @@
               bk_host_id: number;
               ip: string;
             }[];
-            label_values?: string[]; // 标签value列表，单据详情回显用
+            label_names?: string[]; // 标签名称列表，单据详情回显用
             labels?: string[]; // 标签id列表
             spec_id: number;
           };
@@ -130,7 +131,7 @@
               bk_host_id: number;
               ip: string;
             }[];
-            label_values?: string[]; // 标签value列表，单据详情回显用
+            label_names?: string[]; // 标签名称列表，单据详情回显用
             labels?: string[]; // 标签id列表
             spec_id: number;
           };
@@ -419,7 +420,7 @@
           new_master: {
             count: 1,
             hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newMaster] : undefined,
-            label_values:
+            label_names:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
             labels:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
@@ -428,7 +429,7 @@
           new_slave: {
             count: 1,
             hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
-            label_values:
+            label_names:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
             labels:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,

@@ -39,7 +39,7 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <BkTag
-          v-for="item in data.resource_spec.spider_slave_ip_list.label_values"
+          v-for="item in data.resource_spec.spider_slave_ip_list.label_names"
           :key="item">
           {{ item }}
         </BkTag>

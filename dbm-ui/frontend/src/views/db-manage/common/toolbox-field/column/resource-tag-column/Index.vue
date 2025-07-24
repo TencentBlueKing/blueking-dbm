@@ -16,26 +16,26 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
-    :rules="rules"
-    required>
+    required
+    :rules="rules">
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="t('资源标签')"
-        type="select"
         :all-option-id="DEFAULT_TAG_ID"
-        :all-option-text="t('非专用资源')"
+        :all-option-text="t('通用无标签')"
         collapse-tags
         display-key="value"
-        :placeholder="t('请选择')"
         filterable
         id-key="id"
         :list="tagList"
         multiple
         multiple-mode="tag"
+        :placeholder="t('请选择')"
         :popover-min-width="200"
         show-all
         :tag-theme="tagTheme"
+        :title="t('资源标签')"
+        type="select"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -44,7 +44,7 @@
           <DbIcon type="bulk-edit" />
         </span>
         <template #tagRender="{ label, value }">
-          {{ value === DEFAULT_TAG_ID ? t('非专用资源') : label }}
+          {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
         </template>
         <template #allOptionIcon>
           <BkTag
@@ -60,7 +60,7 @@
     <EditableSelect
       v-model="ids"
       :all-option-id="DEFAULT_TAG_ID"
-      :all-option-text="t('非专用资源')"
+      :all-option-text="t('通用无标签')"
       collapse-tags
       display-key="value"
       filterable
@@ -73,7 +73,7 @@
       :tag-theme="tagTheme"
       @change="handleChange">
       <template #tagRender="{ label, value }">
-        {{ value === DEFAULT_TAG_ID ? t('非专用资源') : label }}
+        {{ value === DEFAULT_TAG_ID ? t('通用无标签') : label }}
       </template>
       <template #allOptionIcon>
         <BkTag
@@ -91,9 +91,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import { listTag } from '@services/source/tag';
+
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   type IValue = ServiceReturnType<typeof listTag>['results'][0];
 
@@ -112,12 +113,13 @@
 
   const { t } = useI18n();
 
+  // 默认值为 0，表示通用无标签（指未包含任何标签的主机）
+  const DEFAULT_TAG_ID = 0;
   const ids = ref<number[]>([]);
   const tagList = ref<IValue[]>([]);
   const tagMap = ref<Record<string, any>>({});
   const showBatchEdit = ref(false);
-  // 默认值为 0，表示非专用资源（指未包含任何标签的主机）
-  const DEFAULT_TAG_ID = 0;
+  const tagTheme = ref('');
 
   const rules = [
     {
@@ -126,10 +128,6 @@
       validator: () => Boolean(ids.value.length),
     },
   ];
-
-  const tagTheme = computed(() =>
-    modelValue.value.length === 1 && modelValue.value[0].id === DEFAULT_TAG_ID ? 'success' : '',
-  );
 
   useRequest(listTag, {
     defaultParams: [
@@ -155,12 +153,12 @@
           [DEFAULT_TAG_ID]: {
             id: DEFAULT_TAG_ID,
             type: 'resource',
-            value: t('非专用资源'),
+            value: t('通用无标签'),
           },
-          [t('非专用资源')]: {
+          [t('通用无标签')]: {
             id: DEFAULT_TAG_ID,
             type: 'resource',
-            value: t('非专用资源'),
+            value: t('通用无标签'),
           },
         },
       );
@@ -170,6 +168,7 @@
   const handleChange = (values: number[]) => {
     ids.value = values;
     modelValue.value = values.map((item) => tagMap.value[item]);
+    tagTheme.value = values[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
   const handleBatchEditShow = () => {
@@ -194,6 +193,7 @@
     }
     modelValue.value = list;
     ids.value = list.map((item) => item.id);
+    console.log('updateModel', modelValue.value, ids.value);
   };
 
   watch(
@@ -203,7 +203,29 @@
         setTimeout(() => updateModel(newValue), 200);
       }
     },
-    { deep: true, immediate: true },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
+  watch(
+    modelValue,
+    () => {
+      if (!modelValue.value.length) {
+        modelValue.value = [
+          {
+            id: DEFAULT_TAG_ID,
+            value: t('通用无标签'),
+          },
+        ];
+        ids.value = [DEFAULT_TAG_ID];
+        tagTheme.value = 'success';
+      }
+    },
+    {
+      once: true,
+    },
   );
 </script>
 <style lang="less" scoped>

@@ -47,10 +47,6 @@
                   {{ t('重新设置资源归属') }}
                 </BkDropdownItem>
                 <BkDropdownItem
-                  v-bk-tooltips="{
-                    content: t('仅支持同业务的主机'),
-                    disabled: isSelectedSameBiz,
-                  }"
                   :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
                   @click="() => handleShowBatchAddTags()">
                   {{ t('添加资源标签') }}
@@ -509,6 +505,10 @@
   };
 
   const handleShowBatchAddTags = () => {
+    if (!isSelectedSameBiz.value) {
+      messageWarn(t('仅支持同业务的主机'));
+      return;
+    }
     isShowBatchAddTags.value = true;
   };
 

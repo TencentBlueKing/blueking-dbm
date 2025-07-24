@@ -13,7 +13,6 @@
 
 <template>
   <EditableColumn
-    :disabled-method="disabledMethod"
     field="available_resource"
     :label="t('可用资源')"
     :min-width="150">
@@ -48,12 +47,5 @@
 
   const handleClick = () => {
     showSlider.value = true;
-  };
-
-  const disabledMethod = (rowData?: any, field?: string) => {
-    if (rowData.labels.length < 1 && field === 'available_resource') {
-      return t('请先选择资源标签');
-    }
-    return false;
   };
 </script>
