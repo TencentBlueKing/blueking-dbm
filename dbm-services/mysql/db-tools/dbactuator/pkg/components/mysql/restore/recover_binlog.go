@@ -664,7 +664,12 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			return 0, err
+			if strings.Contains(err.Error(), "No such file or directory") {
+				// 文件可能在处理的时候被删除了，但有可能是正在过滤旧的文件，旧文件被删除无所谓
+				continue
+			} else {
+				return 0, err
+			}
 		}
 		startTime := events[0].EventTime
 		stopTime := events[1].EventTime

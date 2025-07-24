@@ -82,6 +82,11 @@ const (
 	MaxTimestamp = 2177424000
 )
 
+var (
+	ErrFormatDescriptionEvent = errors.New("FormatDescriptionEvent parse failed")
+	ErrRotateEvent            = errors.New("invalid RotateEvent parse failed")
+)
+
 // BinlogParse 解析选项
 type BinlogParse struct {
 	// binlog full filename with path
@@ -145,7 +150,7 @@ func (b *BinlogParse) init() error {
 func (b *BinlogParse) GetTimeIgnoreStopErr(fileName string, start, stop bool) ([]BinlogEventHeaderWrapper, error) {
 	events, err := b.GetTime(fileName, start, stop)
 	if err != nil {
-		if stop && start {
+		if errors.As(err, &ErrRotateEvent) && stop && start && events != nil {
 			events = append(events, events[0])
 		} else if stop && !start {
 			events, err = b.GetTime(fileName, true, false)
@@ -154,7 +159,7 @@ func (b *BinlogParse) GetTimeIgnoreStopErr(fileName string, start, stop bool) ([
 			}
 			events = append(events, events[0])
 		} else {
-			return nil, err
+			return nil, errors.WithMessagef(err, fileName)
 		}
 	}
 	return events, nil
@@ -177,7 +182,7 @@ func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventH
 	var evhWrappers []BinlogEventHeaderWrapper
 	if start {
 		if evh, err := b.GetFormatDescriptionEvent(f); err != nil {
-			return nil, err
+			return nil, errors.WithMessagef(ErrFormatDescriptionEvent, err.Error())
 		} else {
 			events = append(events, evh)
 			evhWrappers = append(evhWrappers, b.NewBinlogEventHeaderWrapper(evh))
@@ -188,7 +193,7 @@ func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventH
 		if err != nil {
 			b.LastBufSize = MaxLastBufSize
 			if evh, err = b.GetRotateEvent(f); err != nil {
-				return evhWrappers, err
+				return evhWrappers, errors.WithMessagef(ErrRotateEvent, err.Error())
 			}
 		}
 		events = append(events, evh)

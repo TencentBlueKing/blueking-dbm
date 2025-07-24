@@ -1224,6 +1224,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         targets = kwargs["trans_data"]["targets"]
         databases = list(targets.keys())
         tables = list(targets[databases[0]].keys())
+        # databases = self.ticket_data.get("db_patterns", [])
+        # tables = self.ticket_data.get("table_patterns", [])
+
         return self.__flashback_payload(databases, tables, **kwargs)
 
     def get_spider_flashback_payload(self, **kwargs) -> dict:
@@ -1246,7 +1249,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     def __flashback_payload(self, databases: List, tables: List, **kwargs) -> dict:
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.FlashBackBinlog.value,
+            "action": DBActuatorActionEnum.GoFlashBackBinlog.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
@@ -1260,9 +1263,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "options": "",
                     },
                     "recover_opt": {
-                        "databases": databases,
+                        "databases": self.cluster["databases"],
                         "databases_ignore": [],
-                        "tables": tables,
+                        "tables": self.cluster["tables"],
                         "tables_ignore": [],
                         "filter_rows": "",
                     },
