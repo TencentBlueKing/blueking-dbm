@@ -1221,11 +1221,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         mysql flashback
         """
-        targets = kwargs["trans_data"]["targets"]
-        databases = list(targets.keys())
-        tables = list(targets[databases[0]].keys())
-        # databases = self.ticket_data.get("db_patterns", [])
-        # tables = self.ticket_data.get("table_patterns", [])
+        databases = self.cluster["databases"]
+        tables = self.cluster["tables"]
 
         return self.__flashback_payload(databases, tables, **kwargs)
 
@@ -1233,14 +1230,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         tendbcluster flashback
         """
-        targets = kwargs["trans_data"]["targets"]
         shard_id = self.cluster["shard_id"]
 
-        # 由于 flashback 库表输入的语义特性
-        # 每个 database 对应的 tables 肯定是一样的
-        # 所以可以这么取巧的拿出来
-        databases = list(targets.keys())
-        tables = list(targets[databases[0]].keys())
+        databases = self.cluster["databases"]
+        tables = self.cluster["tables"]
 
         databases = ["{}_{}".format(ele, shard_id) for ele in databases]
 
@@ -1263,9 +1256,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "options": "",
                     },
                     "recover_opt": {
-                        "databases": self.cluster["databases"],
+                        "databases": databases,
                         "databases_ignore": [],
-                        "tables": self.cluster["tables"],
+                        "tables": tables,
                         "tables_ignore": [],
                         "filter_rows": "",
                     },
@@ -2171,7 +2164,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "stop_time": self.cluster["rollback_time"],
                         "idempotent_mode": True,
                         "not_write_binlog": True,
-                        "mysql_client_opt": {"max_allowed_packet": 1073741824},
+                        "mysql_client_opt": {"max_allowed_packet": 1073741824, "binary_mode": True},
                         "databases": self.cluster["databases"],
                         "tables": self.cluster["tables"],
                         "databases_ignore": self.cluster["databases_ignore"],
