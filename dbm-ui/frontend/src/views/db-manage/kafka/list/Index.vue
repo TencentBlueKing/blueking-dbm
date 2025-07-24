@@ -101,6 +101,18 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <div v-db-console="'kafka.clusterManage.rebalance'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="kafka_rebalance"
+                  :permission="data.permission.kafka_rebalance"
+                  :resource="data.id"
+                  text
+                  @click="handleShowRebalance(data)">
+                  {{ t('Topic 均衡') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
             <div
               v-if="data.isOffline"
               v-db-console="'kafka.clusterManage.enable'">
@@ -194,6 +206,9 @@
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
       @change="fetchTableData" />
+    <TopicRebalance
+      v-model:is-show="isShowRebalance"
+      :data="operationData" />
     <BkDialog
       v-model:is-show="isShowPassword"
       render-directive="if"
@@ -255,6 +270,8 @@
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
+  import TopicRebalance from './components/TopicRebalance.vue';
+
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -298,6 +315,7 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
+  const isShowRebalance = ref(false);
   const isShowPassword = ref(false);
   const selected = ref<KafkaModel[]>([]);
   const tagSearchValue = ref<Record<string, any>>({});
@@ -463,6 +481,12 @@
   // 缩容
   const handleShowShrink = (clusterData: KafkaModel) => {
     isShowShrink.value = true;
+    operationData.value = clusterData;
+  };
+
+  // topic 均衡
+  const handleShowRebalance = (clusterData: KafkaModel) => {
+    isShowRebalance.value = true;
     operationData.value = clusterData;
   };
 
