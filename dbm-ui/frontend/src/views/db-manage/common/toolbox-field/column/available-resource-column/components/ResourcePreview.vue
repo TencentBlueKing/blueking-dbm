@@ -38,7 +38,7 @@
             <BkTag
               v-if="noLimitTag"
               theme="success">
-              {{ t('非专用资源') }}
+              {{ t('通用无标签') }}
             </BkTag>
             <template v-else>
               <BkTag
@@ -130,12 +130,13 @@
   import useSearchSelectData from '@components/resource-host-selector/hooks/use-search-select-data';
 
   interface Props {
-    params?: {
+    params: {
       bk_cloud_ids?: string;
       city?: string;
       for_biz?: number;
       for_bizs?: number[];
       hosts?: HostInfo[];
+      label_names?: string;
       labels?: string;
       os_names?: string[];
       os_type?: string;
@@ -147,9 +148,7 @@
     };
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    params: () => ({}),
-  });
+  const props = defineProps<Props>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -163,14 +162,13 @@
 
   const machineNum = ref(0);
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
+  // 通用无标签
+  const noLimitTag = ref(true);
   const MAX_TAG_NUM = 4;
 
-  // 非专用资源
-  const noLimitTag = computed(() => props.params.labels === '0');
-
   const filterTagList = computed(() => {
-    const tagIds = (props.params.labels || '').split(',').map((item) => Number(item));
-    return tagList.value.filter((item) => tagIds.includes(item.id));
+    const tagNames = (props.params.label_names || '').split(',');
+    return tagList.value.filter((item) => tagNames.includes(item.value));
   });
 
   const { data: specInfo, run: queryResourceSpec } = useRequest(getResourceSpec, {
@@ -190,13 +188,20 @@
   });
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) => {
-    // 过滤掉非专用资源选项
-    const labels = (props.params.labels || '')?.split(',').filter((item) => item !== '-1');
+    // 过滤掉通用无标签选项
+    const labelNames = (props.params.label_names || '')
+      ?.split(',')
+      .filter((item) => item !== t('通用无标签'))
+      .join(',');
+    noLimitTag.value = !labelNames;
     return fetchList({
       ...params,
       ...props.params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
-      labels: labels?.length > 0 ? labels.join(',') : undefined, // 不传即为不限制（即非专用资源）
+      city: props.params.city || undefined,
+      label_names: labelNames || undefined, // 不传即为不限制（即通用无标签）
+      spec_id: props.params.spec_id || undefined,
+      subzones: props.params.subzones || undefined,
     });
   };
 

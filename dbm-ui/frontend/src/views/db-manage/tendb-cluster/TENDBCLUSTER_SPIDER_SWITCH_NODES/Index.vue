@@ -40,7 +40,8 @@
             v-model="item.host.spec_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             field="host.spec_id"
-            :machine-type="MachineTypes.TENDBCLUSTER_PROXY" />
+            :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
+            required />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />

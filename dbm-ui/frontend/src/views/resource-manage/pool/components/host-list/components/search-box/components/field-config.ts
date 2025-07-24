@@ -124,8 +124,8 @@ export default {
       return true;
     },
   },
-  labels: {
-    component: 'labels',
+  label_names: {
+    component: 'label_names',
     label: t('标签'),
     type: 'string',
   },

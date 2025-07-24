@@ -45,10 +45,10 @@
           <AvailableResourceColumn
             :params="{
               city: item.cluster.region,
-              for_bizs: [currentBizId, 0],
+              for_bizs: [currentBizId],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.targetCapacity.spec_id,
-              labels: item.labels.map((item) => item.id).join(','),
+              label_names: item.labels.map((item) => item.value).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -221,7 +221,7 @@
           affinity: string;
           count: number;
           futureCapacity: number;
-          label_values: string[]; // 标签value列表，单据详情回显用
+          label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
           spec_id: number;
           specName: string;
@@ -254,7 +254,7 @@
               affinity: item.cluster.disaster_tolerance_level,
               count: item.targetCapacity.machine_pair,
               futureCapacity: item.targetCapacity.cluster_capacity,
-              label_values: item.labels.map((item) => item.value),
+              label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.targetCapacity.spec_id,
               specName: item.targetCapacity.spec_name,

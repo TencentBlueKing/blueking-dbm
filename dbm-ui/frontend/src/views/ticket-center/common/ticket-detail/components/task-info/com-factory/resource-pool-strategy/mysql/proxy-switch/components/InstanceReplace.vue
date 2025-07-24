@@ -41,7 +41,7 @@
         :min-width="200">
         <template #default="{ data }: { data: RowData }">
           <BkTag
-            v-for="item in data.resource_spec.target_proxy.label_values"
+            v-for="item in data.resource_spec.target_proxy.label_names"
             :key="item">
             {{ item }}
           </BkTag>

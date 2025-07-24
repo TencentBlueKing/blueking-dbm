@@ -58,6 +58,7 @@
               :cluster-type="DBTypes.MYSQL"
               :current-spec-id="item.cluster.spec_id"
               :machine-type="MachineTypes.MYSQL_PROXY"
+              required
               selectable
               :show-tag="false"
               @batch-edit="handleBatchEditColumn" />
@@ -67,10 +68,10 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
-                for_bizs: [currentBizId, 0],
+                for_bizs: [currentBizId],
                 resource_types: [DBTypes.MYSQL, 'PUBLIC'],
                 spec_id: item.specId,
-                labels: item.labels.map((item) => item.id).join(','),
+                label_names: item.labels.map((item) => item.value).join(','),
               }" />
           </template>
           <template v-if="sourceType === SourceType.RESOURCE_MANUAL">
@@ -315,7 +316,7 @@
             bk_host_id: number;
             ip: string;
           }[];
-          label_values?: string[]; // 标签value列表，单据详情回显用
+          label_names?: string[]; // 标签名称列表，单据详情回显用
           labels?: string[]; // 标签id列表
           spec_id: number;
         };
@@ -342,11 +343,11 @@
             new_proxy: {
               count: 1,
               hosts: sourceType.value === SourceType.RESOURCE_MANUAL ? [item.newProxy] : undefined,
-              label_values:
+              label_names:
                 sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
               labels:
                 sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
-              spec_id: item.cluster.spec_id,
+              spec_id: item.specId,
             },
           },
         })),

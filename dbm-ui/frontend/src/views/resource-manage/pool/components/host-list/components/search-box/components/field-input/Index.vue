@@ -31,9 +31,9 @@
         name="spec_id"
         @change="handleChange" />
       <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'label')"
+        :ref="(el: any) => initInputRefCallback(el, 'label_names')"
         :model="localValueMemo"
-        name="labels"
+        name="label_names"
         @change="handleChange" />
     </div>
     <div class="row">

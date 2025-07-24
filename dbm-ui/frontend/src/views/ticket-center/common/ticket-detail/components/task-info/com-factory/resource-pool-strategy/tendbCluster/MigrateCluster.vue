@@ -79,7 +79,7 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <BkTag
-          v-for="item in data.resource_spec.backend_group.label_values"
+          v-for="item in data.resource_spec.backend_group.label_names"
           :key="item">
           {{ item }}
         </BkTag>
