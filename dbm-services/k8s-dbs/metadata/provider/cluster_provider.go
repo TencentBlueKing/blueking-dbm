@@ -187,7 +187,7 @@ func (k *K8sCrdClusterProviderImpl) setClusterTopology(
 			ClusterName:   clusterTopology.ClusterName,
 			ComponentName: component.Name,
 		}
-		pods, err := corehelper.GetComponentPods(componentQueryParams, k8sClient)
+		pods, err := corehelper.GetComponentPods(addonTopo.AddonType, componentQueryParams, k8sClient)
 		if err != nil {
 			return nil, err
 		}

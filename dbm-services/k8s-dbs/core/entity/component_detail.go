@@ -34,9 +34,6 @@ type ComponentDetail struct {
 	Env      []corev1.EnvVar `json:"env,omitempty"`
 }
 
-// StorageSize 存储容量大小，单位: GB
-type StorageSize int64
-
 // Pod K8s 的 Pod 资源
 type Pod struct {
 	PodName       string                 `json:"podName,omitempty"`
@@ -52,14 +49,14 @@ type Pod struct {
 type PodResourceQuota struct {
 	Request *QuotaSummary `json:"request"`
 	Limit   *QuotaSummary `json:"limit"`
-	Storage *StorageSize  `json:"storage"`
+	Storage *float64      `json:"storage"`
 }
 
 // QuotaSummary 配额概要：CPU、Memory以及存储配额
 type QuotaSummary struct {
-	CPU     *float64     `json:"cpu"`     // 单位: core
-	Memory  *float64     `json:"memory"`  // 单位: GB
-	Storage *StorageSize `json:"storage"` // 单位: GB
+	CPU     *float64 `json:"cpu"`     // 单位: core
+	Memory  *float64 `json:"memory"`  // 单位: GB
+	Storage *float64 `json:"storage"` // 单位: GB
 }
 
 // PodResourceUsage Pod 资源利用率

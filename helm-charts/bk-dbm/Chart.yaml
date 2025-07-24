@@ -99,7 +99,7 @@ dependencies:
   - condition: k8s-dbs.enabled
     name: k8s-dbs
     repository: file://charts/k8s-dbs
-    version: 1.0.0-alpha.2
+    version: 1.0.0-alpha.3
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application

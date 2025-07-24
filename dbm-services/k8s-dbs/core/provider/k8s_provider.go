@@ -32,6 +32,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
+	metaentity "k8s-dbs/metadata/entity"
 	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -55,6 +56,7 @@ const MaxPodLogSize = 5 * 1024 * 1024
 type K8sProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
+	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
 }
 
 // CreateNamespace 创建命名空间
@@ -187,31 +189,43 @@ func (k *K8sProvider) GetPodDetail(
 	if err != nil {
 		return nil, err
 	}
-	namespace := entity.Namespace
-	podName := entity.PodName
 	crd := &coreentity.CustomResourceDefinition{
-		ResourceName:         podName,
-		Namespace:            namespace,
+		ResourceName:         entity.PodName,
+		Namespace:            entity.Namespace,
 		GroupVersionResource: kbtypes.PodGVR(),
 	}
 	podCR, err := corehelper.GetCRD(k8sClient, crd)
 	if err != nil {
-		slog.Error("failed to get pod CRD", "err", err)
 		return nil, err
 	}
 	pod, err := corehelper.ConvertUnstructuredToPod(*podCR)
 	if err != nil {
 		return nil, err
 	}
-	// 获取资源配额
-	resourceQuota, err := corehelper.GetPodResourceQuota(k8sClient, pod)
-	if err != nil {
-		return nil, err
-	}
-	// 获取资源利用率
-	resourceUsage, err := corehelper.GetPodResourceUsage(k8sClient, pod, resourceQuota)
-	if err != nil {
-		return nil, err
+	var resourceQuota *coreentity.PodResourceQuota
+	var resourceUsage *coreentity.PodResourceUsage
+	if pod.Status.Phase == corev1.PodRunning {
+		// 获取资源配额
+		resourceQuota, err = corehelper.GetPodResourceQuota(k8sClient, pod)
+		if err != nil {
+			return nil, err
+		}
+		// 获取资源利用率
+		var clusterMetaParams = &metaentity.ClusterQueryParams{
+			K8sClusterConfigID: k8sClusterConfig.ID,
+			Namespace:          entity.Namespace,
+			ClusterName:        entity.ClusterName,
+		}
+		clusterMeta, err := k.clusterMetaProvider.FindByParams(clusterMetaParams)
+		if err != nil {
+			return nil, err
+		}
+
+		resourceUsage, err = corehelper.GetPodResourceUsage(clusterMeta.AddonInfo.AddonType,
+			k8sClusterConfig.ClusterName, k8sClient, pod, resourceQuota)
+		if err != nil {
+			slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
+		}
 	}
 	podDetail := &coreentity.K8sPodDetail{
 		K8sClusterName: entity.K8sClusterName,
@@ -220,7 +234,7 @@ func (k *K8sProvider) GetPodDetail(
 		ComponentName:  pod.Labels["apps.kubeblocks.io/component-name"],
 		Manifest:       commutil.MarshalToYAML(pod),
 		Pod: &coreentity.Pod{
-			PodName:       podName,
+			PodName:       entity.PodName,
 			Node:          pod.Spec.NodeName,
 			Status:        pod.Status.Phase,
 			Role:          corehelper.GetPodRole(pod),
@@ -334,11 +348,14 @@ func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog,
 }
 
 // NewK8sProvider 创建 K8sProvider 实例
-func NewK8sProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+func NewK8sProvider(
+	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 ) *K8sProvider {
 	return &K8sProvider{
 		reqRecordProvider,
 		clusterConfigProvider,
+		clusterMetaProvider,
 	}
 }

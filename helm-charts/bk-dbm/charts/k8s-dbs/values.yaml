@@ -41,6 +41,8 @@ containerPorts:
 
 # @section dbs 服务配置
 server:
+  vmMetricServerHost: "localhost"
+  vmMetricServerPort: "80"
   # @param service type
   serviceType: ClusterIP
   # @param 时区配置

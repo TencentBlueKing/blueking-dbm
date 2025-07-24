@@ -28,6 +28,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	corehelper "k8s-dbs/core/helper"
+	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
 	"slices"
@@ -45,6 +46,7 @@ import (
 // ComponentProvider 组件管理核心服务
 type ComponentProvider struct {
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
+	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
 }
 
 // DescribeComponent 获取组件详情
@@ -74,8 +76,18 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	if len(podList.Items) == 0 {
 		return nil, fmt.Errorf("no pods found for component %s in namespace %s", request.ComponentName, request.Namespace)
 	}
+	var clusterMetaParams = &metaentity.ClusterQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		Namespace:          request.Namespace,
+		ClusterName:        request.ClusterName,
+	}
+	clusterMeta, err := c.clusterMetaProvider.FindByParams(clusterMetaParams)
+	if err != nil {
+		return nil, err
+	}
 
-	pods, err := corehelper.ExtractPodsInfo(k8sClient, podList)
+	pods, err := corehelper.ExtractPodsInfo(clusterMeta.AddonInfo.AddonType, k8sClusterConfig.ClusterName,
+		k8sClient, podList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract pod details: %w", err)
 	}
@@ -285,7 +297,16 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	pods, err := corehelper.GetComponentPods(params, k8sClient)
+	var clusterMetaParams = &metaentity.ClusterQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		Namespace:          params.Namespace,
+		ClusterName:        params.ClusterName,
+	}
+	clusterMeta, err := c.clusterMetaProvider.FindByParams(clusterMetaParams)
+	if err != nil {
+		return nil, 0, err
+	}
+	pods, err := corehelper.GetComponentPods(clusterMeta.AddonInfo.AddonType, params, k8sClient)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -304,8 +325,10 @@ func (c *ComponentProvider) ListPods(
 // NewComponentProvider 创建 ComponentProvider 实例
 func NewComponentProvider(
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 ) *ComponentProvider {
 	return &ComponentProvider{
 		clusterConfigProvider,
+		clusterMetaProvider,
 	}
 }

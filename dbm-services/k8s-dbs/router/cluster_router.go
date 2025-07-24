@@ -85,7 +85,7 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 		panic(err)
 	}
 	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider)
+	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider, clusterMetaProvider)
 	return controller.NewClusterController(clusterProvider,
 		clusterMetaProvider, componentProvider, opsRequestProvider)
 }

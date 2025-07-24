@@ -27,6 +27,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreerrors "k8s-dbs/errors"
+	dbsmetric "k8s-dbs/metric"
 
 	"log/slog"
 
@@ -58,7 +59,7 @@ func BuildHelmActionConfig(
 }
 
 // GetPodStorageCapacity 获取 pod 存储容量大小，单位：GB
-func GetPodStorageCapacity(k8sClient *commhelper.K8sClient, pod *corev1.Pod) (*coreentity.StorageSize, error) {
+func GetPodStorageCapacity(k8sClient *commhelper.K8sClient, pod *corev1.Pod) (*float64, error) {
 	volumes := pod.Spec.Volumes
 	if len(volumes) == 0 {
 		return nil, nil
@@ -98,7 +99,7 @@ func GetPodStorageCapacity(k8sClient *commhelper.K8sClient, pod *corev1.Pod) (*c
 	if !ok {
 		return nil, nil
 	}
-	storageSize := coreentity.StorageSize(util.ConvertMemoryToGB(&capacity))
+	storageSize := util.ConvertMemoryToGB(&capacity)
 	return &storageSize, nil
 }
 
@@ -137,6 +138,8 @@ func ConvertUnstructuredToPod(item unstructured.Unstructured) (*corev1.Pod, erro
 
 // GetPodResourceUsage 获取 Pod 资源利用率
 func GetPodResourceUsage(
+	addonType string,
+	k8sClusterName string,
 	k8sClient *commhelper.K8sClient,
 	pod *corev1.Pod,
 	resourceQuota *coreentity.PodResourceQuota,
@@ -144,7 +147,8 @@ func GetPodResourceUsage(
 	podMetrics, err := k8sClient.MetricsClient.
 		MetricsV1beta1().PodMetricses(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 	if err != nil {
-		panic(err.Error())
+		slog.Error("GetPodResourceUsage error", "podName", pod.Name, "error", err)
+		return nil, err
 	}
 	var totalCPU resource.Quantity
 	var totalMemory resource.Quantity
@@ -152,27 +156,39 @@ func GetPodResourceUsage(
 		totalCPU.Add(*container.Usage.Cpu())
 		totalMemory.Add(*container.Usage.Memory())
 	}
+	totalCPUCore := util.RoundToDecimal(util.ConvertCPUToCores(&totalCPU), 3)
+	totalMemoryGB := util.RoundToDecimal(util.ConvertMemoryToGB(&totalMemory), 3)
 
-	totalCPUCore := util.ConvertCPUToCores(&totalCPU)
-	totalMemoryGB := util.ConvertMemoryToGB(&totalMemory)
+	cpuUtilization := util.RoundToDecimal(totalCPUCore / *resourceQuota.Request.CPU * 100, 3)
+	memoryUtilization := util.RoundToDecimal(totalMemoryGB / *resourceQuota.Request.Memory * 100, 3)
 
-	totalCPUCore = util.RoundToDecimal(totalCPUCore, 3)
-	totalMemoryGB = util.RoundToDecimal(totalMemoryGB, 3)
-
-	cpuUtilization := totalCPUCore / *resourceQuota.Request.CPU * 100
-	cpuUtilization = util.RoundToDecimal(cpuUtilization, 3)
-
-	memoryUtilization := totalMemoryGB / *resourceQuota.Request.Memory * 100
-	memoryUtilization = util.RoundToDecimal(memoryUtilization, 3)
+	var storageGB float64
+	var storageUtilization float64
+	if resourceQuota.Storage != nil {
+		var jobName = fmt.Sprintf("%s-headless", pod.Labels["workloads.kubeblocks.io/instance"])
+		var params = dbsmetric.ClusterMetricQueryParams{
+			AddonType:      addonType,
+			K8sClusterName: k8sClusterName,
+			Namespace:      pod.Namespace,
+			PodName:        pod.Name,
+			JobName:        jobName,
+		}
+		storageGB, err = dbsmetric.FetcherFactory.GetStorageUsage(&params)
+		if err != nil {
+			slog.Warn("GetPodResourceUsage error", "podName", pod.Name, "error", err)
+		} else {
+			storageUtilization = util.RoundToDecimal(storageGB / *resourceQuota.Storage * 100, 3)
+		}
+	}
 
 	return &coreentity.PodResourceUsage{
 		QuotaSummary: &coreentity.QuotaSummary{
 			CPU:     &totalCPUCore,
 			Memory:  &totalMemoryGB,
-			Storage: nil, // 待补充
+			Storage: &storageGB,
 		},
 		CPUPercent:     &cpuUtilization,
 		MemoryPercent:  &memoryUtilization,
-		StoragePercent: nil, // 待补充
+		StoragePercent: &storageUtilization,
 	}, nil
 }

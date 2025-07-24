@@ -32,7 +32,7 @@ const (
 // addon 类型
 const (
 	Surreal = "surrealdb"
-	VM      = "victoria-metrics"
+	VM      = "victoriametrics"
 	RW      = "risingwave"
 	GT      = "greptimedb"
 	MILVUS  = "milvus"

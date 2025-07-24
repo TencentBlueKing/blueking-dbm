@@ -556,7 +556,11 @@ func CheckStorageBySC(storageClassName string, currentStorage resource.Quantity)
 }
 
 // GetComponentPods 获取组件实例列表
-func GetComponentPods(params *entity.ComponentQueryParams, k8sClient *commhelper.K8sClient) ([]*entity.Pod, error) {
+func GetComponentPods(
+	addonType string,
+	params *entity.ComponentQueryParams,
+	k8sClient *commhelper.K8sClient,
+) ([]*entity.Pod, error) {
 	crd := &entity.CustomResourceDefinition{
 		GroupVersionResource: kbtypes.PodGVR(),
 		Namespace:            params.Namespace,
@@ -572,7 +576,7 @@ func GetComponentPods(params *entity.ComponentQueryParams, k8sClient *commhelper
 	if len(podList.Items) == 0 {
 		return []*entity.Pod{}, nil
 	}
-	pods, err := ExtractPodsInfo(k8sClient, podList)
+	pods, err := ExtractPodsInfo(addonType, params.K8sClusterName, k8sClient, podList)
 	if err != nil {
 		return nil, err
 	}
@@ -581,34 +585,39 @@ func GetComponentPods(params *entity.ComponentQueryParams, k8sClient *commhelper
 
 // ExtractPodsInfo 从 Pod 列表中提取 Pod 信息
 func ExtractPodsInfo(
+	addonType string,
+	k8sClusterName string,
 	k8sClient *commhelper.K8sClient,
 	podList *unstructured.UnstructuredList,
 ) ([]*entity.Pod, error) {
 	var pods []*entity.Pod
-
 	for _, item := range podList.Items {
 		pod, err := ConvertUnstructuredToPod(item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
 		}
-
-		resourceQuota, err := GetPodResourceQuota(k8sClient, pod)
-		if err != nil {
-			return nil, fmt.Errorf("failed to extract resource quota for pod %s: %w", pod.Name, err)
+		var resourceQuota *entity.PodResourceQuota
+		var resourceUsage *entity.PodResourceUsage
+		if pod.Status.Phase == corev1.PodRunning {
+			// 获取资源配额
+			resourceQuota, err = GetPodResourceQuota(k8sClient, pod)
+			if err != nil {
+				return nil, err
+			}
+			// 获取资源利用率
+			resourceUsage, err = GetPodResourceUsage(addonType, k8sClusterName, k8sClient, pod, resourceQuota)
+			if err != nil {
+				// 这里新拉起 Pod 的时候，metric 会有延迟，需要进行兼容处理
+				slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
+			}
 		}
-
-		usage, err := GetPodResourceUsage(k8sClient, pod, resourceQuota)
-		if err != nil {
-			return nil, err
-		}
-
 		pods = append(pods, &entity.Pod{
 			PodName:       pod.Name,
 			Status:        pod.Status.Phase,
 			Node:          pod.Spec.NodeName,
 			Role:          GetPodRole(pod),
 			ResourceQuota: resourceQuota,
-			ResourceUsage: usage,
+			ResourceUsage: resourceUsage,
 			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
 		})
 	}
