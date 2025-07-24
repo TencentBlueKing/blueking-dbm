@@ -22,7 +22,7 @@ SCHEDULE_INTERVAL = 6
 # dbha状态检查为10分钟，超时必然有问题
 CHECK_TIMEOUT = 10 * 60
 # MAX_SCHEDULE_COUNT = math.ceil(CHECK_TIMEOUT / SCHEDULE_INTERVAL)
-MAX_SCHEDULE_COUNT = 20
+MAX_SCHEDULE_COUNT = 30
 
 
 class FailoverStatusCheckService(BaseService):

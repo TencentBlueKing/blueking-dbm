@@ -402,7 +402,7 @@ class MysqlFailoverDrill:
             "bk_biz_id": self.bk_biz_id,
             "resource_type": "mysql",
             "hosts": hosts,
-            "labels": ["1"],
+            "labels": self.labels,
             "task_id": self.reimport_resource_id,
             "bill_id": self.reimport_resource_id,
             "bill_type": "RESOURCE_IMPORT",
@@ -444,7 +444,7 @@ class MysqlFailoverDrill:
         dbha_info = ""
         dbha_status = DBHASwitchResult.FAIL.value
         finished_time = datetime.now().astimezone(timezone.utc)
-        start_time = finished_time - timedelta(minutes=10)
+        start_time = finished_time - timedelta(hours=8)
         kwargs = {
             "cloud_id": self.bk_cloud_id,
             "app": str(self.bk_biz_id),

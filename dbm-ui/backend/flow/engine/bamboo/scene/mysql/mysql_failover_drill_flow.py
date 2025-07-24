@@ -34,6 +34,7 @@ class MysqlFailoverDrill(object):
         }
         agent_ip = self.__get_dbha_ip(params=params, name="agent_get_agent_info", module="agent")
         params["query_args"].pop("db_type")
+        params["query_args"].pop("city_id")
         gm_ip = self.__get_dbha_ip(params=params, name="agent_get_GM_info", module="gm")
         self.hadb_ip_info.extend(agent_ip)
         self.hadb_ip_info.extend(gm_ip)
