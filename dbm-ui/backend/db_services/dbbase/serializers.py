@@ -25,6 +25,7 @@ from backend.db_services.dbbase.resources.serializers import (
     ListRedisMachineResourceSLZ,
     ListSQLServerResourceSLZ,
     ListTendbClusterMachineResourceSLZ,
+    ListTendbClusterResourceSLZ,
     MongoDBListInstancesSerializer,
     SqlserverListInstanceSerializer,
 )
@@ -336,3 +337,9 @@ class QueryGlobalInstanceSerializer(
 ):
     # influxdb过滤
     group_id = serializers.CharField(help_text=_("分组ID"), required=False)
+
+
+class QueryGlobalClusterSerializer(
+    ListTendbClusterResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ, QueryGlobalSerializer
+):
+    pass

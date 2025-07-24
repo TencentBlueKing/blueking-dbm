@@ -55,6 +55,7 @@ from backend.db_services.dbbase.serializers import (
     QueryClusterCapResponseSerializer,
     QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
+    QueryGlobalClusterSerializer,
     QueryGlobalInstanceSerializer,
     QueryGlobalMachineSerializer,
     RemoveClusterTagKeysSerializer,
@@ -571,7 +572,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response()
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据db类型获取实例信息"),
+        operation_summary=_("根据集群类型获取实例信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryGlobalInstanceSerializer(),
         responses={status.HTTP_200_OK: QueryGlobalInstanceSerializer()},
@@ -587,7 +588,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return retrieve_resources(self, request, QueryGlobalInstanceSerializer, "list_instances")
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据db类型获取机器信息"),
+        operation_summary=_("根据集群类型获取机器信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryGlobalMachineSerializer(),
         responses={status.HTTP_200_OK: QueryGlobalMachineSerializer()},
@@ -601,3 +602,20 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     )
     def filter_machines(self, request, *args, **kwargs):
         return retrieve_resources(self, request, self.get_serializer_class(), "list_machines")
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据集群类型获取集群信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryGlobalClusterSerializer(),
+        responses={status.HTTP_200_OK: QueryGlobalClusterSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=QueryGlobalClusterSerializer,
+        pagination_class=ResourceLimitOffsetPagination,
+    )
+    def filter_clusters_by_type(self, request, *args, **kwargs):
+        """根据集群类型获取集群信息"""
+        return retrieve_resources(self, request, self.get_serializer_class(), "list_clusters")
