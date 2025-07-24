@@ -248,16 +248,26 @@
     }[];
     throttle_rate: number;
     topics: string[];
-  }>(TicketTypes.KAFKA_REBALANCE);
-
-  watch(isShow, () => {
-    if (isShow.value) {
-      getInstanceList({
-        cluster_id: props.data?.id,
-        extra: 1,
-      });
-    }
+  }>(TicketTypes.KAFKA_REBALANCE, {
+    onSuccess() {
+      isShow.value = false;
+    },
   });
+
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        getInstanceList({
+          cluster_id: props.data?.id,
+          extra: 1,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(searchValue, (value) => {
     if (value) {
