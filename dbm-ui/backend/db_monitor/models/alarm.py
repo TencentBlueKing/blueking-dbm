@@ -171,7 +171,9 @@ class NoticeGroup(AuditedModel):
                 self.monitor_duty_rule_id = resp["data"]["id"]
                 duty_rules = DutyRule.get_biz_db_duty_rules(self.bk_biz_id, self.db_type)
                 monitor_duty_rule_ids = [rule.monitor_duty_rule_id for rule in duty_rules]
+                # 内置告警开启轮值，并且轮值策略设置为不屏蔽，轮值策略 = 内置轮值 + 自定义轮值
                 save_monitor_group_params["need_duty"] = True
+                save_monitor_group_params["duty_notice"] = {"hit_first_duty": False}
                 save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids) + [self.monitor_duty_rule_id]
             else:
                 if resp.get("code") == BKMonitorV3Api.ErrorCode.DUTY_RULE_NAME_ALREADY_EXISTS:

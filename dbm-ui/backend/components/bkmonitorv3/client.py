@@ -9,10 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import time
+from dataclasses import asdict
+from typing import List
+
 from django.utils.translation import ugettext_lazy as _
 
+from ...db_monitor.dataclass import MonitorEvent
 from ..base import BaseApi
 from ..domains import BKMONITORV3_APIGW_DOMAIN
+from ..exception import DataAPIException
 
 
 class _BKMonitorV3Api(BaseApi):
@@ -227,4 +233,72 @@ class _BKMonitorV3Api(BaseApi):
         )
 
 
+class _BKMonitorV3EventApi(BaseApi):
+    MODULE = _("监控自定义事件")
+    BASE = ""
+    DATA_ID = None
+    ACCESS_TOKEN = None
+
+    def __init__(self):
+        pass
+
+    def __init_api(self):
+        self.send_monitor_event = self.generate_data_api(
+            method="POST",
+            url="",
+            description=_("发送自定义事件"),
+        )
+
+    def __init_conf(self):
+        if self.BASE and self.DATA_ID and self.ACCESS_TOKEN:
+            return
+
+        from backend.configuration.constants import SystemSettingsEnum
+        from backend.configuration.models import SystemSettings
+
+        # 初始化配置项
+        try:
+            dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT)
+            self.BASE = dbm_report["proxy"]
+            self.DATA_ID, self.ACCESS_TOKEN = dbm_report["event"]["data_id"], dbm_report["event"]["token"]
+        except KeyError:
+            pass
+
+        if not self.BASE or not self.DATA_ID or not self.ACCESS_TOKEN:
+            raise DataAPIException(
+                _("事件上报配置错误: proxy={}, data_id={}, token={}").format(self.BASE, self.DATA_ID, self.ACCESS_TOKEN)
+            )
+
+        # 初始化API 接口
+        self.__init_api()
+
+    def send_event(self, events: List[MonitorEvent]):
+        """
+        发送自定义告警事件，示例：
+        dimension = MySQLAutoFixFailDimension(xxxx)
+        event = MonitorEvent(
+            event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_FAILED,
+            event={"content": "xxx"},
+            dimension=dimension)
+        )
+        BKMonitorV3EventApi.send_event([event])
+        """
+        # 初始化请求地址
+        self.__init_conf()
+        # 补充事件data基础信息
+        now_ms = int(time.time() * 1000)
+        formatted_events = []
+        for event in events:
+            event = asdict(event) if isinstance(event, MonitorEvent) else event
+            event["target"] = event.get("target", "dbm_event")
+            event["timestamp"] = event.get("timestamp", now_ms)
+            formatted_events.append(event)
+        # 上报事件
+        self.send_monitor_event(
+            params={"data": formatted_events, "access_token": self.ACCESS_TOKEN, "data_id": self.DATA_ID},
+            use_admin=True,
+        )
+
+
 BKMonitorV3Api = _BKMonitorV3Api()
+BKMonitorV3EventApi = _BKMonitorV3EventApi()

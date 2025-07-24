@@ -18,6 +18,7 @@ from django.db import transaction
 
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi
+from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
@@ -609,7 +610,9 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
 
     # --- 下发监控采集器 ---
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
-    collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
+    # mysql 和 tendbcluster 共用的mysql采集项
+    collect_db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
+    collect_instances = CollectInstance.objects.filter(db_type=collect_db_type, plugin_id=plugin_id)
     for collect_ins in collect_instances:
         # 当前采集绑定机器类型，且下发的实例不属于绑定范围，则跳过
         if collect_ins.machine_types and machine_type not in collect_ins.machine_types:
