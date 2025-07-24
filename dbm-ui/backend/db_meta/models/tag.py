@@ -25,7 +25,7 @@ class Tag(AuditedModel):
     is_builtin = models.BooleanField(help_text=_("是否内置"), default=False)
 
     class Meta:
-        unique_together = ["bk_biz_id", "key", "value"]
+        unique_together = ["bk_biz_id", "key", "value", "type"]
 
     @property
     def system(self):
