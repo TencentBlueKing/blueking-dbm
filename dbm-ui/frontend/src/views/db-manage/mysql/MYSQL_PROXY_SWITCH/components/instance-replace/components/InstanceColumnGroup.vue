@@ -44,6 +44,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -172,7 +173,7 @@
           master_domain: item.master_domain,
           port: item.port,
           role: item.role,
-          spec_id: item.spec_config?.id || -1,
+          spec_id: item.spec_config?.id || 0,
         };
       }
     },

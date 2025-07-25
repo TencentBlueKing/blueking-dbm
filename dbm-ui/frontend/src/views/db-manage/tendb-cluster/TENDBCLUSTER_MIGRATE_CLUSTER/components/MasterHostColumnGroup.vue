@@ -48,6 +48,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
+    hide-manual-input
     :selected="selectedHosts"
     @change="handleSelectorChange" />
 </template>
@@ -153,7 +154,7 @@
           master_domain: item.master_domain,
           related_instances: relatedInstances,
           role: item.role,
-          spec_id: item.spec_config?.id || -1,
+          spec_id: item.spec_config?.id || 0,
         };
       }
     },

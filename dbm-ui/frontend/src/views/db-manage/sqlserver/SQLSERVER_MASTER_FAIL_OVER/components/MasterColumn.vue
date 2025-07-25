@@ -37,6 +37,7 @@
     v-model:is-show="showSelector"
     :cluster-types="['SqlserverHaHost']"
     :selected="selectedInstances"
+    hide-manual-input
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>

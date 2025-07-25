@@ -128,6 +128,7 @@
         cluster_type: ClusterTypes.TENDBHA,
         id: 0,
         master_domain: '',
+        region: '',
         related_clusters: [] as RowData['cluster']['related_clusters'],
         spec_id: 0,
       },

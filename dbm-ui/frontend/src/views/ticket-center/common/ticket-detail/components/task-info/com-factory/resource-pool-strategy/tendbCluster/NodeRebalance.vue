@@ -70,18 +70,6 @@
         </BkTag>
       </template>
     </BkTableColumn>
-    <BkTableColumn
-      :label="t('可用资源')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
-        <BkButton
-          text
-          theme="primary"
-          @click="() => handleClick(data)">
-          {{ t('资源预览') }}
-        </BkButton>
-      </template>
-    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('数据校验')">
@@ -94,7 +82,7 @@
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -112,22 +100,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const showSlider = ref(false);
-  const params = ref<{
-    for_bizs: number[];
-    labels: string;
-    resource_types: string[];
-    spec_id: number;
-  }>();
-
-  const handleClick = (data: RowData) => {
-    showSlider.value = true;
-    params.value = {
-      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
-      labels: data.resource_spec.backend_group.labels.join(','),
-      resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
-      spec_id: data.resource_spec.backend_group.spec_id,
-    };
-  };
 </script>

@@ -50,6 +50,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -137,7 +138,7 @@
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
+    TendbhaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,

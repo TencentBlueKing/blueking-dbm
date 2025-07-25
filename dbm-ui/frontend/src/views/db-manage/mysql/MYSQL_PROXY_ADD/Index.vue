@@ -56,11 +56,10 @@
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.MYSQL"
-              :current-spec-id="item.cluster.spec_id"
+              :current-spec-id-list="item.cluster.spec_id_list"
               :machine-type="MachineTypes.MYSQL_PROXY"
               required
               selectable
-              :show-tag="false"
               @batch-edit="handleBatchEditColumn" />
             <ResourceTagColumn
               v-model="item.labels"
@@ -158,7 +157,7 @@
         master_domain: '',
         region: '',
         related_clusters: [] as RowData['cluster']['related_clusters'],
-        spec_id: 0,
+        spec_id_list: [] as RowData['cluster']['spec_id_list'],
       },
       data.cluster,
     ),

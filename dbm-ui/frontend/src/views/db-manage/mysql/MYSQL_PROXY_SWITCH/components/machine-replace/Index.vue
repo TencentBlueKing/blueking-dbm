@@ -32,10 +32,9 @@
         <SpecColumn
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
-          :current-spec-id="item.originProxy.spec_id"
+          :current-spec-id-list="[item.originProxy.spec_id]"
           :machine-type="MachineTypes.MYSQL_PROXY"
           required
-          selectable
           :show-tag="false"
           @batch-edit="handleBatchEditColumn" />
         <ResourceTagColumn

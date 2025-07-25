@@ -106,7 +106,7 @@
       id: number;
       master_domain: string;
     }[];
-    spec_id: number;
+    spec_id_list: number[];
   }>({
     required: true,
   });
@@ -169,7 +169,8 @@
         modelValue.value.id = currentCluster.id;
         modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
         const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
-        modelValue.value.spec_id = (currentCluster[roleListKey] as TendbhaModel['masters'])?.[0]?.spec_config?.id || -1;
+        modelValue.value.spec_id_list =
+          (currentCluster[roleListKey] as TendbhaModel['masters'])?.map((item) => item.spec_config.id) || [];
         modelValue.value.region = currentCluster.region || '';
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -187,7 +188,7 @@
       master_domain: value,
       region: '',
       related_clusters: [],
-      spec_id: 0,
+      spec_id_list: [],
     };
   };
 

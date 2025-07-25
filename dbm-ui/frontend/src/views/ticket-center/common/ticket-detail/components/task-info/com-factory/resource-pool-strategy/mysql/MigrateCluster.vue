@@ -94,18 +94,6 @@
           </BkTag>
         </template>
       </BkTableColumn>
-      <BkTableColumn
-        :label="t('可用资源')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          <BkButton
-            text
-            theme="primary"
-            @click="() => handleClick(data)">
-            {{ t('资源预览') }}
-          </BkButton>
-        </template>
-      </BkTableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
       <BkTableColumn
@@ -147,7 +135,7 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { OperaObejctType, SourceType } from '@services/types';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -169,23 +157,5 @@
   const operaObjectMap = {
     [OperaObejctType.CLUSTER]: t('集群迁移'),
     [OperaObejctType.MACHINE]: t('整机迁移'),
-  };
-
-  const showSlider = ref(false);
-  const params = ref<{
-    for_bizs: number[];
-    labels: string;
-    resource_types: string[];
-    spec_id: number;
-  }>();
-
-  const handleClick = (data: RowData) => {
-    showSlider.value = true;
-    params.value = {
-      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
-      labels: data.resource_spec.new_slave.labels.join(','),
-      resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-      spec_id: data.resource_spec.new_slave.spec_id,
-    };
   };
 </script>

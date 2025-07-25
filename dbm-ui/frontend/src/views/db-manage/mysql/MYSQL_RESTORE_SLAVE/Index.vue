@@ -70,7 +70,7 @@
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.MYSQL"
-              :current-spec-id="item.slave.spec_id"
+              :current-spec-id-list="[item.slave.spec_id]"
               required />
             <ResourceTagColumn
               v-model="item.labels"

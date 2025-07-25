@@ -52,18 +52,6 @@
           </BkTag>
         </template>
       </BkTableColumn>
-      <BkTableColumn
-        :label="t('可用资源')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          <BkButton
-            text
-            theme="primary"
-            @click="() => handleClick(data)">
-            {{ t('资源预览') }}
-          </BkButton>
-        </template>
-      </BkTableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
       <BkTableColumn
@@ -75,9 +63,6 @@
       </BkTableColumn>
     </template>
   </BkTable>
-  <ResourcePreview
-    v-model:is-show="showSlider"
-    :params="params" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -85,9 +70,7 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { SourceType } from '@services/types';
 
-  import { DBTypes, TicketTypes } from '@common/const';
-
-  import ResourcePreview from '@views/db-manage/common/toolbox-field/column/available-resource-column/components/ResourcePreview.vue';
+  import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -105,22 +88,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const showSlider = ref(false);
-  const params = ref<{
-    for_bizs: number[];
-    labels: string;
-    resource_types: string[];
-    spec_id: number;
-  }>();
-
-  const handleClick = (data: RowData) => {
-    showSlider.value = true;
-    params.value = {
-      for_bizs: [window.PROJECT_CONFIG.BIZ_ID, 0],
-      labels: data.resource_spec.new_proxy.labels.join(','),
-      resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-      spec_id: data.resource_spec.new_proxy.spec_id,
-    };
-  };
 </script>
