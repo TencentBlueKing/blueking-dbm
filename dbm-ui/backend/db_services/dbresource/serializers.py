@@ -8,14 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
-
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
-from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import DBType
@@ -166,6 +163,12 @@ class ResourceListSerializer(serializers.Serializer):
             tag_ids = Tag.objects.filter(value__in=attrs["label_names"]).values_list("id", flat=True)
             tag_str_ids = [str(tag_id) for tag_id in tag_ids]
             attrs["labels"] = tag_str_ids
+
+        # 城市如果是default, 则不需要传default
+        if "default" in attrs.get("city", []):
+            attrs["city"].remove("default")
+            if not attrs["city"]:
+                attrs.pop("city")
 
         # 转换规格查询参数
         if attrs.get("spec_id"):
@@ -528,16 +531,6 @@ class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
 class AppendHostLabelSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())
-
-    def validate(self, attrs):
-        host_ips = Machine.objects.filter(bk_host_id__in=attrs["bk_host_ids"]).values_list("ip", flat=True)
-        params = {"hosts": list(host_ips), "limit": len(list(host_ips)), "offset": 0}
-        resource_data = DBResourceApi.resource_list(params=params)
-        label_ids = itertools.chain(*[data["labels"] for data in resource_data["details"] if data["labels"]])
-        label_ids = [int(id) for id in label_ids if isinstance(id, int) or id.isdigit()]
-        if set(attrs["labels"]).isdisjoint(label_ids):
-            raise serializers.ValidationError(_("请勿给主机添加重复标签"))
-        return attrs
 
 
 class CheckFaultHostsSerializer(serializers.Serializer):
