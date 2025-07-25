@@ -62,7 +62,11 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQ
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow, MySQMigrateUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
+    MySQLProxyClusterReduceFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class MySQLController(BaseController):
@@ -695,6 +699,7 @@ class MySQLController(BaseController):
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MySQLProxyClusterReduceFlowValidator)
     def mysql_proxy_reduce_scene(self):
         """
         清理mysql机器

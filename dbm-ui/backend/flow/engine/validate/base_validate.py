@@ -20,6 +20,17 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.validate.exceptions import DisasterToleranceLevelFailedException, TicketDataException
 
 
+def validates_with(validator_func):
+    """装饰器：用于关联函数与校验函数"""
+
+    def decorator(main_func):
+        # 添加校验函数信息到主函数的元数据中
+        main_func.validator = validator_func
+        return main_func
+
+    return decorator
+
+
 def validator_log_format(func):
     """日志打印验证装饰器 - 必须输入关键字参数：field, index, row_key"""
 
@@ -92,6 +103,11 @@ class BaseValidator:
         初始callable方法，不同validator定义重写__call__逻辑
         """
         return None
+
+    @staticmethod
+    def create_log_tag(field, index, row_key):
+        """创建打印日志标记字典"""
+        return {"field": field, "index": index, "row_key": row_key}
 
     @classmethod
     @validator_log_format

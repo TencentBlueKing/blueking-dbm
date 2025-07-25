@@ -9,10 +9,13 @@ specific language governing permissions and limitations under the License.
 """
 
 from collections import defaultdict
+from typing import List
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.engine.validate.base_validate import BaseValidator
+from backend.db_meta.enums import AccessLayer
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.flow.engine.validate.base_validate import BaseValidator, validator_log_format
 from backend.flow.engine.validate.exceptions import TicketDataException
 from backend.flow.utils.spider.spider_bk_config import calc_spider_max_count, get_spider_version_and_charset
 
@@ -134,3 +137,54 @@ class MysqlBaseValidator(BaseValidator):
                 err_msg += _("在单据中，存在重复IP信息填入 [{}]，请检查 \n".format(ip))
 
         return err_msg
+
+    @classmethod
+    @validator_log_format
+    def pre_check_mysql_proxy_in_cluster(cls, ip_list: list, cluster_ids: List[int]):
+        """
+        检验单据中传入ip信息，检查ip在DBM系统里是否属于这个集群
+        @param ip_list: 检验ip列表
+        @param cluster_ids: 集群id列表
+        """
+        err_msg = ""
+        for ip in ip_list:
+            for cluster_id in cluster_ids:
+                cluster = Cluster.objects.get(id=cluster_id)
+                if not cluster.proxyinstance_set.filter(machine__ip=ip).exists():
+                    err_msg += _("IP[{}]不属于该集群[{}]的proxy机器，请检查 \n".format(ip, cluster.immute_domain))
+
+        return err_msg
+
+    @classmethod
+    def pre_check_ip_clusters_included(cls, ip: str, bk_cloud_id: int, cluster_ids: list, access_layer: AccessLayer):
+        """
+        检验单据中传入ip信息，所属的集群是否和传入的cluster_ids一样
+        @param ip: 待校验的ip信息
+        @param bk_cloud_id: 待校验的云区域ID
+        @param cluster_ids: 待校验的集群id列表
+        @param access_layer: 待检测ip的接入类型，此方法只支持proxy和storage检验
+        """
+        if access_layer == AccessLayer.PROXY:
+            real_cluster_ids = [
+                p.cluster.get().id
+                for p in ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
+            ]
+
+        elif access_layer == AccessLayer.STORAGE:
+            real_cluster_ids = [
+                p.cluster.get().id
+                for p in StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
+            ]
+
+        else:
+            # 其余的不支持
+            raise TicketDataException(f" No such access_layer [{access_layer}] type checking is supported")
+
+        if sorted(real_cluster_ids) != sorted(cluster_ids):
+            return _(
+                "整机校验：IP[{}]传入的集群信息没有包括所有的关联的集群，请检查:  查到的cluster_ids:{}, 传入的cluster_ids：{}\n".format(
+                    ip, real_cluster_ids, cluster_ids
+                )
+            )
+
+        return ""

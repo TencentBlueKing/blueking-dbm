@@ -58,6 +58,24 @@ class MySQLProxyClusterReduceFlow(object):
         """
         @param root_id : 任务流程定义的root_id
         @param data : 单据传递参数
+        data结构体：
+        {
+        "uid": "0",
+        "created_by": "x",
+        "bk_biz_id": "0",
+        "ticket_type": "MYSQL_PROXY_REDUCE",
+        "infos":[
+              {
+                "cluster_ids": [1,2],
+                "origin_proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0}
+              },
+                          {
+                "cluster_ids": [3,4],
+                "origin_proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0}
+              },
+
+        ]
+        }
         """
         self.root_id = root_id
         self.data = data
@@ -137,17 +155,6 @@ class MySQLProxyClusterReduceFlow(object):
                         ),
                     )
 
-                # cluster_sub_pipeline.add_act(
-                #     act_name=_("回收proxy域名映射"),
-                #     act_component_code=MySQLDnsManageComponent.code,
-                #     kwargs=asdict(
-                #         RecycleDnsRecordKwargs(
-                #             bk_cloud_id=cluster.bk_cloud_id,
-                #             dns_op_exec_port=origin_proxy.port,
-                #             exec_ip=origin_proxy.machine.ip,
-                #         ),
-                #     ),
-                # )
                 entrysub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,

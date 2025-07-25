@@ -33,3 +33,9 @@ class CheckDisasterToleranceException(FlowValidateBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("校验集群容灾级别不通过")
     MESSAGE_TPL = _("{message}")
+
+
+class DuplicateIPException(FlowValidateBaseException):
+    ERROR_CODE = "004"
+    MESSAGE = _("存在重复IP")
+    MESSAGE_TPL = _("{message}")

@@ -12,19 +12,7 @@ from django.utils.translation import gettext as _
 from backend.flow.engine.validate.exceptions import FlowValidateBaseException
 
 
-class SpiderRoleFailedException(FlowValidateBaseException):
-    ERROR_CODE = "36001"
-    MESSAGE = _("同一个集群，不能出现不同待替换的spider角色")
-    MESSAGE_TPL = _("{message}")
-
-
-class SpiderSpecFailedException(FlowValidateBaseException):
-    ERROR_CODE = "36002"
-    MESSAGE = _("同一个集群，不能出现不同待替换的spider规格")
-    MESSAGE_TPL = _("{message}")
-
-
-class SpiderCountFailedException(FlowValidateBaseException):
-    ERROR_CODE = "36003"
-    MESSAGE = _("集群spider_master数量超过集群上限")
+class ProxyReduceCountFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35001"
+    MESSAGE = _("集群proxy缩容没有可用的proxy")
     MESSAGE_TPL = _("{message}")

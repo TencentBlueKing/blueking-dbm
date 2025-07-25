@@ -42,7 +42,11 @@ from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade_remote import UpgradeRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade_spider_node import UpgradeSpiderFlow
+from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
+    TenDBClusterSwitchNodesFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class SpiderController(BaseController):
@@ -267,6 +271,7 @@ class SpiderController(BaseController):
         flow = UpgradeRemoteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.migrate_upgrade()
 
+    @validates_with(TenDBClusterSwitchNodesFlowValidator)
     def tendbcluster_switch_nodes_scene(self):
         """
         tendbcluster spider节点替换

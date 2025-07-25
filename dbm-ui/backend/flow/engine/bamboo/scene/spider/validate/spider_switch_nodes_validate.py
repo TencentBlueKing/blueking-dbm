@@ -88,23 +88,23 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
         @param info
         @param index
         """
-        log_format_tag = {"field": "", "index": index, "row_key": info.get("row_key", "")}
+        row_key = info.get("row_key", "")
         error_msg_list = []
 
         # 检查ip传入是否合法
-        log_format_tag["field"] = "spider_old_ip_list"
+        log_format_tag = self.create_log_tag(field="spider_old_ip_list", index=index, row_key=row_key)
         error_msg = self.pre_check_ip([host["ip"] for host in info["spider_old_ip_list"]], **log_format_tag)
         if error_msg:
             error_msg_list.append(error_msg)
 
         # 检查集群是否存在
-        log_format_tag["field"] = "cluster_id"
+        log_format_tag = self.create_log_tag(field="cluster_id", index=index, row_key=row_key)
         error_msg = self.pre_check_cluster_exist([info["cluster_id"]], **log_format_tag)
         if error_msg:
             error_msg_list.append(error_msg)
 
         # 检查spider
-        log_format_tag["field"] = "switch_spider_role"
+        log_format_tag = self.create_log_tag(field="switch_spider_role", index=index, row_key=row_key)
         error_msg = self.pre_check_spider_role(info["switch_spider_role"], **log_format_tag)
         if error_msg:
             error_msg_list.append(error_msg)
@@ -124,7 +124,7 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
             return error_msgs
 
         # 阶段2 做聚合校验
-        # 同一个flow，同一个集群，不能出现不同待替换的spider角色
+        # 同一个flow，不能出现同样的ip
         err = self.pre_check_duplicate_ip("spider_old_ip_list")
         if err:
             raise SpiderRoleFailedException(err)
