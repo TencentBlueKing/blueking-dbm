@@ -33,7 +33,6 @@
         :placeholder="t('请选择')"
         :popover-min-width="200"
         show-all
-        :tag-theme="tagTheme"
         :title="t('资源标签')"
         type="select"
         @change="handleBatchEditChange">
@@ -120,6 +119,7 @@
   const tagMap = ref<Record<string, any>>({});
   const showBatchEdit = ref(false);
   const tagTheme = ref('');
+  let initFinished = false;
 
   const rules = [
     {
@@ -132,7 +132,7 @@
   useRequest(listTag, {
     defaultParams: [
       {
-        bk_biz_ids: [window.PROJECT_CONFIG.BIZ_ID, 0].join(','), // 0 表示公共资源池
+        bk_biz_ids: String(window.PROJECT_CONFIG.BIZ_ID),
         type: 'resource',
       },
     ],
@@ -193,26 +193,13 @@
     }
     modelValue.value = list;
     ids.value = list.map((item) => item.id);
-    console.log('updateModel', modelValue.value, ids.value);
+    tagTheme.value = ids.value[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
   watch(
     modelValue,
     (newValue, oldValue) => {
-      if (!_.isEqual(newValue, oldValue)) {
-        setTimeout(() => updateModel(newValue), 200);
-      }
-    },
-    {
-      deep: true,
-      immediate: true,
-    },
-  );
-
-  watch(
-    modelValue,
-    () => {
-      if (!modelValue.value.length) {
+      if (!initFinished) {
         modelValue.value = [
           {
             id: DEFAULT_TAG_ID,
@@ -221,10 +208,16 @@
         ];
         ids.value = [DEFAULT_TAG_ID];
         tagTheme.value = 'success';
+        initFinished = true;
+        return;
+      }
+      if (!_.isEqual(newValue, oldValue)) {
+        setTimeout(() => updateModel(newValue), 200);
       }
     },
     {
-      once: true,
+      deep: true,
+      immediate: true,
     },
   );
 </script>
