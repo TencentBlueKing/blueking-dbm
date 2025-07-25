@@ -58,11 +58,11 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         sub_get_kwargs.payload["config_nodes"] = []
         sub_get_kwargs.payload["shards_nodes"] = []
         sub_get_kwargs.payload["shards_nodes"].append({"nodes": sub_get_kwargs.payload["nodes"]})
-    else:
-        # 获取密码
-        get_password = {}
-        get_password["usernames"] = sub_get_kwargs.manager_users
-        sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
+
+    # 获取密码
+    get_password = {}
+    get_password["usernames"] = sub_get_kwargs.manager_users
+    sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
 
     # 移除节点作为执行操作节点
     remove_node_info = {

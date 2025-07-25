@@ -661,15 +661,6 @@ class RedisBackendScaleFlow(object):
                         kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
                     )
 
-            # > 4.0 版本需要重做一下slave，否则可能会丢数据
-            if act_kwargs.cluster["cluster_type"] in [
-                ClusterType.TendisRedisInstance.value,
-                ClusterType.TendisTwemproxyRedisInstance.value,
-            ] and version_ge(act_kwargs.cluster["db_version"], "4"):
-                sub_pipeline.add_parallel_sub_pipeline(
-                    sub_flow_list=self.redis_local_redo_dr(act_kwargs, sync_relations)
-                )
-
             sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # 删除老实例的nodes域名
@@ -700,6 +691,15 @@ class RedisBackendScaleFlow(object):
                 )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_shutdown_sub_pipelines)
+
+            # > 4.0 版本需要重做一下slave，否则可能会丢数据，#V2025-07-25: 优先释放内存， 然后再重建
+            if act_kwargs.cluster["cluster_type"] in [
+                ClusterType.TendisRedisInstance.value,
+                ClusterType.TendisTwemproxyRedisInstance.value,
+            ] and version_ge(act_kwargs.cluster["db_version"], "4"):
+                sub_pipeline.add_parallel_sub_pipeline(
+                    sub_flow_list=self.redis_local_redo_dr(act_kwargs, sync_relations)
+                )
 
             # 老机器重装bk-dbmon：上一步下架老实例时，会将dbmon给完全卸载。所以这里需要重装一下
             # 新机器重装dbmon来更新shard server挪到切换子流程里去做

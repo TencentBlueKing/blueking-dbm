@@ -54,21 +54,6 @@ def cluster_reduce_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs: A
         act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # 获取mongod信息
-    shard_mongod_host = sub_get_kwargs.payload["shards_nodes"][0]["nodes"][0]
-    sub_get_kwargs.payload["nodes"] = [
-        {
-            "ip": shard_mongod_host["ip"],
-            "port": shard_mongod_host["port"],
-            "bk_cloud_id": shard_mongod_host["bk_cloud_id"],
-        }
-    ]
-
-    # 获取密码
-    get_password = {}
-    get_password["usernames"] = sub_get_kwargs.manager_users
-    sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
-
     # shard进行减少node——子流程并行
     sub_pipelines = []
     for db_instances in sub_get_kwargs.payload["shards_instance_relationships"].values():
