@@ -169,7 +169,7 @@
             page: isBusiness ? 'business' : 'host-list',
           },
           query: {
-            labels: data.id,
+            label_names: data.value,
           },
         });
         return (

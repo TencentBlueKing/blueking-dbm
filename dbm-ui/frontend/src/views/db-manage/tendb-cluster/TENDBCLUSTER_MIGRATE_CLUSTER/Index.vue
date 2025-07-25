@@ -58,10 +58,10 @@
             :params="{
               city: item.oldMaster.bk_idc_city_name,
               subzones: item.oldMaster.bk_sub_zone,
-              for_bizs: [currentBizId],
+              for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.specId,
-              label_names: item.labels.map((item) => item.value).join(','),
+              labels: item.labels.map((item) => item.id).join(','),
             }" />
           <OperationColumn
             v-model:table-data="formData.tableData"

@@ -167,8 +167,8 @@
   const MAX_TAG_NUM = 4;
 
   const filterTagList = computed(() => {
-    const tagNames = (props.params.label_names || '').split(',');
-    return tagList.value.filter((item) => tagNames.includes(item.value));
+    const tagIds = (props.params.labels || '').split(',').map((id) => Number(id));
+    return tagList.value.filter((item) => tagIds.includes(item.id));
   });
 
   const { data: specInfo, run: queryResourceSpec } = useRequest(getResourceSpec, {
@@ -189,17 +189,17 @@
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) => {
     // 过滤掉通用无标签选项
-    const labelNames = (props.params.label_names || '')
+    const labels = (props.params.labels || '')
       ?.split(',')
-      .filter((item) => item !== t('通用无标签'))
+      .filter((item) => item !== '0')
       .join(',');
-    noLimitTag.value = !labelNames;
+    noLimitTag.value = !labels;
     return fetchList({
       ...params,
       ...props.params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
       city: props.params.city || undefined,
-      label_names: labelNames || undefined, // 不传即为不限制（即通用无标签）
+      labels: labels || undefined, // 不传即为不限制（即通用无标签）
       spec_id: props.params.spec_id || undefined,
       subzones: props.params.subzones || undefined,
     });
