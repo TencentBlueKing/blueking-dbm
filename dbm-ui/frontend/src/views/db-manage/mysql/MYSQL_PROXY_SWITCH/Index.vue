@@ -22,17 +22,17 @@
       <div class="mt-8 mb-20">
         <CardCheckbox
           v-model="operaObjectType"
-          :desc="t('只替换目标实例')"
-          icon="rebuild"
-          :title="t('实例替换')"
-          :true-value="OperaObejctType.INSTANCE" />
-        <CardCheckbox
-          v-model="operaObjectType"
           class="ml-8"
           :desc="t('主机关联的所有实例一并替换')"
           icon="host"
           :title="t('整机替换')"
           :true-value="OperaObejctType.MACHINE" />
+        <CardCheckbox
+          v-model="operaObjectType"
+          :desc="t('只替换目标实例')"
+          icon="rebuild"
+          :title="t('实例替换')"
+          :true-value="OperaObejctType.INSTANCE" />
       </div>
     </div>
     <BkForm
@@ -127,7 +127,7 @@
     [OperaObejctType.MACHINE]: MachineReplace,
   };
 
-  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.INSTANCE);
+  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.MACHINE);
   const sourceType = ref(SourceType.RESOURCE_AUTO);
   const comKey = ref(random());
   const formData = reactive(defaultData());

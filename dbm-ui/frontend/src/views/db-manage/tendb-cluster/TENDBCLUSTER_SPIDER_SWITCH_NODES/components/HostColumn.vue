@@ -61,6 +61,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['SpiderHost']"
+    hide-manual-input
     :selected="selectedHosts"
     @change="handleSelectorChange" />
 </template>

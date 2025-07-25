@@ -72,7 +72,9 @@
     mnt_count: number;
     region: string;
     spider_master: TendbClusterModel['spider_master'];
+    spider_master_spec_list: number[];
     spider_slave: TendbClusterModel['spider_slave'];
+    spider_slave_spec_list: number[];
   }>({
     required: true,
   });
@@ -114,7 +116,9 @@
           mnt_count: item.spider_mnt.length,
           region: item.region,
           spider_master: item.spider_master,
+          spider_master_spec_list: item.spider_master.map((host) => host.spec_config.id),
           spider_slave: item.spider_slave,
+          spider_slave_spec_list: item.spider_slave.map((host) => host.spec_config.id),
         };
       }
     },
@@ -132,7 +136,9 @@
       mnt_count: 0,
       region: '',
       spider_master: [],
+      spider_master_spec_list: [],
       spider_slave: [],
+      spider_slave_spec_list: [],
     };
   };
 

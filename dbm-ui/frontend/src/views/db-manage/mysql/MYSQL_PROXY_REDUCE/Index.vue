@@ -79,6 +79,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
+
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -153,15 +154,8 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    is_safe: boolean;
     infos: {
       cluster_ids: number[];
-      origin_proxy_ip: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      };
       old_nodes: {
         origin_proxy: {
           bk_biz_id: number;
@@ -170,7 +164,14 @@
           ip: string;
         }[];
       };
+      origin_proxy_ip: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
     }[];
+    is_safe: boolean;
   }>(TicketTypes.MYSQL_PROXY_REDUCE);
 
   const handleSubmit = async () => {
@@ -182,10 +183,10 @@
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_ids: item.master.related_clusters.map((item) => item.id),
-          origin_proxy_ip: item.master,
           old_nodes: {
             origin_proxy: [item.master],
           },
+          origin_proxy_ip: item.master,
         })),
         is_safe: formData.is_safe,
       },

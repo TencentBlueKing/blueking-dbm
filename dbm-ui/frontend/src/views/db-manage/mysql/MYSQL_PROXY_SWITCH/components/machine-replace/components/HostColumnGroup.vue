@@ -60,6 +60,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -193,7 +194,7 @@
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
           role: item.role,
-          spec_id: item.spec_config?.id || -1,
+          spec_id: item.spec_config?.id || 0,
         };
       }
     },

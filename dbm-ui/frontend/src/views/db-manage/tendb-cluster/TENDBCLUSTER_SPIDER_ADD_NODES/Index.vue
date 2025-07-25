@@ -42,6 +42,9 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
+            :current-spec-id-list="
+              item.role === 'spider_slave' ? item.cluster.spider_slave_spec_list : item.cluster.spider_master_spec_list
+            "
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required
             selectable
@@ -171,7 +174,9 @@
         mnt_count: 0,
         region: '',
         spider_master: [] as TendbClusterModel['spider_master'],
+        spider_master_spec_list: [] as number[],
         spider_slave: [] as TendbClusterModel['spider_slave'],
+        spider_slave_spec_list: [] as number[],
       },
       data.cluster,
     ),

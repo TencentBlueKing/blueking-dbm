@@ -36,6 +36,7 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
