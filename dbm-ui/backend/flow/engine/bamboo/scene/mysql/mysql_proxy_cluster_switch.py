@@ -69,6 +69,21 @@ class MySQLProxyClusterSwitchFlow(object):
     构建mysql集群替换proxy实例申请流程抽象类
     替换proxy 是属于整机替换，新的机器必须不在dbm系统记录上线过
     兼容跨云区域的场景支持
+    {
+        "uid": "x",
+        "created_by": "x",
+        "bk_biz_id": "x",
+        "ticket_type": "MYSQL_PROXY_SWITCH",
+        "force": false,
+        "infos": [
+              {
+                "cluster_ids": [1,2],
+                "origin_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1},
+                "target_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1},
+                "resource_spec": {...},
+              }
+        ]
+    }
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
