@@ -54,6 +54,26 @@ class MySQLProxyClusterAddFlow(object):
     构建mysql集群添加proxy实例申请流程抽象类
     执行添加proxy 新的proxy机器，必须是不在dbm系统记录上线过
     兼容跨云区域的场景支持
+    ticket_data参数：
+    {
+        "uid": "x",
+        "created_by": "x",
+        "bk_biz_id": "x",
+        "ticket_type": "MYSQL_PROXY_ADD",
+        "infos": [
+            {
+                "cluster_ids": [1,2],
+                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1},
+                "resource_spec": {...}
+            },
+            {
+                "cluster_ids": [3,4],
+                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1},
+                "resource_spec": {...}
+            }
+        ]
+    }
+
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -115,9 +135,6 @@ class MySQLProxyClusterAddFlow(object):
         """
         定义mysql集群添加proxy实例流程
         """
-        cluster_ids = []
-        for i in self.data["infos"]:
-            cluster_ids.extend(i["cluster_ids"])
 
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
@@ -221,24 +238,6 @@ class MySQLProxyClusterAddFlow(object):
                         )
                     ),
                 )
-
-                # acts_list = []
-                # for name in cluster["add_domain_list"]:
-                # 这里的添加域名的方式根据目前集群对应proxy dns域名进行循环添加，这样保证某个域名添加异常时其他域名添加成功
-                # acts_list.append(
-                #     {
-                #         "act_name": _("增加新proxy域名映射"),
-                #         "act_component_code": MySQLDnsManageComponent.code,
-                #         "kwargs": asdict(
-                #             CreateDnsKwargs(
-                #                 bk_cloud_id=cluster["bk_cloud_id"],
-                #                 add_domain_name=name,
-                #                 dns_op_exec_port=cluster["proxy_port"],
-                #                 exec_ip=info["proxy_ip"]["ip"],
-                #             )
-                #         ),
-                #     }
-                # )
 
                 entrysub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,

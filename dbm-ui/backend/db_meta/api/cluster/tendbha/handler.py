@@ -255,6 +255,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         proxy_ports: list,
         cluster_ids: list,
         created_by: str,
+        resource_spec: dict,
         template_proxy_ip: str = None,
     ):
         """
@@ -262,14 +263,26 @@ class TenDBHAClusterHandler(ClusterHandler):
         @param bk_biz_id: 业务id
         @param bk_cloud_id: 云区域id
         @param proxy_ip: 新proxy机器ip
-        @param template_proxy_ip: 模板机器ip
         @param proxy_ports: 待关联的proxy端口
         @param cluster_ids: 待关联的集群id列表
         @param created_by: 操作者
+        @param resource_spec: 新proxy的规格信息
+        @param template_proxy_ip: 模板proxy的ip
         """
 
-        machines = [{"ip": proxy_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.PROXY.value}]
-        proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_port in proxy_ports]
+        machines = [
+            {
+                "ip": proxy_ip,
+                "bk_biz_id": bk_biz_id,
+                "machine_type": MachineType.PROXY.value,
+                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
+                "spec_config": resource_spec[MachineType.PROXY.value],
+            }
+        ]
+
+        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
+        proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
+        proxies = [{"ip": proxy_ip, "port": proxy_port, "version": proxy_real_ver} for proxy_port in proxy_ports]
 
         # 初始化machine表
         api.machine.create(machines=machines, creator=created_by, bk_cloud_id=bk_cloud_id)
