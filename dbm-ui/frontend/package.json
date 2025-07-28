@@ -38,6 +38,7 @@
     "bkui-vue": "2.0.2-beta.44",
     "date-fns": "4.1.0",
     "dayjs": "1.11.13",
+    "dompurify": "3.2.6",
     "echarts": "5.6.0",
     "html-to-image": "1.11.13",
     "js-cookie": "3.0.5",
