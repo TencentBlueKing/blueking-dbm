@@ -321,6 +321,7 @@ class RedisClusterMigrateLoadFlow(object):
                 "created_by": self.data["created_by"],
                 "region": params["clusterinfo"]["region"],
                 "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+                "zone_list": self.data.get("zone_list", []),
             }
 
             # 建立集群关系，不同类型走不通方式
@@ -746,6 +747,7 @@ class RedisInsMigrateLoadFlow(object):
                     "region": ins["clusterinfo"]["region"],
                     "meta_func_name": RedisDBMeta.redis_instance.__name__,
                     "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+                    "zone_list": self.data.get("zone_list", []),
                 }
                 acts_list.append(
                     {
