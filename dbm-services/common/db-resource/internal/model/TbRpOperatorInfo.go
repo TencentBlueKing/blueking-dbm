@@ -69,7 +69,7 @@ func getTbRpOperationInfoColumns() ([]string, error) {
 	for _, v := range result {
 		columns = append(columns, v.Name())
 	}
-	// add Reverse sorting colums
+	// add Reverse sorting columns
 	for _, v := range result {
 		columns = append(columns, "-"+v.Name())
 	}

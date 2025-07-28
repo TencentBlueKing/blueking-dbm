@@ -67,12 +67,12 @@ type TbRpDetail struct {
 	StorageDevice   json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
 	TotalStorageCap int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
 	Storages        map[string]bk.DiskDetail `gorm:"-" json:"-"`
-	//  操作系统类型 Liunx,Windows
+	//  操作系统类型 Linux,Windows
 	/*Linux(1) Windows(2) AIX(3) Unix(4) Solaris(5) FreeBSD(7)*/
 	OsType string `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
 	OsBit  string `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
 	//  操作系统版本
-	OsVerion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
+	OsVersion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
 	//  操作系统名称
 	OsName string `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`
 	//  磁盘Raid
@@ -110,13 +110,13 @@ type TbRpDetail struct {
 	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
 	// 创建时间
 	CreateTime time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
-	// foreiginKey:关联表的结构字段 references:当前表的结构字段
+	// foreignKey:关联表的结构字段 references:当前表的结构字段
 	// SubStorages []TbRpStorageItem `gorm:"foreignKey:BkHostID;references:BkHostID"`
 }
 
 const (
-	// LiunxOs linux
-	LiunxOs = "Linux"
+	// LinuxOs linux
+	LinuxOs = "Linux"
 	// WindowsOs windows
 	WindowsOs = "Windows"
 	// UnixOs unix
@@ -129,7 +129,7 @@ const (
 func ConvertOsTypeToHuman(osType string) string {
 	switch osType {
 	case "1":
-		return LiunxOs
+		return LinuxOs
 	case "2":
 		return WindowsOs
 	case "4":
@@ -233,10 +233,10 @@ func GetTbRpDetailAll(sqlstr string) ([]TbRpDetail, error) {
 
 // SetMore TODO
 func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollection, diskList []yunti.CvmDataDisk) {
-	diskdetailMap := lo.SliceToMap(diskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
+	diskDetailMap := lo.SliceToMap(diskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
 		return d.DiskId, d
 	})
-	logger.Info("diskdetailMap:%v", diskdetailMap)
+	logger.Info("diskDetailMap:%v", diskDetailMap)
 	if disk, ok := diskMap[ip]; ok {
 		if t.CPUNum <= 0 {
 			t.CPUNum = disk.Cpu
@@ -248,11 +248,11 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		if t.DeviceClassIsLocalSSD() {
 			dks = bk.SetDiskType(disk.Disk, bk.SSD)
 		}
-		if len(diskdetailMap) > 0 {
+		if len(diskDetailMap) > 0 {
 			rebuildDks := make([]bk.DiskInfo, 0)
 			for _, dk := range dks {
 				dd := dk
-				if detail, exist := diskdetailMap[dk.DiskId]; exist {
+				if detail, exist := diskDetailMap[dk.DiskId]; exist {
 					dd.Size = detail.DiskSize
 					dd.DiskType = TransferCloudDiskType(detail.DiskType)
 				}
@@ -361,7 +361,7 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 	}
 	if len(bkhostIds) != len(result) {
 		logger.Error("Get TbRpDetail is %v", result)
-		return nil, fmt.Errorf("requried count is %d,But Only Get %d", len(bkhostIds), len(result))
+		return nil, fmt.Errorf("required count is %d,But Only Get %d", len(bkhostIds), len(result))
 	}
 	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
 	if rdb.Error != nil {
@@ -369,7 +369,7 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 		return nil, err
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {
-		return nil, fmt.Errorf("requried Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),
+		return nil, fmt.Errorf("required Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),
 			rdb.RowsAffected)
 	}
 	return result, nil

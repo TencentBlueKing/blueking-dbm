@@ -46,7 +46,7 @@ type GetOperationInfoParam struct {
 func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	var input GetOperationInfoParam
 	if err := o.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	db := model.DB.Self.Table(model.TbRpOperationInfoTableName())
@@ -146,7 +146,7 @@ type CreateOperationParam struct {
 func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 	var input CreateOperationParam
 	if err := o.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	var ipList []string
@@ -166,7 +166,7 @@ func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 	}
 	bkHostIdJsStr, err := json.Marshal(hostIdList)
 	if err != nil {
-		o.SendResponse(r, errno.ErrJSONMarshal.Add("input hostids"), "failed")
+		o.SendResponse(r, errno.ErrJSONMarshal.Add("input host ids"), "failed")
 	}
 	m := model.TbRpOperationInfo{
 		TotalCount:    len(ipList),

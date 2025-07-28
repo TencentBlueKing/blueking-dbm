@@ -181,10 +181,7 @@ func initLogger() (err error) {
 	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
-	defer func() {
-		if err = l.Sync(); err != nil {
-			logger.Warn("sync log failed %v", err)
-		}
-	}()
+	// nolint
+	defer l.Sync()
 	return
 }

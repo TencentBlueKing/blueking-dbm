@@ -30,21 +30,21 @@ const (
 	RANDOM = "RANDOM"
 )
 
-type subzone = string
+type subZone = string
 
 // PickerObject picker object
 type PickerObject struct {
-	Item          string
-	Count         int
-	PickDistrbute map[string]int
+	Item           string
+	Count          int
+	PickDistribute map[string]int
 	// 已存在的园区
-	ExistSubZone     []subzone
+	ExistSubZone     []subZone
 	SatisfiedHostIds []int
 	// SelectedResources []*model.TbRpDetail
 	// 待选择实例
 	// 具备优先级的待选实例列表
-	PriorityElements      map[subzone]*PriorityQueue
-	SubZonePrioritySumMap map[subzone]int64
+	PriorityElements      map[subZone]*PriorityQueue
+	SubZonePrioritySumMap map[subZone]int64
 
 	// 资源请求在同园区的时候才生效
 	ExistEquipmentIds     []string // 已存在的设备Id
@@ -70,18 +70,18 @@ func LockReturnPickers(elements []*PickerObject, mode string) ([]model.BatchGetT
 		logger.Error(fmt.Sprintf("占用机器，更改机器状态失败%s", err.Error()))
 	}
 	if mode == model.Used {
-		sendArchiverTask(data)
+		sendArchivedTask(data)
 	}
 	return data, err
 }
 
-// sendArchiverTask 归档
+// sendArchivedTask 归档
 //
 //	@param data
-func sendArchiverTask(data []model.BatchGetTbDetailResult) {
+func sendArchivedTask(data []model.BatchGetTbDetailResult) {
 	for _, v := range data {
 		for _, l := range v.Data {
-			task.ArchiverResourceChan <- l.ID
+			task.ArchivedResourceChan <- l.ID
 		}
 	}
 }
@@ -141,7 +141,7 @@ func NewPicker(count int, item string) *PickerObject {
 		ExistEquipmentIds:     make([]string, 0),
 		ExistLinkNetdeviceIds: make([]string, 0),
 		SatisfiedHostIds:      make([]int, 0),
-		PickDistrbute:         make(map[string]int),
+		PickDistribute:        make(map[string]int),
 	}
 }
 
@@ -161,9 +161,9 @@ func (c *PickerObject) CrossRackCheck(v InstanceObject) bool {
 	return c.InterSectForEquipment(v.Equipment) == 0
 }
 
-// DebugDistrubuteLog debug log
-func (c *PickerObject) DebugDistrubuteLog() {
-	for key, v := range c.PickDistrbute {
+// DebugDistributeLog debug log
+func (c *PickerObject) DebugDistributeLog() {
+	for key, v := range c.PickDistribute {
 		logger.Debug(fmt.Sprintf("Zone:%s,PickCount:%d", key, v))
 	}
 }
@@ -175,7 +175,7 @@ func (c *PickerObject) PreselectedSatisfiedInstance() error {
 		return err
 	}
 	if int(affectRows) != len(c.SatisfiedHostIds) {
-		return fmt.Errorf("update %d qualified resouece to preselectd,only %d real update status", len(c.SatisfiedHostIds),
+		return fmt.Errorf("update %d qualified resource to preselect,only %d real update status", len(c.SatisfiedHostIds),
 			affectRows)
 	}
 	return nil
@@ -268,7 +268,7 @@ type Wrapper struct {
 	by        func(p, q *InstanceObject) bool
 }
 
-// SortBy sortby
+// SortBy sort by
 type SortBy func(p, q *InstanceObject) bool
 
 // Len 用于排序

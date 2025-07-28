@@ -70,7 +70,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	var cnt int64
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {
-		logger.Error("use request id %s,query apply resouece failed %s", param.RequestId, err.Error())
+		logger.Error("use request id %s,query apply resource failed %s", param.RequestId, err.Error())
 		return
 	}
 	if len(hostIds) != int(cnt) {
@@ -127,7 +127,7 @@ func archive(bkHostIds []int) {
 		return
 	}
 	for _, v := range rs {
-		task.ArchiverResourceChan <- v.ID
+		task.ArchivedResourceChan <- v.ID
 	}
 }
 
@@ -148,8 +148,8 @@ func newLocker(key string, requestId string) *lock.SpinLock {
 
 // ApplyBase apply resource base func
 func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
-	task.RuningTask <- struct{}{}
-	defer func() { <-task.RuningTask }()
+	task.RunningTask <- struct{}{}
+	defer func() { <-task.RunningTask }()
 	logger.Info("start apply resource ... ")
 	var param apply.RequestInputParam
 	var pickers []*apply.PickerObject
@@ -165,7 +165,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), c.RequestId)
 		defer func() {
-			logger.Info("defer unlock in contorller")
+			logger.Info("defer unlock in controller")
 			if err = lock.Unlock(); err != nil {
 				logger.Error(fmt.Sprintf("unlock failed %s", err.Error()))
 				return
@@ -196,7 +196,7 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		return
 	}
 	logger.Info(fmt.Sprintf("The %s, will return %d machines", c.RequestId, len(data)))
-	task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
+	task.ApplyResponseLogChan <- task.ApplyResponseLogItem{
 		RequestId: c.RequestId,
 		Data:      data,
 	}

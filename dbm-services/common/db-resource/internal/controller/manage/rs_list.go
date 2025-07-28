@@ -88,10 +88,10 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 }
 
 func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
-	if !c.Cpu.Iegal() {
+	if !c.Cpu.Legal() {
 		return fmt.Errorf("非法参数 cpu min:%d,max:%d", c.Cpu.Min, c.Cpu.Max)
 	}
-	if !c.Mem.Iegal() {
+	if !c.Mem.Legal() {
 		return fmt.Errorf("非法参数 mem min:%d,max:%d", c.Mem.Min, c.Mem.Max)
 	}
 	return nil
@@ -134,12 +134,12 @@ func (c *MachineResourceGetterInputParam) getRealCitys() (realCistys []string, e
 	for _, logicCity := range c.City {
 		rcitys, err := dbmapi.GetIdcCityByLogicCity(logicCity)
 		if err != nil {
-			logger.Error("from %s get real citys failed %s", logicCity, err.Error())
+			logger.Error("from %s get real cites failed %s", logicCity, err.Error())
 			return nil, err
 		}
 		realCistys = append(realCistys, rcitys...)
 	}
-	logger.Info("get real citys %v", realCistys)
+	logger.Info("get real cites %v", realCistys)
 	return
 }
 

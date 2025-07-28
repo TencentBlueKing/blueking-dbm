@@ -72,7 +72,7 @@ type MachineDeleteInputParam struct {
 func (c *MachineResourceHandler) Delete(r *rf.Context) {
 	var input MachineDeleteInputParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 	affect_row, err := model.DeleteTbRpDetail(input.BkHostIds)
@@ -95,17 +95,12 @@ type BatchUpdateMachineInput struct {
 	UpdateRsMeta
 }
 
-const (
-	// EmptyArryJson empty arry json
-	EmptyArryJson = "[]"
-)
-
 // BatchUpdate 批量编辑主机信息
 func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	var input BatchUpdateMachineInput
 	var err error
 	if err = c.Prepare(r, &input); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 	// update for biz
@@ -124,7 +119,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		c.SendResponse(r, err, err.Error())
 		return
 	}
-	// return respone
+	// return response
 	c.SendResponse(r, nil, "ok")
 }
 
@@ -157,22 +152,22 @@ type CityMeta struct {
 	CityId string `json:"city_id"`
 }
 
-// SubZoneMeta subzones信息
+// SubZoneMeta sub zone 信息
 type SubZoneMeta struct {
 	SubZoneId string `json:"sub_zone_id"`
 	SubZone   string `json:"sub_zone"`
 }
 
 func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err error) {
-	var lableJson, storageJson []byte
+	var labelJson, storageJson []byte
 	updateMap = make(map[string]interface{})
 	if v.Labels != nil {
-		lableJson, err = json.Marshal(*v.Labels)
+		labelJson, err = json.Marshal(lo.Uniq(*v.Labels))
 		if err != nil {
-			logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
+			logger.Error(fmt.Sprintf("Conversion LabelToJsonStr Failed,Error:%s", err.Error()))
 			return updateMap, err
 		}
-		updateMap["labels"] = lableJson
+		updateMap["labels"] = labelJson
 	}
 	updateMap["update_time"] = time.Now()
 	if v.ForBiz != nil {
@@ -195,7 +190,7 @@ func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err erro
 	if len(v.StorageDevice) > 0 {
 		storageJson, err = json.Marshal(v.StorageDevice)
 		if err != nil {
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			logger.Error(fmt.Sprintf("Conversion storage device Failed,Error:%s", err.Error()))
 			return updateMap, err
 		}
 		updateMap["storage_device"] = storageJson
@@ -207,7 +202,7 @@ func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err erro
 func (c *MachineResourceHandler) Update(r *rf.Context) {
 	var input MachineResourceInputParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 	logger.Debug(fmt.Sprintf("get params %v", input.Data))
@@ -215,7 +210,7 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 	for _, v := range input.Data {
 		updateMap, err := v.getUpdateMap()
 		if err != nil {
-			logger.Error("conver resource types Failed,Error:%s", err.Error())
+			logger.Error("Conversion resource types Failed,Error:%s", err.Error())
 			c.SendResponse(r, err, err.Error())
 			return
 		}
@@ -223,7 +218,7 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 			Updates(updateMap).Error
 		if err != nil {
 			tx.Rollback()
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			logger.Error(fmt.Sprintf("Conversion resource types Failed,Error:%s", err.Error()))
 			c.SendResponse(r, err, err.Error())
 			return
 		}
@@ -241,12 +236,12 @@ func (c MachineResourceHandler) GetMountPoints(r *rf.Context) {
 
 	if err := model.DB.Self.Table(model.TbRpDetailName()).Select("json_keys(storage_device)").
 		Where("JSON_LENGTH(storage_device) > 0").Find(&rs).Error; err != nil {
-		logger.Error("get mountpoints failed %s", err.Error())
+		logger.Error("get mount points failed %s", err.Error())
 		c.SendResponse(r, err, err.Error())
 		return
 	}
 
-	var mountpoints []string
+	var mountPoints []string
 	for _, v := range rs {
 		var mp []string
 		if err := json.Unmarshal(v, &mp); err != nil {
@@ -255,10 +250,10 @@ func (c MachineResourceHandler) GetMountPoints(r *rf.Context) {
 			return
 		}
 		if len(mp) > 0 {
-			mountpoints = append(mountpoints, mp...)
+			mountPoints = append(mountPoints, mp...)
 		}
 	}
-	c.SendResponse(r, nil, cmutil.RemoveDuplicate(mountpoints))
+	c.SendResponse(r, nil, cmutil.RemoveDuplicate(mountPoints))
 }
 
 // GetDiskTypes get disk types

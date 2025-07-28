@@ -32,10 +32,10 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 				return fmt.Errorf("min %d great thane min %d", d.MinSize, d.MaxSize)
 			}
 		}
-		if !a.Spec.Cpu.Iegal() {
+		if !a.Spec.Cpu.Legal() {
 			return fmt.Errorf("cpu参数不合法: min:%d,max:%d", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
-		if !a.Spec.Mem.Iegal() {
+		if !a.Spec.Mem.Legal() {
 			return fmt.Errorf("mem参数不合法: min:%d,max:%d", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 		// 如果只是申请一个机器，则没有亲和性的必要
@@ -52,7 +52,7 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
 			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 && len(a.LocationSpec.SubZoneIds) < 2) {
-				return fmt.Errorf("because need cros subzone,you special subzones need more than 2 subzones")
+				return fmt.Errorf("because need cross sub-zone,you special subzones need more than 2 subzones")
 			}
 		case NONE:
 			return nil
@@ -80,13 +80,13 @@ type RequestInputParam struct {
 }
 
 // GetAllAffinitys 获取这批请求的所有亲和性的参数
-func (param RequestInputParam) GetAllAffinitys() (affinitys []string) {
+func (param RequestInputParam) GetAllAffinitys() (affinities []string) {
 	for _, d := range param.Details {
-		if !lo.Contains(affinitys, d.Affinity) {
-			affinitys = append(affinitys, d.Affinity)
+		if !lo.Contains(affinities, d.Affinity) {
+			affinities = append(affinities, d.Affinity)
 		}
 	}
-	return affinitys
+	return affinities
 }
 
 // BuildMessage build apply message

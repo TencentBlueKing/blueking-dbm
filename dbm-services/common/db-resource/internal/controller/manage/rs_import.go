@@ -91,14 +91,14 @@ func (p *ImportMachParam) existCheck() (err error) {
 func (c *MachineResourceHandler) Import(r *rf.Context) {
 	var input ImportMachParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	if err := input.existCheck(); err != nil {
 		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
 		return
 	}
-	resp, err := Doimport(input, c.RequestId)
+	resp, err := DoImport(input, c.RequestId)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ImportByIps failed %s", err.Error()))
 		c.SendResponse(r, err, err.Error())
@@ -118,21 +118,21 @@ type ImportHostResp struct {
 	NotFoundInCCHosts    []string          `json:"not_found_in_cc_hosts"`
 }
 
-func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
-	return marshalLables(p.Labels)
+func (p ImportMachParam) transParamToBytes() (labelJson json.RawMessage, err error) {
+	return marshalLabels(p.Labels)
 }
 
-// marshalLables TODO
-func marshalLables(labels []string) (json.RawMessage, error) {
+// marshalLabels TODO
+func marshalLabels(labels []string) (json.RawMessage, error) {
 	if len(labels) == 0 {
 		return []byte("[]"), nil
 	}
-	lableJson, err := json.Marshal(labels)
+	labelJson, err := json.Marshal(labels)
 	if err != nil {
-		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
+		logger.Error(fmt.Sprintf("Conversion LabelToJsonStr Failed,Error:%s", err.Error()))
 		return []byte("[]"), err
 	}
-	return lableJson, err
+	return labelJson, err
 }
 
 func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
@@ -144,8 +144,8 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 	})
 }
 
-// Doimport do import
-func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
+// DoImport do import
+func DoImport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var derr error
 	var diskResp bk.GetDiskResp
@@ -176,7 +176,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	}
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-	lableJson, err := param.transParamToBytes()
+	labelJson, err := param.transParamToBytes()
 	if err != nil {
 		return resp, err
 	}
@@ -195,7 +195,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	}
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := param.transHostInfoToDbModule(h, h.BkCloudId, lableJson)
+		el := param.transHostInfoToDbModule(h, h.BkCloudId, labelJson)
 		bkHostIds = append(bkHostIds, h.BKHostId)
 		diskDetails := []yunti.CvmDataDisk{}
 		if v, ok := cvmInfoMap[h.InnerIP]; ok {
@@ -280,7 +280,7 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 		AgentStatusUpdateTime: time.Now(),
 		OsType:                model.ConvertOsTypeToHuman(osType),
 		OsBit:                 h.BkOsBit,
-		OsVerion:              h.BkOsVersion,
+		OsVersion:             h.BkOsVersion,
 		OsName:                util.CleanOsName(h.OSName),
 		Operator:              operator,
 		UpdateTime:            time.Now(),
@@ -323,7 +323,7 @@ type HostInfo struct {
 func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 	var input ImportMachineWithDiffInfoParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	hostMap := make(map[int]HostInfo)
@@ -357,16 +357,15 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			return
 		}
 		hostsMap := lo.SliceToMap(targetHosts, func(item string) (string, struct{}) { return item, struct{}{} })
-		for _, emptyhost := range notFoundHosts {
-			delete(hostsMap, emptyhost)
+		for _, emptyHost := range notFoundHosts {
+			delete(hostsMap, emptyHost)
 		}
 		var cvmInfoMap map[string]yunti.InstanceDetail
 		if config.AppConfig.Yunti.IsNotEmpty() {
 			logger.Info("try to get machine info from yunti")
-			var verr error
-			cvmInfoMap, verr = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
-			if verr != nil {
-				logger.Warn("query cvm info failed %s", verr.Error())
+			cvmInfoMap, err = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
+			if err != nil {
+				logger.Warn("query cvm info failed %s", err.Error())
 			}
 		}
 		for _, h := range ccHostsInfo {
@@ -376,7 +375,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 				logger.Error("host not found in input hosts %s", h.InnerIP)
 				continue
 			}
-			jsonRaw, err := marshalLables(hostInfo.Labels)
+			jsonRaw, err := marshalLabels(hostInfo.Labels)
 			if err != nil {
 				logger.Error("marshal labels failed %s", err.Error())
 				c.SendResponse(r, err, err)

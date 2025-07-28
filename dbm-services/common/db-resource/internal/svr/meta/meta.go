@@ -29,8 +29,8 @@ type FloatMeasureRange struct {
 	Max float32 `json:"max"`
 }
 
-// Iegal determine whether the parameter is legal
-func (m MeasureRange) Iegal() bool {
+// Legal determine whether the parameter is legal
+func (m MeasureRange) Legal() bool {
 	if m.IsNotEmpty() {
 		return m.Max >= m.Min
 	}

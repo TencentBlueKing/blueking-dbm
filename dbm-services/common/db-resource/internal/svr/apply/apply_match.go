@@ -58,7 +58,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 				subzone, pq.Len(), c.Count))
 			continue
 		}
-		logger.Info("dbeug %v", subzone)
+		logger.Info("debug %v", subzone)
 		c.SatisfiedHostIds = []int{}
 		c.ExistEquipmentIds = []string{}
 		c.ExistLinkNetdeviceIds = []string{}
@@ -73,7 +73,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 }
 
 // PickerCrossSubzone 跨园区匹配
-func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
+func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_switch bool) {
 	sortFuncs := []func(cross_subzone bool) []string{
 		c.sortSubZoneByPriority,
 		c.sortSubZoneNum,
@@ -83,7 +83,7 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 		if len(campKeys) == 0 {
 			return
 		}
-		subzoneChan := make(chan subzone, len(campKeys))
+		subzoneChan := make(chan subZone, len(campKeys))
 		for _, v := range campKeys {
 			subzoneChan <- v
 		}
@@ -109,7 +109,7 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 			}
 			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
 			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-			if c.pickerOneByPriority(subzone, cross_swicth) {
+			if c.pickerOneByPriority(subzone, cross_switch) {
 				if cross_subzone {
 					delete(c.PriorityElements, subzone)
 				}
@@ -191,8 +191,8 @@ func (c *PickerObject) sortSubZoneNum(cross_subzone bool) []string {
 	sort.Sort(CampusWrapper{campusNice, func(p, q *CampusNice) bool {
 		return q.Count < p.Count
 	}})
-	for _, capmus := range campusNice {
-		keys = append(keys, capmus.Campus)
+	for _, campus := range campusNice {
+		keys = append(keys, campus.Campus)
 	}
 	return keys
 }
@@ -208,7 +208,7 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		item, _ := pq.Pop()
 		v, ok := item.Value.(InstanceObject)
 		if !ok {
-			logger.Warn("Type Assertion faild,hostId:%s", item.Key)
+			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
 			continue
 		}
 		if cross_switch {
@@ -222,7 +222,7 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
-		c.PickDistrbute[key]++
+		c.PickDistribute[key]++
 		return true
 	}
 	return len(c.PriorityElements) == 0
@@ -250,10 +250,10 @@ const (
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, deviceClass string) {
 	if err := ins.UnmarshalDiskInfo(); err != nil {
-		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
+		logger.Error("%s unmarshal disk failed %s", ins.IP, err.Error())
 	}
 	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
-	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
+	if o.IntentionBkBizId > 0 && ins.DedicatedBiz == o.IntentionBkBizId {
 		ele.Priority += PriorityP0
 	}
 	// 如果请求的磁盘为空，尽量匹配没有磁盘的机器
