@@ -396,7 +396,6 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 }
 
 func (r *GoApplyBinlog) buildBinlogOptions() error {
-
 	binlogTool := r.ToolSet.MustGet(tools.ToolGoMysqlbinlog)
 	r.BinlogOpt.SetCmdPath(binlogTool)
 	r.BinlogOpt.SetWorkDir(r.taskDir)

@@ -132,7 +132,7 @@ var dumpCmd = &cobra.Command{
 		}
 		backupexe.ExecuteHome = filepath.Dir(exePath)
 		if err = dumpExecute(cmd, args); err != nil {
-			logger.Log.Error("dumpbackup failed", err.Error())
+			logger.Log.Error("dumpbackup failed ", err.Error())
 			manager := ma.NewManager(cst.MysqlCrondUrl)
 			body := struct {
 				Name      string
@@ -325,6 +325,15 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 			return err
 		}
 		logger.Log.Info("backup Grant information: end")
+	}
+	if cnf.BackupToRemote.EnableRemote && !cnf.Public.IfBackupData() {
+		err = errors.Errorf("backup-to-remote=true only works with DataSchemaGrant include data")
+		logger.Log.Warnf("%s. set EnableRemote=false", err.Error())
+		return err
+	}
+	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {
+		return errors.Errorf("backup stream to remote only support physical but got %s for port=%d",
+			cnf.Public.BackupType, cnf.Public.MysqlPort)
 	}
 	// long_slow_query
 	// check slave status
@@ -545,7 +554,8 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 	remoteDbbackupBin := filepath.Join(backupexe.ExecuteHome+"-remote", "dbbackup")
 	remoteCmd, _ := sshClient.Command(remoteDbbackupBin, "tar-upload",
 		"--config", remoteConfigFile,
-		"--backup-index-file", remoteIndexFile)
+		"--backup-index-file", remoteIndexFile,
+		"--with-remote-enabled")
 	logger.Log.Infof("run command in remote:%s ", remoteCmd.String())
 	var cmdErr bytes.Buffer
 	remoteCmd.Stderr = &cmdErr
@@ -555,7 +565,7 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 
 	// .index.remote 里面肯定会补充备份文件列表
 	if err = sshClient.Download(remoteIndexFile+".remote", indexFilePath); err != nil {
-		return err
+		return errors.WithMessagef(err, "download remote index file failed:%s", remoteIndexFile+".remote")
 	}
 	newIndexFileMd5, err := cmutil.GetFileMd5(indexFilePath)
 	if err != nil {
@@ -587,37 +597,39 @@ func backupTarAndUpload(
 	}
 	targetDirName := strings.TrimSuffix(filepath.Base(indexFilePath), ".index")
 	targetDir := path.Join(cnf.Public.BackupDir, targetDirName)
-	if cnf.Public.IfBackupGrantOnly() {
-		metaInfo.AddPrivFileItem(targetDir)
-		return metaInfo.SaveIndexContent(indexFilePath)
-	}
-
 	cnf.Public.SetTargetName(targetDirName)
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)
-	cnf.Public.BackupType = metaInfo.BackupType
-	if cnf.BackupToRemote.EnableRemote {
-		cnf.Public.DataSchemaGrant = "all" // 远程备份，到这一步打包，都是有数据备份的
-	}
+	cnf.Public.BackupType = metaInfo.BackupType // this is real backup type
+	cnf.Public.DataSchemaGrant = metaInfo.DataSchemaGrant
+
 	// build regex used for package
 	if err = logReport.BuildMetaInfo(cnf, metaInfo); err != nil {
 		return err
 	}
 
 	// 如果 index 里面的文件列表全都存在，说明已经完成了打包切分，不需要再执行 PackageBackupFiles
-	allFileExists := true
-	if len(metaInfo.FileList) == 0 {
-		allFileExists = false
+	alreadyTarballed := false
+	if cnf.Public.IfBackupGrantOnly() && !cnf.BackupToRemote.EnableRemote {
+		alreadyTarballed = true
+		metaInfo.AddPrivFileItem(targetDir)
+		if err = metaInfo.SaveIndexContent(indexFilePath); err != nil {
+			return err
+		}
+	} else if len(metaInfo.FileList) == 0 {
+		alreadyTarballed = false
 	} else {
 		for _, tarFile := range metaInfo.FileList {
+			if tarFile.FileType == cst.FilePriv || tarFile.FileType == cst.FileIndex {
+				continue
+			}
+			// 如果已经存在 tar file，我们认为已经打包过了. 但我们也要检查tar文件是否还存在本地
+			alreadyTarballed = true
 			if f := filepath.Join(cnf.Public.BackupDir, tarFile.FileName); !cmutil.FileExists(f) {
-				allFileExists = false
-				logger.Log.Warnf("file not exists %s from index file", f)
-			} else {
-				logger.Log.Infof("file exists %s from index file", f)
+				return errors.Errorf("file not exists %s from index file", f)
 			}
 		}
 	}
-	if !allFileExists {
+	if !alreadyTarballed {
 		// PackageBackupFiles 会把打包后的文件信息，更新到 metaInfo
 		logger.Log.Infof("start to tar files, Index BackupMetaInfo:%+v", metaInfo)
 		_, tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)

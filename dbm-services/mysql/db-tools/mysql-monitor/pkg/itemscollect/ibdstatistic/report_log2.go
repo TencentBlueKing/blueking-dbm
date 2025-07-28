@@ -9,13 +9,14 @@
 package ibdstatistic
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/identifiertrans"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/identifiertrans"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -32,7 +33,6 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 		slog.Error("failed to create database size reports directory", slog.String("error", err.Error()))
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
-	// TODO add port to report_<port>.log
 	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, fmt.Sprintf("report_%d.log", dbPort), nil)
 	if err != nil {
 		return err

@@ -44,6 +44,7 @@ func BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
 	if err := CheckBackupType(cnf, storageEngine); err != nil {
 		return err
 	}
+
 	cnfPublic := &cnf.Public
 
 	/*

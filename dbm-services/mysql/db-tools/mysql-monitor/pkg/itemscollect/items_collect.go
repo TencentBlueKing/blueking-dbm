@@ -10,6 +10,7 @@
 package itemscollect
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/inforeport"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/maintaingrantproc"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxyrebind"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateproxyconnlog"
@@ -101,4 +102,5 @@ func init() {
 	//_ = registerItemConstructor(privcheck.Register())
 	_ = registerItemConstructor(proxyrebind.Register())
 	_ = registerItemConstructor(maintaingrantproc.Register())
+	_ = registerItemConstructor(inforeport.Register())
 }

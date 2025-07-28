@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"dbm-services/common/reverseapi/pkg"
 	"math"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 
 	meta "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 )
@@ -113,4 +113,33 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 		cnf.LogicalBackup.TrxConsistencyOnly = &config.TruePtr
 	}
 	return nil
+}
+
+func GetConfigForReport(confFile string) (*config.BackupConfig, error) {
+	var cnf = &config.BackupConfig{}
+	// logger.Log.Info("parse config file: begin")
+	viper.SetConfigType("ini")
+	if confFile != "" {
+		viper.SetConfigFile(confFile)
+	} else {
+		viper.SetConfigName("config")
+		// default: current run work_dir
+		viper.AddConfigPath(".") // 搜索路径可以设置多个，viper 会根据设置顺序依次查找
+
+		// default: exe relative dir
+		executable, _ := os.Executable()
+		executableDir := filepath.Dir(executable)
+		defaultConfigDir := filepath.Join(executableDir, "./")
+		viper.AddConfigPath(defaultConfigDir)
+	}
+	if err := viper.ReadInConfig(); err != nil {
+		return nil, err
+	}
+	err := viper.Unmarshal(cnf)
+	if err != nil {
+		return nil, err
+	}
+	cnf.Public.MysqlPasswd = ""
+	cnf.Public.MysqlUser = ""
+	return cnf, nil
 }

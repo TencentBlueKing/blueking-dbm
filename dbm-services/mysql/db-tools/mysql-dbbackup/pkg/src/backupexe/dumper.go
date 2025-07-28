@@ -29,7 +29,7 @@ type Dumper interface {
 // BuildDumper return logical or physical dumper
 func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db *sql.DB) (dumper Dumper, err error) {
 	if cnf.Public.IfBackupGrantOnly() {
-		logger.Log.Infof("only backup grants for %d", cnf.Public.MysqlPort)
+		logger.Log.Infof("only backup grants for %d. set backup-type to logical", cnf.Public.MysqlPort)
 		cnf.Public.BackupType = cst.BackupLogical
 		dumper = &DumperGrant{
 			cnf: cnf,
