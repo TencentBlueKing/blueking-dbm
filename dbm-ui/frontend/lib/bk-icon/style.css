@@ -107,6 +107,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-sync-default:before {
 	content: "\e18e";
 }
+.db-icon-form:before {
+	content: "\e22f";
+}
 .db-icon-pulsar:before {
 	content: "\e1b8";
 }
@@ -766,4 +769,22 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-waiting-shalou:before {
 	content: "\e227";
+}
+.db-icon-zhiding:before {
+	content: "\e229";
+}
+.db-icon-quxiaozhiding:before {
+	content: "\e22a";
+}
+.db-icon-tiaoguo-2:before {
+	content: "\e22b";
+}
+.db-icon-quanbu:before {
+	content: "\e22c";
+}
+.db-icon-bufenkejian:before {
+	content: "\e22d";
+}
+.db-icon-quanbubukejian:before {
+	content: "\e22e";
 }
