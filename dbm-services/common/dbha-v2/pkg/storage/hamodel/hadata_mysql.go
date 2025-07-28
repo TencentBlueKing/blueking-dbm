@@ -239,12 +239,6 @@ func (t *DBHAMySQL) loadDatabase(db *haprobe.DatabaseMetric) {
 		Version:          db.Version,
 		ThreadsConnected: db.ThreadsConnected,
 		ServerCharset:    db.ServerCharset,
-		OpenTablesTotal:  db.OpenTablesTotal,
-		FlushTables:      db.FlushTables,
-		OpenTablesNow:    db.OpenTablesNow,
-		SlowQueriesNow:   db.SlowQueriesNow,
-		TotalQuestions:   db.TotalQuestions,
-		QueriesPerSecond: db.QueriesPerSecond,
 
 		ThreadsRunning:            db.ThreadsRunning,
 		ConnectionsAborted:        db.ConnectionsAborted,
