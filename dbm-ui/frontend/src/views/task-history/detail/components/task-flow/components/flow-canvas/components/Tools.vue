@@ -219,11 +219,18 @@
   });
 
   const zoomOut = () => {
-    zoomValue.value -= 10;
+    if (zoomValue.value <= 25) {
+      return;
+    }
+
+    zoomValue.value -= 25;
   };
 
   const zoomIn = () => {
-    zoomValue.value += 10;
+    if (zoomValue.value >= 150) {
+      return;
+    }
+    zoomValue.value += 25;
   };
 
   const zoomReset = () => {

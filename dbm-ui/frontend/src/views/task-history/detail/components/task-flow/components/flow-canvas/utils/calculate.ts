@@ -17,7 +17,7 @@ export const getewayTypes: FlowType[] = [
   FlowTypes.ConditionalParallelGateway,
 ];
 
-export type Node = { collapsed: boolean; todoId: number } & FlowDetail['activities'][string];
+export type Node = { children?: Node[]; collapsed: boolean; todoId: number } & FlowDetail['activities'][string];
 
 export interface Edge {
   id: string;
@@ -302,8 +302,14 @@ export function getCurrentNodeChildenDataAndEdges(data: FlowDetail, totalEdges: 
   });
   const edges: Edge[] = [];
   totalEdges.forEach((edge) => {
-    if ((nodesMap[edge.source] && nodesMap[edge.target]) || (data.id === edge.source && nodesMap[edge.target])) {
+    if (nodesMap[edge.source] && nodesMap[edge.target]) {
       edges.push(edge);
+    } else if (data.id === edge.source && nodesMap[edge.target]) {
+      edges.push(edge);
+      const subProcessStartChildNode = nodes.find((node) => node.id === edge.target)!;
+      Object.assign(subProcessStartChildNode, {
+        isStartNodeOfSubProcess: true,
+      });
     }
   });
   return {

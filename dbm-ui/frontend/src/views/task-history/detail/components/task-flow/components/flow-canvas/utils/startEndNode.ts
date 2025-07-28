@@ -26,7 +26,7 @@ export class StartEndNode extends Rect {
     };
     this.upsert('backgroundShape', GCircle, backgroundShapeStyle, container);
     const iconWraperShapeStyle = {
-      fill: this.isStartNode ? '#2CAF5E' : '#C4C6CC',
+      fill: this.isStartNode ? '#3DC2A6' : '#C4C6CC',
       r: 18,
       zIndex: 1,
     };

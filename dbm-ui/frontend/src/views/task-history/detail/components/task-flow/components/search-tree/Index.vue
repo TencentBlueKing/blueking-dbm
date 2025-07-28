@@ -68,6 +68,17 @@
             class="text-overflow node-name">
             {{ item.name }}
           </span>
+          <div
+            v-if="item.type === FlowTypes.ServiceActivity"
+            class="view-log-main">
+            <BkButton
+              text
+              theme="primary"
+              @click.stop="handleViewLog(item)">
+              <DbIcon type="form" />
+              <span style="margin-left: 5px; font-size: 12px">{{ t('节点详情') }}</span>
+            </BkButton>
+          </div>
         </div>
       </template>
     </BkTree>
@@ -105,6 +116,7 @@
     (e: 'refresh'): void;
     (e: 'node-collapse', node: TreeNode): void;
     (e: 'node-expand', node: TreeNode): void;
+    (e: 'view-log', node: TreeNode): void;
   }
 
   interface Exposes {
@@ -213,6 +225,7 @@
   const treeIdChildrenMap: Record<string, Set<string>> = {};
   let currentClickNode = '';
   let isCheckedClick = false;
+  let isAutoFocus = false;
 
   const initTreeIdChildrenMap = (dataList: TreeNode[]) => {
     const deepInit = (list: TreeNode[]) => {
@@ -258,6 +271,30 @@
     batchSetTreeNodeOpen();
   });
 
+  watch(statusValue, () => {
+    if (['FAILED', 'TODO'].includes(statusValue.value)) {
+      setTimeout(() => {
+        if (isAutoFocus) {
+          return;
+        }
+
+        isAutoFocus = true;
+        // treeRef.value!.setSelect(renderTreeData.value[0]);
+        // handleNodeClick(renderTreeData.value[0]);
+        const firstLeafNode = findFirstLeafNode(renderTreeData.value);
+        treeRef.value!.setSelect(firstLeafNode);
+        handleNodeClick(firstLeafNode);
+        // if (renderTreeData.value[0].children?.length) {
+        //   treeRef.value!.setSelect(renderTreeData.value[0].children[0]);
+        //   handleNodeClick(renderTreeData.value[0].children[0]);
+        // } else {
+        //   treeRef.value!.setSelect(renderTreeData.value[0]);
+        //   handleNodeClick(renderTreeData.value[0]);
+        // }
+      }, 500);
+    }
+  });
+
   // 恢复展开和点击状态
   watch(
     () => props.data,
@@ -266,6 +303,7 @@
         if (!Object.keys(treeIdChildrenMap).length) {
           initTreeIdChildrenMap(props.data);
         }
+
         if (treeSearch.value) {
           batchSetTreeNodeOpen();
         } else {
@@ -297,8 +335,17 @@
     });
   }, 500);
 
+  const findFirstLeafNode = (data: TreeNode[]) => {
+    const list = flattenTreeData(data);
+    return list.find((item) => item.type === FlowTypes.ServiceActivity);
+  };
+
   const handleSelectChange = () => {
     selectedNodes.value = [];
+  };
+
+  const handleViewLog = (node: TreeNode) => {
+    emits('view-log', node);
   };
 
   const handleRefresh = () => {
@@ -468,6 +515,15 @@
         display: flex;
         width: 100%;
         align-items: center;
+        padding-right: 12px;
+
+        &:hover {
+          background-color: #f0f1f5;
+
+          .view-log-main {
+            display: block;
+          }
+        }
 
         &.is-sub-process {
           .flow-sign-icon-main {
@@ -475,7 +531,12 @@
           }
         }
 
+        .view-log-main {
+          display: none;
+        }
+
         .node-name {
+          flex: 1;
           font-size: 12px;
         }
       }

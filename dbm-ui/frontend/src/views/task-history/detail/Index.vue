@@ -226,14 +226,17 @@
     ).then((data) => {
       currentTaskflowDetail.value = data;
       ticketId.value = Number(data.flow_info.uid);
-      showDeliverResult.value = !!ticketId.value;
+      if (showDeliverResult.value) {
+        showDeliverResult.value = !!ticketId.value;
+      }
+
       if (['FINISHED', 'REVOKED'].includes(data.flow_info.status)) {
         pause();
       }
     });
   };
 
-  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 20000);
+  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 10000);
 
   onMounted(() => {
     fetchTaskflowDetails();
