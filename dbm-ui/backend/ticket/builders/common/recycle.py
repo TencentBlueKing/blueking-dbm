@@ -42,7 +42,7 @@ class RecycleHostDetailSerializer(serializers.Serializer):
     recycle_hosts = serializers.JSONField(help_text=_("下架机器的回收信息"), default=[])
     group = serializers.ChoiceField(help_text=_("所属组件"), choices=DBType.get_choices())
     parent_ticket = serializers.IntegerField(help_text=_("发起单据号"))
-    parent_ticket_type = serializers.CharField(help_text=_("发起的单据类型"))
+    parent_ticket_type = serializers.CharField(help_text=_("发起的单据类型"), default="")
 
 
 class MachineIdleCheckParamBuilder(FlowParamBuilder):
