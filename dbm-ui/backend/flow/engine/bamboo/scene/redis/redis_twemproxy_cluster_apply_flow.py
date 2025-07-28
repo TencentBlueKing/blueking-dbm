@@ -271,6 +271,7 @@ class RedisClusterApplyFlow(object):
             "region": self.data.get("city_code", ""),
             "meta_func_name": RedisDBMeta.redis_segment_make_cluster.__name__,
             "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
+            "zone_list": self.data.get("zone_list", []),
         }
         redis_pipeline.add_act(
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)

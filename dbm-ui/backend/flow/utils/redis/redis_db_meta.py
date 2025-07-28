@@ -502,6 +502,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
@@ -538,6 +539,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
@@ -571,6 +573,7 @@ class RedisDBMeta(object):
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+                "zone_list": self.cluster.get("zone_list", []),
             }
         )
         return True
