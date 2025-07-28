@@ -43,11 +43,11 @@ type WorkflowConfig struct {
 	ScanInterval            time.Duration `yaml:"scanInterval"            mapstructure:"scanInterval"`
 }
 
-// NotifierConfig notifier's configuration
-type NotifierConfig struct {
-	Name     string `yaml:"name"     mapstructure:"name"`
-	Enable   bool   `yaml:"enable"   mapstructure:"enable"`
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
+// MonitorConfig monitor's configuration
+type MonitorConfig struct {
+	DataID            uint64 `yaml:"dataID"            mapstructure:"dataID"`
+	BkMonitorBeat     string `yaml:"bkMonitorBeat"     mapstructure:"bkMonitorBeat"`
+	BkMonitorEndpoint string `yaml:"bkMonitorEndpoint" mapstructure:"bkMonitorEndpoint"`
 }
 
 // StorageConfig storage's configuration
@@ -71,7 +71,7 @@ type Configuration struct {
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
-	Notifier  NotifierConfig  `yaml:"notifier"  mapstructure:"notifier"`
+	Monitor   MonitorConfig   `yaml:"monitor"   mapstructure:"monitor"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

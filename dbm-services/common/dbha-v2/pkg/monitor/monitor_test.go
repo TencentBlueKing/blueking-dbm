@@ -22,12 +22,29 @@
  * SOFTWARE.
  */
 
-package notifier
+package monitor_test
 
-type Notifier interface {
-	Notify(msg string) error
-}
+import (
+	"dbm-services/common/dbha-v2/pkg/monitor"
+	"encoding/json"
+	"testing"
+)
 
-func New() (Notifier, error) {
-	return nil, nil
+func TestMonitorEvent(t *testing.T) {
+	event := monitor.Event{
+		DataID:      1586191,
+		AccessToken: "token",
+		Data: []*monitor.EventData{
+			{
+				Name: "dbha-v2-event-name",
+			},
+		},
+	}
+
+	data, err := json.Marshal(event)
+	if err != nil {
+		t.Fatalf("marshal event failed, %v", err)
+	}
+
+	t.Logf("marshaled: %s", string(data))
 }
