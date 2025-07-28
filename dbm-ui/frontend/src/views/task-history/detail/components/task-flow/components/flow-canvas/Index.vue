@@ -42,7 +42,7 @@
 
   import { dbTippy } from '@common/tippy';
 
-  import { CanvasEvent, ContainerEvent, GraphEvent, NodeEvent } from '@antv/g6';
+  import { CanvasEvent, GraphEvent, NodeEvent } from '@antv/g6';
   import { useFullscreen } from '@vueuse/core';
 
   import NodeContinue from './components/node-operation/Continue.vue';
@@ -141,16 +141,64 @@
 
   const { isFullscreen, toggle } = useFullscreen(flowCanvasContainerRef);
 
+  const initEvent = () => {
+    const container = document.getElementById('flowCanvasContainer')!;
+    container.addEventListener(
+      'wheel',
+      (e: any) => {
+        if (e.ctrlKey) {
+          e.preventDefault();
+          if (e.deltaY < 0) {
+            if (flowGraphInstance.viewZoom < 1.5) {
+              flowGraphInstance.viewZoom += 0.25;
+            }
+          } else {
+            if (flowGraphInstance.viewZoom > 0.25) {
+              flowGraphInstance.viewZoom -= 0.25;
+            }
+          }
+
+          flowGraphInstance.zoomTo(flowGraphInstance.viewZoom);
+          canvasZoomValue.value = flowGraphInstance.viewZoom * 100;
+        } else {
+          const verticalDistance = e.deltaY > 0 ? 100 : -100; // 向下滚向下，向上滚向上
+          flowGraphInstance.translateBy([0, verticalDistance]);
+        }
+      },
+      { passive: false },
+    ); // 强制设置 passive:false
+
+    container.addEventListener(
+      'keydown',
+      (e: any) => {
+        e.preventDefault();
+        if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
+          toolsRef.value!.zoomIn();
+        }
+        if (e.ctrlKey && e.key === '-') {
+          toolsRef.value!.zoomOut();
+        }
+        if (e.ctrlKey && e.key === '0') {
+          toolsRef.value!.zoomReset();
+        }
+      },
+      { passive: false },
+    );
+  };
+
   const initGraph = async (data = props.data) => {
     if (!data) {
       return;
     }
+
     if (!flowGraphInstance) {
       flowGraphInstance = new FlowGraph('flowCanvasContainer');
+      initEvent();
     }
     await flowGraphInstance.initGraph(data);
     flowGraphInstance.on(NodeEvent.CLICK, (e: any) => {
       const { originalTarget, target } = e;
+      console.log('click >>> ', target);
       // 所有画布的点击事件都在这里统一处理，提升性能
       const { className } = originalTarget;
       if (className.startsWith('manualConfirm')) {
@@ -221,11 +269,6 @@
       });
     });
 
-    flowGraphInstance.on(CanvasEvent.WHEEL, () => {
-      const zoom = Math.floor(flowGraphInstance.viewZoom * 100);
-      canvasZoomValue.value = zoom;
-    });
-
     flowGraphInstance.on(CanvasEvent.CLICK, () => {
       nodeOperationState.log.isShow = false;
     });
@@ -237,19 +280,6 @@
       setTimeout(() => {
         toolsRef.value!.showMiniMap();
       }, 500);
-    });
-
-    flowGraphInstance.on(ContainerEvent.KEY_DOWN, (e: KeyboardEvent) => {
-      e.preventDefault();
-      if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
-        toolsRef.value!.zoomIn();
-      }
-      if (e.ctrlKey && e.key === '-') {
-        toolsRef.value!.zoomOut();
-      }
-      if (e.ctrlKey && e.key === '0') {
-        toolsRef.value!.zoomReset();
-      }
     });
 
     await flowGraphInstance.render();

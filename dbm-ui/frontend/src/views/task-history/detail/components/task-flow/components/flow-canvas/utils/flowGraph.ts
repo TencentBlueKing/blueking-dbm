@@ -13,6 +13,7 @@ import {
   getewayTypes,
   type Node,
 } from './calculate';
+import CustomEdge from './customEdge';
 import { GatewayNode } from './gatewayNode';
 import { NormalNode, searchObj } from './normalNode';
 import { StartEndNode } from './startEndNode';
@@ -33,6 +34,7 @@ register(ExtensionCategory.NODE, FlowTypes.ServiceActivity, NormalNode);
 register(ExtensionCategory.NODE, FlowTypes.SubProcess, NormalNode);
 register(ExtensionCategory.NODE, FlowTypes.EmptyStartEvent, StartEndNode);
 register(ExtensionCategory.NODE, FlowTypes.EmptyEndEvent, StartEndNode);
+register(ExtensionCategory.EDGE, 'custom-edge', CustomEdge);
 
 export class FlowGraph {
   // 展开记录
@@ -55,7 +57,7 @@ export class FlowGraph {
     nodes: [],
   };
   hoverNodeId = '';
-  isInit = false;
+  // isInit = false;
   nodesMap: Record<string, Node> = {};
   oldviewCenterPointer = [0, 0] as [number, number];
   searchObj = searchObj;
@@ -69,25 +71,29 @@ export class FlowGraph {
   collapseNode(node: Node, isCollapse: boolean) {
     if (!isCollapse) {
       if (this.collapsedMap[node.id]) {
-        this.removeCollapsedData(node.id);
+        const { nodes } = this.removeCollapsedData(node.id);
+        this.updateNodeOrder(nodes, false);
       } else {
         const { edges, nodes } = getCurrentNodeChildenDataAndEdges(node.pipeline!, this.totalEdges);
         this.removeData(edges, nodes);
+        this.updateNodeOrder(nodes, false);
       }
     } else {
       if (this.collapsedMap[node.id]) {
         this.graph!.addData(this.collapsedMap[node.id] as unknown as GraphData);
+        this.updateNodeOrder(this.collapsedMap[node.id].nodes);
       } else {
         const { edges, nodes } = getCurrentNodeChildenDataAndEdges(node.pipeline!, this.totalEdges);
         this.collapsedMap[node.id] = {
           edges,
           nodes,
         };
+        this.updateNodeOrder(nodes);
         this.graphData.edges = [...this.graphData.edges, ...edges];
         this.graphData.nodes = [...this.graphData.nodes, ...nodes];
         this.graph!.addData({
           edges: edges as unknown as GraphData['edges'],
-          nodes,
+          nodes: nodes as any,
         });
       }
     }
@@ -121,6 +127,10 @@ export class FlowGraph {
     return this.graph!.getNodeData();
   }
 
+  getOptions() {
+    return this.graph!.getOptions();
+  }
+
   getSize() {
     return this.graph!.getSize();
   }
@@ -151,28 +161,37 @@ export class FlowGraph {
         }
       });
     }
+
     Array.from(document.getElementsByClassName('g6-minimap')).forEach((item) => {
       item.remove();
     });
     this.graph?.destroy();
+    // console.log('this.graphData = ', this.graphData);
     this.graph = new Graph({
       animation: false,
-      behaviors: ['drag-canvas', 'zoom-canvas'],
+      behaviors: ['drag-canvas'],
       container: this.containerId,
       data: this.graphData as any,
       edge: {
         style: {
+          // startArrow: true, // 起始端箭头
+          // startArrowType: 'circle',
           endArrow: true,
           stroke: '#C4C6CC',
         },
         type: 'cubic-horizontal',
+        // type: 'custom-edge',
       },
       layout: {
         align: 'UL',
-        nodesep: 50,
+        // type: 'dagre',
+        nodeOrder: [],
+        // 垂直间距
+        nodesep: 16,
         rankdir: 'LR',
-        ranksep: 100,
-        type: 'dagre',
+        // 水平间距
+        ranksep: 20,
+        type: 'antv-dagre',
       },
       node: {
         state: {
@@ -210,9 +229,9 @@ export class FlowGraph {
             if (roundFlowTypes.includes(d.type)) {
               return 48;
             } else if (d.pipeline) {
-              return [254, 60];
+              return [254, 52];
             }
-            return [240, 60];
+            return [240, 52];
           },
           skipOptFill: '#EAEBF0',
         },
@@ -265,7 +284,15 @@ export class FlowGraph {
       ]);
     });
 
-    await this.graph.render();
+    this.updateNodeOrder(this.graphData.nodes);
+    // await this.graph.render();
+  }
+
+  isNodeVisible(nodeId: string) {
+    const position = this.graph!.getElementPosition(nodeId);
+    const point = this.graph!.getViewportByCanvas(position);
+    const [viewWidth, viewHeight] = this.graph!.getSize();
+    return point[0] >= 0 && point[0] <= viewWidth && point[1] >= 0 && point[1] <= viewHeight;
   }
 
   on(eventName: string, callback: (...args: any[]) => void) {
@@ -290,6 +317,10 @@ export class FlowGraph {
     };
     findRelatedNodeData(removeNodes);
     this.removeData(removeEdges, removeNodes);
+    return {
+      edges: removeEdges,
+      nodes: removeNodes,
+    };
   }
 
   removeData(edges: Edge[], nodes: Node[]) {
@@ -331,6 +362,14 @@ export class FlowGraph {
     this.graph?.setElementState(nodeId, state);
   }
 
+  setOptions(options: Record<string, any>) {
+    this.graph!.setOptions(options);
+  }
+
+  translateBy(offset: [number, number], animate?: any) {
+    this.graph!.translateBy(offset, animate);
+  }
+
   updateCanvasState() {
     this.viewZoom = this.graph!.getZoom();
     this.oldviewCenterPointer = this.graph!.getViewportCenter() as [number, number];
@@ -357,6 +396,31 @@ export class FlowGraph {
     this.graph?.updateNodeData(data);
   }
 
+  updateNodeOrder(nodes: Node[], isAdd = true) {
+    const options = this.getOptions() as any;
+    console.log('options = ', options);
+    const targetNodes = nodes.filter(
+      (node) => this.edgesMap[node.id]?.size > 1 && node.children && node.children.length > 1,
+    );
+    const targetOrderNodeIds = _.flatMap(targetNodes.map((node) => node.children!.map((item) => item.id)));
+    if (!targetOrderNodeIds.length) {
+      return;
+    }
+
+    if (isAdd && options.layout.nodeOrder.includes(targetOrderNodeIds[0])) {
+      return;
+    }
+
+    if (!isAdd) {
+      // 移除 orderNodes
+      const orderNodes = _.difference(options.layout.nodeOrder, targetOrderNodeIds);
+      options.layout.nodeOrder = orderNodes;
+    } else {
+      // 新增 orderNodes
+      options.layout.nodeOrder.push(...targetOrderNodeIds);
+    }
+    this.setOptions(options);
+  }
   zoomTo(zoom: number, animate: any) {
     this.graph!.zoomTo(zoom, animate);
   }

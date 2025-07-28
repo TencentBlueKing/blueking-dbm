@@ -17,10 +17,10 @@
       :border="false"
       class="resize-layout-main"
       collapsible
-      :initial-divide="340"
+      :initial-divide="316"
       :is-collapsed="isCollapsed"
-      :max="600"
-      :min="340"
+      :max="500"
+      :min="200"
       @after-resize="handleResizeLayout"
       @collapse-change="handleResizeLayout">
       <template #aside>
@@ -32,7 +32,8 @@
           @node-collapse="(node) => handleTreeCollapse(node, true)"
           @node-expand="(node) => handleTreeCollapse(node, false)"
           @refresh="handleRefresh"
-          @search="handleTreeSearch" />
+          @search="handleTreeSearch"
+          @view-log="(node) => handleShowLog(node)" />
       </template>
       <template #main>
         <FlowCanvas
@@ -53,7 +54,7 @@
     @refresh="handleRefresh" />
 </template>
 <script setup lang="tsx">
-  import { FlowTypes } from '@services/source/taskflow';
+  // import { FlowTypes } from '@services/source/taskflow';
 
   import { type GraphData } from '@antv/g6';
 
@@ -178,10 +179,6 @@
   };
 
   const handleNodeClick = (node: TreeNode, parentNodes: TreeNode[]) => {
-    // 展开并定位到目标节点，打开节点详情
-    if (node.type === FlowTypes.ServiceActivity) {
-      handleShowLog(node);
-    }
     const flowGraphInstance = flowCanvasRef.value!.getGraph()!;
     const subProcessNodes = parentNodes.filter((item) => !!item.pipeline);
     if (subProcessNodes.length) {
@@ -211,12 +208,24 @@
       if (addEdges.length || addNodes.length) {
         graphData.edges = [...addEdges, ...flowGraphInstance.getEdgeData()] as Edge[];
         graphData.nodes = [...addNodes, ...flowGraphInstance.getNodeData()] as Node[];
+        graphData.nodes.forEach((node) => {
+          if (flowGraphInstance.edgesMap[node.id]?.size > 1 && node.children.length > 1) {
+            const options = flowGraphInstance.getOptions();
+            const newNodeOrder = node.children.map((item) => item.id);
+            options.layout.nodeOrder.push(...newNodeOrder);
+            flowGraphInstance.setOptions(options);
+          }
+        });
         flowGraphInstance.setData(graphData as unknown as GraphData);
         flowGraphInstance.render();
       }
     }
     setTimeout(async () => {
-      await flowGraphInstance.focusElement(node.id);
+      const isVisible = flowGraphInstance.isNodeVisible(node.id);
+      if (!isVisible) {
+        await flowGraphInstance.focusElement(node.id);
+      }
+
       flowGraphInstance.updateFocusNode(node.id);
       flowCanvasRef.value!.updateCanvasState();
     });
