@@ -118,13 +118,17 @@ class MySQLRollbackExerciseFlow(object):
             data=copy.deepcopy(self.ticket_data),
         )
         cluster_class = Cluster.objects.get(id=self.ticket_data["exercise_cluster_id"])
-        filters = Q(
-            cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
-        )
-        filters = filters | Q(
-            cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
-        )
-        master = cluster_class.storageinstance_set.get(filters)
+        if cluster_class.cluster_type == ClusterType.TenDBCluster.value:
+            shard0 = cluster_class.tendbclusterstorageset_set.filter(shard_id=0).first()
+            master = shard0.storage_instance_tuple.ejector
+        else:
+            filters = Q(
+                cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+            )
+            filters = filters | Q(
+                cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
+            )
+            master = cluster_class.storageinstance_set.filter(filters).first()
         self.data = copy.deepcopy(self.ticket_data)
         self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
         self.data["db_module_id"] = cluster_class.db_module_id
