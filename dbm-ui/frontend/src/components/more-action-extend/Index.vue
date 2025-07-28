@@ -5,6 +5,7 @@
       boundary: 'body',
       clickContentAutoHide: true,
       renderDirective: 'show',
+      hideIgnoreReference: true,
     }"
     :trigger="trigger"
     @hide="handleHidePopover">

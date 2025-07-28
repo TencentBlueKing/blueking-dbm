@@ -32,7 +32,7 @@
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="es_shrink"
-            class="ml8"
+            class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
             :permission="operationData?.permission.es_shrink"
             :resource="clusterId"
@@ -51,7 +51,7 @@
           }">
           <AuthButton
             action-id="es_replace"
-            class="ml8"
+            class="ml-8"
             :disabled="isBatchReplaceDisabeld || operationData?.operationDisabled"
             :resource="clusterId"
             @click="handleShowReplace">
@@ -60,7 +60,7 @@
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
-        class="ml8"
+        class="ml-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -97,7 +97,7 @@
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -470,7 +470,7 @@
               data={operationData.value}>
               <auth-button
                 action-id='es_replace'
-                class='ml8'
+                class='ml-8'
                 disabled={operationData.value?.operationDisabled}
                 permission={data.permission.es_replace}
                 resource={props.clusterId}
@@ -485,7 +485,7 @@
               data={operationData.value}>
               <auth-button
                 action-id='es_reboot'
-                class='ml8'
+                class='ml-8'
                 disabled={operationData.value?.operationDisabled}
                 permission={data.permission.es_reboot}
                 resource={props.clusterId}

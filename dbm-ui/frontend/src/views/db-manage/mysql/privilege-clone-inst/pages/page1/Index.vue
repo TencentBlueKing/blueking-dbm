@@ -19,13 +19,13 @@
         theme="info"
         :title="t('DB 实例权限克隆：DB 实例 IP 替换时，克隆原实例的所有权限到新实例中')" />
       <BkButton
-        class="clone-instance-batch mt16"
+        class="clone-instance-batch mt-16"
         @click="() => (isShowBatchInput = true)">
         <i class="db-icon-add" />
         {{ t('批量录入') }}
       </BkButton>
       <RenderData
-        class="mt16"
+        class="mt-16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -61,7 +61,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

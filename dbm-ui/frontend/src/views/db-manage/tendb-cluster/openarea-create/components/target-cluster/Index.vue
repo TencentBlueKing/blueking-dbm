@@ -7,7 +7,7 @@
       {{ t('批量录入') }}
     </BkButton>
     <RenderTable
-      class="mt16"
+      class="mt-16"
       :show-ip-cloumn="showIpCloumn"
       :variable-list="variableList"
       @batch-edit="handleBatchEdit"

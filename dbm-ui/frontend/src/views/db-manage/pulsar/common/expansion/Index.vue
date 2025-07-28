@@ -16,7 +16,7 @@
     class="pulsar-cluster-expansion-box"
     :loading="isLoading">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       theme="warning"
       :title="t('Bookkeeper，Broker 至少扩容一种类型')" />
     <BkRadioGroup

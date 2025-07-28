@@ -59,7 +59,7 @@
         {{ t('确定') }}
       </BkButton>
       <BkButton
-        class="ml8 w-88"
+        class="ml-8 w-88"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>

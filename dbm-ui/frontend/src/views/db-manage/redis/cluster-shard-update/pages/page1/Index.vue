@@ -19,7 +19,7 @@
         theme="info"
         :title="t('集群分片变更：通过部署新集群来实现增加或减少原集群的分片数，可以指定新的版本')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         :version-list="versionList"
         @batch-edit="handleBatchEditColumn"
         @show-master-batch-selector="handleShowMasterBatchSelector">

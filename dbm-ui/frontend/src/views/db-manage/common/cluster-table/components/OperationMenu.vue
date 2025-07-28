@@ -90,7 +90,7 @@
 
   .cluster-list-column-operation-btn {
     position: relative;
-    display: none;
+    display: flex;
     font-size: 18px;
     cursor: pointer;
     border-radius: 2px;
@@ -102,7 +102,6 @@
     }
 
     &.is-active {
-      display: flex;
       color: #3a84ff;
     }
   }
@@ -117,6 +116,12 @@
       flex-direction: column;
 
       & > * {
+        display: block !important;
+
+        & > * {
+          display: block !important;
+        }
+
         &:hover {
           background-color: #f5f7fa;
 

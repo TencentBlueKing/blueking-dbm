@@ -23,7 +23,7 @@
     </div>
     <BkAlert
       v-if="isDisabled"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <template #title>
         <I18nT keypath="当前仅剩n台 IP_无法缩容">

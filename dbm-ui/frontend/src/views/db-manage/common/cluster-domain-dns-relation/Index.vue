@@ -21,10 +21,9 @@
     </BkButton>
     <BkDialog
       class="cluster-domain-dns-relation"
-      draggable
       :is-show="isShow"
-      :quick-close="false"
-      :show-mask="false"
+      quick-close
+      show-mask
       :title="t('手动配置域名 DNS 记录')"
       :width="560"
       @closed="() => (isShow = false)">

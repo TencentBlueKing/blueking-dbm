@@ -32,7 +32,7 @@
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="hdfs_shrink"
-            class="ml8"
+            class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowShrink">
@@ -46,7 +46,7 @@
         <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
           <AuthButton
             action-id="hdfs_replace"
-            class="ml8"
+            class="ml-8"
             :disabled="batchReplaceDisableInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowReplace">
@@ -55,7 +55,7 @@
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
-        class="ml8"
+        class="ml-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -92,7 +92,7 @@
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -158,7 +158,7 @@
               }">
               <AuthButton
                 action-id="hdfs_replace"
-                class="ml8"
+                class="ml-8"
                 :disabled="checkNodeReplaceDisable(data).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.hdfs_replace"
                 :resource="clusterData.id"

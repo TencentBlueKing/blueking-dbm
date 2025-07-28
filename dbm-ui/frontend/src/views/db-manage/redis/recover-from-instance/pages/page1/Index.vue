@@ -19,7 +19,7 @@
         theme="info"
         :title="t('以构造实例恢复：把构造实例上的数据写回原集群')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"

@@ -46,7 +46,7 @@ export default defineComponent({
     }
     const classes = {
       [`db-icon-${this.type}`]: true,
-      'bk-dbm': true,
+      'bk-dbm-icon': true,
     };
     return h('i', {
       class: classes,
