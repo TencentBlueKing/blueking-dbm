@@ -572,6 +572,9 @@ class TicketType(str, StructuredEnum):
     VM_DISABLE = TicketEnumField("VM_DISABLE", _("VM 集群禁用"), register_iam=False)
     VM_DESTROY = TicketEnumField("VM_DESTROY", _("VM 集群删除"), _("集群管理"))
 
+    # ORACLE
+    ORACLE_EXEC_SCRIPT_APPLY = TicketEnumField("ORACLE_EXEC_SCRIPT_APPLY", _("ORACLE 变更SQL执行"), _("脚本任务"))
+
     # 测试
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"), register_iam=False)
 

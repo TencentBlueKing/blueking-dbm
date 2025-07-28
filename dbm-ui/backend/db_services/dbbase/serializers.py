@@ -30,6 +30,7 @@ from backend.db_services.dbbase.resources.serializers import (
     SqlserverListInstanceSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
@@ -343,3 +344,23 @@ class QueryGlobalClusterSerializer(
     ListTendbClusterResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ, QueryGlobalSerializer
 ):
     pass
+
+
+class SQLUploadSerializer(serializers.Serializer):
+    sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
+    sql_files = serializers.ListField(
+        help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
+    )
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
+
+    def validate(self, attrs):
+        if not (attrs.get("sql_content") or attrs.get("sql_files")):
+            raise serializers.ValidationError(_("不允许语法检查的sql的内容为空！"))
+
+        for file in attrs.get("sql_files", []):
+            if file.name.rsplit(".")[-1].lower() != "sql":
+                raise serializers.ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
+
+        return attrs

@@ -21,10 +21,10 @@ from backend.db_services.mysql.sql_import.serializers import (
     SQLGrammarCheckResponseSerializer,
     SQLGrammarCheckSerializer,
 )
-from backend.db_services.sqlserver.sql_import.handlers import SQLHandler
+from backend.db_services.oracle.sql_import.handlers import SQLHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
-SWAGGER_TAG = "db_services/sqlserver/sql_import"
+SWAGGER_TAG = "db_services/oracle/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
@@ -41,7 +41,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         return Response(SQLHandler.upload_sql_file(**data, bk_biz_id=bk_biz_id))
 
     @common_swagger_auto_schema(
-        operation_summary=_("sqlserver语法检查"),
+        operation_summary=_("oracle语法检查"),
         request_body=SQLGrammarCheckSerializer(),
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: SQLGrammarCheckResponseSerializer()},
