@@ -39,7 +39,7 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 
 		clusterGroup.POST("/create", clusterController.CreateCluster)
 		clusterGroup.POST("/update", clusterController.UpdateCluster)
-		clusterGroup.POST("/partial_upgrade", clusterController.PartialUpdateCluster)
+		clusterGroup.POST("/partial_update", clusterController.PartialUpdateCluster)
 		clusterGroup.POST("/delete", clusterController.DeleteCluster)
 		clusterGroup.POST("/describe", clusterController.DescribeCluster)
 		clusterGroup.GET("/services", clusterController.GetClusterService)
