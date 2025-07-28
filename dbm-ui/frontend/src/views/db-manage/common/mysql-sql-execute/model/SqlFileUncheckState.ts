@@ -11,4 +11,20 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-export const getFileNameFromFilePath = (filePath: string) => filePath.replace(/[^_]+_/, '');
+import SqlFile from './SqlFile';
+import type SqlFileCheckingState from './SqlFileCheckingState';
+import SqlFileState from './SqlFileState';
+
+export default class SqlFileUncheckState extends SqlFileState {
+  // constructor(payload: SqlFile) {
+  //   super(payload);
+  // }
+
+  get state() {
+    return SqlFile.UNCHEKED;
+  }
+
+  grammarCheckStart(state: SqlFileCheckingState) {
+    this.sqlFile.setState(state);
+  }
+}

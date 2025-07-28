@@ -7,6 +7,7 @@ export function createToolboxRoute(dbType: DBTypes) {
     ticketType: TicketTypes,
     navName: string,
     meta: { dbConsole?: string; fullscreen?: boolean; navName?: string; routeName?: string } = {},
+    options: { params?: string } = {},
   ) => ({
     component: () => import(`@views/db-manage/${dbToolbox}/${ticketType}/Index.vue`),
     meta: {
@@ -16,7 +17,7 @@ export function createToolboxRoute(dbType: DBTypes) {
       ...meta,
     },
     name: ticketType,
-    path: `${ticketType}`,
+    path: options.params ? `${ticketType}${options.params}` : `${ticketType}`,
   });
 
   return {

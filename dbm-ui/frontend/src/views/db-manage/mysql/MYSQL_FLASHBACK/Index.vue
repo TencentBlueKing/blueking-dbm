@@ -58,6 +58,7 @@
               :cluster-id="rowData.cluster?.id"
               field="databases"
               :label="t('目标 DB')"
+              required
               @batch-edit="handleBatchEdit" />
             <TableNameColumn
               v-model="rowData.tables"
@@ -126,8 +127,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import DatetimeColumn from './components/DatetimeColumn.vue';

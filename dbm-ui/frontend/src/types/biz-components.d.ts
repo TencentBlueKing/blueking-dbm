@@ -9,6 +9,7 @@ declare module 'vue' {
     BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     DbCard: typeof import('@components/db-card/index.vue').default;
     DbForm: typeof import('@components/db-form/index.vue').default;
+    DbFormItem: typeof import('@components/db-form/item.vue').default;
     DbIcon: typeof import('@components/db-icon/index.ts').default;
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;

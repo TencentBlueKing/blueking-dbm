@@ -31,6 +31,14 @@
         <BkTableColumn
           field="immute_domain"
           :label="t('集群')">
+          <template #header>
+            <div class="oracle-exec-script-apply-domain-header">
+              {{ t('目标集群') }}
+              <DbIcon
+                type="copy"
+                @click="copyAllDomain" />
+            </div>
+          </template>
           <template #default="{data}: {data: IRowData}">
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
           </template>
@@ -89,6 +97,8 @@
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
+  import { execCopy } from '@utils';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
@@ -138,9 +148,32 @@
   const handleClose = () => {
     isShow.value = false;
   };
+
+  const copyAllDomain = () => {
+    const domainList = tableData.map((item) => props.ticketDetails.details.clusters[item.id].immute_domain);
+    if (domainList.length > 0) {
+      execCopy(domainList.join('\n'), t('复制成功，共n条', { n: domainList.length }));
+    }
+  };
 </script>
 
 <style lang="less">
+  .ongodb-exec-script-apply-domain-header {
+    &:hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+
   .mongodb-exec-script-apply-content-dialog {
     .editor-layout {
       display: flex;
