@@ -368,6 +368,7 @@ class RedisClusterDataCopyFlow(object):
         install_param["resource_spec"] = info["resource_spec"]
         cluster = Cluster.objects.get(id=int(info["src_cluster"]))
         install_param["disaster_tolerance_level"] = cluster.disaster_tolerance_level
+        install_param["zone_list"] = cluster.zone_list
         return install_param
 
     def shard_num_or_cluster_type_update_precheck(self):
