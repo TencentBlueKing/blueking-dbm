@@ -333,7 +333,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	var param CheckSQLStringParam
 	// 将request中的数据按照json格式直接解析到结构体中
 	if err := s.Prepare(r, &param); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 	sqlContext := strings.Join(param.Sqls, "\n")

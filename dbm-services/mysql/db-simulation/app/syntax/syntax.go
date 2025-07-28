@@ -552,7 +552,7 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			continue
 		}
 		if err = json.Unmarshal(bs, &res); err != nil {
-			logger.Error("json unmasrshal line:%s failed %s", string(bs), err.Error())
+			logger.Error("json unmarshal line:%s failed %s", string(bs), err.Error())
 			return err
 		}
 		//  ErrorCode !=0 就是语法错误

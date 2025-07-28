@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"regexp"
@@ -41,14 +42,14 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-// ExecuteSQLFileComp excute sql file component
+// ExecuteSQLFileComp execute sql file component
 type ExecuteSQLFileComp struct {
 	GeneralParam             *components.GeneralParam `json:"general"`
 	Params                   *ExecuteSQLFileParam     `json:"extend"`
 	ExecuteSQLFileRunTimeCtx `json:"-"`
 }
 
-// ExecuteSQLFileParam excute sql file param
+// ExecuteSQLFileParam execute sql file param
 type ExecuteSQLFileParam struct {
 	Host              string                      `json:"host"  validate:"required,ip"`             // 当前实例的主机地址
 	Ports             []int                       `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
@@ -100,7 +101,7 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 			Ports:          []int{3306, 3307},
 			CharSet:        "utf8",
 			FilePath:       "/data/workspace",
-			FileBaseDir:    "/datta",
+			FileBaseDir:    "/data",
 			FilePathSubfix: "sqlfile_",
 			ExecuteObjects: []ExecuteSQLFileObj{
 				{
@@ -115,8 +116,8 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 	}
 }
 
-// Precheck do some check step
-func (e *ExecuteSQLFileComp) Precheck() (err error) {
+// PreCheck do some check step
+func (e *ExecuteSQLFileComp) PreCheck() (err error) {
 	if err = e.CheckSQLFileExist(); err != nil {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
 		return err
@@ -234,17 +235,29 @@ func readFile(file string) (content []byte, err error) {
 	defer f.Close()
 
 	var filtered []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
+	var buf []byte
+	reader := bufio.NewReader(f)
+	for {
+		line, isPrefix, err := reader.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			logger.Error("read Line Error %s", err.Error())
+			return nil, err
+		}
+		buf = append(buf, line...)
+		if isPrefix {
+			continue
+		}
+		bs := buf
+		buf = []byte{}
+		lineStr := string(bs)
+		trimmed := strings.TrimSpace(lineStr)
 		if trimmed == "" || strings.HasPrefix(trimmed, "/*!") || strings.HasPrefix(trimmed, "--") {
 			continue
 		}
-		filtered = append(filtered, line)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
+		filtered = append(filtered, lineStr)
 	}
 	return []byte(strings.Join(filtered, "\n")), nil
 }
