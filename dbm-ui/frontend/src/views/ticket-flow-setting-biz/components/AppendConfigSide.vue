@@ -12,7 +12,7 @@
       class="append-config-form"
       form-type="vertical">
       <BkAlert
-        class="mb16"
+        class="mb-16"
         closable>
         {{
           t(
@@ -119,9 +119,12 @@
     },
   });
 
-  watch(()=>props.data.remark, ()=>{
-    remark.value = props.data.remark || ''
-  })
+  watch(
+    () => props.data.remark,
+    () => {
+      remark.value = props.data.remark || '';
+    },
+  );
 
   const handleClose = async () => {
     window.changeConfirm = true;

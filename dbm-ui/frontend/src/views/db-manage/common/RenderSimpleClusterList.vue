@@ -42,7 +42,7 @@
       v-if="tableData.length > 0"
       v-model="current"
       align="center"
-      class="mt16"
+      class="mt-16"
       :count="count"
       :limit="10"
       :show-limit="false"

@@ -64,7 +64,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -138,11 +138,11 @@
   useTicketDetail<Redis.ClusterReinstallDbmon>(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { cluster_ids, clusters } = details;
+      const { cluster_ids: clusterIds, clusters } = details;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
         restart_exporter: details.restart_exporter,
-        tableData: cluster_ids.map((id) =>
+        tableData: clusterIds.map((id) =>
           createTableRow({
             cluster: {
               master_domain: clusters[id]?.immute_domain || '',

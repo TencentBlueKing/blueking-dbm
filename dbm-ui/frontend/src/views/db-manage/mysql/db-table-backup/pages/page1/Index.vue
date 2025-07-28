@@ -18,14 +18,14 @@
         closable
         theme="info"
         :title="t('指定库表备份_支持模糊匹配')" />
-      <div class="mt16">
+      <div class="mt-16">
         <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
           {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
-        class="mt16"
+        class="mt-16"
         @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -62,7 +62,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

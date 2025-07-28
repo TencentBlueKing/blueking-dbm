@@ -19,7 +19,7 @@
         theme="info"
         :title="t('为集群安装扩展 Module，仅 RedisCluster、Redis 主从 支持安装 Module。')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"

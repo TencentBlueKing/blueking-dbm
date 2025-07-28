@@ -66,7 +66,6 @@
         maxWidth: 'none',
         offset: [0, 0],
         placement: 'top',
-        theme: 'db-tippy',
         trigger: 'mouseenter',
         zIndex: 999999,
       });

@@ -19,7 +19,7 @@
         theme="info"
         :title="t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"

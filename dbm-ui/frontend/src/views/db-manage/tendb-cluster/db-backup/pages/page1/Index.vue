@@ -18,7 +18,7 @@
         theme="info"
         :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @batch-edit-backup-local="handleBatchEditBackupLocal"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -91,7 +91,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

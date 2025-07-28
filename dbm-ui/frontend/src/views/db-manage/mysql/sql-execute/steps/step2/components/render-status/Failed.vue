@@ -35,7 +35,7 @@
     </BkButton>
     <BkButton
       v-if="!isViewResultLog"
-      class="ml8 w-88"
+      class="ml-8 w-88"
       :loading="isSubmiting"
       theme="primary"
       @click="handleSubmitTicket">
@@ -43,7 +43,7 @@
     </BkButton>
     <DbPopconfirm
       v-if="!isViewResultLog"
-      class="ml8"
+      class="ml-8"
       :confirm-handler="handleDeleteUserSemanticTasks"
       :content="t('返回修改会中断当前操作_请谨慎操作')"
       :title="t('确认终止')">
@@ -53,7 +53,7 @@
     </DbPopconfirm>
     <BkButton
       v-if="isViewResultLog"
-      class="ml8"
+      class="ml-8"
       @click="handleLastStep">
       {{ t('返回继续提单') }}
     </BkButton>

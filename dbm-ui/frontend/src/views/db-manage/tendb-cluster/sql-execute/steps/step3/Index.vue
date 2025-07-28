@@ -38,7 +38,7 @@
         {{ t('去看看') }}
       </BkButton>
       <BkButton
-        class="ml8"
+        class="ml-8"
         @click="handleGoLast">
         {{ t('再提一单') }}
       </BkButton>
