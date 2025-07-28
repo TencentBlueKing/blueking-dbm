@@ -15,7 +15,7 @@
   <BkButton
     class="checksum-batch"
     @click="() => (isShow = true)">
-    <i class="db-icon-add" />
+    <i class="bk-dbm-icon db-icon-add" />
     {{ t('批量录入') }}
   </BkButton>
   <BkDialog
