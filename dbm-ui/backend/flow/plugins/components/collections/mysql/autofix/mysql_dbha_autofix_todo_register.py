@@ -22,7 +22,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 logger = logging.getLogger("celery")
 
 
-class MySQLAutofixTodoRegisterService(BaseService):
+class MySQLDBHAAutofixTodoRegisterService(BaseService):
     @transaction.atomic
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
@@ -51,6 +51,11 @@ class MySQLAutofixTodoRegisterService(BaseService):
                 "ip": row["ip"],
                 "port": row["port"],
                 "event_create_time": row["event_create_time"],
+                "instance_role": row["instance_role"],
+                "new_master_host": row["new_master_host"],
+                "new_master_port": row["new_master_port"],
+                "new_master_log_file": row["new_master_log_file"],
+                "new_master_log_pos": row["new_master_log_pos"],
             }
 
             # 按表唯一键做 replace 操作, 防止实例重复上报
@@ -65,7 +70,7 @@ class MySQLAutofixTodoRegisterService(BaseService):
         return True
 
 
-class MySQLAutofixTodoRegisterComponent(Component):
+class MySQLDBHAAutofixTodoRegisterComponent(Component):
     name = __name__
-    code = "mysql_autofix_todo_register"
-    bound_service = MySQLAutofixTodoRegisterService
+    code = "mysql_dbha_autofix_todo_register"
+    bound_service = MySQLDBHAAutofixTodoRegisterService

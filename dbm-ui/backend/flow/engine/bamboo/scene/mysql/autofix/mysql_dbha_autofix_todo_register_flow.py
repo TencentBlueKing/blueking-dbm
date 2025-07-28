@@ -15,8 +15,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.plugins.components.collections.mysql.autofix.mysql_autofix_todo_register import (
-    MySQLAutofixTodoRegisterComponent,
+from backend.flow.plugins.components.collections.mysql.autofix.mysql_dbha_autofix_todo_register import (
+    MySQLDBHAAutofixTodoRegisterComponent,
 )
 
 logger = logging.getLogger("flow")
@@ -45,7 +45,7 @@ class MySQLDBHAAutofixTodoRegisterFlow(object):
         autofix_pipe = Builder(root_id=self.root_id, data=self.data)
         autofix_pipe.add_act(
             act_name=_("写自愈信息"),
-            act_component_code=MySQLAutofixTodoRegisterComponent.code,
+            act_component_code=MySQLDBHAAutofixTodoRegisterComponent.code,
             kwargs={**copy.deepcopy(self.data)},
         )
         logger.info(_("构建MySQL自愈信息写入流程成功"))

@@ -15,7 +15,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
@@ -34,18 +34,18 @@ class MySQLAutofixTicketStatus(str, StructuredEnum):
     TIMEOUT = EnumField("TIMEOUT", _("等待超时"))
 
 
-class InplaceStatusFlag(IntFlag):
-    def flag_text(self) -> List[str]:
-        flag_str = self.__str__()[len(self.__class__.__name__) + 1 :]
-        return flag_str.split("|")
-
-    InplaceUnsubmitted = auto()
-    InplaceSkipped = auto()
-    InplacePending = auto()
-    InplaceSucceeded = auto()
-    InplaceFailed = auto()
-    InplaceRevoked = auto()
-    InplaceTerminated = auto()
+# class InplaceStatusFlag(IntFlag):
+#     def flag_text(self) -> List[str]:
+#         flag_str = self.__str__()[len(self.__class__.__name__) + 1 :]
+#         return flag_str.split("|")
+#
+#     InplaceUnsubmitted = auto()
+#     InplaceSkipped = auto()
+#     InplacePending = auto()
+#     InplaceSucceeded = auto()
+#     InplaceFailed = auto()
+#     InplaceRevoked = auto()
+#     InplaceTerminated = auto()
 
 
 class ReplaceStatusFlag(IntFlag):
@@ -73,8 +73,13 @@ class MySQLDBHAAutofixTodo(AuditedModel):
     immute_domain = models.CharField(max_length=255, default="")
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")
+    instance_role = models.CharField(max_length=64, choices=InstanceRole.get_choices(), default="", null=True)
     ip = models.GenericIPAddressField(default="")
     port = models.IntegerField(default=0)
+    new_master_host = models.GenericIPAddressField(default="", null=True)
+    new_master_port = models.IntegerField(default=0, null=True)
+    new_master_log_file = models.CharField(max_length=255, default="", null=True)
+    new_master_log_pos = models.IntegerField(default=0, null=True)
     event_create_time = models.DateTimeField()
     ticket_id = models.BigIntegerField(default=0, help_text=_("自愈单据"))
     status = models.CharField(

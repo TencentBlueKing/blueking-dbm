@@ -20,6 +20,19 @@ from backend.ticket.models import Ticket
 
 
 def backend_autofix(gtd: GroupedTodo, backends: List[StorageInstance], dbas: List[str], resource_spec: dict) -> Ticket:
+    Ticket.create_ticket(
+        ticket_type=TicketType.MYSQL_DBHA_AF_REPAIR_REPLICATE,
+        creator=dbas[0],
+        helpers=dbas[1:],
+        bk_biz_id=gtd.bk_biz_id,
+        remark=TicketType.MYSQL_DBHA_AF_REPAIR_REPLICATE,
+        details={
+            "bk_cloud_id": gtd.bk_cloud_id,
+            "bk_biz_id": gtd.bk_biz_id,
+            "check_id": gtd.check_id,
+        },
+    )
+
     tk = Ticket.create_ticket(
         ticket_type=TicketType.MYSQL_DBHA_AF_BACKEND_REPLACE,
         creator=dbas[0],

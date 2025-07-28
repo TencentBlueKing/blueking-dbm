@@ -15,6 +15,9 @@ from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountR
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_repair_replicate import (
+    MySQLDBHAAutofixRepairReplicateFlow,
+)
 from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_todo_register_flow import (
     MySQLDBHAAutofixTodoRegisterFlow,
 )
@@ -713,6 +716,10 @@ class MySQLController(BaseController):
         """
         flow = MySQLDBHAAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
+
+    def dbha_autofix_repair_replicate_scene(self):
+        flow = MySQLDBHAAutofixRepairReplicateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.repair_slave_replicate()
 
     def mysql_rename_database_scene(self):
         """

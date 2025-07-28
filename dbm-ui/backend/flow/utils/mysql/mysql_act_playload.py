@@ -45,7 +45,6 @@ from backend.flow.consts import (
     DataSyncSource,
     DBActuatorActionEnum,
     DBActuatorTypeEnum,
-    InstanceStatus,
     MediumEnum,
     MySQLBackupFileTagEnum,
     MySQLBackupTypeEnum,
@@ -3142,46 +3141,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
         return payload
-
-    def proxy_inplace_autofix(self, **kwargs) -> dict:
-        ip = self.cluster["ip"]
-        port_list = self.cluster["port_list"]
-        bk_cloud_id = self.bk_cloud_id
-
-        ext = []
-        for port in port_list:
-            instance_obj = ProxyInstance.objects.get(machine__ip=ip, port=port, machine__bk_cloud_id=bk_cloud_id)
-            cluster_obj = instance_obj.cluster.first()
-
-            backend_master = StorageInstance.objects.get(
-                cluster=cluster_obj,
-                instance_inner_role=InstanceInnerRole.MASTER,
-            )
-            alive_proxy = (
-                ProxyInstance.objects.filter(cluster=cluster_obj, status=InstanceStatus.RUNNING)
-                .exclude(machine__ip=ip, port__in=port_list)
-                .get()
-            )
-
-            ext.append(
-                {
-                    "host": ip,
-                    "port": port,
-                    "backend-host": backend_master.machine.ip,
-                    "backend-port": backend_master.port,
-                    "alive-proxy-host": alive_proxy.machine.ip,
-                    "alive-proxy-port": alive_proxy.port,
-                }
-            )
-
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.ProxyInplaceAutofix.value,
-            "payload": {
-                "general": {"runtime_account": self.proxy_account},
-                "extend": ext,
-            },
-        }
 
     def get_spider_upgrade_payload(self, **kwargs) -> dict:
         """

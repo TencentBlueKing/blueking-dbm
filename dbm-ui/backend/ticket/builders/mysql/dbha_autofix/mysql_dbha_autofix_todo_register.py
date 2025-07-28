@@ -29,9 +29,14 @@ class MySQLDBHAAutofixRegisterDetailSerializer(SkipToRepresentationMixin, serial
         check_id = serializers.IntegerField()
         immute_domain = serializers.CharField()
         machine_type = serializers.CharField()
+        instance_role = serializers.CharField()
         ip = serializers.IPAddressField()
         port = serializers.IntegerField()
         event_create_time = serializers.DateTimeField()
+        new_master_host = serializers.CharField()
+        new_master_port = serializers.IntegerField()
+        new_master_log_file = serializers.CharField()
+        new_master_log_pos = serializers.IntegerField()
 
         def validate(self, attrs):
 
@@ -94,9 +99,14 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
                     "check_id": dimensions.get("double_check_id", 0),
                     "immute_domain": dimensions["cluster_domain"],
                     "machine_type": dimensions.get("machine_type", ""),
+                    "instance_role": dimensions.get("role", ""),
                     "ip": dimensions.get("server_ip", ""),
                     "port": dimensions.get("server_port", 0),
                     "event_create_time": data["callback_message"]["event"]["create_time"],
+                    "new_master_host": dimensions.get("new_master_host", ""),
+                    "new_master_port": dimensions.get("new_master_port", 0),
+                    "new_master_log_file": dimensions.get("new_master_log_file", ""),
+                    "new_master_log_pos": dimensions.get("new_master_log_pos", 0),
                 }
             ]
         }
