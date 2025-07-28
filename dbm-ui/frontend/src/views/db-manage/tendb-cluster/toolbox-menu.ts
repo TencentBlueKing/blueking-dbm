@@ -28,7 +28,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.sqlExecute',
-        id: 'spiderSqlExecute',
+        id: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'spider_sql',
       },

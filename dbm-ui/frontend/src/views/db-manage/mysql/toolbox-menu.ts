@@ -28,7 +28,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.sqlExecute',
-        id: 'MySQLExecute',
+        id: TicketTypes.MYSQL_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'sql',
       },
