@@ -18,7 +18,7 @@
         closable
         theme="info"
         :title="t('清档_删除目标数据库数据_数据会暂存在不可见的备份库中_只有在执行删除备份库后_才会真正的删除数据')" />
-      <div class="db-clear-operations mt16">
+      <div class="db-clear-operations mt-16">
         <BkButton
           class="db-clear-batch"
           @click="() => (isShowBatchInput = true)">
@@ -27,7 +27,7 @@
         </BkButton>
       </div>
       <RenderData
-        class="mt16"
+        class="mt-16"
         @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -89,7 +89,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

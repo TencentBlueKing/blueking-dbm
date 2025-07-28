@@ -21,7 +21,7 @@
           t('重建从库：通过整机替换来实现从库实例的重建，即对应主机上的所有从库实例均会被重建，理论上不影响业务')
         " />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"

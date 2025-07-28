@@ -58,7 +58,7 @@
         {{ t('查询') }}
       </BkButton>
       <BkButton
-        class="ml8 w-88"
+        class="ml-8 w-88"
         :disabled="loading"
         @click="handleReset">
         {{ t('重置') }}

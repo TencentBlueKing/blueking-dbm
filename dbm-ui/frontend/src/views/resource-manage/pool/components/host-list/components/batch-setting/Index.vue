@@ -64,7 +64,7 @@
         {{ t('确定') }}
       </BkButton>
       <BkButton
-        class="ml8"
+        class="ml-8"
         :disabled="isSubmiting"
         @click="handleCancel">
         {{ t('取消') }}

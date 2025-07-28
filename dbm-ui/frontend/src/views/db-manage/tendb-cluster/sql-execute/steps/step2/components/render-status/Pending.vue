@@ -31,7 +31,7 @@
   <div class="sql-execute-more-action-box">
     <DbPopconfirm
       v-if="!isViewResultLog"
-      class="ml8"
+      class="ml-8"
       :confirm-handler="handleRevokeSemanticCheck"
       :content="t('返回修改会中断当前操作_请谨慎操作')"
       :title="t('确认强制失败？')">
@@ -40,7 +40,7 @@
       </BkButton>
     </DbPopconfirm>
     <BkButton
-      class="ml8"
+      class="ml-8"
       @click="handleLastStep">
       {{ t('返回继续提单') }}
     </BkButton>

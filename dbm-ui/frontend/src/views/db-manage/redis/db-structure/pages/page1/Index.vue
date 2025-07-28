@@ -21,7 +21,7 @@
       <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
       <TimeZonePicker style="width: 450px" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @batch-edit="handleBatchEditColumn"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow

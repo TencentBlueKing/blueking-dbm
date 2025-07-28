@@ -57,7 +57,7 @@
           <span>
             <AuthButton
               action-id="biz_notify_config"
-              class="ml8 w-88"
+              class="ml-8 w-88"
               :disabled="updateSettingLoading"
               :loading="resetSettingLoading"
               :resource="bizId">

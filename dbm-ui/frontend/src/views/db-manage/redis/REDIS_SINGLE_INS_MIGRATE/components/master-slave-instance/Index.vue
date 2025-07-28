@@ -14,7 +14,7 @@
 <template>
   <EditableTable
     ref="editableTable"
-    class="mt16 mb16"
+    class="mt-16 mb-16"
     :model="tableData">
     <EditableRow
       v-for="(item, index) in tableData"

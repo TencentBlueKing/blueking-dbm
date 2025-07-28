@@ -79,7 +79,7 @@
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -281,7 +281,7 @@
         <>
           <OperationBtnStatusTips data={operationData.value}>
             <bk-button
-              class='ml8'
+              class='ml-8'
               disabled={operationData.value?.operationDisabled || dataList.value.length <= 3}
               theme='primary'
               text
@@ -291,7 +291,7 @@
           </OperationBtnStatusTips>
           <OperationBtnStatusTips data={operationData.value}>
             <bk-button
-              class='ml8'
+              class='ml-8'
               disabled={operationData.value?.operationDisabled}
               theme='primary'
               text

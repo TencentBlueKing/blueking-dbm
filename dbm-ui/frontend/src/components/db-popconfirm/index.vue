@@ -32,7 +32,7 @@
     </div>
     <div style="margin-top: 16px; text-align: right">
       <BkButton
-        class="mr8"
+        class="mr-8"
         :loading="isConfirmLoading"
         size="small"
         :theme="theme"

@@ -60,7 +60,7 @@
         {{ t('去看看') }}
       </BkButton>
       <BkButton
-        class="ml8"
+        class="ml-8"
         @click="handleStepChange">
         {{ t('继续提单') }}
       </BkButton>
@@ -73,7 +73,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    steps: Array<{ current?: boolean; name: string }>;
+    steps?: Array<{ current?: boolean; name: string }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {

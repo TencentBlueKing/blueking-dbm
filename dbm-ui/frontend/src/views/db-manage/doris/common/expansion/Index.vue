@@ -16,7 +16,7 @@
     class="doris-cluster-expansion-box"
     :loading="isLoading">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       theme="warning"
       :title="t('至少添加一种节点IP')" />
     <BkRadioGroup

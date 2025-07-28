@@ -16,7 +16,7 @@
     class="pulsar-cluster-shrink-box"
     :loading="isLoading">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       theme="warning"
       :title="$t('Bookkeeper_Broker 至少缩容一种类型')" />
     <div class="wrapper">

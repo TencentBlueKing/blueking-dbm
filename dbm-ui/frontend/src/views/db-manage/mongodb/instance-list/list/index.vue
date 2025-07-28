@@ -302,7 +302,7 @@
           <>
             <OperationBtnStatusTips data={data}>
               <bk-button
-                class='mr8'
+                class='mr-8'
                 disabled={data.isRebooting}
                 theme='primary'
                 text

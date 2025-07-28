@@ -19,7 +19,7 @@
         theme="info"
         :title="t('版本升级：将集群的接入层或存储层，更新到指定版本')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         :version-list-params="versionListParams"
         @batch-edit="handleBatchEditColumn"
         @show-batch-selector="handleShowBatchSelector">

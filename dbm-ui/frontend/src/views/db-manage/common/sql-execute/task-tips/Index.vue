@@ -74,7 +74,7 @@
               v-bk-tooltips="$t('执行日志')"
               @click="handleGoTaskLog(item)">
               <DbIcon
-                class="ml8"
+                class="ml-8"
                 type="link" />
             </div>
           </div>

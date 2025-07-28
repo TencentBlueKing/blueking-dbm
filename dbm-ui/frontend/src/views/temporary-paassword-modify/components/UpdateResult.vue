@@ -19,11 +19,11 @@
       class="submitting-icon"
       svg
       type="sync-pending" />
-    <p class="submitting-text mt16">
+    <p class="submitting-text mt-16">
       {{ t('密码正在修改中，请稍等') }}
     </p>
     <RouterLink
-      class="mt16 mb16"
+      class="mt-16 mb-16"
       target="_blank"
       :to="{
         name: 'taskHistoryDetail',
@@ -47,7 +47,7 @@
       </I18nT>
     </template>
     <RouterLink
-      class="mt16 mb16"
+      class="mt-16 mb-16"
       target="_blank"
       :to="{
         name: 'taskHistoryDetail',
@@ -88,7 +88,7 @@
           {{ t('失败重试') }}
         </BkButton>
         <BkButton
-          class="ml8"
+          class="ml-8"
           @click="handleGoBack">
           {{ t('返回') }}
         </BkButton>

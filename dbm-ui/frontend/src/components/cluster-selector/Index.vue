@@ -101,7 +101,7 @@
       </template>
     </BkResizeLayout>
     <template #footer>
-      <span class="mr24">
+      <span class="mr-24">
         <slot
           v-if="slots.submitTips"
           :cluster-list="selectedClusterList"

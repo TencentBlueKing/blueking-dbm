@@ -16,7 +16,7 @@
     class="es-cluster-shrink-box"
     :loading="isLoading">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       theme="warning"
       :title="$t('热节点，冷节点，Client节点至少缩容一个类型')" />
     <div class="wrapper">

@@ -19,7 +19,7 @@
         theme="info"
         :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"

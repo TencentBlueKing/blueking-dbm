@@ -47,7 +47,7 @@
     </div>
     <div class="action">
       <BkButton
-        class="ml8"
+        class="ml-8"
         theme="primary"
         @click="handleStepChange">
         {{ t('再次提单') }}

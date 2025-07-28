@@ -16,7 +16,7 @@
     class="es-cluster-expansion-box"
     :loading="isLoading">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       theme="warning"
       :title="$t('冷热节点至少扩容一种类型')" />
     <BkRadioGroup

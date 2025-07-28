@@ -17,6 +17,16 @@ body {
   margin: 0;
 }
 
+body {
+  height: 100vh;
+  min-width: 1366px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-size: @font-size-normal;
+  -webkit-font-smoothing: antialiased;
+  color: @default-color;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -85,6 +95,14 @@ template {
  * Remove the gray background color from active links in IE 10.
  */
 a {
+  color: @primary-color;
+  text-decoration: none;
+
+  &[disabled='true'] {
+    color: #dcdee5;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
   background-color: transparent;
 }
 
@@ -325,4 +343,21 @@ optgroup {
 table {
   border-collapse: collapse;
   border-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol {
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  list-style: none;
 }

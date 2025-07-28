@@ -32,7 +32,7 @@
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
             action-id="kafka_shrink"
-            class="ml8"
+            class="ml-8"
             :disabled="batchShrinkDisabledInfo.disabled || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowShrink">
@@ -50,7 +50,7 @@
           }">
           <AuthButton
             action-id="kafka_replace"
-            class="ml8"
+            class="ml-8"
             :disabled="isBatchReplaceDisabeld || clusterData?.operationDisabled"
             :resource="clusterData.id"
             @click="handleShowReplace">
@@ -59,7 +59,7 @@
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
-        class="ml8"
+        class="ml-8"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -96,7 +96,7 @@
     </div>
     <BkAlert
       v-if="clusterData?.operationStatusText"
-      class="mb16"
+      class="mb-16"
       theme="warning">
       <I18nT
         keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
@@ -139,7 +139,7 @@
             :data="clusterData">
             <span
               v-bk-tooltips="checkNodeShrinkDisable(data).tooltips"
-              class="ml8">
+              class="ml-8">
               <AuthButton
                 action-id="kafka_shrink"
                 :disabled="checkNodeShrinkDisable(data).disabled || clusterData?.operationDisabled"
@@ -159,7 +159,7 @@
             :data="clusterData">
             <AuthButton
               action-id="kafka_replace"
-              class="ml8"
+              class="ml-8"
               :disabled="clusterData?.operationDisabled"
               :permission="clusterData.permission.kafka_replace"
               :resource="clusterData.id"

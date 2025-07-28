@@ -320,13 +320,13 @@
           {{ t('提交') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
           {{ t('重置') }}
         </BkButton>
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
           {{ t('取消') }}

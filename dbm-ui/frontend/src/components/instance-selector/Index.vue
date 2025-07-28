@@ -69,7 +69,7 @@
       </template>
     </BkResizeLayout>
     <template #footer>
-      <span class="mr24">
+      <span class="mr-24">
         <slot
           v-if="slots.submitTips"
           :host-list="lastHostList"
@@ -85,7 +85,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml8 w-88"
+        class="ml-8 w-88"
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
