@@ -286,7 +286,7 @@ class ImportResourceInitStepFlow(object):
                 # 是否资源重导入
                 reimport=self.data["ticket_type"] == TicketType.RECYCLE_APPLY_HOST,
             )
-            # 如果单据类型是，新主机退回，则需要拿到申请的主机信息
+            # 如果单据类型是，新主机退回，则需要拿到申请的主机信息(原始的标签、主机属性等)
             if resource_kwargs["reimport"]:
                 parent_ticket = Ticket.objects.get(id=self.data["parent_ticket"])
                 apply_hosts = fetch_apply_hosts(parent_ticket.details)
