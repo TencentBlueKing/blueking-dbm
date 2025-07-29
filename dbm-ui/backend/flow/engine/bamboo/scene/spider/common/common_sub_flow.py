@@ -16,18 +16,13 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER, DnsOpType, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
-    check_sub_flow,
-    init_machine_sub_flow,
-    update_machine_system_info_flow,
-)
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import AddSpiderNodeFailedException
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
-from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -40,7 +35,6 @@ from backend.flow.plugins.components.collections.spider.drop_spider_ronting impo
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DBMetaOPKwargs,
@@ -166,15 +160,6 @@ def add_spider_slaves_sub_flow(
                 )
             ),
         )
-
-    # # 阶段2 安装mysql-crond组件
-    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
-    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    # sub_pipeline.add_act(
-    #     act_name=_("部署mysql-crond"),
-    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #     kwargs=asdict(exec_act_kwargs),
-    # )
 
     # 阶段3 安装spider-slave实例，目前spider-slave机器属于单机单实例部署方式，专属一套集群
     acts_list = []
@@ -356,15 +341,6 @@ def add_spider_masters_sub_flow(
             ),
         )
 
-    # # 阶段3 安装mysql-crond组件
-    # exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
-    # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    # sub_pipeline.add_act(
-    #     act_name=_("部署mysql-crond"),
-    #     act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #     kwargs=asdict(exec_act_kwargs),
-    # )
-
     # 阶段4 安装spider-master实例，目前spider-master机器属于单机单实例部署方式，专属一套集群
     acts_list = []
     for spider in get_spider_master_incr(cluster, add_spider_masters):
@@ -507,123 +483,6 @@ def add_spider_masters_sub_flow(
         tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
-
-
-def build_apps_for_spider_sub_flow(
-    bk_cloud_id: int,
-    spiders: list,
-    root_id: str,
-    parent_global_data: dict,
-    spider_role: TenDBClusterSpiderRole,
-    is_collect_sysinfo: bool,
-    is_install_backup: bool = True,
-    is_install_monitor: bool = True,
-):
-    """
-    定义为spider机器部署周边组件的子流程
-    @param bk_cloud_id: 操作所属的云区域
-    @param spiders: 需要操作的spider机器列表信息
-    @param root_id: 整体flow流程的root_id
-    @param parent_global_data: 子流程的需要全局只读上下文
-    @param spider_role: 这批spider的角色
-    @param is_collect_sysinfo: 是否收集系统参数
-    @param is_install_backup: 是否安装备份
-    @param is_install_monitor: 是否安装监控
-    """
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-    spider_ips = list(filter(None, list(set(spiders))))
-
-    sub_pipeline.add_act(
-        act_name=_("下发Spider周边程序介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=bk_cloud_id,
-                exec_ip=spider_ips,
-                file_list=GetFileList(db_type=DBType.MySQL).get_spider_apps_package(),
-            )
-        ),
-    )
-
-    acts_list = []
-    # 是否采集系统信息
-    if is_collect_sysinfo:
-        acts_list.append(
-            update_machine_system_info_flow(
-                root_id=root_id,
-                bk_cloud_id=bk_cloud_id,
-                parent_global_data=parent_global_data,
-                ip_list=spider_ips,
-            )
-        )
-
-    if isinstance(spiders, list) and len(spiders) != 0:
-        for spider_ip in list(set(spiders)):
-            acts_list.append(
-                {
-                    "act_name": _("spider[{}]安装DBATools工具箱".format(spider_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=spider_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                            cluster_type=ClusterType.TenDBCluster.value,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-            if is_install_monitor:
-                acts_list.append(
-                    {
-                        "act_name": _("spider[{}]安装mysql-monitor".format(spider_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=spider_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                                cluster_type=ClusterType.TenDBCluster.value,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                )
-            # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if is_install_backup:
-                acts_list.append(
-                    {
-                        "act_name": _("{}[{}]安装备份程序".format(spider_role.value, spider_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=spider_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                                cluster_type=ClusterType.TenDBCluster.value,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                )
-
-        acts_list.append(
-            {
-                "act_name": _("安装backup-client工具"),
-                "act_component_code": DownloadBackupClientComponent.code,
-                "kwargs": asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
-                        download_host_list=list(filter(None, list(set(spiders)))),
-                    )
-                ),
-            }
-        )
-
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("安装Spider周边程序"))
 
 
 def build_ctl_replication_with_gtid(

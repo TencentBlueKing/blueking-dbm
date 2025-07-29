@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict
 
 
 @dataclass()
@@ -329,21 +329,6 @@ class MySQLBackupDemandContext:
 @dataclass()
 class MySQLFlashBackContext:
     targets: Dict = None
-
-
-@dataclass()
-class MySQLHAImportMetadataContext:
-    cluster_ids: List = None
-
-
-@dataclass()
-class TenDBClusterImportMetadataContext:
-    cluster_ids: List = None
-
-
-@dataclass()
-class TenDBSingleImportMetadataContext:
-    cluster_ids: List = None
 
 
 @dataclass()

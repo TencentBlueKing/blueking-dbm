@@ -18,19 +18,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-func (c *NewDbBackupComp) AddCrontab() error {
-	if c.Params.ClusterType == cst.TendbCluster {
-		return c.addCrontabSpider()
-	} else {
-		return c.addCrontabLegacy()
-	}
-}
-
-func (c *NewDbBackupComp) addCrontabLegacy() (err error) {
-	crondManager := ma.NewManager("http://127.0.0.1:9999")
-	return addCrontabLegacy(crondManager, c.Params.Options.CrontabTime)
-}
-
 func addCrontabLegacy(cm *ma.Manager, schedule string) (err error) {
 	logger.Info("legacy")
 	var jobItem ma.JobDefine
@@ -95,11 +82,6 @@ func addCrontabSpider(cm *ma.Manager, role string, port int, schedule string) (e
 		logger.Info("adding job_item to crond: id: %s", id)
 	}
 	return nil
-}
-
-func (c *NewDbBackupComp) addCrontabSpider() (err error) {
-	crondManager := ma.NewManager("http://127.0.0.1:9999")
-	return addCrontabSpider(crondManager, c.Params.Role, c.Params.Ports[0], c.Params.Options.CrontabTime)
 }
 
 func AddCrond(ports []int) (err error) {

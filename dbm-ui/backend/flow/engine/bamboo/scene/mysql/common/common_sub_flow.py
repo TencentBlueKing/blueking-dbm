@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from dataclasses import asdict
-from typing import List, Optional
+from typing import List
 
 from django.utils.translation import ugettext as _
 
@@ -19,19 +19,12 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
-from backend.flow.consts import (
-    DBA_ROOT_USER,
-    DEPENDENCIES_PLUGINS,
-    MediumEnum,
-    MysqlVersionToDBBackupForMap,
-    WriteContextOpType,
-)
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
@@ -50,7 +43,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
+from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
@@ -72,378 +65,6 @@ logger = logging.getLogger("flow")
 """
 定义一些mysql流程上可能会用到的子流程，以便于减少代码的重复率
 """
-
-
-def build_surrounding_apps_sub_flow(  # noqa
-    bk_cloud_id: int,
-    root_id: str,
-    parent_global_data: dict,
-    cluster_type: Optional[ClusterType],
-    is_init: bool = False,
-    master_ip_list: list = None,
-    slave_ip_list: list = None,
-    proxy_ip_list: list = None,
-    is_install_backup: bool = True,
-    is_install_monitor: bool = True,
-    is_install_checksum: bool = True,
-    is_install_rotate_binlog: bool = True,
-    collect_sysinfo: bool = False,
-    db_backup_pkg_type: MediumEnum = None,
-):
-    """
-    定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
-    提供给切换类单据拼接使用
-    @param bk_cloud_id: 操作所属的云区域
-    @param master_ip_list: master的ip， None代表这次master不需要操作
-    @param slave_ip_list: slave的ip， None代表这次slave不需要操作
-    @param proxy_ip_list: proxy的ip列表，[]代表这次没有proxy需要操作
-    @param root_id: flow流程的root_id
-    @param parent_global_data: 子流程的上层全局只读上下文
-    @param is_init: 是否代表首次安装，针对部署、添加场景
-    @param cluster_type: 操作的集群类型，涉及到获取配置空间
-    @param is_install_backup: 是否安装备份,spider集群切换前忽略安装备份
-    @param is_install_monitor: 是否安装监控,定点回档需要
-    @param is_install_checksum: 是否安装checksum
-    @param is_install_rotate_binlog: 是否安装rotate_binlog
-    @param collect_sysinfo: 是否收集机器信息
-    @param db_backup_pkg_type: 备份文件类型
-    """
-    if not master_ip_list:
-        master_ip_list = []
-    if not slave_ip_list:
-        slave_ip_list = []
-    if not proxy_ip_list:
-        proxy_ip_list = []
-
-    if len(master_ip_list) == 0 and len(slave_ip_list) == 0 and len(proxy_ip_list) == 0:
-        raise Exception(_("执行ip信息为空"))
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-
-    if not is_init:
-        # 如果是重建模式，理论上需要重新下发周边的介质包，保证介质包最新版本
-        # 适配切换类单据场景
-        # 通过ip所在cluster，获取db_dbbackup版本
-        if is_install_backup:
-            if env.MYSQL_BACKUP_PKG_MAP_ENABLE and not db_backup_pkg_type:
-                tmep_inst = StorageInstance.objects.filter(
-                    machine__ip__in=list(filter(None, list(set(master_ip_list + slave_ip_list))))
-                ).first()
-                db_version = tmep_inst.cluster.get().major_version
-                db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
-            if not db_backup_pkg_type:
-                db_backup_pkg_type = MediumEnum.DbBackup
-
-        sub_pipeline.add_act(
-            act_name=_("下发MySQL周边程序介质"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    exec_ip=list(filter(None, list(set(master_ip_list + slave_ip_list)))),
-                    file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(
-                        is_install_backup=is_install_backup,
-                        is_install_monitor=is_install_monitor,
-                        db_backup_pkg_type=db_backup_pkg_type,
-                    ),
-                )
-            ),
-        )
-
-    acts_list = []
-    # 是否采集系统信息
-    if collect_sysinfo:
-        acts_list.append(
-            update_machine_system_info_flow(
-                root_id=root_id,
-                bk_cloud_id=bk_cloud_id,
-                parent_global_data=parent_global_data,
-                ip_list=master_ip_list[:] + slave_ip_list[:] + proxy_ip_list[:],
-            )
-        )
-    if isinstance(master_ip_list, list) and len(list(filter(None, list(set(master_ip_list))))) != 0:
-        acts_list.extend(
-            build_surrounding_apps_for_master(
-                bk_cloud_id=bk_cloud_id,
-                cluster_type=cluster_type,
-                master_ip_list=list(filter(None, list(set(master_ip_list)))),
-                is_init=is_init,
-                is_install_backup=is_install_backup,
-                is_install_monitor=is_install_monitor,
-                is_install_checksum=is_install_checksum,
-                is_install_rotate_binlog=is_install_rotate_binlog,
-                db_backup_pkg_type=db_backup_pkg_type,
-            )
-        )
-    if isinstance(slave_ip_list, list) and len(list(filter(None, list(set(slave_ip_list))))) != 0:
-        acts_list.extend(
-            build_surrounding_apps_for_slave(
-                bk_cloud_id=bk_cloud_id,
-                cluster_type=cluster_type,
-                slave_ip_list=list(filter(None, list(set(slave_ip_list)))),
-                is_init=is_init,
-                is_install_backup=is_install_backup,
-                is_install_monitor=is_install_monitor,
-                is_install_checksum=is_install_checksum,
-                is_install_rotate_binlog=is_install_rotate_binlog,
-                db_backup_pkg_type=db_backup_pkg_type,
-            )
-        )
-    if isinstance(proxy_ip_list, list) and len(list(filter(None, list(set(proxy_ip_list))))) != 0:
-        acts_list.extend(
-            build_surrounding_apps_for_proxy(
-                bk_cloud_id=bk_cloud_id,
-                cluster_type=cluster_type,
-                proxy_ip_list=list(filter(None, list(set(proxy_ip_list)))),
-            )
-        )
-
-    if is_init:
-        # 如果非重建模式（上架阶段）， 不需要重建安装backup-client工具,默认情况下部署时 proxy+mysql机器都会安装
-        acts_list.append(
-            {
-                "act_name": _("安装backup-client工具"),
-                "act_component_code": DownloadBackupClientComponent.code,
-                "kwargs": asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        bk_biz_id=int(parent_global_data["bk_biz_id"]),
-                        download_host_list=list(
-                            filter(None, list(set(master_ip_list + slave_ip_list + proxy_ip_list)))
-                        ),
-                    )
-                ),
-            }
-        )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("安装MySql周边程序"))
-
-
-def build_surrounding_apps_for_master(
-    bk_cloud_id: int,
-    cluster_type: Optional[ClusterType],
-    master_ip_list: list = None,
-    is_init: bool = False,
-    is_install_backup: bool = True,
-    is_install_monitor: bool = True,
-    is_install_checksum: bool = True,
-    is_install_rotate_binlog: bool = True,
-    db_backup_pkg_type: MediumEnum = None,
-):
-    acts_list = []
-    for master_ip in list(set(master_ip_list)):
-        if is_install_rotate_binlog:
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
-        if is_install_monitor:
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装mysql-monitor".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-
-        if is_install_backup:
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装备份程序".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                            cluster={"db_backup_pkg_type": db_backup_pkg_type},
-                        )
-                    ),
-                }
-            )
-
-        if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value) and is_install_checksum:
-            # 主从架构部署mysql-checksum程序
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装校验程序".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_checksum_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-
-        if is_init:
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装DBATools工具箱".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-    return acts_list
-
-
-def build_surrounding_apps_for_slave(
-    bk_cloud_id: int,
-    cluster_type: Optional[ClusterType],
-    slave_ip_list: list = None,
-    is_init: bool = False,
-    is_install_backup: bool = True,
-    is_install_monitor: bool = True,
-    is_install_checksum: bool = True,
-    is_install_rotate_binlog: bool = True,
-    db_backup_pkg_type: MediumEnum = None,
-):
-    acts_list = []
-    for slave_ip in list(set(slave_ip_list)):
-        if is_install_rotate_binlog:
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
-        if is_install_monitor:
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装mysql-monitor".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-
-        if is_install_backup:
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装备份程序".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                            cluster={"db_backup_pkg_type": db_backup_pkg_type},
-                        )
-                    ),
-                },
-            )
-
-        if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value) and is_install_checksum:
-            # 主从架构部署mysql-checksum程序
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装校验程序".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_checksum_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-
-        if is_init:
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装DBATools工具箱".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                }
-            )
-    return acts_list
-
-
-def build_surrounding_apps_for_proxy(
-    bk_cloud_id: int,
-    cluster_type: Optional[ClusterType],
-    proxy_ip_list: list = None,
-):
-    acts_list = []
-    for proxy_ip in proxy_ip_list:
-        acts_list.append(
-            {
-                "act_name": _("Proxy安装mysql-monitor"),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(
-                    ExecActuatorKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=proxy_ip,
-                        get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                        cluster_type=cluster_type,
-                        run_as_system_user=DBA_ROOT_USER,
-                    )
-                ),
-            }
-        )
-    return acts_list
 
 
 def build_repl_by_manual_input_sub_flow(
@@ -630,19 +251,6 @@ def install_mysql_in_cluster_sub_flow(
                 }
             ]
         )
-
-    # acts_list = []
-    # for mysql_ip in new_mysql_list:
-    #     exec_act_kwargs.exec_ip = mysql_ip
-    #     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-    #     acts_list.append(
-    #         {
-    #             "act_name": _("部署mysql-crond {}".format(exec_act_kwargs.exec_ip)),
-    #             "act_component_code": ExecuteDBActuatorScriptComponent.code,
-    #             "kwargs": asdict(exec_act_kwargs),
-    #         }
-    #     )
-    # sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
     acts_list = []
@@ -979,23 +587,8 @@ def authorize_sub_flow_v2(root_id: str, uid: str, bk_biz_id: int, operator: str,
     # 获得用户规则字典
     db_type = ClusterType.cluster_type_to_db_type(rules_set[0]["cluster_type"])
     user_db_rules_map = AccountHandler.aggregate_user_db_rules(bk_biz_id, db_type, rule_key="")
-    # act_lists = []
+
     for authorize_data in rules_set:
-        # act = {
-        #     "act_name": _("{} 进行授权".format(authorize_data["user"])),
-        #     "act_component_code": AuthorizeRulesV2Component.code,
-        #     "kwargs": asdict(
-        #         AuthorizeKwargs(
-        #             uid=uid,
-        #             root_id=root_id,
-        #             bk_biz_id=bk_biz_id,
-        #             operator=operator,
-        #             db_type=db_type,
-        #             authorize_data=authorize_data,
-        #             user_db_rules_map=dict(user_db_rules_map),
-        #         )
-        #     ),
-        # }
         sub_pipeline.add_act(
             act_name=_("{} 进行授权".format(authorize_data["user"])),
             act_component_code=AuthorizeRulesV2Component.code,
@@ -1011,7 +604,5 @@ def authorize_sub_flow_v2(root_id: str, uid: str, bk_biz_id: int, operator: str,
                 )
             ),
         )
-        # act_lists.append(act)
 
-    # sub_pipeline.add_parallel_acts(acts_list=act_lists)
     return sub_pipeline.build_sub_process(sub_name=_("授权执行"))

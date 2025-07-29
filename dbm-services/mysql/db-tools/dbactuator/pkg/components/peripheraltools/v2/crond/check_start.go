@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-func (c *MySQLCrondComp) CheckStart() (err error) {
+func CheckStart() (err error) {
 	/*
 	   EXIT STATUS
 	          0      One or more processes matched the criteria. For pkill the process must also have been successfully signalled.
@@ -58,7 +58,7 @@ func (c *MySQLCrondComp) CheckStart() (err error) {
 
 	err = errors.Errorf("mysql-crond check start failed")
 
-	startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
+	startErrFilePath := filepath.Join(cst.MySQLCrondInstallPath, "start-crond.err")
 	_, err = os.Stat(startErrFilePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

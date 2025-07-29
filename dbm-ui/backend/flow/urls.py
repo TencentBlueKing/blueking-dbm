@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import url
 
-from backend.flow.views.append_deploy_ctl import AppendDeployCTLView
 from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
@@ -284,7 +283,6 @@ from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSce
 from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
-from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
 from backend.flow.views.tendbcluster_upgrade import (
     UpgradeTendbClusterRemoteSceneApiView,
     UpgradeTendbClusterSpiderSceneApiView,
@@ -453,7 +451,6 @@ urlpatterns = [
     url(r"^scene/redis_backup$", RedisClusterBackupSceneApiView.as_view()),
     url(r"^scene/tendbha_db_table_backup", MySQLHADBTableBackup.as_view()),
     url(r"^scene/install_hdfs$", InstallHdfsSceneApiView.as_view()),
-    url(r"^scene/tendbha_truncate_data$", MySQLHATruncateDataView),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
@@ -556,10 +553,7 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/enable_tbinlogumper$", EnableTBinlogDumperSceneApiView.as_view()),
     url("^scene/disable_tbinlogumper$", DisableTBinlogDumperSceneApiView.as_view()),
-    url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
-    # migrate
-    url("^scene/append_deploy_ctl$", AppendDeployCTLView.as_view()),
     # sqlserver
     url("^scene/sqlserver_single_apply$", SqlserverSingleApplySceneApiView.as_view()),
     url("^scene/sqlserver_ha_apply$", SqlserverHAApplySceneApiView.as_view()),

@@ -15,10 +15,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-func (c *MySQLCrondComp) Stop() (err error) {
-	return Stop()
-}
-
 func Stop() (err error) {
 	var cmd *exec.Cmd
 
@@ -46,11 +42,6 @@ func Stop() (err error) {
 	}
 	logger.Info("stop mysql-crond success")
 	return nil
-}
-
-// Start 启动进程
-func (c *MySQLCrondComp) Start() (err error) {
-	return Start()
 }
 
 func Start() (err error) {

@@ -13,7 +13,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/github/gh-ost v1.1.6
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/gofrs/flock v0.12.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -104,7 +103,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/dlclark/regexp2 v1.10.0
-	github.com/ghodss/yaml v1.0.0
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect

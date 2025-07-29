@@ -9,14 +9,6 @@ import (
 	"path/filepath"
 )
 
-func (c *MySQLMonitorComp) AddToCrond() (err error) {
-	var ports []int
-	for _, ele := range c.Params.PortBkInstanceList {
-		ports = append(ports, ele.Port)
-	}
-	return AddCrond(ports)
-}
-
 func AddCrond(ports []int) (err error) {
 	tl, err := tools.NewToolSetWithPick(tools.ToolMySQLMonitor)
 	if err != nil {

@@ -10,10 +10,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-func (c *MySQLRotateBinlogComp) AddCrond() (err error) {
-	return AddCrond()
-}
-
 func AddCrond() (err error) {
 	tl, err := tools.NewToolSetWithPick(tools.ToolMysqlRotatebinlog)
 	if err != nil {

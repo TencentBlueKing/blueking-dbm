@@ -412,7 +412,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SemanticCheck = EnumField("semantic-check", _("semantic-check"))
     SemanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     MysqlDumpData = EnumField("dump", _("dump"))
-    # TruncateDataBackupNaTable = EnumField("backup-truncate-database", _("backup-truncate-database"))
     RestartProxy = EnumField("restart", _("restart"))
     CleanMysql = EnumField("clean-mysql", _("clean-mysql"))
     DataBaseTableBackup = EnumField("backup-database-table", _("backup-database-table"))
@@ -459,22 +458,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     # 实例标准化
     StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
     StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
-    # 未分类
-    DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
-    # mysql surrounding v1
+    # get_install_tmp_db_backup_payload 在用
     DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
-    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
-    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
-    DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
-    DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
-    # mysql peripheral tools v2
-    PreparePeripheraltoolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
-    PushMySQLCrondConfig = EnumField("push-mysql-crond-config", _("推送mysql-crond配置"))
-    PushMySQLMonitorConfig = EnumField("push-mysql-monitor-config", _("推送mysql-monitor配置"))
-    PushNewDbBackupConfig = EnumField("push-new-db-backup-config", _("推送备份配置"))
-    PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
-    PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
-    PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
     # use reverse api
     GenPeripheralToolsConfig = EnumField("gen-peripheraltools-config", _("生成周边配置"))
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))

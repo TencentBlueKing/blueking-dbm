@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"bytes"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/checksum"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"os"

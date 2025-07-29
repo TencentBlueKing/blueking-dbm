@@ -37,8 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_apply_flow import MySQLHAAp
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHADestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
     DestroyNonStanbySlaveMySQLFlow,
     TendbClusterUpgradeFlow,
@@ -562,10 +560,6 @@ class MySQLController(BaseController):
         )
         flow.rename_database()
 
-    def mysql_ha_standardize_scene(self):
-        flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize()
-
     def mysql_randomize_password(self):
         flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_randomize_password()
@@ -573,10 +567,6 @@ class MySQLController(BaseController):
     def mysql_open_area_scene(self):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
-
-    def mysql_ha_metadata_import_scene(self):
-        flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.import_meta()
 
     def mysql_proxy_upgrade_scene(self):
         """
