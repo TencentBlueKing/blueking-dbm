@@ -99,7 +99,7 @@ def calculate_min_disk_size(total_filesize: int) -> int:
     Returns:
         Minimum disk size required in GB
     """
-    min_disk_size = bytes_to_gb(total_filesize) * 2  # Double the backup size
+    min_disk_size = bytes_to_gb(total_filesize) * 3  # Double the backup size
     return int(max(min_disk_size, 50))  # Ensure minimum of 50GB
 
 
@@ -167,6 +167,7 @@ def gen_rollback_task():
             continue
         logger.info("exercise backup_record: {}".format(backup_record))
         backup_id = backup_record["backup_id"]
+        backup_file_size_gb = bytes_to_gb(backup_record["total_filesize"])
         root_id = generate_root_id()
         task = MySQLBackupRecoverTask(
             bk_biz_id=backup_record["bk_biz_id"],
@@ -176,7 +177,7 @@ def gen_rollback_task():
             backup_id=backup_id,
             backup_begin_time=backup_record["backup_begin_time"],
             backup_end_time=backup_record["backup_end_time"],
-            backup_total_size=backup_record["total_filesize"],
+            backup_total_size=int(backup_file_size_gb),
             backup_type=backup_record["backup_type"],
             backup_tool=backup_record["backup_tool"],
             time_zone=backup_record["time_zone"],
@@ -265,12 +266,12 @@ def get_exercise_clusters(num: int) -> list:
     # 先获取未演练的业务的集群
     clusters = Cluster.objects.exclude(
         bk_biz_id__in=exclude_biz_ids,
-    )
+    ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
     if not clusters.exists():
         # 如果都演练过的话,则选择没有演练过的集群
         clusters = Cluster.objects.exclude(
             id__in=exclude_cluster_id,
-        )
+        ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
         if not clusters.exists():
             clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
             result = (

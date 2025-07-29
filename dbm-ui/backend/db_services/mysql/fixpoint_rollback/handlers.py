@@ -283,7 +283,6 @@ class FixPointRollbackHandler:
             start_time=start_time,
             end_time=end_time,
             query_string=query_string,
-            size=1,
         )
         return self.aggregate_tendb_dbbackup_logs(backup_logs)
 
