@@ -99,6 +99,12 @@ export default [
         name: t('集群标准化'),
         parentId: 'spider_cluster_maintain',
       },
+      {
+        bind: [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE],
+        id: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
+        name: t('版本升级'),
+        parentId: 'spider_cluster_maintain',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'spider_cluster_maintain',
