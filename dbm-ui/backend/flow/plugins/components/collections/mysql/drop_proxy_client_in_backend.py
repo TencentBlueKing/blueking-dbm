@@ -17,7 +17,7 @@ from backend.components import DRSApi
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql.mysql_commom_query import show_user_host_for_host
+from backend.flow.utils.mysql.mysql_commom_query import pre_check_proxy_host_in_definer, show_user_host_for_host
 
 logger = logging.getLogger("flow")
 
@@ -27,11 +27,30 @@ class DropProxyUsersInBackendService(BaseService):
     在集群内清理旧proxy的后端权限
     """
 
+    def pre_check_proxy_host_in_definer(self, origin_proxy_host: str, backend: StorageInstance):
+        """
+        删除之前检查proxy的host，是否被definer配置应用到
+        @param origin_proxy_host: 待检测host
+        @param backend: 查询的backend实例
+        """
+        check_result = pre_check_proxy_host_in_definer(origin_proxy_host, backend)
+        if check_result:
+            # 表示该proxy_host 有对应的definer配置，返回 False
+            for ret in check_result:
+                self.log_error(f"[{origin_proxy_host}] dangerous definer-config exists :{ret}")
+            return False
+
+        self.log_info(f"[{origin_proxy_host}] pre-check passed")
+        return True
+
     @staticmethod
     def drop_proxy_client(origin_proxy_host: str, backend: StorageInstance):
         """
-        在backend删除proxy的权限
+        在backend删除proxy的权限, 删除之前需要做检查：旧proxy是否在backend有对应的definer配置
+        @param origin_proxy_host: 待检测host
+        @param backend: 查询的backend实例
         """
+
         result, user_hosts = show_user_host_for_host(host=origin_proxy_host, instance=backend)
         if not result:
             return False, f"[{backend.ip_port}] get user_host[{origin_proxy_host}] failed"
@@ -63,6 +82,13 @@ class DropProxyUsersInBackendService(BaseService):
                 cluster_id=kwargs["cluster_id"], bk_biz_id=int(global_data["bk_biz_id"]), message=_("集群不存在")
             )
         for s in cluster.storageinstance_set.all():
+            if not self.pre_check_proxy_host_in_definer(kwargs["origin_proxy_host"], s):
+                # 检测有高危的definer配置绑定到origin_proxy_host， 不做删除，跳过
+                self.log_warning(
+                    f"Cannot delete host [{kwargs['origin_proxy_host']}] privileges in backend [{s.ip_port}], skip"
+                )
+                continue
+
             status, err = self.drop_proxy_client(kwargs["origin_proxy_host"], s)
             if not status:
                 self.log_error(err)

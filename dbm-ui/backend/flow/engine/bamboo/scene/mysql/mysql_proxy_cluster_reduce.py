@@ -167,16 +167,7 @@ class MySQLProxyClusterReduceFlow(object):
                 )
                 cluster_sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
 
-                cluster_sub_pipeline.add_act(
-                    act_name=_("回收旧proxy在backend权限"),
-                    act_component_code=DropProxyUsersInBackendComponent.code,
-                    kwargs=asdict(
-                        DropProxyUsersInBackendKwargs(
-                            cluster_id=cluster_id,
-                            origin_proxy_host=origin_proxy.machine.ip,
-                        ),
-                    ),
-                )
+                # todo 增加proxy脱离集群的方法，将proxy的backend设置成1.1.1.1:3306
 
                 cluster_sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
@@ -228,6 +219,17 @@ class MySQLProxyClusterReduceFlow(object):
                             db_meta_class_func=MySQLDBMeta.mysql_proxy_reduce.__name__,
                             cluster={"cluster_ids": [cluster_id], "origin_proxy_ip": info["origin_proxy_ip"]},
                         )
+                    ),
+                )
+                # 6：删除元数据 （实例级别操作）
+                cluster_sub_pipeline.add_act(
+                    act_name=_("回收旧proxy在backend权限"),
+                    act_component_code=DropProxyUsersInBackendComponent.code,
+                    kwargs=asdict(
+                        DropProxyUsersInBackendKwargs(
+                            cluster_id=cluster_id,
+                            origin_proxy_host=origin_proxy.machine.ip,
+                        ),
                     ),
                 )
 
