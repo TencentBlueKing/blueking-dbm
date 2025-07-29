@@ -63,13 +63,11 @@ class MySQLProxyClusterAddFlow(object):
         "infos": [
             {
                 "cluster_ids": [1,2],
-                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1},
-                "resource_spec": {...}
+                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
             },
             {
                 "cluster_ids": [3,4],
-                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1},
-                "resource_spec": {...}
+                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
             }
         ]
     }
