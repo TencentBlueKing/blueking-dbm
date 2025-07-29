@@ -757,11 +757,6 @@
 </script>
 <style lang="less">
   .db-table {
-    .bk-vxe-table {
-      --vxe-ui-table-cell-padding-left: 8px;
-      --vxe-ui-table-cell-padding-right: 8px;
-    }
-
     .head-prepend-row {
       display: flex;
       height: 30px;
