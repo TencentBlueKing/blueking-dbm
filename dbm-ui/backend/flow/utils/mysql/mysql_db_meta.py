@@ -131,7 +131,7 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler.mysql_proxy_add(
             bk_biz_id=int(self.bk_biz_id),
             bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
-            proxy_ip=self.cluster["proxy_ip"]["ip"],
+            proxy=self.cluster["proxy_ip"],
             proxy_ports=self.ticket_data["proxy_ports"],
             cluster_ids=self.cluster["cluster_ids"],
             created_by=self.ticket_data["created_by"],
@@ -147,7 +147,7 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler.mysql_proxy_add(
             bk_biz_id=int(self.bk_biz_id),
             bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
-            proxy_ip=self.cluster["target_proxy_ip"]["ip"],
+            proxy=self.cluster["target_proxy_ip"],
             proxy_ports=self.ticket_data["proxy_ports"],
             cluster_ids=self.cluster["cluster_ids"],
             created_by=self.ticket_data["created_by"],

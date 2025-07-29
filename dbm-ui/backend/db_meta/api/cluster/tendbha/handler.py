@@ -251,38 +251,36 @@ class TenDBHAClusterHandler(ClusterHandler):
         cls,
         bk_biz_id: int,
         bk_cloud_id: int,
-        proxy_ip: str,
+        proxy: dict,
         proxy_ports: list,
         cluster_ids: list,
         created_by: str,
-        resource_spec: dict,
         template_proxy_ip: str = None,
     ):
         """
         添加proxy节点，添加相关元信息
         @param bk_biz_id: 业务id
         @param bk_cloud_id: 云区域id
-        @param proxy_ip: 新proxy机器ip
+        @param proxy: 新proxy
         @param proxy_ports: 待关联的proxy端口
         @param cluster_ids: 待关联的集群id列表
         @param created_by: 操作者
-        @param resource_spec: 新proxy的规格信息
         @param template_proxy_ip: 模板proxy的ip
         """
 
         machines = [
             {
-                "ip": proxy_ip,
+                "ip": proxy["ip"],
                 "bk_biz_id": bk_biz_id,
                 "machine_type": MachineType.PROXY.value,
-                "spec_id": resource_spec[MachineType.PROXY.value]["id"],
-                "spec_config": resource_spec[MachineType.PROXY.value],
+                "spec_id": proxy["spec"]["id"],
+                "spec_config": proxy["spec"],
             }
         ]
 
         proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
         proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
-        proxies = [{"ip": proxy_ip, "port": proxy_port, "version": proxy_real_ver} for proxy_port in proxy_ports]
+        proxies = [{"ip": proxy["ip"], "port": proxy_port, "version": proxy_real_ver} for proxy_port in proxy_ports]
 
         # 初始化machine表
         api.machine.create(machines=machines, creator=created_by, bk_cloud_id=bk_cloud_id)
@@ -291,7 +289,9 @@ class TenDBHAClusterHandler(ClusterHandler):
         api.proxy_instance.create(proxies=proxies, creator=created_by)
 
         # 关联相关信息
-        api.cluster.tendbha.add_proxy(cluster_ids=cluster_ids, proxy_ip=proxy_ip, template_proxy_ip=template_proxy_ip)
+        api.cluster.tendbha.add_proxy(
+            cluster_ids=cluster_ids, proxy_ip=proxy["ip"], template_proxy_ip=template_proxy_ip
+        )
 
     @classmethod
     @transaction.atomic()
