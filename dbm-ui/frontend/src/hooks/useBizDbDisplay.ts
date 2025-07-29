@@ -53,7 +53,7 @@ export function useBizDbDisplay() {
       if (dbTypeInfo) {
         if (dbTypeInfo.moduleId === 'bigdata') {
           const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-          const clusterCount = clusterInstanceCount.value![dbTypeInfo.id as unknown as ClusterTypes].cluster_count;
+          const clusterCount = clusterInstanceCount.value![dbTypeInfo.id as unknown as ClusterTypes].cluster_count || 0;
           if (data[dbType as BigdataFunctions] && clusterCount) {
             return prevList.concat(dbTypeInfo);
           }
@@ -63,7 +63,7 @@ export function useBizDbDisplay() {
             (prevCount, key) => prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
             0,
           );
-          if (controllerData.is_enabled && clusterCount) {
+          if (controllerData?.is_enabled && clusterCount) {
             return prevList.concat(dbTypeInfo);
           }
         }
