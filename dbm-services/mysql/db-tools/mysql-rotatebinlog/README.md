@@ -97,3 +97,28 @@ COMMIT;
 
 PRAGMA foreign_keys=on;
 ```
+
+## binlog 起止时间解析 
+为了解决 binlog 文件里面所包含事件的结束时间，不依赖 file_mtime，`parse-time` 命令会从文件尾部读取后面的字节，直到成功获取`RotateEvent` / `StopEvent`。
+
+实测解析 1000 个 binlog 开始和结束时间，耗时 0.305s。
+
+```
+./rotatebinlog parse-time -f ./binlog.000001
+[
+    {
+        "event_type": "FormatDescriptionEvent",
+        "event_time": "2025-06-27T17:15:00+08:00",
+        "timestamp": 1751015700,
+        "server_id": 76507494,
+        "event_size": 137
+    },
+    {
+        "event_type": "RotateEvent",
+        "event_time": "2025-06-27T17:35:00+08:00",
+        "timestamp": 1751016900,
+        "server_id": 76507494,
+        "event_size": 49
+    }
+]
+```

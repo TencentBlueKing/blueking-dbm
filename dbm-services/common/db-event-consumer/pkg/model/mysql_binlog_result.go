@@ -16,8 +16,8 @@ type BinlogFileModel struct {
 	// immutable domain, 如果是从库，也使用主域名。cluster_domain 至少作为备注信息，一般不作为查询条件
 	ClusterDomain string `json:"cluster_domain" db:"cluster_domain" gorm:"column:cluster_domain;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
 	DbRole        string `json:"db_role" db:"db_role" gorm:"column:db_role;type:varchar(32);NOT NULL"`
-	Host          string `json:"host,omitempty" db:"host" gorm:"column:host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2"`
-	Port          int    `json:"port,omitempty" db:"port" gorm:"column:port;type:int;NOT NULL;index:uk_cluster,unique,priority:3;index:idx_host"`
+	Host          string `json:"host,omitempty" db:"host" gorm:"column:host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2;index:idx_host"`
+	Port          int    `json:"port,omitempty" db:"port" gorm:"column:port;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
 	Filename      string `json:"filename,omitempty" db:"filename" gorm:"column:filename;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:4"`
 	Filesize      int64  `json:"size" db:"filesize" gorm:"column:filesize;type:bigint;NOT NULL"`
 	// FileMtime 文件最后修改时间，带时区

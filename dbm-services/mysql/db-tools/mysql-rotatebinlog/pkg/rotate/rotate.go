@@ -338,6 +338,16 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 	}
 	logger.Info("%d binlog files unfinished: %d", r.binlogInst.Port, len(files))
 	for _, f := range files {
+		// 超过 maxOldDaysToUpload 天的，全部标记为异常
+		if fMtime, err := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local); err == nil {
+			if time.Now().Sub(fMtime).Hours() > float64(24*maxOldDaysToUpload) {
+				f.BackupStatus = models.IBStatusUploadAbnormal
+				if err = f.Update(models.DB.Conn); err != nil {
+					return err
+				}
+				continue
+			}
+		}
 		// 需要上传的，提交上传任务
 		if f.BackupStatus == models.IBStatusNew || f.BackupStatus == models.IBStatusClientFail {
 			filename := filepath.Join(r.binlogDir, f.Filename)
@@ -410,14 +420,6 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 							return err
 						}
 						continue
-					} else if fMtime, err := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local); err == nil {
-						if time.Now().Sub(fMtime).Hours() > float64(24*maxOldDaysToUpload) {
-							f.BackupStatus = models.IBStatusUploadAbnormal
-							if err = f.Update(models.DB.Conn); err != nil {
-								return err
-							}
-							continue
-						}
 					}
 				}
 			}
