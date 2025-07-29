@@ -134,16 +134,17 @@ func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
 	if e.Params.FilePathSubfix == "" {
 		return
 	}
-	cleanCmd := fmt.Sprintf(`find %s -maxdepth 1 -name %s* -type d -mtime +60 |xargs -i rm {};`, cst.BK_PKG_INSTALL_PATH,
+	cleanCmd := fmt.Sprintf(`find %s -maxdepth 1 -name %s* -type d -mtime +60 |xargs -i rm -r {};`,
+		cst.BK_PKG_INSTALL_PATH,
 		e.Params.FilePathSubfix)
-	logger.Warn("delete before 60 days dump sql file")
-	logger.Warn("will execute: %s", cleanCmd)
+	logger.Info("delete before 60 days dump sql file")
+	logger.Info("will execute: %s", cleanCmd)
 	out, err := osutil.StandardShellCommand(false, cleanCmd)
 	if err != nil {
-		logger.Error("clean sql file failed:%s,out:%s", err.Error(), out)
+		logger.Warn("clean sql file failed:%s,out:%s", err.Error(), out)
 		return
 	}
-	logger.Warn("clean sql file success")
+	logger.Info("clean sql file success")
 }
 
 // CheckSQLFileExist 检查文件是否存在
