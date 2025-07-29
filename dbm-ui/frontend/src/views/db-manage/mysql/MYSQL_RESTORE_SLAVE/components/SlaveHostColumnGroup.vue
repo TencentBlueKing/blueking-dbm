@@ -192,7 +192,7 @@
             master_domain: item.master_domain,
           })),
           role: currentHost.role,
-          spec_id: currentHost.spec_config?.id || -1,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },

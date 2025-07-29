@@ -14,16 +14,12 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <BkSelect
-          v-model="formData.for_biz"
-          :allow-empty-values="[0]"
-          :disabled="isBusiness">
-          <BkOption
-            v-for="bizItem in bizList"
-            :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
-            :value="bizItem.bk_biz_id" />
-        </BkSelect>
+        <DbAppSelect
+          :disabled="isBusiness"
+          :list="globalBizsStore.bizs"
+          :model-value="currentApp"
+          :show-public-biz="!isBusiness"
+          @change="handleAppChange" />
       </BkFormItem>
       <BkFormItem
         :label="t('所属DB')"
@@ -38,6 +34,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
+        v-if="formData.for_biz !== 0"
         :label="t('资源标签')"
         property="labels">
         <TagSelector
@@ -75,7 +72,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
     editData: DbResourceModel;
@@ -105,6 +106,9 @@
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
   const isBusiness = route.name === 'BizResourcePool';
+  const currentApp = shallowRef(
+    formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
+  );
 
   watch(
     () => props.editData,
@@ -153,6 +157,11 @@
       isShow.value = false;
     },
   });
+
+  const handleAppChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    formData.for_biz = appInfo!.bk_biz_id;
+  };
 
   const handleSubmit = async () => {
     await formRef.value!.validate();

@@ -270,7 +270,8 @@
               new_slave: {
                 count: 1,
                 label_names: item.labels.map((item) => item.value),
-                labels: item.labels.map((item) => String(item.id)),
+                // 通用标签传空数组
+                labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
                 spec_id: item.slave.spec_id,
               },
             },

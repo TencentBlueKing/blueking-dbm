@@ -42,6 +42,18 @@
             field="host.spec_id"
             :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required />
+          <ResourceTagColumn
+            v-model="item.labels"
+            @batch-edit="handleBatchEditColumn" />
+          <AvailableResourceColumn
+            :params="{
+              city: item.host.bk_idc_city_name,
+              subzones: item.host.bk_sub_zone,
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              spec_id: item.host.spec_id,
+              labels: item.labels.map((item) => item.id).join(','),
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -90,12 +102,14 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -107,10 +121,13 @@
 
   interface RowData {
     host: ComponentProps<typeof HostColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = [
     {
@@ -125,6 +142,8 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
         cluster_id: 0,
         instance_address: '',
         ip: '',
@@ -135,6 +154,7 @@
       },
       data.host,
     ),
+    labels: (data.labels || []) as RowData['labels'],
   });
 
   const defaultData = () => ({
@@ -179,7 +199,8 @@
       resource_spec: {
         [x in string]: {
           count: number;
-          labels: string[];
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -224,7 +245,9 @@
           resource_spec: {
             [`${item.host.role}_${item.host.ip}`]: {
               count: 1,
-              labels: [],
+              label_names: item.labels.map((item) => item.value),
+              // 通用标签传空数组
+              labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
               spec_id: item.host.spec_id,
             },
           },
@@ -292,5 +315,13 @@
     } else {
       formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList];
     }
+  };
+
+  const handleBatchEditColumn = (value: any, field: string) => {
+    formData.tableData.forEach((rowData) => {
+      Object.assign(rowData, {
+        [field]: value,
+      });
+    });
   };
 </script>

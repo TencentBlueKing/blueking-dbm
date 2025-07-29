@@ -220,6 +220,17 @@
       immediate: true,
     },
   );
+
+  onMounted(() => {
+    modelValue.value = [
+      {
+        id: DEFAULT_TAG_ID,
+        value: t('通用无标签'),
+      },
+    ];
+    ids.value = [DEFAULT_TAG_ID];
+    tagTheme.value = 'success';
+  });
 </script>
 <style lang="less" scoped>
   .batch-edit-btn {
