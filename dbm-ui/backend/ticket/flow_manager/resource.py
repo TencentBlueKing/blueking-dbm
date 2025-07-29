@@ -129,7 +129,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
 
-    def _format_resource_hosts(self, hosts):
+    def _format_resource_hosts(self, hosts, spec):
         """格式化申请的主机参数"""
         return [
             {
@@ -157,6 +157,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "for_biz": host["dedicated_biz"],
                 "labels": host["labels"],
                 "resource_type": host["rs_type"],
+                "spec": spec.get_spec_info(),
             }
             for host in hosts
         ]
@@ -201,15 +202,28 @@ class ResourceApplyFlow(BaseTicketFlow):
                 _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"], resp.get("message"))
             )
 
+        resource_specs = [info["resource_spec"] for info in ticket_data["infos"]]
+        first_key_spec_id_map = {
+            role: spec["spec_id"]
+            for resource in resource_specs
+            for role, spec in resource.items()
+            if spec.get("spec_id")
+        }
+
+        spec_map = {
+            spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=list(first_key_spec_id_map.values()))
+        }
+
         # 将资源池申请的主机信息转换为单据参数
         resource_request_id, apply_data = resp["request_id"], resp["data"]
         node_infos: Dict[str, List] = defaultdict(list)
         for info in apply_data:
             role = info["item"]
-            host_infos = self._format_resource_hosts(info["data"])
+            group_name = role.rsplit("_", 1)[0]
+            spec = self.get_spec(group_name, first_key_spec_id_map, spec_map)
+            host_infos = self._format_resource_hosts(info["data"], spec)
             # 如果是部署方案的分组，则用backend_group包裹。里面每一小组是一对master/slave;
             # 否则就按角色分组填入
-            group_name = role.rsplit("_", 1)[0]
             if "backend_group" in role:
                 node_infos[group_name].append({"master": host_infos[0], "slave": host_infos[1]})
             else:
@@ -245,6 +259,12 @@ class ResourceApplyFlow(BaseTicketFlow):
             ).to_dict(),
         )
         notify.send_msg.apply_async(args=(self.ticket.id,))
+
+    def get_spec(self, group_name, source_spec_key_map, spec_map):
+        if source_spec_key_map.get(group_name):
+            return spec_map[source_spec_key_map[group_name]]
+        role = group_name.split("_", 1)[-1]
+        return spec_map.get(source_spec_key_map.get(role), "")
 
     def fetch_apply_params(self, ticket_data):
         """
