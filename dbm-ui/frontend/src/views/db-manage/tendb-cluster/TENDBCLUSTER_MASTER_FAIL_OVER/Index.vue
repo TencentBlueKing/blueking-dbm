@@ -74,11 +74,6 @@
         </BkCheckbox>
       </BkFormItem>
       <BkFormItem class="mb-8">
-        <BkCheckbox v-model="formData.is_check_delay">
-          {{ t('检查主从同步延迟') }}
-        </BkCheckbox>
-      </BkFormItem>
-      <BkFormItem class="mb-8">
         <BkCheckbox v-model="formData.is_verify_checksum">
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
