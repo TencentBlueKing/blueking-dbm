@@ -199,7 +199,7 @@
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
           role: currentHost.role,
-          spec_id: currentHost.spec_config?.id || -1,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },

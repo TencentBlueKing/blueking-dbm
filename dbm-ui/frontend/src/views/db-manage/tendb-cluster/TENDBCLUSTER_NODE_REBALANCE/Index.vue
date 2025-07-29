@@ -255,7 +255,8 @@
               count: item.targetCapacity.machine_pair,
               futureCapacity: item.targetCapacity.cluster_capacity,
               label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
+              // 通用标签传空数组
+              labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
               spec_id: item.targetCapacity.spec_id,
               specName: item.targetCapacity.spec_name,
             },

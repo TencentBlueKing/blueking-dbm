@@ -47,7 +47,7 @@
                   {{ t('重新设置资源归属') }}
                 </BkDropdownItem>
                 <BkDropdownItem
-                  :class="isSelectedGlobalResource ? 'disabled-cls' : ''"
+                  :class="isSelectedGlobalResource || !isSelectedSameBiz ? 'disabled-cls' : ''"
                   @click="() => handleShowBatchAddTags()">
                   {{ t('添加资源标签') }}
                 </BkDropdownItem>
@@ -511,6 +511,10 @@
   const handleShowBatchAddTags = () => {
     if (isSelectedGlobalResource.value) {
       messageWarn(t('仅业务资源支持添加标签'));
+      return;
+    }
+    if (!isSelectedSameBiz.value) {
+      messageWarn(t('仅支持同业务的主机批量添加资源标签'));
       return;
     }
     isShowBatchAddTags.value = true;

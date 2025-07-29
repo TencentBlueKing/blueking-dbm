@@ -149,7 +149,7 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        enable: true,
+        enable: props.selectable ? true : undefined,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
       },
