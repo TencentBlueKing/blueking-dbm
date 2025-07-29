@@ -106,10 +106,10 @@ func CheckFaultHosts(hosts []CheckFaultHostsParamItem) (d map[string]DbmFaultRes
 	defer resp.Body.Close()
 	content, err = io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error("read respone body failed %s", err.Error())
+		logger.Error("read response body failed %s", err.Error())
 		return nil, err
 	}
-	logger.Info("respone %v", string(content))
+	logger.Info("response %v", string(content))
 	if err = json.Unmarshal(content, &d); err != nil {
 		return nil, err
 	}

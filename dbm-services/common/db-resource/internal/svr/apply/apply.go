@@ -55,7 +55,7 @@ func applyGroupsInSameLocation(param RequestInputParam) (pickers []*PickerObject
 	v := resourceReqList[0]
 	idcCitys, err = getLogicIdcCitys(v)
 	if err != nil {
-		logger.Error("get logic citys failed %s", err.Error())
+		logger.Error("get logic cites failed %s", err.Error())
 		return pickers, err
 	}
 	var subzoneIds []string
@@ -233,7 +233,7 @@ func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
 // CycleApply 循环匹配
 func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 	// 多个请求参数分组在同一个地方
-	affinities := lo.Uniq(param.GetAllAffinitys())
+	affinities := lo.Uniq(param.GetAllAffinities())
 	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinities) == 1 &&
 		slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, affinities[0]) {
 		logger.Info("apply all groups in same location")
@@ -253,11 +253,11 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		if v.Affinity == "" || v.Count <= 1 {
 			v.Affinity = NONE
 		}
-		idcCitys := []string{}
+		idcCites := []string{}
 		if lo.IsNotEmpty(&v.LocationSpec.City) {
-			idcCitys, err = getLogicIdcCitys(v)
+			idcCites, err = getLogicIdcCitys(v)
 			if err != nil {
-				logger.Error("get logic citys failed %s", err.Error())
+				logger.Error("get logic cites failed %s", err.Error())
 				return pickers, err
 			}
 		}
@@ -265,7 +265,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 			IntentionBkBizId: param.ForbizId,
 			RsType:           param.ResourceType,
 			ObjectDetail:     &v,
-			IdcCitys:         idcCitys,
+			IdcCitys:         idcCites,
 			SpecialHostIds:   v.Hosts.GetBkHostIds(),
 		}
 		if err = s.PickCheck(); err != nil {
@@ -280,7 +280,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		picker.DebugDistributeLog()
 		// 更新挑选到的资源的状态为Preselected
 		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
-			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status In Selling Failed:%v", v.GroupMark,
+			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status to Preselected Failed:%v", v.GroupMark,
 				updateErr.Error())
 		}
 		// 追加到挑选好的分组
@@ -293,7 +293,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 func RollBackAllInstanceUnused(ms []*PickerObject) {
 	for _, m := range ms {
 		if err := m.RollbackUnusedInstance(); err != nil {
-			logger.Error(fmt.Sprintf("Rollback Satisfied Instance Status NotSelled Failed,Error %s", err.Error()))
+			logger.Error(fmt.Sprintf("Rollback Satisfied Instance Status to Unused Failed,Error %s", err.Error()))
 		}
 	}
 }
@@ -307,7 +307,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	}
 	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GseAlive)
 
-	o.MatchIntetionBkBiz(db)
+	o.MatchIntentionBkBiz(db)
 	o.MatchRsType(db)
 	o.MatchOsType(db)
 	o.MatchOsName(db)
@@ -382,7 +382,7 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 		},
 		{
 			name: "biz",
-			fn:   o.MatchIntetionBkBiz,
+			fn:   o.MatchIntentionBkBiz,
 			desc: "在匹配专用业务和公共业务的时候没有匹配到资源",
 		},
 		{
@@ -440,7 +440,7 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 	return
 }
 
-// PickCheckSpecialBkhostIds 根据bkhostids取资源
+// PickCheckSpecialBkhostIds host Ids 根据bk host ids取资源
 func (o *SearchContext) PickCheckSpecialBkhostIds() (err error) {
 	var rs []int
 	err = model.DB.Self.Table(model.TbRpDetailName()).Select("bk_host_id").Where(
@@ -453,8 +453,8 @@ func (o *SearchContext) PickCheckSpecialBkhostIds() (err error) {
 	if len(rs) != len(o.SpecialHostIds) {
 		emptyIps := []string{}
 		hostIpMap := lo.SliceToMap(o.Hosts, func(item Host) (int, string) { return item.BkHostId, item.IP })
-		for hostid, ip := range hostIpMap {
-			if !lo.Contains(rs, hostid) {
+		for hostId, ip := range hostIpMap {
+			if !lo.Contains(rs, hostId) {
 				emptyIps = append(emptyIps, ip)
 			}
 		}
@@ -479,7 +479,7 @@ func (o *SearchContext) filterEmptyMountPointStorage(items []model.TbRpDetail,
 				noUseStorages[mp] = v
 			}
 		}
-		logger.Info("nouse: %v", noUseStorages)
+		logger.Info("no-use: %v", noUseStorages)
 		if matchNoMountPointStorage(diskSpecs, noUseStorages) {
 			ts = append(ts, ins)
 		}
@@ -581,8 +581,8 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 	return
 }
 
-// MatchIntetionBkBiz match intetion biz
-func (o *SearchContext) MatchIntetionBkBiz(db *gorm.DB) {
+// MatchIntentionBkBiz match intention biz
+func (o *SearchContext) MatchIntentionBkBiz(db *gorm.DB) {
 	// 如果没有指定专属业务，就表示只能选用公共的资源
 	// 不能匹配打了业务标签的资源
 	if o.IntentionBkBizId <= 0 {
@@ -609,7 +609,7 @@ func (o *SearchContext) MatchRsType(db *gorm.DB) {
 
 // MatchOsType match os type
 func (o *SearchContext) MatchOsType(db *gorm.DB) {
-	// os type: Windows, Liunx
+	// os type: Windows, Linux
 	osType := o.ObjectDetail.OsType
 	if cmutil.IsEmpty(o.ObjectDetail.OsType) {
 		osType = model.LinuxOs
@@ -723,12 +723,12 @@ func (o *SearchContext) MatchSpec(db *gorm.DB) {
 	o.Spec.Mem.MatchMem(db)
 }
 
-// UseNetDeviceIsNotEmpty filster net device id not empty
+// UseNetDeviceIsNotEmpty filter net device id not empty
 func (o *SearchContext) UseNetDeviceIsNotEmpty(db *gorm.DB) {
 	db.Where("(net_device_id  is not null and net_device_id != '') and (rack_id is not null and rack_id != '')")
 }
 
-// RackIdIsNotEmpty filter rackid is not empty
+// RackIdIsNotEmpty filter rack-id is not empty
 func (o *SearchContext) RackIdIsNotEmpty(db *gorm.DB) {
 	db.Where("rack_id is not null and rack_id != ''")
 }

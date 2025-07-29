@@ -346,7 +346,11 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 	result := make(map[string]*PriorityQueue)
 	maxMumDeviceClass := getMaxNumDeviceClass(insList)
 	subZonePrioritySumMap := make(map[string]int64)
+	netDeviceIdPrioritySumMap := make(map[string]int64)
 	itemsMap := make(map[string][]Item)
+	for _, ins := range insList {
+		netDeviceIdPrioritySumMap[ins.NetDeviceID]++
+	}
 	for _, ins := range insList {
 		ele := Item{
 			Key:      strconv.Itoa(ins.BkHostID),
@@ -363,6 +367,13 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 		if israndom {
 			itemsMap[RANDOM] = append(itemsMap[RANDOM], ele)
 		} else {
+			if slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, o.Affinity) {
+				v, ok := netDeviceIdPrioritySumMap[ins.NetDeviceID]
+				if !ok {
+					v = 0
+				}
+				ele.Priority += v * PriorityP2
+			}
 			itemsMap[ins.SubZone] = append(itemsMap[ins.SubZone], ele)
 			subZonePrioritySumMap[ins.SubZone] += ele.Priority
 		}

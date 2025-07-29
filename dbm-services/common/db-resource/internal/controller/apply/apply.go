@@ -101,10 +101,10 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		c.SendResponse(r, err, err.Error())
 		return
 	}
-	uerr := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
+	err = model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
 		param.RequestId).Update("status", model.Used).Error
-	if uerr != nil {
-		logger.Warn("update tb_rp_operation_info failed %s ", uerr.Error())
+	if err != nil {
+		logger.Warn("update tb_rp_operation_info failed %s ", err.Error())
 	}
 	archive(hostIds)
 	c.SendResponse(r, nil, "successful")

@@ -67,15 +67,15 @@ func (c *DbmClient) getDbmEnv() (data DbmEnvData, err error) {
 	defer resp.Body.Close()
 	logger.Info("get dbm env response body %s", string(content))
 
-	var rpdata DbmBaseResp
-	if err = json.Unmarshal(content, &rpdata); err != nil {
+	var respData DbmBaseResp
+	if err = json.Unmarshal(content, &respData); err != nil {
 		return DbmEnvData{}, err
 	}
-	if rpdata.Code != 0 {
-		return DbmEnvData{}, errors.New(rpdata.Message)
+	if respData.Code != 0 {
+		return DbmEnvData{}, errors.New(respData.Message)
 	}
 	var dbmEnvResp DbmEnvData
-	if err = json.Unmarshal(rpdata.Data, &dbmEnvResp); err != nil {
+	if err = json.Unmarshal(respData.Data, &dbmEnvResp); err != nil {
 		return DbmEnvData{}, err
 	}
 	return dbmEnvResp, nil

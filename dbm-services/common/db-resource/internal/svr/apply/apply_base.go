@@ -79,8 +79,8 @@ type RequestInputParam struct {
 	ActionInfo
 }
 
-// GetAllAffinitys 获取这批请求的所有亲和性的参数
-func (param RequestInputParam) GetAllAffinitys() (affinities []string) {
+// GetAllAffinities 获取这批请求的所有亲和性的参数
+func (param RequestInputParam) GetAllAffinities() (affinities []string) {
 	for _, d := range param.Details {
 		if !lo.Contains(affinities, d.Affinity) {
 			affinities = append(affinities, d.Affinity)
