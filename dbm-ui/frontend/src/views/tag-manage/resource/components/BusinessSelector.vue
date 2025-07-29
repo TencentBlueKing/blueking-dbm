@@ -14,6 +14,7 @@
 <template>
   <BkSelect
     v-model="selected"
+    filterable
     :min-height="389"
     @toggle="handleToggle">
     <template #trigger>

@@ -41,6 +41,7 @@
       <div class="header-action mb-16">
         <BkButton
           class="operation-btn"
+          :disabled="curBizId === 0"
           theme="primary"
           @click="handleCreate">
           {{ t('新建') }}
