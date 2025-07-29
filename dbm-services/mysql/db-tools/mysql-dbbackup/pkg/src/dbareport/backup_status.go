@@ -6,7 +6,7 @@ type BackupStatus struct {
 	// StatusDetail 如果失败，记录失败详情
 	StatusDetail string `json:"status_detail" gorm:"type:varchar(255);NOT NULL"`
 
-	BackupId      string `json:"backup_id" gorm:"type:varchar(32);NOT NULL"`
+	BackupId      string `json:"backup_id" gorm:"type:varchar(60);NOT NULL"`
 	BackupType    string `json:"backup_type"  gorm:"type:varchar(32);NOT NULL"`
 	ClusterId     int    `json:"cluster_id" gorm:"type:int;NOT NULL"`
 	ClusterDomain string `json:"cluster_domain" gorm:"type:varchar(255);NOT NULL"`

@@ -11,10 +11,10 @@ package model
 type BinlogFileModel struct {
 	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
-	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id" gorm:"column:bk_biz_id;type:varchar(32);NOT NULL;index:id_bkbizid,priority:1"`
+	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL;index:id_bkbizid,priority:1"`
 	ClusterId int `json:"cluster_id,omitempty" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL;index:id_clusterid,priority:1"`
 	// immutable domain, 如果是从库，也使用主域名。cluster_domain 至少作为备注信息，一般不作为查询条件
-	ClusterDomain string `json:"cluster_domain" db:"cluster_domain" gorm:"column:cluster_domain;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:1"`
+	ClusterDomain string `json:"cluster_domain" db:"cluster_domain" gorm:"column:cluster_domain;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
 	DbRole        string `json:"db_role" db:"db_role" gorm:"column:db_role;type:varchar(32);NOT NULL"`
 	Host          string `json:"host,omitempty" db:"host" gorm:"column:host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2"`
 	Port          int    `json:"port,omitempty" db:"port" gorm:"column:port;type:int;NOT NULL;index:uk_cluster,unique,priority:3;index:idx_host"`
@@ -26,8 +26,8 @@ type BinlogFileModel struct {
 	StopTime         string `json:"stop_time" db:"stop_time" gorm:"column:stop_time;type:datetime;NOT NULL"`
 	BackupEnable     bool   `json:"backup_enable" db:"backup_enable" gorm:"column:backup_enable;type:tinyint;NOT NULL"`
 	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status" gorm:"column:backup_status;type:tinyint;NOT NULL;index:idx_status"`
-	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info" gorm:"column:backup_status_info;type:varchar(32);NOT NULL"`
-	TaskId           string `json:"task_id,omitempty" db:"task_id" gorm:"column:task_id;type:varchar(32);NOT NULL;index:idx_taskid"`
+	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info" gorm:"column:backup_status_info;type:varchar(255);NOT NULL"`
+	TaskId           string `json:"task_id,omitempty" db:"task_id" gorm:"column:task_id;type:varchar(60);NOT NULL;index:idx_taskid"`
 	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
 }
 
