@@ -111,6 +111,14 @@ class JsonConfigFormat:
         }
 
     @classmethod
+    def format_mixed_report(cls):
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            # 暂时只下发 mysql
+            "target_nodes": cls.get_db_set_ctx(DBType.MySQL.value)["target_nodes"],
+        }
+
+    @classmethod
     def format_mysql(cls):
         return cls.get_db_set_ctx(DBType.MySQL.value)
 
