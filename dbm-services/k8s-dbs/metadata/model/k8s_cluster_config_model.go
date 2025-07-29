@@ -27,7 +27,7 @@ import (
 // K8sClusterConfigModel represents the database model of cluster config
 type K8sClusterConfigModel struct {
 	ID           uint64                 `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
-	ClusterName  string                 `gorm:"column:cluster_name;type:varchar(255);not null" json:"clusterName"`
+	ClusterName  string                 `gorm:"column:cluster_name;type:varchar(32);not null" json:"clusterName"`
 	APIServerURL string                 `gorm:"column:api_server_url;type:varchar(255);not null" json:"apiServerUrl"`
 	CACert       string                 `gorm:"column:ca_cert;type:text" json:"caCert"`
 	ClientCert   string                 `gorm:"column:client_cert;type:text" json:"clientCert"`
@@ -49,10 +49,11 @@ type K8sClusterConfigModel struct {
 
 // RegionModel 区域信息 model
 type RegionModel struct {
-	IsPublic   bool   `gorm:"type:tinyint(1);not null;default:1;column:is_public" json:"isPublic"`
-	RegionName string `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
-	RegionCode string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
-	Provider   string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
+	IsPublic    bool   `gorm:"type:tinyint(1);not null;default:1;column:is_public" json:"isPublic"`
+	ClusterName string `gorm:"column:cluster_name;type:varchar(32);not null" json:"clusterName"`
+	RegionName  string `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
+	RegionCode  string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
+	Provider    string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
 }
 
 // TableName 获取 model 对应的数据库表名

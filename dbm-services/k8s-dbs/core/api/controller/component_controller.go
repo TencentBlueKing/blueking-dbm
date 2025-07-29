@@ -21,7 +21,7 @@ package controller
 
 import (
 	coreconst "k8s-dbs/common/constant"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	coreresp "k8s-dbs/core/vo/response"
@@ -61,13 +61,13 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 
 // ListPods 获取实例列表
 func (c *ComponentController) ListPods(ctx *gin.Context) {
-	pagination, err := commhelper.BuildPagination(ctx)
+	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	var componentParams coreentity.ComponentQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &componentParams, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &componentParams, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
@@ -86,7 +86,7 @@ func (c *ComponentController) ListPods(ctx *gin.Context) {
 // GetComponentService 获取组件连接信息
 func (c *ComponentController) GetComponentService(ctx *gin.Context) {
 	var svcEntity coreentity.K8sSvcEntity
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &svcEntity, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}

@@ -24,9 +24,9 @@ import (
 	"encoding/json"
 	"errors"
 	"k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
-	corehelper "k8s-dbs/core/helper"
+	coreutil "k8s-dbs/core/util"
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
@@ -177,7 +177,7 @@ func (k *K8sCrdClusterProviderImpl) setClusterTopology(
 	if err := copier.Copy(&k8sClusterConfigEntity, k8sClusterConfig); err != nil {
 		return nil, err
 	}
-	k8sClient, err := commhelper.NewK8sClient(&k8sClusterConfigEntity)
+	k8sClient, err := commutil.NewK8sClient(&k8sClusterConfigEntity)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (k *K8sCrdClusterProviderImpl) setClusterTopology(
 			ClusterName:   clusterTopology.ClusterName,
 			ComponentName: component.Name,
 		}
-		pods, err := corehelper.GetComponentPods(addonTopo.AddonType, componentQueryParams, k8sClient)
+		pods, err := coreutil.GetComponentPods(addonTopo.AddonType, componentQueryParams, k8sClient)
 		if err != nil {
 			return nil, err
 		}
@@ -339,6 +339,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 		return nil, 0, err
 	}
 	for _, clusterEntity := range clusterEntities {
+		// 设置 addon 信息
 		addonModel, err := k.addonDbAccess.FindByID(clusterEntity.AddonID)
 		if err != nil {
 			slog.Warn("Failed to find addonModel by ID", "ID", clusterEntity.AddonID, "error", err)
@@ -350,6 +351,19 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 			continue
 		}
 		clusterEntity.AddonInfo = addonEntity
+		// 设置 k8sClusterConfig 信息
+		k8sClusterConfigModel, err := k.k8sClusterConfigDbAccess.FindByID(clusterEntity.K8sClusterConfigID)
+		if err != nil {
+			slog.Warn("Failed to find clusterModel by ID", "ID", clusterEntity.K8sClusterConfigID, "error", err)
+			continue
+		}
+		k8sClusterConfigEntity := &metaentity.K8sClusterConfigEntity{}
+		if err := copier.Copy(k8sClusterConfigEntity, k8sClusterConfigModel); err != nil {
+			slog.Warn("Failed to copy model to copied entity", "error", err)
+			continue
+		}
+		clusterEntity.K8sClusterConfig = k8sClusterConfigEntity
+
 		clusterResource, err := k.getClusterResource(clusterEntity)
 		if err != nil {
 			slog.Warn("Failed to get cluster resource", "error", err)
@@ -374,7 +388,7 @@ func (k *K8sCrdClusterProviderImpl) getClusterResource(
 		slog.Warn("Failed to copy k8sClusterConfigModel to k8sClusterConfigEntity", "error", err)
 		return nil, err
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfigEntity)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfigEntity)
 	if err != nil {
 		slog.Warn("Failed to create k8sClient", "error", err)
 		return nil, err

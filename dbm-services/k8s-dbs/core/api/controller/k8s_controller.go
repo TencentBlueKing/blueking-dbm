@@ -22,7 +22,7 @@ package controller
 import (
 	coreconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/core/vo/request"
@@ -69,13 +69,13 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 
 // ListPodLogs 获取 pod 日志分页结果
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
-	pagination, err := commhelper.BuildPagination(ctx)
+	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var podLogEntity entity.K8sPodLogQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &podLogEntity, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogEntity, nil); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
@@ -94,7 +94,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 // GetPodDetail 获取实例详情
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 	var podDetailParams entity.K8sPodDetailQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &podDetailParams, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podDetailParams, nil); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}

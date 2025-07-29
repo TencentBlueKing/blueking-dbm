@@ -53,7 +53,7 @@ func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.Re
 ) {
 	var regions []*models.RegionModel
 	if err := k.db.Model(&models.K8sClusterConfigModel{}).
-		Select("is_public,region_name,region_code, provider").
+		Select("cluster_name, is_public,region_name,region_code, provider").
 		Where(params).
 		Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
 		slog.Error("find regions by params error", "param", params, "error", err)

@@ -20,8 +20,8 @@ limitations under the License.
 package tests
 
 import (
-	testhelper "k8s-dbs/metadata/helper"
 	"k8s-dbs/metadata/model"
+	testutil "k8s-dbs/metadata/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +44,7 @@ var batchSampleTags = []*model.K8sCrdClusterTagModel{
 }
 
 func TestCreateTag(t *testing.T) {
-	dbAccess := testhelper.GetClusterTagTestDbAccess()
+	dbAccess := testutil.GetClusterTagTestDbAccess()
 	added, err := dbAccess.Create(sampleTag)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleTag.CrdClusterID, added.CrdClusterID)
@@ -52,14 +52,14 @@ func TestCreateTag(t *testing.T) {
 }
 
 func TestBatchCreateTags(t *testing.T) {
-	dbAccess := testhelper.GetClusterTagTestDbAccess()
+	dbAccess := testutil.GetClusterTagTestDbAccess()
 	rows, err := dbAccess.BatchCreate(batchSampleTags)
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(2), rows)
 }
 
 func TestDeleteTagByClusterID(t *testing.T) {
-	dbAccess := testhelper.GetClusterTagTestDbAccess()
+	dbAccess := testutil.GetClusterTagTestDbAccess()
 	_, err := dbAccess.Create(sampleTag)
 	assert.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestDeleteTagByClusterID(t *testing.T) {
 }
 
 func TestGetTagByClusterID(t *testing.T) {
-	dbAccess := testhelper.GetClusterTagTestDbAccess()
+	dbAccess := testutil.GetClusterTagTestDbAccess()
 	_, err := dbAccess.Create(sampleTag)
 	assert.NoError(t, err)
 

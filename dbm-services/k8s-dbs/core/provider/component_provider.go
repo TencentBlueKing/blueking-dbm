@@ -23,11 +23,10 @@ import (
 	"context"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/common/helper"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	corehelper "k8s-dbs/core/helper"
+	coreutil "k8s-dbs/core/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
@@ -55,7 +54,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -69,7 +68,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		},
 	}
 
-	podList, err := corehelper.ListCRD(k8sClient, crd)
+	podList, err := coreutil.ListCRD(k8sClient, crd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods for component %s: %w", request.ComponentName, err)
 	}
@@ -86,7 +85,7 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 		return nil, err
 	}
 
-	pods, err := corehelper.ExtractPodsInfo(clusterMeta.AddonInfo.AddonType, k8sClusterConfig.ClusterName,
+	pods, err := coreutil.ExtractPodsInfo(clusterMeta.AddonInfo.AddonType, k8sClusterConfig.ClusterName,
 		k8sClient, podList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract pod details: %w", err)
@@ -116,7 +115,7 @@ func extractEnvVars(podList *unstructured.UnstructuredList) ([]corev1.EnvVar, er
 	}
 	// 只取第一个 Pod 的第一个容器的 Env（根据你的业务逻辑调整）
 	firstPod := podList.Items[0]
-	pod, err := corehelper.ConvertUnstructuredToPod(firstPod)
+	pod, err := coreutil.ConvertUnstructuredToPod(firstPod)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", firstPod.GetName(), err)
 	}
@@ -144,7 +143,7 @@ func (c *ComponentProvider) GetComponentInternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -182,7 +181,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -293,7 +292,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	k8sClient, err := helper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -306,7 +305,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	pods, err := corehelper.GetComponentPods(clusterMeta.AddonInfo.AddonType, params, k8sClient)
+	pods, err := coreutil.GetComponentPods(clusterMeta.AddonInfo.AddonType, params, k8sClient)
 	if err != nil {
 		return nil, 0, err
 	}

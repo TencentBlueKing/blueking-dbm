@@ -22,7 +22,7 @@ package controller
 import (
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
@@ -91,7 +91,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 // GetVersions 获取组件版本
 func (a *AddonController) GetVersions(ctx *gin.Context) {
 	var paramsReq metareq.AddonVersionRequest
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &paramsReq, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &paramsReq, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}

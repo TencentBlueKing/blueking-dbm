@@ -23,7 +23,7 @@ import (
 	"k8s-dbs/metadata/model"
 	"testing"
 
-	testhelper "k8s-dbs/metadata/helper"
+	testutil "k8s-dbs/metadata/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +36,7 @@ var sampleVersion = &model.AddonClusterVersionModel{
 }
 
 func TestCreateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	added, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleVersion.AddonID, added.AddonID)
@@ -46,7 +46,7 @@ func TestCreateAcVersion(t *testing.T) {
 }
 
 func TestDeleteAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 
@@ -56,7 +56,7 @@ func TestDeleteAcVersion(t *testing.T) {
 }
 
 func TestUpdateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestUpdateAcVersion(t *testing.T) {
 }
 
 func TestGetAcVersionByParams(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 

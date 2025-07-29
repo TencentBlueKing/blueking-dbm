@@ -41,6 +41,7 @@ type Request struct {
 	Metadata          `json:",inline"`
 	Spec              `json:",inline"`
 	coreentity.BKAuth `json:",inline"`
+	Description       string `json:"description,omitempty"`
 }
 
 // OpsService 定义 OpsService 结构体

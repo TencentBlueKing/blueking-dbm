@@ -24,13 +24,13 @@ import (
 	"encoding/json"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	corehelper "k8s-dbs/core/helper"
+	coreutil "k8s-dbs/core/util"
 	metaentity "k8s-dbs/metadata/entity"
-	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
+	metautil "k8s-dbs/metadata/util"
 	"log/slog"
 	"sort"
 
@@ -193,7 +193,7 @@ func InstanceSetGVR() schema.GroupVersionResource {
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 	// 记录 request record
-	addedRequestEntity, err := metahelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.CreateCluster)
+	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.CreateCluster)
 	if err != nil {
 		return fmt.Errorf("failed to create request entity: %w", err)
 	}
@@ -203,7 +203,7 @@ func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
 		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
 	}
 
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
 	}
@@ -315,7 +315,7 @@ func (c *ClusterProvider) saveClusterCRMetaData(
 
 // UpdateCluster 更新集群
 func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
-	_, err := metahelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
+	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
 	if err != nil {
 		slog.Error("failed to create request record", "error", err)
 		return err
@@ -327,7 +327,7 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 		return err
 	}
 
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		slog.Error("failed to create k8s client", "error", err)
 		return err
@@ -372,7 +372,7 @@ func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
 
 // PartialUpdateCluster 局部更新集群
 func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) error {
-	_, err := metahelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
+	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
 	if err != nil {
 		slog.Error("failed to create request record", "error", err)
 		return err
@@ -384,7 +384,7 @@ func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) erro
 		return err
 	}
 
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		slog.Error("failed to create k8s client", "error", err)
 		return err
@@ -430,7 +430,7 @@ func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) erro
 
 // DeleteCluster 删除集群
 func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
-	_, err := metahelper.SaveAuditLog(c.reqRecordProvider, request, coreconst.DeleteCluster)
+	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.DeleteCluster)
 	if err != nil {
 		return err
 	}
@@ -438,7 +438,7 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -474,7 +474,7 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 	}
 
 	// 删除集群
-	if err = corehelper.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
+	if err = coreutil.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
 		slog.Error("failed to delete storage addon cluster", "error", err)
 		return err
 	}
@@ -571,7 +571,7 @@ func (c *ClusterProvider) createClusterEntity(
 		slog.Error("failed to get storage addon", "error", errMsg)
 		return nil, err
 	}
-	serviceVersion, err := corehelper.SVRFactory.GetResolver(request.StorageAddonType).Resolve(request.ComponentList)
+	serviceVersion, err := coreutil.SVRFactory.GetResolver(request.StorageAddonType).Resolve(request.ComponentList)
 	if err != nil {
 		slog.Error("failed to get serviceVersion", "error", err)
 		return nil, err
@@ -591,6 +591,7 @@ func (c *ClusterProvider) createClusterEntity(
 		BkBizName:           request.BkBizName,
 		BkAppAbbr:           request.BkAppAbbr,
 		BkAppCode:           request.BKAuth.BkAppCode,
+		Description:         request.Description,
 		CreatedBy:           request.BKAuth.BkUserName,
 		UpdatedBy:           request.BKAuth.BkUserName,
 	}
@@ -631,7 +632,7 @@ func (c *ClusterProvider) getClusterDataResp(request *coreentity.Request) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -691,9 +692,9 @@ func buildClusterReleaseEntity(
 // installHelmRelease 安装 chart
 func (c *ClusterProvider) installHelmRelease(
 	request *coreentity.Request,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) (map[string]interface{}, error) {
-	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
@@ -728,7 +729,7 @@ func (c *ClusterProvider) installHelmRelease(
 		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
 	values := chart.Values
-	err = corehelper.MergeValues(values, request)
+	err = coreutil.MergeValues(values, request)
 	if err != nil {
 		slog.Error("failed to merge dynamic values", "error", err)
 		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
@@ -744,9 +745,9 @@ func (c *ClusterProvider) installHelmRelease(
 // updateClusterRelease 更新 release
 func (c *ClusterProvider) updateClusterRelease(
 	request *coreentity.Request,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) (map[string]interface{}, error) {
-	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
@@ -762,9 +763,9 @@ func (c *ClusterProvider) updateClusterRelease(
 // partialUpdateClusterRelease 局部更新 release
 func (c *ClusterProvider) partialUpdateClusterRelease(
 	request *coreentity.Request,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) (map[string]interface{}, error) {
-	actionConfig, err := corehelper.BuildHelmActionConfig(request.Namespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
@@ -818,13 +819,13 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 			return nil, err
 		}
 
-		if err = corehelper.MergeValues(releaseValues, request); err != nil {
+		if err = coreutil.MergeValues(releaseValues, request); err != nil {
 			return nil, err
 		}
 		values = releaseValues
 	} else {
 		chartValues := chart.Values
-		err = corehelper.MergeValues(chartValues, request)
+		err = coreutil.MergeValues(chartValues, request)
 		if err != nil {
 			return nil, err
 		}
@@ -862,7 +863,7 @@ func (c *ClusterProvider) GetClusterEvent(request *coreentity.Request) (*corev1.
 		slog.Error("failed to get k8sClusterConfig", "error", err)
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		slog.Error("failed to create k8sClient", "error", err)
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
@@ -909,7 +910,7 @@ func (c *ClusterProvider) GetClusterEvent(request *coreentity.Request) (*corev1.
 }
 
 // getInstanceSetEvents 查询与 Cluster 关联的所有 InstanceSet 事件
-func (c *ClusterProvider) getInstanceSetEvents(k8sClient *commhelper.K8sClient, namespace, clusterName string) (
+func (c *ClusterProvider) getInstanceSetEvents(k8sClient *commutil.K8sClient, namespace, clusterName string) (
 	*corev1.EventList, error) {
 	crd := &coreentity.CustomResourceDefinition{
 		GroupVersionResource: InstanceSetGVR(),
@@ -919,7 +920,7 @@ func (c *ClusterProvider) getInstanceSetEvents(k8sClient *commhelper.K8sClient, 
 		},
 	}
 
-	instanceSetList, err := corehelper.ListCRD(k8sClient, crd)
+	instanceSetList, err := coreutil.ListCRD(k8sClient, crd)
 	if err != nil {
 		slog.Error("failed to list InstanceSets", "error", err)
 		return nil, fmt.Errorf("failed to list InstanceSets: %w", err)

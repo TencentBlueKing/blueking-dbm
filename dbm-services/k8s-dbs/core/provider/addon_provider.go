@@ -23,13 +23,13 @@ import (
 	"errors"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	pventity "k8s-dbs/core/entity"
-	corehelper "k8s-dbs/core/helper"
+	coreutil "k8s-dbs/core/util"
 	metaentity "k8s-dbs/metadata/entity"
-	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
+	metautil "k8s-dbs/metadata/util"
 	"log/slog"
 
 	helmcli "helm.sh/helm/v3/pkg/cli"
@@ -142,7 +142,7 @@ func (a *AddonProvider) ManageAddon(
 	entity *pventity.AddonEntity,
 	operation coreconst.AddonOperation,
 ) error {
-	_, err := metahelper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, a.reqRecordMeta)
+	_, err := metautil.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, a.reqRecordMeta)
 	if err != nil {
 		slog.Error("Failed to create request record", "error", err)
 		return fmt.Errorf("failed to create request record for addon: %w", err)
@@ -152,7 +152,7 @@ func (a *AddonProvider) ManageAddon(
 		slog.Error("Failed to find k8s cluster config", "error", err)
 		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		slog.Error("Failed to create k8s client", "error", err)
 		return fmt.Errorf("failed to create k8sClient: %w", err)
@@ -215,9 +215,9 @@ func (a *AddonProvider) getAddonHelmRepository(
 // installAddonHelmRelease 安装 chart
 func (a *AddonProvider) installAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err
@@ -265,9 +265,9 @@ func (a *AddonProvider) installAddonHelmRelease(
 // UnInstallAddonHelmRelease 卸载 chart release
 func (a *AddonProvider) UnInstallAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err
@@ -288,9 +288,9 @@ func (a *AddonProvider) UnInstallAddonHelmRelease(
 // UpgradeAddonHelmRelease 更新 chart release
 func (a *AddonProvider) UpgradeAddonHelmRelease(
 	entity *pventity.AddonEntity,
-	k8sClient *commhelper.K8sClient,
+	k8sClient *commutil.K8sClient,
 ) error {
-	actionConfig, err := corehelper.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
+	actionConfig, err := coreutil.BuildHelmActionConfig(coreconst.AddonDefaultNamespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return err

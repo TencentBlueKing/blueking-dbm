@@ -22,7 +22,7 @@ package controller
 import (
 	"fmt"
 	commconst "k8s-dbs/common/constant"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
@@ -103,13 +103,13 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 
 // ListCluster 分页检索集群实例列表
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
-	pagination, err := commhelper.BuildPagination(ctx)
+	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 		return
 	}
 	var clusterQueryParams metaentity.ClusterQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &clusterQueryParams,
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &clusterQueryParams,
 		map[string]reflect.Type{"bkBizId": reflect.TypeOf(uint64(0))}); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return

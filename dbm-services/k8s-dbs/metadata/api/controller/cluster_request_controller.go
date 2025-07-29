@@ -21,7 +21,7 @@ package controller
 
 import (
 	commconst "k8s-dbs/common/constant"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
@@ -46,12 +46,12 @@ func NewClusterRequestRecordController(
 
 // ListClusterRecords 根据 k8s_cluster_name, cluster_name, namespace 分页检索集群操作记录.
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
-	pagination, err := commhelper.BuildPagination(ctx)
+	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
 	}
 	var requestParams metaentity.ClusterRequestQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &requestParams, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &requestParams, nil); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}

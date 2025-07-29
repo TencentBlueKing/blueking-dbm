@@ -37,3 +37,22 @@ const (
 	GT      = "greptimedb"
 	MILVUS  = "milvus"
 )
+
+// VM 组件定义
+const (
+	VMStorage string = "vmstorage"
+	VMSelect  string = "vmselect"
+	VMInsert  string = "vminsert"
+)
+
+const (
+	VMClusterTopo string = "cluster"
+	VMQueryTopo   string = "query"
+)
+
+// Surreal 组件定义
+const (
+	SurrealDB   string = "surreal"
+	SurrealTikv string = "tikv"
+	SurrealPd   string = "pd"
+)

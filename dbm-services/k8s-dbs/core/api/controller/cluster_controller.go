@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	coreconst "k8s-dbs/common/constant"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	coreresp "k8s-dbs/core/vo/response"
@@ -360,7 +360,7 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 // GetClusterService 获取集群连接信息
 func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 	var svcEntity coreentity.K8sSvcEntity
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &svcEntity, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}

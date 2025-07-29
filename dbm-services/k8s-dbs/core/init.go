@@ -20,7 +20,7 @@ limitations under the License.
 package core
 
 import (
-	"k8s-dbs/core/helper"
+	"k8s-dbs/core/util"
 	"log/slog"
 )
 
@@ -35,7 +35,7 @@ func Init() error {
 // InitDB 集群管理核心服务元数据初始化
 func InitDB() error {
 	slog.Info("Start to initial MySql Connection...")
-	if err := helper.Db.Init(); err != nil {
+	if err := util.Db.Init(); err != nil {
 		slog.Error("Failed to initial MySql Connection", "error", err)
 		return err
 	}

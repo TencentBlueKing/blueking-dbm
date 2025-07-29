@@ -21,7 +21,7 @@ package controller
 
 import (
 	commconst "k8s-dbs/common/constant"
-	commhelper "k8s-dbs/common/helper"
+	commutil "k8s-dbs/common/util"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaenitty "k8s-dbs/metadata/entity"
@@ -96,7 +96,7 @@ func (a *AddonTopologyController) GetByID(ctx *gin.Context) {
 // GetByParams 按照参数检索 addon topology
 func (a *AddonTopologyController) GetByParams(ctx *gin.Context) {
 	var topoQueryParams metaenitty.AddonTopologyQueryParams
-	if err := commhelper.DecodeParams(ctx, commhelper.BuildParams, &topoQueryParams, nil); err != nil {
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &topoQueryParams, nil); err != nil {
 		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}

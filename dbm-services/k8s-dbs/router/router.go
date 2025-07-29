@@ -24,6 +24,7 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"k8s-dbs/common/api"
+	routerutil "k8s-dbs/router/util"
 	"log"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -58,28 +59,10 @@ func NewRouter(db *gorm.DB) *Router {
 
 	baseRouter := router.Group(basePath)
 	buildHealthRouter(baseRouter)
-	buildAPIRouters(db, baseRouter)
-
+	routerutil.BuildAPIRouters(db, baseRouter)
 	return &Router{Engine: router}
 }
 
 func buildHealthRouter(router *gin.RouterGroup) gin.IRoutes {
 	return router.GET(api.HealthCheckURL, api.HealthCheck)
-}
-
-// CustomRouterBuilder 自定义 Router 构建函数
-type CustomRouterBuilder func(db *gorm.DB, engine *gin.RouterGroup)
-
-var CustomRouterBuilders []CustomRouterBuilder
-
-// RegisterAPIRouterBuilder 注册 CustomRouterBuilder
-func RegisterAPIRouterBuilder(builder CustomRouterBuilder) {
-	CustomRouterBuilders = append(CustomRouterBuilders, builder)
-}
-
-// buildAPIRouters 元数据路由构建
-func buildAPIRouters(db *gorm.DB, engine *gin.RouterGroup) {
-	for _, builder := range CustomRouterBuilders {
-		builder(db, engine)
-	}
 }

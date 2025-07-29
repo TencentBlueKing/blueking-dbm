@@ -26,15 +26,14 @@ import (
 	"io"
 	"k8s-dbs/common/entity"
 	commentity "k8s-dbs/common/entity"
-	commhelper "k8s-dbs/common/helper"
 	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
-	corehelper "k8s-dbs/core/helper"
+	coreutil "k8s-dbs/core/util"
 	metaentity "k8s-dbs/metadata/entity"
-	metahelper "k8s-dbs/metadata/helper"
 	metaprovider "k8s-dbs/metadata/provider"
+	metautil "k8s-dbs/metadata/util"
 	"log/slog"
 	"strings"
 	"time"
@@ -64,7 +63,7 @@ func (k *K8sProvider) CreateNamespace(
 	dbsContext *commentity.DbsContext,
 	entity *coreentity.K8sNamespaceEntity,
 ) (*coreentity.K8sNamespaceEntity, error) {
-	_, err := metahelper.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
+	_, err := metautil.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func (k *K8sProvider) CreateNamespace(
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -131,7 +130,7 @@ func (k *K8sProvider) ListPodLogs(
 	}
 
 	// 2. 创建 Kubernetes Client
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
 	}
@@ -185,7 +184,7 @@ func (k *K8sProvider) GetPodDetail(
 	if err != nil {
 		return nil, err
 	}
-	k8sClient, err := commhelper.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -194,11 +193,11 @@ func (k *K8sProvider) GetPodDetail(
 		Namespace:            entity.Namespace,
 		GroupVersionResource: kbtypes.PodGVR(),
 	}
-	podCR, err := corehelper.GetCRD(k8sClient, crd)
+	podCR, err := coreutil.GetCRD(k8sClient, crd)
 	if err != nil {
 		return nil, err
 	}
-	pod, err := corehelper.ConvertUnstructuredToPod(*podCR)
+	pod, err := coreutil.ConvertUnstructuredToPod(*podCR)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +205,7 @@ func (k *K8sProvider) GetPodDetail(
 	var resourceUsage *coreentity.PodResourceUsage
 	if pod.Status.Phase == corev1.PodRunning {
 		// 获取资源配额
-		resourceQuota, err = corehelper.GetPodResourceQuota(k8sClient, pod)
+		resourceQuota, err = coreutil.GetPodResourceQuota(k8sClient, pod)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +220,7 @@ func (k *K8sProvider) GetPodDetail(
 			return nil, err
 		}
 
-		resourceUsage, err = corehelper.GetPodResourceUsage(clusterMeta.AddonInfo.AddonType,
+		resourceUsage, err = coreutil.GetPodResourceUsage(clusterMeta.AddonInfo.AddonType,
 			k8sClusterConfig.ClusterName, k8sClient, pod, resourceQuota)
 		if err != nil {
 			slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
@@ -237,7 +236,7 @@ func (k *K8sProvider) GetPodDetail(
 			PodName:       entity.PodName,
 			Node:          pod.Spec.NodeName,
 			Status:        pod.Status.Phase,
-			Role:          corehelper.GetPodRole(pod),
+			Role:          coreutil.GetPodRole(pod),
 			ResourceQuota: resourceQuota,
 			ResourceUsage: resourceUsage,
 			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
