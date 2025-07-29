@@ -2,8 +2,8 @@
   <!-- <FunController
     controller-id="pulsar"
     module-id="bigdata"> -->
-  <!-- <BkMenuGroup name="Pulsar"> -->
-  <MenuGroup :db-type="DBTypes.PULSAR">
+  <!-- <MenuGroup :db-type="DBTypes.PULSAR"> -->
+  <BkMenuGroup name="Pulsar">
     <BkMenuItem key="PulsarManage">
       <template #icon>
         <DbIcon type="pulsar" />
@@ -17,17 +17,17 @@
         :cluster-type="ClusterTypes.PULSAR"
         role="cluster" />
     </BkMenuItem>
-  </MenuGroup>
-  <!-- </BkMenuGroup> -->
+  </BkMenuGroup>
+  <!-- </MenuGroup> -->
   <!-- </FunController> -->
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import CountTag from './components/CountTag.vue';
-  import MenuGroup from './components/MenuGroup.vue';
+  // import MenuGroup from './components/MenuGroup.vue';
 
   const { t } = useI18n();
 </script>
