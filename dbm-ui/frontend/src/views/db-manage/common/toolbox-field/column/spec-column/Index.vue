@@ -45,11 +45,11 @@
       v-model="modelValue"
       display-key="spec_name"
       id-key="spec_id"
-      :list="specList">
+      :list="sortedSpecList">
       <template #option="{ item }">
         {{ item.spec_name }}
         <BkTag
-          v-if="item.spec_id === currentSpecId && showTag"
+          v-if="currentSpecIdList?.includes(item.spec_id) && showTag"
           class="ml-4"
           size="small"
           theme="success">
@@ -60,6 +60,7 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -71,7 +72,10 @@
 
   interface Props {
     clusterType: ClusterTypes | DBTypes;
-    currentSpecId?: number;
+    /**
+     * 多个【当前规格】
+     */
+    currentSpecIdList?: number[];
     field?: string;
     label?: string;
     /**
@@ -88,7 +92,7 @@
   type Emits = (e: 'batch-edit', value: number, field: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    currentSpecId: 0,
+    currentSpecIdList: () => [],
     field: 'specId',
     label: '规格',
     machineType: undefined,
@@ -102,7 +106,6 @@
 
   /**
    * 绑定当前选择的规格 ID
-   * @desc 传入 -1 或者其他负数时，取列表中的第一个规格
    */
   const modelValue = defineModel<number>({
     required: true,
@@ -130,11 +133,23 @@
   const renderSpecName = computed(
     () => specList.value.find((item) => item.spec_id === modelValue.value)?.spec_name || '',
   );
+  const sortedSpecList = computed(() => {
+    if (!props.currentSpecIdList?.length) {
+      return specList.value;
+    }
+    // 当前规格排在前面
+    const currentSpecSet = new Set(props.currentSpecIdList);
+    return specList.value.sort((a, b) => {
+      const aIsCurrent = currentSpecSet.has(a.spec_id);
+      const bIsCurrent = currentSpecSet.has(b.spec_id);
+      return aIsCurrent === bIsCurrent ? 0 : aIsCurrent ? -1 : 1;
+    });
+  });
 
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        enable: true,
+        enable: props.selectable ? true : undefined,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
       },
@@ -146,27 +161,24 @@
 
   // 初始化
   watch(
-    () => [modelValue.value, props.currentSpecId],
+    () => [modelValue.value, props.currentSpecIdList],
     () => {
-      if (!modelValue.value && props.currentSpecId) {
-        modelValue.value = props.currentSpecId || 0;
+      const currentSpecIdList = _.uniq(props.currentSpecIdList);
+      const isSame = currentSpecIdList.length === 1;
+      const [currentSpecId] = currentSpecIdList;
+      // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
+      if (!modelValue.value && isSame && currentSpecId) {
+        modelValue.value = currentSpecId;
       }
 
       // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
       if (modelValue.value && typeof modelValue.value === 'string') {
-        setTimeout(() => {
-          modelValue.value =
-            specList.value.filter((item) => item.spec_name === (modelValue.value as unknown as string))?.[0]?.spec_id ||
-            props.currentSpecId ||
-            0;
-        }, 200);
-        return;
-      }
-      // 如果 modelValue 被设置为 -1 或者其他负数 时，则自动选择第一个规格
-      if (modelValue.value < 0) {
-        setTimeout(() => {
-          modelValue.value = specList.value[0]?.spec_id || props.currentSpecId || 0;
-        }, 200);
+        const matchedSpecId = specList.value.filter(
+          (item) => item.spec_name === (modelValue.value as unknown as string),
+        )?.[0]?.spec_id;
+        if (matchedSpecId) {
+          modelValue.value = matchedSpecId;
+        }
       }
     },
     {
@@ -179,7 +191,7 @@
   };
 
   const handleBatchEditChange = (value: number) => {
-    emits('batch-edit', value, 'specId');
+    emits('batch-edit', value, props.field);
   };
 </script>
 <style lang="less" scoped>
