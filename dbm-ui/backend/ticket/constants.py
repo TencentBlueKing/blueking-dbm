@@ -308,6 +308,8 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库主机故障切换"), _("集群维护"))  # noqa
     TENDBCLUSTER_INSTANCE_FAIL_OVER = TicketEnumField("TENDBCLUSTER_INSTANCE_FAIL_OVER", _("TenDB Cluster 主库实例故障切换"), _("集群维护"))  # noqa
     TENDBCLUSTER_MASTER_SLAVE_SWITCH = TicketEnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"), _("集群维护"))  # noqa
+    TENDBCLUSTER_LOCAL_UPGRADE = TicketEnumField("TENDBCLUSTER_LOCAL_UPGRADE", _("TenDB Cluster Spider本地升级"), _("集群维护"))  # noqa
+    TENDBCLUSTER_SPIDER_UPGRADE = TicketEnumField("TENDBCLUSTER_SPIDER_UPGRADE", _("TenDB Cluster Spider迁移升级"), _("集群维护"))  # noqa
     TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))  # noqa
     TENDBCLUSTER_FORCE_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_FORCE_IMPORT_SQLFILE", _("TenDB Cluster 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
     TENDBCLUSTER_DELETE_CLEAR_DB = TicketEnumField("TENDBCLUSTER_DELETE_CLEAR_DB", _("TenDB Cluster 删除清档备份库"), _("数据处理"), register_iam=False)  # noqa
