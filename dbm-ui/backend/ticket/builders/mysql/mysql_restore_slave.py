@@ -94,9 +94,9 @@ class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
     def patch_slave_subzone(cls, ticket_data):
         # TODO: 后续改造为，尽量与原slave一致，不一致再满足亲和性
         slave_host_ids = [s["bk_host_id"] for info in ticket_data["infos"] for s in info["old_nodes"]["old_slave"]]
-        slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine", "machine").filter(
-            machine__bk_host_id__in=slave_host_ids
-        )
+        slaves = StorageInstance.objects.prefetch_related(
+            "as_receiver__ejector__machine", "machine", "cluster"
+        ).filter(machine__bk_host_id__in=slave_host_ids)
         slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
         for info in ticket_data["infos"]:
             resource_spec = info["resource_spec"]["new_slave"]
@@ -104,7 +104,16 @@ class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
             master_subzone_id = slave.as_receiver.get().ejector.machine.bk_sub_zone_id
             # 同城跨园区，要求slave和master在不同subzone
             if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
+                cluster_zone_list = slave.cluster.first().zone_list
+                sub_zone_ids = [subzone_id for subzone_id in cluster_zone_list if subzone_id != master_subzone_id]
+                include_or_exclue = bool(sub_zone_ids)
+                if not cluster_zone_list:
+                    # 为空表示随机可用区
+                    sub_zone_ids = [master_subzone_id]
+                    include_or_exclue = False
+
+                resource_spec["location_spec"].update(sub_zone_ids=sub_zone_ids, include_or_exclue=include_or_exclue)
+
             # 同城同园区，要求slave和master在一个subzone
             elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
                 resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)

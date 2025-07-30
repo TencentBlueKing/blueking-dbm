@@ -13,7 +13,7 @@ from typing import Dict, List
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE, AffinityEnum
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
@@ -30,10 +30,6 @@ from backend.ticket.constants import TicketType
 
 
 class SQLServerHAApplyDetailSerializer(SQLServerSingleApplyDetailSerializer):
-    disaster_tolerance_level = serializers.ChoiceField(
-        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
-
     def validate(self, attrs):
         super().validate(attrs)
 

@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE, SMALLEST_POSITIVE_INTEGER
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
@@ -27,7 +27,7 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerSingleTicketFlowBuilder,
     SQLServerBaseOperateResourceParamBuilder,
@@ -68,6 +68,9 @@ class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
 
     start_mssql_port = serializers.IntegerField(
         help_text=_("SQLServer起始端口"), required=False, default=DEFAULT_SQLSERVER_PORT
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
 
     def to_representation(self, instance):
@@ -168,6 +171,10 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
         if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
             self.insert_ip_into_apply_infos(self.ticket.details, infos)
+
+        # 补充zone_list数据
+        role = "backend" if self.ticket.ticket_type == TicketType.SQLSERVER_SINGLE_APPLY else "backend_group"
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data, role)
 
         self.ticket_data.update(
             {

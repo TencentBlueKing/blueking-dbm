@@ -20,7 +20,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin, get_ticket_zone_list
 from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -138,6 +138,9 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
         self.format_common_cluster_info()
         if self.ticket_data["append_apply"]:
             self.format_append_cluster_info()
+
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
 
 
 class RedisInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
