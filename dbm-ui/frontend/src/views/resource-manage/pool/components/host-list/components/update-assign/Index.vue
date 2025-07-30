@@ -106,9 +106,7 @@
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
   const isBusiness = route.name === 'BizResourcePool';
-  const currentApp = shallowRef(
-    formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
-  );
+  const currentApp = shallowRef<BizItem | undefined>();
 
   watch(
     () => props.editData,
@@ -116,6 +114,7 @@
       if (!Object.keys(props.editData).length) {
         return;
       }
+      currentApp.value = globalBizsStore.bizIdMap.get(props.editData.for_biz.bk_biz_id);
       formData.for_biz = props.editData.for_biz.bk_biz_id;
       formData.resource_type = props.editData.resource_type;
       formData.labels = props.editData.labels.map((item) => item.id);

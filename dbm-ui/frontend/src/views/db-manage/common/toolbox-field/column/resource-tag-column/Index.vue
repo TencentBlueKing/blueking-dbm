@@ -16,8 +16,11 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
-    required
     :rules="rules">
+    <template #head>
+      {{ t('资源标签') }}
+      <span class="custom-required" />
+    </template>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
@@ -87,7 +90,6 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -119,13 +121,15 @@
   const tagMap = ref<Record<string, any>>({});
   const showBatchEdit = ref(false);
   const tagTheme = ref('');
-  let initFinished = false;
 
   const rules = [
     {
       message: t('资源标签不能为空'),
       trigger: 'change',
-      validator: () => Boolean(ids.value.length),
+      validator: () => {
+        modelValue.value = ids.value.map((item) => tagMap.value[item]);
+        return Boolean(ids.value.length);
+      },
     },
   ];
 
@@ -167,7 +171,6 @@
 
   const handleChange = (values: number[]) => {
     ids.value = values;
-    modelValue.value = values.map((item) => tagMap.value[item]);
     tagTheme.value = values[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
@@ -191,15 +194,21 @@
     if (!list.length) {
       return;
     }
-    modelValue.value = list;
     ids.value = list.map((item) => item.id);
     tagTheme.value = ids.value[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
+  watch(modelValue, () => {
+    updateModel(modelValue.value);
+  });
+
   watch(
-    modelValue,
-    (newValue, oldValue) => {
-      if (!initFinished) {
+    tagList,
+    () => {
+      if (modelValue.value.length) {
+        updateModel(modelValue.value);
+      } else {
+        // 如果没有传入值，则默认设置为通用无标签
         modelValue.value = [
           {
             id: DEFAULT_TAG_ID,
@@ -208,34 +217,24 @@
         ];
         ids.value = [DEFAULT_TAG_ID];
         tagTheme.value = 'success';
-        initFinished = true;
-        return;
-      }
-      if (!_.isEqual(newValue, oldValue)) {
-        setTimeout(() => updateModel(newValue), 200);
       }
     },
     {
-      deep: true,
       immediate: true,
     },
   );
-
-  onMounted(() => {
-    modelValue.value = [
-      {
-        id: DEFAULT_TAG_ID,
-        value: t('通用无标签'),
-      },
-    ];
-    ids.value = [DEFAULT_TAG_ID];
-    tagTheme.value = 'success';
-  });
 </script>
 <style lang="less" scoped>
   .batch-edit-btn {
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .custom-required::after {
+    margin-left: 4px;
+    line-height: 20px;
+    color: #ea3636;
+    content: '*';
   }
 </style>

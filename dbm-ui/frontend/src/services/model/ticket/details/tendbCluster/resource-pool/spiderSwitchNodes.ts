@@ -10,7 +10,8 @@ export interface SpiderSwitchNodes extends ResourcePoolDetailBase {
     resource_spec: {
       [x in string]: {
         count: number;
-        labels: string[];
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };

@@ -40,7 +40,8 @@
       <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="item in data.resource_spec.spider_slave_ip_list.label_names"
-          :key="item">
+          :key="item"
+          :theme="labelTheme(item)">
           {{ item }}
         </BkTag>
       </template>
@@ -68,4 +69,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>

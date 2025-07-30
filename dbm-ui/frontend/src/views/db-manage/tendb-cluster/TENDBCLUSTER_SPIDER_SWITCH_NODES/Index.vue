@@ -135,6 +135,11 @@
       key: 'ip',
       label: t('目标主机'),
     },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
@@ -187,6 +192,9 @@
               role: item.switch_spider_role,
               spec_id: item.resource_spec[`${item.switch_spider_role}_${host.ip}`].spec_id,
             },
+            labels: (item.resource_spec[`${item.switch_spider_role}_${host.ip}`].labels || []).map((item) => ({
+              id: Number(item),
+            })),
           });
         }),
       });
@@ -306,6 +314,7 @@
         host: {
           ip: item.ip,
         },
+        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
       }),
     );
 
