@@ -30,15 +30,13 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_single_backup
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import restore_single_remote_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.single_recover_switch import single_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     ALLDEPARTS,
     DeployPeripheralToolsDepart,
     remove_departs,
-)
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.mysql_restore_single_sub_flow import (
-    restore_single_remote_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
@@ -85,8 +83,7 @@ class MySQLMigrateSingleFlow(object):
 
     def migrate_single_flow(self, use_for_upgrade=False):
         """
-        成对迁移集群主从节点。
-        元数据信息修改顺序：
+        定义 tendbSingle 迁移flow
         1 mysql_migrate_cluster_add_instance
         2 mysql_migrate_cluster_add_tuple
         3 mysql_migrate_cluster_switch_storage
@@ -158,7 +155,7 @@ class MySQLMigrateSingleFlow(object):
                     install_ports=self.data["ports"],
                     bk_host_ids=[self.data["bk_new_orphan"]["bk_host_id"]],
                     pkg_id=pkg_id,
-                    db_module_id=cluster_class.db_module_id,
+                    db_module_id=db_module_id,
                     db_config=db_config,
                 )
             )

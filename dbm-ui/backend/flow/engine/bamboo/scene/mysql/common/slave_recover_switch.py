@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging.config
 from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
@@ -31,9 +32,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     RecycleDnsRecordKwargs,
 )
 
-"""
-tendb ha 从库恢复切换
-"""
+logger = logging.getLogger("flow")
 
 
 def slave_migrate_switch_sub_flow(
@@ -43,7 +42,14 @@ def slave_migrate_switch_sub_flow(
     old_slave_ip: str,
     new_slave_ip: str,
 ):
-    """"""
+    """
+    tendb ha 从库恢复切换
+    @param root_id: root_id
+    @param ticket_data: 单据信息
+    @param cluster: 集群
+    @param old_slave_ip: 原slave ip
+    @param new_slave_ip: 新slave ip
+    """
     # 默认预检测连接情况、同步延时、checksum校验结果
     master = cluster.main_storage_instances()[0]
     old_slave_storage = cluster.storageinstance_set.get(
@@ -107,6 +113,7 @@ def slave_migrate_switch_sub_flow(
         }
     ]
     if old_slave_storage.status == InstanceStatus.RUNNING.value:
+        logging.info("clone old slave privilege")
         clone_data.append(
             {
                 "source": old_slave,
@@ -114,7 +121,7 @@ def slave_migrate_switch_sub_flow(
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
-
+    logging.info(clone_data)
     sub_pipeline.add_act(
         act_name=_("克隆权限"),
         act_component_code=CloneUserComponent.code,

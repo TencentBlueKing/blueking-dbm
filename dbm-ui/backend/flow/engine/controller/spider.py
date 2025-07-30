@@ -14,11 +14,8 @@ from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import Appen
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
-from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
-from backend.flow.engine.bamboo.scene.spider.remote_master_slave_migrate import TendbClusterMigrateRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
-from backend.flow.engine.bamboo.scene.spider.remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -35,6 +32,9 @@ from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderParti
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_master_slave_migrate import TendbClusterMigrateRemoteFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow

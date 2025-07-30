@@ -28,11 +28,11 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_standby_dns, get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import (
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
     priv_recover_sub_flow,
     slave_recover_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -66,6 +66,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
+    RecycleDnsRecordKwargs,
     ResetSlaveViaDRSKwargs,
     UpdateDnsRecordKwargs,
 )
@@ -520,17 +521,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("当前 master reset slave {}".format(master.ip_port)),
-                act_component_code=ResetSlaveViaDRSComponent.code,
-                kwargs=asdict(
-                    ResetSlaveViaDRSKwargs(
-                        address=master.ip_port,
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                    )
-                ),
-            )
-
-            tendb_migrate_pipeline.add_act(
                 act_name=_("下发db-actor到节点{}".format(target_slave.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
@@ -555,6 +545,29 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
                         cluster=cluster,
                         is_update_trans_data=False,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("Master节点执行 reset slave {},防止故障切换后master的位点还没断开,slave恢复后导致覆盖。".format(master.ip_port)),
+                act_component_code=ResetSlaveViaDRSComponent.code,
+                kwargs=asdict(
+                    ResetSlaveViaDRSKwargs(
+                        address=master.ip_port,
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("删除从库{}关联的域名").format(target_slave.ip_port),
+                act_component_code=MySQLDnsManageComponent.code,
+                kwargs=asdict(
+                    RecycleDnsRecordKwargs(
+                        dns_op_exec_port=target_slave.port,
+                        exec_ip=target_slave.machine.ip,
+                        bk_cloud_id=cluster_model.bk_cloud_id,
                     )
                 ),
             )

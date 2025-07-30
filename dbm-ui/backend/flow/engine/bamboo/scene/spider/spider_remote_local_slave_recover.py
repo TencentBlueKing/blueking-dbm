@@ -23,8 +23,8 @@ from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
 )

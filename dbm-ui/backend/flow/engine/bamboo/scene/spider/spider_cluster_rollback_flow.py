@@ -31,7 +31,10 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     NormalSpiderFlowException,
     TendbGetBackupInfoFailedException,
 )
-from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_sub_flow import (
+    remote_node_rollback,
+    spider_recover_sub_flow,
+)
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
