@@ -75,6 +75,8 @@ class MongoDBCutoffFlowParamBuilder(builders.FlowParamBuilder):
 
 class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
+        # 补充城市和亲和性
+        self.patch_info_affinity_location(replace_zone=True)
         super().format()
 
     @staticmethod
@@ -172,7 +174,8 @@ class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
         cluster_map = Cluster.objects.in_bulk(cluster_ids)
         old_nodes = defaultdict(list)
         for info in self.ticket.details["infos"]:
-            city = cluster_map[info["cluster_id"]].region
+            cluster = cluster_map[info["cluster_id"]]
+            city = cluster.region
             # 打包资源信息：按照role_ip这样的命名格式构造每一个资源申请信息组，每组的城市同集群，数量为1
             resource_spec = {}
             for role in mongo_roles:
@@ -181,9 +184,13 @@ class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
                     resource_spec[group_name] = {
                         "spec_id": host["spec_id"],
                         "count": 1,
-                        "location_spec": {"city": city, "sub_zone_ids": []},
+                        "location_spec": {
+                            "city": city,
+                            "sub_zone_ids": cluster.zone_list,
+                            "include_or_exclue": bool(cluster.zone_list),
+                        },
                     }
-                    old_nodes[role].append({"bk_host_id": host["bk_host_id"]})
+                    old_nodes[role].append({"bk_host_id": host["bk_host_id"], "ip": host["ip"]})
             info["resource_spec"] = resource_spec
             info["old_nodes"] = old_nodes
 

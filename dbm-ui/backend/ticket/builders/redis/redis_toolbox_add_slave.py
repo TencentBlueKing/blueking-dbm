@@ -107,10 +107,13 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
                 }
                 pair["redis_slave"].update(affinity=cluster.disaster_tolerance_level)
                 if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
+                    cluster_zone_list = cluster.zone_list
+                    sub_zone_ids = [
+                        subzone_id for subzone_id in cluster_zone_list if subzone_id != master_machine.bk_sub_zone_id
+                    ]
                     pair["redis_slave"]["location_spec"].update(
-                        sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=False
+                        sub_zone_ids=sub_zone_ids, include_or_exclue=bool(sub_zone_ids)
                     )
-
                 elif cluster.disaster_tolerance_level in [
                     AffinityEnum.SAME_SUBZONE,
                     AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,

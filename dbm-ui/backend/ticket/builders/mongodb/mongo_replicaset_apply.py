@@ -19,6 +19,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_ticket_zone_list
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoReplicaSetTicketFlowBuilder,
@@ -57,7 +58,7 @@ class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"), read_only=True)
     city_name = serializers.SerializerMethodField(help_text=_("城市名"), read_only=True)
-    resource_spec = serializers.SerializerMethodField(help_text=_("集群规格"), read_only=True)
+    resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
     def get_bk_cloud_name(self, obj):
         clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
@@ -81,6 +82,8 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         self.ticket_data["bk_app_abbr"] = self.ticket_data["db_app_abbr"]
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data, "mongo_machine_set")
 
 
 class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
@@ -112,6 +115,22 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
         spec = Spec.objects.get(spec_id=ticket_data["spec_id"])
         # infos的组数 = 副本集数量 / 单机部署副本集数
         groups = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
+        if (
+            cls.ticket_type == TicketType.MONGODB_REPLICASET_APPLY
+            and ticket_data["ip_source"] == IpSource.RESOURCE_POOL
+            and ticket_data["disaster_tolerance_level"]
+            in [
+                AffinityEnum.SAME_SUBZONE,
+                AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+            ]
+        ):
+            sub_zone_ids = ticket_data["resource_spec"]["mongo_machine_set"]["location_spec"]["sub_zone_ids"]
+        else:
+            sub_zone_ids = []
+
+        # 跨园区（强）分布在不同的园区
+        group_count = 3 if ticket_data["disaster_tolerance_level"] == AffinityEnum.CROS_SUBZONE.value else 2
+
         infos = [
             {
                 "bk_cloud_id": ticket_data["bk_cloud_id"],
@@ -120,9 +139,13 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                         **spec.get_spec_info(),
                         "spec_name": spec.spec_name,
                         "affinity": ticket_data["disaster_tolerance_level"],
-                        "location_spec": {"city": ticket_data["city_code"], "sub_zone_ids": []},
-                        # 副本集的亲和性要求至少跨两个机房
-                        "group_count": 2,
+                        "location_spec": {
+                            "city": ticket_data["city_code"],
+                            "sub_zone_ids": sub_zone_ids,
+                            "include_or_exclue": bool(sub_zone_ids),
+                        },
+                        # # 副本集的亲和性要求至少跨两个机房
+                        "group_count": group_count,
                         "count": ticket_data["node_count"],
                         "spec_id": ticket_data["spec_id"],
                     }

@@ -102,6 +102,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
         "db_version": "MSSQL_Enterprise_2016",
         "db_module_name": "test-sqlserver01",
         "start_mssql_port": 20000,
+        "disaster_tolerance_level": "SAME_SUBZONE_CROSS_SWTICH",
     },
 }
 
