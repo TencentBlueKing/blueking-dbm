@@ -53,7 +53,7 @@ class TenDBClusterReduceNodesFlow(object):
         self.mix_spider_master_count = MIN_SPIDER_MASTER_COUNT
         self.mix_spider_slave_count = MIN_SPIDER_SLAVE_COUNT
 
-    def __calc_reduce_spiders(
+    def __pre_check_and_calc_reduce_spiders(
         self,
         cluster: Cluster,
         reduce_spider_role: TenDBClusterSpiderRole,
@@ -164,7 +164,7 @@ class TenDBClusterReduceNodesFlow(object):
             )
 
         # 计算待下架的spider节点列表,转化成全局参数
-        reduce_spiders = self.__calc_reduce_spiders(
+        reduce_spiders = self.__pre_check_and_calc_reduce_spiders(
             cluster=cluster,
             reduce_spider_role=reduce_spider_role,
             spider_reduced_hosts=spider_reduced_hosts,

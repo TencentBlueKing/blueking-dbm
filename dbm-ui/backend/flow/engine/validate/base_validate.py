@@ -226,6 +226,5 @@ class BaseValidator:
                 return True
             return False
 
-        else:
-            # 匹配不了以上的平台定义的容灾级别，直接报异常
-            raise DisasterToleranceLevelFailedException(f"not support {cluster.disaster_tolerance_level}")
+        # 匹配不了以上的平台定义的容灾级别，直接报异常
+        raise DisasterToleranceLevelFailedException(f"not support {cluster.disaster_tolerance_level}")
