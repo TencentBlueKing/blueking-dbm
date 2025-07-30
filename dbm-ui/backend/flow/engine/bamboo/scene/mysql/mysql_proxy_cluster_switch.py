@@ -78,9 +78,8 @@ class MySQLProxyClusterSwitchFlow(object):
         "infos": [
               {
                 "cluster_ids": [1,2],
-                "origin_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1},
-                "target_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1},
-                "resource_spec": {...},
+                "origin_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1, "spec":{}},
+                "target_proxy_ip":{"ip": "x", "bk_cloud_id": 0, "bk_host_id": 0, "bk_biz_id": 1, "spec":{}},
               }
         ]
     }
