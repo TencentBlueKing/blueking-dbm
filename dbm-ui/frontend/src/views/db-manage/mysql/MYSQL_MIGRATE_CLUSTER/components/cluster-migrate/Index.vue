@@ -33,7 +33,7 @@
         <SpecColumn
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
-          :current-spec-id-list="[item.batchCluster.specId]"
+          :current-spec-id-list="item.batchCluster.spec_id_list"
           required
           selectable
           @batch-edit="handleBatchEditColumn" />
@@ -193,6 +193,7 @@
       {
         clusters: {} as RowData['batchCluster']['clusters'],
         renderText: '',
+        spec_id_list: [] as RowData['batchCluster']['spec_id_list'],
         specId: 0,
       },
       data.batchCluster,

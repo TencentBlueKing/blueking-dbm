@@ -63,7 +63,19 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
+      <BkFormItem
+        :label="t('备份源')"
+        property="backupSource"
+        required>
+        <BkRadioGroup v-model="formData.backupSource">
+          <BkRadio :label="BackupSourceType.LOCAL">
+            {{ t('本地备份（Master）') }}
+          </BkRadio>
+          <BkRadio :label="BackupSourceType.REMOTE">
+            {{ t('远程备份') }}
+          </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -101,7 +113,6 @@
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -119,18 +130,20 @@
   const router = useRouter();
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    slave: {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      cluster_id: 0,
-      instance_address: '',
-      ip: '',
-      master_domain: '',
-      port: 0,
-      role: '',
-      ...data.slave,
-    },
+    slave: Object.assign(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        cluster_id: 0,
+        instance_address: '',
+        ip: '',
+        master_domain: '',
+        port: 0,
+        role: '',
+      },
+      data.slave,
+    ),
   });
 
   const defaultData = () => ({
@@ -226,14 +239,7 @@
         acc.push(
           createTableRow({
             slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              cluster_id: item.cluster_id,
               instance_address: item.instance_address,
-              ip: item.ip,
-              master_domain: item.master_domain,
-              port: item.port,
             },
           }),
         );

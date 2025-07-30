@@ -81,7 +81,19 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
+      <BkFormItem
+        :label="t('备份源')"
+        property="backupSource"
+        required>
+        <BkRadioGroup v-model="formData.backupSource">
+          <BkRadio :label="BackupSourceType.LOCAL">
+            {{ t('本地备份（Master）') }}
+          </BkRadio>
+          <BkRadio :label="BackupSourceType.REMOTE">
+            {{ t('远程备份') }}
+          </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -123,7 +135,6 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
