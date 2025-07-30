@@ -76,7 +76,7 @@
       }
     >;
     renderText: string;
-    specId: number;
+    spec_id_list: number[];
   }>({
     required: true,
   });
@@ -137,11 +137,9 @@
     onSuccess: (data) => {
       if (data.length) {
         let clusters = {};
-        let specId = 0;
+        const spedIdList: number[] = [];
         data.forEach((item) => {
-          if (!specId) {
-            specId = item.cluster_spec?.spec_id || -1;
-          }
+          spedIdList.push(item.cluster_spec?.spec_id);
           clusters = {
             ...clusters,
             [item.master_domain]: {
@@ -152,7 +150,7 @@
           };
         });
         modelValue.value.clusters = clusters;
-        modelValue.value.specId = specId;
+        modelValue.value.spec_id_list = spedIdList;
       }
     },
   });
@@ -165,7 +163,7 @@
     modelValue.value = {
       clusters: {},
       renderText: value,
-      specId: 0,
+      spec_id_list: [],
     };
   };
 

@@ -60,7 +60,19 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
+      <BkFormItem
+        :label="t('备份源')"
+        property="backupSource"
+        required>
+        <BkRadioGroup v-model="formData.backupSource">
+          <BkRadio :label="BackupSourceType.LOCAL">
+            {{ t('本地备份（Master）') }}
+          </BkRadio>
+          <BkRadio :label="BackupSourceType.REMOTE">
+            {{ t('远程备份') }}
+          </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -97,7 +109,6 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
