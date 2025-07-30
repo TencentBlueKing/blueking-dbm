@@ -1,8 +1,14 @@
 <template>
-  <component :is="renderCom" />
+  <div>
+    <component
+      :is="renderCom"
+      :is-error="isError" />
+  </div>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';
+
+  import { DBTypes } from '@common/const';
 
   import Doris from './Doris.vue';
   import Es from './Es.vue';
@@ -19,25 +25,26 @@
   import TendbCluster from './TendbCluster.vue';
 
   interface Props {
+    isError: boolean;
     name: string;
   }
 
   const props = defineProps<Props>();
 
   const comMap = {
-    doris: Doris,
-    es: Es,
-    hdfs: Hdfs,
-    influxdb: Influxdb,
-    kafka: Kafka,
-    mongodb: MongoDB,
-    mysql: Mysql,
-    oracle: Oracle,
-    pulsar: Pulsar,
-    redis: Redis,
-    riak: Riak,
-    sqlserver: SqlServer,
-    tendbCluster: TendbCluster,
+    [DBTypes.DORIS]: Doris,
+    [DBTypes.ES]: Es,
+    [DBTypes.HDFS]: Hdfs,
+    [DBTypes.INFLUXDB]: Influxdb,
+    [DBTypes.KAFKA]: Kafka,
+    [DBTypes.MONGODB]: MongoDB,
+    [DBTypes.MYSQL]: Mysql,
+    [DBTypes.ORACLE]: Oracle,
+    [DBTypes.PULSAR]: Pulsar,
+    [DBTypes.REDIS]: Redis,
+    [DBTypes.RIAK]: Riak,
+    [DBTypes.SQLSERVER]: SqlServer,
+    [DBTypes.TENDBCLUSTER]: TendbCluster,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

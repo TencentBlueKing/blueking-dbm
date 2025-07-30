@@ -2,7 +2,9 @@
   <FunController
     controller-id="pulsar"
     module-id="bigdata">
-    <BkMenuGroup name="Pulsar">
+    <MenuGroup
+      :db-type="DBTypes.PULSAR"
+      :is-error="isError">
       <BkMenuItem key="PulsarManage">
         <template #icon>
           <DbIcon type="pulsar" />
@@ -16,15 +18,22 @@
           :cluster-type="ClusterTypes.PULSAR"
           role="cluster" />
       </BkMenuItem>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

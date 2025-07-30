@@ -1,6 +1,8 @@
 <template>
   <FunController module-id="sqlserver">
-    <BkMenuGroup name="SQLServer">
+    <MenuGroup
+      :db-type="DBTypes.SQLSERVER"
+      :is-error="isError">
       <BkSubmenu key="SqlServerHaClusterManage">
         <template #icon>
           <DbIcon type="cluster" />
@@ -84,7 +86,7 @@
           </span>
         </BkMenuItem>
       </FunController>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
@@ -95,14 +97,21 @@
 
   import { useUserProfile } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/sqlserver/toolbox-menu';
 
   import { makeMap } from '@utils';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const userProfile = useUserProfile();
   const { t } = useI18n();

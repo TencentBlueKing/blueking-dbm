@@ -24,5 +24,6 @@ export const mongodb: DbInfoType = {
     ],
     moduleId: 'mongodb',
     name: 'MongoDB',
+    routeIndexName: 'MongoDBManage',
   },
 };
