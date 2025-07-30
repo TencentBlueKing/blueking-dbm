@@ -3,7 +3,7 @@
     class="bussiness-dashboard"
     :loading="businessDashboardLoading">
     <template v-if="businessDashboardData?.urls.length">
-      <DbTab
+      <DbTabForBiz
         v-model="activePanelKey"
         :exclude="excludeDbTyps" />
       <div class="bussiness-dashboard-content">
@@ -27,7 +27,7 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import DbTab from '@components/db-tab/Index.vue';
+  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 

@@ -6,6 +6,7 @@ import { MachineTypes } from '../machineTypes';
 import { bigdata } from './bigdata';
 import { mongodb } from './mongodb';
 import { mysql } from './mysql';
+import { oracle } from './oracle';
 import { redis } from './redis';
 import { sqlserver } from './sqlserver';
 
@@ -17,6 +18,7 @@ export interface DBInfoItem {
   }[];
   moduleId: ExtractedControllerDataKeys;
   name: string;
+  routeIndexName: string;
 }
 
 type RequiredInfoType = {
@@ -34,4 +36,5 @@ export const DBTypeInfos = {
   ...mongodb,
   ...sqlserver,
   ...bigdata,
+  ...oracle,
 } as RequiredInfoType;

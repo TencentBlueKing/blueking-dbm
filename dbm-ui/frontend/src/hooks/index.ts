@@ -15,6 +15,7 @@ export * from './useAlarmEventsCount';
 export * from './useApplyBase';
 export * from './useBatchCreateTicket';
 export * from './useBeforeClose';
+export * from './useBizDbDisplay';
 export * from './useCopy';
 export * from './useCopyFromSelection';
 export * from './useCreateTicket';

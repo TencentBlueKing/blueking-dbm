@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <DbTab v-model:active="activeTab" />
+  <DbTabForBiz v-model:active="activeTab" />
   <div class="monitor-strategy-content">
     <RenderContent
       :key="activeTab"
@@ -22,7 +22,7 @@
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
 
-  import DbTab from '@components/db-tab/Index.vue';
+  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import RenderContent from './components/content/Index.vue';
 

@@ -162,6 +162,7 @@
       'DatabaseWhitelist',
       'bizTicketManage',
       'DBPasswordTemporaryModify',
+      'BussinessServiceApply',
     ],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
