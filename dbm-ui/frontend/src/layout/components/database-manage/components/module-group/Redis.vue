@@ -1,6 +1,8 @@
 <template>
   <FunController module-id="redis">
-    <BkMenuGroup name="Redis">
+    <MenuGroup
+      :db-type="DBTypes.REDIS"
+      :is-error="isError">
       <BkSubmenu key="RedisManage">
         <template #icon>
           <DbIcon type="fenbushijiqun" />
@@ -89,7 +91,7 @@
           </span>
         </BkMenuItem>
       </FunController>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
@@ -101,14 +103,21 @@
 
   import { useUserProfile } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/redis/toolbox-menu';
 
   import { makeMap } from '@utils';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const userProfile = useUserProfile();
   const { t } = useI18n();

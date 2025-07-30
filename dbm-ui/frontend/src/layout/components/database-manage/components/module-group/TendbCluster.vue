@@ -2,7 +2,9 @@
   <FunController
     controller-id="tendbcluster"
     module-id="mysql">
-    <BkMenuGroup name="Tendb Cluster">
+    <MenuGroup
+      :db-type="DBTypes.TENDBCLUSTER"
+      :is-error="isError">
       <BkSubmenu key="tendb-cluster-manage">
         <template #icon>
           <DbIcon type="cluster" />
@@ -99,7 +101,7 @@
           {{ t('工具箱') }}
         </span>
       </BkMenuItem>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
@@ -110,14 +112,21 @@
 
   import { useUserProfile } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/tendb-cluster/toolbox-menu';
 
   import { makeMap } from '@utils';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const userProfile = useUserProfile();
   const { t } = useI18n();
