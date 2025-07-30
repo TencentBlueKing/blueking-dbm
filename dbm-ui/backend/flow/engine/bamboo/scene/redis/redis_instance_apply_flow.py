@@ -408,7 +408,6 @@ class RedisInstanceApplyFlow(object):
                     "region": rule.get("city_code", ""),
                     "meta_func_name": RedisDBMeta.redis_instance.__name__,
                     "disaster_tolerance_level": rule.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
-                    "zone_list": rule.get("zone_list", []),
                 }
                 acts_list.append(
                     {
