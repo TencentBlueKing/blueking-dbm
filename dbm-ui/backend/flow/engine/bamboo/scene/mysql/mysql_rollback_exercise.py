@@ -37,6 +37,7 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_backup_recovery_exercise import (
     MySQLBackupRecoverTaskMetaComponent,
 )
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -263,6 +264,17 @@ class MySQLRollbackExerciseFlow(object):
                 "api_import_module": "DBResourceApi",
                 "api_call_func": "resource_import",
                 "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+            },
+            is_remote_rewritable=True,
+        )
+        # 清理数据备份目录
+        pipeline.add_act(
+            act_name=_("清理数据备份目录"),
+            act_component_code=CleanDataBakDirComponent.code,
+            kwargs={
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                "exec_ip": self.rollback_host["ip"],
             },
             is_remote_rewritable=True,
         )

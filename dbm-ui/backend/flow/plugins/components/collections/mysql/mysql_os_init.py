@@ -320,3 +320,33 @@ class GetOsSysParamComponent(Component):
     name = __name__
     code = "get_os_sys_param"
     bound_service = GetOsSysParam
+
+
+class CleanDataBakDirSvr(BkJobService):
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        script_content = "rm -rf /data/dbbak;rm -rf /data1/dbbak"
+        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
+        body = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": "Clean-DataBak-Dir",
+            "script_content": base64_encode(script_content),
+            "script_language": 1,
+            "target_server": {"ip_list": target_ip_info},
+        }
+        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+        common_kwargs["account_alias"] = DBA_ROOT_USER
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        self.log_info(f"fast execute script response: {resp}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
+        data.inputs.write_payload_var = "system_info"
+        data.outputs.ext_result = resp
+        data.outputs.exec_ips = exec_ips
+        return True
+
+
+class CleanDataBakDirComponent(Component):
+    name = __name__
+    code = "clean_data_bak_dir"
+    bound_service = CleanDataBakDirSvr
