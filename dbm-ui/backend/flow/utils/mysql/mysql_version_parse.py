@@ -61,6 +61,31 @@ def mysql_version_parse(mysql_version: str) -> int:
     return total
 
 
+def spider_major_version_parse(mysql_version: str, has_prefix=False):
+    if has_prefix:
+        re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    else:
+        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+
+    if len(result) == 0:
+        return 0
+
+    billion, thousand, single = result[0]
+
+    major_version = 0
+    sub_version = 0
+    if billion != "":
+        major_version += int(billion) * 1000000
+
+    if thousand != "":
+        sub_version += int(thousand) * 1000
+    if single != "":
+        sub_version += int(single)
+
+    return major_version, sub_version
+
+
 def major_version_parse(mysql_version: str):
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
@@ -126,8 +151,6 @@ def tspider_version_parse(mysql_version: str) -> int:
 
     if single != "":
         total += int(single)
-
-    return total
 
 
 def proxy_version_parse(proxy_version: str) -> int:

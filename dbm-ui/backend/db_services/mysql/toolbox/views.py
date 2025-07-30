@@ -25,6 +25,7 @@ from backend.db_meta.models import Cluster, ClusterEntry, DBModule
 from backend.db_services.mysql.toolbox.handlers import ToolboxHandler
 from backend.db_services.mysql.toolbox.serializers import (
     QueryPkgListByCompareVersionSerializer,
+    QuerySpiderPkgListByCompareVersionSerializer,
     TendbhaAddSlaveDomainSerializer,
     TendbhaTransferToOtherBizSerializer,
 )
@@ -40,9 +41,19 @@ SWAGGER_TAG = "db_services/mysql/toolbox"
 
 
 class ToolboxViewSet(viewsets.SystemViewSet):
+    """工具箱视图集
+
+    Args:
+        viewsets (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+
     action_permission_map = {}
     default_permission_class = [DBManagePermission()]
 
+    # This method is deprecated, use `query_higher_version_pkg_list` instead
     @common_swagger_auto_schema(
         operation_summary=_("查询 MySQL 可以用的升级包"),
         request_body=QueryPkgListByCompareVersionSerializer(),
@@ -58,6 +69,24 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         )
         return Response(
             ToolboxHandler().query_higher_version_pkg_list(cluster_id, higher_major_version, higher_all_version)
+        )
+
+    # This method is deprecated, use `query_spider_higher_version_pkg_list` instead
+    @common_swagger_auto_schema(
+        operation_summary=_("查询 Spider 可以用的升级包"),
+        request_body=QuerySpiderPkgListByCompareVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QuerySpiderPkgListByCompareVersionSerializer)
+    def query_spider_higher_version_pkg_list(self, request, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id, higher_major_version, higher_sub_version = (
+            data["cluster_id"],
+            data["higher_major_version"],
+            data["higher_sub_version"],
+        )
+        return Response(
+            ToolboxHandler().query_higher_spider_ver_pkgs(cluster_id, higher_major_version, higher_sub_version)
         )
 
 
