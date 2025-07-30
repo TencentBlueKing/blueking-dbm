@@ -940,6 +940,7 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
             },
             "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
             "disaster_tolerance_level": kwargs["cluster"]["dst_install_param"]["disaster_tolerance_level"],
+            "zone_list": kwargs["cluster"]["dst_install_param"]["zone_list"],
         }
         if is_predixy_proxy_type(ticket_data["cluster_type"]):
             # 如果是predixy类型,则需要设置proxy_admin_pwd
