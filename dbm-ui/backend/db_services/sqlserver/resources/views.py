@@ -130,7 +130,7 @@ class BaseSQLServerViewSet(viewsets.ResourceViewSet):
             # 如果不存在alwayson_ids 直接返回空列表
             if not alwayson_ids:
                 return self.get_paginated_response([])
-            query_params["cluster_ids"] = alwayson_ids
+            query_params["cluster_ids"] = ",".join(map(str, alwayson_ids))
 
         data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
         return self.get_paginated_response(data)
