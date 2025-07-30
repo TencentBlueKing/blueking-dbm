@@ -17,7 +17,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin, get_ticket_zone_list
 from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
@@ -215,6 +215,9 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         )
         # 校验域名是否合法
         CommonValidate._validate_domain_valid(domain_name)
+
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
 
         self.ticket_data.update(
             {

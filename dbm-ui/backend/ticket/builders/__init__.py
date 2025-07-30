@@ -23,7 +23,8 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_dirty.constants import PoolType
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache, Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.base import BaseController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -234,36 +235,60 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         """
         pass
 
-    def patch_info_affinity_location(self, roles=None):
+    def patch_info_affinity_location(self, roles=None, replace_zone=None):
         """
         批量节点变更的时候，补充亲和性和位置参数
         """
-        from backend.ticket.builders.common.base import fetch_cluster_ids
+        from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_machine_ids
 
+        machine_zone_map = {}
+        # 处理替换指定园区
+        if replace_zone:
+            machines = fetch_machine_ids(self.ticket_data["infos"])
+            machine_zone_map = {
+                machine.ip: machine.bk_sub_zone_id for machine in Machine.objects.filter(ip__in=machines)
+            }
         cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
         cluster_id_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             cluster = cluster_id_map[fetch_cluster_ids(info)[0]]
-            self.patch_affinity_location(cluster, info["resource_spec"], roles)
+            if (
+                cluster.disaster_tolerance_level in [AffinityEnum.CROS_SUBZONE, AffinityEnum.MAJORITY_ELECTION_DISTRI]
+            ) and machine_zone_map:
+                # 处理mysql迁移主从old_nodes下存在old_master,old_slave园区问题
+                if self.ticket.ticket_type == TicketType.MYSQL_MIGRATE_CLUSTER.value:
+                    for key in ["old_master", "old_slave"]:
+                        if key in info["old_nodes"]:
+                            replace_zone = [machine_zone_map[fetch_machine_ids(info["old_nodes"][key])[0]]]
+                            self.patch_affinity_location(
+                                cluster, info["resource_spec"], key.replace("old", "new"), replace_zone
+                            )
+                            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+                    continue
+
+                info_key = (
+                    "spider_old_ip_list"
+                    if self.ticket.ticket_type == TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES.value
+                    else "old_nodes"
+                )
+                replace_zone = [machine_zone_map[fetch_machine_ids(info[info_key])[0]]]
+            self.patch_affinity_location(cluster, info["resource_spec"], roles, replace_zone)
             # 工具箱操作，补充业务和云区域ID
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     @classmethod
-    def patch_affinity_location(cls, cluster, resource_spec, roles=None):
+    def patch_affinity_location(cls, cluster, resource_spec, roles=None, replace_zone=None):
         """
         节点变更的时候，补充亲和性和位置参数
         """
-        bk_sub_zone_id = None
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclude=True来指定申请的园区，如不传nclude_or_exclude参数，默认视为包含该园区
-        if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-            bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
 
+        bk_sub_zone_ids = replace_zone or cluster.zone_list
         resource_role = roles or resource_spec.keys()
         for role in resource_role:
             resource_spec[role]["affinity"] = cluster.disaster_tolerance_level
             resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
-            if bk_sub_zone_id:
-                resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True)
+            if bk_sub_zone_ids:
+                resource_spec[role]["location_spec"].update(sub_zone_ids=bk_sub_zone_ids, include_or_exclue=True)
 
 
 class RecycleCleanMachineParamBuilder(FlowParamBuilder):
