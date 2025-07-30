@@ -2,7 +2,9 @@
   <FunController
     controller-id="riak"
     module-id="bigdata">
-    <BkMenuGroup name="Riak">
+    <MenuGroup
+      :db-type="DBTypes.RIAK"
+      :is-error="isError">
       <BkMenuItem key="RiakManage">
         <template #icon>
           <DbIcon type="cluster" />
@@ -16,15 +18,22 @@
           :cluster-type="ClusterTypes.RIAK"
           role="cluster" />
       </BkMenuItem>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

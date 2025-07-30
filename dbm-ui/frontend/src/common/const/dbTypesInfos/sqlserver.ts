@@ -16,5 +16,6 @@ export const sqlserver: DbInfoType = {
     ],
     moduleId: 'sqlserver',
     name: 'SQLServer',
+    routeIndexName: 'SqlServerManage',
   },
 };

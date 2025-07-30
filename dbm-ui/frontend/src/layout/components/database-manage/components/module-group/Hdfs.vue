@@ -2,7 +2,9 @@
   <FunController
     controller-id="hdfs"
     module-id="bigdata">
-    <BkMenuGroup name="HDFS">
+    <MenuGroup
+      :db-type="DBTypes.HDFS"
+      :is-error="isError">
       <BkMenuItem key="HdfsManage">
         <template #icon>
           <DbIcon type="hdfs" />
@@ -16,15 +18,22 @@
           :cluster-type="ClusterTypes.HDFS"
           role="cluster" />
       </BkMenuItem>
-    </BkMenuGroup>
+    </MenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import CountTag from './components/CountTag.vue';
+  import MenuGroup from './components/MenuGroup.vue';
+
+  interface Props {
+    isError: boolean;
+  }
+
+  defineProps<Props>();
 
   const { t } = useI18n();
 </script>
