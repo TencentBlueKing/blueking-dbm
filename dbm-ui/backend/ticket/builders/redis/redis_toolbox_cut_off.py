@@ -123,11 +123,15 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
             "affinity": cluster.disaster_tolerance_level,
         }
 
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclude=True来指定申请的园区
+        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclue=True来指定申请的园区
         bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
         if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
             resource_spec["backend_group"]["location_spec"].update(
-                sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True
+                sub_zone_ids=[bk_sub_zone_id], include_or_exclue=True
+            )
+        elif cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE.value:
+            resource_spec["backend_group"]["location_spec"].update(
+                sub_zone_ids=cluster.zone_list, include_or_exclue=True
             )
 
         # 替换redis master需要将slave也下架，所以需要加入old_nodes
@@ -177,8 +181,12 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
 
             # 同园区，则slave与master在相同的subzone，跨园区，则排除master的subzone
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
+                cluster_zone_list = cluster.zone_list
+                sub_zone_ids = [
+                    subzone_id for subzone_id in cluster_zone_list if subzone_id != redis_master.machine.bk_sub_zone_id
+                ]
                 resource_spec[group_key]["location_spec"].update(
-                    sub_zone_ids=[redis_master.machine.bk_sub_zone_id], include_or_exclue=False
+                    sub_zone_ids=sub_zone_ids, include_or_exclue=bool(sub_zone_ids)
                 )
             elif cluster.disaster_tolerance_level in [
                 AffinityEnum.SAME_SUBZONE,
@@ -206,11 +214,14 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
             "group_count": 2,
         }
 
-        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclude=True来指定申请的园区
+        # 资源申请同城同园区条件：补充园区id, 且需传include_or_exclue=True来指定申请的园区
         bk_sub_zone_id = cluster.storageinstance_set.first().machine.bk_sub_zone_id
         if cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-            resource_spec["backend_group"]["location_spec"].update(
-                sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True
+            resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclue=True)
+        # 跨园区情况下，proxy取zone_list园区信息
+        elif cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
+            resource_spec[role]["location_spec"].update(
+                sub_zone_ids=cluster.zone_list, include_or_exclue=bool(cluster.zone_list)
             )
 
     def patch_resource_and_old_nodes(self):

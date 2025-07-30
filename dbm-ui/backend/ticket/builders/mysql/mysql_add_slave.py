@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
@@ -76,15 +76,25 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         masters = (
             StorageInstance.objects.select_related("machine")
             .prefetch_related("cluster")
-            .filter(cluster__in=cluster_ids)
+            .filter(cluster__in=cluster_ids, instance_inner_role=InstanceInnerRole.MASTER)
         )
         cluster_id__master_map = {master.cluster.first().id: master for master in masters}
+        cluster_id__zone_map = {master.cluster.first().id: master.cluster.first().zone_list for master in masters}
         for info in ticket_data["infos"]:
             resource_spec = info["resource_spec"]["new_slave"]
             master_subzone_id = cluster_id__master_map[info["cluster_ids"][0]].machine.bk_sub_zone_id
             # 同城跨园区，要求slave和master在不同subzone
             if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
+                cluster_zone_list = cluster_id__zone_map.get(info["cluster_ids"][0], [])
+                sub_zone_ids = [subzone_id for subzone_id in cluster_zone_list if subzone_id != master_subzone_id]
+                include_or_exclue = bool(sub_zone_ids)
+                if not cluster_zone_list:
+                    # 为空表示随机可用区
+                    sub_zone_ids = [master_subzone_id]
+                    include_or_exclue = False
+
+                resource_spec["location_spec"].update(sub_zone_ids=sub_zone_ids, include_or_exclue=include_or_exclue)
+
             # 同城同园区，要求slave和master在一个subzone
             elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
                 resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)

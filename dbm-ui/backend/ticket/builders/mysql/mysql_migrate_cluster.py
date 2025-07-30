@@ -94,7 +94,7 @@ class MysqlMigrateClusterParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 
 class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location()
+        self.patch_info_affinity_location(replace_zone=True)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

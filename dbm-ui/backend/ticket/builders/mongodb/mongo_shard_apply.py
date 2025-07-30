@@ -18,6 +18,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_ticket_zone_list
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateResourceParamBuilder,
     BaseMongoShardedTicketFlowBuilder,
@@ -72,6 +73,9 @@ class MongoShardedClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         self.ticket_data["bk_app_abbr"] = self.ticket_data["db_app_abbr"]
         self.ticket_data["proxy_port"] = self.ticket_data["start_port"]
+
+        # 补充zone_list数据 取分片集任意组件下园区即可
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data, "mongo_config")
 
 
 class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):

@@ -21,7 +21,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -103,6 +103,8 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             city=self.ticket.details["city_code"],
             immutable_domain=f"spider.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
         )
+        # 补充zone_list数据
+        self.ticket_data["zone_list"] = get_ticket_zone_list(self.ticket_data)
 
 
 class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):

@@ -26,7 +26,7 @@ from backend.constants import DOMAIN_PATTERN
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
-from backend.db_services.dbbase.constants import IpDest
+from backend.db_services.dbbase.constants import IpDest, IpSource
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
@@ -47,6 +47,17 @@ logger = logging.getLogger("app")
 def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_types: Union[type, tuple]) -> List:
     targets = get_target_items_from_details(obj=details, match_keys=match_keys)
     return [item for item in targets if isinstance(item, valid_types) and item]
+
+
+def get_ticket_zone_list(ticket_data, role="backend_group"):
+    zone_list = []
+    if ticket_data["ip_source"] == IpSource.RESOURCE_POOL and ticket_data["disaster_tolerance_level"] in [
+        AffinityEnum.CROS_SUBZONE,
+        AffinityEnum.SAME_SUBZONE,
+        AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+    ]:
+        zone_list = ticket_data["resource_spec"][role]["location_spec"]["sub_zone_ids"]
+    return zone_list
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:

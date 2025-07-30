@@ -767,6 +767,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "update_at": datetime2str(cluster.update_at),
             "cluster_spec": model_to_dict(cluster_spec) if cluster_spec else None,
             "tags": [tag.desc for tag in cluster.tags.all()],
+            "zone_list": cluster.zone_list,
         }
 
     @classmethod
