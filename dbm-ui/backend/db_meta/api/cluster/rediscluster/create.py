@@ -41,6 +41,7 @@ def create(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
 ):
     """
     注册 TendisPredixyRedisCluster 集群
@@ -76,6 +77,7 @@ def create(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
         cluster.storageinstance_set.add(*storage_objs)
