@@ -47,6 +47,14 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/webconsole/Index.vue'),
   },
+  {
+    path: 'query-access-source',
+    name: 'MongodbQueryAccessSource',
+    meta: {
+      navName: t('查询访问来源'),
+    },
+    component: () => import('@views/db-manage/mongodb/query-access-source/Index.vue'),
+  },
 ];
 
 const mongodbToolboxRouters: RouteRecordRaw[] = [

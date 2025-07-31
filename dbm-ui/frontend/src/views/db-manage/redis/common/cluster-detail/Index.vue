@@ -135,6 +135,22 @@
               </AuthButton>
             </OperationBtnStatusTips>
           </BkDropdownItem>
+          <BkDropdownItem v-db-console="'redis.clusterManage.queryAccessSource'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="redis_source_access_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.redis_source_access_view"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                {{ t('查询访问来源') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
           <!-- <FunController
             controller-id="redis_nameservice"
             module-id="addons"> -->
@@ -300,6 +316,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const router = useRouter();
   const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
   const { handleAddPolaris } = useAddPolaris<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
   const { handleBindOrUnbindClb } = useBindOrUnbindClb<{ cluster_id: number }>(ClusterTypes.REDIS_CLUSTER);
@@ -369,6 +386,16 @@
       immediate: true,
     },
   );
+
+  const handleGoQueryAccessSourcePage = (domain: string) => {
+    const url = router.resolve({
+      name: 'RedisQueryAccessSource',
+      query: {
+        domain,
+      },
+    });
+    window.open(url.href);
+  };
 
   const handleShowPassword = (id: number) => {
     passwordState.isShow = true;
