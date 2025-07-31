@@ -1,0 +1,28 @@
+name: analysis
+version: v2.0.0
+
+discovery:
+  endpoint: http://127.0.0.1:2379;http://127.0.0.2:2379
+  user: root
+  password: 1234567890
+
+workflow:
+  lockBusinessWaitTimeout: 5s
+  scanTimeout: 60s
+  scanInterval: 3s
+
+monitor:
+  dataID: 0
+  bkMonitorBeat: ""
+  bkMonitorEndpoint: 127.0.0.1:9090
+
+storage:
+  endpoint: tcp://127.0.0.1:3306
+  user: root
+  password: 123456
+
+log:
+  path: /var/log/dbha/logs/analysis.log
+  level: debug
+  fileCount: 10
+  fileSize: 100
