@@ -1438,8 +1438,12 @@ class ActKwargs:
             data_disk = "/data1"
         elif info["target"]["storage_device"].get("/data"):
             data_disk = "/data"
+        if info["target"]["storage_device"].get(data_disk).get("size"):
+            disk_size = info["target"]["storage_device"].get(data_disk)["size"]
+        else:
+            disk_size = info["target"]["storage_device"].get(data_disk).get("min")
         self.replicaset_info["oplogSizeMB"] = get_oplog_size(
-            disk_size=info["target"]["storage_device"].get(data_disk)["size"],
+            disk_size=disk_size,
             oplog_percent=MongoOplogSizePercent.Oplog_Percent.value,
             num=instance_count,
         )
