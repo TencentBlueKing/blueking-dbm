@@ -491,7 +491,7 @@ class ResourceHandler(object):
             # 每台机器预估单价
             cpu_per_cost = spec.cpu["max"] * db_cost_estimate["cpu"]
             mem_per_cost = spec.mem["max"] * db_cost_estimate["mem"]
-            disk_per_cost = sum([db_cost_estimate["storage"][d["type"]] * d["size"] for d in spec.storage_spec])
+            disk_per_cost = sum([db_cost_estimate["storage"][d["type"]] * d["min"] for d in spec.storage_spec])
             # 合并计算总价
             excepted_cost += (cpu_per_cost + mem_per_cost + disk_per_cost) * count
 

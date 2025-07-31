@@ -37,7 +37,7 @@ INIT_SPEC_DATA = {
     # "spec_name": "spec_test",
     "cpu": {"max": 1024, "min": 1},
     "mem": {"max": 1024, "min": 1},
-    "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+    "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
     "spec_cluster_type": SpecClusterType.MySQL.value,
     "spec_machine_type": MachineType.BACKEND.value,
     "device_class": [-1],

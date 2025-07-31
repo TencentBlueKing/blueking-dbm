@@ -22,7 +22,6 @@ from django.utils.translation import ugettext_lazy as _
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.constants import INT_MAX
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 
 logger = logging.getLogger("root")
@@ -41,7 +40,7 @@ class Spec(AuditedModel):
     mem = models.JSONField(null=True, help_text=_('mem规格描述:{"min":100,"max":1000}'), default=dict)
     device_class = models.JSONField(null=True, help_text=_('实际机器机型: ["class1","class2"]'), default=dict)
     storage_spec = models.JSONField(
-        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]'), default=dict, null=True
+        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","min":500,"max":1000,"type":"ssd"}]'), default=dict, null=True
     )
     desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
     enable = models.BooleanField(help_text=_("是否启用"), default=True)
@@ -49,6 +48,7 @@ class Spec(AuditedModel):
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属
     qps = models.JSONField(default=dict, help_text=_('qps规格描述:{"min": 1, "max": 100}'), null=True)
+    biz_scope = models.JSONField(default=list, help_text=_("业务范围:[3,4,5]"), null=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("资源规格(Spec)")
@@ -63,7 +63,7 @@ class Spec(AuditedModel):
         RedisCluster/TendisCache/Redis: 以内存为准，内存不是范围，是一个准确的值
         默认：磁盘总容量
         """
-        mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
+        mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["min"] for disk in self.storage_spec}
         if (
             self.spec_cluster_type == SpecClusterType.TenDBCluster
             and self.spec_machine_type == SpecMachineType.BACKEND.value
@@ -100,8 +100,8 @@ class Spec(AuditedModel):
                     "mount_point": storage_spec["mount_point"],
                     # 如果是all，则需要传空
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"] - spec_offset["disk"],
-                    "max": INT_MAX,
+                    "min": storage_spec["min"] - spec_offset["disk"],
+                    "max": storage_spec["max"],
                 }
                 for storage_spec in self.storage_spec
             ],
@@ -186,8 +186,8 @@ class Spec(AuditedModel):
     def compare_to(self, spec: "Spec", compare_flag: bool):
         """比较规格"""
         # 比较存储配置里磁盘的最小值 TODO: TendisCache可能是内存比较
-        self_min_config = min([storage.get("size", 0) for storage in self.storage_spec])
-        spec_min_config = min([storage.get("size", 0) for storage in spec.storage_spec])
+        self_min_config = min([storage.get("min", 0) for storage in self.storage_spec])
+        spec_min_config = min([storage.get("min", 0) for storage in spec.storage_spec])
 
         if compare_flag:
             return self_min_config >= spec_min_config
