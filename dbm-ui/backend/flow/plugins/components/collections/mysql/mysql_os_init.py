@@ -340,7 +340,6 @@ class CleanDataBakDirSvr(BkJobService):
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"fast execute script response: {resp}")
         self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
-        data.inputs.write_payload_var = "system_info"
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
         return True

@@ -198,7 +198,7 @@ class MySQLSingleApplyFlow(object):
             )
         )
         if origin_cluster_domain:
-            sub_name = _("单节点集群部署")
+            sub_name = _("【{}】模版集群的演练部署流程".format(origin_cluster_domain))
         else:
-            sub_name = _("【{}】模版集群的演练部署流程".format(self.data["origin_cluster_domain"]))
+            sub_name = _("单节点集群部署")
         return mysql_single_pipeline.build_sub_process(sub_name=sub_name)
