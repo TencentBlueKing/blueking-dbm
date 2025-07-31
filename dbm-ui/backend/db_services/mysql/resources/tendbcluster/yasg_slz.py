@@ -36,7 +36,7 @@ paginated_resource_example = {
                 "cpu": {"max": "12", "min": "12"},
                 "mem": {"max": "2", "min": "1"},
                 "device_class": [],
-                "storage_spec": [{"size": 10, "type": "HDD", "mount_point": "/data123"}],
+                "storage_spec": [{"min": 10, "type": "HDD", "mount_point": "/data123"}],
                 "desc": "qqwrqr",
                 "instance_num": 1,
                 "qps": {},
