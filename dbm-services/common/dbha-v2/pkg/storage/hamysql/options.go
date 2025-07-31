@@ -143,7 +143,9 @@ func OptionPassword(val string) *funcOptions {
 func OptionProto(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
-			opt.proto = val
+			if val != "" {
+				opt.proto = val
+			}
 			return nil
 		},
 	}

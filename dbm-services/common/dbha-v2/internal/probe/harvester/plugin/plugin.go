@@ -31,14 +31,14 @@ import (
 
 // HarvestData harvst data from a db
 type HarvestData struct {
-	Data interface{} `json:"data"`
+	Value interface{}
 }
 
 // Plugin probe plugin interface
 type Plugin interface {
 	Name() (string, error)
 	Version() (string, error)
-	Harvest(ctx context.Context) (chan *HarvestData, error)
+	Harvest(ctx context.Context) (<-chan *HarvestData, error)
 	Close() error
 }
 
@@ -58,7 +58,7 @@ func (u *UnimplementedMethod) Version() (string, error) {
 	return "unknow", gerrors.New(gerrors.Unimplemented, "unimplemented method")
 }
 
-func (u *UnimplementedMethod) Harvest(ctx context.Context) (chan *HarvestData, error) {
+func (u *UnimplementedMethod) Harvest(ctx context.Context) (<-chan *HarvestData, error) {
 	return nil, gerrors.New(gerrors.Unimplemented, "unimplemented method")
 }
 

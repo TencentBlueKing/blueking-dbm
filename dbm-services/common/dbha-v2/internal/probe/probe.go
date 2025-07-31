@@ -38,10 +38,11 @@ import (
 
 // Probe probe main framework
 type Probe struct {
-	*reporter.Reporter
-	plugins []plugin.Plugin
-	quit    chan struct{}
-	wg      sync.WaitGroup
+	clientID  string
+	reporters []reporter.Reporter
+	plugins   []plugin.Plugin
+	quit      chan struct{}
+	wg        sync.WaitGroup
 }
 
 func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
@@ -49,13 +50,13 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 	defer func() {
 		if err := plug.Close(); err != nil {
-			logger.Error("exit harvester plugin(%s) failed, errmsg(%v)", name, err)
+			logger.Error("exit harvester plugin(%s) failed, %v", name, err)
 		}
 	}()
 
 	eventC, err := plug.Harvest(ctx)
 	if err != nil {
-		logger.Warn("start harvester plugin(%s) failed, errmsg(%v)", name, err)
+		logger.Warn("start harvester plugin(%s) failed, %v", name, err)
 		return
 	}
 
@@ -68,13 +69,20 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 			return
 
 		case data := <-eventC:
-			dataEncoded, err := json.Marshal(data)
+			dataEncoded, err := json.Marshal(data.Value)
 			if err != nil {
-				logger.Warn("encode data to json failed, plugin(%s), errmsg(%v)", name, err)
+				logger.Warn("encode data to json failed, plugin(%s), data(%v), %v", name, data.Value, err)
 				continue
 			}
-			if err := p.Reporter.PostToReceiver(dataEncoded); err != nil {
-				logger.Warn("post data to receiver failed, plugin(%s), errmsg(%v)", name, err)
+
+			for _, r := range p.reporters {
+				err := r.Post(ctx, dataEncoded)
+				if err == nil {
+					// NOTE: Just one reporter sending the data is sufficient.
+					break
+				}
+
+				logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v", name, r.Name(), err)
 			}
 		}
 	}
@@ -85,16 +93,18 @@ func (p *Probe) loadPlugins(ctx context.Context) error {
 		p.plugins = make([]plugin.Plugin, 20)
 	}
 
-	for _, cfg := range config.Cfg.Harvester {
+	for _, cfg := range config.Cfg.Harvesters {
 		plug, err := harvester.NewPlugin(cfg)
 		if err != nil {
-			logger.Warn("create a new harvester plugin(%s) failed, errmsg(%v)", cfg.Name, err)
+			logger.Warn("create a new harvester plugin(%s) failed, %v", cfg.Name, err)
 			continue
 		}
 
 		p.wg.Add(1)
+
 		go func() {
 			defer p.wg.Done()
+
 			p.runPlugin(ctx, plug)
 		}()
 	}
@@ -104,10 +114,6 @@ func (p *Probe) loadPlugins(ctx context.Context) error {
 
 func (p *Probe) Run(ctx context.Context) error {
 	p.quit = make(chan struct{})
-
-	if err := p.Reporter.CreateClients(ctx); err != nil {
-		return err
-	}
 
 	if err := p.loadPlugins(ctx); err != nil {
 		return err

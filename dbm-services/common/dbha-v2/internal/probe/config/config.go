@@ -24,7 +24,26 @@
 
 package config
 
+import "time"
+
 var Cfg Configuration
+
+// ReporterConfig reporter's config
+type ReporterConfig struct {
+	Name        string        `yaml:"name"        mapstructure:"name"`
+	Endpoint    string        `yaml:"endpoint"    mapstructure:"endpoint"`
+	DataID      uint64        `yaml:"dataID"      mapstructure:"dataID"`
+	ConnTimeout time.Duration `yaml:"connTimeout" mapstructure:"connTimeout"`
+}
+
+// HarvesterConfig harvester's config
+type HarvesterConfig struct {
+	Name     string        `yaml:"name"     mapstructure:"name"`
+	Endpoint string        `yaml:"endpoint" mapstructure:"endpoint"`
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+}
 
 // LogConfig log configuration
 type LogConfig struct {
@@ -34,49 +53,11 @@ type LogConfig struct {
 	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
-// AdminService admin service configuration
-type AdminService struct {
-	Endpoints    string `yaml:"endpoints"    mapstructure:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval" mapstructure:"syncInterval"`
-}
-
-// ReceiverService receiver service configuration
-type ReceiverService struct {
-	Endpoints    string `yaml:"endpoints"     mapstructure:"endpoints"`
-	SyncInterval int    `yaml:"syncInterval"  mapstructure:"syncInterval"`
-}
-
-// InstanceConfig single instance config
-type InstanceConfig struct {
-	Host     string `yaml:"host"     mapstructure:"host"`
-	Port     int    `yaml:"port"     mapstructure:"port"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
-	Name     string `yaml:"name"     mapstructure:"name"`
-}
-
-// HarvesterConfig harvester's config
-type HarvesterConfig struct {
-	Name           string           `yaml:"name"            mapstructure:"name"`
-	ReportInterval int              `yaml:"reportInterval"  mapstructure:"reportInterval"`
-	Instances      []InstanceConfig `yaml:"instances"       mapstructure:"instances"`
-}
-
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string            `yaml:"name"        mapstructure:"name"`
-	Version   string            `yaml:"version"     mapstructure:"version"`
-	Admin     AdminService      `yaml:"admin"       mapstructure:"admin"`
-	Receiver  ReceiverService   `yaml:"receiver"    mapstructure:"receiver"`
-	Harvester []HarvesterConfig `yaml:"harvester"   mapstructure:"harvester"`
-	Log       LogConfig         `yaml:"log"         mapstructure:"log"`
-	GSE       GSEConfig         `yaml:"gse"         mapstructure:"gse"`
-}
-
-// GSEConfig defines the GSE basic config.
-type GSEConfig struct {
-	// DomainSocketPath is the domain socket path.
-	// DataID is the data-id(channel-id) to report.
-	DomainSocketPath string `yaml:"domain_socket_path" mapstructure:"domain_socket_path"`
-	DataID           uint32 `yaml:"data_id"            mapstructure:"data_id"`
+	Name       string            `yaml:"name"      mapstructure:"name"`
+	Version    string            `yaml:"version"   mapstructure:"version"`
+	Reporters  []ReporterConfig  `yaml:"reporter"  mapstructure:"reporter"`
+	Harvesters []HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
+	Log        LogConfig         `yaml:"log"       mapstructure:"log"`
 }
