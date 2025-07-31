@@ -12,83 +12,152 @@
 -->
 
 <template>
-  <div class="query-access-results-main">
-    <div class="results-info-main">
-      <div class="counts-display">
-        <span>{{ t('查询结果') }}</span>
-        <span class="ml-4 mr-4">:</span>
-        <I18nT
-          keypath="共m条"
-          tag="span">
-          <span style="font-weight: 700; color: #63656e">{{ tableData.length }}</span>
-        </I18nT>
-        <span class="ml-4 mr-4">,</span>
-        <I18nT
-          keypath="耗时：m 秒"
-          tag="span">
-          <span>{{ querySeconds }}</span>
-        </I18nT>
-        <span class="ml-4 mr-4">,</span>
-        <I18nT
-          keypath="全部成功n个集群"
-          tag="span">
-          <span style="font-weight: 700; color: #2caf5e">{{ successCount }}</span>
-        </I18nT>
-        <span class="ml-4 mr-4">,</span>
-        <I18nT
-          keypath="部分失败n个集群"
-          tag="span">
-          <span style="font-weight: 700; color: #f59500">{{ partialFailedCount }}</span>
-        </I18nT>
-        <span class="ml-4 mr-4">,</span>
-        <I18nT
-          keypath="全部失败n个集群"
-          tag="span">
-          <span style="font-weight: 700; color: #ea3636">{{ failedCount }}</span>
-        </I18nT>
+  <BkFormItem :label="t('查询结果')">
+    <div class="query-access-source-result-item">
+      <div class="results-info-main">
+        <div class="counts-display">
+          <span>{{ t('查询结果') }}</span>
+          <span class="ml-4 mr-4">:</span>
+          <I18nT
+            keypath="共m条"
+            tag="span">
+            <span style="font-weight: 700; color: #63656e">{{ tableData.length }}</span>
+          </I18nT>
+          <span class="ml-4 mr-4">,</span>
+          <I18nT
+            keypath="耗时：m 秒"
+            tag="span">
+            <span>{{ querySeconds }}</span>
+          </I18nT>
+          <span class="ml-4 mr-4">,</span>
+          <I18nT
+            keypath="全部成功n个集群"
+            tag="span">
+            <span style="font-weight: 700; color: #2caf5e">{{ successCount }}</span>
+          </I18nT>
+          <span class="ml-4 mr-4">,</span>
+          <I18nT
+            keypath="部分失败n个集群"
+            tag="span">
+            <span style="font-weight: 700; color: #f59500">{{ partialFailedCount }}</span>
+          </I18nT>
+          <span class="ml-4 mr-4">,</span>
+          <I18nT
+            keypath="全部失败n个集群"
+            tag="span">
+            <span style="font-weight: 700; color: #ea3636">{{ failedCount }}</span>
+          </I18nT>
+        </div>
+        <BkButton
+          text
+          theme="primary"
+          @click="handleExport">
+          {{ t('导出结果') }}
+        </BkButton>
       </div>
-      <BkButton
-        text
-        theme="primary"
-        @click="handleExport">
-        {{ t('导出结果') }}
-      </BkButton>
+      <BkLoading :loading="isTableLoading">
+        <BkTable
+          border="inner"
+          class="query-result-table"
+          :data="tableData"
+          :merge-cells="mergeCells"
+          :remote-pagination="false"
+          :row-config="{
+            isHover: false,
+            height: 28,
+          }"
+          stripe>
+          <BkTableColumn
+            field="cluster_domain"
+            :label="t('集群')"
+            :min-width="200" />
+          <BkTableColumn
+            field="status"
+            :label="t('统计的集群主机')"
+            :min-width="200">
+            <template #default="{ data }: { data: RowData }">
+              <StatusContent
+                :error-list="data.error_list"
+                :success-list="data.success_list" />
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="remote_ip"
+            :label="t('来源 IP')"
+            :min-width="200">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.remote_ip || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="establish"
+            :label="t('连接数（ESTAB）')">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.remote_ip ? data.establish : data.success_list.length ? 0 : '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="all_connections"
+            :label="t('连接数（ALL）')">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.remote_ip ? data.all_connections : data.success_list.length ? 0 : '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="topo"
+            :label="t('业务模块')"
+            :min-width="200">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.topo && data.topo.length ? data.topo[0] : '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="operator"
+            :label="t('主要负责人')">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.operator || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="bak_operator"
+            :label="t('备份负责人')">
+            <template #default="{ data }: { data: RowData }">
+              {{ data.bak_operator || '--' }}
+            </template>
+          </BkTableColumn>
+        </BkTable>
+      </BkLoading>
     </div>
-    <BkLoading :loading="isTableLoading">
-      <BkTable
-        ref="tableRef"
-        border="inner"
-        class="query-result-table"
-        :columns="tableColumns"
-        :data="tableData"
-        :merge-cells="mergeCells"
-        :remote-pagination="false"
-        :row-config="{
-          isHover: false,
-          height: 28,
-        }"
-        stripe />
-    </BkLoading>
-  </div>
+  </BkFormItem>
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { executeClusterTcpCmd, getClusterNetTcpResult } from '@services/source/redisToolbox';
+  import {
+    executeClusterTcpCmd as mongodbExecuteClusterTcpCmd,
+    getClusterNetTcpResult as mongodbGetClusterNetTcpResult,
+  } from '@services/source/mongodbToolbox';
+  import {
+    executeClusterTcpCmd as redisExecuteClusterTcpCmd,
+    getClusterNetTcpResult as redisGetClusterNetTcpResult,
+  } from '@services/source/redisToolbox';
 
-  import DbStatus from '@components/db-status/index.vue';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   import { exportExcelFile } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
+
+  import StatusContent from './components/StatusContent.vue';
 
   interface Props {
     clusters?: {
       domain: string;
       id: number;
     }[];
+    dbType: DBTypes.REDIS | DBTypes.MONGODB;
   }
 
   type Emits = (event: 'finish') => void;
@@ -100,7 +169,7 @@
   type RowData = {
     error_list: string[];
     success_list: string[];
-  } & ServiceReturnType<typeof getClusterNetTcpResult>['data'][number]['report'][number];
+  } & ServiceReturnType<typeof redisGetClusterNetTcpResult>['data'][number]['report'][number];
 
   const props = withDefaults(defineProps<Props>(), {
     clusters: () => [],
@@ -110,7 +179,6 @@
 
   const { t } = useI18n();
 
-  const tableRef = ref();
   const querySeconds = ref(0);
   const isTableLoading = ref(false);
   const successCount = ref(0);
@@ -139,117 +207,26 @@
     partialFailedCount.value = 0;
   };
 
-  const { data: clusterTcpCmdData, run: handleExecuteClusterTcpCmd } = useRequest(executeClusterTcpCmd, {
-    manual: true,
-    onSuccess() {
-      resumeQueryTableData();
+  const apiMap = {
+    [DBTypes.MONGODB]: {
+      executeClusterTcpCmd: mongodbExecuteClusterTcpCmd,
+      getClusterNetTcpResult: mongodbGetClusterNetTcpResult,
     },
-  });
+    [DBTypes.REDIS]: {
+      executeClusterTcpCmd: redisExecuteClusterTcpCmd,
+      getClusterNetTcpResult: redisGetClusterNetTcpResult,
+    },
+  };
 
-  const tableColumns = [
+  const { data: clusterTcpCmdData, run: handleExecuteClusterTcpCmd } = useRequest(
+    apiMap[props.dbType].executeClusterTcpCmd,
     {
-      field: 'cluster_domain',
-      label: t('集群'),
-      // fixed: 'left',
-      minWidth: 300,
-    },
-    {
-      field: 'status',
-      label: t('统计的集群主机'),
-      minWidth: 200,
-      // filter: {
-      //   list: [
-      //     {
-      //       text: t('全部成功'),
-      //       value: 'success',
-      //     },
-      //     {
-      //       text: t('全部失败'),
-      //       value: 'failed',
-      //     },
-      //     {
-      //       text: t('部分失败'),
-      //       value: 'partial_failed',
-      //     },
-      //   ],
-      // },
-      render: ({ data }: { data: RowData }) => {
-        const errorList = data.error_list;
-        let displayStatusText = '';
-        let statusTheme = '';
-        if (!errorList.length) {
-          displayStatusText = t('全部成功');
-          statusTheme = 'success';
-        } else if (!data.success_list.length) {
-          displayStatusText = t('全部失败');
-          statusTheme = 'danger';
-        } else {
-          displayStatusText = t('部分失败');
-          statusTheme = 'warning';
-        }
-        return (
-          <bk-popover
-            disabled={!errorList.length}
-            placement='top'
-            popoverDelay={0}
-            theme='light'>
-            {{
-              content: () => (
-                <div class='cluster-host-status-popover'>
-                  <div class='title-main'>
-                    {displayStatusText}（{errorList.length}）
-                  </div>
-                  {errorList.map((item) => (
-                    <div class='ip-item'>{item}</div>
-                  ))}
-                </div>
-              ),
-              default: () => (
-                <div class='cluster-host-status'>
-                  <DbStatus theme={statusTheme} />
-                  <span>{displayStatusText}</span>
-                  {errorList.length > 0 && <span class='error-count'>{errorList.length}</span>}
-                </div>
-              ),
-            }}
-          </bk-popover>
-        );
+      manual: true,
+      onSuccess() {
+        resumeQueryTableData();
       },
     },
-    {
-      field: 'remote_ip',
-      label: t('来源 IP'),
-      minWidth: 200,
-      render: ({ data }: { data: RowData }) => data.remote_ip || '--',
-    },
-    {
-      field: 'establish',
-      label: t('连接数（ESTAB）'),
-      render: ({ data }: { data: RowData }) => (data.remote_ip ? data.establish : data.success_list.length ? 0 : '--'),
-    },
-    {
-      field: 'all_connections',
-      label: t('连接数（ALL）'),
-      render: ({ data }: { data: RowData }) =>
-        data.remote_ip ? data.all_connections : data.success_list.length ? 0 : '--',
-    },
-    {
-      field: 'topo',
-      label: t('业务模块'),
-      minWidth: 200,
-      render: ({ data }: { data: RowData }) => (data.topo && data.topo.length ? data.topo[0] : '--'),
-    },
-    {
-      field: 'operator',
-      label: t('主要负责人'),
-      render: ({ data }: { data: RowData }) => data.operator || '--',
-    },
-    {
-      field: 'bak_operator',
-      label: t('备份负责人'),
-      render: ({ data }: { data: RowData }) => data.bak_operator || '--',
-    },
-  ];
+  );
 
   watch(
     () => props.clusters,
@@ -281,7 +258,9 @@
 
   const queryTableData = async () => {
     try {
-      const tcpResult = await getClusterNetTcpResult({ job_instance_id: clusterTcpCmdData.value!.job_instance_id });
+      const tcpResult = await apiMap[props.dbType].getClusterNetTcpResult({
+        job_instance_id: clusterTcpCmdData.value!.job_instance_id,
+      });
       if (tcpResult.finished) {
         emits('finish');
         pauseQueryTableData();
@@ -361,7 +340,7 @@
     const colsWidths = Array(8)
       .fill('')
       .map(() => ({ width: 40 }));
-    const fileName = `Redis${t('查询访问来源')}${dayjs().format('YYYYMMDDHHmm')}.xlsx`;
+    const fileName = `${DBTypeInfos[props.dbType].name}${t('查询访问来源')}${dayjs().format('YYYYMMDDHHmm')}.xlsx`;
     exportExcelFile(formatData, colsWidths, 'Sheet1', fileName);
   };
 
@@ -375,8 +354,9 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .query-access-results-main {
+
+<style lang="less">
+  .query-access-source-result-item {
     display: flex;
     flex-direction: column;
     border: 1px solid #dcdee5;
@@ -410,54 +390,38 @@
         }
       }
     }
-  }
-</style>
-<style lang="less">
-  .query-result-table {
-    .vxe-table--header-inner-wrapper {
-      height: 28px !important;
-    }
 
-    .vxe-header--column {
-      padding: 3px 0 !important;
-    }
-
-    .vxe-table--append-wrapper {
-      border-bottom: none;
-    }
-
-    .cluster-host-status {
-      display: flex;
-      align-items: center;
-
-      .error-count {
-        margin-left: 5px;
-        color: #ea3636;
+    .query-result-table {
+      .vxe-table--header-inner-wrapper {
+        height: 28px !important;
       }
-    }
 
-    .vxe-table--filter-body {
-      max-height: 120px !important;
-    }
+      .vxe-header--column {
+        padding: 3px 0 !important;
+      }
 
-    .vxe-table--filter-option {
-      padding: 0 0 0 8px !important;
-      margin: 0;
-    }
-  }
+      .vxe-table--append-wrapper {
+        border-bottom: none;
+      }
 
-  .cluster-host-status-popover {
-    .title-main {
-      height: 20px;
-      font-weight: 700;
-      color: #ea3636;
-    }
+      .cluster-host-status {
+        display: flex;
+        align-items: center;
 
-    .ip-item {
-      display: flex;
-      height: 20px;
-      color: #4d4f56;
-      align-items: center;
+        .error-count {
+          margin-left: 5px;
+          color: #ea3636;
+        }
+      }
+
+      .vxe-table--filter-body {
+        max-height: 120px !important;
+      }
+
+      .vxe-table--filter-option {
+        padding: 0 0 0 8px !important;
+        margin: 0;
+      }
     }
   }
 </style>

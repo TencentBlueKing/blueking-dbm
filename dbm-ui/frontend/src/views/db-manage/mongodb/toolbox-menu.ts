@@ -132,14 +132,20 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.queryAccessSource',
+        id: 'MongodbQueryAccessSource',
+        name: t('查询访问来源'),
+        parentId: 'mongo_data_query',
+      },
+      {
         dbConsoleValue: 'mongodb.toolbox.webconsole',
         id: 'MongodbWebconsole',
         name: 'Webconsole',
-        parentId: 'redis_data_query',
+        parentId: 'mongo_data_query',
       },
     ],
     icon: 'db-icon-search',
     id: 'mongo_data_query',
-    name: t('数据查询'),
+    name: t('常用查询'),
   },
 ];
