@@ -99,8 +99,8 @@ def calculate_min_disk_size(total_filesize: int) -> int:
     Returns:
         Minimum disk size required in GB
     """
-    min_disk_size = bytes_to_gb(total_filesize) * 3  # Double the backup size
-    return int(max(min_disk_size, 50))  # Ensure minimum of 50GB
+    min_disk_size = bytes_to_gb(total_filesize) * 4  # Double the backup size
+    return int(max(min_disk_size, 200))  # Ensure minimum of 50GB
 
 
 def get_last_week_range():
@@ -249,15 +249,17 @@ class Task:
         self.priority = priority
         self.cluster = cluster
 
-    # 定义比较规则（优先级数字小的先出队）
+    # 定义比较规则（优先级数字大先出队）
     def __lt__(self, other):
-        return self.priority < other.priority
+        return self.priority > other.priority
 
 
 def get_exercise_clusters(num: int) -> list:
     """_summary_
     获取待演练的集群
     """
+    count = 0
+    cluster_biz_map = defaultdict(list)
     recover_success_map = {}
     exclude_biz_ids = MySQLBackupRecoverTask.get_all_practiced_biz_ids()
     exclude_cluster_id = MySQLBackupRecoverTask.get_all_practiced_cluster_ids()
@@ -266,29 +268,38 @@ def get_exercise_clusters(num: int) -> list:
     # 先获取未演练的业务的集群
     clusters = Cluster.objects.exclude(
         bk_biz_id__in=exclude_biz_ids,
+        id__in=exclude_cluster_id,
     ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
-    if not clusters.exists():
+    if len(clusters) >= 0:
+        for cluster in clusters:
+            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(200, cluster))
+            count = count + 1
+    if count <= num * 3:
         # 如果都演练过的话,则选择没有演练过的集群
         clusters = Cluster.objects.exclude(
             id__in=exclude_cluster_id,
         ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
-        if not clusters.exists():
+        if len(clusters) >= 0:
+            for cluster in clusters:
+                heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(200, cluster))
+                count = count + 1
+        if count <= num * 3:
             clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
             result = (
                 MySQLBackupRecoverTask.objects.filter(
-                    task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS],
+                    task_status__in=[TaskStatus.RESOURCE_RETURN_SUCCESS, TaskStatus.RECOVER_SUCCESS],
                 )
                 .values("cluster_domain")
                 .annotate(total=Count("*"))
                 .order_by("total")
             )
             recover_success_map = {item["cluster_domain"]: item["total"] for item in result}
-
-    cluster_biz_map = defaultdict(list)
-    for cluster in clusters:
-        recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(100 - recover_success_cnt, cluster))
-
+            for cluster in clusters:
+                recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
+                heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(100 - recover_success_cnt, cluster))
+                count = count + 1
+                if count >= num * 3:
+                    break
     rs = []
     for bk_biz_id, pq in cluster_biz_map.items():
         if not pq:

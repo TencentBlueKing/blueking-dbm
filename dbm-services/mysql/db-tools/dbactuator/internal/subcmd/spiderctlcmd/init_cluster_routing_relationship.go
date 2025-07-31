@@ -67,7 +67,7 @@ func (d *InitCLusterRoutingAct) Run() (err error) {
 			FunName: "配置mysql.servers表",
 			Func: func() error {
 				if d.Service.Params.NotFlushAll {
-					if d.Service.Params.OnltInitCtl {
+					if d.Service.Params.OnlyInitCtl {
 						return d.Service.OnlyInitTdbctl()
 					}
 					return d.Service.AddAppendDeployInitRouter()

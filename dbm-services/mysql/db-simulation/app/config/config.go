@@ -49,7 +49,7 @@ type BkRepoConfig struct {
 	EndPointUrl  string `yaml:"endpointUrl"`
 }
 
-// LabelItem kubernert lable item
+// LabelItem kubernetes label item
 type LabelItem struct {
 	Key   string `json:"key" yaml:"key"`
 	Value string `json:"value" yaml:"value"`
@@ -161,11 +161,11 @@ func init() {
 			GAppConfig.Image.TdbCtlImg = v.Image
 		}
 	}
-	logger.Info("simulationNodeLables: %v", lo.SliceToMap(GAppConfig.SimulationNodeLables, func(item LabelItem) (k,
+	logger.Info("simulationNodeLabels: %v", lo.SliceToMap(GAppConfig.SimulationNodeLables, func(item LabelItem) (k,
 		v string) {
 		return item.Key, item.Value
 	}))
-	logger.Info("simulationtaintLables: %v", lo.SliceToMap(GAppConfig.SimulationtaintLables, func(item LabelItem) (k,
+	logger.Info("simulationTaintLabels: %v", lo.SliceToMap(GAppConfig.SimulationtaintLables, func(item LabelItem) (k,
 		v string) {
 		return item.Key, item.Value
 	}))

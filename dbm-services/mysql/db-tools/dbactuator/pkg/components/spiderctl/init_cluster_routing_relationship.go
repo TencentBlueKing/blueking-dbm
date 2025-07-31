@@ -29,7 +29,7 @@ type InitClusterRoutingParam struct {
 	TdbctlUser              string          `json:"tdbctl_user" validate:"required"`
 	TdbctlPass              string          `json:"tdbctl_pass" validate:"required"`
 	NotFlushAll             bool            `json:"not_flush_all"`
-	OnltInitCtl             bool            `json:"only_init_ctl"`
+	OnlyInitCtl             bool            `json:"only_init_ctl"`
 	IsNoSlave               bool            `json:"is_no_slave"`
 	IsCtlAlone              bool            `json:"is_ctl_alone"`
 	SpiderSlaveInstances    []Instance      `json:"spider_slave_instances"`

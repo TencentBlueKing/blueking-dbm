@@ -200,7 +200,7 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 	tsk.BaseInfo = &service.MySQLPodBaseInfo{
 		PodName: fmt.Sprintf("tendb-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),
-		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
+		Labels: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": s.RequestId},
 		RootPwd: param.TaskId,
 		Args:    param.BuildStartArgs(),
@@ -246,7 +246,7 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 	tsk.BaseInfo = &service.MySQLPodBaseInfo{
 		PodName: fmt.Sprintf("spider-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),
-		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
+		Labels: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": s.RequestId},
 		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,

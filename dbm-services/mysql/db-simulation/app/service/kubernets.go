@@ -56,7 +56,7 @@ type KubeClientSets struct {
 // MySQLPodBaseInfo mysql pod base info
 type MySQLPodBaseInfo struct {
 	PodName string
-	Lables  map[string]string
+	Labels  map[string]string
 	Args    []string
 	RootPwd string
 	Charset string
@@ -92,7 +92,7 @@ func init() {
 	}
 	clientSet, err := kubernetes.NewForConfig(Kcs.RestConfig)
 	if err != nil {
-		logger.Fatal("init kubernets client failed %s", err.Error())
+		logger.Fatal("init kubernetes client failed %s", err.Error())
 		return
 	}
 	Kcs.Cli = clientSet
@@ -123,9 +123,9 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 	return ss
 }
 
-// getClusterPodContanierSpec create cluster pod container spec
+// getClusterPodContainerSpec create cluster pod container spec
 // nolint
-func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Container {
+func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Container {
 	return []v1.Container{
 		{
 			Name: "backend",
@@ -199,7 +199,7 @@ func (k *DbPodSets) getTdbctlStartArgs() (args []string) {
 		fmt.Sprintf("--character-set-server=%s",
 			k.BaseInfo.Charset),
 		"--user=mysql"}
-	dbArgs, err := model.GetStartArsg("tdbctl", LatestVersion)
+	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
 	if err != nil {
 		logger.Warn("get tdbctl start args failed %s", err.Error())
 		return
@@ -221,7 +221,7 @@ func (k *DbPodSets) getSpiderStartArgs() (args []string) {
 		fmt.Sprintf("--character-set-server=%s",
 			k.BaseInfo.Charset),
 		"--user=mysql"}
-	dbArgs, err := model.GetStartArsg("spider", LatestVersion)
+	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
 	if err != nil {
 		logger.Warn("get spider start args failed %s", err.Error())
 		return
@@ -247,7 +247,7 @@ func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
 	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
 		args = append(args, "--default-authentication-plugin=mysql_native_password")
 	}
-	dbArgs, err := model.GetStartArsg("mysql", mysqlVersion)
+	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
 	if err != nil {
 		logger.Warn("get mysql start args failed %s", err.Error())
 		return
@@ -270,7 +270,7 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      k.BaseInfo.PodName,
 			Namespace: k.K8S.Namespace,
-			Labels:    k.BaseInfo.Lables,
+			Labels:    k.BaseInfo.Labels,
 		},
 		Spec: v1.PodSpec{
 			NodeSelector: lo.SliceToMap(config.GAppConfig.SimulationNodeLables, func(item config.LabelItem) (k, v string) {
@@ -278,7 +278,7 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
-			Containers:  k.getClusterPodContanierSpec(mySQLVersion),
+			Containers:  k.getClusterPodContainerSpec(mySQLVersion),
 		},
 	}
 	if err = k.createpod(c, 26000); err != nil {
@@ -417,7 +417,7 @@ func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) 
 	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
 		args = append(args, "--default-authentication-plugin=mysql_native_password")
 	}
-	dbArgs, err := model.GetStartArsg("mysql", mysqlVersion)
+	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
 	if err != nil {
 		logger.Warn("get mysql start args failed %s", err.Error())
 		return
@@ -444,7 +444,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      k.BaseInfo.PodName,
 			Namespace: k.K8S.Namespace,
-			Labels:    k.BaseInfo.Lables,
+			Labels:    k.BaseInfo.Labels,
 		},
 		Spec: v1.PodSpec{
 			NodeSelector: lo.SliceToMap(config.GAppConfig.SimulationNodeLables, func(item config.LabelItem) (k, v string) {
@@ -512,15 +512,15 @@ func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []stri
 }
 
 func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
-	downloadcmd := fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file))
+	downloadCmd := fmt.Sprintf("curl -s -S -o %s %s", file, getdownLoadUrl(bkpath, file))
 	if cmutil.IsNotEmpty(config.GAppConfig.BkRepo.User) && cmutil.IsNotEmpty(config.GAppConfig.BkRepo.Pwd) {
-		downloadcmd = fmt.Sprintf("curl -u %s:%s  -s -S -o %s %s", config.GAppConfig.BkRepo.User,
-			config.GAppConfig.BkRepo.Pwd, file, getdownloadUrl(bkpath, file))
+		downloadCmd = fmt.Sprintf("curl -u %s:%s  -s -S -o %s %s", config.GAppConfig.BkRepo.User,
+			config.GAppConfig.BkRepo.Pwd, file, getdownLoadUrl(bkpath, file))
 	}
-	return downloadcmd
+	return downloadCmd
 }
 
-func getdownloadUrl(bkpath, file string) string {
+func getdownLoadUrl(bkpath, file string) string {
 	endpoint := config.GAppConfig.BkRepo.EndPointUrl
 	project := config.GAppConfig.BkRepo.Project
 	publicbucket := config.GAppConfig.BkRepo.PublicBucket
