@@ -1,5 +1,5 @@
 <template>
-  <div class="redis-query-access-source-main-page">
+  <div class="mongodb-query-access-source-main-page">
     <BkAlert
       closable
       theme="info"
@@ -12,7 +12,7 @@
       @validate="handleFormValidate">
       <ClusterItem
         v-model="formData.clusters"
-        :db-type="DBTypes.REDIS" />
+        :db-type="DBTypes.MONGODB" />
       <div class="query-opeartion-main">
         <BkButton
           class="w-88"
@@ -37,7 +37,7 @@
       <ResultItem
         ref="resultRef"
         :clusters="clusterList"
-        :db-type="DBTypes.REDIS"
+        :db-type="DBTypes.MONGODB"
         @finish="handleQueryFinish" />
     </BkForm>
   </div>
@@ -70,7 +70,7 @@
   >([]);
 
   const formData = reactive({
-    clusters: (route.query.domain as string) || '',
+    clusters: (route.query.masterDomain as string) || '',
   });
 
   const handleQuery = async () => {
@@ -101,13 +101,14 @@
   };
 
   onMounted(() => {
-    if (route.query.domain) {
+    if (route.query.masterDomain) {
       formRef.value!.validate();
     }
   });
 </script>
+
 <style lang="less">
-  .redis-query-access-source-main-page {
+  .mongodb-query-access-source-main-page {
     height: 100%;
 
     .web-query-form {
