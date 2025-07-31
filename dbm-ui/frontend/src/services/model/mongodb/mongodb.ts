@@ -81,6 +81,7 @@ export default class Mongodb extends ClusterBase {
     mongodb_edit: boolean;
     mongodb_enable_disable: boolean;
     mongodb_plugin_create_clb: boolean;
+    mongodb_source_access_view: boolean;
     mongodb_view: boolean;
     mongodb_webconsole: boolean;
   };

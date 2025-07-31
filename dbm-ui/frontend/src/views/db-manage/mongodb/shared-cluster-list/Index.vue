@@ -79,6 +79,22 @@
                 {{ t('获取访问方式') }}
               </BkButton>
             </div>
+            <div v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="mongodb_source_access_view"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.mongodb_source_access_view"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                  {{ t('查询访问来源') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
             <div v-db-console="'mongodb.sharedClusterList.webconsole'">
               <AuthRouterLink
                 action-id="mongodb_webconsole"
@@ -480,6 +496,16 @@
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: row.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleGoQueryAccessSourcePage = (masterDomain: string) => {
+    const routeInfo = router.resolve({
+      name: 'MongodbQueryAccessSource',
+      query: {
+        masterDomain,
       },
     });
     window.open(routeInfo.href, '_blank');
