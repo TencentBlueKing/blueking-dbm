@@ -34,6 +34,7 @@ import (
 	"encoding/json"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const mySQLName = "MySQL"
@@ -92,7 +93,10 @@ func (s *mySQL) Save(msg *Message) error {
 	data := hamodel.NewDBHAMySQL(mysqlMetric)
 
 	for _, db := range s.dbs {
-		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).Save(data).Error
+		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(data).Error
+
 		if err != nil {
 			logger.Warn("save the mysql metric failed, %v", err)
 		}

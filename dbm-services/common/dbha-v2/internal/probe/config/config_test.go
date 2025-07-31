@@ -26,23 +26,24 @@ package config_test
 
 import (
 	"dbm-services/common/dbha-v2/internal/probe/config"
-	"os"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"github.com/spf13/viper"
 )
 
 var configFile = "../../../etc/probe.yaml"
 
 func TestConfig(t *testing.T) {
-	content, err := os.ReadFile(configFile)
-	if err != nil {
-		t.Error(err)
+	viper.SetConfigType("yaml")
+	viper.SetConfigFile(configFile)
+
+	if err := viper.ReadInConfig(); err != nil {
+		t.Fatalf("viper read in config failed, %v", err)
 	}
 
-	if err := yaml.Unmarshal(content, &config.Cfg); err != nil {
-		t.Error(err)
+	if err := viper.Unmarshal(&config.Cfg); err != nil {
+		t.Fatalf("viper unmarhsal failed, %v", err)
 	}
 
-	t.Logf("probe config:%v", config.Cfg)
+	t.Log("probe cfg:", config.Cfg)
 }

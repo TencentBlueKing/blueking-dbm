@@ -63,6 +63,10 @@ func SetLogger(log Logger) {
 	dblog = log
 }
 
+func Log() Logger {
+	return dblog
+}
+
 func Debug(format string, args ...interface{}) {
 	if dblog == nil {
 		log.Printf(format, args...)

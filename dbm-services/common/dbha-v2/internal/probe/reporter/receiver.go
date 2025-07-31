@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package client
+package reporter
 
 import (
 	"dbm-services/common/dbha-v2/pkg/constant"

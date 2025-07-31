@@ -66,7 +66,7 @@ func (e *Example) Version() (string, error) {
 	return "v1.0.0", nil
 }
 
-func (e *Example) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
+func (e *Example) Harvest(ctx context.Context) (<-chan *plugin.HarvestData, error) {
 	// NOTE: Do not block Harvest method.
 
 	dataC := make(chan *plugin.HarvestData, 1024)

@@ -41,10 +41,22 @@ func (db DB) DB() *gorm.DB {
 	return db.gdb
 }
 
+func (db DB) Host() string {
+	return db.opts.ip
+}
+
+func (db DB) Port() int {
+	return db.opts.port
+}
+
 func createDatabase(opts *options) (*gorm.DB, error) {
 	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.ComponentFailure, "connect mysql failed, %v", err)
+	}
+
+	if opts.dbName == "" {
+		return gdb, nil
 	}
 
 	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", opts.dbName)
@@ -71,10 +83,6 @@ func New(opts ...Option) (*DB, error) {
 	if err == nil {
 		db.gdb = gdb
 		return db, nil
-	}
-
-	if db.opts.dbName == "" {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "gorm open the db(%s) failed, %v", db.opts.dbName, err)
 	}
 
 	gdb, err = createDatabase(&db.opts)
