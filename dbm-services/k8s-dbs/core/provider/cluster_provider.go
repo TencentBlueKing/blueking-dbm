@@ -40,6 +40,8 @@ import (
 	helmcli "helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	dbserrors "k8s-dbs/errors"
+
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
@@ -191,48 +193,39 @@ func InstanceSetGVR() schema.GroupVersionResource {
 }
 
 // CreateCluster 创建集群
-func (c *ClusterProvider) CreateCluster(request *coreentity.Request) error {
-	// 记录 request record
-	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.CreateCluster)
+func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
+	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
-		return fmt.Errorf("failed to create request entity: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
-
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return fmt.Errorf("failed to get k8s cluster config for name %q: %w", request.K8sClusterName, err)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
-
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create k8s client for cluster %q: %w", request.K8sClusterName, err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	// 记录 cluster record
 	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
 	if err != nil {
-		slog.Error("failed to save cluster meta data", "err", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
-	// 记录 cluster tag
+
 	if len(request.Tags) > 0 {
 		if err = c.saveClusterTags(request, clusterEntity); err != nil {
-			slog.Error("failed to save cluster tags", "err", err)
-			return err
+			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 		}
 	}
 
-	// 安装 cluster
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
 		slog.Error("failed to install helm release", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err)
 	}
 
-	// 记录 addon cluster release
 	if err = c.saveClusterRelease(request, k8sClusterConfig, values); err != nil {
-		slog.Error("failed to save cluster release", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	return nil
 }
@@ -313,134 +306,85 @@ func (c *ClusterProvider) saveClusterCRMetaData(
 	return addedClusterEntity, nil
 }
 
-// UpdateCluster 更新集群
-func (c *ClusterProvider) UpdateCluster(request *coreentity.Request) error {
-	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
+// UpdateClusterRelease 更新（或局部更新）集群 Release
+// isPartial 表示是否为局部更新，true 表示局部更新，false 表示全量更新
+func (c *ClusterProvider) UpdateClusterRelease(
+	ctx *commentity.DbsContext,
+	request *coreentity.Request,
+	isPartial bool,
+) error {
+	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
-		slog.Error("failed to create request record", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
-
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		slog.Error("failed to find k8s cluster config", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
 
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		slog.Error("failed to create k8s client", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	values, err := c.updateClusterRelease(request, k8sClient)
+	values, err := c.updateCluster(request, k8sClient, isPartial)
 	if err != nil {
-		slog.Error("failed to update helm release", "error", err)
-		return err
+		slog.Error("failed to update cluster", "error", err)
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err)
 	}
 
-	jsonData, err := json.Marshal(values)
-	if err != nil {
-		slog.Error("failed to marshal release values",
-			"release_name", request.ClusterName,
-			"error", err,
-		)
-		return err
+	if err = c.updateReleaseMeta(values, k8sClusterConfig, request); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 
-	params := &metaentity.ClusterReleaseQueryParams{
-		K8sClusterConfigID: k8sClusterConfig.ID,
-		ReleaseName:        request.ClusterName,
-		Namespace:          request.Namespace,
-	}
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
-	if err != nil {
-		return err
-	}
-	releaseEntity.ChartValues = string(jsonData)
-	_, err = c.releaseMetaProvider.UpdateClusterRelease(releaseEntity)
-	if err != nil {
-		slog.Error("failed to update cluster release",
-			"release_name", request.ClusterName,
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return err
+	// 更新集群 cluster 记录
+	if err = metautil.UpdateClusterLastUpdated(c.clusterMetaProvider, ctx, request); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 	return nil
 }
 
-// PartialUpdateCluster 局部更新集群
-func (c *ClusterProvider) PartialUpdateCluster(request *coreentity.Request) error {
-	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.PartialUpdateCluster)
-	if err != nil {
-		slog.Error("failed to create request record", "error", err)
-		return err
-	}
-
-	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
-	if err != nil {
-		slog.Error("failed to find k8s cluster config", "error", err)
-		return err
-	}
-
-	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
-	if err != nil {
-		slog.Error("failed to create k8s client", "error", err)
-		return err
-	}
-
-	values, err := c.partialUpdateClusterRelease(request, k8sClient)
-	if err != nil {
-		slog.Error("failed to update helm release", "error", err)
-		return err
-	}
-
+// updateReleaseMeta 更新 release meta 元数据
+func (c *ClusterProvider) updateReleaseMeta(
+	values map[string]interface{},
+	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
+	request *coreentity.Request,
+) error {
 	jsonData, err := json.Marshal(values)
 	if err != nil {
-		slog.Error("failed to marshal release values",
-			"release_name", request.ClusterName,
-			"error", err,
-		)
 		return err
 	}
-
-	params := &metaentity.ClusterReleaseQueryParams{
-		K8sClusterConfigID: k8sClusterConfig.ID,
-		ReleaseName:        request.ClusterName,
-		Namespace:          request.Namespace,
-	}
-
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(
+		&metaentity.ClusterReleaseQueryParams{
+			K8sClusterConfigID: k8sClusterConfig.ID,
+			ReleaseName:        request.ClusterName,
+			Namespace:          request.Namespace,
+		})
 	if err != nil {
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	releaseEntity.ChartValues = string(jsonData)
 	_, err = c.releaseMetaProvider.UpdateClusterRelease(releaseEntity)
 	if err != nil {
-		slog.Error("failed to partial update cluster release",
-			"release_name", request.ClusterName,
-			"namespace", request.Namespace,
-			"error", err,
-		)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 	return nil
 }
 
 // DeleteCluster 删除集群
-func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
-	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, coreconst.DeleteCluster)
+func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
+	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create k8sClient: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 	clusterEntity, err := c.clusterMetaProvider.FindByParams(
 		&metaentity.ClusterQueryParams{
@@ -449,86 +393,77 @@ func (c *ClusterProvider) DeleteCluster(request *coreentity.Request) error {
 			K8sClusterConfigID: k8sClusterConfig.ID,
 		})
 	if err != nil {
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 
 	// 清理 cluster 关联资源元数据
-	err = c.clearClusterCRMetaData(clusterEntity)
-	if err != nil {
-		slog.Error("failed to clear cluster cr meta data", "error", err)
-		return err
+	if err = c.clearClusterCRMetaData(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 
 	// 清理 cluster tag 元数据
-	err = c.clearClusterTags(request, clusterEntity)
-	if err != nil {
-		slog.Error("failed to clear cluster tags", "error", err)
-		return err
+	if err = c.clearClusterTags(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 
 	// 清理 cluster release 元数据
-	err = c.clearClusterRelease(request, k8sClusterConfig)
-	if err != nil {
-		slog.Error("failed to clear cluster release", "error", err)
-		return err
+	if err = c.clearClusterRelease(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 
 	// 删除集群
 	if err = coreutil.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
 		slog.Error("failed to delete storage addon cluster", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
 }
 
 // clearClusterRelease 清理 cluster release 元数据
 func (c *ClusterProvider) clearClusterRelease(
-	request *coreentity.Request,
-	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
+	_ *commentity.DbsContext,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) error {
-	params := &metaentity.ClusterReleaseQueryParams{
-		K8sClusterConfigID: k8sClusterConfig.ID,
-		ReleaseName:        request.ClusterName,
-		Namespace:          request.Namespace,
-	}
-	releaseEntity, err := c.releaseMetaProvider.FindByParams(params)
+	releaseEntity, err := c.releaseMetaProvider.FindByParams(
+		&metaentity.ClusterReleaseQueryParams{
+			K8sClusterConfigID: clusterEntity.K8sClusterConfigID,
+			ReleaseName:        clusterEntity.ClusterName,
+			Namespace:          clusterEntity.Namespace,
+		})
 	if err != nil {
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	_, err = c.releaseMetaProvider.DeleteClusterReleaseByID(releaseEntity.ID)
 	if err != nil {
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
 }
 
 // clearClusterTags 清理 cluster tag 元数据
 func (c *ClusterProvider) clearClusterTags(
-	request *coreentity.Request,
+	ctx *commentity.DbsContext,
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) error {
-	dbsContext := &commentity.DbsContext{
-		BkAuth: &request.BKAuth,
-	}
-	_, err := c.ClusterTagProvider.DeleteByClusterID(dbsContext, clusterEntity.ID)
+	_, err := c.ClusterTagProvider.DeleteByClusterID(ctx, clusterEntity.ID)
 	if err != nil {
-		slog.Error("failed to delete cluster tag", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
 }
 
 // clearClusterCRMetaData 清理 cluster 关联的资源元数据
-func (c *ClusterProvider) clearClusterCRMetaData(clusterEntity *metaentity.K8sCrdClusterEntity) error {
+func (c *ClusterProvider) clearClusterCRMetaData(
+	_ *commentity.DbsContext,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
 	_, err := c.clusterMetaProvider.DeleteClusterByID(clusterEntity.ID)
 	if err != nil {
-		slog.Error("failed to delete cluster", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	_, err = c.componentMetaProvider.DeleteComponentByClusterID(clusterEntity.ID)
 	if err != nil {
-		slog.Error("failed to delete component", "error", err)
-		return err
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
 }
@@ -742,38 +677,20 @@ func (c *ClusterProvider) installHelmRelease(
 	return values, nil
 }
 
-// updateClusterRelease 更新 release
-func (c *ClusterProvider) updateClusterRelease(
+// updateCluster 更新 release
+func (c *ClusterProvider) updateCluster(
 	request *coreentity.Request,
 	k8sClient *commutil.K8sClient,
+	isPartial bool,
 ) (map[string]interface{}, error) {
 	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
 	if err != nil {
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
 	}
-	values, err := c.doUpdateClusterRelease(request, actionConfig, false)
+	values, err := c.doUpdateClusterRelease(request, actionConfig, isPartial)
 	if err != nil {
 		slog.Error("cluster update failed", "clusterName", request.ClusterName, "error", err)
-		return nil, err
-	}
-	return values, nil
-}
-
-// partialUpdateClusterRelease 局部更新 release
-func (c *ClusterProvider) partialUpdateClusterRelease(
-	request *coreentity.Request,
-	k8sClient *commutil.K8sClient,
-) (map[string]interface{}, error) {
-	actionConfig, err := coreutil.BuildHelmActionConfig(request.Namespace, k8sClient)
-	if err != nil {
-		slog.Error("failed to build helm action config", "error", err)
-		return nil, err
-	}
-
-	values, err := c.doUpdateClusterRelease(request, actionConfig, true)
-	if err != nil {
-		slog.Error("cluster partial update failed", "clusterName", request.ClusterName, "error", err)
 		return nil, err
 	}
 	return values, nil

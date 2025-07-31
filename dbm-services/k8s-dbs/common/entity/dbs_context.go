@@ -21,5 +21,8 @@ package entity
 
 // DbsContext Dbs 操作上下文
 type DbsContext struct {
-	BkAuth *BKAuth `json:",inline"`
+	BkAuth             *BKAuth `json:",inline"`
+	RequestID          string  `json:"requestId"`
+	K8sClusterConfigID uint64  `json:"k8sClusterConfigId"`
+	RequestType        string  `json:"requestType"` // 指定操作类型
 }

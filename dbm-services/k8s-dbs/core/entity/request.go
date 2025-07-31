@@ -47,7 +47,7 @@ type Request struct {
 // OpsService 定义 OpsService 结构体
 type OpsService struct {
 	ComponentName string         `json:"componentName,omitempty"`
-	Enable        bool           `json:"enable,omitempty"`
+	Enable        bool           `json:"enable"`
 	Service       ClusterService `json:"service,omitempty"`
 }
 

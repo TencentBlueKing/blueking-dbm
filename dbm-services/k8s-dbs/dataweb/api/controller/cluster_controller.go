@@ -21,7 +21,9 @@ package controller
 
 import (
 	coreentity "k8s-dbs/common/api"
-	coreconst "k8s-dbs/common/constant"
+	commconst "k8s-dbs/common/constant"
+	commentity "k8s-dbs/common/entity"
+	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/errors"
 	"log/slog"
@@ -47,22 +49,26 @@ func NewClusterController(
 
 // CreateCluster 创建集群
 func (c *ClusterController) CreateCluster(ctx *gin.Context) {
-	clusterInstall := &webreq.ClusterInstallRequest{}
-	if err := ctx.BindJSON(&clusterInstall); err != nil {
+	request := &webreq.ClusterInstallRequest{}
+	if err := ctx.BindJSON(&request); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
 	clusterConfig, err := ClusterConfBuilderFactory.
-		GetBuilder(clusterInstall.BasicInfo.StorageAddonType).
-		BuildConfig(clusterInstall)
+		GetBuilder(request.BasicInfo.StorageAddonType).
+		BuildConfig(request)
 	if err != nil {
-		slog.Error("convert to cluster config error", "clusterInstall", clusterInstall, "err", err)
+		slog.Error("convert to cluster config error", "clusterInstall", request, "err", err)
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
-	if err := c.clusterProvider.CreateCluster(clusterConfig); err != nil {
+	dbsContext := &commentity.DbsContext{
+		BkAuth:      &request.BKAuth,
+		RequestType: coreconst.CreateCluster,
+	}
+	if err := c.clusterProvider.CreateCluster(dbsContext, clusterConfig); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, nil, coreconst.Success)
+	coreentity.SuccessResponse(ctx, nil, commconst.Success)
 }

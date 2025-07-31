@@ -28,7 +28,7 @@ type K8sDbsError struct {
 
 // Error string of error
 func (e *K8sDbsError) Error() string {
-	return e.Message
+	return e.ErrorDetail
 }
 
 type ErrorCode int
@@ -54,6 +54,7 @@ const (
 	DescribeClusterError ErrorCode = iota + 1532201
 	CreateClusterError
 	DeleteClusterError
+	GetClusterError
 	GetClusterStatusError
 	VerticalScalingError
 	HorizontalScalingError
@@ -85,6 +86,7 @@ const (
 	GetPodLogError
 	K8sAPIServerTimeoutError
 	GetPodDetailError
+	CreateK8sClientError
 )
 
 // addon 管理操作异常
@@ -113,6 +115,7 @@ var codeTag = map[ErrorCode]string{
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",
 	CreateClusterError:        "创建集群失败",
+	GetClusterError:           "获取集群失败",
 	DeleteClusterError:        "删除集群失败",
 	GetClusterStatusError:     "查询集群状态失败",
 	GetClusterEventError:      "查询集群事件失败",
@@ -136,6 +139,7 @@ var codeTag = map[ErrorCode]string{
 	GetPodLogError:           "获取 Pod 日志失败",
 	K8sAPIServerTimeoutError: "K8s API Server 请求超时",
 	GetPodDetailError:        "获取 Pod 详情失败",
+	CreateK8sClientError:     "获取 K8s Client 失败",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",

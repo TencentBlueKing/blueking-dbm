@@ -114,12 +114,12 @@ func NewAddonProvider(opts ...AddonProviderOption) (*AddonProvider, error) {
 // validateProvider 验证 AddonProvider 必要字段
 func (a *AddonProvider) validateProvider() error {
 	if a.reqRecordMeta == nil {
-		slog.Error("reqRecordMeta is nil")
-		return errors.New("reqRecordMeta is nil")
+		slog.Error("reqRecordProvider is nil")
+		return errors.New("reqRecordProvider is nil")
 	}
 	if a.clusterConfigMeta == nil {
-		slog.Error("clusterConfigMeta is nil")
-		return errors.New("clusterConfigMeta is nil")
+		slog.Error("clusterConfigProvider is nil")
+		return errors.New("clusterConfigProvider is nil")
 	}
 	if a.addonMeta == nil {
 		slog.Error("addonMetaProvider is nil")

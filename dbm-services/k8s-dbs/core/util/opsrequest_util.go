@@ -650,6 +650,7 @@ func UpdateValWithHScaling(
 		return nil, err
 	}
 	releaseEntity.ChartValues = jsonStr
+	releaseEntity.UpdatedBy = request.BkUserName
 	return releaseEntity, nil
 }
 

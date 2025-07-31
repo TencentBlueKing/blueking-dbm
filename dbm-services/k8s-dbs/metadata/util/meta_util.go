@@ -91,9 +91,31 @@ func SaveAuditLog(
 
 	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request entity: %w", err)
+		return nil, fmt.Errorf("审计日志记录失败: %w", err)
 	}
 	return addedRequestRecord, nil
+}
+
+// UpdateClusterLastUpdated 更新 cluster 元数据最近一次更新时间和更新人
+func UpdateClusterLastUpdated(
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
+	dbsCtx *commentity.DbsContext,
+	request *coreentity.Request,
+) error {
+	clusterEntity, err := clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		K8sClusterConfigID: dbsCtx.K8sClusterConfigID,
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	})
+	if err != nil {
+		return err
+	}
+	clusterEntity.UpdatedBy = request.BkUserName
+	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateOpsRequestMetaData 构建 opsRequest 元数据
@@ -161,38 +183,23 @@ func UpdateValWithCompList(
 	request *coreentity.Request,
 	k8sClusterConfigID uint64,
 ) (*metaentity.AddonClusterReleaseEntity, error) {
-
-	params := &metaentity.ClusterReleaseQueryParams{
-		K8sClusterConfigID: k8sClusterConfigID,
-		ReleaseName:        request.ClusterName,
-		Namespace:          request.Namespace,
-	}
-	releaseEntity, err := releaseMetaProvider.FindByParams(params)
+	releaseEntity, values, err := getClusterMetaRelease(releaseMetaProvider, request, k8sClusterConfigID)
 	if err != nil {
 		return nil, err
 	}
-
-	values, err := commutil.JSONStrToMap(releaseEntity.ChartValues)
-	if err != nil {
-		return nil, err
-	}
-
 	compListFromVal, _ := values["componentList"].([]interface{})
 	for _, compFromReq := range request.ComponentList {
 		for i, itemFromVal := range compListFromVal {
 			compFromVal, ok := itemFromVal.(map[string]interface{})
 			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
-
 				if compFromReq.Version != "" {
 					compFromVal["serviceVersion"] = compFromReq.Version
 				}
-
 				volumeClaimTemplates, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
 				if vctOk && !compFromReq.Storage.IsZero() {
 					volumeClaimTemplates["storage"] = compFromReq.Storage
 					compFromVal["volumeClaimTemplates"] = volumeClaimTemplates
 				}
-
 				resources, resOk := compFromVal["resources"].(map[string]interface{})
 				if !resOk {
 					resources = make(map[string]interface{})
@@ -206,22 +213,89 @@ func UpdateValWithCompList(
 				if err != nil {
 					return nil, err
 				}
-
 				compListFromVal[i] = compFromVal
 			}
 		}
 	}
 	values["componentList"] = compListFromVal
-
 	jsonStr, err := commutil.MapToJSONStr(values)
 	if err != nil {
 		return nil, err
 	}
 	releaseEntity.ChartValues = jsonStr
-
+	releaseEntity.UpdatedBy = request.BkUserName
 	_, err = releaseMetaProvider.UpdateClusterRelease(releaseEntity)
 	if err != nil {
 		return nil, err
 	}
 	return releaseEntity, nil
+}
+
+// UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
+func UpdateValWithHScaling(
+	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
+	request *coreentity.Request,
+	k8sClusterConfigID uint64,
+) (*metaentity.AddonClusterReleaseEntity, error) {
+	releaseEntity, values, err := getClusterMetaRelease(releaseMetaProvider, request, k8sClusterConfigID)
+	if err != nil {
+		return nil, err
+	}
+	compListFromVal, _ := values["componentList"].([]interface{})
+	for _, scaling := range request.HorizontalScalingList {
+		for i, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if ok && compFromVal["componentName"] == scaling.ComponentName {
+				// modify the replica according to different status
+				currentReplicas := int(compFromVal["replicas"].(float64))
+				if scaling.ScaleOut != nil && scaling.ScaleOut.ReplicaChanges != nil {
+					scaleOutValue := *scaling.ScaleOut.ReplicaChanges
+					compFromVal["replicas"] = currentReplicas + int(scaleOutValue)
+				}
+				if scaling.ScaleIn != nil && scaling.ScaleIn.ReplicaChanges != nil {
+					scaleInValue := *scaling.ScaleIn.ReplicaChanges
+					compFromVal["replicas"] = currentReplicas - int(scaleInValue)
+				}
+				compListFromVal[i] = compFromVal
+			}
+		}
+	}
+	values["componentList"] = compListFromVal
+	jsonStr, err := commutil.MapToJSONStr(values)
+	if err != nil {
+		return nil, err
+	}
+	releaseEntity.ChartValues = jsonStr
+	releaseEntity.UpdatedBy = request.BkUserName
+	_, err = releaseMetaProvider.UpdateClusterRelease(releaseEntity)
+	if err != nil {
+		return nil, err
+	}
+	return releaseEntity, nil
+}
+
+// getClusterMetaRelease 获取当前集群 release 信息
+func getClusterMetaRelease(
+	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
+	request *coreentity.Request,
+	k8sClusterConfigID uint64,
+) (*metaentity.AddonClusterReleaseEntity,
+	map[string]interface{},
+	error,
+) {
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: k8sClusterConfigID,
+		ReleaseName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	}
+	releaseEntity, err := releaseMetaProvider.FindByParams(params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	values, err := commutil.JSONStrToMap(releaseEntity.ChartValues)
+	if err != nil {
+		return nil, nil, err
+	}
+	return releaseEntity, values, nil
 }
