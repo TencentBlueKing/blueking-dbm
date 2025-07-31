@@ -20,8 +20,8 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -53,40 +53,40 @@ func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
 	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	categoryTypesEntities, err := c.provider.ListByLimit(fetchSize)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data []metarespvo.AddonCategoryTypesResponse
 	if err := copier.Copy(&data, categoryTypesEntities); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // Create 创建 addon category
 func (c *AddonCategoryController) Create(ctx *gin.Context) {
 	var reqVo metareqvo.AddonCategoryRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var categoryEntity entitys.AddonCategoryEntity
 	if err := copier.Copy(&categoryEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	categoryEntity.CreatedBy = reqVo.BkUserName
 	categoryEntity.UpdatedBy = reqVo.BkUserName
 	added, err := c.provider.Create(&categoryEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data metarespvo.AddonCategoryResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, &data, commconst.Success)
+	api.SuccessResponse(ctx, &data, commconst.Success)
 }

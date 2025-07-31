@@ -21,9 +21,9 @@ package util
 
 import (
 	"fmt"
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	"reflect"
 	"strconv"
@@ -37,12 +37,12 @@ import (
 func BuildPagination(ctx *gin.Context) (*commentity.Pagination, error) {
 	page, err := strconv.Atoi(ctx.DefaultQuery(commconst.ParamsPage, commconst.DefaultPageStr))
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return nil, err
 	}
 	limit, err := strconv.Atoi(ctx.DefaultQuery(commconst.ParamsLimit, commconst.DefaultFetchSizeStr))
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return nil, err
 	}
 	limit = min(limit, commconst.MaxFetchSize)

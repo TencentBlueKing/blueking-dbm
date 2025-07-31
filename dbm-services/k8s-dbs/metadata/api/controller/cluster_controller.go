@@ -21,9 +21,9 @@ package controller
 
 import (
 	"fmt"
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -67,15 +67,15 @@ func (c *ClusterController) GetClusterTopology(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	clusterTopology, err := c.clusterProvider.FindClusterTopology(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, clusterTopology, commconst.Success)
+	api.SuccessResponse(ctx, clusterTopology, commconst.Success)
 }
 
 // GetClusterInfo 按照 ID 获取存储集群实例
@@ -83,44 +83,44 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	cluster, err := c.clusterProvider.FindClusterByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data response.K8sCrdClusterResponse
 	if err := copier.Copy(&data, cluster); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	data.BkBizTitle = fmt.Sprintf("[%d]%s", data.BkBizID, data.BkBizName)
 	data.TopoNameAlias = getTopoNameAlias(data.AddonInfo.AddonType, data.TopoName)
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // ListCluster 分页检索集群实例列表
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var clusterQueryParams metaentity.ClusterQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &clusterQueryParams,
 		map[string]reflect.Type{"bkBizId": reflect.TypeOf(uint64(0))}); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	clusterEntities, count, err := c.clusterProvider.ListClusters(&clusterQueryParams, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
 	var data []response.K8sCrdClusterResponse
 	if err := copier.Copy(&data, clusterEntities); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	for idx, clusterEntity := range data {
@@ -131,5 +131,5 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		Count:  count,
 		Result: data,
 	}
-	entity.SuccessResponse(ctx, responseData, commconst.Success)
+	api.SuccessResponse(ctx, responseData, commconst.Success)
 }

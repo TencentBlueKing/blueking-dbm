@@ -20,8 +20,8 @@ limitations under the License.
 package controller
 
 import (
+	coreentity "k8s-dbs/common/api"
 	coreconst "k8s-dbs/common/constant"
-	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/errors"
 	"log/slog"

@@ -20,8 +20,8 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/response"
@@ -46,19 +46,19 @@ func (o *OpsController) GetOps(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 
 	ops, err := o.opsProvider.FindOpsRequestByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data response.K8sCrdOpsResponse
 	if err := copier.Copy(&data, ops); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

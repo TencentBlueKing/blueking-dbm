@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	coreconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
@@ -43,12 +44,12 @@ type K8sController struct {
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	var namespaceReq request.K8sNamespaceRequest
 	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	var namespaceEntity entity.K8sNamespaceEntity
 	if err := copier.Copy(&namespaceEntity, &namespaceReq); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	dbsContext := commentity.DbsContext{
@@ -56,55 +57,55 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	}
 	added, err := k.k8sProvider.CreateNamespace(&dbsContext, &namespaceEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	var data response.K8sNamespaceResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, coreconst.Success)
+	api.SuccessResponse(ctx, data, coreconst.Success)
 }
 
 // ListPodLogs 获取 pod 日志分页结果
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var podLogEntity entity.K8sPodLogQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogEntity, nil); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	logs, count, err := k.k8sProvider.ListPodLogs(&podLogEntity, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
 	var responseData = metarespvo.PageResult{
 		Count:  count,
 		Result: logs,
 	}
-	entity.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // GetPodDetail 获取实例详情
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 	var podDetailParams entity.K8sPodDetailQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podDetailParams, nil); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	podDetail, err := k.k8sProvider.GetPodDetail(&podDetailParams)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodDetailError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodDetailError, err))
 		return
 	}
 
-	entity.SuccessResponse(ctx, podDetail, coreconst.Success)
+	api.SuccessResponse(ctx, podDetail, coreconst.Success)
 
 }
 

@@ -20,8 +20,6 @@ limitations under the License.
 package api
 
 import (
-	"k8s-dbs/core/entity"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,5 +27,5 @@ const HealthCheckURL = "/common/health"
 
 // HealthCheck 集群健康检查 API
 func HealthCheck(ctx *gin.Context) {
-	entity.SuccessResponse(ctx, nil, "OK")
+	SuccessResponse(ctx, nil, "OK")
 }

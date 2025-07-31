@@ -20,8 +20,8 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -53,40 +53,40 @@ func (a *AddonTypeController) ListByLimit(ctx *gin.Context) {
 	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	addonTypeEntities, err := a.provider.ListByLimit(fetchSize)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data []response.AddonTypeResponse
 	if err := copier.Copy(&data, addonTypeEntities); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // Create 创建 addon type
 func (a *AddonTypeController) Create(ctx *gin.Context) {
 	var reqVo request.AddonTypeRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var addonTypeEntity entitys.AddonTypeEntity
 	if err := copier.Copy(&addonTypeEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	addonTypeEntity.CreatedBy = reqVo.BkUserName
 	addonTypeEntity.UpdatedBy = reqVo.BkUserName
 	added, err := a.provider.Create(&addonTypeEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data response.AddonTypeResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

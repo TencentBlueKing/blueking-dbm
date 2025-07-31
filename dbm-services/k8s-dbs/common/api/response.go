@@ -17,11 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package entity
+package api
 
 import (
 	"encoding/json"
-	coreErrors "k8s-dbs/errors"
+	"fmt"
+	dbsErrors "k8s-dbs/errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,21 +33,21 @@ type ResponseCode int
 
 // Response the src response
 type Response struct {
-	Result    bool         `json:"result"`
-	Code      ResponseCode `json:"code"`
-	Data      interface{}  `json:"data"`
-	Message   string       `json:"message"`
-	RealError interface{}  `json:"error"`
+	Result  bool         `json:"result"`
+	Code    ResponseCode `json:"code"`
+	Data    interface{}  `json:"data"`
+	Message string       `json:"message"`
+	Error   interface{}  `json:"error"`
 }
 
 // SuccessResponse response after successful request execution
 func SuccessResponse(ctx *gin.Context, data interface{}, message string) {
 	resp := &Response{
-		Result:    true,
-		Code:      http.StatusOK,
-		Data:      data,
-		Message:   message,
-		RealError: nil,
+		Result:  true,
+		Code:    http.StatusOK,
+		Data:    data,
+		Message: message,
+		Error:   nil,
 	}
 	ctx.JSON(http.StatusOK, resp)
 	response, _ := json.Marshal(resp)
@@ -58,16 +59,21 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	// 判断错误类型
 	// As - 获取错误的具体实现
 	var code ResponseCode
-	var myError = new(coreErrors.K8sDbsError)
-	if errors.As(err, &myError) {
-		code = ResponseCode(myError.Code)
+	var dbsError = new(dbsErrors.K8sDbsError)
+	var message string
+	if errors.As(err, &dbsError) {
+		code = ResponseCode(dbsError.Code)
+		message = dbsError.Message
+	} else {
+		code = ResponseCode(500)
+		message = err.Error()
 	}
 	resp := &Response{
-		Result:    false,
-		Code:      code,
-		Data:      nil,
-		Message:   err.Error(),
-		RealError: myError.RealErrorMessage,
+		Result:  false,
+		Code:    code,
+		Data:    nil,
+		Message: fmt.Sprintf("%s。%s", message, dbsError.ErrorDetail),
+		Error:   dbsError.ErrorDetail,
 	}
 	ctx.JSON(http.StatusOK, resp)
 	response, _ := json.Marshal(resp)

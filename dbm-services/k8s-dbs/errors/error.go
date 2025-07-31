@@ -21,9 +21,9 @@ package errors
 
 // K8sDbsError Error
 type K8sDbsError struct {
-	Code             int    `json:"code"`    // Service Code
-	Message          string `json:"message"` // Text information corresponding to the src code
-	RealErrorMessage string `json:"err_msg"`
+	Code        ErrorCode `json:"code"`    // Service Code
+	Message     string    `json:"message"` // Text information corresponding to the src code
+	ErrorDetail string    `json:"errorDetail"`
 }
 
 // Error string of error
@@ -31,82 +31,84 @@ func (e *K8sDbsError) Error() string {
 	return e.Message
 }
 
+type ErrorCode int
+
 // 通用内部业务逻辑异常
 const (
-	ServerError        = 1532101
-	EngineTypeError    = 1532102
-	AuthorizationError = 1532103
-	CallHTTPError      = 1532104
-	ResubmitMsg        = 1532105
-	AuthErr            = 1532106
-	LoginErr           = 1532107
-	LogoutErr          = 1532108
-	CreateMetaDataErr  = 1532109
-	UpdateMetaDataErr  = 1532110
-	GetMetaDataErr     = 1532111
-	DeleteMetaDataErr  = 1532112
+	ServerError ErrorCode = iota + 1532101
+	EngineTypeError
+	AuthorizationError
+	ThirdAPIError
+	ResubmitError
+	AuthError
+	LoginError
+	LogoutError
+	CreateMetaDataError
+	UpdateMetaDataError
+	GetMetaDataError
+	DeleteMetaDataError
 )
 
 // 存储集群 cluster 操作异常
 const (
-	DescribeClusterError      = 1532201
-	CreateClusterError        = 1532202
-	DeleteClusterError        = 1532203
-	GetClusterStatusError     = 1532204
-	VerticalScalingError      = 1532205
-	HorizontalScalingError    = 1532206
-	StartClusterError         = 1532207
-	StopClusterError          = 1532208
-	RestartClusterError       = 1532209
-	UpgradeClusterError       = 1532210
-	VolumeExpansionError      = 1532211
-	ExposeClusterError        = 1532212
-	DescribeOpsRequestError   = 1532213
-	GetOpsRequestStatusError  = 1532214
-	UpdateClusterError        = 1532215
-	GetClusterEventError      = 1532216
-	PartialUpdateClusterError = 1532217
-	GetClusterSvcError        = 1532218
+	DescribeClusterError ErrorCode = iota + 1532201
+	CreateClusterError
+	DeleteClusterError
+	GetClusterStatusError
+	VerticalScalingError
+	HorizontalScalingError
+	StartClusterError
+	StopClusterError
+	RestartClusterError
+	UpgradeClusterError
+	VolumeExpansionError
+	ExposeClusterError
+	DescribeOpsRequestError
+	GetOpsRequestStatusError
+	UpdateClusterError
+	GetClusterEventError
+	PartialUpdateClusterError
+	GetClusterSvcError
 )
 
 // 存储集群 component 操作异常
 const (
-	DescribeComponentError = 1532500
-	GetComponentSvcError   = 1532501
-	GetComponentPodsError  = 1532502
+	DescribeComponentError ErrorCode = iota + 1532500
+	GetComponentSvcError
+	GetComponentPodsError
 )
 
 // k8s 集群管理操作异常
 const (
-	CreateK8sNsError         = 1532300
-	DeleteK8sNsError         = 1532301
-	GetPodLogError           = 1532302
-	K8sAPIServerTimeoutError = 1532303
-	GetPodDetailError        = 1532304
+	CreateK8sNsError ErrorCode = iota + 1532300
+	DeleteK8sNsError
+	GetPodLogError
+	K8sAPIServerTimeoutError
+	GetPodDetailError
 )
 
 // addon 管理操作异常
 const (
-	InstallAddonError   = 1532400
-	UninstallAddonError = 1532401
-	UpgradeAddonError   = 1532402
+	InstallAddonError ErrorCode = iota + 1532400
+	UninstallAddonError
+	UpgradeAddonError
 )
 
 // 定义错误码对于的message
-var codeTag = map[int]string{
+var codeTag = map[ErrorCode]string{
 	// 纳管系统内置异常
-	AuthErr:            "权限不足，请联系管理员",
-	ServerError:        "内部服务器出现错误",
-	EngineTypeError:    "数据库引擎类型有误",
-	AuthorizationError: "签名信息有误",
-	CallHTTPError:      "调用第三方 HTTP 接口失败",
-	ResubmitMsg:        "请勿重复提交",
-	LoginErr:           "登录失败",
-	LogoutErr:          "注销失败",
-	CreateMetaDataErr:  "创建元数据失败",
-	UpdateMetaDataErr:  "更新元数据失败",
-	GetMetaDataErr:     "获取元数据失败",
-	DeleteMetaDataErr:  "删除元数据失败",
+	AuthError:           "权限不足，请联系管理员",
+	ServerError:         "内部服务器出现错误",
+	EngineTypeError:     "数据库引擎类型有误",
+	AuthorizationError:  "签名信息有误",
+	ThirdAPIError:       "调用第三方 API 接口失败",
+	ResubmitError:       "请勿重复提交",
+	LoginError:          "登录失败",
+	LogoutError:         "注销失败",
+	CreateMetaDataError: "创建元数据失败",
+	UpdateMetaDataError: "更新元数据失败",
+	GetMetaDataError:    "获取元数据失败",
+	DeleteMetaDataError: "删除元数据失败",
 
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",
@@ -147,10 +149,10 @@ var codeTag = map[int]string{
 }
 
 // NewK8sDbsError 自定义错误
-func NewK8sDbsError(code int, err error) error {
+func NewK8sDbsError(code ErrorCode, err error) error {
 	return &K8sDbsError{
-		Code:             code,
-		Message:          codeTag[code],
-		RealErrorMessage: err.Error(),
+		Code:        code,
+		Message:     codeTag[code],
+		ErrorDetail: err.Error(),
 	}
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	coreconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
@@ -48,56 +49,56 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	responseData, err := c.componentProvider.DescribeComponent(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // ListPods 获取实例列表
 func (c *ComponentController) ListPods(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	var componentParams coreentity.ComponentQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &componentParams, nil); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	pods, count, err := c.componentProvider.ListPods(&componentParams, pagination)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	var responseData = metaresp.PageResult{
 		Count:  count,
 		Result: pods,
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
 // GetComponentService 获取组件连接信息
 func (c *ComponentController) GetComponentService(ctx *gin.Context) {
 	var svcEntity coreentity.K8sSvcEntity
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	internalServices, err := c.componentProvider.GetComponentInternalSvc(&svcEntity)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
 	externalServices, err := c.componentProvider.GetComponentExternalSvc(&svcEntity)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
 		return
 	}
 	data := coreresp.K8sComponentSvcResponse{
@@ -108,5 +109,5 @@ func (c *ComponentController) GetComponentService(ctx *gin.Context) {
 		InternalServiceInfo: internalServices,
 		ExternalServiceInfo: externalServices,
 	}
-	coreentity.SuccessResponse(ctx, data, coreconst.Success)
+	api.SuccessResponse(ctx, data, coreconst.Success)
 }

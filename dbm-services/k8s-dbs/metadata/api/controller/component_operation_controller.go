@@ -20,9 +20,9 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -55,38 +55,38 @@ func (c *ComponentOperationController) ListComponentOperations(ctx *gin.Context)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	clusterOps, err := c.provider.ListComponentOperations(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data []response.ComponentOperationResponse
 	if err := copier.Copy(&data, clusterOps); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateComponentOperation creates a new component operation.
 func (c *ComponentOperationController) CreateComponentOperation(ctx *gin.Context) {
 	var reqVo request.ComponentOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var opEntity entitys.ComponentOperationEntity
 	if err := copier.Copy(&opEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	added, err := c.provider.CreateComponentOperation(&opEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data response.ComponentOperationResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

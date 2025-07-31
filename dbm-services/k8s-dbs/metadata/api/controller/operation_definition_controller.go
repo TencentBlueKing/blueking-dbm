@@ -20,9 +20,9 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -55,38 +55,38 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 	pagination := commentity.Pagination{Limit: fetchSize}
 	opDefs, err := o.provider.ListOperationDefinitions(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data []response.OperationDefinitionResponse
 	if err := copier.Copy(&data, opDefs); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateOperationDefinition creates a new operation definition.
 func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Context) {
 	var reqVo request.OperationDefinitionRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var definitionEntity entitys.OperationDefinitionEntity
 	if err := copier.Copy(&definitionEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	added, err := o.provider.CreateOperationDefinition(&definitionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data response.OperationDefinitionResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

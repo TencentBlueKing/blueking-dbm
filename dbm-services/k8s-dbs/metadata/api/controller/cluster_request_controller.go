@@ -20,9 +20,9 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -48,26 +48,26 @@ func NewClusterRequestRecordController(
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
 	var requestParams metaentity.ClusterRequestQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &requestParams, nil); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	records, count, err := k.clusterRequestProvider.ListRecords(&requestParams, pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data []corevo.ClusterOperationLogResponse
 	if err := copier.Copy(&data, records); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var responseData = corevo.PageResult{
 		Count:  count,
 		Result: data,
 	}
-	entity.SuccessResponse(ctx, responseData, commconst.Success)
+	api.SuccessResponse(ctx, responseData, commconst.Success)
 }

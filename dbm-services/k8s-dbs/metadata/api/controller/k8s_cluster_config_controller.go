@@ -21,8 +21,8 @@ package controller
 
 import (
 	"fmt"
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -49,20 +49,20 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	config, err := k.configProvider.FindConfigByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, config); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	api.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // GetRegionsByVisibility 按照k8s集群可见性来获取集群区域列表
@@ -70,65 +70,65 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 	isPublicStr := ctx.Query("isPublic")
 	isPublic, err := strconv.ParseBool(isPublicStr)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	regions, err := k.configProvider.GetRegionsByVisibility(isPublic)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var respRegions []*response.RegionResp
 	if err := copier.Copy(&respRegions, regions); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respRegions, commconst.Success)
+	api.SuccessResponse(ctx, respRegions, commconst.Success)
 }
 
 // GetK8sClusterConfigByName get clusterConfig by its Name.
 func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context) {
 	nameParam := ctx.Param("clusterName")
 	if nameParam == "" {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, fmt.Errorf("clusterName 参数不能为空")))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, fmt.Errorf("clusterName 参数不能为空")))
 		return
 	}
 	config, err := k.configProvider.FindConfigByName(nameParam)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, config); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	api.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // CreateK8sClusterConfig create a new clusterConfig.
 func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 	var reqVo request.K8sClusterConfigRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var configEntity entitys.K8sClusterConfigEntity
 	if err := copier.Copy(&configEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	addedConfig, err := k.configProvider.CreateConfig(&configEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
 	if err := copier.Copy(&respVo, addedConfig); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	api.SuccessResponse(ctx, respVo, commconst.Success)
 }
 
 // UpdateK8sClusterConfig update existing clusterConfig.
@@ -136,26 +136,26 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	var reqVo request.K8sClusterConfigRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	var configEntity entitys.K8sClusterConfigEntity
 	if err := copier.Copy(&configEntity, reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	configEntity.ID = id
 	rows, err := k.configProvider.UpdateConfig(&configEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteK8sClusterConfig delete a clusterConfig by its ID.
@@ -163,13 +163,13 @@ func (k *K8sClusterConfigController) DeleteK8sClusterConfig(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
 	rows, err := k.configProvider.DeleteConfigByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

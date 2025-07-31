@@ -21,9 +21,9 @@ package controller
 
 import (
 	"fmt"
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -52,32 +52,32 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	repo, err := c.addonHelmRepoProvider.FindHelmRepoByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data metaresp.AddonHelmRepoResponse
 	if err := copier.Copy(&data, repo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateAddonHelmRepo create addon helm repo
 func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 	var reqVo metareq.AddonHelmRepoRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var repoEntity metaentity.AddonHelmRepoEntity
 	if err := copier.Copy(&repoEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	dbsContext := commentity.DbsContext{
@@ -85,15 +85,15 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 	}
 	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&dbsContext, &repoEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data metaresp.AddonHelmRepoResponse
 	if err := copier.Copy(&data, addedRepo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAddonHelmRepoByParam get addon helm repo by its Param.
@@ -101,7 +101,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
 	chartName := ctx.Param("chartName")
 	chartVersion := ctx.Param("chartVersion")
 	if chartName == "" || chartVersion == "" {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr,
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError,
 			fmt.Errorf("chartName 或 chartVersion 参数不能为空")))
 		return
 	}
@@ -111,13 +111,13 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByParam(ctx *gin.Context) {
 	}
 	repo, err := c.addonHelmRepoProvider.FindByParams(params)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var respVo metaresp.AddonHelmRepoResponse
 	if err = copier.Copy(&respVo, repo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	api.SuccessResponse(ctx, respVo, commconst.Success)
 }

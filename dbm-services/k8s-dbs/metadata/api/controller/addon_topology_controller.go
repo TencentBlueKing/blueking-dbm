@@ -20,9 +20,9 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 	metaenitty "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
@@ -49,27 +49,27 @@ func NewAddonTopologyController(provider provider.AddonTopologyProvider) *AddonT
 func (a *AddonTopologyController) Create(ctx *gin.Context) {
 	var reqVo request.AddonTopologyRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var topoEntity metaenitty.AddonTopologyEntity
 	if err := copier.Copy(&topoEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	topoEntity.CreatedBy = reqVo.BkUserName
 	topoEntity.UpdatedBy = reqVo.BkUserName
 	added, err := a.provider.Create(&topoEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var data response.AddonTopologyResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetByID 按照 id 检索 addon topology
@@ -77,37 +77,37 @@ func (a *AddonTopologyController) GetByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	repo, err := a.provider.FindByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	var data response.AddonTopologyResponse
 	if err := copier.Copy(&data, repo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetByParams 按照参数检索 addon topology
 func (a *AddonTopologyController) GetByParams(ctx *gin.Context) {
 	var topoQueryParams metaenitty.AddonTopologyQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &topoQueryParams, nil); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
 		return
 	}
 	topoEntities, err := a.provider.FindByParams(&topoQueryParams)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
 	var data []response.AddonTopologyResponse
 	if err := copier.Copy(&data, topoEntities); err != nil {
-		entity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
