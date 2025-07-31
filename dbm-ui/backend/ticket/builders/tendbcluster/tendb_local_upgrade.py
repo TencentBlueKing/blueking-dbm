@@ -14,20 +14,39 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.builders.tendbcluster.base import (
+    BaseTendbTicketFlowBuilder,
+    TendbBaseOperateDetailSerializer,
+    fetch_cluster_ids,
+)
 from backend.ticket.constants import TicketType
 
 
 class TenDBLocalUpgradeSerializer(TendbBaseOperateDetailSerializer):
-    class InfoSerializer(DisplayInfoSerializer):
+    class InfoSerializer(serializers.Serializer):
+        class VersionModelSerializer(serializers.Serializer):
+            db_version = serializers.CharField(help_text=_("DB版本"), required=False)
+            pkg_name = serializers.CharField(help_text=_("包名称"), required=False)
+            charset = serializers.CharField(help_text=_("字符集"), required=False)
+            db_module_name = serializers.CharField(help_text=_("DB模块名称"), required=False)
+
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         pkg_id = serializers.IntegerField(help_text=_("目标版本包ID"))
         new_db_module_id = serializers.IntegerField(help_text=_("数据库模块ID"), required=False)
+        current_version = VersionModelSerializer(help_text=_("当前版本信息"), required=False)
+        target_version = VersionModelSerializer(help_text=_("目标版本信息"), required=False)
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
     upgrade_local = serializers.BooleanField(help_text=_("是否本地升级"), default=True)
+    backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
+
+    def validate(self, attrs):
+        cluster_ids = fetch_cluster_ids(attrs)
+        super(TenDBLocalUpgradeSerializer, self).validated_cluster_latest_backup(cluster_ids, attrs["backup_source"])
+
+        return attrs
 
 
 class TenDBLocalUpgradeParamBuilder(builders.FlowParamBuilder):
