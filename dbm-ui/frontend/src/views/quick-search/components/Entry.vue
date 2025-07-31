@@ -249,7 +249,7 @@
       [t('架构类型')]: dataItem.cluster_type,
       [t('版本')]: dataItem.major_version,
       [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
-      [t('集群ID')]: String(dataItem.id),
+      [t('集群ID')]: String(dataItem.cluster_id),
     }));
     const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 
