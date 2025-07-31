@@ -28,7 +28,10 @@ import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"fmt"
 	"net"
@@ -41,7 +44,6 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 	gopsutilnet "github.com/shirou/gopsutil/v4/net"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -54,11 +56,10 @@ const (
 type MySql struct {
 	// NOTE: Must include UnimplementedMethod
 	plugin.UnimplementedMethod
-	config mySqlOptions
-	wg     sync.WaitGroup
-	// historyMetrics is a map for calculatring realtime QPS
+
+	wg             sync.WaitGroup
+	cfg            config.HarvesterConfig
 	historyMetrics map[string]*haprobe.DatabaseMetric
-	historyMutex   sync.RWMutex
 }
 
 // GlobalStatus is a struct for mysql global status
@@ -68,17 +69,43 @@ type GlobalStatus struct {
 }
 
 // NewMySql constructor
-func NewMySql(opts ...Option) *MySql {
-	mySqlOpts := defaultMySqlOptions
-
-	for _, opt := range opts {
-		opt.apply(&mySqlOpts)
-	}
-
-	return &MySql{
-		config:         mySqlOpts,
+func NewMySql(cfg config.HarvesterConfig) (*MySql, error) {
+	msql := &MySql{
+		cfg:            cfg,
 		historyMetrics: make(map[string]*haprobe.DatabaseMetric),
 	}
+
+	return msql, nil
+}
+
+func (m *MySql) connectMySql() ([]*hamysql.DB, error) {
+	epoints, err := hanet.NewEndpoints(m.cfg.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	dbs := []*hamysql.DB{}
+	for _, epoint := range epoints {
+		db, err := hamysql.New(
+			hamysql.OptionProto(epoint.Proto),
+			hamysql.OptionIP(epoint.Host),
+			hamysql.OptionPort(epoint.Port),
+			hamysql.OptionUser(m.cfg.User),
+			hamysql.OptionPassword(m.cfg.Password),
+		)
+
+		if err != nil {
+			logger.Warn("create mysql db operator failed, %v", err)
+			continue
+		}
+		dbs = append(dbs, db)
+	}
+
+	if len(dbs) == 0 {
+		return nil, gerrors.New(gerrors.ComponentFailure, "no usable mysql db operator")
+	}
+
+	return dbs, nil
 }
 
 // Name returns the name of the plugin.
@@ -93,25 +120,13 @@ func (m *MySql) Version() (string, error) {
 
 // Close closes the plugin.
 func (m *MySql) Close() error {
-	// wait for all goroutines to finish
-	m.wg.Wait()
-
-	// add a lock to clean up history metrics
-	m.historyMutex.Lock()
-	defer m.historyMutex.Unlock()
-
-	// clean up history metrics
-	for k := range m.historyMetrics {
-		delete(m.historyMetrics, k)
-	}
-
 	logger.Info("MySQL harvester plugin closed successfully")
 	return nil
 }
 
 // Harvest harvests data from the target instance.
-func (m *MySql) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
-	logger.Info("start mysql harvest, interval time is: %v", m.config.reportInterval)
+func (m *MySql) Harvest(ctx context.Context) (<-chan *plugin.HarvestData, error) {
+	logger.Info("start mysql harvest, interval time is: %v", m.cfg.Interval)
 
 	dataC := make(chan *plugin.HarvestData, 1024)
 
@@ -120,8 +135,9 @@ func (m *MySql) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
 		defer m.wg.Done()
 		defer close(dataC)
 
-		ticker := time.NewTicker(time.Duration(m.config.reportInterval) * time.Second)
+		ticker := time.NewTicker(m.cfg.Interval)
 		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -136,8 +152,11 @@ func (m *MySql) Harvest(ctx context.Context) (chan *plugin.HarvestData, error) {
 					// Retry next instance if failed to maintain availability
 					continue
 				}
+
+				logger.Debug("mysql harvest data(%v)", *metrics)
+
 				dataC <- &plugin.HarvestData{
-					Data: metrics,
+					Value: metrics,
 				}
 			}
 		}
@@ -154,19 +173,23 @@ func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
 		return nil, err
 	}
 
+	logger.Debug("system metrics(%v)", *systemMetric)
+
 	// 2. collect metrics from mysql instances
 	mysqlMetrics, err := m.collectMysqlMetrics()
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Debug("mysql metrics(%v)", mysqlMetrics)
+
 	// 3. combine metrics
 	metrics := &haprobe.MySQLMetric{
 		SequenceID:      0,
-		MachineID:       "",
-		MessageID:       "",
-		ServiceID:       "",
-		ReportTimestamp: 0,
+		MachineID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TOOD: hard code only test
+		MessageID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TODO: hard code only test
+		ServiceID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TODO: hard code only test
+		ReportTimestamp: uint64(time.Now().Unix()),
 		Host:            systemMetric,
 		Databases:       mysqlMetrics, // slice,mysql instance metrics
 	}
@@ -205,9 +228,9 @@ func getCPUMetrics(systemMetric *haprobe.HostMetric) error {
 
 	cpuTimes, err := cpu.Times(false)
 	if err == nil && len(cpuTimes) > 0 {
-		systemMetric.CPUUserPercent = cpuTimes[0].User / cpuTimes[0].Total() * 100
-		systemMetric.CPUSystemPercent = cpuTimes[0].System / cpuTimes[0].Total() * 100
-		systemMetric.CPUIOWaitPercent = cpuTimes[0].Iowait / cpuTimes[0].Total() * 100
+		//systemMetric.CPUUserPercent = cpuTimes[0].User / cpuTimes[0].Total() * 100
+		//systemMetric.CPUSystemPercent = cpuTimes[0].System / cpuTimes[0].Total() * 100
+		//systemMetric.CPUIOWaitPercent = cpuTimes[0].Iowait / cpuTimes[0].Total() * 100
 	}
 
 	if len(cpuPercent) > 0 {
@@ -220,6 +243,7 @@ func getCPUMetrics(systemMetric *haprobe.HostMetric) error {
 		systemMetric.CPULoad5 = load.Load5
 		systemMetric.CPULoad15 = load.Load15
 	}
+
 	return nil
 }
 
@@ -371,67 +395,28 @@ func getPacketLoss() (lossRateIn float64, lossRateOut float64) {
 func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, error) {
 	var allDbMetrics []*haprobe.DatabaseMetric
 
-	// Use default config if no instances configured (backward compatibility)
-	if len(m.config.instances) == 0 {
-		// Validate default configuration
-		if m.config.host == "" || m.config.port <= 0 || m.config.user == "" {
-			return nil, fmt.Errorf("missing required default configuration: host=%s, port=%d, user=%s",
-				m.config.host, m.config.port, m.config.user)
-		}
-
-		// Use single default instance
-		instance := config.InstanceConfig{
-			Host:     m.config.host,
-			Port:     m.config.port,
-			User:     m.config.user,
-			Password: m.config.password,
-			Name:     fmt.Sprintf("%s:%d", m.config.host, m.config.port),
-		}
-		m.config.instances = []config.InstanceConfig{instance}
+	dbs, err := m.connectMySql()
+	if err != nil {
+		return nil, err
 	}
 
 	// Iterate over configured instances
-	for _, instance := range m.config.instances {
-		logger.Info("collecting metrics for MySQL instance: %s", instance.Name)
-
-		// MySQL DSN
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=True&loc=Local",
-			instance.User,
-			instance.Password,
-			instance.Host,
-			instance.Port,
-		)
-
-		// Connect to MySQL
-		db, err := gorm.Open(mysql.Open(dsn))
-		if err != nil {
-			logger.Error("failed to connect to mysql instance %s. errmsg: %v", instance.Name, err)
-			// continue with other instances even if one fails
-			continue
-		}
-
+	for _, db := range dbs {
 		// create a DatabaseMetric to store instance metrics
 		instanceDbMetrics := haprobe.DatabaseMetric{}
 
-		if err := collectMySQLInfo(db, &instanceDbMetrics, instance.Name); err != nil {
-			logger.Error("failed to collect mysql info for instance %s. errmsg: %v", instance.Name, err)
-			if conn, err := db.DB(); err == nil {
-				conn.Close()
-			}
+		if err := collectMySQLInfo(db.DB(), &instanceDbMetrics); err != nil {
 			continue
 		}
 
 		// realtime QPS
-		m.calculateRealTimeQPS(instance.Name, &instanceDbMetrics)
+		instanceName := fmt.Sprintf("%s:%d", db.Host(), db.Port())
+		m.calculateRealTimeQPS(instanceName, &instanceDbMetrics)
 
-		if conn, err := db.DB(); err == nil {
-			conn.Close()
-		}
-		instanceDbMetrics.ListenPort = instance.Port
 		// add single instance metrics to all metrics
 		allDbMetrics = append(allDbMetrics, &instanceDbMetrics)
 
-		logger.Info("successfully collected metrics for MySQL instance: %s", instance.Name)
+		logger.Debug("mysql db metric(%v)", instanceDbMetrics)
 	}
 
 	if len(allDbMetrics) == 0 {
@@ -442,23 +427,20 @@ func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, error) {
 }
 
 // collectMySQLInfo collect single instance MySQL metrics.
-func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric, instanceName string) error {
-	// valide database connection
-	if db == nil {
-		return fmt.Errorf("database connection is nil for instance: %s", instanceName)
-	}
+func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric) error {
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to get underlying sql.DB for instance %s: %v", instanceName, err)
+		return err
 	}
+
 	if err := sqlDB.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database for instance %s: %v", instanceName, err)
+		return err
 	}
 
 	var globalStatusList []GlobalStatus
 	err = db.Raw("SHOW GLOBAL STATUS").Scan(&globalStatusList).Error
 	if err != nil {
-		return fmt.Errorf("failed to execute SHOW GLOBAL STATUS for instance %s: %v", instanceName, err)
+		return err
 	}
 
 	globalStatus := make(map[string]string)
@@ -502,24 +484,15 @@ func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric, instanceNam
 	}
 
 	// Key buffer read hit rate
-	dbMetric.KeyBufferHitRate = float64(dbMetric.KeyReads) / float64(dbMetric.KeyReadRequests)
+	if dbMetric.KeyReadRequests != 0 {
+		dbMetric.KeyBufferHitRate = float64(dbMetric.KeyReads) / float64(dbMetric.KeyReadRequests)
+	}
+
 	return nil
 }
 
 // calculateRealTimeQPS to calculate realtime QPS
 func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe.DatabaseMetric) {
-	if instanceName == "" {
-		logger.Error("real time qps: instance name is empty")
-		return
-	}
-
-	if currentMetric == nil {
-		logger.Error("real time qps: current metric is nil for instance: %s", instanceName)
-		return
-	}
-
-	m.historyMutex.Lock()
-	defer m.historyMutex.Unlock()
 
 	// get history metric
 	previousMetric, exists := m.historyMetrics[instanceName]
@@ -532,7 +505,7 @@ func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe
 	// calculate difference between current and previous metric
 	queryDiff := currentMetric.QueryTotal - previousMetric.QueryTotal
 	if queryDiff > 0 {
-		interval := float64(m.config.reportInterval)
+		interval := m.cfg.Interval.Seconds()
 		realTimeQPS := float64(queryDiff) / interval
 		currentMetric.QPS = uint(realTimeQPS)
 	}
@@ -542,7 +515,7 @@ func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe
 	rollbackDiff := currentMetric.QueryRollbacks - previousMetric.QueryRollbacks
 	totalDiff := commitDiff + rollbackDiff
 	if totalDiff > 0 {
-		interval := float64(m.config.reportInterval)
+		interval := m.cfg.Interval.Seconds()
 		realTimeTPS := float64(totalDiff) / interval
 		currentMetric.TPS = uint(realTimeTPS)
 	}

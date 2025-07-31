@@ -28,25 +28,17 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"strings"
 )
 
 // NewPlugin creates a new probe plugin.
 func NewPlugin(cfg config.HarvesterConfig) (plugin.Plugin, error) {
-	var target plugin.Plugin
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mysql.Name):
-		target = mysql.NewMySql(mysql.OptionReportInterval(cfg.ReportInterval),
-			mysql.OptionInstances(cfg.Instances),
-		)
-		return target, nil
+		return mysql.NewMySql(cfg)
 
-	case strings.ToLower(redis.Name):
-		target = redis.NewRedis(redis.OptionReportInterval(cfg.ReportInterval))
-		return target, nil
+	default:
+		return nil, gerrors.Newf(gerrors.Unknown, "unknown harvest plugin(%s)", cfg.Name)
 	}
-
-	return nil, gerrors.Newf(gerrors.NotFound, "plugin(%s) is invalid", cfg.Name)
 }
