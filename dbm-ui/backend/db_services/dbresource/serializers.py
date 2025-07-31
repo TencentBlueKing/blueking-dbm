@@ -182,8 +182,8 @@ class ResourceListSerializer(serializers.Serializer):
                 {
                     "mount_point": storage_spec["mount_point"],
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"] - spec_offset["disk"],
-                    "max": INT_MAX,
+                    "min": storage_spec["min"] - spec_offset["disk"],
+                    "max": storage_spec["max"],
                 }
                 for storage_spec in spec.storage_spec
             ]
@@ -380,11 +380,15 @@ class SpecSerializer(serializers.ModelSerializer):
     def get_capacity(self, obj):
         return obj.capacity
 
-    def validate_valid_cpu_mem(self, attrs):
+    def validate_valid_cpu_mem_disk(self, attrs):
         # 校验cpu,mem的值是int
         try:
             attrs["cpu"]["min"], attrs["cpu"]["max"] = int(attrs["cpu"]["min"]), int(attrs["cpu"]["max"])
             attrs["mem"]["min"], attrs["mem"]["max"] = float(attrs["mem"]["min"]), float(attrs["mem"]["max"])
+            for storage in attrs["storage_spec"]:
+                storage["max"], storage["min"] = int(storage["max"]), int(storage["min"])
+                if storage["min"] > storage["max"]:
+                    raise serializers.ValidationError(_("请保证磁盘的最小最大范围合理"))
         except ValueError:
             raise serializers.ValidationError(_("请保证CPU/MEM的取值为数字"))
         # 校验cpu, mem是正确的范围
@@ -437,7 +441,7 @@ class SpecSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("【{}】后端磁盘挂载点必须包含/data").format(attrs["spec_machine_type"]))
 
     def validate(self, attrs):
-        self.validate_valid_cpu_mem(attrs)
+        self.validate_valid_cpu_mem_disk(attrs)
         self.validate_only_spec(attrs)
         self.validate_data_points(attrs)
         return attrs
@@ -450,9 +454,15 @@ class DeleteSpecSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": {"spec_ids": [1, 2, 3]}}
 
 
-class SpecEnableDisableSerializer(serializers.Serializer):
+class SpecBatchUpdateSerializer(serializers.Serializer):
     spec_ids = serializers.ListField(help_text=_("规格id列表"), child=serializers.IntegerField())
-    enable = serializers.BooleanField(help_text=_("是否启用"))
+    biz_scope = serializers.ListField(help_text=_("业务id列表"), child=serializers.IntegerField(), required=False)
+    enable = serializers.BooleanField(help_text=_("是否启用"), required=False)
+
+    def validate(self, attrs):
+        if not any([key in attrs for key in ("biz_scope", "enable")]):
+            raise serializers.ValidationError(_("至少需要提供一个可更新字段"))
+        return attrs
 
 
 class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
