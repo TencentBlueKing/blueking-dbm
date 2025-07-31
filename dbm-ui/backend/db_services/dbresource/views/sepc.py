@@ -35,7 +35,7 @@ from backend.db_services.dbresource.serializers import (
     QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
-    SpecEnableDisableSerializer,
+    SpecBatchUpdateSerializer,
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
@@ -148,13 +148,14 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         return super().update(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("更新规格的启用禁用态"),
+        operation_summary=_("批量修改规格的启用/业务范围信息"),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=SpecEnableDisableSerializer)
-    def modify_spec_enable_status(self, request, *args, **kwargs):
+    @action(methods=["POST"], detail=False, serializer_class=SpecBatchUpdateSerializer)
+    def batch_common_update(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Spec.objects.filter(spec_id__in=data["spec_ids"]).update(enable=data["enable"])
+        spec_ids = data.pop("spec_ids")
+        Spec.objects.filter(spec_id__in=spec_ids).update(**data)
         return Response()
 
     @common_swagger_auto_schema(
