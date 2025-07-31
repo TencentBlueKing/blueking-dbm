@@ -25,5 +25,6 @@ type AddonTypeResponse struct {
 	AddonCategory *AddonCategoryResponse `json:"addonCategory"`
 	TypeName      string                 `json:"typeName"`
 	TypeAlias     string                 `json:"typeAlias"`
+	Active        bool                   `json:"active"`
 	Description   string                 `json:"description"`
 }

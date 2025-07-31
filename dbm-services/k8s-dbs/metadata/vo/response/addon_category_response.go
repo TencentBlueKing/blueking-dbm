@@ -24,6 +24,7 @@ type AddonCategoryResponse struct {
 	ID            uint64 `json:"id"`
 	CategoryName  string `json:"categoryName"`
 	CategoryAlias string `json:"categoryAlias"`
+	Active        bool   `json:"active"`
 	Description   string `json:"description"`
 }
 
@@ -33,6 +34,7 @@ type AddonCategoryTypesResponse struct {
 	CategoryName  string                   `json:"categoryName"`
 	CategoryAlias string                   `json:"categoryAlias"`
 	Description   string                   `json:"description"`
+	Active        bool                     `json:"active"`
 	AddonTypes    []*AddonCategoryTypeResp `json:"addonTypes"`
 }
 
@@ -41,5 +43,6 @@ type AddonCategoryTypeResp struct {
 	ID          uint64 `json:"id"`
 	TypeName    string `json:"typeName"`
 	TypeAlias   string `json:"typeAlias"`
+	Active      bool   `json:"active"`
 	Description string `json:"description"`
 }
