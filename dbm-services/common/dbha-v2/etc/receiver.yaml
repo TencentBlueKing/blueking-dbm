@@ -1,0 +1,33 @@
+name: receiver
+version: v2.0.0
+
+discovery:
+  endpoint: http://etcd-server:2379
+  user: root
+  password: 1234567890
+
+input:
+  - name: probe
+    enable: false
+    endpoint: 127.0.0.1:25560
+
+  - name: kafka
+    enable: true
+    endpoint: http://kafk-server:9092
+    user: root
+    password: 1234567890
+    mechanism: plaintext
+    topics: [test]
+
+output:
+  - name: mysql
+    enable: false
+    endpoint: 127.0.0.1:3306
+    user: root
+    password: 123456
+
+log:
+  path: /var/log/dbha/logs/receiver.log
+  level: debug
+  fileCount: 10
+  fileSize: 100

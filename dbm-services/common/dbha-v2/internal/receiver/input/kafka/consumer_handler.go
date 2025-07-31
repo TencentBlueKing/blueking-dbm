@@ -60,7 +60,9 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		}
 
 		for _, saver := range h.savers {
-			saver.Save(data)
+			if err := saver.Save(data); err != nil {
+				logger.Warn("save the data failed, topic(%s), %v", msg.Topic, err)
+			}
 		}
 	}
 

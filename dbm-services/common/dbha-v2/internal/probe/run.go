@@ -80,12 +80,25 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	logger.Debug("probe config. %v", config.Cfg)
 
-	clientId := uuid.New()
+	clientID := uuid.New()
 
 	p := &Probe{
-		Reporter: &reporter.Reporter{
-			ClientId: clientId.String(),
-		},
+		clientID: clientID.String(),
+	}
+
+	// create reporters
+	for _, cfg := range config.Cfg.Reporters {
+		r, err := reporter.NewReporter(cfg)
+		if err != nil {
+			logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
+			continue
+		}
+
+		p.reporters = append(p.reporters, r)
+	}
+
+	if len(p.reporters) == 0 {
+		//return gerrors.New(gerrors.Failure, "no usable reporter")
 	}
 
 	ctx := context.Background()
