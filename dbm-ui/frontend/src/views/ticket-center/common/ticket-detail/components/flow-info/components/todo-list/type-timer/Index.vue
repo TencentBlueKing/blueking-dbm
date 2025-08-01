@@ -20,9 +20,17 @@
     data: FlowMode<
       unknown,
       unknown,
-      { action: 'CHANGE' | 'TERMINATE' | 'SKIP'; flow_id: number; remark: string; ticket_id: number }
+      {
+        action: 'CHANGE' | 'TERMINATE' | 'SKIP';
+        flow_id: number;
+        remark: string;
+        ticket_id: number;
+      }
     >['todos'][number];
-    flowData: FlowMode<{ run_time: string; trigger_time: string }>;
+    flowData: FlowMode<{
+      run_time: string;
+      trigger_time: string;
+    }>;
     ticketData: TicketModel;
   }
 

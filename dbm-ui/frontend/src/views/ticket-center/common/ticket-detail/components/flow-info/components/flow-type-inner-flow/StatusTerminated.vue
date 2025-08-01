@@ -4,10 +4,10 @@
     :ticket-detail="ticketDetail">
     <template #content>
       <I18nT
-        keypath="m_处理人_p_耗时_t"
+        keypath="n 已处理_c_耗时 t"
         scope="global">
-        <span style="color: #ea3636">{{ t('任务终止') }}</span>
         <span>{{ ticketDetail.updater }}</span>
+        <span style="color: #ea3636">{{ t('人工终止') }}</span>
         <CostTimer
           :is-timing="false"
           :start-time="utcTimeToSeconds(data.start_time)"

@@ -76,7 +76,7 @@ export function getTicketCount() {
 
 // 批量处理单据的待办
 export function batchProcessTicket(params: {
-  action: 'APPROVE' | 'TERMINATE';
+  action: 'APPROVE' | 'TERMINATE' | 'DELIVER' | 'SKIP' | 'CHANGE';
   params?: Record<string, any>;
   ticket_ids: number[];
 }) {
