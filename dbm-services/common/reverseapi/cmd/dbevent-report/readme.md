@@ -54,9 +54,11 @@ type ISyncReportEvent interface {
 
 ## 直接使用 http 协议上报
 ```
-curl -XPOST http://cloud_nginx_ip:80/apis/proxypass/reverse_api/common/sync_report -d \
+cloud_nginx_addr=xxx:80
+curl -H "Content-Type: application/json" \
+ -XPOST http://$cloud_nginx_addr/apis/proxypass/reverse_api/common/sync_report/?bk_cloud_id=0 -d \
   '[
-      {"cluster-type":"tendbha","event-type":"binlog-backup","bk_biz_id":123, "name":"binlog.0001", "time": 10}, 
-      {"cluster-type":"tendbha","event-type":"binlog-backup","bk_biz_id":123, "name":"binlog.0002", "time":11}
+      {"cluster_type":"tendbha","event_type":"binlog-backup","bk_biz_id":123, "name":"binlog.0001", "time": 10}, 
+      {"cluster_type":"tendbha","event_type":"binlog-backup","bk_biz_id":123, "name":"binlog.0002", "time":11}
   ]'
 ```

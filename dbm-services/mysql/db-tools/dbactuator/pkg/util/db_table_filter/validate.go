@@ -26,6 +26,7 @@ func (c *DbTableFilter) validate() error {
 	if slices.Index(c.ExcludeTablePatterns, "*") >= 0 {
 		return fmt.Errorf("exclude tables patterns can't be *")
 	}
+	// TODO 检测不能包含 ', ", ; 这些危险字符
 
 	if err := globCheck(c.IncludeDbPatterns); err != nil {
 		return err

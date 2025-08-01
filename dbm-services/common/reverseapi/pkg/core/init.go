@@ -102,7 +102,8 @@ func NewCoreWithAddr(bkCloudId int64, mixAddrs []string, retryOpts ...retry.Opti
 				MaxIdleConns:        2,
 				MaxConnsPerHost:     5,
 			},
-			Timeout: 2 * time.Second,
+			// 这个地方要大于服务端的超时
+			Timeout: 10 * time.Second,
 		},
 		retryOpts: retryOpts,
 	}, nil
