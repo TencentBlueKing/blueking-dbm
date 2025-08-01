@@ -325,7 +325,14 @@ class GetOsSysParamComponent(Component):
 class CleanDataBakDirSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        script_content = "rm -rf /data/dbbak;rm -rf /data1/dbbak"
+        script_content = """ 
+        rm -rf /data/dbbak;rm -rf /data1/dbbak
+        ps -fe | grep 'db.*exporter' | awk '{print $2}' | while read PID
+        do
+            rm -rf $(pwdx ${PID})
+            kill -9 ${PID}
+        done
+        """  # noqa
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
