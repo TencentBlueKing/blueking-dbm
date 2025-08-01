@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,9 +29,11 @@ type TopicReassignComp struct {
 
 // TopicReassignParams contains parameters needed for topic reassignment
 type TopicReassignParams struct {
-	Brokers      []string `json:"brokers"`       // List of broker IPs
-	ThrottleRate int64    `json:"throttle_rate"` // Throttle rate for reassignment
-	Topics       []string `json:"topics"`        // List of topic patterns to filter
+	Brokers        []string `json:"brokers"`         // List of broker IPs
+	ThrottleRate   int64    `json:"throttle_rate"`   // Throttle rate for reassignment
+	Topics         []string `json:"topics"`          // List of topic patterns to filter
+	ExcludeBrokers []string `json:"exclude_brokers"` // 同时兼容
+	NewBrokers     []string `json:"new_brokers"`     // 替换单据
 }
 
 // TopicJSON represents the structure for topic reassignment JSON
@@ -69,13 +72,13 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 
 	// Get list of topics
 	cmd := fmt.Sprintf("%s --list --zookeeper %s", cst.DefaultTopicBin, zkStr)
+	logger.Info("Executing command to get topic list: %s", cmd)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to get topic list: %w", err)
 	}
 
 	topics := strings.Split(strings.TrimSpace(output), "\n")
-
 	// Filter topics based on patterns if provided
 	filterTopics := filterTopics(topics, t.Params.Topics)
 	logger.Info("filterTopics: %v", filterTopics)
@@ -84,74 +87,121 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	if err := os.WriteFile(cst.TopicListFilePath, []byte(strings.Join(filterTopics, "\n")), 0644); err != nil {
 		return fmt.Errorf("failed to write topic list file: %w", err)
 	}
-	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
+
+	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second)
 	if err != nil {
 		logger.Error("Connect zk failed, %s", err)
 		return err
 	}
 	defer conn.Close()
-	// Convert broker IPs to IDs
-	brokerIDs := make([]string, 0)
-	for _, brokerIP := range t.Params.Brokers {
-		id, err := kafkautil.GetBrokerIDByHost(conn, brokerIP, zkPath)
-		if err != nil {
-			return fmt.Errorf("failed to get broker ID for %s: %w", brokerIP, err)
+
+	replaceMode := len(t.Params.ExcludeBrokers) > 0
+	logger.Info("Replace mode: %v", replaceMode)
+
+	var brokerListStr string
+	var excludeIDs, newIDs []int
+	if replaceMode {
+		// 获取 exclude/new broker 的ID
+		bIDs := make([]string, 0)
+		for _, ip := range t.Params.ExcludeBrokers {
+			id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
+			if err != nil {
+				return fmt.Errorf("failed to get broker ID for exclude %s: %w", ip, err)
+			}
+			bIDs = append(bIDs, id)
+			intID, _ := strconv.Atoi(id)
+			excludeIDs = append(excludeIDs, intID)
 		}
-		brokerIDs = append(brokerIDs, id)
+		for _, ip := range t.Params.NewBrokers {
+			id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
+			if err != nil {
+				return fmt.Errorf("failed to get broker ID for new %s: %w", ip, err)
+			}
+			intID, _ := strconv.Atoi(id)
+			newIDs = append(newIDs, intID)
+		}
+		allBrokerIDs, err := kafkautil.GetBrokerIds(conn, zkPath)
+		if err != nil {
+			return fmt.Errorf("failed to get all broker IDs: %w", err)
+		}
+		remainBrokers := difference(allBrokerIDs, bIDs)
+		brokerListStr = strings.Join(remainBrokers, ",")
+	} else {
+		// 普通模式，获取所有 broker 的ID
+		brokerIDs := make([]string, 0)
+		for _, brokerIP := range t.Params.Brokers {
+			id, err := kafkautil.GetBrokerIDByHost(conn, brokerIP, zkPath)
+			if err != nil {
+				return fmt.Errorf("failed to get broker ID for %s: %w", brokerIP, err)
+			}
+			brokerIDs = append(brokerIDs, id)
+		}
+		brokerListStr = strings.Join(brokerIDs, ",")
 	}
-	brokerList := strings.Join(brokerIDs, ",")
 
 	for _, topic := range filterTopics {
 		if topic == "" {
 			continue
 		}
 
-		// Create topic JSON file
+		// 1. 生成topic JSON文件
 		topicJSON := TopicJSON{
 			Topics:  []Topic{{Topic: topic}},
 			Version: 1,
 		}
-
 		jsonData, err := json.Marshal(topicJSON)
 		if err != nil {
 			return fmt.Errorf("failed to marshal topic JSON: %w", err)
 		}
-
 		topicJSONFile := fmt.Sprintf("%s.json", topic)
 		if err := os.WriteFile(topicJSONFile, jsonData, 0644); err != nil {
 			return fmt.Errorf("failed to write topic JSON file: %w", err)
 		}
 
-		// Generate reassignment plan
+		// 2. 生成分配计划
 		cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s",
-			cst.DefaultReassignPartitionsBin, brokerList, topicJSONFile, zkStr)
-
+			cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
+		logger.Info("Executing command to generate reassignment plan: %s", cmd)
 		output, err := osutil.ExecShellCommand(false, cmd)
 		if err != nil {
 			return fmt.Errorf("failed to generate reassignment plan: %w", err)
 		}
 
-		// Extract current and proposed assignments
+		// 3. 解析current assignment
 		parts := strings.Split(output, "Proposed partition reassignment configuration")
+		logger.Info("Parts length: %d", len(parts))
 		if len(parts) != 2 {
 			return fmt.Errorf("unexpected output format from reassignment plan generation")
 		}
-
 		currentJSON := strings.TrimSpace(strings.TrimPrefix(parts[0], "Current partition replica assignment"))
 		proposedJSON := strings.TrimSpace(parts[1])
 
-		// Save current and proposed assignments
-		if err := os.WriteFile(fmt.Sprintf("rollback-%s.json", topic), []byte(currentJSON),
-			0644); err != nil {
+		// 4. 写入rollback和reassign文件
+		if err := os.WriteFile(fmt.Sprintf("rollback-%s.json", topic), []byte(currentJSON), 0644); err != nil {
 			return fmt.Errorf("failed to write rollback JSON: %w", err)
 		}
 
-		if err := os.WriteFile(fmt.Sprintf("reassign-%s.json", topic), []byte(proposedJSON),
-			0644); err != nil {
-			return fmt.Errorf("failed to write reassignment JSON: %w", err)
+		if replaceMode {
+			// 反序列化为ReassignmentPlan
+			var plan kafkautil.ReassignmentPlan
+			if err := json.Unmarshal([]byte(currentJSON), &plan); err != nil {
+				return fmt.Errorf("unmarshal current assignment: %w", err)
+			}
+			// 替换exclude broker为new broker
+			kafkautil.ReplaceBrokerIds(&plan, excludeIDs, newIDs)
+			newAssignmentJSON, err := json.MarshalIndent(plan, "", "  ")
+			if err != nil {
+				return fmt.Errorf("marshal new assignment: %w", err)
+			}
+			if err := os.WriteFile(fmt.Sprintf("reassign-%s.json", topic), newAssignmentJSON, 0644); err != nil {
+				return fmt.Errorf("failed to write reassignment JSON: %w", err)
+			}
+		} else {
+			if err := os.WriteFile(fmt.Sprintf("reassign-%s.json", topic), []byte(proposedJSON), 0644); err != nil {
+				return fmt.Errorf("failed to write reassignment JSON: %w", err)
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -257,7 +307,6 @@ func cleanFiles() {
 		logger.Warn("failed to list JSON files: %v", err)
 	}
 	filesToRemove = append(filesToRemove, jsonFiles...)
-	//
 	for _, file := range filesToRemove {
 		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
 			logger.Warn("failed to remove file %s: %v", file, err)
@@ -293,4 +342,22 @@ func filterTopics(allTopics []string, topicPatterns []string) []string {
 		}
 	}
 	return result
+}
+
+// difference returns the elements in slice 'a' that are not present in slice 'b'.
+// It constructs a map from slice 'b' for efficient look-up and iterates over slice 'a',
+// collecting elements that do not exist in the map.
+func difference(a, b []string) []string {
+	m := make(map[string]struct{})
+	for _, item := range b {
+		m[item] = struct{}{}
+	}
+
+	var diff []string
+	for _, item := range a {
+		if _, found := m[item]; !found {
+			diff = append(diff, item)
+		}
+	}
+	return diff
 }
