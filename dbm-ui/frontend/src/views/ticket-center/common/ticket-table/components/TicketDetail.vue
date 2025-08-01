@@ -116,6 +116,7 @@
       manual: true,
       onSuccess(data) {
         ticketData.value = data;
+        loopFetchTicketStatus();
       },
     },
   );
@@ -126,8 +127,9 @@
         ticket_ids: `${props.ticketId}`,
       }),
     {
+      manual: true,
       onSuccess(data) {
-        ticketData.value!.status = data[ticketData.value!.id] as TicketModel['status'];
+        ticketData.value!.status = data[`${props.ticketId}`] as TicketModel['status'];
         if (!ticketData.value!.isFinished) {
           loopFetchTicketStatus();
         }
