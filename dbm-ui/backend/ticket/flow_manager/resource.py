@@ -131,6 +131,15 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def _format_resource_hosts(self, hosts, spec):
         """格式化申请的主机参数"""
+        default_spec = {
+            "id": 0,
+            "name": "",
+            "cpu": "",
+            "mem": "",
+            "qps": "",
+            "device_class": "",
+            "storage_spec": "",
+        }
         return [
             {
                 # 主机来源业务
@@ -157,7 +166,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "for_biz": host["dedicated_biz"],
                 "labels": host["labels"],
                 "resource_type": host["rs_type"],
-                "spec": spec.get_spec_info(),
+                "spec": spec.get_spec_info() if isinstance(spec, Spec) else default_spec,
             }
             for host in hosts
         ]
@@ -268,7 +277,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         if source_spec_key_map.get(group_name):
             return spec_map[source_spec_key_map[group_name]]
         role = group_name.split("_", 1)[-1]
-        return spec_map.get(source_spec_key_map.get(role), "")
+        return spec_map.get(source_spec_key_map.get(role), None)
 
     def fetch_apply_params(self, ticket_data):
         """
