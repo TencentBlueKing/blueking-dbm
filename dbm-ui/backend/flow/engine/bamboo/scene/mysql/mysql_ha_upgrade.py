@@ -1017,7 +1017,7 @@ def build_install_ms_pair_sub_pipeline(
         "new_master_ip": new_master_ip,
         "new_slave_ip": new_slave_ip,
         "bk_cloud_id": cluster.bk_cloud_id,
-        "cluster_ids": [cluster],
+        "cluster_ids": [cluster.id],
     }
 
     install_sub_pipeline.add_act(
