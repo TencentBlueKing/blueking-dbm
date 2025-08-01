@@ -87,6 +87,7 @@
     if (!keyword) {
       return data;
     }
+
     const exactMatchList: typeof data = [];
     const appIdList: typeof data = [];
     const firstAppCodeList: typeof data = [];
@@ -97,8 +98,15 @@
     const rule = new RegExp(encodeRegexp(keyword), 'i');
     const firstRule = new RegExp(`^${encodeRegexp(keyword)}`, 'i');
 
+    const exactMatchRule = new RegExp(`^${encodeRegexp(keyword)}$`, 'i');
+
     for (const item of data) {
-      if (exactMatch && rule.test(item.name)) {
+      if (
+        (exactMatch && rule.test(item.name)) ||
+        exactMatchRule.test(`${item.key}`) ||
+        exactMatchRule.test(item.data.english_name) ||
+        exactMatchRule.test(item.data.name)
+      ) {
         exactMatchList.push(item);
       } else if (rule.test(`${item.key}`)) {
         appIdList.push(item);
