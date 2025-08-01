@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 from bamboo_engine import states
 from django.utils import translation
 from django.utils.translation import ugettext as _
+from pipeline.core.data.base import DataObject
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
@@ -198,13 +199,13 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
             return local.tenant_id
         self.log_warning(_("无法获取当前请求的租户ID"))
 
-    def active_tenant(self, data):
+    def active_tenant(self, data: DataObject):
         tenant_id = self._get_tenant_id(data.get_one_of_inputs("global_data"))
-        # 将存在的inputs拷贝并更新
-        current_inputs = data.inputs_copy()
-        current_inputs["global_data"]["tenant_id"] = tenant_id
+        # 获取输入参数
+        inputs_data = data.get_inputs()
+        inputs_data["global_data"]["tenant_id"] = tenant_id
         # 更新到data对象中
-        data.override_inputs(current_inputs)
+        data.override_inputs(inputs_data)
 
     def execute(self, data, parent_data):
         self.active_language(data)

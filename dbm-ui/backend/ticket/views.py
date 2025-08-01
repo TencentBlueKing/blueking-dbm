@@ -92,6 +92,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     filter_class = TicketListFilter
     pagination_class = AuditedLimitOffsetPagination
 
+    def get_queryset(self):
+        return self.filter_by_tenant_biz_ids(super().get_queryset())
+
     def _get_custom_permissions(self):
         # 创建单据，关联单据类型的动作
         if self.action == "create":

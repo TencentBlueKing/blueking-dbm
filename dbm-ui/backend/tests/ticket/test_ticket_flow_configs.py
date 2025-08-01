@@ -18,6 +18,7 @@ from django.core.cache import cache
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
+from backend.db_meta.models.app import TenantCache
 from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA,
     MYSQL_CLONE_CLIENT_TICKET_CONFIG,
@@ -38,7 +39,10 @@ client = APIClient()
 @pytest.fixture(scope="module")
 def query_fixture(django_db_blocker):
     with django_db_blocker.unblock():
-        TicketHandler.ticket_flow_config_init()
+        tenant_ids = TenantCache.objects.exclude(status="disable").values_list("tenant_id", flat=True)
+        # 循环处理每个租户
+        for tenant_id in tenant_ids:
+            TicketHandler.ticket_flow_config_init(tenant_id=tenant_id)
         yield
         TicketFlowsConfig.objects.all().delete()
 

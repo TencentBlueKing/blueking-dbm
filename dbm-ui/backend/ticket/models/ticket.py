@@ -370,6 +370,7 @@ class TicketFlowsConfig(AuditedModel):
     ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
     editable = models.BooleanField(_("是否支持用户配置"), default=True)
     configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
+    tenant_id = models.CharField(help_text=_("租户ID"), max_length=128, default="default")
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程配置(TicketFlowsConfig)")
@@ -378,9 +379,13 @@ class TicketFlowsConfig(AuditedModel):
     @classmethod
     def get_cluster_configs(cls, ticket_type, bk_biz_id, cluster_ids):
         """获取集群生效的流程配置"""
+        from backend.utils.tenant import TenantHandler
+
         # 流程优先级：集群维度 > 业务维度 > 平台维度
         # 全局配置
-        global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
+        global_cfg = cls.objects.get(
+            bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type, tenant_id=TenantHandler.get_tenant_id_by_biz(bk_biz_id)
+        )
         # 业务配置和集群配置
         biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
         biz_cfg = biz_configs.filter(cluster_ids=[]).first() or global_cfg

@@ -20,6 +20,7 @@ from rest_framework.test import APIClient
 
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.core import notify
+from backend.db_meta.models.app import TenantCache
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbresource import DBResourceApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
@@ -79,8 +80,11 @@ class BaseTicketTest:
         测试类的初始化(替换原 setUpClass 的类级别初始化)
         """
         with django_db_blocker.unblock():
-            # 初始化单据配置
-            TicketHandler.ticket_flow_config_init()
+            # 获取所有有效租户 ID（排除状态为 "disable" 的租户）
+            tenant_ids = TenantCache.objects.exclude(status="disable").values_list("tenant_id", flat=True)
+            # 初始化租户单据配置
+            for tenant_id in tenant_ids:
+                TicketHandler.ticket_flow_config_init(tenant_id=tenant_id)
             self.ticket_config_map = {config.ticket_type: config.configs for config in TicketFlowsConfig.objects.all()}
 
             # 启动所有 Mock

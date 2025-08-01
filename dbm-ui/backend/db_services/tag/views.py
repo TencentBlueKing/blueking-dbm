@@ -54,6 +54,9 @@ class TagViewSet(AuditedModelViewSet):
     action_permission_map = {("related_resources", "list", "verify_duplicated"): []}
     default_permission_class = [TagPermission()]
 
+    def get_queryset(self):
+        return self.filter_by_tenant_id(super().get_queryset())
+
     @common_swagger_auto_schema(
         operation_summary=_("查询的标签列表"),
         tags=[SWAGGER_TAG],
@@ -92,7 +95,9 @@ class TagViewSet(AuditedModelViewSet):
         创建标签
         """
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TagHandler.batch_create(**validated_data, creator=request.user.username))
+        return Response(
+            TagHandler.batch_create(**validated_data, creator=request.user.username, tenant_id=request.user.tenant_id)
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除标签"), request_body=serializers.DeleteTagsSerializer(), tags=[SWAGGER_TAG]

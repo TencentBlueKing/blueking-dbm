@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
@@ -41,6 +42,7 @@ from backend.ticket.builders.common.base import fetch_host_ids
 from backend.ticket.constants import TODO_RUNNING_STATUS, TodoType
 from backend.ticket.models import Flow, Todo
 from backend.ticket.serializers import TodoSerializer
+from backend.utils.tenant import TenantHandler
 
 logger = logging.getLogger("root")
 SWAGGER_TAG = "taskflow"
@@ -63,15 +65,18 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     default_permission_class = [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
 
     def get_queryset(self):
+        tenant_id = TenantHandler.get_tenant_id()
+        # 获取当前租户有权限的业务id
+        bk_biz_ids = AppCache.objects.filter(tenant_id=tenant_id).values_list("bk_biz_id", flat=True)
         if self.action != self.list.__name__:
-            return super().get_queryset()
+            return super().get_queryset().filter(bk_biz_id__in=bk_biz_ids)
 
         # 对root_ids支持批量过滤
         root_ids = self.request.query_params.get("root_ids", None)
         if root_ids:
             self.queryset = self.queryset.filter(root_id__in=root_ids.split(","))
 
-        return self.queryset
+        return self.queryset.filter(bk_biz_id__in=bk_biz_ids)
 
     @common_swagger_auto_schema(
         operation_summary=_("任务列表"),
