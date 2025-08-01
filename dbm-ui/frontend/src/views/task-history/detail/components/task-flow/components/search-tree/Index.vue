@@ -178,31 +178,31 @@
 
     const calcTreeData = (data: TreeNode[]) => {
       data.forEach((item) => {
-        if (item.status) {
-          allStatus.count++;
-        }
-        if (item.status === 'FAILED') {
-          failedStatus.count++;
-        } else {
-          if (item.todoId) {
-            todoStatus.count++;
-          } else {
-            switch (item.status) {
-              case 'CREATED':
-                waitStatus.count++;
-                break;
-              case 'RUNNING':
-                runningStatus.count++;
-                break;
-              case 'FINISHED':
-                successStatus.count++;
-                break;
-            }
-          }
-        }
-
         if (item.children) {
           calcTreeData(item.children);
+        } else {
+          if (item.status) {
+            allStatus.count++;
+          }
+          if (item.status === 'FAILED') {
+            failedStatus.count++;
+          } else {
+            if (item.todoId) {
+              todoStatus.count++;
+            } else {
+              switch (item.status) {
+                case 'CREATED':
+                  waitStatus.count++;
+                  break;
+                case 'RUNNING':
+                  runningStatus.count++;
+                  break;
+                case 'FINISHED':
+                  successStatus.count++;
+                  break;
+              }
+            }
+          }
         }
       });
     };
@@ -225,7 +225,7 @@
   const treeIdChildrenMap: Record<string, Set<string>> = {};
   let currentClickNode = '';
   let isCheckedClick = false;
-  let isAutoFocus = false;
+  // const isAutoFocus = false;
 
   const initTreeIdChildrenMap = (dataList: TreeNode[]) => {
     const deepInit = (list: TreeNode[]) => {
@@ -272,13 +272,13 @@
   });
 
   watch(statusValue, () => {
-    if (['FAILED', 'TODO'].includes(statusValue.value)) {
+    if (statusValue.value !== 'ALL') {
       setTimeout(() => {
-        if (isAutoFocus) {
-          return;
-        }
+        // if (isAutoFocus) {
+        //   return;
+        // }
 
-        isAutoFocus = true;
+        // isAutoFocus = true;
         batchSetTreeNodeOpen();
         const firstLeafNode = findFirstLeafNode(renderTreeData.value)!;
         treeRef.value!.setSelect(firstLeafNode);

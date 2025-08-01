@@ -113,6 +113,7 @@
   interface Emits {
     (e: 'toggleFullScreen'): void;
     (e: 'zoomChange', value: number): void;
+    (e: 'reset'): void;
   }
 
   interface Exposes {
@@ -250,6 +251,7 @@
   const handleReset = () => {
     initToolsDisplay();
     zoomReset();
+    emits('reset');
   };
 
   const handleToggleFullScreen = () => {

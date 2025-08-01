@@ -38,7 +38,7 @@
               {{ statusInfo.text }}
             </BkTag>
             <div
-              v-if="STATUS_FAILED"
+              v-if="STATUS_FAILED && nodeData.retry > 0"
               class="retry-display">
               <span class="display-text">{{ t('重试') }}</span>
               <span class="display-count">{{ nodeData.retry }}</span>

@@ -101,6 +101,7 @@ export class FlowGraph {
     if (!data) {
       return;
     }
+
     this.data = data;
     const commonData = generateCommonData(data);
     const edgesData = generateEdges(
@@ -113,30 +114,14 @@ export class FlowGraph {
     this.totalEdges = edgesData.edges;
     this.nodesMap = commonData.nodesMap;
     const { lines, locations } = formatGraphData(data, this.expandNodeIds);
-    // const nodesMap = locations.reduce(
-    //   (map, node) => {
-    //     map[node.id] = node;
-    //     return map;
-    //   },
-    //   {} as Record<string, Node>,
-    // );
-    // const edges: Edge[] = [];
-    // this.totalEdges.forEach((edge) => {
-    //   if ((nodesMap[edge.source] && nodesMap[edge.target]) || (data.id === edge.source && nodesMap[edge.target])) {
-    //     edges.push(edge);
-    //   }
-    // });
     const graphData = {
       edges: lines,
       nodes: locations,
     };
-    console.log('graphData = ', graphData);
-
     Array.from(document.getElementsByClassName('g6-minimap')).forEach((item) => {
       item.remove();
     });
     this.graph?.destroy();
-    // console.log('this.graphData = ', this.graphData);
     this.graph = new Graph({
       animation: false,
       behaviors: ['drag-canvas'],
@@ -145,28 +130,11 @@ export class FlowGraph {
       edge: {
         style: {
           endArrow: true,
-          // router: {
-          //   enableObstacleAvoidance: true,
-          //   maximumLoops: 10,
-          //   type: 'shortest-path',
-          // },
           stroke: '#C4C6CC',
         },
         // type: 'polyline',
-        // type: 'cubic-horizontal',
         type: 'custom-edge',
       },
-      // layout: {
-      //   align: 'UL',
-      //   // type: 'dagre',
-      //   nodeOrder: [],
-      //   // 垂直间距
-      //   nodesep: 16,
-      //   rankdir: 'LR',
-      //   // 水平间距
-      //   ranksep: 20,
-      //   type: 'antv-dagre',
-      // },
       node: {
         state: {
           focus: {
@@ -308,6 +276,10 @@ export class FlowGraph {
     this.graph!.translateBy(offset, animate);
   }
 
+  translateTo(point: [number, number], animate?: any) {
+    this.graph!.translateTo(point, animate);
+  }
+
   updateCanvasState() {
     this.viewZoom = this.graph!.getZoom();
     this.oldviewCenterPointer = this.graph!.getViewportCenter() as [number, number];
@@ -335,7 +307,6 @@ export class FlowGraph {
       }
     }
     this.focusNodeId = nodeId;
-    console.log('updateFocusNode nodeId = ', nodeId);
     this.graph?.setElementState(nodeId, 'focus');
   }
 
