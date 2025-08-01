@@ -140,10 +140,8 @@
   };
 
   const handleTreeCollapse = (node: TreeNode, isCollapsed: boolean) => {
-    console.log('isCollapsed>>>', isCollapsed);
     const flowGraphInstance = flowCanvasRef.value!.getGraph()!;
     const currentNode = flowGraphInstance.getNodeData().find((item) => item.id === node.id);
-    console.log(currentNode);
     if (!currentNode || currentNode.isExpand === !isCollapsed) {
       return;
     }

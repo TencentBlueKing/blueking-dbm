@@ -7,6 +7,7 @@
     <Tools
       ref="toolsRef"
       v-model:zoom="canvasZoomValue"
+      @reset="handleResetGraph"
       @toggle-full-screen="handleToggleFullScreen"
       @zoom-change="handleZoomChange" />
   </div>
@@ -66,12 +67,7 @@
     checkContainerInitCanvas: () => void;
     getGraph: () => FlowGraph | null;
     getShareData: () => {
-      // collapsedMap: Record<string, { edges: Edge[]; nodes: Node[] }>;
       edgesMap: Record<string, Set<string>>;
-      // graphData: {
-      //   edges: Edge[];
-      //   nodes: Node[];
-      // };
       nodesMap: Record<string, Node>;
       totalEdges: Edge[];
     };
@@ -161,8 +157,13 @@
           flowGraphInstance.zoomTo(flowGraphInstance.viewZoom);
           canvasZoomValue.value = flowGraphInstance.viewZoom * 100;
         } else {
-          const verticalDistance = e.deltaY > 0 ? 100 : -100; // 向下滚向下，向上滚向上
-          flowGraphInstance.translateBy([0, verticalDistance]);
+          if (Math.abs(e.wheelDeltaX) > Math.abs(e.wheelDeltaY)) {
+            const horizontalDistance = e.wheelDeltaX > 0 ? 50 : -50; // 向右滚向右，向左滚向左
+            flowGraphInstance.translateBy([horizontalDistance, 0]);
+          } else {
+            const verticalDistance = e.wheelDeltaY > 0 ? 50 : -50; // 向下滚向下，向上滚向上
+            flowGraphInstance.translateBy([0, verticalDistance]);
+          }
         }
       },
       { passive: false },
@@ -198,7 +199,6 @@
     await flowGraphInstance.initGraph(data);
     flowGraphInstance.on(NodeEvent.CLICK, async (e: any) => {
       const { originalTarget, target } = e;
-      console.log('click >>> ', target);
       // 所有画布的点击事件都在这里统一处理，提升性能
       const { className } = originalTarget;
       if (className.startsWith('manualConfirm')) {
@@ -416,6 +416,16 @@
     initGraph();
   };
 
+  const handleResetGraph = () => {
+    // 有聚焦节点优先定位到聚焦节点
+    if (flowGraphInstance.focusNodeId) {
+      flowGraphInstance.focusElement(flowGraphInstance.focusNodeId);
+      return;
+    }
+
+    flowGraphInstance.translateTo([0, 100]);
+  };
+
   onMounted(() => {
     window.addEventListener('resize', handleInitGraph);
   });
@@ -437,9 +447,7 @@
     },
     getGraph: () => flowGraphInstance,
     getShareData: () => ({
-      // collapsedMap: flowGraphInstance.collapsedMap,
       edgesMap: flowGraphInstance.edgesMap,
-      // graphData: flowGraphInstance.graphData,
       nodesMap: flowGraphInstance.nodesMap,
       totalEdges: flowGraphInstance.totalEdges,
     }),

@@ -152,19 +152,30 @@ export function generateCommonData(data: FlowDetail) {
   return { nodes, nodesMap, outerStartEndEventIdMap, pipelineNodeToStartEventMap, todoNodeList };
 }
 
+// 判断当前节点的所有子孙节点中是否存在相同的状态
+function isExistSameStatusInDeepChildren(node: TreeNode, status: string): boolean {
+  if (node.status === status) {
+    return true;
+  }
+  if (node.children) {
+    return node.children.some((child) => isExistSameStatusInDeepChildren(child, status));
+  }
+  return false;
+}
+
 export function generateDifferentStatusTreeData(treeData: TreeNode[], status: string) {
   const filteredTreeData: TreeNode[] = [];
   treeData.forEach((item) => {
     if (
       (status === 'TODO' && (item.todoId || item.children?.find((child) => !!child.todoId))) ||
       item.status === status ||
-      item.children?.find((child) => child.status === status)
+      isExistSameStatusInDeepChildren(item, status)
     ) {
       const targetNode = _.cloneDeep(item);
       filteredTreeData.push(targetNode);
       if (targetNode.children) {
         Object.assign(targetNode, {
-          children: generateDifferentStatusTreeData(targetNode.children!, status),
+          children: generateDifferentStatusTreeData(item.children!, status),
         });
       }
     }
