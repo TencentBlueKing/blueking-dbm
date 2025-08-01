@@ -146,17 +146,19 @@ func (c BackStageHandler) FlushDiskInfo(r *gin.Context) {
 		if len(resp.Result.Data) == 0 {
 			continue
 		}
-		cvmdiskList := resp.Result.Data[0].DatadiskList
-		if len(cvmdiskList) == 0 {
+		cvmDiskList := resp.Result.Data[0].DatadiskList
+		if len(cvmDiskList) == 0 {
 			continue
 		}
-		diskdetailMap := lo.SliceToMap(cvmdiskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
+		diskDetailMap := lo.SliceToMap(cvmDiskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
 			return d.DiskId, d
 		})
 		rebuildDks := make(map[string]bk.DiskDetail)
+		dataStorageCap := 0
 		for mp, dk := range dks {
 			dd := dk
-			if detail, exist := diskdetailMap[dk.DiskId]; exist {
+			if detail, exist := diskDetailMap[dk.DiskId]; exist {
+				dataStorageCap += detail.DiskSize
 				dd.Size = detail.DiskSize
 				dd.DiskType = model.TransferCloudDiskType(detail.DiskType)
 			}
@@ -168,6 +170,7 @@ func (c BackStageHandler) FlushDiskInfo(r *gin.Context) {
 			continue
 		}
 		rs.StorageDevice = []byte(r)
+		rs.TotalDataStorageCap = dataStorageCap
 		if err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id = ?", rs.BkHostID).Updates(rs).
 			Error; err != nil {
 			logger.Error("update failed %v", err)
