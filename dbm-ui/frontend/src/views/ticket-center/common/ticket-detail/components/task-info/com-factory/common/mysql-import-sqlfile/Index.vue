@@ -41,6 +41,14 @@
           fixed="left"
           :label="t('集群')"
           :min-width="250">
+          <template #header>
+            <div class="domain-header">
+              {{ t('目标集群') }}
+              <DbIcon
+                type="copy"
+                @click="copyAllDomain" />
+            </div>
+          </template>
           <template #default="{ data }: { data: TargerCluster }">
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
           </template>
@@ -63,7 +71,7 @@
       </BkTable>
     </InfoItem>
     <InfoItem
-      :label="t('目标DB')"
+      :label="t('变更内容')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn
@@ -100,6 +108,32 @@
         </BkTableColumn>
       </BkTable>
     </InfoItem>
+    <InfoItem
+      v-if="ticketDetails.details.backup.length > 0"
+      :label="t('备份设置')"
+      style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
+      <BkTable :data="ticketDetails.details.backup">
+        <BkTableColumn
+          field="db_patterns"
+          fixed="left"
+          :label="t('备份 DB')">
+          <template #default="{ data }: { data: BackupDbRow }">
+            <TagBlock :data="data.db_patterns" />
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="backup_on"
+          :label="t('备份源')"
+          :width="150" />
+        <BkTableColumn
+          field="table_patterns"
+          :label="t('备份表名')">
+          <template #default="{ data }: { data: BackupDbRow }">
+            <TagBlock :data="data.table_patterns" />
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
   </InfoList>
   <RenderSqlfile
     v-if="currentExecuteObject"
@@ -107,6 +141,7 @@
     :execute-object="currentExecuteObject"
     :path="ticketDetails.details.path"
     :select-file-name="selectFileName"
+    :version-list="versionList"
     :whole-file-list="uploadFileList" />
 </template>
 
@@ -119,7 +154,7 @@
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { getSQLFilename } from '@utils';
+  import { execCopy, getSQLFilename } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
@@ -131,13 +166,17 @@
 
   type TargerCluster = Record<'id', number>;
   type TargetDbRow = Props['ticketDetails']['details']['execute_objects'][number];
+  type BackupDbRow = Props['ticketDetails']['details']['backup'][number];
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
+  const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;
+  const versionList = _.uniq(clusterIds.map((clusterId) => clusters[clusterId].major_version));
+
   const selectFileName = ref('');
-  const currentExecuteObject = ref<Props['ticketDetails']['details']['execute_objects'][number]>();
+  const currentExecuteObject = ref<TargetDbRow>();
   const isShowSqlfile = ref(false);
 
   const uploadFileList = computed(() =>
@@ -172,6 +211,15 @@
     selectFileName.value = filename;
     currentExecuteObject.value = executeObject;
     isShowSqlfile.value = true;
+  };
+
+  const copyAllDomain = () => {
+    const domainList = targetClusterData.value.map(
+      (item) => props.ticketDetails.details.clusters[item.id].immute_domain,
+    );
+    if (domainList.length > 0) {
+      execCopy(domainList.join('\n'), t('复制成功，共n条', { n: domainList.length }));
+    }
   };
 </script>
 
@@ -212,5 +260,21 @@
   .tip-number {
     display: inline-block;
     font-weight: 700;
+  }
+
+  .domain-header {
+    &:hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
   }
 </style>

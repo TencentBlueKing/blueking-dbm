@@ -14,9 +14,10 @@
 <template>
   <div
     ref="rootRef"
-    class="ticket-detail-import-sqlfile-file-content">
+    class="sql-execute-editor"
+    :class="{ 'is-full-screen': isFullscreen }">
     <div class="editor-layout-header">
-      <span>{{ getSQLFilename(title) }}</span>
+      <span>{{ title }}</span>
       <div class="editro-action-box">
         <DbIcon
           type="arrow-down"
@@ -33,19 +34,26 @@
     </div>
     <BkResizeLayout
       :border="false"
-      class="resize-wrapper"
+      class="editor-resize-wrapper"
       :class="{
         'resize-disabled': isMessageListFolded,
       }"
       :disabled="isMessageListFolded"
       :initial-divide="resizeLayoutInitialDivide"
       :max="300"
-      :min="0"
-      placement="bottom">
+      :min="48"
+      placement="bottom"
+      :style="resizeLayoutStyle">
       <template #main>
         <div
           ref="editorRef"
           style="height: 100%" />
+      </template>
+      <template #aside>
+        <RenderMessageList
+          v-model="isMessageListFolded"
+          class="editor-error"
+          :data="messageList" />
       </template>
     </BkResizeLayout>
   </div>
@@ -55,20 +63,34 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import { getSQLFilename } from '@utils';
+  import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
+    messageList: IMessageList;
     modelValue: string;
+    readonly?: boolean;
     title: string;
   }
 
-  const props = defineProps<Props>();
+  interface Emits {
+    (e: 'update:modelValue', value: string): void;
+    (e: 'change', value: string): void;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    // messageList: () => [],
+    readonly: false,
+    // syntaxChecking: false,
+  });
+  const emits = defineEmits<Emits>();
 
   const rootRef = ref();
   const editorRef = ref();
+
+  const resizeLayoutStyle = ref();
   const isFullscreen = ref(false);
+  const resizeLayoutInitialDivide = ref(48);
   const isMessageListFolded = ref(true);
-  const resizeLayoutInitialDivide = ref(0);
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
@@ -76,13 +98,24 @@
     () => props.modelValue,
     () => {
       setTimeout(() => {
-        editor.setValue(props.modelValue);
+        if (props.modelValue !== editor.getValue()) {
+          editor.setValue(props.modelValue || '');
+          isMessageListFolded.value = true;
+        }
       });
     },
     {
       immediate: true,
     },
   );
+
+  watch(isMessageListFolded, () => {
+    if (isMessageListFolded.value) {
+      resizeLayoutInitialDivide.value = 48;
+      return;
+    }
+    resizeLayoutInitialDivide.value = Math.min(24 + props.messageList.length * 24, 200);
+  });
 
   const handleToggleScreenfull = () => {
     if (screenfull.isFullscreen) {
@@ -118,19 +151,37 @@
   };
 
   onMounted(() => {
-    editor = monaco.editor.create(editorRef.value, {
-      automaticLayout: true,
-      language: 'sql',
-      minimap: {
-        enabled: false,
-      },
-      readOnly: true,
-      scrollbar: {
-        alwaysConsumeMouseWheel: false,
-      },
-      theme: 'vs-dark',
-      wordWrap: 'bounded',
+    nextTick(() => {
+      const offsetTop = 185;
+      const offsetBottom = 62;
+
+      resizeLayoutStyle.value = {
+        height: `${window.innerHeight - offsetTop - offsetBottom}px`,
+      };
+      editor = monaco.editor.create(editorRef.value, {
+        automaticLayout: true,
+        language: 'sql',
+        lineNumbersMinChars: 3,
+        minimap: {
+          enabled: false,
+        },
+        readOnly: props.readonly,
+        renderLineHighlight: 'none',
+        scrollbar: {
+          alwaysConsumeMouseWheel: false,
+        },
+        theme: 'vs-dark',
+        wordWrap: 'bounded',
+      });
+      editor.onDidChangeModelContent(() => {
+        const value = editor.getValue();
+        if (value !== props.modelValue) {
+          emits('update:modelValue', value);
+          emits('change', value);
+        }
+      });
     });
+
     screenfull.on('change', handleToggleScreenfull);
     window.addEventListener('resize', handleReize);
   });
@@ -141,11 +192,21 @@
     window.removeEventListener('resize', handleReize);
   });
 </script>
-<style lang="less">
-  .ticket-detail-import-sqlfile-file-content {
+<style lang="less" scoped>
+  .sql-execute-editor {
     position: relative;
     z-index: 0;
-    height: calc(100vh - 52px);
+    height: 100%;
+
+    &.is-full-screen {
+      display: flex;
+      height: 100vh;
+      flex-direction: column;
+
+      .editor-resize-wrapper {
+        flex: 1;
+      }
+    }
 
     .editor-layout-header {
       display: flex;
@@ -168,8 +229,8 @@
       }
     }
 
-    .resize-wrapper {
-      height: calc(100% - 40px);
+    .editor-resize-wrapper {
+      height: calc(100% - 40px) !important;
       background: #212121;
 
       &.resize-disabled {
@@ -184,13 +245,6 @@
     .editor-error {
       position: absolute;
       inset: 0;
-    }
-
-    .syntax-checking {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      left: 0;
     }
   }
 </style>

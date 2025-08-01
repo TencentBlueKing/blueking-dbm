@@ -85,15 +85,7 @@ const spiderToolboxRoute = {
   },
   component: () => import('@views/db-manage/tendb-cluster/toolbox/Index.vue'),
   children: [
-    {
-      path: 'sql-execute/:step?',
-      name: 'spiderSqlExecute',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.sqlExecute',
-        navName: t('SQL变更执行'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/sql-execute/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
     createRouteItem(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, t('DB 重命名'), {
       dbConsole: 'tendbCluster.toolbox.dbRename',
     }),
