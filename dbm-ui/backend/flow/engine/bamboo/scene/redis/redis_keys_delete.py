@@ -110,6 +110,12 @@ class RedisKeysDeleteFlow(object):
                 for ip, __ in ip_ports.items():
                     act_kwargs.exec_ip = ip
                     act_kwargs.get_redis_payload_func = RedisActPayload.keys_delete_regex_payload.__name__
+                    if rule.get("delete_rate"):
+                        act_kwargs.cluster = {
+                            "delete_rate": int(rule["delete_rate"]),
+                            "tendisplus_delete_rate": int(rule["delete_rate"]),
+                            "ssd_delete_rate": int(rule["delete_rate"]),
+                        }
                     acts_list.append(
                         {
                             "act_name": _("按正则删除key: {}").format(ip),
@@ -154,6 +160,12 @@ class RedisKeysDeleteFlow(object):
                 act_kwargs.exec_ip = None
                 act_kwargs.get_trans_data_ip_var = RedisDeleteKeyContext.get_disk_free_max_ip_name()
                 act_kwargs.get_redis_payload_func = RedisActPayload.keys_delete_files_payload.__name__
+                if rule.get("delete_rate"):
+                    act_kwargs.cluster = {
+                        "delete_rate": int(rule["delete_rate"]),
+                        "tendisplus_delete_rate": int(rule["delete_rate"]),
+                        "ssd_delete_rate": int(rule["delete_rate"]),
+                    }
                 sub_pipeline.add_act(
                     act_name=_("按文件删除key"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,

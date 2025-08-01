@@ -64,11 +64,11 @@ func (job *RedisShutdown) Init(m *jobruntime.JobGenericRuntime) error {
 			return err
 		}
 	}
-	// 6379<= start_port <= 55535
+	// 6379<= start_port <= 64534
 	ports := job.params.Ports
 	for _, p := range ports {
-		if p > 55535 || p < 6379 {
-			err = fmt.Errorf("RedisShutdown port[%d] must range [6379,5535]", p)
+		if p > 64534 || p < 6379 {
+			err = fmt.Errorf("RedisShutdown port[%d] must range [6379,64534]", p)
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}

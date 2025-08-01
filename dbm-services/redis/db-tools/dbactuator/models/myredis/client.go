@@ -1815,16 +1815,16 @@ func (db *RedisClient) GetTendisHeartbeat(dbSizeKey, srcHearbeatKey string) (dbS
 	var mgetRet interface{}
 	for i := 0; i < 10; i++ {
 		mgetRet, err = db.InstanceClient.Do(context.TODO(), cmd...).Result()
-		// 如果是Load data，等待下一次遍历
-		if !strings.Contains(err.Error(), consts.REDISLOADDATAINFO) {
-			break
+		if err != nil {
+			// 如果是Load data，等待下一次遍历
+			if strings.Contains(err.Error(), consts.REDISLOADDATAINFO) {
+				time.Sleep(1 * time.Minute)
+				continue
+			}
+			err = fmt.Errorf("redis:%s 'mget %s %s' fail, err: %v", db.Addr, dbSizeKey, srcHearbeatKey, err)
+			mylog.Logger.Error(err.Error())
+			return 0, time.Time{}, err
 		}
-		time.Sleep(1 * time.Minute)
-	}
-	if err != nil {
-		err = fmt.Errorf("redis:%s 'mget %s %s' fail, err: %v", db.Addr, dbSizeKey, srcHearbeatKey, err)
-		mylog.Logger.Error(err.Error())
-		return 0, time.Time{}, err
 	}
 	mylog.Logger.Info("心跳mget执行结果：%v", mgetRet)
 

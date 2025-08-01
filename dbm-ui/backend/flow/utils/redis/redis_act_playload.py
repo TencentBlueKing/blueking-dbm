@@ -893,6 +893,7 @@ class RedisActPayload(object):
                 "is_keys_to_be_del": True,
                 "delete_rate": int(self.global_config["delete_rate"]),
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 
@@ -922,6 +923,7 @@ class RedisActPayload(object):
                 "proxy_password": proxy_config["password"],
                 "tendis_type": self.cluster["cluster_type"],
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 

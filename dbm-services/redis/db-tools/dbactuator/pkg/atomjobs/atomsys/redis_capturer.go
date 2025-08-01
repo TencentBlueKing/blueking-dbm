@@ -64,11 +64,11 @@ func (job *RedisCapturer) Init(m *jobruntime.JobGenericRuntime) error {
 			return err
 		}
 	}
-	// 6379<= start_port <= 55535
+	// 6379<= start_port < 65535-1000
 	ports := job.params.Ports
 	for _, p := range ports {
-		if p > 55535 || p < 6379 {
-			err = fmt.Errorf("RedisCapturer port[%d] must range [6379,5535]", p)
+		if p > 64534 || p < 6379 {
+			err = fmt.Errorf("RedisCapturer port[%d] must range [6379,64534]", p)
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}
