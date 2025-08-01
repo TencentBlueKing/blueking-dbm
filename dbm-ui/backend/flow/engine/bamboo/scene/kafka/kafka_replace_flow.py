@@ -49,6 +49,7 @@ from backend.flow.plugins.components.collections.kafka.trans_flies import TransF
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.kafka.kafka_act_playload import KafkaActPayload, get_base_payload
 from backend.flow.utils.kafka.kafka_context_dataclass import ActKwargs, ApplyContext, DnsKwargs
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -69,6 +70,9 @@ class KafkaReplaceFlow(object):
         self.data["cluster_type"] = ClusterType.Kafka.value
         cluster = Cluster.objects.get(id=self.data["cluster_id"])
         self.data["bk_cloud_id"] = cluster.bk_cloud_id
+        self.new_nodes = data["new_nodes"]
+        self.old_nodes = data["old_nodes"]
+
         # 生成zk连接串
         zookeeper_list = cluster.storageinstance_set.filter(instance_role=InstanceRole.ZOOKEEPER)
         zookeeper_ip = [zookeeper.machine.ip for zookeeper in zookeeper_list]
@@ -292,7 +296,8 @@ class KafkaReplaceFlow(object):
             # 动态剔除zookeeper
             act_kwargs.exec_ip = [self.data["new_nodes"]["zookeeper"][0]]
             act_kwargs.template = get_base_payload(
-                action=KafkaActuatorActionEnum.ReconfigRemove.value, host=remove_my_id
+                action=KafkaActuatorActionEnum.ReconfigRemove.value,
+                host=remove_my_id,
             )
             kafka_pipeline.add_act(
                 act_name=_("移除zookeeper节点"),
@@ -306,7 +311,8 @@ class KafkaReplaceFlow(object):
                 sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
                 act_kwargs.exec_ip = [zookeeper]
                 act_kwargs.template = get_base_payload(
-                    action=KafkaActuatorActionEnum.StopProcess.value, host=zookeeper["ip"]
+                    action=KafkaActuatorActionEnum.StopProcess.value,
+                    host=zookeeper["ip"],
                 )
                 ip = zookeeper["ip"]
                 sub_pipeline.add_act(
@@ -315,7 +321,8 @@ class KafkaReplaceFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
                 act_kwargs.template = get_base_payload(
-                    action=KafkaActuatorActionEnum.CleanData.value, host=zookeeper["ip"]
+                    action=KafkaActuatorActionEnum.CleanData.value,
+                    host=zookeeper["ip"],
                 )
                 sub_pipeline.add_act(
                     act_name=_("节点清理-{}").format(ip),
@@ -326,7 +333,9 @@ class KafkaReplaceFlow(object):
             kafka_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
             kafka_pipeline.add_act(
-                act_name=_("回写kafka集群配置"), act_component_code=KafkaConfigComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("回写kafka集群配置"),
+                act_component_code=KafkaConfigComponent.code,
+                kwargs=asdict(act_kwargs),
             )
 
         # 判断是否替换broker节点
@@ -336,7 +345,8 @@ class KafkaReplaceFlow(object):
             for broker in self.data["new_nodes"]["broker"]:
                 act_kwargs.exec_ip = [broker]
                 act_kwargs.template = act_payload.get_payload(
-                    action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"]
+                    action=KafkaActuatorActionEnum.installBroker.value,
+                    host=broker["ip"],
                 )
                 ip = broker["ip"]
                 broker_act = {
@@ -360,7 +370,8 @@ class KafkaReplaceFlow(object):
                 # 安装kafka manager
                 act_kwargs.exec_ip = [self.data["new_nodes"]["broker"][0]]
                 act_kwargs.template = act_payload.get_manager_payload(
-                    action=KafkaActuatorActionEnum.installManager.value, host=self.data["new_nodes"]["broker"][0]["ip"]
+                    action=KafkaActuatorActionEnum.installManager.value,
+                    host=self.data["new_nodes"]["broker"][0]["ip"],
                 )
                 kafka_pipeline.add_act(
                     act_name=_("安装kafka manager"),
@@ -394,25 +405,41 @@ class KafkaReplaceFlow(object):
                 kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
             )
 
+            # 扩容DBMeta
+            sub_pipeline = SubBuilder(
+                root_id=self.root_id,
+                data={**self.data, "nodes": self.new_nodes, "ticket_type": TicketType.KAFKA_SCALE_UP.value},
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("扩容-更新DBMeta元信息"),
+                act_component_code=KafkaDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("扩容DBMeta")))
+
             # 迁移数据
             exclude_brokers = [broker["ip"] for broker in self.data["old_nodes"]["broker"]]
             new_brokers = [broker["ip"] for broker in self.data["new_nodes"]["broker"]]
             act_kwargs.exec_ip = self.data["new_nodes"]["broker"][:1]
             act_kwargs.template = act_payload.get_shrink_payload(
-                action=KafkaActuatorActionEnum.ReplaceBroker.value, host=exclude_brokers, new_host=new_brokers
+                action=KafkaActuatorActionEnum.GenerateReassignment.value,
+                host=exclude_brokers,
+                new_host=new_brokers,
             )
             kafka_pipeline.add_act(
-                act_name=_("Kafka搬迁数据"),
+                act_name=_("生成替换计划"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
 
             # 检查搬迁进度
             act_kwargs.template = act_payload.get_shrink_payload(
-                action=KafkaActuatorActionEnum.CheckReassign.value, host=exclude_brokers
+                action=KafkaActuatorActionEnum.ExecuteReassignment.value,
+                host=exclude_brokers,
             )
             kafka_pipeline.add_act(
-                act_name=_("Kafka检查搬迁进度"),
+                act_name=_("执行替换计划"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -424,12 +451,15 @@ class KafkaReplaceFlow(object):
                 act_kwargs.exec_ip = [broker]
                 act_kwargs.file_list = trans_files.kafka_dbactuator()
 
-                kafka_pipeline.add_act(
-                    act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+                sub_pipeline.add_act(
+                    act_name=_("下发dbactuator"),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(act_kwargs),
                 )
 
                 act_kwargs.template = get_base_payload(
-                    action=KafkaActuatorActionEnum.StopProcess.value, host=broker["ip"]
+                    action=KafkaActuatorActionEnum.StopProcess.value,
+                    host=broker["ip"],
                 )
                 ip = broker["ip"]
                 sub_pipeline.add_act(
@@ -438,7 +468,8 @@ class KafkaReplaceFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
                 act_kwargs.template = get_base_payload(
-                    action=KafkaActuatorActionEnum.CleanData.value, host=broker["ip"]
+                    action=KafkaActuatorActionEnum.CleanData.value,
+                    host=broker["ip"],
                 )
                 sub_pipeline.add_act(
                     act_name=_("节点清理-{}").format(ip),
@@ -448,8 +479,16 @@ class KafkaReplaceFlow(object):
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("下架broker-{}子流程").format(ip)))
             kafka_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        kafka_pipeline.add_act(
-            act_name=_("更新DBMeta元信息"), act_component_code=KafkaDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        # 缩容DBMeta
+        sub_pipeline = SubBuilder(
+            root_id=self.root_id,
+            data={**self.data, "nodes": self.old_nodes, "ticket_type": TicketType.KAFKA_SHRINK.value},
         )
+        sub_pipeline.add_act(
+            act_name=_("缩容-更新DBMeta元信息"),
+            act_component_code=KafkaDBMetaComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("缩容DBMeta")))
 
         kafka_pipeline.run_pipeline()
