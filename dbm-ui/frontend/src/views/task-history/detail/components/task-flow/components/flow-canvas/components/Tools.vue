@@ -147,6 +147,11 @@
   const hotKeyList = [
     {
       action: 'Ctrl',
+      code: t('滚轮'),
+      name: t('缩放'),
+    },
+    {
+      action: 'Ctrl',
       code: '+',
       name: t('放大'),
     },
