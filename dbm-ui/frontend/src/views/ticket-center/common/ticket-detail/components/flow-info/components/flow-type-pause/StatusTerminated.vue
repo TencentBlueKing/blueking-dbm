@@ -1,5 +1,7 @@
 <template>
-  <StatusTerminated :data="data">
+  <StatusTerminated
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #title>
       <I18nT
         keypath="确认是否执行 n"
@@ -17,12 +19,14 @@
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import StatusTerminated from '../flow-type-common/StatusTerminated.vue';
   import TodoList from '../todo-list/Index.vue';
 
   interface Props {
     data: FlowMode;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({

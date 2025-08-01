@@ -64,6 +64,7 @@
   import StatusApproveAction from './StatusApproveAction.vue';
   import StatusFailed from './StatusFailedAction.vue';
   import StatusResourceReplenishAction from './StatusResourceReplenishAction.vue';
+  import StatusTimerAction from './StatusTimerAction.vue';
   import StatusTodoAction from './StatusTodoAction.vue';
 
   interface Props {
@@ -88,12 +89,12 @@
     [TicketModel.STATUS_APPROVE]: StatusApproveAction,
     [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenishAction,
-    [TicketModel.STATUS_TIMER]: StatusTodoAction,
+    [TicketModel.STATUS_TIMER]: StatusTimerAction,
     [TicketModel.STATUS_TODO]: StatusTodoAction,
   };
 
   const genDefaultValue = () => ({
-    action: 'APPROVE' as 'APPROVE' | 'TERMINATE',
+    action: 'APPROVE' as 'APPROVE' | 'TERMINATE' | 'SKIP',
     remark: '',
   });
   const isShow = ref(false);
