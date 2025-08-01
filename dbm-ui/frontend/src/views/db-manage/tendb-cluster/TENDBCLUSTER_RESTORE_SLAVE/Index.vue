@@ -62,7 +62,8 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id="item.slave.spec_id" />
+            :current-spec-id-list="[item.slave.spec_id]"
+            required />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
