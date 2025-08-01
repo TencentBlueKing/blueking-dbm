@@ -92,6 +92,7 @@
       .then(() => {
         messageSuccess(t('操作成功'));
         eventBus.emit('refreshTicketStatus');
+        eventBus.emit('refreshTicketData');
       })
       .finally(() => {
         isSubmitting.value = false;
