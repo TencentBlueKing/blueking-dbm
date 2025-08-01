@@ -17,10 +17,10 @@
           :flow-data="data" />
         <div v-else>
           <I18nT
-            keypath="m_处理人_p_耗时_t"
+            keypath="n 已处理_c_耗时 t"
             scope="global">
-            <span style="color: #ea3636">{{ t('任务终止') }}</span>
             <span>{{ ticketDetail.updater }}</span>
+            <span style="color: #ea3636">{{ t('任务终止') }}</span>
             <CostTimer
               :is-timing="false"
               :start-time="utcTimeToSeconds(data.start_time)"
@@ -65,7 +65,13 @@
         v-if="data.err_msg"
         danger
         :title="t('失败原因')">
-        <div style="padding-left: 16px">
+        <div
+          class="pl-16"
+          :style="{
+            'white-space': 'pre-wrap',
+            'max-height': `${errMessageMaxHeight}px`,
+            overflow: 'auto',
+          }">
           {{ data.err_msg }}
         </div>
       </FlowCollapse>
@@ -98,7 +104,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
-    ticketDetail: TicketModel<unknown>;
+    ticketDetail: TicketModel;
   }
 
   defineOptions({
@@ -117,4 +123,6 @@
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
   );
+
+  const errMessageMaxHeight = window.innerHeight * 0.4;
 </script>
