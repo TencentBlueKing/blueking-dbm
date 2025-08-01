@@ -44,6 +44,29 @@ class GenericMixin:
         request_data.update(**kwargs)
         return request_data
 
+    @staticmethod
+    def filter_by_tenant_biz_ids(queryset):
+        """queryset只有 bk_biz_id 无 tenant_id 场景"""
+        from backend.db_meta.models import AppCache
+        from backend.utils.tenant import TenantHandler
+
+        tenant_id = TenantHandler.get_tenant_id()
+        if tenant_id == settings.DEFAULT_TENANT_ID:
+            return queryset
+        # 获取当前租户有权限的业务id（使用缓存）
+        bk_biz_ids = AppCache.get_tenant_biz_ids(tenant_id)
+        return queryset.filter(bk_biz_id__in=bk_biz_ids)
+
+    @staticmethod
+    def filter_by_tenant_id(queryset):
+        """queryset有 tenant_id 场景"""
+        from backend.utils.tenant import TenantHandler
+
+        tenant_id = TenantHandler.get_tenant_id()
+        if tenant_id == settings.DEFAULT_TENANT_ID:
+            return queryset
+        return queryset.filter(tenant_id=tenant_id)
+
     def get_action_permission_map(self) -> dict:
         return self.action_permission_map
 

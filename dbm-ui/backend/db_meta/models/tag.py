@@ -24,6 +24,8 @@ class Tag(AuditedModel):
     type = models.CharField(help_text=_("tag类型"), max_length=64, choices=TagType.get_choices())
     is_builtin = models.BooleanField(help_text=_("是否内置"), default=False)
 
+    tenant_id = models.CharField(help_text=_("租户ID"), max_length=128, default="default")
+
     class Meta:
         unique_together = ["bk_biz_id", "key", "value", "type"]
 

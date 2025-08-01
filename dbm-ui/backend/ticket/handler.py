@@ -42,6 +42,7 @@ from backend.ticket.exceptions import TicketFlowsConfigException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import TodoActionType, TodoActorFactory
+from backend.utils.tenant import TenantHandler
 
 logger = logging.getLogger("root")
 
@@ -180,9 +181,10 @@ class TicketHandler:
         )
 
     @classmethod
-    def ticket_flow_config_init(cls):
+    def ticket_flow_config_init(cls, tenant_id):
         """初始化单据配置"""
-        exist_flow_configs = TicketFlowsConfig.objects.all()
+
+        exist_flow_configs = TicketFlowsConfig.objects.filter(tenant_id=tenant_id)
         exist_ticket_types = [config.ticket_type for config in exist_flow_configs]
 
         # 删除不存在的单据流程
@@ -200,6 +202,7 @@ class TicketHandler:
                 ticket_type=ticket_type,
                 group=flow_class.group,
                 editable=flow_class.editable,
+                tenant_id=tenant_id,
                 configs={
                     # 单据流程配置
                     FlowTypeConfig.NEED_MANUAL_CONFIRM: flow_class.default_need_manual_confirm,
@@ -371,8 +374,10 @@ class TicketHandler:
         def check_create_config(ticket_type):
             if not bk_biz_id:
                 raise TicketFlowsConfigException(_("不允许新增平台级别的流程设置"))
-
-            global_config = TicketFlowsConfig.objects.get(bk_biz_id=0, ticket_type=ticket_type)
+            # 获取当前租户的全局配置
+            global_config = TicketFlowsConfig.objects.get(
+                bk_biz_id=0, ticket_type=ticket_type, tenant_id=TenantHandler.get_tenant_id()
+            )
             biz_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
 
             if configs["need_manual_confirm"] != global_config.configs["need_manual_confirm"]:
@@ -430,6 +435,8 @@ class TicketHandler:
         config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
         # 平台全局配置直接更新
         if not bk_biz_id:
+            tenant_id = TenantHandler.get_tenant_id()
+            config_qs = config_qs.filter(tenant_id=tenant_id)  # 确保链式调用
             config_qs.update(configs=configs)
             return
 
@@ -440,8 +447,21 @@ class TicketHandler:
 
     @classmethod
     def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):
-        # 根据条件过滤单据配置
-        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type, editable=True)
+        """
+        :param bk_biz_id: 业务ID，为0表示平台业务
+        :param db_type: 数据库类型
+        :param ticket_types: 单据类型列表（可选）
+        """
+        # 平台业务查询条件（强制租户隔离）
+        plat_filter = Q(bk_biz_id=PLAT_BIZ_ID, group=db_type, editable=True, tenant_id=TenantHandler.get_tenant_id())
+
+        if not bk_biz_id:
+            config_filter = plat_filter
+        else:
+            # 业务查询条件（不限制租户）
+            biz_filter = Q(bk_biz_id=bk_biz_id, group=db_type, editable=True)
+            config_filter = biz_filter | plat_filter
+
         if ticket_types:
             config_filter &= Q(ticket_type__in=ticket_types)
         ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
