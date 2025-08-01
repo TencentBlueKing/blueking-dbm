@@ -61,21 +61,26 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+  import type { Mysql } from '@services/model/ticket/ticket';
   import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
   import { grammarCheck as oracleGrammarCheck } from '@services/source/oracleSqlImport';
   import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
 
   import { DBTypes } from '@common/const';
 
-  import { getSQLFilename } from '@utils';
+  import { addJsonToFormData, getSQLFilename } from '@utils';
 
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
     dbTypes: keyof typeof grammarCheckMap;
+    // eslint-disable-next-line vue/require-default-prop
+    executeObject?: Mysql.ImportSqlFile['execute_objects'][number];
     modelValue: string;
     readonly?: boolean;
     title: string;
+    // eslint-disable-next-line vue/require-default-prop
+    versionList?: string[];
   }
 
   interface Emits {
@@ -106,7 +111,25 @@
     }
     isChecking.value = true;
     const params = new FormData();
-    params.append('sql_content', props.modelValue);
+    params.append('sql_filenames[0]', props.title);
+    params.append('cluster_type', props.dbTypes);
+    if (props.versionList) {
+      props.versionList.forEach((version, index) => {
+        params.append(`versions[${index}]`, version);
+      });
+    }
+    if (props.executeObject) {
+      addJsonToFormData(params, {
+        execute_objects: [
+          {
+            dbnames: props.executeObject.dbnames,
+            ignore_dbnames: props.executeObject.ignore_dbnames,
+            line_id: 1,
+            sql_files: '/',
+          },
+        ],
+      });
+    }
     grammarCheckApi(params)
       .then((data) => {
         const grammarCheckData = data;

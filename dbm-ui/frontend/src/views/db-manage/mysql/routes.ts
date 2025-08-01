@@ -25,14 +25,7 @@ import { t } from '@locales/index';
 const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
-  {
-    path: 'sql-execute/:step?',
-    name: 'MySQLExecute',
-    meta: {
-      navName: t('变更SQL执行'),
-    },
-    component: () => import('@views/db-manage/mysql/sql-execute/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
   createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
   {
     path: 'privilege-clone-client/:page?',
@@ -225,7 +218,7 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
       navName: t('工具箱'),
     },
     redirect: {
-      name: 'MySQLExecute',
+      name: TicketTypes.MYSQL_IMPORT_SQLFILE,
     },
     component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
     children: [

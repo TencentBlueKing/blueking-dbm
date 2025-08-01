@@ -37,7 +37,7 @@
                 {{ item.name }}
               </span>
               <TaskCount
-                v-if="item.id === 'MySQLExecute'"
+                v-if="item.id === TicketTypes.MYSQL_IMPORT_SQLFILE"
                 class="count" />
             </div>
             <DbIcon
@@ -60,7 +60,7 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { TicketTypes, UserPersonalSettings } from '@common/const';
 
   import MenuConfig, { type MenuChild } from '@views/db-manage/mysql/toolbox-menu';
 
@@ -88,26 +88,26 @@
 
   const currentConfig = _.find(MenuConfig, (item) => item.id === props.id);
 
-  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item)=>{
+  const configChildrenMap = currentConfig!.children.reduce<Record<string, MenuChild>>((acc, item) => {
     if (item.bind) {
-      item.bind.forEach(routerName=>{
+      item.bind.forEach((routerName) => {
         Object.assign(acc, {
-          [routerName]: item
-        })
-      })
+          [routerName]: item,
+        });
+      });
     }
     Object.assign(acc, {
-      [item.id]: item
-    })
-    return acc
-  }, {})
+      [item.id]: item,
+    });
+    return acc;
+  }, {});
 
   const activeViewName = ref('');
 
   watch(
     route,
     () => {
-      const routeName = route.name as string || ''
+      const routeName = (route.name as string) || '';
       activeViewName.value = configChildrenMap[routeName]?.id;
     },
     {

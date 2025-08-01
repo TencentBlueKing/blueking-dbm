@@ -98,9 +98,11 @@
       <div class="editor-layout-right">
         <RenderFileContent
           :db-types="DBTypes.MYSQL"
+          :execute-object="currentFileExecuteObject"
           :model-value="currentFileContent"
           readonly
-          :title="selectFileName" />
+          :title="selectFileName"
+          :version-list="versionList" />
       </div>
     </div>
   </BkSideslider>
@@ -128,6 +130,9 @@
   const { t } = useI18n();
 
   const renderFileCount = 3;
+
+  const { cluster_ids: clusterIds, clusters } = props.ticketDetail.details;
+  const versionList = _.uniq(clusterIds.map((clusterId) => clusters[clusterId].major_version));
 
   const isShowCollapse = ref(false);
   const isShowSqlFile = ref(false);

@@ -69,9 +69,11 @@
 <script setup lang="ts">
   import { useTaskCount } from '@hooks';
 
+  import { DBTypes } from '@common/const';
+
   import DbStatus from '@components/db-status/index.vue';
 
-  const { handleGoTaskLog, handleRevokeTask, popRef, rootRef, taskCount, taskList } = useTaskCount('mysql');
+  const { handleGoTaskLog, handleRevokeTask, popRef, rootRef, taskCount, taskList } = useTaskCount(DBTypes.MYSQL);
 </script>
 <style lang="less" scoped>
   .task-count {
