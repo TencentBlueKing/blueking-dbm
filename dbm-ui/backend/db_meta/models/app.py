@@ -72,7 +72,7 @@ class TenantCache(AuditedModel):
         """根据业务ID获取租户ID"""
         if not settings.ENABLE_MULTI_TENANT_MODE:
             return settings.DEFAULT_TENANT_ID
-        tenant_id = AppCache.get_appcache(key="appcache_dict").get(bk_biz_id, {}).get("tenant_id", "")
+        tenant_id = AppCache.get_appcache(key="appcache_dict").get(str(bk_biz_id), {}).get("tenant_id", "")
         return tenant_id
 
     @classmethod
@@ -182,6 +182,7 @@ class AppCache(AuditedModel):
             from backend.db_meta.utils import cache_appcache_data
 
             cache_appcache_data(cls)
+
         return cache.get(key)
 
     @classmethod
@@ -193,3 +194,12 @@ class AppCache(AuditedModel):
             # 忽略出现的异常，此时可能因为表未初始化
             biz_choices = []
         return biz_choices
+
+    @classmethod
+    def get_tenant_biz_ids(cls, tenant_id):
+        """获取租户下的业务ID列表，使用缓存"""
+        cache_key = f"tenant_biz_ids_{tenant_id}"
+        if not cache.get(cache_key):
+            biz_ids = list(cls.objects.filter(tenant_id=tenant_id).values_list("bk_biz_id", flat=True))
+            cache.set(cache_key, biz_ids, 60 * 60 * 24)  # 缓存1小时
+        return cache.get(cache_key)

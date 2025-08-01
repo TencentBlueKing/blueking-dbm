@@ -13,23 +13,23 @@ import logging
 import re
 
 from celery.schedules import crontab
-from django.conf import settings
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from backend import env
-from backend.components import CCApi, UserManagerApi
+from backend.components import CCApi
 from backend.components.bknodeman.client import BKNodeManApi
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.utils.tenant import TenantHandler
 
 logger = logging.getLogger("celery")
 
 
 def bulk_update_app_cache(tenant_id):
     """缓存空闲机拓扑"""
-
     REGEX_APP_ABBR = re.compile("^[A-Za-z0-9_-]+$")
 
     def format_app_abbr(app_abbr):
@@ -143,24 +143,9 @@ def bulk_update_app_cache(tenant_id):
 @register_periodic_task(run_every=crontab(hour="*/1", minute=0))
 def bulk_update_tenant_cache():
     """缓存租户信息"""
-
     # --- 更新租户信息 ---
-    tenant_list = UserManagerApi.list_tenant(params={"tenant_id": settings.DEFAULT_TENANT_ID}, raw=True)["data"]
-    exists = list(TenantCache.objects.all().values_list("tenant_id", flat=True))
-    # 补充新增加的租户信息
-    new_tenants = [
-        TenantCache(tenant_id=tenant["id"], tenant_name=tenant["name"], status=tenant["status"])
-        for tenant in tenant_list
-        if tenant["id"] not in exists
-    ]
-    # 查询当前租户的admin
-    user_params = {"lookups": "bk_admin", "lookup_field": "login_name"}
-    for tenant in new_tenants:
-        params = {"tenant_id": tenant.tenant_id, **user_params}
-        admin = UserManagerApi.batch_lookup_virtual_user(params=params, raw=True)["data"]
-        tenant.admin = admin[0]["bk_username"] if admin else ""
-    # 批量创建
-    TenantCache.objects.bulk_create(new_tenants)
+
+    TenantHandler.update_tenant_data()
 
     # --- 更新租户的云区域信息 ---
     tenant_list = TenantCache.objects.all()
@@ -173,8 +158,12 @@ def bulk_update_tenant_cache():
             update_tenants.append(tenant)
     # 批量更新
     TenantCache.objects.bulk_update(update_tenants, fields=["clouds"])
-
     # --- 更新租户的业务信息 ---
     for tenant in tenant_list:
         logger.info("bulk_update_tenant_cache[%s]: update apps", tenant.tenant_id)
-        bulk_update_app_cache(tenant.tenant_id)
+        try:
+            TenantHandler.init_tenant_config(tenant.tenant_id)
+        except Exception as e:
+            logger.error(_("租户: {tenant_id} 更新业务信息失败: {error}").format(tenant_id=tenant.tenant_id, error=e))
+            tenant.status = "disable"
+            tenant.save()

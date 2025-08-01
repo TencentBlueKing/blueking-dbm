@@ -593,14 +593,13 @@ class DataAPI(object):
         if not settings.ENABLE_MULTI_TENANT_MODE or self.base in NO_NEED_TENANT_API:
             return settings.DEFAULT_TENANT_ID
 
-        tenant_id = TenantHandler.get_tenant_id_from_params(params)
-        if tenant_id:
-            return tenant_id
+        if "tenant_id" in params:
+            return params["tenant_id"]
 
         if "bk_biz_id" in params:
             return TenantHandler.get_tenant_id_by_biz(params["bk_biz_id"])
 
-        tenant_id = TenantHandler.get_tenant_id_from_request()
+        tenant_id = TenantHandler.get_tenant_id_from_local()
         if tenant_id:
             return tenant_id
 

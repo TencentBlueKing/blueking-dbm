@@ -85,7 +85,9 @@ class TagHandler:
         return data
 
     @classmethod
-    def batch_create(cls, bk_biz_id: int, tags: List[Dict], type: str, creator: str, is_builtin: bool = False):
+    def batch_create(
+        cls, bk_biz_id: int, tags: List[Dict], type: str, creator: str, tenant_id: str, is_builtin: bool = False
+    ):
         """
         批量创建标签
         """
@@ -94,7 +96,15 @@ class TagHandler:
             raise ValidationError(_("检查到重复的标签"), data=duplicate_tags)
 
         tag_models = [
-            Tag(bk_biz_id=bk_biz_id, key=t["key"], value=t["value"], creator=creator, type=type, is_builtin=is_builtin)
+            Tag(
+                bk_biz_id=bk_biz_id,
+                key=t["key"],
+                value=t["value"],
+                creator=creator,
+                type=type,
+                is_builtin=is_builtin,
+                tenant_id=tenant_id,
+            )
             for t in tags
         ]
         Tag.objects.bulk_create(tag_models)
