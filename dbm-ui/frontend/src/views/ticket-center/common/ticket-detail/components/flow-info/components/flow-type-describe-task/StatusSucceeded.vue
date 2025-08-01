@@ -18,7 +18,10 @@
         <RouterLink
           target="_blank"
           :to="{
-            name: ticketDetail.ticket_type === TicketTypes.MYSQL_IMPORT_SQLFILE ? 'MySQLExecute' : 'spiderSqlExecute',
+            name:
+              ticketDetail.ticket_type === TicketTypes.MYSQL_IMPORT_SQLFILE
+                ? TicketTypes.MYSQL_IMPORT_SQLFILE
+                : TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
             params: {
               step: 'result',
             },

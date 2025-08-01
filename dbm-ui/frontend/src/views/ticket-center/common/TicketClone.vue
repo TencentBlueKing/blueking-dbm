@@ -109,7 +109,7 @@
     [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: 'MySQLDBBackup', // Mysql 全库备份
     [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 高可用清档
-    [TicketTypes.MYSQL_IMPORT_SQLFILE]: 'MySQLExecute', // Mysql 变更SQL执行
+    [TicketTypes.MYSQL_IMPORT_SQLFILE]: TicketTypes.MYSQL_IMPORT_SQLFILE, // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
     [TicketTypes.MYSQL_INSTANCE_FAIL_OVER]: TicketTypes.MYSQL_INSTANCE_FAIL_OVER, // Mysql主库实例故障切换
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
@@ -188,7 +188,7 @@
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
-    [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
+    [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换

@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+export * from './addJsonToFormData';
 export * from './bytePretty';
 export * from './calcTextWidth';
 export * from './charRelate';
