@@ -157,7 +157,7 @@ export class NormalNode extends Rect {
   drawFocusBackgroundShape(attributes: any, container: Group) {
     const [width, height] = this.getSize(attributes);
     const focusBackgroundStyle = {
-      fill: '#E1ECFF',
+      fill: 'rgba(58, 132, 255, 0.1)',
       height: height + 16,
       radius: 2,
       stroke: '#3A84FF',

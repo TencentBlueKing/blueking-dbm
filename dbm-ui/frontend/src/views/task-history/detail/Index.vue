@@ -236,7 +236,7 @@
     });
   };
 
-  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 25000);
+  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 30000);
 
   onMounted(() => {
     fetchTaskflowDetails();
