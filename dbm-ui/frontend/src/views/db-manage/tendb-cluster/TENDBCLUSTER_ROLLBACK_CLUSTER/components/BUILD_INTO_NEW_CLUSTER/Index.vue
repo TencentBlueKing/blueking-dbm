@@ -27,6 +27,7 @@
         v-model="item.cluster"
         allows-duplicates
         :selected="selected"
+        single
         @batch-edit="handleBatchEditCluster" />
       <MultipleResourceHostColumn
         v-model="item.remote_hosts"
@@ -80,9 +81,6 @@
         field="tables_ignore"
         :label="t('忽略表名')"
         @batch-edit="handleBatchEdit" />
-      <OperationColumn
-        v-model:table-data="tableData"
-        :create-row-method="createTableRow" />
     </EditableRow>
   </EditableTable>
 </template>
