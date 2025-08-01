@@ -37,6 +37,7 @@
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -60,12 +61,14 @@
       id: number;
       master_domain: string;
     }[];
+    single?: boolean;
   }
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     allowsDuplicates: false,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -88,6 +91,14 @@
           master_domain: item.master_domain,
         }) as TendbClusterModel,
     ),
+  }));
+
+  const tabListConfig = computed(() => ({
+    [ClusterTypes.TENDBCLUSTER]: {
+      id: ClusterTypes.TENDBCLUSTER,
+      multiple: !props.single,
+      name: t('集群选择'),
+    },
   }));
 
   const rules = [
