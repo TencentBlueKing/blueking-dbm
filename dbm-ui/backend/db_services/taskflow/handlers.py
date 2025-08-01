@@ -241,7 +241,11 @@ class TaskFlowHandler:
         logs = []
         sorted_hits = sorted(
             dbm_logs + dbm_dbactuator_logs,
-            key=lambda x: (x["_source"]["dtEventTimeStamp"], x["_source"]["gseIndex"], x["_source"]["iterationIndex"]),
+            key=lambda x: (
+                int(x["_source"]["dtEventTimeStamp"]),
+                int(x["_source"]["gseIndex"]),
+                int(x["_source"]["iterationIndex"]),
+            ),
         )
 
         for hit in sorted_hits:
