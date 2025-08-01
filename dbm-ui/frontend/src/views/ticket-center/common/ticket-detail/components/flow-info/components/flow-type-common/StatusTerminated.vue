@@ -17,9 +17,10 @@
           :flow-data="data" />
         <div v-else>
           <I18nT
-            keypath="m_耗时_t"
+            keypath="m_处理人_p_耗时_t"
             scope="global">
             <span style="color: #ea3636">{{ t('任务终止') }}</span>
+            <span>{{ ticketDetail.updater }}</span>
             <CostTimer
               :is-timing="false"
               :start-time="utcTimeToSeconds(data.start_time)"
@@ -83,6 +84,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -96,6 +98,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({
