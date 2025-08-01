@@ -92,6 +92,21 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 	api.SuccessResponse(ctx, responseData, coreconst.Success)
 }
 
+// GetPodRawLogs 获取 pod 日志原始日志
+func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
+	var podLogQueryEntity entity.K8sPodLogQueryParams
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogQueryEntity, nil); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	data, err := k.k8sProvider.GetPodRawLogs(&podLogQueryEntity)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
+		return
+	}
+	api.SuccessResponse(ctx, data, coreconst.Success)
+}
+
 // GetPodDetail 获取实例详情
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 	var podDetailParams entity.K8sPodDetailQueryParams
