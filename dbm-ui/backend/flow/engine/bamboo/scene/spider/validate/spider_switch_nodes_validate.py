@@ -27,7 +27,6 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
     检验2：传入替换节点过程中，是否会超过集群上限
     检验3：同一个flow，同一个集群，传入机器不能有相同
     检验4：同一个flow，同一个集群，不能出现不同待替换的spider角色
-    检验5：同一个flow，同一个集群，不能出现不同的替换规格
     """
 
     @classmethod
@@ -131,11 +130,6 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
 
         # 同一个flow，同一个集群，不能出现不同待替换的spider角色
         err = self.pre_check_spider_role_for_cluster("cluster_id", "switch_spider_role")
-        if err:
-            raise SpiderRoleFailedException(err)
-
-        # 同一个flow，同一个集群，不能出现不同的替换规格
-        err = self.pre_check_spider_spec_for_cluster("cluster_id")
         if err:
             raise SpiderRoleFailedException(err)
 

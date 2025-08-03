@@ -63,7 +63,6 @@ class TenDBClusterAddNodesFlow(object):
                     cluster_id=info["cluster_id"],
                     add_spider_role=info["add_spider_role"],
                     add_spider_hosts=info["spider_ip_list"],
-                    resource_spec=info.get("resource_spec", {}),
                 )
             )
 
@@ -75,7 +74,6 @@ class TenDBClusterAddNodesFlow(object):
         cluster_id: int,
         add_spider_role: TenDBClusterSpiderRole,
         add_spider_hosts: list,
-        resource_spec: dict,
         new_db_module_id: int = 0,
         new_pkg_id: int = 0,
         is_check_disaster_tolerance_level: bool = True,
@@ -118,7 +116,6 @@ class TenDBClusterAddNodesFlow(object):
             "ticket_type": self.data["ticket_type"],
             "spider_ip_list": add_spider_hosts,
             "new_db_module_id": new_db_module_id,
-            "resource_spec": resource_spec,
         }
 
         if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
