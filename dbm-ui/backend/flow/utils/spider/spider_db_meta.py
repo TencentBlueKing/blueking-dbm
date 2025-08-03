@@ -90,7 +90,6 @@ class SpiderDBMeta(object):
             "creator": self.global_data["created_by"],
             "add_spiders": self.global_data["spider_slave_ip_list"],
             "spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE,
-            "resource_spec": self.global_data["resource_spec"],
             "is_slave_cluster_create": True,
             "new_slave_domain": self.global_data["slave_domain"],
         }
@@ -101,14 +100,11 @@ class SpiderDBMeta(object):
         """
         对已有的TenDB cluster集群 （spider集群）扩容写入的公共方法
         """
-        # 兼容spider mnt不使用资源池的情况
-        default_spider_spec = {MachineType.SPIDER.value: {"id": 0}}
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
             "creator": self.global_data["created_by"],
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
-            "resource_spec": self.global_data.get("resource_spec") or default_spider_spec,
             "is_slave_cluster_create": False,
             "new_db_module_id": self.global_data.get("new_db_module_id", 0),
         }
