@@ -45,10 +45,9 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                           {"ip":"x","bk_cloud_id": 0,"bk_host_id":2}
                         ],
                         "spider_new_ip_list":  [
-                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":3},
-                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":}
+                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":3,"spec":{}},
+                          {"ip":"x","bk_cloud_id": 0,"bk_host_id":4,"spec":{}}
                         ],
-                        "resource_spec": {"spider":{'id':1,'xxx':'xxx'}}
                       }
                 ]
 
@@ -111,7 +110,6 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         old_spider_hosts: list,
         new_spider_hosts: list,
         sub_flow_context: dict,
-        resource_spec: dict,
     ):
         """
         根据集群维度，并发处理每个集群的替换节点信息
@@ -159,7 +157,6 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 cluster_id=cluster_id,
                 add_spider_role=spider_role,
                 add_spider_hosts=new_spider_hosts,
-                resource_spec=resource_spec,
                 is_check_disaster_tolerance_level=False,
             )
         )
@@ -196,7 +193,6 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                     spider_role=info["switch_spider_role"],
                     old_spider_hosts=info["spider_old_ip_list"],
                     new_spider_hosts=info["spider_new_ip_list"],
-                    resource_spec=info.get("resource_spec", {}),
                     sub_flow_context={"uid": self.data["uid"]},
                 )
             )
