@@ -30,6 +30,7 @@
       </template>
     </div>
     <div
+      v-if="data.done_at"
       class="mt-12"
       style="color: #979ba5">
       {{ utcDisplayTime(data.done_at) }}

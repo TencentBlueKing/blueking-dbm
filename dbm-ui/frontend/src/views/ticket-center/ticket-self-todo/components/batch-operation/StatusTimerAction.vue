@@ -9,7 +9,7 @@
         size="small"
         theme="success"
         type="stroke">
-        {{ t('确认执行') }}
+        {{ t('立即执行') }}
       </BkTag>
       <span class="ml-4">{{ t('确定后，单据将跳过定时步骤立即进入下一步骤') }}</span>
     </BkRadio>

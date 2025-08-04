@@ -7,34 +7,28 @@
       <slot name="title"> {{ data.flow_type_display }} </slot>
     </template>
     <template #content>
-      <!-- 如果有 err_code 为 3 忽略 flow 和 todo 的信息 -->
+      <!-- 人工终止 -->
       <slot
         v-if="data.err_code !== 3"
         name="content">
-        <TodoList
-          v-if="renderTodoList.length > 0"
-          :data="renderTodoList"
-          :flow-data="data" />
-        <div v-else>
-          <I18nT
-            keypath="n 已处理_c_耗时 t"
-            scope="global">
-            <span>{{ ticketDetail.updater }}</span>
-            <span style="color: #ea3636">{{ t('任务终止') }}</span>
-            <CostTimer
-              :is-timing="false"
-              :start-time="utcTimeToSeconds(data.start_time)"
-              :value="data.cost_time" />
-          </I18nT>
-          <template v-if="data.url">
-            <span> ，</span>
-            <a
-              :href="data.url"
-              target="_blank">
-              {{ t('查看详情') }}
-            </a>
-          </template>
-        </div>
+        <I18nT
+          keypath="n 已处理_c_耗时 t"
+          scope="global">
+          <span>{{ ticketDetail.updater }}</span>
+          <span style="color: #ea3636">{{ t('人工终止') }}</span>
+          <CostTimer
+            :is-timing="false"
+            :start-time="utcTimeToSeconds(data.start_time)"
+            :value="data.cost_time" />
+        </I18nT>
+        <template v-if="data.url">
+          <span> ，</span>
+          <a
+            :href="data.url"
+            target="_blank">
+            {{ t('查看详情') }}
+          </a>
+        </template>
       </slot>
       <!-- 系统自动终止 -->
       <template v-if="data.err_code === 3">
@@ -97,7 +91,6 @@
   import { utcTimeToSeconds } from '@utils';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
-  import TodoList from '../todo-list/Index.vue';
 
   import Abstract from './components/abstract/Index.vue';
   import FlowCollapse from './components/FlowCollapse.vue';
