@@ -44,6 +44,7 @@ func BuildK8sClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		podGroup.GET("/logs", k8sClusterController.ListPodLogs)
 		podGroup.GET("/rawlogs", k8sClusterController.GetPodRawLogs)
 		podGroup.GET("", k8sClusterController.GetPodDetail)
+		podGroup.POST("/delete", k8sClusterController.DeletePod)
 	}
 }
 

@@ -19,7 +19,7 @@ limitations under the License.
 
 package entity
 
-// ComponentQueryParams 封装 component 请求
+// ComponentQueryParams 封装 component 请求参数
 type ComponentQueryParams struct {
 	K8sClusterName string `json:"k8sClusterName"`
 	ClusterName    string `json:"clusterName"`
@@ -27,7 +27,7 @@ type ComponentQueryParams struct {
 	ComponentName  string `json:"componentName"`
 }
 
-// K8sPodDetailQueryParams 封装 pod detail 请求
+// K8sPodDetailQueryParams 封装 pod detail 请求参数
 type K8sPodDetailQueryParams struct {
 	K8sClusterName string `json:"k8sClusterName"`
 	ClusterName    string `json:"clusterName"`
@@ -35,7 +35,7 @@ type K8sPodDetailQueryParams struct {
 	PodName        string `json:"podName"`
 }
 
-// K8sPodLogQueryParams 封装 pod logs 请求
+// K8sPodLogQueryParams 封装 pod logs 请求参数
 type K8sPodLogQueryParams struct {
 	K8sClusterName string `json:"k8sClusterName" binding:"required"`
 	ClusterName    string `json:"clusterName" binding:"required"`

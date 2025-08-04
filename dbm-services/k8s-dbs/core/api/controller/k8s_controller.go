@@ -21,9 +21,10 @@ package controller
 
 import (
 	"k8s-dbs/common/api"
-	coreconst "k8s-dbs/common/constant"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
+	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/core/vo/request"
@@ -65,7 +66,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	api.SuccessResponse(ctx, data, coreconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // ListPodLogs 获取 pod 日志分页结果
@@ -89,7 +90,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 		Count:  count,
 		Result: logs,
 	}
-	api.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, commconst.Success)
 }
 
 // GetPodRawLogs 获取 pod 日志原始日志
@@ -104,7 +105,7 @@ func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodLogError, err))
 		return
 	}
-	api.SuccessResponse(ctx, data, coreconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetPodDetail 获取实例详情
@@ -119,9 +120,31 @@ func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetPodDetailError, err))
 		return
 	}
+	api.SuccessResponse(ctx, podDetail, commconst.Success)
+}
 
-	api.SuccessResponse(ctx, podDetail, coreconst.Success)
-
+// DeletePod 删除实例
+func (k *K8sController) DeletePod(ctx *gin.Context) {
+	var podDeleteParams request.K8sPodDeleteRequest
+	if err := ctx.ShouldBindJSON(&podDeleteParams); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteK8sPodError, err))
+		return
+	}
+	var podDeleteEntity entity.K8sPodDelete
+	if err := copier.Copy(&podDeleteEntity, &podDeleteParams); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		return
+	}
+	dbsContext := commentity.DbsContext{
+		BkAuth:      &podDeleteParams.BKAuth,
+		RequestType: coreconst.DeleteK8sPod,
+	}
+	err := k.k8sProvider.DeletePod(&dbsContext, &podDeleteEntity)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteK8sPodError, err))
+		return
+	}
+	api.SuccessResponse(ctx, nil, commconst.Success)
 }
 
 // NewK8sController 构建 K8sController

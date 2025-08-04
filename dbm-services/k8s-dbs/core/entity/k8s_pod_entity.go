@@ -19,7 +19,7 @@ limitations under the License.
 
 package entity
 
-// K8sPodDetail k8s 实例详情结构体
+// K8sPodDetail k8s pod 详情结构体
 type K8sPodDetail struct {
 	K8sClusterName string `json:"k8sClusterName"`
 	ClusterName    string `json:"clusterName" `
@@ -27,4 +27,12 @@ type K8sPodDetail struct {
 	ComponentName  string `json:"componentName"`
 	*Pod           `json:",inline"`
 	Manifest       string `json:"manifest"`
+}
+
+// K8sPodDelete k8s pod 删除结构体
+type K8sPodDelete struct {
+	K8sClusterName string `json:"k8sClusterName" binding:"required"`
+	ClusterName    string `json:"clusterName" binding:"required"`
+	Namespace      string `json:"namespace" binding:"required"`
+	PodName        string `json:"podName" binding:"required"`
 }

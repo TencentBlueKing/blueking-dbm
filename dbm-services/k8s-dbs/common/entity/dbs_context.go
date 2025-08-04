@@ -24,5 +24,8 @@ type DbsContext struct {
 	BkAuth             *BKAuth `json:",inline"`
 	RequestID          string  `json:"requestId"`
 	K8sClusterConfigID uint64  `json:"k8sClusterConfigId"`
+	K8sClusterName     string  `json:"k8sClusterName"`
+	ClusterName        string  `json:"clusterName"`
+	Namespace          string  `json:"namespace"`
 	RequestType        string  `json:"requestType"` // 指定操作类型
 }

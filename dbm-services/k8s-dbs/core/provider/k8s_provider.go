@@ -31,6 +31,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	dbserrors "k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
@@ -56,6 +57,45 @@ type K8sProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
 	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
+}
+
+// DeletePod 删除 pod
+func (k *K8sProvider) DeletePod(
+	ctx *commentity.DbsContext,
+	entity *coreentity.K8sPodDelete,
+) error {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	ctx.K8sClusterName = k8sClusterConfig.ClusterName
+	ctx.Namespace = entity.Namespace
+	ctx.ClusterName = entity.ClusterName
+	// 记录审计日志
+	_, err = metautil.SaveCommonAuditV2(k.reqRecordProvider, ctx, entity)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+	deletePolicy := metav1.DeletePropagationForeground
+	err = k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).Delete(context.TODO(), entity.PodName, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteK8sPodError, err)
+	}
+
+	// 更新集群 cluster 记录
+	if err = metautil.UpdateClusterLastUpdatedV2(k.clusterMetaProvider, ctx); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	return nil
 }
 
 // CreateNamespace 创建命名空间

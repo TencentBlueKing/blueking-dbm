@@ -50,8 +50,10 @@ func (a *AddonController) InstallAddon(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{}
-	dbsContext.BkAuth = &installReqVo.BKAuth
+	dbsContext := commentity.DbsContext{
+		BkAuth: &installReqVo.BKAuth,
+	}
+
 	err := a.addonProvider.ManageAddon(&dbsContext, &addonEntity, coreapiconst.InstallAddonOP)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))

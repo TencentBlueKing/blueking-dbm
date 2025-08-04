@@ -67,6 +67,35 @@ func CreateRequestRecord(
 	return addedRequestRecord, nil
 }
 
+// SaveCommonAuditV2 记录通用审计日志
+func SaveCommonAuditV2(
+	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+	dbsCtx *commentity.DbsContext,
+	requestParams interface{},
+) (*metaentity.ClusterRequestRecordEntity, error) {
+	requestBytes, err := json.Marshal(requestParams)
+	if err != nil {
+		return nil, fmt.Errorf("serialization request failed: %v", err)
+	}
+
+	requestRecord := &metaentity.ClusterRequestRecordEntity{
+		K8sClusterName: dbsCtx.K8sClusterName,
+		ClusterName:    dbsCtx.ClusterName,
+		NameSpace:      dbsCtx.Namespace,
+		RequestID:      commutil.RequestID(),
+		RequestType:    dbsCtx.RequestType,
+		RequestParams:  string(requestBytes),
+		CreatedBy:      dbsCtx.BkAuth.BkUserName,
+		UpdatedBy:      dbsCtx.BkAuth.BkUserName,
+	}
+
+	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
+	if err != nil {
+		return nil, fmt.Errorf("审计日志记录失败: %w", err)
+	}
+	return addedRequestRecord, nil
+}
+
 // SaveAuditLog 记录审计日志
 func SaveAuditLog(
 	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
@@ -111,6 +140,27 @@ func UpdateClusterLastUpdated(
 		return err
 	}
 	clusterEntity.UpdatedBy = request.BkUserName
+	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateClusterLastUpdatedV2 v2版本 更新 cluster 元数据最近一次更新时间和更新人
+func UpdateClusterLastUpdatedV2(
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
+	dbsCtx *commentity.DbsContext,
+) error {
+	clusterEntity, err := clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		K8sClusterConfigID: dbsCtx.K8sClusterConfigID,
+		ClusterName:        dbsCtx.ClusterName,
+		Namespace:          dbsCtx.Namespace,
+	})
+	if err != nil {
+		return err
+	}
+	clusterEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
 	if err != nil {
 		return err

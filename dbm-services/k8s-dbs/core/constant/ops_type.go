@@ -37,6 +37,7 @@ const (
 	UpgradeComp          = "UpgradeComp"
 	ExposeService        = "ExposeService"
 	CreateK8sNs          = "CreateK8sNamespace"
+	DeleteK8sPod         = "DeleteK8sPod"
 )
 
 // 定义 OpsRequest 操作类型
