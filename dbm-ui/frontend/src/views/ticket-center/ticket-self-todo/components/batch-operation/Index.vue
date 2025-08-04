@@ -94,7 +94,7 @@
   };
 
   const genDefaultValue = () => ({
-    action: 'APPROVE' as 'APPROVE' | 'TERMINATE',
+    action: 'APPROVE' as 'APPROVE' | 'TERMINATE' | 'SKIP',
     remark: '',
   });
   const isShow = ref(false);

@@ -17,20 +17,6 @@ import { createI18n } from 'vue-i18n';
 import en from './en.json';
 import cn from './zh-cn.json';
 
-// const modules = await import.meta.glob('../locales/*.json');
-// const messages: Record<string, any> = {};
-// for (const path of Object.keys(modules)) {
-//   await modules[path]().then((mod: any) => {
-//     const key = path
-//       .split('/')
-//       .pop()
-//       ?.replace?.(/\.json$/, '');
-//     if (key) {
-//       messages[key] = mod.default;
-//     }
-//   });
-// }
-
 let localeLanguage = 'zh-cn';
 const bluekingLanguage = Cookies.get('blueking_language');
 if (bluekingLanguage && bluekingLanguage.toLowerCase() === 'en') {
@@ -46,6 +32,6 @@ const i18n = createI18n({
   silentTranslationWarn: true,
 });
 
-export const { t, locale } = i18n.global;
+export const { locale, t } = i18n.global;
 
 export default i18n;
