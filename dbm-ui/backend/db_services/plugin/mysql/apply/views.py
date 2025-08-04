@@ -27,7 +27,7 @@ class ApplyPluginViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请mysql集群小额绿通部署"),
-        query_serializer=MysqlHaApplyQuickMinorPassSerializer(),
+        request_body=MysqlHaApplyQuickMinorPassSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=MysqlHaApplyQuickMinorPassSerializer)
