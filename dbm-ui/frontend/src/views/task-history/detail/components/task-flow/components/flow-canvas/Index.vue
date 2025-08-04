@@ -75,7 +75,6 @@
     updateCanvasState: () => void;
   }
 
-  type OperationKey = keyof (typeof nodeOperationState)['operate'];
   type TooltipKey = keyof typeof tooltipState;
 
   const props = withDefaults(defineProps<Props>(), {
@@ -119,14 +118,29 @@
         instance: null as Instance | null,
         isShow: false,
       },
-    },
+    } as Record<string, { instance: Instance | null; isShow: boolean }>,
   });
 
   const tooltipState = reactive({
+    failed: {
+      instance: null as Instance | null,
+      isShow: false,
+      text: t('执行失败'),
+    },
+    finished: {
+      instance: null as Instance | null,
+      isShow: false,
+      text: t('执行成功'),
+    },
     running: {
       instance: null as Instance | null,
       isShow: false,
       text: t('执行中'),
+    },
+    skip: {
+      instance: null as Instance | null,
+      isShow: false,
+      text: t('已跳过'),
     },
     todo: {
       instance: null as Instance | null,
@@ -235,15 +249,31 @@
     });
 
     flowGraphInstance.on(NodeEvent.POINTER_ENTER, (e: any) => {
-      const { originalTarget } = e;
+      const { originalTarget, target } = e;
       const targetName = originalTarget.className;
-      if (targetName === 'todoBackground') {
-        handleShowTooltip('todo', e);
-        return;
-      }
-      if (targetName === 'loadingBackground') {
-        handleShowTooltip('running', e);
-        return;
+      if (targetName === 'rightTopBackground') {
+        const status = target.data.status;
+        switch (status) {
+          case 'RUNNING':
+            if (target.data.todoId) {
+              handleShowTooltip('todo', e);
+            } else {
+              handleShowTooltip('running', e);
+            }
+            break;
+          case 'FAILED':
+            handleShowTooltip('failed', e);
+            break;
+          case 'FINISHED':
+            if (target.data.skip) {
+              handleShowTooltip('skip', e);
+            } else {
+              handleShowTooltip('finished', e);
+            }
+            break;
+          default:
+            break;
+        }
       }
     });
 
@@ -288,7 +318,7 @@
     const { id, isSubProcess } = target.data;
     let [x, y] = flowGraphInstance.getElementPosition(id);
     x += isSubProcess ? 127 : 120;
-    y -= 42;
+    y -= 36;
     const [targetX, targetY] = flowGraphInstance.getClientByCanvas([x, y]);
     tooltipState[type].instance?.destroy();
     tooltipState[type].instance = dbTippy(document.body, {
@@ -321,7 +351,7 @@
     tooltipState[type].isShow = true;
   };
 
-  const handleOperationShowTip = (type: OperationKey, e: any) => {
+  const handleOperationShowTip = (type: string, e: any) => {
     const contentTemplateMap = {
       continue: continueTemplateRef.value!.getTemplateRef()!,
       forceFail: forceFailTemplateRef.value!.getTemplateRef()!,
@@ -388,7 +418,7 @@
     nodeOperationState.operate[type].isShow = true;
   };
 
-  const handleCancelOperation = (type: OperationKey, refresh: boolean) => {
+  const handleCancelOperation = (type: string, refresh: boolean) => {
     if (nodeOperationState.operate[type].instance) {
       nodeOperationState.operate[type].instance.destroy();
     }

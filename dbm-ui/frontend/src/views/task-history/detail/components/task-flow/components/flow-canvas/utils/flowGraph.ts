@@ -21,10 +21,10 @@ import { StartEndNode } from './startEndNode';
 const roundFlowTypes = [FlowTypes.EmptyEndEvent, FlowTypes.EmptyStartEvent, ...getewayTypes];
 
 const targetNameHoverTypeMap: Record<string, string> = {
-  forceFailWraper: 'hoverForceFail',
-  manualConfirmWraper: 'hoverManual',
-  retryWraper: 'hoverRetry',
-  skipWraper: 'hoverSkip',
+  forceFailWraper: 'forceFailHover',
+  manualConfirmWraper: 'manualHover',
+  retryWraper: 'retryHover',
+  skipWraper: 'skipHover',
 };
 
 register(ExtensionCategory.NODE, FlowTypes.ConditionalParallelGateway, GatewayNode);
@@ -137,28 +137,50 @@ export class FlowGraph {
       },
       node: {
         state: {
-          focus: {
-            focusState: 'visible',
+          failedImageBackgroundColorHover: {
+            failedImageBackgroundColor: '#FF0000',
           },
-          hoverForceFail: {
+          finishedImageBackgroundColorHover: {
+            finishedImageBackgroundColor: '#319B85',
+          },
+          focusNode: {
+            focusNodeVisibility: 'visible',
+          },
+          forceFailHover: {
             forceFailOptFill: '#DCDEE5',
           },
-          hoverManual: {
+          loadingImageBackgroundColorHover: {
+            loadingImageBackgroundColor: '#1768EF',
+          },
+          manualHover: {
             manualOptFill: '#DCDEE5',
           },
-          hoverRetry: {
+          nodeBackgroundHover: {
+            nodeBackgroundshadowColor: '#19192933',
+          },
+          retryHover: {
             retryOptFill: '#DCDEE5',
           },
-          hoverSkip: {
+          skipHover: {
             skipOptFill: '#DCDEE5',
+          },
+          skipImageBackgroundColorHover: {
+            skipImageBackgroundColor: '6CA633',
+          },
+          todoImageBackgroundColorHover: {
+            todoImageBackgroundColor: '#E38B02',
           },
         },
         style: {
           cursor: 'pointer',
+          failedImageBackgroundColor: '#FF4D4D',
           fill: '#F5F7FA',
-          focusState: 'hidden',
+          finishedImageBackgroundColor: '#3DC2A6',
+          focusNodeVisibility: 'hidden',
           forceFailOptFill: '#EAEBF0',
+          loadingImageBackgroundColor: '#3A84FF',
           manualOptFill: '#EAEBF0',
+          nodeBackgroundshadowColor: '#1919290d',
           ports: [{ placement: 'left' }, { placement: 'right' }],
           radius: (d: Node) => {
             if (roundFlowTypes.includes(d.type)) {
@@ -175,7 +197,9 @@ export class FlowGraph {
             }
             return [240, 52];
           },
+          skipImageBackgroundColor: '#7FBB44',
           skipOptFill: '#EAEBF0',
+          todoImageBackgroundColor: '#F59500',
         },
       },
       plugins: [
@@ -192,9 +216,43 @@ export class FlowGraph {
     this.graph.on(NodeEvent.POINTER_ENTER, (e: any) => {
       const { originalTarget, target } = e;
       const targetName = originalTarget.className;
+      this.hoverNodeId = target.data.id;
+      const state = this.graph!.getElementState(target.data.id) || [];
+      if (targetName === 'backgroundShape') {
+        // 背景加深
+        this.graph!.setElementState(target.data.id, [...state, 'nodeBackgroundHover']);
+        return;
+      }
+      if (targetName === 'rightTopBackground') {
+        // 右上角背景加深
+        let hoverState = '';
+        switch (target.data.status) {
+          case 'RUNNING':
+            if (target.data.todoId) {
+              hoverState = 'todoImageBackgroundColorHover';
+            } else {
+              hoverState = 'loadingImageBackgroundColorHover';
+            }
+            break;
+          case 'FINISHED':
+            if (target.data.skip) {
+              hoverState = 'skipImageBackgroundColorHover';
+            } else {
+              hoverState = 'finishedImageBackgroundColorHover';
+            }
+            break;
+          case 'FAILED':
+            hoverState = 'failedImageBackgroundColorHover';
+            break;
+          default:
+            break;
+        }
+        this.graph!.setElementState(target.data.id, [...state, hoverState]);
+        return;
+      }
       const hoverType = targetNameHoverTypeMap[targetName];
+      // 操作按钮背景加深
       if (hoverType) {
-        this.hoverNodeId = target.data.id;
         const state = this.graph!.getElementState(target.data.id) || [];
         this.graph!.setElementState(target.data.id, [...state, hoverType]);
       }
@@ -202,7 +260,7 @@ export class FlowGraph {
 
     this.graph.on(NodeEvent.POINTER_LEAVE, () => {
       if (this.hoverNodeId) {
-        this.graph?.setElementState(this.hoverNodeId, this.focusNodeId === this.hoverNodeId ? 'focus' : '');
+        this.graph?.setElementState(this.hoverNodeId, this.focusNodeId === this.hoverNodeId ? 'focusNode' : '');
         this.hoverNodeId = '';
       }
     });
@@ -307,7 +365,7 @@ export class FlowGraph {
       }
     }
     this.focusNodeId = nodeId;
-    this.graph?.setElementState(nodeId, 'focus');
+    this.graph?.setElementState(nodeId, 'focusNode');
   }
 
   updateNodeData(data: any) {
