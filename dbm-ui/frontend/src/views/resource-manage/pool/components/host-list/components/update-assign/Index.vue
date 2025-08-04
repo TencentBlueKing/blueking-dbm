@@ -1,10 +1,18 @@
 <template>
   <BkDialog
+    class="update-assign-dialog"
     :is-show="isShow"
     render-directive="if"
-    :title="t('编辑资源归属')"
     width="600"
     @closed="handleCancel">
+    <template #header>
+      <div class="update-assign-header">
+        <div>{{ t('编辑资源归属') }}</div>
+        <div class="update-assign-sub-title">
+          {{ editData?.ip || '' }}
+        </div>
+      </div>
+    </template>
     <BkForm
       ref="formRef"
       class="mt-16"
@@ -178,3 +186,34 @@
     isShow.value = false;
   };
 </script>
+<style lang="less">
+  .update-assign-dialog {
+    .update-assign-header {
+      display: flex;
+      align-items: center;
+    }
+
+    .update-assign-sub-title {
+      position: relative;
+      display: flex;
+      height: 22px;
+      padding-left: 8px;
+      margin-left: 8px;
+      font-family: MicrosoftYaHei, sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      letter-spacing: 0;
+      color: #979ba5;
+
+      &::before {
+        position: absolute;
+        top: 6px;
+        left: 0;
+        width: 1px;
+        height: 14px;
+        background-color: #979ba580;
+        content: '';
+      }
+    }
+  }
+</style>

@@ -18,10 +18,6 @@ import { useRouter } from 'vue-router';
 import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
 import type { HostInfo } from '@services/types';
 
-import { useSystemEnviron } from '@stores';
-
-import { getBusinessHref } from '@utils';
-
 export const useImportResourcePoolTooltip = (
   params: {
     hostList?: Ref<(FaultOrRecycleMachineModel | HostInfo)[]>;
@@ -30,7 +26,6 @@ export const useImportResourcePoolTooltip = (
 ) => {
   const { t } = useI18n();
   const router = useRouter();
-  const systemEnvironStore = useSystemEnviron();
 
   const taskHistoryListRoute = router.resolve({
     name: 'taskHistoryList',
@@ -38,9 +33,13 @@ export const useImportResourcePoolTooltip = (
       ticket_type__in: 'RESOURCE_IMPORT',
     },
   });
-  const taskHistoryListHref = params.isCurrentBiz
-    ? taskHistoryListRoute.href
-    : getBusinessHref(taskHistoryListRoute.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+  const platformTaskHistoryListRoute = router.resolve({
+    name: 'platformTaskHistoryList',
+    query: {
+      ticket_type__in: 'RESOURCE_IMPORT',
+    },
+  });
+  const taskHistoryListHref = params.isCurrentBiz ? taskHistoryListRoute.href : platformTaskHistoryListRoute.href;
 
   const tooltip = computed(() => {
     const content = {
@@ -93,7 +92,24 @@ export const useImportResourcePoolTooltip = (
     if (params.isCurrentBiz) {
       return routeInfo.href;
     }
-    return getBusinessHref(routeInfo.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
+
+    const getPlatformRouteInfo = (taskIds: string[]) => {
+      if (taskIds.length === 1) {
+        return router.resolve({
+          name: 'platformTaskHistoryDetail',
+          params: {
+            root_id: taskIds[0],
+          },
+        });
+      }
+      return router.resolve({
+        name: 'platformTaskHistoryList',
+        query: {
+          root_ids: taskIds.join(','),
+        },
+      });
+    };
+    return getPlatformRouteInfo(taskIds).href;
   };
 
   const successMessage = (taskIds: string[]) => {

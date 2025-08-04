@@ -34,9 +34,7 @@
             renderDirective: 'show',
             hideIgnoreReference: true,
           }">
-          <BkButton
-            class="ml-8"
-            :disabled="selectionHostIdList.length < 1">
+          <BkButton :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
           </BkButton>
