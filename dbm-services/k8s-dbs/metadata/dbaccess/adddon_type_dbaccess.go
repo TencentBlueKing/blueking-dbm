@@ -50,13 +50,13 @@ func (a *AddonTypeDbAccessImpl) FindByCategoryID(id uint64) ([]*models.AddonType
 
 // FindByID 按照 ID 查找接口实现
 func (a *AddonTypeDbAccessImpl) FindByID(id uint64) (*models.AddonTypeModel, error) {
-	var model *models.AddonTypeModel
-	result := a.db.First(model, id)
+	var model models.AddonTypeModel
+	result := a.db.First(&model, id)
 	if result.Error != nil {
 		slog.Error("Find model error", "error", result.Error.Error())
 		return nil, result.Error
 	}
-	return model, nil
+	return &model, nil
 }
 
 // ListByLimit limit 查询实现

@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package dataweb
+// Package dataweb base router
 package dataweb
 
 // BasePath 根路径

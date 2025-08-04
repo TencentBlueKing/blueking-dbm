@@ -31,6 +31,7 @@ type K8sComponentSvcResponse struct {
 	ExternalServiceInfo []entity.K8sExternalSvcInfo `json:"externalServiceInfo,omitempty"`
 }
 
+// K8sClusterSvcResponse k8s 的 Cluster svc资源请求返回
 type K8sClusterSvcResponse struct {
 	K8sClusterName    string                     `json:"k8sClusterName" binding:"required"`
 	ClusterName       string                     `json:"clusterName" binding:"required"`
