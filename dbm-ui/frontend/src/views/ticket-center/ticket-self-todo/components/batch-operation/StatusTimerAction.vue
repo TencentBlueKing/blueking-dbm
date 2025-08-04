@@ -3,7 +3,7 @@
     v-model="modelValue"
     style="display: block">
     <BkRadio
-      label="APPROVE"
+      label="SKIP"
       style="width: 100%">
       <BkTag
         size="small"

@@ -15,7 +15,7 @@
           type="stroke">
           {{ t('确认执行') }}
         </BkTag>
-        <span>{{ t('确认后，单据将进入下一步骤') }}</span>
+        <span>{{ t('确定后，单据将跳过定时步骤立即进入下一步骤') }}</span>
       </div>
     </template>
   </DbPopconfirm>
@@ -41,10 +41,6 @@
 
   const { t } = useI18n();
 
-  const approveFormMode = reactive({
-    remark: '',
-  });
-
   const eventBus = useEventBus();
 
   const isSubmitting = ref(false);
@@ -56,17 +52,15 @@
       .then(() => {
         if (props.data) {
           return batchProcessTicket({
-            action: 'APPROVE',
-            params: approveFormMode,
+            action: 'SKIP',
             ticket_ids: [props.data.id],
           });
         }
         if (props.todoData) {
           return batchProcessTodo({
-            action: 'APPROVE',
+            action: 'SKIP',
             operations: [
               {
-                params: approveFormMode,
                 todo_id: props.todoData.id,
               },
             ],
