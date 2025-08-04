@@ -106,7 +106,7 @@
     }
     isChecking.value = true;
     const params = new FormData();
-    params.append('sql_content', props.modelValue);
+    params.append('sql_filenames[0]', props.title);
     grammarCheckApi(params)
       .then((data) => {
         const grammarCheckData = data;
