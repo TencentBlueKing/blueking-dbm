@@ -21,22 +21,25 @@
     :rules="rules">
     <EditableSelect
       v-model="modelValue"
-      filterable
-      :list="specList">
-      <template #option="{ item }">
-        <SpecPanel :data="item.specData">
-          <template #hover>
-            <div class="spec-display">
-              <div v-overflow-tips>
-                {{ item.label }}
-              </div>
-              <div class="count">
-                {{ item.specData.count }}
-              </div>
+      filterable>
+      <BkOption
+        v-for="(item, index) in specList"
+        :key="index"
+        :label="item.spec_name"
+        :value="item.spec_id">
+        <SpecDetailPopover
+          :data="item"
+          placement="right">
+          <div class="spec-display">
+            <div v-overflow-tips>
+              {{ item.spec_name }}
             </div>
-          </template>
-        </SpecPanel>
-      </template>
+            <div class="count">
+              {{ item.availableCount }}
+            </div>
+          </div>
+        </SpecDetailPopover>
+      </BkOption>
     </EditableSelect>
   </EditableColumn>
 </template>
@@ -45,10 +48,11 @@
   import { useRequest } from 'vue-request';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
+  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import SpecPanel, { type SpecInfo } from './components/Panel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
     rowData: {
@@ -87,21 +91,14 @@
     },
   ];
 
-  const specList = ref<
-    {
-      isCurrentSpec?: boolean;
-      label: string;
-      specData: SpecInfo;
-      value: string | number;
-    }[]
-  >([]);
+  const specList = ref<({ availableCount: number } & ResourceSpecModel)[]>([]);
 
   const { loading, run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
       specList.value.forEach((item) => {
-        Object.assign(item.specData, {
-          count: data[item.specData.id],
+        Object.assign(item.spec_id, {
+          availableCount: data[item.spec_id],
         });
       });
     },
@@ -110,22 +107,11 @@
   const { run: fetchResourceSpecList } = useRequest(getResourceSpecList, {
     manual: true,
     onSuccess(data) {
-      specList.value = data.results.map((item) => ({
-        label: item.spec_name,
-        specData: {
-          count: 0,
-          cpu: item.cpu,
-          id: item.spec_id,
-          mem: item.mem,
-          name: item.spec_name,
-          storage_spec: item.storage_spec,
-        },
-        value: item.spec_id,
-      }));
+      specList.value = data.results.map((item) => Object.assign(item, { availableCount: 0 }));
       fetchSpecResourceCount({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: props.rowData.host.bk_cloud_id!,
-        spec_ids: specList.value.map((item) => item.specData.id),
+        spec_ids: specList.value.map((item) => item.spec_id),
       });
     },
   });

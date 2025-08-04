@@ -19,7 +19,7 @@
     :rules="qpsRules">
     <span
       v-bk-tooltips="{
-        content: t('不支持修改'),
+        content: t('该规格已被使用，不允许修改'),
         disabled: editable,
       }"
       class="inline-block">
@@ -35,7 +35,7 @@
     <span class="item-desc">{{ t('至') }}</span>
     <span
       v-bk-tooltips="{
-        content: t('不支持修改'),
+        content: t('该规格已被使用，不允许修改'),
         disabled: editable,
       }"
       class="inline-block">

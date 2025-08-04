@@ -30,19 +30,14 @@
               :label="item.spec_name"
               :popover-delay="0"
               :value="item.spec_id">
-              <BkPopover
-                :offset="20"
-                placement="right"
-                theme="light"
-                width="580">
+              <SpecDetailPopover
+                :data="item"
+                placement="right">
                 <div style="display: flex; width: 100%; align-items: center">
                   <div>{{ item.spec_name }}</div>
                   <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
                 </div>
-                <template #content>
-                  <SpecDetail :data="item" />
-                </template>
-              </BkPopover>
+              </SpecDetailPopover>
             </BkOption>
           </BkSelect>
         </div>
@@ -79,8 +74,9 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { fetchRecommendSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import type { TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
-  import SpecDetail from '@views/db-manage/common/SpecDetailForPopover.vue';
 
   interface Props {
     cloudInfo: {
@@ -116,7 +112,7 @@
     if (!currentSpec) {
       return 0;
     }
-    const storage = currentSpec.storage_spec.reduce((result, item) => result + item.size, 0);
+    const storage = currentSpec.storage_spec.reduce((result, item) => result + item.min, 0);
     return storage * machinePairCnt.value;
   });
 

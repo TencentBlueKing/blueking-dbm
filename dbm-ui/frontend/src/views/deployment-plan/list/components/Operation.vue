@@ -136,7 +136,7 @@
       const { max, min } = spec.mem;
       return `${min * formData.machine_pair_cnt} - ${max * formData.machine_pair_cnt}`;
     }
-    const storage = spec.storage_spec.reduce((result, item) => result + item.size, 0);
+    const storage = spec.storage_spec.reduce((result, item) => result + item.min, 0);
     return `>= ${storage * formData.machine_pair_cnt}`;
   });
 

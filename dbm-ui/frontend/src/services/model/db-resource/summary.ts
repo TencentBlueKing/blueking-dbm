@@ -23,8 +23,9 @@ export default class Summary {
     disk_id: string | number;
     disk_type: string;
     file_type: string;
+    max: number;
+    min: number;
     mount_point: string;
-    size: number;
   }[];
   for_biz_name: string;
   spec_cluster_type?: DBTypes;
@@ -56,7 +57,7 @@ export default class Summary {
 
   get deviceDisplay() {
     if (this.disk_summary && this.disk_summary?.length > 0) {
-      const diskInfo = this.disk_summary.map((item) => `${item.mount_point}:${item.size}G:${item.disk_type}`).join(';');
+      const diskInfo = this.disk_summary.map((item) => `${item.mount_point}:${item.min}G:${item.disk_type}`).join(';');
       return `${this.device_class} (${diskInfo})`;
     }
     return `${this.device_class}`;

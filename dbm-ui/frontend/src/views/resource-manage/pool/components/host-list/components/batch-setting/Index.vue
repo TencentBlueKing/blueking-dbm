@@ -4,7 +4,7 @@
     :width="800"
     @update:is-show="handleCancel">
     <template #header>
-      <span>{{ t('设置主机属性') }}</span>
+      <span>{{ t('主机属性') }}</span>
       <span style="margin-left: 12px; font-size: 12px; color: #63656e">
         <I18nT keypath="已选:n台主机">
           <span class="number">{{ data.length }}</span>
@@ -18,12 +18,14 @@
         <BkSelect
           v-model="selectedOptions"
           class="mb-16 setting-item-selector"
-          multiple>
+          multiple
+          @change="handleOptionChange">
           <template #trigger>
-            <BkButton
-              text
-              theme="primary">
-              <DbIcon type="plus-circle" /> {{ t('添加属性') }}
+            <BkButton class="trigger-button">
+              <DbIcon
+                class="mr-12"
+                type="add" />
+              {{ t('添加属性') }}
             </BkButton>
           </template>
           <BkOption
@@ -42,7 +44,7 @@
             class="mb-16 setting-item">
             <DbIcon
               class="close-icon"
-              type="close"
+              type="delete"
               @click.stop="() => handleDelete(item)" />
             <DbFormItem :label="settingMap[item].label">
               <Component
@@ -86,7 +88,7 @@
   import City from './components/City.vue';
   import DeviceClass from './components/DeviceClass.vue';
   import Rack from './components/Rack.vue';
-  import StorageDevice, { type IStorageDeviceItem } from './components/StorageDevice.vue';
+  import StorageDevice, { createRowData } from './components/StorageDevice.vue';
   import SubZone from './components/SubZone.vue';
 
   interface Props {
@@ -109,7 +111,7 @@
     city_meta: '' as string | number,
     device_class: '',
     rack_id: '',
-    storage_device: [] as IStorageDeviceItem[],
+    storage_device: [createRowData()],
     sub_zone_meta: '' as string | number,
   });
 
@@ -200,19 +202,18 @@
     },
   );
 
+  const handleOptionChange = () => {
+    window.changeConfirm = true;
+  };
+
   const handleSubmit = () => {
     isSubmiting.value = true;
-    formRef
-      .value!.validate()
-      .then(() => {
-        const params = itemRef.value!.reduce<Record<string, any>>((prev, item) => {
-          const value = item.getValue();
-          if (value) {
-            return Object.assign(prev, value);
-          }
-          return prev;
+    const valuePromiseList = itemRef.value!.map((item) => Promise.resolve(item.getValue()));
+    Promise.all(valuePromiseList)
+      .then((result) => {
+        const params = result.reduce<Record<string, any>>((prev, resultItem) => {
+          return Object.assign(prev, resultItem);
         }, {});
-
         return updateResource({
           bk_host_ids: props.data,
           ...params,
@@ -251,7 +252,7 @@
 </script>
 <style lang="less">
   .resource-pool-batch-setting {
-    padding: 20px 40px 0;
+    padding: 16px 24px 0;
 
     .com-input {
       display: flex;
@@ -263,6 +264,10 @@
 
     .setting-item-selector {
       width: 352px;
+
+      .trigger-button {
+        font-size: 16px;
+      }
     }
 
     .setting-item {

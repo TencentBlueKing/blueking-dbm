@@ -12,86 +12,18 @@
         :key="item.spec_id"
         :label="item.spec_name"
         :value="item.spec_id">
-        <BkPopover
-          :offset="18"
-          placement="right-start"
-          :popover-delay="0"
-          theme="light">
+        <SpecDetailPopover
+          :data="item"
+          placement="right-start">
           <div class="spec-display">
             <span class="text-overflow">{{ item.spec_name }}</span>
             <span
-              v-if="typeof item.count === 'number'"
+              v-if="typeof item.availableCount === 'number'"
               class="spec-display-count">
-              {{ item.count }}
+              {{ item.availableCount }}
             </span>
           </div>
-          <template #content>
-            <div class="info-wrapper">
-              <strong class="info-name">{{ item.spec_name }}</strong>
-              <div
-                v-if="typeof item.count === 'number'"
-                class="info">
-                <span class="info-title">{{ t('可用主机数') }}：</span>
-                <span class="info-value">{{ item.count ?? 0 }}</span>
-              </div>
-              <div
-                v-if="item.device_class.length"
-                class="info">
-                <span class="info-title">{{ t('机型') }}：</span>
-                <span class="info-value">
-                  {{ item.device_class.join('，') }}
-                </span>
-              </div>
-              <template v-else>
-                <div class="info">
-                  <span class="info-title">CPU：</span>
-                  <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ t('核') }}</span>
-                </div>
-                <div class="info">
-                  <span class="info-title">{{ t('内存') }}：</span>
-                  <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
-                </div>
-              </template>
-
-              <div
-                class="info"
-                style="align-items: start">
-                <span class="info-title">{{ t('磁盘') }}：</span>
-                <span class="info-value">
-                  <BkTable
-                    class="custom-edit-table mt-8"
-                    :data="item.storage_spec">
-                    <BkTableColumn
-                      field="mount_point"
-                      :label="t('挂载点')" />
-                    <BkTableColumn
-                      field="size"
-                      :label="t('最小容量G')" />
-                    <BkTableColumn :label="t('磁盘类型')">
-                      <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
-                        {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
-                      </template>
-                    </BkTableColumn>
-                  </BkTable>
-                </span>
-              </div>
-              <div
-                v-if="item.instance_num"
-                class="info"
-                style="align-items: start">
-                <span
-                  v-overflow-tips="{
-                    content: t('每台主机实例数量'),
-                    zIndex: 99999,
-                  }"
-                  class="info-title text-overflow">
-                  {{ t('每台主机实例数量') }}：
-                </span>
-                <span class="info-value">{{ item.instance_num }}</span>
-              </div>
-            </div>
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
       </BkOption>
     </BkSelect>
     <DbIcon
@@ -112,10 +44,10 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface ResourceSpecData extends ResourceSpecModel {
-    count?: number;
+    availableCount?: number;
   }
 
   interface Props {
@@ -199,7 +131,7 @@
     getSpecResourceCount(params).then((data) => {
       list.value = list.value.map((item) =>
         Object.assign(item, {
-          count: data[item.spec_id],
+          availableCount: data[item.spec_id],
           // isRecentSeconds: item.isRecentSeconds ?? false,
           // name: item.spec_name,
           // qpsText: item.qpsText ?? '',

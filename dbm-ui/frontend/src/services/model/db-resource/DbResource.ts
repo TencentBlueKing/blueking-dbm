@@ -61,7 +61,8 @@ export default class DbResource {
       disk_id: string;
       disk_type: string;
       file_type: string;
-      size: number;
+      max: number;
+      min: number;
     };
   };
   sub_zone: string;

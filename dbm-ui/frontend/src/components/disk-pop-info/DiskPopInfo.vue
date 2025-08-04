@@ -17,8 +17,11 @@
             field="mounted_point"
             :label="t('挂载点')" />
           <BkTableColumn
-            field="size"
-            :label="t('容量（G）')" />
+            field="min"
+            :label="t('最小容量（G）')" />
+          <BkTableColumn
+            field="max"
+            :label="t('最大容量（G）')" />
           <BkTableColumn
             field="disk_type"
             :label="t('磁盘类型')">

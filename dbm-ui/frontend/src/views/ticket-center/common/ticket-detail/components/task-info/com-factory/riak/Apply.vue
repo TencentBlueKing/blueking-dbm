@@ -47,19 +47,16 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('资源规格')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="riakSpec"
-          placement="top"
-          theme="light">
+          :data="riakSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ riakSpec.spec_name }}（{{ `${riakSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="riakSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('节点数量')">
@@ -95,12 +92,12 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Riak.Apply>;

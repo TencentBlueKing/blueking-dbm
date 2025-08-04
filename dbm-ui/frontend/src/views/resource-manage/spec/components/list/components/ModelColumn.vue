@@ -41,7 +41,7 @@
                   :key="index">
                   <BkTag class="mb-4">
                     {{
-                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
+                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                     }}
                   </BkTag>
                 </p>

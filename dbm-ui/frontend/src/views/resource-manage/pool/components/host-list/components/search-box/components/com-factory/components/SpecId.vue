@@ -14,19 +14,6 @@
 <template>
   <BkLoading :loading="isResourceSpecLoading">
     <BkComposeFormItem class="search-spec-id">
-      <!-- <BkSelect
-        v-model="currentDbType"
-        :clearable="false"
-        filterable
-        :input-search="false"
-        style="width: 150px"
-        @change="handleClusterChange">
-        <BkOption
-          v-for="item in Object.values(DBTypeInfos)"
-          :key="item.id"
-          :label="item.name"
-          :value="item.id" />
-      </BkSelect> -->
       <BkSelect
         :key="currentDbType"
         v-model="currentMachine"
@@ -69,6 +56,7 @@
   import { type DBInfoItem, DBTypeInfos, DBTypes } from '@common/const';
 
   interface Props {
+    isEnableSpec: boolean;
     model: Record<string, any>;
   }
 
@@ -133,14 +121,18 @@
   );
 
   watch(
-    currentMachine,
+    [currentMachine, () => props.isEnableSpec],
     () => {
       if (currentMachine.value) {
-        fetchResourceSpecList({
+        const params = {
           limit: -1,
           spec_cluster_type: currentDbType.value,
           spec_machine_type: currentMachine.value,
-        });
+        };
+        if (props.isEnableSpec) {
+          Object.assign(params, { enable: props.isEnableSpec });
+        }
+        fetchResourceSpecList(params);
       }
     },
     {
@@ -164,12 +156,6 @@
       immediate: true,
     },
   );
-
-  // const handleClusterChange = (value: DBTypes) => {
-  //   clusterMachineList.value = DBTypeInfos[value]?.machineList || [];
-  //   currentMachine.value = '';
-  //   defaultValue.value = '';
-  // };
 
   const handleChange = (value: ValueType) => {
     defaultValue.value = value;

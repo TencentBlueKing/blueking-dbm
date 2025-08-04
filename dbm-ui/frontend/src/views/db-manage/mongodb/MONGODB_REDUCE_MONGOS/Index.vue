@@ -42,14 +42,13 @@
             :min-width="180">
             <EditableBlock v-if="item.cluster.spec_config.id">
               {{ item.cluster.spec_config.name }}
-              <SpecPanel
+              <SpecDetailPopover
                 v-if="item.cluster.spec_config.id"
-                :data="item.cluster.spec_config"
-                :hide-qps="!item.cluster.spec_config.qps.min">
+                :data="item.cluster.spec_config">
                 <DbIcon
                   class="visible-icon ml-4"
                   type="visible1" />
-              </SpecPanel>
+              </SpecDetailPopover>
             </EditableBlock>
             <EditableBlock
               v-else
@@ -97,7 +96,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import TicketPayload, {
     createTickePayload,
