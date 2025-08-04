@@ -194,36 +194,55 @@ func InstanceSetGVR() schema.GroupVersionResource {
 
 // CreateCluster 创建集群
 func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *coreentity.Request) error {
-	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
-	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
-	}
 	k8sClusterConfig, err := c.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	// check duplicate cluster
+	originClusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	if originClusterEntity != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
+			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
+	}
+
+	// save audit log
+	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
-	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
-	}
-
-	if len(request.Tags) > 0 {
-		if err = c.saveClusterTags(request, clusterEntity); err != nil {
-			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
-		}
-	}
-
+	// install cluster
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
 		slog.Error("failed to install helm release", "error", err)
 		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err)
 	}
 
+	// save metadata of cluster and component
+	clusterEntity, err := c.saveClusterCRMetaData(request, addedRequestEntity.RequestID, k8sClusterConfig.ID)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
+	// save metadata of cluster tag
+	if len(request.Tags) > 0 {
+		if err = c.saveClusterTags(request, clusterEntity); err != nil {
+			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+		}
+	}
+
+	// save metadata of cluster release
 	if err = c.saveClusterRelease(request, k8sClusterConfig, values); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}

@@ -236,6 +236,9 @@ func (k *K8sCrdClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sC
 	if err != nil {
 		return nil, err
 	}
+	if clusterModel == nil {
+		return nil, nil
+	}
 	clusterEntity := &metaentity.K8sCrdClusterEntity{}
 	if err := copier.Copy(clusterEntity, clusterModel); err != nil {
 		return nil, err
@@ -289,6 +292,9 @@ func (k *K8sCrdClusterProviderImpl) FindByParams(params *metaentity.ClusterQuery
 	if err != nil {
 		slog.Error("Failed to find clusterModel by params", "params", params, "error", err)
 		return nil, err
+	}
+	if clusterModel == nil {
+		return nil, nil
 	}
 	clusterEntity := metaentity.K8sCrdClusterEntity{}
 	if err := copier.Copy(&clusterEntity, clusterModel); err != nil {

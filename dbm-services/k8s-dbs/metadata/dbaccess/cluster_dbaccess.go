@@ -21,7 +21,6 @@ package dbaccess
 
 import (
 	"errors"
-	"fmt"
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
@@ -69,6 +68,9 @@ func (k *K8sCrdClusterDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 func (k *K8sCrdClusterDbAccessImpl) FindByID(id uint64) (*models.K8sCrdClusterModel, error) {
 	var cluster models.K8sCrdClusterModel
 	result := k.db.First(&cluster, id)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	if result.Error != nil {
 		slog.Error("Find cluster error", "error", result.Error)
 		return nil, result.Error
@@ -84,7 +86,7 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 	var cluster models.K8sCrdClusterModel
 	result := k.db.Where(params).First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("cluster not found")
+		return nil, nil
 	}
 	if result.Error != nil {
 		slog.Error("Find cluster error", "error", result.Error)
