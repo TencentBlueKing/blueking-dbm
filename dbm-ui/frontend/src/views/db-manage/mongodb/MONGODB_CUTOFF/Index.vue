@@ -49,7 +49,7 @@
             v-model="item.host"
             :cluster-type="formData.clusterType"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleHostBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
             :min-width="200">
@@ -83,9 +83,18 @@
               v-else
               :placeholder="t('自动生成')" />
           </EditableColumn>
+          <!-- <SpecColumnBefore
+            v-model="item.spec_id"
+            :row-data="item" /> -->
           <SpecColumn
             v-model="item.spec_id"
-            :row-data="item" />
+            :cluster-type="DBTypes.MONGODB"
+            field="spec_id"
+            label="新机规格"
+            :machine-type="item.host.machine_type"
+            required
+            selectable
+            @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -122,14 +131,15 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import HostColumn from './components/HostColumn.vue';
-  import SpecColumn from './components/spec-column/Index.vue';
+  // import SpecColumnBefore from './components/spec-column/Index.vue';
 
   interface RowData {
     host: {
@@ -138,7 +148,7 @@
       cluster_id: number;
       cluster_type: MongodbInstanceModel['cluster_type'];
       ip: string;
-      machine_type: MongodbInstanceModel['machine_type'];
+      machine_type: MachineTypes;
       master_domain: string;
       related_clusters: {
         id: number;
@@ -161,7 +171,7 @@
       cluster_id: 0,
       cluster_type: ClusterTypes.MONGO_REPLICA_SET as MongodbInstanceModel['cluster_type'],
       ip: '',
-      machine_type: '' as MongodbInstanceModel['machine_type'],
+      machine_type: '' as MachineTypes,
       master_domain: '',
       related_clusters: [],
       shard: '',
@@ -344,7 +354,7 @@
     });
   };
 
-  const handleBatchEdit = (list: MongodbInstanceModel[]) => {
+  const handleHostBatchEdit = (list: MongodbInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
         acc.push(
@@ -355,7 +365,7 @@
               cluster_id: item.cluster_id,
               cluster_type: item.cluster_type,
               ip: item.ip,
-              machine_type: item.machine_type,
+              machine_type: item.machine_type as MachineTypes,
               master_domain: item.master_domain,
               related_clusters: item.related_clusters
                 .map((cluster) => ({
@@ -372,6 +382,14 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchEdit = (value: string | string[] | number, field: string) => {
+    formData.tableData.forEach((item) => {
+      Object.assign(item, {
+        [field]: value,
+      });
+    });
   };
 
   const getRoleType = (item: RowData) => {

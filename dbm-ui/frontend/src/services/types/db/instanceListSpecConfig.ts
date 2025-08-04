@@ -16,8 +16,9 @@ export interface InstanceListSpecConfig {
     min: number;
   };
   storage_spec: {
+    max: number;
+    min: number;
     mount_point: string;
-    size: number;
     type: string;
   }[];
 }

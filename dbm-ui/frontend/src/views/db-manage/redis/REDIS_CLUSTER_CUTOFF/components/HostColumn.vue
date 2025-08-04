@@ -57,11 +57,10 @@
 
   import { checkInstance } from '@services/source/dbbase';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
+  import type { InstanceInfos, MachineSpecConfig } from '@services/types';
 
   import { DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
-
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
   import ResourceSelector, { type IValue } from './resource-selector/Index.vue';
 
@@ -93,10 +92,10 @@
     related_slave?: {
       bk_host_id: number;
       ip: string;
-      spec_config: SpecInfo;
+      spec_config: MachineSpecConfig;
     }; // 关联的从库ip，仅当role=redis_master时存在
     role: string;
-    spec_config: SpecInfo;
+    spec_config: InstanceInfos['spec_config'];
   }>({
     required: true,
   });
@@ -180,7 +179,7 @@
       ip: value,
       master_domain: '',
       role: '',
-      spec_config: {} as SpecInfo,
+      spec_config: {} as InstanceInfos['spec_config'],
     };
   };
 

@@ -39,18 +39,15 @@
     <InfoItem
       v-if="resourceSpec"
       :label="t('后端存储规格')">
-      <BkPopover
-        placement="top"
-        theme="light">
+      <SpecDetailPopover
+        :data="resourceSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ resourceSpec.spec_name }}（{{ resourceSpec.count }} {{ t('台') }}）
         </span>
-        <template #content>
-          <SpecInfos :data="resourceSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
     </InfoItem>
     <InfoItem
       :label="t('集群设置')"
@@ -101,9 +98,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.SingleApply>;

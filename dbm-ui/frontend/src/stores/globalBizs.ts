@@ -50,6 +50,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
     bizListWithPublic: (state) => {
       return [PUBLIC_BIZ_INFO].concat(state.bizs);
     },
+    bizNameMap: (state) => Object.fromEntries(state.bizs.map((item) => [item.name, item.bk_biz_id])),
     currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
     publicBiz: () => PUBLIC_BIZ_INFO,
   },

@@ -33,7 +33,7 @@
                 </BkTag>
               </div>
             </template>
-            <strong>{{ t('磁盘') }}: </strong>
+            <strong>{{ t('数据盘') }}: </strong>
             <div class="resource-machine-info-values">
               <template v-if="data.storage_spec.length > 0">
                 <p
@@ -41,7 +41,7 @@
                   :key="index">
                   <BkTag class="mb-4">
                     {{
-                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
+                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${t('最大容量')}: ${item.max} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                     }}
                   </BkTag>
                 </p>
@@ -74,13 +74,13 @@
             </BkTag>
           </template>
           <BkTag class="machine-info-storage">
-            {{ t('磁盘') }} =
+            {{ t('数据盘') }} =
             <template v-if="data.storage_spec.length > 0">
               <span
                 v-for="(item, index) in data.storage_spec"
                 :key="index">
                 {{
-                  `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
+                  `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${t('最大容量')}: ${item.max} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                 }}
               </span>
             </template>

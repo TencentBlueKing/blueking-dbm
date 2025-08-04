@@ -18,7 +18,7 @@
       'not-required': !isRequired,
     }">
     <div class="spec-form-item-label">
-      {{ t('磁盘') }}
+      {{ t('数据盘') }}
     </div>
     <div class="spec-form-item-content">
       <BkButton
@@ -43,9 +43,9 @@
             :append-rules="mountPointRules"
             field="mount_point"
             :label="t('挂载点')"
-            :min-width="180"
+            :min-width="170"
             :required="isRequired"
-            :width="200">
+            :width="170">
             <EditableInput
               v-model="item.mount_point"
               v-bk-tooltips="{
@@ -59,20 +59,38 @@
           </EditableColumn>
           <EditableColumn
             :append-rules="minCapacityRules"
-            field="size"
-            :label="t('最小容量G')"
-            :min-width="180"
+            field="min"
+            :label="t('最小容量（G）')"
             :required="isRequired"
-            :width="200">
+            :width="110">
             <EditableInput
               ref="minCapacityRef"
-              v-model="item.size"
+              v-model="item.min"
               v-bk-tooltips="{
                 content: t('该规格已被使用，不允许修改'),
                 disabled: editable,
               }"
               :disabled="!editable"
-              :max="20000"
+              :max="2147483647"
+              :min="10"
+              type="number"
+              @change="handleRowValueChange" />
+          </EditableColumn>
+          <EditableColumn
+            :append-rules="maxCapacityRules"
+            field="max"
+            :label="t('最大容量（G）')"
+            :required="isRequired"
+            :width="120">
+            <EditableInput
+              ref="maxCapacityRef"
+              v-model="item.max"
+              v-bk-tooltips="{
+                content: t('该规格已被使用，不允许修改'),
+                disabled: editable,
+              }"
+              :disabled="!editable"
+              :max="2147483647"
               :min="10"
               type="number"
               @change="handleRowValueChange" />
@@ -80,7 +98,7 @@
           <EditableColumn
             :append-rules="diskTypRules"
             field="type"
-            :label="t('磁盘类型')"
+            :label="t('数据盘类型')"
             :min-width="100"
             :required="isRequired"
             :width="120">
@@ -106,6 +124,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -114,8 +133,10 @@
   import { DBTypes, DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   interface InfoItem {
+    max: string | number;
+    min: string | number;
     mount_point: string;
-    size: string | number;
+    size?: number;
     type: string;
   }
 
@@ -128,12 +149,13 @@
     dbType: string;
     editable: boolean;
     isRequired?: boolean;
+    mode: 'create' | 'edit' | 'clone';
   }
 
   type Emits = (e: 'table-value-change') => void;
 
   interface Exposes {
-    getValue: () => Promise<InfoItem[]>;
+    getValue: () => Promise<({ size?: number } & InfoItem)[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -145,11 +167,18 @@
 
   const { t } = useI18n();
 
-  const createRowData = (data = {} as InfoItem) => ({
-    mount_point: data.mount_point || '',
-    size: data.size || ('' as string | number),
-    type: data.type || '',
-  });
+  const createRowData = (data = {} as InfoItem) => {
+    const rowData = {
+      max: data.max || ('' as string | number),
+      min: data.min || ('' as string | number),
+      mount_point: data.mount_point || '',
+      type: data.type || '',
+    };
+    if (_.has(data, 'size')) {
+      Object.assign(rowData, { size: data.size });
+    }
+    return rowData;
+  };
 
   const editableTableRef = useTemplateRef('editableTableRef');
 
@@ -168,10 +197,10 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.size && !rowData.type) {
+          if (!value && !rowData.max && !rowData.min && !rowData.type) {
             return true;
           }
-          if ((rowData.size || rowData.type) && !value) {
+          if ((rowData.max || rowData.min || rowData.type) && !value) {
             return false;
           }
         }
@@ -210,6 +239,30 @@
     },
   ];
 
+  const maxCapacityRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IDataRow }) => {
+        // 非必填且所有输入框没有输入
+        if (!props.isRequired) {
+          if (!value && !rowData.min && !rowData.mount_point && !rowData.type) {
+            return true;
+          }
+          if ((rowData.min || rowData.mount_point || rowData.type) && !value) {
+            return false;
+          }
+        }
+
+        if (props.isRequired && !value) {
+          return false;
+        }
+
+        return true;
+      },
+    },
+  ];
+
   const minCapacityRules = [
     {
       message: t('不能为空'),
@@ -217,10 +270,10 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.mount_point && !rowData.type) {
+          if (!value && !rowData.max && !rowData.mount_point && !rowData.type) {
             return true;
           }
-          if ((rowData.mount_point || rowData.type) && !value) {
+          if ((rowData.max || rowData.mount_point || rowData.type) && !value) {
             return false;
           }
         }
@@ -241,10 +294,10 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.mount_point && !rowData.size) {
+          if (!value && !rowData.mount_point && !rowData.max && !rowData.min) {
             return true;
           }
-          if ((rowData.mount_point || rowData.size) && !value) {
+          if ((rowData.mount_point || rowData.max || rowData.min) && !value) {
             return false;
           }
         }
@@ -294,12 +347,17 @@
         : editableTableRef.value!.validate().then((validateResult) => {
             if (validateResult) {
               return tableData.value.reduce<InfoItem[]>((prevList, row) => {
-                if (row.mount_point && row.size && row.type) {
-                  return prevList.concat({
+                if (row.mount_point && row.max && row.min && row.type) {
+                  const item = {
+                    max: row.max,
+                    min: row.min,
                     mount_point: row.mount_point,
-                    size: row.size,
                     type: row.type,
-                  });
+                  };
+                  if (props.mode === 'edit' && _.has(row, 'size')) {
+                    Object.assign(item, { size: item.min });
+                  }
+                  return prevList.concat(item);
                 }
                 return prevList;
               }, []);

@@ -24,7 +24,6 @@
           <div class="item-content">
             <RenderSpec
               :data="proxySpec"
-              :hide-qps="!proxySpec?.qps.max"
               is-ignore-counts />
           </div>
         </div>
@@ -45,7 +44,6 @@
           <div class="item-content">
             <RenderSpec
               :data="backendSpec"
-              :hide-qps="!backendSpec?.qps.max"
               is-ignore-counts />
           </div>
         </div>

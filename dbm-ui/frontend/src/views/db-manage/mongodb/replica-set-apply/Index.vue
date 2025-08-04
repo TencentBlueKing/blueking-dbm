@@ -292,7 +292,7 @@
   });
 
   const estimatedCapacity = computed(() => {
-    const clusterCapacity = specRef.value?.getData().storage_spec?.[0].size || 0;
+    const clusterCapacity = specRef.value?.getData().storage_spec?.[0].min || 0;
     const capacityPercentage = formData.details.oplog_percent;
 
     return Math.round(clusterCapacity * (capacityPercentage / 100));

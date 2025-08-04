@@ -55,7 +55,7 @@ export interface InstanceInfos {
       max: number;
       min: number;
     };
-    device_class: string;
+    device_class: string[];
     id: number;
     mem: {
       max: number;
@@ -67,8 +67,9 @@ export interface InstanceInfos {
       min: number;
     };
     storage_spec: {
+      max: number;
+      min: number;
       mount_point: string;
-      size: number;
       type: string;
     }[];
   };

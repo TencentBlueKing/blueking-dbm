@@ -18,11 +18,20 @@
     <div class="wrapper">
       <div class="search-item-label">
         {{ config.label }}
+        <div
+          v-if="name === 'spec_id'"
+          class="enable-checkbox">
+          <BkCheckbox
+            v-model="isEnableSpec"
+            class="mr-6" />
+          {{ t('仅显示【已启用】') }}
+        </div>
       </div>
       <Component
         :is="renderCom"
         ref="handleRef"
         :default-value="model[name]"
+        :is-enable-spec="isEnableSpec"
         :model="model"
         :name="name"
         v-bind="{ ...inhertProps, ...listeners }"
@@ -38,6 +47,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { useListeners, useProps } from '@hooks';
 
@@ -74,9 +84,11 @@
 
   const inhertProps = useProps();
   const listeners = useListeners();
+  const { t } = useI18n();
 
   const handleRef = ref();
   const errorMessage = ref('');
+  const isEnableSpec = ref(true);
 
   const comMap = {
     agent_status: AgentStatus,
@@ -147,10 +159,20 @@
     }
 
     .search-item-label {
+      display: flex;
+      align-items: flex-start;
       margin-bottom: 6px;
       font-size: 12px;
       line-height: 20px;
       color: #63656e;
+
+      .enable-checkbox {
+        display: flex;
+        margin-left: 8px;
+        font-size: 12px;
+        color: #4d4f56;
+        align-items: center;
+      }
     }
 
     .search-item-error {
