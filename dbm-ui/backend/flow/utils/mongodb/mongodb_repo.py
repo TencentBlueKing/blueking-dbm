@@ -110,6 +110,12 @@ class ReplicaSet:
             return i.bk_cloud_id
         return None
 
+    def op_title(self, op: str, node: MongoNode) -> str:
+        """
+        返回操作的标题. 比如: RS-test-清档
+        """
+        return "{}:{}({}:{})".format(op, self.set_name, node.ip, node.port)
+
     def __json__(self):
         return {
             "set_name": self.set_name,
@@ -176,6 +182,20 @@ class MongoDBCluster:
 
     def get_bk_cloud_id(self) -> int:
         return self.bk_cloud_id
+
+    def op_title(self, op: str) -> str:
+        """
+        返回操作的标题. 比如: RS-test-清档
+        """
+        return "{}:{}:{}".format(op, self.cluster_type_abbr(), self.name)
+
+    def cluster_type_abbr(self) -> str:
+        if self.cluster_type == ClusterType.MongoReplicaSet:
+            return "RS"
+        elif self.cluster_type == ClusterType.MongoShardedCluster:
+            return "SH"
+        else:
+            return "NONE"
 
     def is_sharded_cluster(self) -> bool:
         return self.cluster_type == str(ClusterType.MongoShardedCluster.value)

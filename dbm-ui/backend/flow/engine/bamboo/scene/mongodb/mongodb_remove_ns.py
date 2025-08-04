@@ -12,15 +12,17 @@ import logging.config
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_op import InstanceOpSubTask
+from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.remove_ns import RemoveNsSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
@@ -69,8 +71,8 @@ class MongoRemoveNsFlow(MongoBaseFlow):
         actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
 
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
-        sub_pipelines = []
         bk_host_list = []
+        cluster_pipes = []
 
         cluster_id_list = [row["cluster_id"] for row in self.payload["infos"]]
         clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
@@ -82,28 +84,90 @@ class MongoRemoveNsFlow(MongoBaseFlow):
             except Exception as e:
                 logger.exception("check_cluster_valid fail")
                 raise Exception("check_cluster_valid fail cluster_id:{} {}".format(cluster_id, e))
+            cluster_sb = SubBuilder(root_id=self.root_id, data=self.payload)
+            sub_bk_host_list = self.process_cluster(row, cluster, actuator_workdir, cluster_sb)
+            cluster_pipes.append(cluster_sb.build_sub_process(cluster.op_title(_("清档"))))
 
-            sub_pl, sub_bk_host_list = RemoveNsSubTask.process_cluster(
-                root_id=self.root_id,
-                ticket_data=self.payload,
-                sub_ticket_data=row,
-                cluster=cluster,
-                file_path=actuator_workdir,
-            )
             bk_host_list.extend(sub_bk_host_list)
-            sub_pipelines.append(sub_pl.build_sub_process(_("清档-{}").format(cluster.name)))
 
-            # 介质下发 bk_host_list 在SendMedia.act会去重.
-            pipeline.add_act(
-                **SendMedia.act(
-                    act_name=_("MongoDB-介质下发({}个IP)".format(len(bk_host_list))),
-                    file_list=file_list,
-                    bk_host_list=bk_host_list,
-                    file_target_path=actuator_workdir,
-                )
+        # step1 下发介质. ip会去重.
+        pipeline.add_act(
+            **SendMedia.act(
+                act_name=_("MongoDB-介质下发({})".format(len(set([host["ip"] for host in bk_host_list])))),
+                file_list=file_list,
+                bk_host_list=bk_host_list,
+                file_target_path=actuator_workdir,
             )
-
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        )
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
 
         # 运行流程
         pipeline.run_pipeline()
+
+    # do_backup_cluster 处理单个集群
+    # cluster    -> remove_ns -> flushRouterConfig
+    # replicaSet -> remove_ns -> do_nothing
+    def process_cluster(self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, cluster_sb: SubBuilder):
+        # 创建子流程
+        host_list = []
+        exec_list = self.remove_ns(row, cluster, actuator_workdir, cluster_sb)
+        if exec_list:
+            host_list.extend(exec_list)
+        else:
+            raise Exception("remove_ns fail, no connect node. cluster:{}".format(cluster.name))
+
+        if cluster.is_sharded_cluster():
+            exec_list = self.flush_router_config(
+                sub_ticket_data=row,
+                cluster=cluster,
+                file_path=actuator_workdir,
+                cluster_sb=cluster_sb,
+            )
+            if exec_list:
+                host_list.extend(exec_list)
+
+        return host_list
+
+    def remove_ns(self, row: Dict, cluster: MongoDBCluster, actuator_workdir: str, cluster_sb: SubBuilder):
+        sb = SubBuilder(root_id=self.root_id, data=self.payload)
+        host_list = []
+        act = RemoveNsSubTask.remove_ns_act(
+            sub_ticket_data=row,
+            cluster=cluster,
+            file_path=actuator_workdir,
+        )
+        sb.add_parallel_acts(acts_list=[act])
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(cluster.op_title(_("remove_ns"))))
+        host_list.append({"ip": act["kwargs"]["exec_ip"], "bk_cloud_id": act["kwargs"]["bk_cloud_id"]})
+        return host_list
+
+    def flush_router_config(
+        self, sub_ticket_data: Optional[Dict], cluster: MongoDBCluster, file_path: str, cluster_sb: SubBuilder
+    ) -> Dict:
+        """
+        cluster can be  a ReplicaSet or  a ShardedCluster
+        """
+        if not cluster.is_sharded_cluster():
+            return None
+        mongos_nodes = cluster.get_mongos()
+        if not mongos_nodes:
+            raise Exception("no mongos nodes. cluster:{}".format(cluster.name))
+        # 获取所有mongos节点，下发flushRouterConfig任务
+        sb = SubBuilder(root_id=self.root_id, data=self.payload)
+        exec_ip_list = []
+        acts_list = []
+        for mongos_node in mongos_nodes:
+            acts_list.append(
+                {
+                    "act_name": _("exec {}:{}".format(mongos_node.ip, mongos_node.port)),
+                    "act_component_code": ExecJobComponent2.code,
+                    "kwargs": InstanceOpSubTask.make_kwargs(
+                        exec_node=mongos_node, file_path=file_path, op="flush_router_config"
+                    ),
+                }
+            )
+            exec_ip_list.append({"ip": mongos_node.ip, "bk_cloud_id": mongos_node.bk_cloud_id})
+        sb.add_parallel_acts(acts_list=acts_list)
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process("flushRouterConfig"))
+
+        return exec_ip_list

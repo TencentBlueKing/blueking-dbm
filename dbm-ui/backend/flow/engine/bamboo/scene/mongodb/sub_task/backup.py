@@ -13,11 +13,10 @@ from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
+from backend.flow.consts import MongoDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb import mongodb_password
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNodeWithLabel, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
@@ -48,11 +47,7 @@ class BackupSubTask(BaseSubTask):
             raise Exception("no backup node. rs:{}".format(rs.set_name))
         cls.parse_ns_filter(sub_payload)
         node = nodes[0]
-
-        dba_user = MongoDBManagerUser.DbaUser.value
-        dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
-            node.ip, int(node.port), node.bk_cloud_id, dba_user
-        )["password"]
+        dba_user, dba_pwd = MongoUtil().get_dba_user_password(node.ip, node.port, node.bk_cloud_id)
 
         ns_filter = sub_payload["ns_filter"]
         is_partial = MongoDBNsFilter.is_partial(ns_filter)
@@ -85,6 +80,7 @@ class BackupSubTask(BaseSubTask):
             },
         }
 
+    # 备份集群。 deprecated
     @classmethod
     def process_cluster(
         cls,
@@ -95,14 +91,13 @@ class BackupSubTask(BaseSubTask):
         file_path: str,
     ) -> Tuple[SubBuilder, List]:
         """
-        backup a ReplicaSet or backup a ShardedCluster
         file_path 为 actuator_workdir 所在的分区MountPoint
         """
 
         # 创建子流程
         sb = SubBuilder(root_id=root_id, data=ticket_data)
         acts_list = []
-        for rs in cluster.get_shards():
+        for rs in cluster.get_shards(with_config=True):
             kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, cluster, file_path)
             exec_ip = kwargs["exec_ip"]
             port = kwargs["db_act_template"]["payload"]["port"]

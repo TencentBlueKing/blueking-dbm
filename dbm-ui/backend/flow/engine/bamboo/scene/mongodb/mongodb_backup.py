@@ -12,15 +12,16 @@ import logging.config
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
+from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.backup import BackupSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNode, MongoRepository
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
@@ -70,12 +71,11 @@ class MongoBackupFlow(MongoBaseFlow):
 
         # 解析输入 确定每个输入的域名实例都存在.
         # 1. 解析每个集群Id的节点列表
-        # 2. 备份一般在某个Secondary且非Backup节点上执行
+        # 2. 备份一般在某个m1,m2节点上执行
         # 3. 获得密码列表
         # 4. 生成并发子任务.
         # 介质下发——job的api可以多个IP并行执行
 
-        sub_pipelines = []
         # bk_host {ip:"1.1.1.1", bk_cloud_id: "0"}
         bk_host_list = []
 
@@ -85,6 +85,7 @@ class MongoBackupFlow(MongoBaseFlow):
 
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.payload)
+        cluster_pipes = []
 
         for row in self.payload["infos"]:
             try:
@@ -94,35 +95,52 @@ class MongoBackupFlow(MongoBaseFlow):
             except Exception as e:
                 logger.exception("check_cluster_valid fail")
                 raise Exception("check_cluster_valid fail cluster_id:{} {}".format(row["cluster_id"], e))
-            logger.debug("sub_pipline start row", row)
-            print("sub_pipline start cluster", cluster)
 
-            sub_pl, sub_bk_host_list = BackupSubTask.process_cluster(
-                root_id=self.root_id,
-                ticket_data=self.payload,
-                sub_ticket_data=row,
-                cluster=cluster,
-                file_path=actuator_workdir,
-            )
-            if sub_pl is None:
-                raise Exception("sub_pl is None")
-            if sub_bk_host_list is None or len(sub_bk_host_list) == 0:
-                raise Exception("sub_bk_host_list is None")
-
+            cluster_sb = SubBuilder(root_id=self.root_id, data=self.payload)
+            sub_bk_host_list = self.process_cluster(row, cluster, actuator_workdir, cluster_sb)
+            cluster_pipes.append(cluster_sb.build_sub_process(cluster.op_title(_("备份集群"))))
             bk_host_list.extend(sub_bk_host_list)
-            sub_pipelines.append(sub_pl.build_sub_process(_("Backup:{}").format(cluster.immute_domain)))
 
         # 介质下发 bk_host_list 在SendMedia.act会去重.
         pipeline.add_act(
             **SendMedia.act(
-                act_name=_("MongoDB-介质下发"),
+                act_name=_("MongoDB-介质下发({})".format(len(set([host["ip"] for host in bk_host_list])))),
                 file_list=file_list,
                 bk_host_list=bk_host_list,
                 file_target_path=actuator_workdir,
             )
         )
         # 并行执行备份
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         # 运行流程
         pipeline.run_pipeline()
+
+    # 处理单个集群
+    def process_cluster(
+        self, sub_ticket_data: Dict, cluster: MongoDBCluster, actuator_workdir: str, cluster_sb: SubBuilder
+    ):
+        return self.backup_cluster(sub_ticket_data, cluster, actuator_workdir, cluster_sb)
+
+    # 备份集群
+    def backup_cluster(
+        self, sub_ticket_data: Dict, cluster: MongoDBCluster, actuator_workdir: str, cluster_sb: SubBuilder
+    ):
+        # backup_cluster 创建子流程， 对每个shard下发备份任务
+        sb = SubBuilder(root_id=self.root_id, data=self.payload)
+        acts_list = []
+        bk_host_list = []
+        for rs in cluster.get_shards(with_config=True):
+            kwargs = BackupSubTask.make_kwargs(self.payload, sub_ticket_data, rs, cluster, actuator_workdir)
+            exec_ip = kwargs["exec_ip"]
+            port = kwargs["db_act_template"]["payload"]["port"]
+            bk_host_list.append({"ip": exec_ip, "bk_cloud_id": 0})
+            acts_list.append(
+                {
+                    "act_name": rs.op_title(_("exec"), MongoNode(exec_ip, port, "", 0, "", "")),
+                    "act_component_code": ExecJobComponent2.code,
+                    "kwargs": kwargs,
+                }
+            )
+        sb.add_parallel_acts(acts_list=acts_list)
+        cluster_sb.add_sub_pipeline(sub_flow=sb.build_sub_process(cluster.op_title(_("备份分片"))))
+        return bk_host_list
