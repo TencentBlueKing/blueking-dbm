@@ -165,7 +165,7 @@ export class FlowGraph {
             skipOptFill: '#DCDEE5',
           },
           skipImageBackgroundColorHover: {
-            skipImageBackgroundColor: '6CA633',
+            skipImageBackgroundColor: '#6CA633',
           },
           todoImageBackgroundColorHover: {
             todoImageBackgroundColor: '#E38B02',
