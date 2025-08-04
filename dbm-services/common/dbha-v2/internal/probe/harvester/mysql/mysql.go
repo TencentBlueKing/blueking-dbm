@@ -34,17 +34,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"fmt"
-	"net"
-	"strconv"
 	"sync"
 	"time"
-
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/shirou/gopsutil/v4/load"
-	"github.com/shirou/gopsutil/v4/mem"
-	gopsutilnet "github.com/shirou/gopsutil/v4/net"
-	"gorm.io/gorm"
 )
 
 const (
@@ -57,15 +48,11 @@ type MySql struct {
 	// NOTE: Must include UnimplementedMethod
 	plugin.UnimplementedMethod
 
+	machineID      string
+	serviceID      string
 	wg             sync.WaitGroup
 	cfg            config.HarvesterConfig
 	historyMetrics map[string]*haprobe.DatabaseMetric
-}
-
-// GlobalStatus is a struct for mysql global status
-type GlobalStatus struct {
-	Variable string `gorm:"column:Variable_name"`
-	Value    string `gorm:"column:Value"`
 }
 
 // NewMySql constructor
@@ -108,63 +95,6 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, error) {
 	return dbs, nil
 }
 
-// Name returns the name of the plugin.
-func (m *MySql) Name() (string, error) {
-	return Name, nil
-}
-
-// Version returns the version of the plugin.
-func (m *MySql) Version() (string, error) {
-	return Version, nil
-}
-
-// Close closes the plugin.
-func (m *MySql) Close() error {
-	logger.Info("MySQL harvester plugin closed successfully")
-	return nil
-}
-
-// Harvest harvests data from the target instance.
-func (m *MySql) Harvest(ctx context.Context) (<-chan *plugin.HarvestData, error) {
-	logger.Info("start mysql harvest, interval time is: %v", m.cfg.Interval)
-
-	dataC := make(chan *plugin.HarvestData, 1024)
-
-	m.wg.Add(1)
-	go func(ctx context.Context) {
-		defer m.wg.Done()
-		defer close(dataC)
-
-		ticker := time.NewTicker(m.cfg.Interval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				logger.Info(" exit mysql harvest plugin")
-				return
-
-			case <-ticker.C:
-				// collect data from the target instance.
-				metrics, err := m.collectAndSaveMetrics()
-				if err != nil {
-					logger.Error("failed to collect mysql metrics: %v", err)
-					// Retry next instance if failed to maintain availability
-					continue
-				}
-
-				logger.Debug("mysql harvest data(%v)", *metrics)
-
-				dataC <- &plugin.HarvestData{
-					Value: metrics,
-				}
-			}
-		}
-	}(ctx)
-
-	return dataC, nil
-}
-
 // collectAndSaveMetrics collects and saves metrics.
 func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
 	// 1. collect metrics from system
@@ -186,12 +116,12 @@ func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
 	// 3. combine metrics
 	metrics := &haprobe.MySQLMetric{
 		SequenceID:      0,
-		MachineID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TOOD: hard code only test
+		MachineID:       m.machineID,
 		MessageID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TODO: hard code only test
-		ServiceID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TODO: hard code only test
+		ServiceID:       m.serviceID,
 		ReportTimestamp: uint64(time.Now().Unix()),
 		Host:            systemMetric,
-		Databases:       mysqlMetrics, // slice,mysql instance metrics
+		Databases:       mysqlMetrics, // slice, mysql instance metrics
 	}
 
 	return metrics, nil
@@ -201,194 +131,22 @@ func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
 func (m *MySql) collectSystemMetrics() (*haprobe.HostMetric, error) {
 
 	systemMetric := &haprobe.HostMetric{}
-	if err := getCPUMetrics(systemMetric); err != nil {
-		logger.Info(" failed to harvest CPU info. errmsg: %v", err)
+	if err := obtainCPUMetrics(systemMetric); err != nil {
+		logger.Info("failed to harvest CPU info. errmsg: %v", err)
 		return systemMetric, err
 	}
 
-	if err := getStorageMetrics(systemMetric); err != nil {
-		logger.Info(" failed to harvest Swap/Memory/Disk info. errmsg: %v", err)
+	if err := obtainStorageMetrics(systemMetric); err != nil {
+		logger.Info("failed to harvest Swap/Memory/Disk info. errmsg: %v", err)
 		return systemMetric, err
 	}
 
-	if err := getNetworkMetrics(systemMetric); err != nil {
-		logger.Info(" failed to harvest Network info. errmsg: %v", err)
+	if err := obtainNetworkMetrics(systemMetric); err != nil {
+		logger.Info("failed to harvest Network info. errmsg: %v", err)
 		return systemMetric, err
 	}
 
 	return systemMetric, nil
-}
-
-func getCPUMetrics(systemMetric *haprobe.HostMetric) error {
-	// CPU
-	cpuPercent, err := cpu.Percent(1*time.Second, false)
-	if err != nil {
-		return err
-	}
-
-	cpuTimes, err := cpu.Times(false)
-	if err == nil && len(cpuTimes) > 0 {
-		//systemMetric.CPUUserPercent = cpuTimes[0].User / cpuTimes[0].Total() * 100
-		//systemMetric.CPUSystemPercent = cpuTimes[0].System / cpuTimes[0].Total() * 100
-		//systemMetric.CPUIOWaitPercent = cpuTimes[0].Iowait / cpuTimes[0].Total() * 100
-	}
-
-	if len(cpuPercent) > 0 {
-		systemMetric.CPUUsagePercent = cpuPercent[0]
-	}
-	// CPU load
-	load, err := load.Avg()
-	if err == nil {
-		systemMetric.CPULoad1 = load.Load1
-		systemMetric.CPULoad5 = load.Load5
-		systemMetric.CPULoad15 = load.Load15
-	}
-
-	return nil
-}
-
-func getStorageMetrics(systemMetric *haprobe.HostMetric) error {
-	// Memory
-	memory, err := mem.VirtualMemory()
-	if err == nil {
-		systemMetric.MemTotalMB = memory.Total / 1024 / 1024
-		systemMetric.MemUsedMB = memory.Used / 1024 / 1024
-		systemMetric.MemFreeMB = memory.Free / 1024 / 1024
-		systemMetric.MemCacheMB = memory.Cached / 1024 / 1024
-		systemMetric.MemAvailableMB = memory.Available / 1024 / 1024
-	}
-
-	// Swap
-	swap, err := mem.SwapMemory()
-	if err == nil {
-		systemMetric.SwapTotalMB = swap.Total / 1024 / 1024
-		systemMetric.SwapUsedMB = swap.Used / 1024 / 1024
-	}
-
-	// Disk
-	partitions, err := disk.Partitions(false)
-	if err != nil {
-		logger.Error(" failed to get partitions info. errmsg: %v", err)
-		return err
-	}
-
-	for _, partition := range partitions {
-		usageStat, err := disk.Usage(partition.Mountpoint)
-		if err != nil {
-			logger.Error(" failed to get disk usage info. errmsg: %v", err)
-			continue
-		}
-
-		systemMetric.DiskUsagePercent += usageStat.UsedPercent / 2
-		systemMetric.DiskTotal += usageStat.Total / 1024 / 1024
-		systemMetric.DiskUsed += usageStat.Used / 1024 / 1024
-		systemMetric.DiskAvailable += usageStat.Free / 1024 / 1024
-
-		for _, opt := range partition.Opts {
-			if opt == "ro" {
-				systemMetric.DiskReadOnly = true
-			}
-		}
-	}
-	return nil
-}
-
-func getNetworkMetrics(systemMetric *haprobe.HostMetric) error {
-	// Network
-	ipAddress := ""
-	ifaces, err := net.Interfaces()
-	if err == nil {
-		for _, iface := range ifaces {
-			if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
-				continue
-			}
-
-			addrs, err := iface.Addrs()
-			if err != nil {
-				continue
-			}
-
-			for _, addr := range addrs {
-				var ip net.IP
-				switch v := addr.(type) {
-				case *net.IPNet:
-					ip = v.IP
-				case *net.IPAddr:
-					ip = v.IP
-				}
-
-				// skip ipv6
-				if ip == nil || ip.IsLoopback() || !ip.IsGlobalUnicast() {
-					continue
-				}
-
-				if ipAddress != "" {
-					ipAddress += ", "
-				}
-				ipAddress += ip.String()
-			}
-		}
-	}
-	systemMetric.NetIpAddress = ipAddress
-
-	// Network usage
-	networkUsage := ""
-	netIO, err := gopsutilnet.IOCounters(true)
-	if err == nil {
-		for _, io := range netIO {
-			networkUsage += fmt.Sprintf("%s rx=%dB, tx=%dB; ", io.Name, io.BytesRecv, io.BytesSent)
-			systemMetric.NetBytesIn += io.BytesRecv
-			systemMetric.NetBytesOut += io.BytesSent
-		}
-	}
-	systemMetric.NetUsage = networkUsage
-
-	// Network TCP connections
-	netTCP, err := gopsutilnet.Connections("tcp")
-	if err == nil {
-		systemMetric.NetTCPConnections = uint(len(netTCP))
-	}
-
-	// Network packet loss
-	systemMetric.NetPacketLossIn, systemMetric.NetPacketLossOut = getPacketLoss()
-	return nil
-}
-
-// getPacketLoss get network packet loss rate
-func getPacketLoss() (lossRateIn float64, lossRateOut float64) {
-
-	stats1, err := gopsutilnet.IOCounters(true)
-	if err != nil {
-		fmt.Printf("failed to get netwokr stats: %v\n", err)
-		return
-	}
-
-	time.Sleep(1 * time.Second)
-
-	stats2, err := gopsutilnet.IOCounters(true)
-	if err != nil {
-		fmt.Printf(" failed to get network info: %v\n", err)
-		return
-	}
-	statsLen := len(stats1)
-	for i := range stats1 {
-		if stats1[i].Name != stats2[i].Name {
-			continue
-		}
-
-		dropIn := stats2[i].Dropin - stats1[i].Dropin
-		dropOut := stats2[i].Dropout - stats1[i].Dropout
-		packetsIn := stats2[i].PacketsRecv - stats1[i].PacketsRecv
-		packetsOut := stats2[i].PacketsSent - stats1[i].PacketsSent
-
-		if packetsIn > 0 {
-			lossRateIn += float64(dropIn) / float64(packetsIn) / float64(statsLen) * 100
-		}
-		if packetsOut > 0 {
-			lossRateOut += float64(dropOut) / float64(packetsOut) / float64(statsLen) * 100
-		}
-	}
-	return lossRateIn, lossRateOut
 }
 
 // collectMySQLInfo collect all instances MySQL metrics.
@@ -426,71 +184,6 @@ func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, error) {
 	return allDbMetrics, nil
 }
 
-// collectMySQLInfo collect single instance MySQL metrics.
-func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric) error {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-
-	if err := sqlDB.Ping(); err != nil {
-		return err
-	}
-
-	var globalStatusList []GlobalStatus
-	err = db.Raw("SHOW GLOBAL STATUS").Scan(&globalStatusList).Error
-	if err != nil {
-		return err
-	}
-
-	globalStatus := make(map[string]string)
-	for _, status := range globalStatusList {
-		globalStatus[status.Variable] = status.Value
-	}
-
-	// Connection status
-	getConnectionStatus(globalStatus, dbMetric)
-
-	// Query status
-	getQueryStatus(globalStatus, dbMetric)
-
-	// Average QPS/TPS
-
-	// Query cache
-	getQueryCache(globalStatus, dbMetric)
-
-	// Table Status
-	getTableStatus(globalStatus, dbMetric)
-
-	// BinLog
-	getBinlog(globalStatus, dbMetric)
-	// performance Schema
-	getPerformanceSchema(globalStatus, dbMetric)
-	// Others
-	getOtherMetrics(globalStatus, dbMetric)
-
-	var version string
-	err = db.Raw("SELECT VERSION() as version").Scan(&version).Error
-	if err == nil {
-		dbMetric.Version = version
-	}
-
-	var portResult GlobalStatus
-	err = db.Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
-	if err == nil {
-		if port, err := strconv.Atoi(portResult.Value); err == nil {
-			dbMetric.ListenPort = port
-		}
-	}
-
-	// Key buffer read hit rate
-	if dbMetric.KeyReadRequests != 0 {
-		dbMetric.KeyBufferHitRate = float64(dbMetric.KeyReads) / float64(dbMetric.KeyReadRequests)
-	}
-
-	return nil
-}
-
 // calculateRealTimeQPS to calculate realtime QPS
 func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe.DatabaseMetric) {
 
@@ -523,112 +216,62 @@ func (m *MySql) calculateRealTimeQPS(instanceName string, currentMetric *haprobe
 	m.historyMetrics[instanceName] = currentMetric
 }
 
-// Connection status
-func getConnectionStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToInt(globalStatus, "Threads_running", &dbMetric.ThreadsRunning)
-	transferToInt(globalStatus, "Aborted_connects", &dbMetric.ConnectionsAborted)
-	transferToInt(globalStatus, "Connections", &dbMetric.Connections)
-	transferToInt(globalStatus, "Connection_errors_accept", &dbMetric.ConnectionsErrorsAccept)
-	transferToInt(globalStatus, "Connection_errors_internal", &dbMetric.ConnectionsErrorsInternal)
-	transferToInt(globalStatus, "Connection_errors_peer_address", &dbMetric.ConnectionsErrorsPeerAddr)
+// Name returns the name of the plugin.
+func (m *MySql) Name() (string, error) {
+	return Name, nil
 }
 
-// Query status
-func getQueryStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToUint64(globalStatus, "Queries", &dbMetric.QueryTotal)
-	transferToUint64(globalStatus, "Questions", &dbMetric.QueryQuestions)
-	transferToUint64(globalStatus, "Com_select", &dbMetric.QuerySelects)
-	transferToUint64(globalStatus, "Com_insert", &dbMetric.QueryInserts)
-	transferToUint64(globalStatus, "Com_update", &dbMetric.QueryUpdates)
-	transferToUint64(globalStatus, "Com_delete", &dbMetric.QueryDeletes)
-	transferToUint64(globalStatus, "Slow_queries", &dbMetric.QuerySlow)
+// Version returns the version of the plugin.
+func (m *MySql) Version() (string, error) {
+	return Version, nil
 }
 
-// Query cache
-func getQueryCache(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToUint64(globalStatus, "Key_read_requests", &dbMetric.KeyReadRequests)
-	transferToUint64(globalStatus, "Key_reads", &dbMetric.KeyReads)
-	transferToUint64(globalStatus, "Qcache_hits", &dbMetric.QCacheHits)
-	transferToUint64(globalStatus, "Qcache_inserts", &dbMetric.QCacheInserts)
-	transferToUint64(globalStatus, "Qcache_lowmen_prunes", &dbMetric.QCachePrunes)
-	transferToUint64(globalStatus, "Qcache_not_cached", &dbMetric.QCacheNotCached)
-	transferToUint64(globalStatus, "Qcache_total_blocks", &dbMetric.QCacheTotalBlocks)
-	transferToUint64(globalStatus, "Qcache_free_blocks", &dbMetric.QCacheFreeBlocks)
-	transferToUint64(globalStatus, "Qcache_free_mem", &dbMetric.QCacheFreeMem)
+// Close closes the plugin.
+func (m *MySql) Close() error {
+	logger.Info("MySQL harvester plugin closed successfully")
+	return nil
 }
 
-// Table Status
-func getTableStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToUint64(globalStatus, "Created_tmp_disk_tables", &dbMetric.TableCreatedTmpDisk)
-	transferToUint64(globalStatus, "Created_tmp_tables", &dbMetric.TableCreatedTmp)
-	transferToUint64(globalStatus, "Opened_tables", &dbMetric.TableOpen)
-	transferToUint64(globalStatus, "Opened_files", &dbMetric.FileOpen)
-	transferToUint(globalStatus, "Flush_commands", &dbMetric.TableFlush)
-}
+// Harvest harvests data from the target instance.
+func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-chan *plugin.HarvestData, error) {
+	logger.Info("start mysql harvest, interval time is: %v", m.cfg.Interval)
 
-// BinLog
-func getBinlog(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToUint64(globalStatus, "Binlog_cache_disk_use", &dbMetric.BinlogCacheDiskUse)
-	transferToUint64(globalStatus, "Binlog_cache_use", &dbMetric.BinlogCacheUse)
-	transferToUint64(globalStatus, "Binlog_stmt_cache_disk_use", &dbMetric.BinlogStmtCacheDiskUse)
-	transferToUint64(globalStatus, "Binlog_stmt_cache_use", &dbMetric.BinlogStmtCacheUse)
-}
+	m.machineID = machineID
+	m.serviceID = serviceID
 
-// performance Schema
-func getPerformanceSchema(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	transferToUint64(globalStatus, "Performance_schema_accounts_lost", &dbMetric.SchemaAccountsLost)
-	transferToUint64(globalStatus, "Performance_schema_cond_classes_lost", &dbMetric.SchemaCondClassesLost)
-	transferToUint64(globalStatus, "Performance_schema_file_handles_lost", &dbMetric.SchemaFileHandlesLost)
-	transferToUint64(globalStatus, "Performance_schema_locker_lost", &dbMetric.SchemaLockerLost)
-	transferToUint64(globalStatus, "Performance_schema_digest_lost", &dbMetric.SchemaDigestLost)
-	transferToUint64(globalStatus, "Performance_schema_rwlock_instances_lost", &dbMetric.SchemaRwlockInstancesLost)
-	transferToUint64(globalStatus, "Performance_schema_thread_instances_lost", &dbMetric.SchemaThreadInstancesLost)
-	transferToUint64(globalStatus, "Performance_schema_table_lock_stat_lost", &dbMetric.SchemaTableLockStatLost)
-}
+	dataC := make(chan *plugin.HarvestData, 1024)
 
-// Others
-func getOtherMetrics(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
-	// character_set_server
-	if val, ok := globalStatus["character_set_server"]; ok {
-		dbMetric.ServerCharset = val
-	}
-	// Threads_connected
-	transferToUint64(globalStatus, "Com_commit", &dbMetric.QueryCommits)
-	transferToUint64(globalStatus, "Com_rollback", &dbMetric.QueryRollbacks)
+	m.wg.Add(1)
+	go func(ctx context.Context) {
+		defer m.wg.Done()
+		defer close(dataC)
 
-	// AvgQPS/AvgTPS
-	if val, err := strconv.ParseUint(globalStatus["Uptime"], 10, 64); err == nil {
-		dbMetric.AvgQPS = uint(dbMetric.QueryTotal / val)
-		dbMetric.AvgTPS = uint((dbMetric.QueryCommits + dbMetric.QueryRollbacks) / val)
-	}
+		ticker := time.NewTicker(m.cfg.Interval)
+		defer ticker.Stop()
 
-}
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("exit harvester(mysql)")
+				return
 
-// map[string]string -> int
-func transferToInt(m map[string]string, key string, target *int) {
-	if val, ok := m[key]; ok {
-		intVal, err := strconv.Atoi(val)
-		if err == nil {
-			*target = intVal
+			case <-ticker.C:
+				// collect data from the target instance.
+				metrics, err := m.collectAndSaveMetrics()
+				if err != nil {
+					logger.Error("failed to collect mysql metrics: %v", err)
+					// Retry next instance if failed to maintain availability
+					continue
+				}
+
+				logger.Debug("mysql harvest data(%v)", *metrics)
+
+				dataC <- &plugin.HarvestData{
+					Value: metrics,
+				}
+			}
 		}
-	}
-}
+	}(ctx)
 
-// map -> uint64
-func transferToUint64(m map[string]string, key string, target *uint64) {
-	if val, ok := m[key]; ok {
-		uint64Val, err := strconv.ParseUint(val, 10, 64)
-		if err == nil {
-			*target = uint64Val
-		}
-	}
-}
-
-// map[string]string -> uint
-func transferToUint(m map[string]string, key string, target *uint) {
-	if val, ok := m[key]; ok {
-		if u, err := strconv.ParseUint(val, 10, 32); err == nil {
-			*target = uint(u)
-		}
-	}
+	return dataC, nil
 }
