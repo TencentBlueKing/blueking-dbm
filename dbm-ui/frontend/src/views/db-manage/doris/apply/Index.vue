@@ -661,8 +661,8 @@
       if (specHotRef.value && specColdRef.value) {
         const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
         const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
-        const hotDisk = hotStorageSpec.reduce((total, item) => total + Number(item.size || 0), 0);
-        const coldDisk = coldStorageSpec.reduce((total, item) => total + Number(item.size || 0), 0);
+        const hotDisk = hotStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
+        const coldDisk = coldStorageSpec.reduce((total, item) => total + Number(item.min || 0), 0);
         totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
       }
     },

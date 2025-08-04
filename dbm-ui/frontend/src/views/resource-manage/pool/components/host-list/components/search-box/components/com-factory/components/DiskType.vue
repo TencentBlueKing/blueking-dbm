@@ -17,7 +17,7 @@
     filterable
     :input-search="false"
     :model-value="defaultValue"
-    :placeholder="t('请选择磁盘类型')"
+    :placeholder="t('请选择数据盘类型')"
     @change="handleChange">
     <BkOption
       v-for="item in dataList"

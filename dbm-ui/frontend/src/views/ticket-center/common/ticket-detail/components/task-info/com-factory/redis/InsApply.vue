@@ -43,19 +43,16 @@
     <InfoItem
       v-if="!isAppend"
       :label="t('后端存储规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="backendSpec"
-        placement="top"
-        theme="light">
+        :data="backendSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ backendSpec.spec_name }}（{{ `${backendSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="backendSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
     <InfoItem
@@ -93,9 +90,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.InsApply>;

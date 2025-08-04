@@ -21,17 +21,16 @@
       </div>
     </template>
     <EditableBlock
-      v-model="localValue.name"
+      v-model="modelValue.name"
       :placeholder="t('自动生成')">
       <template #append>
-        <SpecPanel
-          v-if="localValue.id"
-          :data="localValue"
-          :hide-qps="!localValue.qps.min">
+        <SpecDetailPopover
+          v-if="modelValue.id"
+          :data="modelValue">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
-        </SpecPanel>
+        </SpecDetailPopover>
       </template>
     </EditableBlock>
   </EditableColumn>
@@ -40,44 +39,44 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import type { MachineSpecConfig } from '@services/types';
 
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
-  const modelValue = defineModel<SpecInfo>({
+  const modelValue = defineModel<MachineSpecConfig>({
     required: true,
   });
   const { t } = useI18n();
 
-  const localValue = computed<SpecInfo>(() =>
-    Object.assign(
-      {
-        count: 0,
-        cpu: {
-          max: 1,
-          min: 0,
-        },
-        id: 0,
-        mem: {
-          max: 1,
-          min: 0,
-        },
-        name: '--',
-        qps: {
-          max: 1,
-          min: 0,
-        },
-        storage_spec: [
-          {
-            mount_point: '/data',
-            size: 0,
-            type: '默认',
-          },
-        ],
-      },
-      modelValue.value,
-    ),
-  );
+  // const localValue = computed<SpecInfo>(() =>
+  //   Object.assign(
+  //     {
+  //       count: 0,
+  //       cpu: {
+  //         max: 1,
+  //         min: 0,
+  //       },
+  //       id: 0,
+  //       mem: {
+  //         max: 1,
+  //         min: 0,
+  //       },
+  //       name: '--',
+  //       qps: {
+  //         max: 1,
+  //         min: 0,
+  //       },
+  //       storage_spec: [
+  //         {
+  //           mount_point: '/data',
+  //           size: 0,
+  //           type: '默认',
+  //         },
+  //       ],
+  //     },
+  //     modelValue.value,
+  //   ),
+  // );
 </script>
 
 <style lang="less" scoped>

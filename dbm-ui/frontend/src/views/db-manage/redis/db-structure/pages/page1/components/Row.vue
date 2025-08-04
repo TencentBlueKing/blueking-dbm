@@ -36,6 +36,7 @@
     </td>
     <td style="padding: 0">
       <RenderSpec
+        v-if="data.spec"
         :data="data.spec"
         is-ignore-counts
         :is-loading="data.isLoading" />
@@ -65,13 +66,13 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import type { ClusterListSpec } from '@services/types';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
@@ -89,7 +90,7 @@
     instances?: string[];
     isLoading: boolean;
     rowKey: string;
-    spec?: SpecInfo;
+    spec?: ClusterListSpec;
     targetDateTime?: string;
   }
 

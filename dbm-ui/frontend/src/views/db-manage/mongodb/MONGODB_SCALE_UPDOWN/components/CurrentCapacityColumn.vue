@@ -22,10 +22,7 @@
         <div class="info-item">
           <div class="item-title">{{ t('当前资源规格') }}：</div>
           <div class="item-content">
-            <RenderSpec
-              :data="spec"
-              :hide-qps="!spec.qps.max"
-              is-ignore-counts />
+            <RenderSpec :data="spec" />
           </div>
         </div>
         <div class="info-item">

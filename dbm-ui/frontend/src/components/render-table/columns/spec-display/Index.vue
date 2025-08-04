@@ -25,13 +25,11 @@
         v-else
         class="content">
         {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : t('((n))台', { n: data?.count })}` : '' }}
-        <SpecPanel
-          :data="data"
-          :hide-qps="hideQps">
+        <SpecDetailPopover :data="data">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
-        </SpecPanel>
+        </SpecDetailPopover>
       </span>
     </div>
   </BkLoading>
@@ -39,7 +37,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import SpecPanel from './Panel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
+  // import SpecPanel from './Panel.vue';
 
   interface Props {
     data: {
@@ -59,18 +59,20 @@
         min: number;
       };
       storage_spec: {
+        max: number;
+        min: number;
         mount_point: string;
-        size: number;
+        size?: number;
         type: string;
       }[];
     };
-    hideQps?: boolean;
+    // hideQps?: boolean;
     isIgnoreCounts?: boolean;
     isLoading?: boolean;
     placeholder?: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     hideQps: true,
     isIgnoreCounts: false,
     isLoading: false,

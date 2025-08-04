@@ -59,7 +59,14 @@
                 </div>
               </EditableBlock>
             </EditableColumn>
-            <SpecColumn v-model="item.host.spec_config" />
+            <!-- <SpecColumnBefore v-model="item.host.spec_config" /> -->
+            <SpecColumn
+              v-model="item.host.spec_config.id"
+              :cluster-type="DBTypes.REDIS"
+              field="host.spec_config"
+              label="规格需求"
+              required
+              :tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')" />
             <EditableColumn
               :label="t('故障从库实例数量')"
               :width="150">
@@ -121,16 +128,17 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
 
-  import SpecColumn from './components/SpecColumn.vue';
+  // import SpecColumnBefore from './components/SpecColumn.vue';
 
   interface IDataRow {
     host: {

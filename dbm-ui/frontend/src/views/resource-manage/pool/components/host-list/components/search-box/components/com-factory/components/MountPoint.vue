@@ -17,7 +17,7 @@
     filterable
     :input-search="false"
     :model-value="defaultValue"
-    :placeholder="t('请选择磁盘挂载点')"
+    :placeholder="t('请选择数据盘挂载点')"
     @change="handleChange">
     <BkOption
       v-for="(item, index) in data"
