@@ -39,6 +39,8 @@ import (
 // Probe probe main framework
 type Probe struct {
 	clientID  string
+	machineID string
+	serviceID string
 	reporters []reporter.Reporter
 	plugins   []plugin.Plugin
 	quit      chan struct{}
@@ -54,7 +56,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 		}
 	}()
 
-	eventC, err := plug.Harvest(ctx)
+	eventC, err := plug.Harvest(ctx, p.machineID, p.serviceID)
 	if err != nil {
 		logger.Warn("start harvester plugin(%s) failed, %v", name, err)
 		return
