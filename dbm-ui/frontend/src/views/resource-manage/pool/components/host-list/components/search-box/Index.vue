@@ -172,6 +172,10 @@
       transform: translateX(-50%);
       align-items: center;
       justify-content: center;
+
+      &:hover {
+        background: #dcdee5;
+      }
     }
   }
 </style>

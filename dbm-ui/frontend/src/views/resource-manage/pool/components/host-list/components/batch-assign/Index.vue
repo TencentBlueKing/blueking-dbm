@@ -81,8 +81,8 @@
   const { t } = useI18n();
   const formPanelRef = useTemplateRef('formPanelRef');
 
-  const width = Math.ceil(window.innerWidth * 0.8);
-  const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
+  const width = Math.ceil(window.innerWidth * 0.67);
+  const contentHeight = Math.ceil(window.innerHeight * 0.67 - 48);
   const layoutStyle = {
     height: `${contentHeight}px`,
   };

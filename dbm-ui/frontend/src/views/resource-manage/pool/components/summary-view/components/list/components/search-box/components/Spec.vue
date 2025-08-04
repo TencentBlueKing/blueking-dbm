@@ -150,5 +150,9 @@
     :deep(.bk-compose-form-item-tail) {
       flex: 1;
     }
+
+    :deep(.bk-select-tag) {
+      max-height: 500px;
+    }
   }
 </style>
