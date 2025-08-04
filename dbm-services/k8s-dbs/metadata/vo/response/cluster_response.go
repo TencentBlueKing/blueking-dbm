@@ -19,12 +19,15 @@ limitations under the License.
 
 package response
 
-import commtypes "k8s-dbs/common/types"
+import (
+	"encoding/json"
+	commtypes "k8s-dbs/common/types"
+)
 
 // K8sCrdClusterResponse response vo 定义
 type K8sCrdClusterResponse struct {
 	ID                  uint64                      `json:"id"`
-	AddonInfo           *AddonResponse              `json:"addonInfo"`
+	AddonInfo           *ClusterAddonResponse       `json:"addonInfo"`
 	AddonClusterVersion string                      `json:"addonClusterVersion"`
 	ServiceVersion      string                      `json:"serviceVersion"`
 	TopoName            string                      `json:"topoName"`
@@ -46,4 +49,87 @@ type K8sCrdClusterResponse struct {
 	CreatedAt           commtypes.JSONDatetime      `json:"createdAt"`
 	UpdatedBy           string                      `json:"updatedBy"`
 	UpdatedAt           commtypes.JSONDatetime      `json:"updatedAt"`
+}
+
+// ClusterAddonResponse 定义集群详情中 Addon 返回数据结构
+type ClusterAddonResponse struct {
+	ID                   uint64                  `json:"id"`
+	AddonName            string                  `json:"addonName"`
+	AddonCategory        string                  `json:"addonCategory"`
+	AddonType            string                  `json:"addonType"`
+	AddonVersion         string                  `json:"addonVersion"`
+	RecommendedVersion   string                  `json:"recommendedVersion"`
+	SupportedVersions    string                  `json:"supportedVersions"`
+	RecommendedAcVersion string                  `json:"recommendedAcVersion"`
+	SupportedAcVersions  string                  `json:"supportedAcVersions"`
+	Topologies           string                  `json:"topologies"`
+	Topology             ClusterTopologyResponse `json:"topology"`
+	Active               bool                    `json:"active"`
+	Description          string                  `json:"description"`
+}
+
+// MarshalJSON 自定义 ClusterAddonResponse JSON 序列化逻辑
+func (k K8sCrdClusterResponse) MarshalJSON() ([]byte, error) {
+	var topologiesArray []ClusterTopologyResponse
+	err := json.Unmarshal([]byte(k.AddonInfo.Topologies), &topologiesArray)
+	if err != nil {
+		return nil, err
+	}
+	if len(topologiesArray) > 0 {
+		for _, topo := range topologiesArray {
+			topo.Name = k.TopoName
+			k.AddonInfo.Topology = topo
+			break
+		}
+	}
+
+	output := map[string]interface{}{
+		"id": k.ID,
+		"addonInfo": map[string]interface{}{
+			"id":            k.AddonInfo.ID,
+			"active":        k.AddonInfo.Active,
+			"addonCategory": k.AddonInfo.AddonCategory,
+			"addonType":     k.AddonInfo.AddonType,
+			"addonVersion":  k.AddonInfo.AddonVersion,
+			"addonName":     k.AddonInfo.AddonName,
+			"topology":      k.AddonInfo.Topology,
+		},
+		"addonClusterVersion": k.AddonClusterVersion,
+		"serviceVersion":      k.ServiceVersion,
+		"topoName":            k.TopoName,
+		"topoNameAlias":       k.TopoNameAlias,
+		"k8sClusterConfig":    k.K8sClusterConfig,
+		"requestId":           k.RequestID,
+		"clusterName":         k.ClusterName,
+		"clusterAlias":        k.ClusterAlias,
+		"namespace":           k.Namespace,
+		"bkBizId":             k.BkBizID,
+		"bkBizName":           k.BkBizName,
+		"bkAppAbbr":           k.BkAppAbbr,
+		"bkAppCode":           k.BkAppCode,
+		"bkBizTitle":          k.BkBizTitle,
+		"tags":                k.Tags,
+		"status":              k.Status,
+		"createdBy":           k.CreatedBy,
+		"createdAt":           k.CreatedAt,
+		"updatedBy":           k.UpdatedBy,
+		"updatedAt":           k.UpdatedAt,
+		"description":         k.Description,
+	}
+	return json.Marshal(output)
+}
+
+// ClusterTopologyResponse 定义集群详情 topology 返回数据结构
+type ClusterTopologyResponse struct {
+	Name        string                    `json:"name"`
+	IsDefault   bool                      `json:"isDefault"`
+	Description string                    `json:"description"`
+	Components  []*AddonComponentResponse `json:"components"`
+}
+
+// AddonComponentResponse 定义 topology component 返回数据结构
+type AddonComponentResponse struct {
+	Name        string `json:"name"`
+	Alias       string `json:"alias"`
+	Description string `json:"description"`
 }
