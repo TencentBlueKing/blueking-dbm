@@ -200,7 +200,7 @@ export function updateResource(params: {
   labels?: number[];
   rack_id?: string;
   resource_type?: string;
-  storage_device?: Record<string, { disk_type: string; size: number }>;
+  storage_device?: Record<string, { disk_type: string; max: number; min: number }>;
   sub_zone_meta?: {
     sub_zone: string;
     sub_zone_id: string;

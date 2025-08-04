@@ -64,6 +64,11 @@
         v-if="hasQPS && formdata.qps"
         v-model="formdata.qps"
         :editable="editable" />
+      <BizScopeItem
+        ref="bizScopeItemRef"
+        :data="formdata.biz_scope"
+        :editable="editable"
+        @change="bizScopeChange" />
       <BkFormItem :label="t('描述')">
         <BkInput
           v-model="formdata.desc"
@@ -74,15 +79,15 @@
       </BkFormItem>
       <BkFormItem :label="t('是否启用')">
         <BkPopConfirm
-          :confirm-text="formdata.enable ? t('停用') : t('启用')"
+          :confirm-text="formdata.enable ? t('不启用') : t('启用')"
           :content="
             formdata.enable
-              ? t('停用后，在资源规格选择时，将不可见，且不可使用')
-              : t('启用后，在资源规格选择时，将开放选择')
+              ? t('不启用：存量集群的变更操作不受影响，新增集群不可使用此规格')
+              : t('启用：所有场景均可使用，如：部署、扩容、迁移规格')
           "
           :is-show="isShowSwitchTip"
           placement="bottom"
-          :title="formdata.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+          :title="formdata.enable ? t('确认不启用该规格？') : t('确认启用该规格？')"
           trigger="manual"
           width="308"
           @cancel="handleCancelSwitch"
@@ -93,6 +98,11 @@
             theme="primary"
             @change="handleChangeSwitch" />
         </BkPopConfirm>
+        <span class="enable-desc ml-4">
+          {{
+            `（${t('启用：所有场景均可使用，如：部署、扩容、迁移规格')}；${t('不启用：存量集群的变更操作不受影响，新增集群不可使用此规格')}）`
+          }}
+        </span>
       </BkFormItem>
     </DbForm>
   </div>
@@ -134,6 +144,7 @@
 
   import { useHasQPS } from '../../hooks/useHasQPS';
 
+  import BizScopeItem from './components/BizScopeItem.vue';
   import SpecDeviceOrCpuMem from './components/spec-device-or-cpu-mem/Index.vue';
   import SpecStorage from './components/spec-storage/Index.vue';
   import SpecQps from './components/SpecQPS.vue';
@@ -143,12 +154,8 @@
     (e: 'successed'): void;
   }
 
-  interface Data extends Omit<ResourceSpecModel, 'device_class'> {
-    device_class: string[];
-  }
-
   interface Props {
-    data?: Data;
+    data?: ResourceSpecModel;
     dbType: string;
     hasInstance: boolean;
     machineType: string;
@@ -178,13 +185,15 @@
   const initFormdata = () => {
     if (props.data) {
       const data = _.cloneDeep(props.data);
+      Object.assign(data, { biz_scope: data.biz_scope.map((item) => `${item}`) });
       return data;
     }
 
     const genStorageSpec = () => [
       {
+        max: '' as string | number,
+        min: '' as string | number,
         mount_point: isRequired ? '/data' : '',
-        size: '' as string | number,
         type: '',
       },
     ];
@@ -192,19 +201,22 @@
     const genSystemDriveStorageSpec = () => [
       {
         isSystemDrive: true,
+        max: '' as string | number,
+        min: '' as string | number,
         mount_point: 'C:\\',
-        size: '' as string | number,
         type: '',
       },
       {
         isSystemDrive: true,
+        max: '' as string | number,
+        min: '' as string | number,
         mount_point: 'D:\\',
-        size: '' as string | number,
         type: '',
       },
     ];
 
     return {
+      biz_scope: [] as number[],
       cpu: {
         max: '' as string | number,
         min: '' as string | number,
@@ -236,15 +248,20 @@
   const nameInputRef = useTemplateRef('nameInputRef');
   const specDeviceOrCpuMemRef = useTemplateRef('specDeviceOrCpuMemRef');
   const specStorageRef = useTemplateRef('specStorageRef');
+  const bizScopeItemRef = useTemplateRef('bizScopeItemRef');
 
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
   const isCustomInput = ref(false);
   const isShowSwitchTip = ref(false);
   const isTableValueChange = ref(false);
+  const isBizScopeChange = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
 
-  const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify || isTableValueChange.value);
+  const isChange = computed(
+    () =>
+      JSON.stringify(formdata.value) !== initFormdataStringify || isTableValueChange.value || isBizScopeChange.value,
+  );
 
   const nameRules = computed(() => [
     {
@@ -256,13 +273,17 @@
     {
       message: t('规格名称已存在_请修改规格'),
       trigger: 'blur',
-      validator: (value: string) =>
-        verifyDuplicatedSpecName({
+      validator: (value: string) => {
+        if (props.mode !== 'edit') {
+          return true;
+        }
+        return verifyDuplicatedSpecName({
           spec_cluster_type: props.dbType,
-          spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
+          spec_id: formdata.value.spec_id,
           spec_machine_type: props.machineType,
           spec_name: value,
-        }).then((exists) => !exists),
+        }).then((exists) => !exists);
+      },
     },
   ]);
 
@@ -279,6 +300,10 @@
 
   const handleTableValueChange = () => {
     isTableValueChange.value = true;
+  };
+
+  const bizScopeChange = () => {
+    isBizScopeChange.value = true;
   };
 
   const handleCancelSwitch = () => {
@@ -308,7 +333,7 @@
       },
       {
         unit: 'G',
-        value: Math.min(...StorageSpec.map((item) => Number(item.size))),
+        value: Math.min(...StorageSpec.map((item) => Number(item.min))),
       },
       {
         unit: '/s',
@@ -331,6 +356,7 @@
       await formRef.value!.validate();
       const storageSpec = await specStorageRef.value!.getValue();
       const params = Object.assign(_.cloneDeep(formdata.value), {
+        biz_scope: bizScopeItemRef.value!.getValue(),
         device_class: formdata.value.device_class[0] === '-1' ? [] : formdata.value.device_class,
         spec_id: (formdata.value as ResourceSpecModel).spec_id,
         storage_spec: storageSpec,
@@ -482,6 +508,11 @@
           }
         }
       }
+    }
+
+    .enable-desc {
+      font-size: 12px;
+      color: #979ba5;
     }
   }
 

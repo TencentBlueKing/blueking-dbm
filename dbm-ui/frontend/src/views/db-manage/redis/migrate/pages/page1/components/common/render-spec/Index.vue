@@ -62,8 +62,8 @@
   import { ClusterTypes } from '@common/const';
 
   import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
 
+  // import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
 
   // import SpecPanel from './SpecPanel.vue';

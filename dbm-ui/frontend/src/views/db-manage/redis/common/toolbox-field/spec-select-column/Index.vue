@@ -21,52 +21,50 @@
       <span v-else>{{ label }}</span>
     </template>
     <EditableSelect v-model="modelValue">
-      <SpecPanel
+      <BkOption
         v-for="(item, index) in specList"
         :key="index"
-        :data="item.specData">
-        <template #hover>
-          <BkOption
-            :key="index"
-            :label="item.label"
-            :value="item.value">
-            <div class="spec-select-column-spec-item">
-              <span class="text-overflow">
-                <slot
-                  :label="item.label"
-                  name="label"
-                  :value="item.value">
-                  {{ item.label }}
-                </slot>
-                <BkTag
-                  v-if="currentSpecIds?.includes(item.value)"
-                  class="ml-4"
-                  size="small"
-                  theme="info">
-                  {{ t('当前规格') }}
-                </BkTag>
-              </span>
-              <span class="spec-count">
-                {{ item.specData.count }}
-              </span>
-            </div>
-          </BkOption>
-        </template>
-      </SpecPanel>
+        :label="item.spec_name"
+        :value="item.spec_id">
+        <SpecDetailPopover
+          :data="item"
+          placement="right">
+          <div class="spec-select-column-spec-item">
+            <span class="text-overflow">
+              <slot
+                :label="item.spec_name"
+                name="label"
+                :value="item.spec_id">
+                {{ item.spec_name }}
+              </slot>
+              <BkTag
+                v-if="currentSpecIds?.includes(item.spec_id)"
+                class="ml-4"
+                size="small"
+                theme="info">
+                {{ t('当前规格') }}
+              </BkTag>
+            </span>
+            <span class="spec-count">
+              {{ item.availableCount }}
+            </span>
+          </div>
+        </SpecDetailPopover>
+      </BkOption>
     </EditableSelect>
   </EditableColumn>
 </template>
 
 <script setup lang="ts">
   import type { VNode } from 'vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import SpecPanel from './components/SpecPanel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
     bkCloudId: number;
@@ -89,20 +87,14 @@
 
   const { t } = useI18n();
 
-  const specList = ref<
-    {
-      label: string;
-      specData: ComponentProps<typeof SpecPanel>['data'];
-      value: number;
-    }[]
-  >([]);
+  const specList = ref<({ availableCount: number } & ResourceSpecModel)[]>([]);
 
   const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
       specList.value.forEach((item) => {
-        Object.assign(item.specData, {
-          count: data[item.specData.id],
+        Object.assign(item, {
+          cavailableCountount: data[item.spec_id],
         });
       });
     },
@@ -111,23 +103,12 @@
   const { run: fetchResourceSpecList } = useRequest(getResourceSpecList, {
     manual: true,
     onSuccess(data) {
-      specList.value = data.results.map((item) => ({
-        label: item.spec_name,
-        specData: {
-          count: 0,
-          cpu: item.cpu,
-          id: item.spec_id,
-          mem: item.mem,
-          name: item.spec_name,
-          storage_spec: item.storage_spec,
-        },
-        value: item.spec_id,
-      }));
+      specList.value = data.results.map((item) => Object.assign(item, { availableCount: 0 }));
       if (props.bkCloudId) {
         fetchSpecResourceCount({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: props.bkCloudId,
-          spec_ids: specList.value.map((item) => item.specData.id),
+          spec_ids: specList.value.map((item) => item.spec_id),
         });
       }
     },

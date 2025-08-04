@@ -297,10 +297,10 @@
     for (let i = 0; i < storageSpec.length; i++) {
       const storageSpecItem = storageSpec[i];
       if (storageSpecItem.mount_point === '/data1') {
-        return storageSpecItem.size;
+        return storageSpecItem.min;
       }
       if (storageSpecItem.mount_point === '/data') {
-        specCapacity = storageSpecItem.size / 2;
+        specCapacity = storageSpecItem.min / 2;
       }
     }
     return specCapacity;

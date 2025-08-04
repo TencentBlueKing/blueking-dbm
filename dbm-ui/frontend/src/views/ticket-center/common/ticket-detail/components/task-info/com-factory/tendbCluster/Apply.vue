@@ -50,11 +50,9 @@
       {{ ticketDetails.details.spider_port || '--' }}
     </InfoItem>
     <InfoItem :label="t('接入层Master')">
-      <BkPopover
-        disable-outside-click
-        :offset="16"
-        placement="top"
-        theme="light">
+      <SpecDetailPopover
+        :data="ticketDetails.details.resource_spec.spider"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
@@ -62,10 +60,7 @@
             `${ticketDetails.details.resource_spec.spider.count} ${t('台')}`
           }}）
         </span>
-        <template #content>
-          <SpecInfos :data="ticketDetails.details.resource_spec.spider" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
     </InfoItem>
     <InfoItem
       :label="t('集群部署方案')"
@@ -103,9 +98,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.Apply>;

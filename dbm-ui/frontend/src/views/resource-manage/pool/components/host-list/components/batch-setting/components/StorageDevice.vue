@@ -13,31 +13,87 @@
 
 <template>
   <div class="resource-spec-storage-box">
-    <DbOriginalTable
-      :border="['row', 'col', 'outer']"
-      class="custom-edit-table"
-      :columns="columns"
-      :data="modelValue">
-      <template #empty>
-        <div
-          class="create-row"
-          @click="handleCreate">
-          <DbIcon type="add" />
-        </div>
-      </template>
-    </DbOriginalTable>
+    <EditableTable
+      ref="editableTableRef"
+      :model="modelValue">
+      <EditableRow
+        v-for="(item, index) in modelValue"
+        :key="index">
+        <EditableColumn
+          :append-rules="mountPointRules"
+          field="mount_point"
+          :label="t('挂载点')"
+          :min-width="180"
+          required>
+          <EditableInput
+            v-model="item.mount_point"
+            placeholder="/data123">
+          </EditableInput>
+        </EditableColumn>
+        <EditableColumn
+          :append-rules="minCapacityRules"
+          field="min"
+          :label="t('最小容量（G）')"
+          required
+          :width="150">
+          <EditableInput
+            ref="minCapacityRef"
+            v-model="item.min"
+            :max="2147483647"
+            :min="10"
+            type="number" />
+        </EditableColumn>
+        <EditableColumn
+          :append-rules="maxCapacityRules"
+          field="max"
+          :label="t('最大容量（G）')"
+          required
+          :width="150">
+          <EditableInput
+            ref="maxCapacityRef"
+            v-model="item.max"
+            :max="2147483647"
+            :min="10"
+            type="number" />
+        </EditableColumn>
+        <EditableColumn
+          :append-rules="diskTypRules"
+          field="type"
+          :label="t('磁盘类型')"
+          :min-width="100"
+          required
+          :width="120">
+          <EditableSelect
+            ref="diskTypeRef"
+            v-model="item.type"
+            :list="diskTypeList" />
+        </EditableColumn>
+        <OperationColumn
+          v-model:table-data="modelValue"
+          :create-row-method="createRowData" />
+      </EditableRow>
+    </EditableTable>
   </div>
 </template>
 <script lang="tsx">
   export interface IStorageDeviceItem {
+    max: number;
+    min: number;
     mount_point: string;
-    size: number;
     type: string;
   }
+
+  export const createRowData = (data = {} as IStorageDeviceItem) => ({
+    max: data.max || ('' as string | number),
+    min: data.min || ('' as string | number),
+    mount_point: data.mount_point || '',
+    type: data.type || '',
+  });
 </script>
 <script setup lang="tsx">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { updateResource } from '@services/source/dbresourceResource';
   import { searchDeviceClass } from '@services/source/ipchooser';
@@ -46,17 +102,10 @@
 
   type StorageDevice = NonNullable<ServiceParameters<typeof updateResource>['storage_device']>;
 
-  interface TableColumnData {
-    data: IStorageDeviceItem;
-    index: number;
-  }
-
   interface Expose {
-    getValue: () =>
-      | {
-          storage_device: StorageDevice;
-        }
-      | undefined;
+    getValue: () => Promise<{
+      storage_device: StorageDevice;
+    }>;
   }
 
   const modelValue = defineModel<IStorageDeviceItem[]>({
@@ -65,184 +114,142 @@
 
   const { t } = useI18n();
 
-  const deviceClass = ref<{ label: string; value: string }[]>([]);
-  const isLoadDeviceClass = ref(true);
+  const editableTableRef = useTemplateRef('editableTableRef');
 
-  const mountPointRules = (data: IStorageDeviceItem) => {
-    // 非必填
-    if (!data.mount_point && !data.size && !data.type) {
-      return [];
-    }
+  const diskTypeList = ref<{ label: string; value: string }[]>([]);
 
-    return [
-      {
-        message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
-        trigger: 'blur',
-        validator: (value: string) => /data(\d)*/.test(value),
-      },
-      {
-        message: () => t('挂载点name重复', { name: data.mount_point }),
-        trigger: 'blur',
-        validator: (value: string) => modelValue.value.filter((item) => item.mount_point === value).length < 2,
-      },
-    ];
-  };
-  const sizeRules = (data: IStorageDeviceItem) => {
-    // 非必填且其他输入框没有输入
-    if (!data.mount_point && !data.type) {
-      return [];
-    }
+  const mountPointList = computed(() => modelValue.value.map((item) => item.mount_point));
 
-    return [
-      {
-        message: t('必填项'),
-        required: true,
-        trigger: 'blur',
-        validator: (value: string) => !!value,
-      },
-    ];
-  };
-  const typeRules = (data: IStorageDeviceItem) => {
-    // 非必填且其他输入框没有输入
-    if (!data.mount_point && !data.size) {
-      return [];
-    }
-
-    return [
-      {
-        message: t('必填项'),
-        required: true,
-        trigger: 'change',
-        validator: (value: string) => !!value,
-      },
-    ];
-  };
-  const columns = [
+  const mountPointRules = [
     {
-      field: 'mount_point',
-      label: t('挂载点'),
-      render: ({ data, index }: TableColumnData) => (
-        <bk-form-item
-          error-display-type='tooltips'
-          property={`storage_device.${index}.mount_point`}
-          rules={mountPointRules(data)}>
-          <bk-input
-            v-model={data.mount_point}
-            class='large-size'
-            placeholder='/data123'
-          />
-        </bk-form-item>
-      ),
+      message: t('不能为空'),
+      required: true,
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
+        if (!value && !rowData.max && !rowData.min && !rowData.type) {
+          return true;
+        }
+        if ((rowData.max || rowData.min || rowData.type) && !value) {
+          return false;
+        }
+        if (!value) {
+          return false;
+        }
+        return true;
+      },
     },
     {
-      field: 'size',
-      label: t('磁盘容量G'),
-      render: ({ data, index }: TableColumnData) => (
-        <bk-form-item
-          error-display-type='tooltips'
-          property={`storage_device.${index}.size`}
-          rules={sizeRules(data)}>
-          <bk-input
-            class='large-size'
-            min={10}
-            modelValue={data.size || undefined}
-            show-control={false}
-            type='number'
-            onChange={(value: string) => (data.size = Number(value))} // eslint-disable-line no-param-reassign
-          />
-        </bk-form-item>
-      ),
+      message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
+      trigger: 'change',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return /\/data(\d)*/.test(value) ? true : t('输入需符合正则_regx', { regx: '/data(\\d)*/' });
+      },
     },
     {
-      field: 'type',
-      label: t('磁盘类型'),
-      render: ({ data, index }: TableColumnData) => (
-        <bk-form-item
-          error-display-type='tooltips'
-          property={`storage_device.${index}.type`}
-          rules={typeRules(data)}>
-          <bk-select
-            v-model={data.type}
-            class='large-size'
-            clearable={false}
-            loading={isLoadDeviceClass.value}>
-            {deviceClass.value.map((item) => (
-              <bk-option
-                label={item.label}
-                value={item.value}
-              />
-            ))}
-          </bk-select>
-        </bk-form-item>
-      ),
-    },
-    {
-      field: '',
-      label: t('操作'),
-      render: ({ index }: TableColumnData) => (
-        <div class='opertaions'>
-          <bk-button
-            text
-            onClick={() => handleAdd(index)}>
-            <db-icon type='plus-fill' />
-          </bk-button>
-          <bk-button
-            text
-            onClick={() => handleRemove(index)}>
-            <db-icon type='minus-fill' />
-          </bk-button>
-        </div>
-      ),
-      width: 120,
+      message: '',
+      trigger: 'change',
+      validator: (value: string) => {
+        if (!value) {
+          return true;
+        }
+        return mountPointList.value.filter((item) => item === value).length < 2
+          ? true
+          : t('挂载点name重复', { name: value });
+      },
     },
   ];
 
-  const createData = () => ({
-    mount_point: '',
-    size: 0,
-    type: '',
-  });
+  const maxCapacityRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
+        if (!value && !rowData.min && !rowData.mount_point && !rowData.type) {
+          return true;
+        }
+        if ((rowData.min || rowData.mount_point || rowData.type) && !value) {
+          return false;
+        }
+        if (!value) {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
 
-  const handleCreate = () => {
-    modelValue.value.push(createData());
-  };
-  const handleAdd = (index: number) => {
-    modelValue.value.splice(index + 1, 0, createData());
-  };
+  const minCapacityRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
+        if (!value && !rowData.max && !rowData.mount_point && !rowData.type) {
+          return true;
+        }
+        if ((rowData.max || rowData.mount_point || rowData.type) && !value) {
+          return false;
+        }
+        if (!value) {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
 
-  const handleRemove = (index: number) => {
-    modelValue.value.splice(index, 1);
-  };
+  const diskTypRules = [
+    {
+      message: t('不能为空'),
+      trigger: 'change',
+      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
+        if (!value && !rowData.mount_point && !rowData.max && !rowData.min) {
+          return true;
+        }
+        if ((rowData.mount_point || rowData.max || rowData.min) && !value) {
+          return false;
+        }
+        if (!value) {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
 
-  searchDeviceClass()
-    .then((res) => {
-      deviceClass.value = res.map((item) => ({
+  useRequest(searchDeviceClass, {
+    onSuccess(data) {
+      diskTypeList.value = data.map((item) => ({
         label: deviceClassDisplayMap[item as DeviceClass],
         value: item,
       }));
-    })
-    .finally(() => {
-      isLoadDeviceClass.value = false;
-    });
+    },
+  });
 
   defineExpose<Expose>({
     getValue() {
-      if (modelValue.value.length === 0) {
-        return;
-      }
-      const storageDevice = modelValue.value.reduce<StorageDevice>(
-        (result, item) => ({
-          ...result,
-          [item.mount_point]: {
-            disk_type: item.type,
-            size: item.size,
-          },
-        }),
-        {},
-      );
-      return {
-        storage_device: storageDevice,
-      };
+      return editableTableRef.value!.validate().then((validateResult) => {
+        if (validateResult) {
+          const storageDevice = modelValue.value.reduce<StorageDevice>(
+            (result, item) => ({
+              ...result,
+              [item.mount_point]: {
+                disk_type: item.type,
+                max: item.max,
+                min: item.min,
+              },
+            }),
+            {},
+          );
+          return {
+            storage_device: storageDevice,
+          };
+        }
+
+        return Promise.reject();
+      });
     },
   });
 </script>

@@ -145,10 +145,14 @@ export function updateResourceSpec(
 }
 
 /**
- * 更新规格的启用禁用态
+ * 批量更新规格属性
  */
-export function updateResourceSpecEnableStatus(params: { enable: boolean; spec_ids: number[] }) {
-  return http.post<ResourceSpecModel>(`${path}/modify_spec_enable_status/`, params);
+export function batchUpdateSpec(params: {
+  biz_scope?: number[]; // 业务范围，全部业务为[]
+  enable?: boolean; // 启用禁用
+  spec_ids: number[];
+}) {
+  return http.post<ResourceSpecModel>(`${path}/batch_update_spec/`, params);
 }
 
 /**

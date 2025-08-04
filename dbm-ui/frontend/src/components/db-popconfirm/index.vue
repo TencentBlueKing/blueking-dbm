@@ -55,6 +55,7 @@
     cancelHandler?: () => Promise<any> | void;
     confirmHandler: () => Promise<any> | void;
     content?: string;
+    hideOnClick?: boolean;
     placement?: Placement;
     theme?: 'primary' | 'danger';
     title: string;
@@ -68,6 +69,7 @@
   const props = withDefaults(defineProps<Props>(), {
     cancelHandler: () => Promise.resolve(),
     content: '',
+    hideOnClick: true,
     placement: 'top',
     theme: 'primary',
     width: 280,
@@ -112,7 +114,7 @@
         appendTo: () => document.body,
         arrow: true,
         content: popRef.value,
-        hideOnClick: true,
+        hideOnClick: props.hideOnClick,
         interactive: true,
         maxWidth: 'none',
         offset: [0, 12],
