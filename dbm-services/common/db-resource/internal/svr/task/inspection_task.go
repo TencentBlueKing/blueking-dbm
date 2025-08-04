@@ -47,7 +47,7 @@ func InspectCheckResource() (err error) {
 		}
 	}
 	qy := model.DB.Self.Table(model.TbRpDetailName()).Where(
-		"status = ? and create_time < date_sub(now(), interval 30 minute) ", model.Unused)
+		"status = ? and create_time < date_sub(now(), interval 10 minute) ", model.Unused)
 	if len(nocheckBizIds) > 0 {
 		qy = qy.Where("dedicated_biz not in (?)", nocheckBizIds)
 	}
@@ -106,8 +106,7 @@ func InspectCheckResource() (err error) {
 			return nil
 		}
 		for _, m := range resp.Data {
-			if m.BKSetId == allowCCModuleInfo.CC_MANAGE_TOPO.SetId && m.BKModuleId ==
-				allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId {
+			if m.BKModuleId == allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId {
 				continue
 			}
 			logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
