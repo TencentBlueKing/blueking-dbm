@@ -15,7 +15,8 @@ from rest_framework import serializers
 from backend import env
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
@@ -154,7 +155,10 @@ class ResourceListSerializer(serializers.Serializer):
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["mem"]:
-                    attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
+                    attrs[field] = {
+                        "min": int(attrs[field][0] or 0) * 1024,
+                        "max": int(attrs[field][1] or INT_MAX) * 1024,
+                    }
                 elif field in ["cpu", "disk"]:
                     attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
@@ -170,6 +174,7 @@ class ResourceListSerializer(serializers.Serializer):
             if not attrs["city"]:
                 attrs.pop("city")
 
+        spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         # 转换规格查询参数
         if attrs.get("spec_id"):
             spec = Spec.objects.get(spec_id=attrs["spec_id"])
@@ -177,7 +182,7 @@ class ResourceListSerializer(serializers.Serializer):
                 {
                     "mount_point": storage_spec["mount_point"],
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"],
+                    "min": storage_spec["size"] - spec_offset["disk"],
                     "max": INT_MAX,
                 }
                 for storage_spec in spec.storage_spec
@@ -185,11 +190,11 @@ class ResourceListSerializer(serializers.Serializer):
             if spec.device_class:
                 attrs["device_class"] = spec.device_class
             else:
-                attrs["cpu"], attrs["mem"] = spec.cpu, spec.mem
-
-        # 转换内存查询单位, GB --> MB
-        if attrs.get("mem"):
-            attrs["mem"] = {"min": int(attrs["mem"]["min"] * 1024), "max": int(attrs["mem"]["max"] * 1024)}
+                attrs["cpu"] = spec.cpu
+                attrs["mem"] = {
+                    "min": max(int(spec.mem["min"] * 1024 - spec_offset["mem"]), 0),
+                    "max": int(spec.mem["max"] * 1024),
+                }
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()

@@ -104,6 +104,9 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
             if "backend_group" in info:
                 backend = info.pop("backend_group")[0]
                 info["bk_new_master"], info["bk_new_slave"] = backend["master"], backend["slave"]
+
+                # 修改规格key值
+                info["resource_spec"]["remote"] = info["resource_spec"]["master"]
             else:
                 info["bk_new_master"], info["bk_new_slave"] = info.pop("new_master")[0], info.pop("new_slave")[0]
                 info["resource_spec"]["master"] = info["resource_spec"].pop("new_master")
