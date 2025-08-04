@@ -2092,17 +2092,22 @@ class RedisActPayload(object):
         logger.info(_("更新集群:{} redis配置 为 目标集群的配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
 
-    # redis proxy 原地升级
+    # redis proxy 原地升级/降级
     def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
+        # target_version_file could be None
+        pkg_name = params.get("target_version_file", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+                version=TwemproxyVersion.TwemproxyLatest,
+                pkg_type=MediumEnum.Twemproxy,
+                db_type=DBType.Redis,
+                name=pkg_name,
             )
         elif is_predixy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis, name=pkg_name
             )
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,

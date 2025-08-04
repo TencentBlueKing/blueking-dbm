@@ -17,7 +17,6 @@ from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
-from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterProxysUpgradeAtomJob
@@ -57,22 +56,27 @@ class RedisProxyVersionUpgradeSceneFlow(object):
             proxy_pkg: Package = None
             if is_twemproxy_proxy_type(cluster.cluster_type):
                 proxy_pkg = Package.get_latest_package(
-                    version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+                    version=MediumEnum.Latest,
+                    pkg_type=MediumEnum.Twemproxy,
+                    db_type=DBType.Redis,
+                    name=input_item["target_version_file"],
                 )
             elif is_predixy_proxy_type(cluster.cluster_type):
                 proxy_pkg = Package.get_latest_package(
-                    version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+                    version=MediumEnum.Latest,
+                    pkg_type=MediumEnum.Predixy,
+                    db_type=DBType.Redis,
+                    name=input_item["target_version_file"],
                 )
             else:
                 raise Exception(
                     _("redis集群:{} cluster_type:{} 不认识").format(cluster.immute_domain, cluster.cluster_type)
                 )
 
-            if input_item["target_version_file"] != proxy_pkg.name:
+            # No package matched.
+            if not proxy_pkg:
                 raise Exception(
-                    _("redis集群:{} 目标版本文件:{} 与'版本文件'中文件名称:{} 不同").format(
-                        cluster.immute_domain, input_item["target_version_file"], proxy_pkg.name
-                    )
+                    _("redis集群:{} 目标版本文件:{} 找不到").format(cluster.immute_domain, input_item["target_version_file"])
                 )
         # 并发检查多个cluster的proxy、redis实例状态
         async_multi_clusters_precheck(cluster_ids=to_precheck_cluster_ids)
@@ -97,14 +101,18 @@ class RedisProxyVersionUpgradeSceneFlow(object):
         }
         """
         # 先cluster_id去重
-        cluster_ids_set = set()
+        cluster_ids_seen = set()
+        cluster_id_targets = []
         for input_item in self.data["infos"]:
-            cluster_ids_set.add(input_item["cluster_id"])
+            cluster_id = input_item["cluster_id"]
+            if cluster_id not in cluster_ids_seen:
+                cluster_ids_seen.add(cluster_id)
+                cluster_id_targets.append((cluster_id, input_item["target_version_file"]))
 
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
 
         sub_pipelines = []
-        for cluster_id in cluster_ids_set:
+        for cluster_id, target_file in cluster_id_targets:
             cluster = Cluster.objects.get(id=cluster_id)
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
@@ -112,6 +120,7 @@ class RedisProxyVersionUpgradeSceneFlow(object):
             act_kwargs.bk_cloud_id = cluster.bk_cloud_id
             params = {
                 "cluster_domain": cluster.immute_domain,
+                "target_version_file": target_file,
             }
             sub_builder = ClusterProxysUpgradeAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
