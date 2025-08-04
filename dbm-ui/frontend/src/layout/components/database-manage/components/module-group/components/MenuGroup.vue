@@ -34,7 +34,13 @@
   const dbInfo = DBTypeInfos[props.dbType];
 
   const topDbTypes = computed<string[]>(() => userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || []);
-  const disabled = computed(() => topDbTypes.value.includes(props.dbType));
+
+  const disabled = computed(() => {
+    if (topDbTypes.value.length > 0) {
+      return props.dbType === topDbTypes.value[0];
+    }
+    return false;
+  });
 
   const handleClick = () => {
     if (disabled.value) {
@@ -42,7 +48,7 @@
     }
     userProfileStore.updateProfile({
       label: UserPersonalSettings.TOP_DB_TYPES,
-      values: [props.dbType],
+      values: [props.dbType, ...topDbTypes.value.filter((item) => item !== props.dbType)],
     });
   };
 </script>
