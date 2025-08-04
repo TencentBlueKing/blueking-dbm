@@ -50,6 +50,7 @@ export default class Flow<
   D = unknown,
   S = any,
   TD = {
+    action: any;
     flow_id: number;
     remark: string;
     ticket_id: number;
