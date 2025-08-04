@@ -106,6 +106,8 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
                 info["bk_new_master"], info["bk_new_slave"] = backend["master"], backend["slave"]
             else:
                 info["bk_new_master"], info["bk_new_slave"] = info.pop("new_master")[0], info.pop("new_slave")[0]
+                info["resource_spec"]["master"] = info["resource_spec"].pop("new_master")
+                info["resource_spec"]["slave"] = info["resource_spec"].pop("new_slave")
             info["new_master_ip"], info["new_slave_ip"] = info["bk_new_master"]["ip"], info["bk_new_slave"]["ip"]
         next_flow.save(update_fields=["details"])
 
