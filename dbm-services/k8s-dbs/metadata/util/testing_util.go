@@ -69,3 +69,12 @@ func GetClusterTagTestDbAccess() dbaccess.K8sCrdClusterTagDbAccess {
 	dbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
 	return dbAccess
 }
+
+func GetAddonCategoryTestDbAccess() dbaccess.AddonCategoryDbAccess {
+	db, err := InitTestTable(constant.TbAddonCategory, &model2.AddonCategoryModel{})
+	if err != nil {
+		panic(err)
+	}
+	dbAccess := dbaccess.NewAddonCategoryDbAccess(db)
+	return dbAccess
+}
