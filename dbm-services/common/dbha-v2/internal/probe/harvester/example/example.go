@@ -66,7 +66,7 @@ func (e *Example) Version() (string, error) {
 	return "v1.0.0", nil
 }
 
-func (e *Example) Harvest(ctx context.Context) (<-chan *plugin.HarvestData, error) {
+func (e *Example) Harvest(ctx context.Context, machineID, serviceID string) (<-chan *plugin.HarvestData, error) {
 	// NOTE: Do not block Harvest method.
 
 	dataC := make(chan *plugin.HarvestData, 1024)
@@ -86,7 +86,7 @@ func (e *Example) Harvest(ctx context.Context) (<-chan *plugin.HarvestData, erro
 			case <-ticker.C:
 				// collect data from the target database instance.
 				data := &plugin.HarvestData{
-					Data: &ExampleData{
+					Value: &ExampleData{
 						CPU:       10,
 						MEM:       11,
 						ReadQPS:   100,

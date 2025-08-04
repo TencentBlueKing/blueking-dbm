@@ -37,18 +37,6 @@ type DB struct {
 	opts options
 }
 
-func (db DB) DB() *gorm.DB {
-	return db.gdb
-}
-
-func (db DB) Host() string {
-	return db.opts.ip
-}
-
-func (db DB) Port() int {
-	return db.opts.port
-}
-
 func createDatabase(opts *options) (*gorm.DB, error) {
 	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
 	if err != nil {
@@ -92,4 +80,16 @@ func New(opts ...Option) (*DB, error) {
 
 	db.gdb = gdb
 	return db, nil
+}
+
+func (db DB) DB() *gorm.DB {
+	return db.gdb
+}
+
+func (db DB) Host() string {
+	return db.opts.ip
+}
+
+func (db DB) Port() int {
+	return db.opts.port
 }
