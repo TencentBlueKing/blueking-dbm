@@ -151,7 +151,6 @@
   const operationHistoryRef = ref<InstanceType<typeof OperationHistory>>();
 
   const baseInfo = computed(() => currentTaskflowDetail.value?.flow_info || ({} as FlowDetail['flow_info']));
-  const isTaskFailed = computed(() => currentTaskflowDetail.value?.flow_info.status === 'FAILED');
   const rootId = computed(() => route.params.root_id as string);
 
   const todoNodesCount = computed(() => {
@@ -178,16 +177,21 @@
   });
 
   watch(
-    () => [isTaskFailed.value, todoNodesCount.value],
+    () => [baseInfo.value.status, todoNodesCount.value],
     () => {
       setTimeout(() => {
-        if (isTaskFailed.value) {
+        if (baseInfo.value.status === 'FAILED') {
           taskFlowRef.value!.setTreeStatus('FAILED');
           return;
         }
 
         if (todoNodesCount.value) {
           taskFlowRef.value!.setTreeStatus('TODO');
+          return;
+        }
+
+        if (baseInfo.value.status === 'RUNNING') {
+          taskFlowRef.value!.setTreeStatus('RUNNING');
           return;
         }
       });

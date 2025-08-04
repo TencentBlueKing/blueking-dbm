@@ -20,13 +20,13 @@ export class GatewayNode extends Rect {
     return this.context.model.getNodeLikeDatum(this.id) as Node;
   }
 
-  drawBackground(_: any, container: Group) {
+  drawBackground(attributes: any, container: Group) {
     const backgroundShapeStyle = {
       fill: '#fff',
       height: 48,
       radius: 24,
       shadowBlur: 4,
-      shadowColor: '#1919290d',
+      shadowColor: attributes.nodeBackgroundshadowColor,
       shadowOffsetX: 2,
       shadowOffsetY: 2,
       width: 48,
@@ -54,7 +54,7 @@ export class GatewayNode extends Rect {
       height: height + 16,
       radius: 2,
       stroke: '#3A84FF',
-      visibility: attributes.focusState,
+      visibility: attributes.focusNodeVisibility,
       width: width + 16,
       x: -width / 2 - 8,
       y: -height / 2 - 8,

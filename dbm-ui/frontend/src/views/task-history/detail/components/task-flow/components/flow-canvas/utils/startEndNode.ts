@@ -14,12 +14,12 @@ export class StartEndNode extends Rect {
     return this.data.type === FlowTypes.EmptyStartEvent;
   }
 
-  drawBackgroundShape(_: any, container: Group) {
+  drawBackgroundShape(attributes: any, container: Group) {
     const backgroundShapeStyle = {
       fill: '#fff',
       r: 24,
       shadowBlur: 4,
-      shadowColor: '#1919290d',
+      shadowColor: attributes.nodeBackgroundshadowColor,
       shadowOffsetX: 2,
       shadowOffsetY: 2,
       zIndex: 1,
@@ -40,7 +40,7 @@ export class StartEndNode extends Rect {
       height: height + 16,
       radius: 2,
       stroke: '#3A84FF',
-      visibility: attributes.focusState,
+      visibility: attributes.focusNodeVisibility,
       width: width + 16,
       x: -width / 2 - 8,
       y: -height / 2 - 8,

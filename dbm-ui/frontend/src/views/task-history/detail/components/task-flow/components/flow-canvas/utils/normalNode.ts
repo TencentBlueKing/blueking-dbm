@@ -25,7 +25,7 @@ export const searchObj = {
   key: '',
 };
 
-const LINE_WIDTH = 170;
+const LINE_WIDTH = 185;
 
 // 2行的情况下，对文本进行填充调整
 function adjustLinesText(linesText: string[], keyword: string) {
@@ -47,6 +47,10 @@ function adjustLinesText(linesText: string[], keyword: string) {
     adjustLines[0] =
       secondLineStartIndex > 0 ? firstTestStr + linesText[1].substring(0, secondLineStartIndex) : firstTestStr;
   }
+  if (adjustLines[0] === totalStr) {
+    return [totalStr];
+  }
+
   if (firstTestStr !== totalStr) {
     adjustLines[1] =
       secondLineStartIndex > 1 ? linesText[1].substring(secondLineStartIndex) : `${keyword}${linesText[1]}`;
@@ -90,11 +94,7 @@ export class NormalNode extends Rect {
     return this.data.status === 'CREATED';
   }
 
-  // get isStartNodeOfSubProcess() {
-  //   return !!this.data.isStartNodeOfSubProcess;
-  // }
-
-  drawBackgroundShape(_: any, container: Group) {
+  drawBackgroundShape(attributes: any, container: Group) {
     const isSkiped = this.data.skip;
     let strokeColor = '#A1E3BA';
     if (this.isFailed) {
@@ -118,7 +118,7 @@ export class NormalNode extends Rect {
       height: 52,
       radius: 8,
       shadowBlur: 4,
-      shadowColor: '#1919290d',
+      shadowColor: attributes.nodeBackgroundshadowColor,
       shadowOffsetX: 2,
       shadowOffsetY: 2,
       stroke: strokeColor,
@@ -128,14 +128,6 @@ export class NormalNode extends Rect {
     };
     this.upsert('backgroundShape', GRect, backgroundShapeStyle, container);
   }
-
-  // protected drawKeyShape(attributes: any, container: Group) {
-  //   const shape = super.drawKeyShape(attributes, container);
-  //   if (this.isStartNodeOfSubProcess) {
-  //     console.log('shape?????', shape);
-  //   }
-  //   return shape;
-  // }
 
   drawCollapseShape(attributes: any, container: Group) {
     if (!this.data.pipeline) {
@@ -161,7 +153,7 @@ export class NormalNode extends Rect {
       height: height + 16,
       radius: 2,
       stroke: '#3A84FF',
-      visibility: attributes.focusState,
+      visibility: attributes.focusNodeVisibility,
       width: width + (this.isSubProcess ? 9 : 16),
       x: -width / 2 - (this.isSubProcess ? 1 : 8),
       y: -height / 2 - 6,
@@ -173,15 +165,15 @@ export class NormalNode extends Rect {
     const [width] = this.getSize(attributes);
     const { name } = this.data;
 
-    let y = 8;
+    let y = 10;
 
     let lines = searchObj.key ? name!.split(new RegExp(encodeRegexp(searchObj.key))) : [name!];
     if (lines.length === 2) {
-      y = 8;
+      y = 10;
       lines = adjustLinesText(lines, searchObj.key);
     } else {
       if (getTextWidth(name!) > LINE_WIDTH) {
-        y = 16;
+        y = 18;
       }
     }
 
@@ -196,7 +188,7 @@ export class NormalNode extends Rect {
         wordWrap: true,
         wordWrapWidth: LINE_WIDTH,
         x: this.isSubProcess ? -width / 2 + 66 : -width / 2 + 52,
-        y: lines.length > 1 ? index * 16 : y,
+        y: lines.length > 1 ? index * 18 : y,
         zIndex: 1,
       };
     });
@@ -215,7 +207,8 @@ export class NormalNode extends Rect {
           if (textIndex > 0) {
             const formalTextWidth = getTextWidth(textList.slice(0, textIndex).join(''));
             style.x = style.x + formalTextWidth;
-            style.wordWrapWidth = LINE_WIDTH - formalTextWidth;
+            style.wordWrapWidth = LINE_WIDTH - formalTextWidth - getTextWidth(searchObj.key);
+            style.maxLines = 1;
           }
           if (text === searchObj.key) {
             style.fill = 'orange';
@@ -462,14 +455,12 @@ export class NormalNode extends Rect {
       if (isSkiped) {
         strokeColor = '#7FBB44';
       }
-
       if (this.isRunning) {
         strokeColor = '#3A84FF';
       }
       if (this.data.todoId) {
         strokeColor = '#F59500';
       }
-
       if (this.isWaitToRun || !this.data.status) {
         strokeColor = '#C4C6CC';
       }
@@ -511,10 +502,10 @@ export class NormalNode extends Rect {
       const failedBackgroundStyle = {
         cx: this.isSubProcess ? 127 : 120,
         cy: -24,
-        fill: '#FF4D4D',
+        fill: attributes.failedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('failedBackground', GCircle, failedBackgroundStyle, container);
+      this.upsert('failedImageBackground', GCircle, failedBackgroundStyle, container);
       const failedImageStyle = {
         height: 16,
         src: FailImage,
@@ -531,10 +522,10 @@ export class NormalNode extends Rect {
       const todoBackgroundStyle = {
         cx: this.isSubProcess ? 127 : 120,
         cy: -24,
-        fill: '#F59500',
-        r: 12,
+        fill: attributes.todoImageBackgroundColor,
+        r: 9,
       };
-      this.upsert('todoBackground', GCircle, todoBackgroundStyle, container);
+      this.upsert('todoImageBackground', GCircle, todoBackgroundStyle, container);
       const todoImageStyle = {
         height: 14,
         src: WaitTodoImage,
@@ -551,10 +542,10 @@ export class NormalNode extends Rect {
       const loadingBackgroundStyle = {
         cx: this.isSubProcess ? 127 : 120,
         cy: -24,
-        fill: '#3A84FF',
-        r: 12,
+        fill: attributes.loadingImageBackgroundColor,
+        r: 9,
       };
-      this.upsert('loadingBackground', GCircle, loadingBackgroundStyle, container);
+      this.upsert('loadingImageBackground', GCircle, loadingBackgroundStyle, container);
       const loadingImageStyle = {
         height: 14,
         src: PendingImage,
@@ -592,10 +583,10 @@ export class NormalNode extends Rect {
       const skipeBackgroundStyle = {
         cx: this.isSubProcess ? 127 : 120,
         cy: -24,
-        fill: '#7FBB44',
+        fill: attributes.skipImageBackgroundColor,
         r: 9,
       };
-      this.upsert('skipeBackground', GCircle, skipeBackgroundStyle, container);
+      this.upsert('skipImageBackground', GCircle, skipeBackgroundStyle, container);
       const skipeImageStyle = {
         height: 12,
         src: SkipSignImage,
@@ -603,7 +594,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 121 : 114,
         y: -31,
       };
-      this.upsert('skipeImage', GImage, skipeImageStyle, container);
+      this.upsert('skipImage', GImage, skipeImageStyle, container);
       return;
     }
 
@@ -612,10 +603,10 @@ export class NormalNode extends Rect {
       const finishedBackgroundStyle = {
         cx: this.isSubProcess ? 127 : 120,
         cy: -24,
-        fill: '#3DC2A6',
+        fill: attributes.finishedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('finishedBackground', GCircle, finishedBackgroundStyle, container);
+      this.upsert('finishedImageBackground', GCircle, finishedBackgroundStyle, container);
       const finishedImageStyle = {
         height: 12,
         src: SuccessImage,
@@ -696,17 +687,4 @@ export class NormalNode extends Rect {
     this.drawOperationShape(attributes, container);
     this.drawRetryDisplayShape(attributes, container);
   }
-
-  // protected getKeyStyle(attributes: any) {
-  //   const keyStyle = super.getKeyStyle(attributes);
-  //   if (this.isSubProcess) {
-  //     keyStyle.ports = [{ placement: 'right' }, { placement: 'bottom' }, { placement: 'left' }];
-  //     console.log('keyStyle?????', keyStyle);
-  //   }
-  //   // else {
-  //   //   keyStyle.ports = [{ placement: 'left' }, { placement: 'right' }];
-  //   // }
-
-  //   //   return keyStyle;
-  // }
 }
