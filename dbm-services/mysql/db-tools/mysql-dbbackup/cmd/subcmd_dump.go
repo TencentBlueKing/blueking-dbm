@@ -199,7 +199,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
 		reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
 		if err != nil {
-			return err
+			logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
 		}
 
 		body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
@@ -302,7 +302,7 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 	}
 	reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
 	if err != nil {
-		return err
+		logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
 	}
 	if resp, reportErr := reapi.SyncReport(reportCore, t.statusReport.SetStatus("Begin", "")); reportErr != nil {
 		logger.Log.Warnf("report backup status, resp: %s", string(resp))

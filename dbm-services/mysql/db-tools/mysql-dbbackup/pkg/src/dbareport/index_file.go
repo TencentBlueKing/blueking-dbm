@@ -64,7 +64,7 @@ type BackupMetaFileBase struct {
 type IndexContent struct {
 	BackupMetaFileBase
 	// ExtraFields 这里不能展开
-	ExtraFields // `json:"extra_fields" db:"extra_fields"`
+	ExtraFields
 
 	// BinlogInfo show slave status / show master status
 	BinlogInfo BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
@@ -124,7 +124,8 @@ type ExtraFields struct {
 	BinlogFormat   string `json:"binlog_format" db:"binlog_format"`
 	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
 	// BackupTool command name xtrabackup / mydumper / mysqldump
-	BackupTool string `json:"backup_tool" db:"backup_tool"`
+	BackupTool    string `json:"backup_tool" db:"backup_tool"`
+	DataDirSizeMB uint64 `json:"data_dir_size_mb" db:"data_dir_size_mb"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备

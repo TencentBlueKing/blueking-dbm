@@ -162,6 +162,11 @@ func (b *BinlogParse) GetTimeIgnoreStopErr(fileName string, start, stop bool) ([
 			return nil, errors.WithMessagef(err, fileName)
 		}
 	}
+	// 2025-08-05 发现 rotate_event 的时间小于 file_description_event 的情况
+	if events[1].Timestamp < events[0].Timestamp {
+		events[1].Timestamp = events[0].Timestamp
+		events[1].EventTime = events[0].EventTime
+	}
 	return events, nil
 }
 

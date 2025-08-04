@@ -109,7 +109,7 @@ var dumpLogicalCmd = &cobra.Command{
 		task.statusReport = dbareport.NewMysqlBackupStatusEvent(&cnf)
 		reportCore, err := recore.NewCore(0)
 		if err != nil {
-			return err
+			logger.Log.Error("report NewCore failed", err.Error()) // reportCore is nil
 		}
 
 		if err = viper.Unmarshal(&cnf); err != nil {

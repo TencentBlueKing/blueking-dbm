@@ -364,6 +364,9 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	if upload {
 		// 上传、上报备份文件
 		for _, f := range metaInfo.FileList {
+			if f.FileType == cst.FileDirectory {
+				continue
+			}
 			filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
 			var taskId string
 			var err22 error
@@ -410,7 +413,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 
 	reportCore, err := core.NewCore(int64(metaInfo.BkCloudId), core.DefaultRetryOpts...)
 	if err != nil {
-		return err
+		return errors.WithMessagef(err, "report backup result")
 	}
 	var ev = MysqlBackupResultEvent(*metaInfo)
 	if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {

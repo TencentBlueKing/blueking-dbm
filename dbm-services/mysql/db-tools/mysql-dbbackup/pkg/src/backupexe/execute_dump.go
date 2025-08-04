@@ -80,6 +80,14 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
 	}
+	// get datadir size
+	if metaInfo.IsFullBackup {
+		datadirSizeMB, err := mysqlconn.GetMysqlDataSize(db)
+		if err != nil {
+			return nil, err
+		}
+		metaInfo.DataDirSizeMB = uint64(datadirSizeMB)
+	}
 
 	if err = buildMetaInfo(cnf, metaInfo); err != nil {
 		return nil, err

@@ -92,6 +92,10 @@ func (m *MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
 			[]string{"backup_id"}, false, true); err != nil {
 			return err
 		}
+		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_clusterid",
+			[]string{"cluster_id"}, false, true); err != nil {
+			return err
+		}
 		return nil
 	} else if w.Type() == "mysql_xorm" {
 		return w.AutoMigrate(m)

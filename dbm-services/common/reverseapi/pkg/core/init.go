@@ -1,3 +1,11 @@
+// TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+// Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+// Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at https://opensource.org/licenses/MIT
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+// an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
 package core
 
 import (
@@ -44,6 +52,7 @@ func (c *Core) NginxAddrs() []string {
 	return c.nginxAddrs
 }
 
+// SetTimeout 这个地方要大于服务端的超时
 func (c *Core) SetTimeout(n int) {
 	c.client.Timeout = time.Duration(n) * time.Second
 }
@@ -61,6 +70,13 @@ var DefaultRetryOpts = []retry.Option{
 2. 格式是 BK_CLOUD_ID:IP:PORT 时, bkCloudId 可以随便写一个, 会被文件内容覆盖
 */
 func NewCoreWithAddr(bkCloudId int64, mixAddrs []string, retryOpts ...retry.Option) (*Core, error) {
+	// default timeout is 10s
+	return NewCoreWithAddrWithTimeout(bkCloudId, mixAddrs, 10*time.Second, retryOpts...)
+}
+
+// NewCoreWithAddrWithTimeout 带超时
+func NewCoreWithAddrWithTimeout(
+	bkCloudId int64, mixAddrs []string, timeout time.Duration, retryOpts ...retry.Option) (*Core, error) {
 	var err error
 	var addrs []string
 	bkCloudIdMap := make(map[int64]struct{})
@@ -106,8 +122,7 @@ func NewCoreWithAddr(bkCloudId int64, mixAddrs []string, retryOpts ...retry.Opti
 				MaxIdleConns:        2,
 				MaxConnsPerHost:     5,
 			},
-			// 这个地方要大于服务端的超时
-			Timeout: 10 * time.Second,
+			Timeout: timeout,
 		},
 		retryOpts: retryOpts,
 	}, nil
@@ -132,7 +147,7 @@ func NewCoreWithAddrsFile(bkCloudId int64, alterNginxAddrsFile string, retryOpts
 	return NewCoreWithAddr(bkCloudId, lines, retryOpts...)
 }
 
-// NewCore
+// NewCore With Default address file and timeout
 /*
 根据 nginx addrs file 的内容格式不同, bkCloudId 不是必要的参数
 1. 格式是 IP:PORT 时, bkCloudId 必须是正确的, 有意义的

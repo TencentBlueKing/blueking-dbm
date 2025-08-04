@@ -600,14 +600,23 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		fileSize := cmutil.GetFileSize(fileName)
 		// **** get binlog time
 
+		// stop_time, start_time 都要 > 结束时间，才算终止
 		if r.BinlogOpt.StopTime != "" && stopTime.Compare(stopTimeFilter) > 0 {
-			break
+			if (r.BinlogOpt.StartTime != "" && startTime.Compare(stopTimeFilter) > 0) || r.BinlogOpt.StartTime == "" {
+				break
+			}
 		}
+		if r.BinlogOpt.StartTime != "" && stopTime.Compare(startTimeFilter) < 0 && startTime.Compare(startTimeFilter) < 0 {
+			continue
+		}
+
 		if r.BinlogStartFile != "" {
 			binlogFiles = append(binlogFiles, f)
 			totalSize += fileSize
 		} else if r.BinlogOpt.StartTime != "" {
-			if startTime.Compare(startTimeFilter) > 0 { // time.RFC3339
+			// start_time,stop_time 任意一个 > 开始时间，都算有用 binlog
+			if startTime.Compare(startTimeFilter) >= 0 ||
+				(r.BinlogOpt.StopTime != "" && stopTime.Compare(startTimeFilter) >= 0) { // time.RFC3339
 				if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
 					firstBinlogFound = true
 					firstBinlogFile = lastBinlogFile

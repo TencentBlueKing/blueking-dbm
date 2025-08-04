@@ -1,6 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/user"
+	"path/filepath"
+	"slices"
+	"strings"
+	"text/template"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
@@ -13,14 +22,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"encoding/json"
-	"fmt"
-	"os"
-	"os/user"
-	"path/filepath"
-	"slices"
-	"strings"
-	"text/template"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -41,7 +42,7 @@ var subCmdGenConfig = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		apiCore.SetTimeout(60)
+		apiCore.SetTimeout(20)
 
 		data, err := reversemysqlapi.DBBackupConfig(apiCore, ports...)
 		if err != nil {

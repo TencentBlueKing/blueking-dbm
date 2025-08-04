@@ -412,10 +412,10 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				} else if taskStatus < models.IBStatusSuccess { // 未成功，且在上传中或者等待备份系统内部重试
 					f.BackupStatus = taskStatus
 				} else { // 状态有变化，但不是 success，下一轮再看
-					f.BackupStatus = taskStatus
 					logger.Info("backup_client query file: %s, taskid:%s, status: %d",
 						f.Filename, f.BackupTaskid, f.BackupStatus)
-					if f.BackupStatus == models.IBStatusCanceledByRemote {
+					if taskStatus == models.IBStatusCanceledByRemote {
+						f.BackupStatus = taskStatus
 						if err = f.Update(models.DB.Conn); err != nil {
 							return err
 						}
