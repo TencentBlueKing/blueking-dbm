@@ -11,10 +11,20 @@
     <template #content>
       <slot name="content">
         <I18nT
-          keypath="m_处理人_p_耗时_t"
+          keypath="m_处理人_p"
           scope="global">
           <span style="color: #ea3636">{{ t('执行失败') }}</span>
-          <span>{{ ticketDetail.todo_operators.join(',') }}</span>
+          {{ ticketDetail.todo_operators.join(',') }}
+        </I18nT>
+        <I18nT
+          v-if="ticketDetail.todo_helpers.length > 0"
+          keypath="_协助人_p"
+          scope="global">
+          {{ ticketDetail.todo_helpers.join(',') }}
+        </I18nT>
+        <I18nT
+          keypath="_耗时_t"
+          scope="global">
           <CostTimer
             :is-timing="false"
             :start-time="utcTimeToSeconds(data.start_time)"
