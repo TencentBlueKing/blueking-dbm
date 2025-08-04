@@ -83,7 +83,9 @@ func Run(cmd *cobra.Command, args []string) error {
 	clientID := uuid.New()
 
 	p := &Probe{
-		clientID: clientID.String(),
+		clientID:  clientID.String(),
+		machineID: "",
+		serviceID: config.Cfg.ServiceID,
 	}
 
 	// create reporters

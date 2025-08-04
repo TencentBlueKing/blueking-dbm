@@ -1,5 +1,6 @@
 name: probe
 version: v2.0.0
+serviceID: ""
 
 reporter:
   - name: gse

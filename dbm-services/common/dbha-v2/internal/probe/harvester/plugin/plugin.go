@@ -38,7 +38,7 @@ type HarvestData struct {
 type Plugin interface {
 	Name() (string, error)
 	Version() (string, error)
-	Harvest(ctx context.Context) (<-chan *HarvestData, error)
+	Harvest(ctx context.Context, machineID, serviceID string) (<-chan *HarvestData, error)
 	Close() error
 }
 
