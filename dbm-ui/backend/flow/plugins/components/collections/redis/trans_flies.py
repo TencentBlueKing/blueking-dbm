@@ -33,6 +33,8 @@ class TransFileService(BkJobService):
     下载介质文件包到目标机器
     """
 
+    only_failed_retry = True
+
     def _execute(self, data, parent_data) -> bool:
         """
         执行传输文件的原子任务

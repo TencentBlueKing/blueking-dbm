@@ -8,6 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+# fast_execute_script 滚动配置配置，先定义后续考虑使用
+fast_execute_script_rolling_config = {
+    # 一批最大滚动机器数量
+    "expression": 1000,
+    # 滚动机制,1-执行失败则暂停；2-忽略失败，自动滚动下一批；3-人工确认
+    "mode": 1,
+}
+
 # fast_execute_script接口固定参数
 fast_execute_script_common_kwargs = {
     "timeout": 3600,

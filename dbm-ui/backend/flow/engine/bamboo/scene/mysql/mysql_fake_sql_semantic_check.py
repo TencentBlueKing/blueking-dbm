@@ -14,6 +14,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.plugins.components.collections.common.check_resolv_conf import ExecuteShellScriptComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.fake_semantic_check import FakeSemanticCheckComponent
 
@@ -40,6 +41,13 @@ class MySQLFakeSemanticCheck(object):
         """
 
         fake_semantic_check = Builder(root_id=self.root_id, data=self.data)
+        fake_semantic_check.add_act(
+            **{
+                "act_name": _("执行自定义命令"),
+                "act_component_code": ExecuteShellScriptComponent.code,
+                "kwargs": self.data["params"],
+            }
+        )
         fake_semantic_check.add_act(
             act_name=_("串行1"), act_component_code=FakeSemanticCheckComponent.code, kwargs={}, skippable=False
         )

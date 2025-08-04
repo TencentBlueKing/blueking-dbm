@@ -27,7 +27,8 @@ from backend.components.sops.client import BkSopsApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
-from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
+from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
+from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket.models import Flow
 from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
@@ -245,6 +246,8 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 class BkJobService(BaseService, metaclass=ABCMeta):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
+    # 仅针对失败IP重试
+    only_failed_retry = False
 
     @staticmethod
     def __status__(instance_id: str) -> Optional[Dict]:
@@ -327,6 +330,35 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             self.log_error(_("[写入上下文结果失败] failed: {}").format(e))
             return False
 
+    def _execute_fail_job(self, data, job_instance_id, step_instance_id):
+        """
+        针对一个任务进行失败IP重试
+        """
+        params = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "step_instance_id": step_instance_id,
+            "operation_code": JobOperationCode.FAILED_IP_RETRY.value,
+        }
+        resp = JobApi.operate_step_instance(params, raw=True)
+        self.log_info(f"retry job url: {self.__url__(job_instance_id)}")
+
+        # 传入调用结果，并单调监听任务状态
+        data.outputs.ext_result = resp
+        return True
+
+    def execute(self, data, parent_data):
+        self.active_language(data)
+
+        root_id, node_id = self.runtime_attrs["root_pipeline_id"], self.runtime_attrs["id"]
+        outputs = BambooEngine(root_id).get_node_output_data(node_id).data
+        # 针对允许失败IP重试且上次执行失败的job节点，进行失败ip重试。
+        if self.only_failed_retry and outputs.get("job_execute") is False:
+            execute_info = outputs["job_execute_info"]
+            return self._execute_fail_job(data, execute_info["job_instance_id"], execute_info["step_instance_id"])
+        else:
+            return super().execute(data, parent_data)
+
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         ext_result = data.get_one_of_outputs("ext_result")
         exec_ips = data.get_one_of_outputs("exec_ips")
@@ -406,10 +438,16 @@ class BkJobService(BaseService, metaclass=ABCMeta):
                     if resp.get("result"):
                         self.log_error(f"{ip_dict}:{resp['data']['log_content']}")
 
+            # job失败后，记录失败的信息，可用于失败IP重试。
+            data.outputs.job_execute = False
+            data.outputs.job_execute_info = {"job_instance_id": job_instance_id, "step_instance_id": step_instance_id}
+
             self.finish_schedule()
             return False
 
         self.log_info(_("[{}]任务调度成功🥳︎").format(node_name))
+        data.outputs.job_execute = True
+
         if not write_payload_var:
             self.finish_schedule()
             return True

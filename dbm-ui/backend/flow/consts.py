@@ -138,6 +138,30 @@ DEFAULT_TWEMPROXY_SEG_TOTOL_NUM = 420000
 # twemproxy seg 最小值
 DEFAULT_TWEMPROXY_SEG_MIN_NUM = 0
 
+
+# JOB操作类型code
+class JobOperationCode(int, StructuredEnum):
+    FAILED_IP_RETRY = EnumField(2, _("失败IP重试"))
+    IGNORE_ERROR = EnumField(3, _("忽略错误"))
+    EXECUTE = EnumField(4, _("执行"))
+    SKIP = EnumField(5, _("跳过"))
+    CONTINUE = EnumField(6, _("确认继续"))
+    ALL_RETRY = EnumField(8, _("全部重试"))
+    TERMINATE = EnumField(9, _("终止"))
+    RETRY_CONFIRM = EnumField(10, _("重新发起确认确认"))
+
+
+# JOB主机任务状态码
+class JobHostErrorCode(int, StructuredEnum):
+    """
+    主机任务状态码，1.Agent异常; 3.上次已成功; 5.等待执行; 7.正在执行; 9.执行成功; 11.任务失败; 12.任务下发失败; 13.任务超时;
+    15.任务日志错误; 101.脚本执行失败; 102.脚本执行超时; 103.脚本执行被终止; 104.脚本返回码非零; 202.文件传输失败;
+    203.源文件不存在; 310.Agent异常; 311.用户名不存在; 320.文件获取失败; 321.文件超出限制; 329.文件传输错误; 399.任务执行出错
+    """
+
+    SUCCESS = EnumField(9, _("执行成功"))
+
+
 # JOB任务状态
 NOT_RUNNING = 1
 RUNNING = 2

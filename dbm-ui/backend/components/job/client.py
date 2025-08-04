@@ -71,6 +71,11 @@ class _JobApi(BaseApi):
             url="get_account_list/",
             description=_("查询账号列表"),
         )
+        self.operate_step_instance = self.generate_data_api(
+            method="POST",
+            url="operate_step_instance/",
+            description=_("用于对执行的实例的步骤进行操作"),
+        )
 
     @staticmethod
     def __format_fast_execute_script(params):
