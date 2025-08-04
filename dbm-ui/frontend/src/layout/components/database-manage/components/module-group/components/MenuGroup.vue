@@ -3,9 +3,10 @@
     <template #name>
       {{ dbInfo.name }}
       <DbIcon
-        v-if="!topDbTypes.includes(dbType) && !isError"
-        v-bk-tooltips="t('将该导航菜单置顶')"
+        v-if="!isError"
+        v-bk-tooltips="disabled ? t('当前数据库已置顶') : t('置顶当前数据库')"
         class="top-button"
+        :class="{ 'top-button-disabled': disabled }"
         type="zhiding"
         @click="handleClick" />
     </template>
@@ -33,11 +34,15 @@
   const dbInfo = DBTypeInfos[props.dbType];
 
   const topDbTypes = computed<string[]>(() => userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || []);
+  const disabled = computed(() => topDbTypes.value.includes(props.dbType));
 
   const handleClick = () => {
+    if (disabled.value) {
+      return;
+    }
     userProfileStore.updateProfile({
       label: UserPersonalSettings.TOP_DB_TYPES,
-      values: [props.dbType, ...topDbTypes.value],
+      values: [props.dbType],
     });
   };
 </script>
@@ -61,6 +66,21 @@
       display: none;
       margin-left: auto;
       font-size: 18px;
+      color: #c4c6cc;
+
+      &:hover {
+        display: inline-block;
+        color: #fff;
+      }
+    }
+
+    .top-button-disabled {
+      color: #dcdee5;
+      cursor: not-allowed;
+
+      &:hover {
+        color: #dcdee5;
+      }
     }
   }
 </style>
