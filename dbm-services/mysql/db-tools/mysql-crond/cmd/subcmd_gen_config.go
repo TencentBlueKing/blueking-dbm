@@ -80,6 +80,7 @@ jobs_config: {{ .InstallPath }}/jobs-config.yaml`,
 		if err != nil {
 			return err
 		}
+		apiCore.SetTimeout(20)
 
 		data, err := reversemysqlapi.CrondConfig(apiCore)
 		if err != nil {

@@ -34,6 +34,7 @@ var subCmdGenConfig = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		apiCore.SetTimeout(60)
 
 		data, err := reversemysqlapi.ChecksumConfig(apiCore, ports...)
 		if err != nil {

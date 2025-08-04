@@ -44,6 +44,10 @@ func (c *Core) NginxAddrs() []string {
 	return c.nginxAddrs
 }
 
+func (c *Core) SetTimeout(n int) {
+	c.client.Timeout = time.Duration(n) * time.Second
+}
+
 var DefaultRetryOpts = []retry.Option{
 	retry.Attempts(3),
 	retry.Delay(1 * time.Second),

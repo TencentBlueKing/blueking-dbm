@@ -74,6 +74,7 @@ func generateRuntimeConfigs() error {
 	if err != nil {
 		return err
 	}
+	apiCore.SetTimeout(60)
 
 	data, err := reversemysqlapi.MonitorRuntimeConfig(apiCore, ports...)
 	if err != nil {
@@ -166,6 +167,7 @@ func generateItemsConfigs() error {
 	if err != nil {
 		return err
 	}
+	apiCore.SetTimeout(60)
 
 	data, err := reversemysqlapi.MonitorItemsConfig(apiCore, ports...)
 	if err != nil {

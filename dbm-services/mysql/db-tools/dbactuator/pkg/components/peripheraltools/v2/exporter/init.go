@@ -132,6 +132,7 @@ func GenConfig(bkCloudId int64, nginxAddrs []string, ports ...int) error {
 		logger.Error(err.Error())
 		return err
 	}
+	apiCore.SetTimeout(60)
 
 	data, err := reversemysqlapi.ExporterConfig(apiCore, ports...)
 	if err != nil {

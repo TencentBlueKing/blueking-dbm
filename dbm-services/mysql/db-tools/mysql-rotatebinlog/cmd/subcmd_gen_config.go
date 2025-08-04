@@ -47,6 +47,7 @@ var subCmdGenConfig = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		apiCore.SetTimeout(60)
 
 		data, err := reversemysqlapi.RotatebinlogConfig(apiCore, ports...)
 		if err != nil {
