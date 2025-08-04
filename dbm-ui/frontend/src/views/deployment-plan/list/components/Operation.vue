@@ -116,6 +116,7 @@
   const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
         limit: -1,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
@@ -136,7 +137,7 @@
       const { max, min } = spec.mem;
       return `${min * formData.machine_pair_cnt} - ${max * formData.machine_pair_cnt}`;
     }
-    const storage = spec.storage_spec.reduce((result, item) => result + item.size, 0);
+    const storage = spec.storage_spec.reduce((result, item) => result + item.min, 0);
     return `>= ${storage * formData.machine_pair_cnt}`;
   });
 

@@ -456,7 +456,7 @@
       const count = Number(formdata.details.resource_spec.bookkeeper.count);
       if (specBookkeeperRef.value) {
         const { storage_spec: storageSpec = [] } = specBookkeeperRef.value.getData();
-        const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+        const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
         totalCapacity.value = disk * count;
       }
     },

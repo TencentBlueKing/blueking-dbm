@@ -460,7 +460,7 @@
       const count = Number(formData.details.resource_spec.broker.count);
       if (specBrokerRef.value) {
         const { storage_spec: storageSpec = [] } = specBrokerRef.value.getData();
-        const disk = storageSpec.reduce((total: number, item: { size: number }) => total + Number(item.size || 0), 0);
+        const disk = storageSpec.reduce((total: number, item: { min: number }) => total + Number(item.min || 0), 0);
         totalCapacity.value = disk * count;
       }
     },

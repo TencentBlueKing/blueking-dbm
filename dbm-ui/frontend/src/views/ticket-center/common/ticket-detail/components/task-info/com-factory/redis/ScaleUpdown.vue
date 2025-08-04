@@ -156,7 +156,6 @@
         return (
           <RenderSpec
             data={targetSpec}
-            hide-qps={!targetSpec.qps.max}
             is-ignore-counts
           />
         );

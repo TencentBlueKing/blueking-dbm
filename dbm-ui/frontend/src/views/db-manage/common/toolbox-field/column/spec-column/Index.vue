@@ -19,6 +19,13 @@
     :required="required"
     :rules="rules">
     <template
+      v-if="tooltips"
+      #head>
+      <div v-bk-tooltips="tooltips">
+        <span class="spec-title">{{ t(label) }}</span>
+      </div>
+    </template>
+    <template
       v-if="selectable"
       #headAppend>
       <BatchEditColumn
@@ -49,7 +56,7 @@
       <template #option="{ item }">
         {{ item.spec_name }}
         <BkTag
-          v-if="currentSpecIdList?.includes(item.spec_id) && showTag"
+          v-if="showTag && currentSpecIdList?.includes(item.spec_id)"
           class="ml-4"
           size="small"
           theme="success">
@@ -87,6 +94,7 @@
     required?: boolean;
     selectable?: boolean;
     showTag?: boolean;
+    tooltips?: string;
   }
 
   type Emits = (e: 'batch-edit', value: number, field: string) => void;
@@ -100,6 +108,7 @@
     required: false,
     selectable: false,
     showTag: true,
+    tooltips: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -156,12 +165,18 @@
   watch(
     () => [props.selectable, props.clusterType, props.machineType],
     () => {
-      fetchData({
-        enable: props.selectable ? true : undefined,
+      const params = {
         limit: -1,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
-      });
+      };
+      if (props.selectable) {
+        Object.assign(params, {
+          biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
+          enable: true,
+        });
+      }
+      fetchData(params);
     },
     {
       immediate: true,
@@ -171,7 +186,17 @@
   // 初始化
   watch(
     () => [modelValue.value, props.currentSpecIdList],
-    () => {
+    (newValue, oldValue) => {
+      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
+        return;
+      }
+      if (props.selectable) {
+        const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
+        if (!isExist) {
+          modelValue.value = 0;
+          return;
+        }
+      }
       const currentSpecIdList = _.uniq(props.currentSpecIdList);
       const isSame = currentSpecIdList.length === 1;
       const [currentSpecId] = currentSpecIdList;
@@ -204,6 +229,10 @@
   };
 </script>
 <style lang="less" scoped>
+  .spec-title {
+    border-bottom: 1px dashed #979ba5;
+  }
+
   .batch-edit-btn {
     font-size: 14px;
     color: #3a84ff;

@@ -80,9 +80,9 @@
       </template>
       <template v-else>
         <InfoItem :label="t('Proxy存储资源规格')">
-          <BkPopover
-            placement="top"
-            theme="light">
+          <SpecDetailPopover
+            :data="ticketDetails.details.resource_spec.proxy"
+            placement="top">
             <span
               class="pb-2"
               style="cursor: pointer; border-bottom: 1px dashed #979ba5">
@@ -90,10 +90,7 @@
                 `${ticketDetails.details.resource_spec.proxy.count} ${t('台')}`
               }}）
             </span>
-            <template #content>
-              <SpecInfos :data="ticketDetails.details.resource_spec.proxy" />
-            </template>
-          </BkPopover>
+          </SpecDetailPopover>
         </InfoItem>
         <InfoItem
           :label="t('集群部署方案')"
@@ -135,6 +132,7 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import {
     type RedisClusterTypes,
@@ -147,7 +145,6 @@
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterApply>;

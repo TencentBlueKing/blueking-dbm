@@ -25,14 +25,13 @@
         v-model="localValue.name"
         :placeholder="t('自动生成')">
         <template #append>
-          <SpecPanel
+          <SpecDetailPopover
             v-if="localValue.id"
-            :data="localValue"
-            :hide-qps="!localValue.qps.min">
+            :data="localValue">
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
-          </SpecPanel>
+          </SpecDetailPopover>
         </template>
       </EditableBlock>
       <EditableBlock
@@ -57,15 +56,15 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import type { InstanceInfos, MachineSpecConfig } from '@services/types';
 
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   const modelValue = defineModel<{
     related_slave?: {
-      spec_config: SpecInfo;
+      spec_config: MachineSpecConfig;
     }; // 关联的从库ip，仅当role=redis_master时存在
-    spec_config: SpecInfo;
+    spec_config: InstanceInfos['spec_config'];
   }>({
     required: true,
   });
@@ -88,18 +87,14 @@
       max: 1,
       min: 0,
     },
-    storage_spec: [
-      {
-        mount_point: '/data',
-        size: 0,
-        type: '默认',
-      },
-    ],
+    storage_spec: [],
   });
 
-  const localValue = computed<SpecInfo>(() => Object.assign(createDefaultData(), modelValue.value.spec_config));
+  const localValue = computed<InstanceInfos['spec_config']>(() =>
+    Object.assign(createDefaultData(), modelValue.value.spec_config),
+  );
 
-  const relatedSlaveSpec = computed<SpecInfo>(() =>
+  const relatedSlaveSpec = computed<MachineSpecConfig>(() =>
     Object.assign(createDefaultData(), modelValue.value.related_slave?.spec_config),
   );
 </script>

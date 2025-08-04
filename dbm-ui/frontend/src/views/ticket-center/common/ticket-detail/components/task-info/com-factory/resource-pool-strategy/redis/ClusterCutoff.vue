@@ -60,28 +60,25 @@
       <template #default="{ data }: { data: RowData }">
         <div class="has-related">
           {{ data.spec_config?.name || '--' }}
-          <SpecPanel
+          <SpecDetailPopover
             v-if="data.spec_config?.name"
-            :data="data.spec_config"
-            :hide-qps="!data.spec_config.qps?.min">
+            :data="data.spec_config">
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
-          </SpecPanel>
+          </SpecDetailPopover>
         </div>
-
         <div
           v-if="data.related_slave_spec?.name"
           class="has-related related-slave-cell">
           {{ data.related_slave_spec?.name || '--' }}
-          <SpecPanel
+          <SpecDetailPopover
             v-if="data.related_slave_spec?.name"
-            :data="data.related_slave_spec"
-            :hide-qps="!data.related_slave_spec.qps?.min">
+            :data="data.related_slave_spec">
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
-          </SpecPanel>
+          </SpecDetailPopover>
         </div>
       </template>
     </BkTableColumn>
@@ -92,13 +89,13 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { DetailSpecs } from '@services/model/ticket/details/common';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
-
-  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+  // import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Redis.ResourcePool.ClusterCutoff>;
@@ -117,9 +114,9 @@
     cluster_domain: string;
     ip: string;
     related_slave_ip?: string; // 关联的slave
-    related_slave_spec?: SpecInfo; // 关联的slave
+    related_slave_spec?: DetailSpecs[number]; // 关联的slave
     role: string;
-    spec_config: SpecInfo;
+    spec_config: DetailSpecs[number];
   }
 
   const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);

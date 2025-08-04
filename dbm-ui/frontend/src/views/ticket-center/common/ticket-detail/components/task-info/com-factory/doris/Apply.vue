@@ -44,67 +44,55 @@
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Follower节点')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="followerSpec"
-          placement="top"
-          theme="light">
+          :data="followerSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ followerSpec.spec_name }}（{{ `${followerSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="followerSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('Observer节点')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="observerSpec"
-          placement="top"
-          theme="light">
+          :data="observerSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ observerSpec.spec_name }}（{{ `${observerSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="observerSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('热节点')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="hotSpec"
-          placement="top"
-          theme="light">
+          :data="hotSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ hotSpec.spec_name }}（{{ `${hotSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="hotSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
       <InfoItem :label="t('冷节点')">
-        <BkPopover
+        <SpecDetailPopover
           v-if="coldSpec"
-          placement="top"
-          theme="light">
+          :data="coldSpec"
+          placement="top">
           <span
             class="pb-2"
             style="cursor: pointer; border-bottom: 1px dashed #979ba5">
             {{ coldSpec.spec_name }}（{{ `${coldSpec.count} ${t('台')}` }}）
           </span>
-          <template #content>
-            <SpecInfos :data="coldSpec" />
-          </template>
-        </BkPopover>
+        </SpecDetailPopover>
         <span v-else>--</span>
       </InfoItem>
     </template>
@@ -167,12 +155,12 @@
   import { TicketTypes } from '@common/const';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   import { firstLetterToUpper } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Doris.Apply>;

@@ -46,51 +46,42 @@
   <div class="info-title mt-20">{{ t('需求信息') }}</div>
   <InfoList>
     <InfoItem :label="t('Config Server资源规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="configServerSpec"
-        placement="top"
-        theme="light">
+        :data="configServerSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ configServerSpec.spec_name }}（{{ `${configServerSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="configServerSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
     <InfoItem :label="t('Mongos资源规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="mongosSpec"
-        placement="top"
-        theme="light">
+        :data="mongosSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ mongosSpec.spec_name }}（{{ `${mongosSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="mongosSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
     <InfoItem :label="t('ShardSvr资源规格')">
-      <BkPopover
+      <SpecDetailPopover
         v-if="shardSvrSpec"
-        placement="top"
-        theme="light">
+        :data="shardSvrSpec"
+        placement="top">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
           {{ shardSvrSpec.spec_name }}（{{ `${shardSvrSpec.count} ${t('台')}` }}）
         </span>
-        <template #content>
-          <SpecInfos :data="shardSvrSpec" />
-        </template>
-      </BkPopover>
+      </SpecDetailPopover>
       <span v-else>--</span>
     </InfoItem>
   </InfoList>
@@ -103,9 +94,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
-  import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.ShardApply>;

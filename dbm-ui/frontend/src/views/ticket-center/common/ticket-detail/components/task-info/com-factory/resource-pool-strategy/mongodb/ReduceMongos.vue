@@ -30,15 +30,14 @@
       :label="t('当前规格')"
       :min-width="150">
       <template #default>
-        {{ specInfo.name }}
-        <SpecPanel
-          v-if="specInfo.id"
-          :data="specInfo"
-          :hide-qps="!specInfo.qps.min">
+        {{ specInfo?.name || '--' }}
+        <SpecDetailPopover
+          v-if="specInfo?.id"
+          :data="specInfo">
           <DbIcon
             class="visible-icon ml-4"
             type="visible1" />
-        </SpecPanel>
+        </SpecDetailPopover>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -53,17 +52,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { DetailSpecs } from '@services/model/ticket/details/common';
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import SpecPanel, { type SpecInfo } from '@components/render-table/columns/spec-display/Panel.vue';
-
-  interface Props {
-    ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceMongos>;
-  }
-
-  type RowData = Props['ticketDetails']['details']['infos'][0];
+  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
   defineOptions({
     name: TicketTypes.MONGODB_REDUCE_MONGOS,
@@ -72,25 +66,15 @@
 
   const props = defineProps<Props>();
 
+  interface Props {
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ReduceMongos>;
+  }
+
+  type RowData = Props['ticketDetails']['details']['infos'][0];
+
   const { t } = useI18n();
 
-  const specInfo = ref<SpecInfo>({
-    cpu: {
-      max: 0,
-      min: 0,
-    },
-    id: 0,
-    mem: {
-      max: 0,
-      min: 0,
-    },
-    name: '--',
-    qps: {
-      max: 0,
-      min: 0,
-    },
-    storage_spec: [],
-  });
+  const specInfo = ref<DetailSpecs[string]>();
 
   watch(
     () => props.ticketDetails.details,
