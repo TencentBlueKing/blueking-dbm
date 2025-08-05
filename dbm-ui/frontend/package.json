@@ -21,6 +21,7 @@
     "@antv/g6": "^5.0.49",
     "@blueking/app-select": "0.0.1-beta.19",
     "@blueking/bk-trace-core": "0.0.4",
+    "@blueking/bk-weweb": "0.0.26",
     "@blueking/bkflow.js": "0.1.11",
     "@blueking/date-picker": "1.0.1",
     "@blueking/ip-selector": "0.3.0-beta.23",
