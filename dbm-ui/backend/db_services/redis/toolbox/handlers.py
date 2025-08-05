@@ -43,6 +43,7 @@ from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_update_version,
 )
 from backend.utils.basic import dictfetchall
+from backend.utils.batch_request import batch_request
 from backend.utils.string import base64_encode
 
 
@@ -301,28 +302,29 @@ class ToolboxHandler(ClusterServiceHandler):
 
             # 查询remote cc信息
             remote_ips = list(remote_ip__report_map.keys())
-            search_rules = [
-                {"field": "bk_host_innerip", "operator": "in", "value": remote_ips},
-                {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
-            ]
-            resp = CCApi.list_hosts_without_biz(
-                {
-                    "fields": ["bk_host_id", "bk_host_innerip", "operator", "bk_bak_operator"],
-                    "host_property_filter": {"condition": "AND", "rules": search_rules},
-                }
-            )
+            params = {
+                "fields": ["bk_host_id", "bk_host_innerip", "operator", "bk_bak_operator"],
+                "host_property_filter": {
+                    "condition": "AND",
+                    "rules": [
+                        {"field": "bk_host_innerip", "operator": "in", "value": remote_ips},
+                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                    ],
+                },
+            }
+            hosts = batch_request(CCApi.list_hosts_without_biz, params, get_data=lambda x: x["info"], use_admin=True)
 
-            if not resp["info"]:
+            if not hosts:
                 return {}
 
             cc_map = defaultdict(dict)
             # 补充主备负责人信息
-            for host in resp["info"]:
+            for host in hosts:
                 cc_map[host["bk_host_innerip"]].update(operator=host["operator"], bak_operator=host["bk_bak_operator"])
 
-            # 查询主机与业务的映射关系
-            remote_host_ids = [info["bk_host_id"] for info in resp["info"]]
-            resp = CCApi.find_host_biz_relations({"bk_host_id": remote_host_ids})
+            # 查询主机与业务的映射关系，这里要分批请求
+            remote_host_ids = [host["bk_host_id"] for host in hosts]
+            resp = CCApi.batch_find_host_biz_relations({"bk_host_id": remote_host_ids})
             biz__host_ids = defaultdict(list)
             for host in resp:
                 biz__host_ids[host["bk_biz_id"]].append(host["bk_host_id"])

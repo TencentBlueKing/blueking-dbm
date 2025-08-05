@@ -504,7 +504,7 @@ class ResourceHandler(object):
         # 获取主机通用信息
         hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
         # 获取主机拓扑信息
-        host_topos = CCApi.find_host_biz_relations({"bk_host_id": host_ids})
+        host_topos = CCApi.batch_find_host_biz_relations({"bk_host_id": host_ids})
         host_biz_map = {host["bk_host_id"]: host["bk_biz_id"] for host in host_topos}
         # 补充主机信息
         for host in hosts:

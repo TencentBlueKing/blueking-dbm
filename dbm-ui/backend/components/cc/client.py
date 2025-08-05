@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 
 from django.utils.translation import ugettext_lazy as _
 
+from ...utils.batch_request import request_multi_thread
 from ..base import BaseApi
 from ..domains import CC_APIGW_DOMAIN
 
@@ -216,6 +218,17 @@ class _CCApi(BaseApi):
             url="event/watch/resource/{bk_resource}",
             description=_("查询主机更新事件信息"),
         )
+
+    def batch_find_host_biz_relations(self, params):
+        """批量请求主机拓扑关系"""
+        host_ids = params.get("bk_host_id")
+        if not host_ids:
+            return []
+
+        batch = 500
+        params_list = [{"params": {"bk_host_id": host_ids[i : i + batch]}} for i in range(0, len(host_ids), batch)]
+        data_list = request_multi_thread(self.find_host_biz_relations, params_list, get_data=lambda x: x)
+        return list(itertools.chain(*data_list))
 
 
 CCApi = _CCApi()
