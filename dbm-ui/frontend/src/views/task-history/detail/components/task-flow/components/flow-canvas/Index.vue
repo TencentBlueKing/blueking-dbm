@@ -14,24 +14,20 @@
   <NodeSkip
     ref="skipTemplateRef"
     :data="nodeOperationState.currentNode"
-    :is-show="nodeOperationState.operate.skip.isShow"
     :root-id="rootId"
     @close="(refresh) => handleCancelOperation('skip', refresh)" />
   <NodeRetry
     ref="retryTemplateRef"
     :data="nodeOperationState.currentNode"
-    :is-show="nodeOperationState.operate.retry.isShow"
     :root-id="rootId"
     @close="(refresh) => handleCancelOperation('retry', refresh)" />
   <NodeContinue
     ref="continueTemplateRef"
     :data="nodeOperationState.currentNode"
-    :is-show="nodeOperationState.operate.continue.isShow"
     @close="(refresh) => handleCancelOperation('continue', refresh)" />
   <NodeForceFail
     ref="forceFailTemplateRef"
     :data="nodeOperationState.currentNode"
-    :is-show="nodeOperationState.operate.forceFail.isShow"
     :root-id="rootId"
     @close="(refresh) => handleCancelOperation('forceFail', refresh)" />
 </template>
@@ -95,32 +91,6 @@
   const forceFailTemplateRef = ref<InstanceType<typeof NodeForceFail>>();
   const canvasZoomValue = ref(100);
 
-  const nodeOperationState = reactive({
-    currentNode: undefined as Node | undefined,
-    log: {
-      isShow: false,
-    },
-    operate: {
-      continue: {
-        instance: null as Instance | null,
-        isShow: false,
-      },
-      forceFail: {
-        instance: null as Instance | null,
-        isShow: false,
-      },
-
-      retry: {
-        instance: null as Instance | null,
-        isShow: false,
-      },
-      skip: {
-        instance: null as Instance | null,
-        isShow: false,
-      },
-    } as Record<string, { instance: Instance | null; isShow: boolean }>,
-  });
-
   const tooltipState = reactive({
     failed: {
       instance: null as Instance | null,
@@ -151,6 +121,14 @@
 
   const { isFullscreen, toggle } = useFullscreen(flowCanvasContainerRef);
 
+  const nodeOperationState = {
+    currentNode: undefined as Node | undefined,
+    instance: null as Instance | null,
+    log: {
+      isShow: false,
+    },
+  };
+
   const initEvent = () => {
     const container = document.getElementById('flowCanvasContainer')!;
     container.addEventListener(
@@ -172,10 +150,10 @@
           canvasZoomValue.value = flowGraphInstance.viewZoom * 100;
         } else {
           if (Math.abs(e.wheelDeltaX) > Math.abs(e.wheelDeltaY)) {
-            const horizontalDistance = e.wheelDeltaX > 0 ? 50 : -50; // 向右滚向右，向左滚向左
+            const horizontalDistance = e.wheelDeltaX > 0 ? 25 : -25; // 向右滚向右，向左滚向左
             flowGraphInstance.translateBy([horizontalDistance, 0]);
           } else {
-            const verticalDistance = e.wheelDeltaY > 0 ? 50 : -50; // 向下滚向下，向上滚向上
+            const verticalDistance = e.wheelDeltaY > 0 ? 25 : -25; // 向下滚向下，向上滚向上
             flowGraphInstance.translateBy([0, verticalDistance]);
           }
         }
@@ -386,8 +364,8 @@
         break;
     }
     const [targetX, targetY] = flowGraphInstance.getClientByCanvas([x, y]);
-    nodeOperationState.operate[type].instance?.destroy();
-    nodeOperationState.operate[type].instance = dbTippy(document.body, {
+    nodeOperationState.instance?.destroy();
+    nodeOperationState.instance = dbTippy(document.body, {
       allowHTML: true,
       appendTo: () => flowCanvasContainerRef.value!,
       arrow: true,
@@ -400,7 +378,7 @@
       trigger: 'manual',
       zIndex: 9999,
     });
-    nodeOperationState.operate[type].instance.setProps({
+    nodeOperationState.instance.setProps({
       getReferenceClientRect: () =>
         ({
           bottom: targetY,
@@ -413,16 +391,14 @@
           y,
         }) as any,
     });
-    nodeOperationState.operate[type].instance.show();
+    nodeOperationState.instance.show();
     nodeOperationState.currentNode = target.data;
-    nodeOperationState.operate[type].isShow = true;
   };
 
   const handleCancelOperation = (type: string, refresh: boolean) => {
-    if (nodeOperationState.operate[type].instance) {
-      nodeOperationState.operate[type].instance.destroy();
+    if (nodeOperationState.instance) {
+      nodeOperationState.instance.destroy();
     }
-    nodeOperationState.operate[type].isShow = false;
     if (refresh) {
       emits('refresh');
     }

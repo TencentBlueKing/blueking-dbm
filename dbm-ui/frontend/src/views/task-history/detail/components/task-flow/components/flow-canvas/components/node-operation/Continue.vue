@@ -1,6 +1,5 @@
 <template>
   <div
-    v-show="isShow"
     ref="templateRef"
     class="task-history-flow-operation-main">
     <div class="title">
@@ -36,7 +35,6 @@
 
   interface Props {
     data?: Node;
-    isShow?: boolean;
   }
 
   type Emits = (e: 'close', refresh: boolean) => void;
