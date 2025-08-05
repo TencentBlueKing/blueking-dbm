@@ -13,6 +13,11 @@
 
 <template>
   <InfoList>
+    <InfoItem :label="t('集群')">
+      {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].immute_domain }}
+    </InfoItem>
+  </InfoList>
+  <InfoList>
     <InfoItem label="Topic">
       <BkTag
         v-for="topic in ticketDetails.details.topics"

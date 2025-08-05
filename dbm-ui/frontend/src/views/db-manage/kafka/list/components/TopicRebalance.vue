@@ -105,8 +105,7 @@
           <BkTable
             border
             :data="isFilter ? checkedInstances : formData.instance_list"
-            :loading="loading"
-            @row-click="handleRowClick">
+            :loading="loading">
             <BkTableColumn
               :resizable="false"
               :width="51">
@@ -121,7 +120,7 @@
                   v-model="row.checked"
                   class="instance-list-checkbox"
                   :disabled="row.agentStatus !== 1"
-                  @change="(checked: boolean) => handleSelect(checked, row)" />
+                  @change="handleSelect" />
               </template>
             </BkTableColumn>
             <BkTableColumn
@@ -217,7 +216,7 @@
   });
   const isFilter = ref(false);
   const searchValue = ref('');
-  const isAllSelected = ref(false);
+  const isAllSelected = ref(true);
   const checkNum = computed(() => formData.instance_list.filter((item) => item.checked).length);
   const checkedInstances = computed(() => formData.instance_list.filter((item) => item.checked));
 
@@ -227,7 +226,7 @@
       formData.instance_list = data.results.map((broker) => ({
         ...broker,
         agentStatus: broker.host_info.alive,
-        checked: false, // Initialize checked state
+        checked: true, // 默认全选
         createAt: utcDisplayTime(broker.create_at),
       }));
     },
@@ -282,23 +281,8 @@
     }
   });
 
-  watch(
-    () => formData.instance_list,
-    (newList) => {
-      isAllSelected.value = newList.every((item) => item.checked);
-    },
-  );
-
-  const handleSelect = (checked: boolean, row: RowData) => {
-    Object.assign(row, {
-      checked: !checked,
-    });
-  };
-
-  const handleRowClick = (event: Event, row: RowData) => {
-    Object.assign(row, {
-      checked: !row.checked,
-    });
+  const handleSelect = () => {
+    isAllSelected.value = formData.instance_list.every((item) => item.checked);
   };
 
   const handleSelectAll = (checked: boolean) => {
