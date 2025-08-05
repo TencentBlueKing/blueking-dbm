@@ -200,10 +200,10 @@
       list.value = list.value.map((item) =>
         Object.assign(item, {
           count: data[item.spec_id],
-          isRecentSeconds: item.isRecentSeconds ?? false,
-          name: item.spec_name,
-          qpsText: item.qpsText ?? '',
-          updateAtDisplay: item.updateAtDisplay ?? '',
+          // isRecentSeconds: item.isRecentSeconds ?? false,
+          // name: item.spec_name,
+          // qpsText: item.qpsText ?? '',
+          // updateAtDisplay: item.updateAtDisplay ?? '',
         }),
       );
     });
