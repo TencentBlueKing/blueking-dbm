@@ -83,7 +83,7 @@ export function batchProcessTicket(params: {
   return http.post(`${path}/batch_process_ticket/`, params);
 }
 
-// /apis/tickets/batch_process_todo/
+// 批量待办处理
 export function batchProcessTodo(params: {
   action: 'APPROVE' | 'TERMINATE' | 'SKIP' | 'CHANGE';
   operations: {
