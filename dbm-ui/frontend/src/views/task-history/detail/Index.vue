@@ -196,10 +196,10 @@
     },
   );
 
-  watch(todoNodesCount,
+  watch(
+    todoNodesCount,
     () => {
       setTimeout(() => {
-       
         if (todoNodesCount.value) {
           taskFlowRef.value!.setTreeStatus('TODO');
           return;

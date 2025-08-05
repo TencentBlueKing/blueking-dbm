@@ -23,7 +23,6 @@
       <div
         v-if="statusText"
         class="mission-detail-status-info">
-        <!-- <span class="mr-8">{{ t('状态') }}: </span> -->
         <BkTag :theme="statueTheme">
           {{ statusText }}
           <span
@@ -38,37 +37,6 @@
           </span>
         </BkTag>
       </div>
-      <BkPopConfirm
-        v-if="todoNodesCount > 0"
-        :content="t('确认继续所有人工确认节点')"
-        trigger="click"
-        width="288"
-        @confirm="handleTodoAllPipeline">
-        <BkButton
-          class="top-operate-btn mr-12"
-          :loading="isProcessTodoLoading">
-          <DbIcon
-            class="mr-4"
-            type="check" />
-          {{ t('确认继续') }}
-        </BkButton>
-      </BkPopConfirm>
-      <BkPopConfirm
-        v-if="isTaskFailed"
-        :content="t('确定重试所有失败节点')"
-        trigger="click"
-        width="288"
-        @confirm="handleRetryAllPipeline">
-        <BkButton
-          ref="revokeButtonRef"
-          class="top-operate-btn mr-12"
-          :loading="isRetryLoading">
-          <DbIcon
-            class="mr-4"
-            type="refresh" />
-          {{ t('失败重试') }}
-        </BkButton>
-      </BkPopConfirm>
       <BkPopConfirm
         v-if="isRevokable"
         :content="t('确定终止任务吗')"
@@ -92,8 +60,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { batchRetryNodes, revokePipeline } from '@services/source/taskflow';
-  import { ticketBatchProcessTodo } from '@services/source/ticket';
+  import { revokePipeline } from '@services/source/taskflow';
 
   import { messageSuccess } from '@utils';
 
@@ -196,20 +163,6 @@
     return !['FINISHED', 'REVOKED'].includes(baseInfo.value.status);
   });
 
-  const { loading: isRetryLoading, run: runBatchRetryNodes } = useRequest(batchRetryNodes, {
-    manual: true,
-    onSuccess: () => {
-      handleOperateSuccess();
-    },
-  });
-
-  const { loading: isProcessTodoLoading, run: runTicketBatchProcessTodo } = useRequest(ticketBatchProcessTodo, {
-    manual: true,
-    onSuccess: () => {
-      handleOperateSuccess();
-    },
-  });
-
   const { loading: isRevokeLoading, run: runRevokePipeline } = useRequest(revokePipeline, {
     manual: true,
     onSuccess: () => {
@@ -242,24 +195,8 @@
     messageSuccess(t('操作成功'));
   };
 
-  const handleRetryAllPipeline = () => {
-    runBatchRetryNodes({
-      root_id: props.rootId,
-    });
-  };
-
   const handleRevokePipeline = () => {
     runRevokePipeline({ rootId: props.rootId });
-  };
-
-  const handleTodoAllPipeline = () => {
-    runTicketBatchProcessTodo({
-      action: 'APPROVE',
-      operations: props.data!.todos!.map((todoItem) => ({
-        params: {},
-        todo_id: todoItem.id,
-      })),
-    });
   };
 
   defineExpose({
