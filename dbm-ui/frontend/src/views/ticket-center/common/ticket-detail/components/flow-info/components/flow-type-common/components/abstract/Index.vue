@@ -20,9 +20,9 @@
 
   import FlowMode from '@services/model/ticket/flow';
 
-  import TableCollapse from '@components/table-collapse/Index.vue';
-
   import FlowCollapse from '../FlowCollapse.vue';
+
+  import TableCollapse from './components/TableCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;

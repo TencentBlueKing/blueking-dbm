@@ -350,7 +350,8 @@
         from: route.name as string,
       },
     });
-    window.open(href, '_blank');
+
+    window.open(getBusinessHref(href), '_blank');
   };
 
   const handleGoTicketDetail = (data: TaskFlowModel) => {

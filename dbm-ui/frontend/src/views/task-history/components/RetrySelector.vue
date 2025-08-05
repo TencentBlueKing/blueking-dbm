@@ -24,24 +24,23 @@
     :width="392">
     <div
       v-clickoutside:[contentRef]="handleClose"
-      class="retry-selector-trigger"
-      :class="[activeCls, { 'retry-selector-trigger--loading': state.loading }]"
+      class="retry-selector__trigger"
+      :class="[activeCls, { 'retry-selector__trigger--loading': state.loading }]"
       @click="handleToggle">
-      <div class="retry-selector-display">
+      <div class="retry-selector__display">
         {{ state.active.started_time }}
         <BkTag
           v-if="isLatest"
-          theme="info"
-          type="filled">
-          {{ t('最新') }}
+          theme="info">
+          {{ $t('最新') }}
         </BkTag>
       </div>
       <DbIcon
-        class="retry-selector-icon"
+        class="retry-selector__icon"
         type="down-big" />
       <BkLoading
         v-if="state.loading"
-        class="retry-selector-loading"
+        class="retry-selector__loading"
         loading
         mode="spin"
         size="mini"
@@ -50,8 +49,8 @@
     <template #content>
       <div
         ref="contentRef"
-        class="retry-selector-content">
-        <strong>{{ t('执行记录') }}</strong>
+        class="retry-selector__content">
+        <strong>{{ $t('执行记录') }}</strong>
         <DbOriginalTable
           :columns="columns"
           :data="state.histories"
@@ -68,6 +67,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Column } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -79,7 +79,6 @@
 
   interface Props {
     nodeId: string;
-    rootId: string;
   }
 
   type Emits = (e: 'change', value: RetryNodeItem) => void;
@@ -88,23 +87,11 @@
   const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const rootId = computed(() => route.params.root_id as string);
 
   const isAnomalies = ref(false);
-  const contentRef = ref<HTMLDivElement>();
-
-  const state = reactive({
-    active: {} as RetryNodeItem,
-    histories: [] as RetryNodeItem[],
-    isShow: false,
-    latestVersion: '',
-    loading: true,
-  });
-
-  const isLatest = computed(() => state.active.version === state.latestVersion);
-  const activeCls = computed(() => (state.isShow ? 'retry-selector-trigger--active' : ''));
-
-  const { body } = document;
-  const columns = [
+  const columns: Column[] = [
     {
       field: 'started_time',
       label: t('执行时间'),
@@ -133,10 +120,20 @@
     },
   ];
 
+  const state = reactive({
+    active: {} as RetryNodeItem,
+    histories: [] as RetryNodeItem[],
+    isShow: false,
+    latestVersion: '',
+    loading: true,
+  });
+  const isLatest = computed(() => state.active.version === state.latestVersion);
+  const { body } = document;
+  const contentRef = ref<HTMLDivElement>();
+  const activeCls = computed(() => (state.isShow ? 'retry-selector__trigger--active' : ''));
+
   const handleToggle = () => {
-    if (state.loading) {
-      return;
-    }
+    if (state.loading) return;
 
     state.isShow = !state.isShow;
   };
@@ -152,15 +149,19 @@
     state.loading = true;
     getRetryNodeHistories({
       node_id: props.nodeId,
-      root_id: props.rootId,
+      root_id: rootId.value,
     })
-      .then((historyData) => {
-        state.histories = historyData;
-        if (historyData.length > 0) {
-          state.latestVersion = historyData[0].version;
-          [state.active] = historyData;
+      .then((res) => {
+        state.histories = res;
+        if (res.length > 0) {
+          state.latestVersion = res[0].version;
+          [state.active] = res;
         }
         isAnomalies.value = false;
+      })
+      .catch(() => {
+        state.histories = [];
+        isAnomalies.value = true;
       })
       .finally(() => {
         state.loading = false;
@@ -189,7 +190,7 @@
         emit('change', state.active);
       }
     },
-    { deep: true },
+    { deep: true, immediate: true },
   );
 
   watch(
@@ -207,20 +208,18 @@
 
 <style lang="less" scoped>
   .retry-selector {
-    &-display {
+    &__display {
       width: 100%;
-      color: #c4c6cc;
     }
 
-    &-icon {
+    &__icon {
       position: absolute;
       top: 6px;
       right: 6px;
-      color: #c4c6cc;
       transition: all 0.2s;
     }
 
-    &-trigger {
+    &__trigger {
       position: relative;
       height: 26px;
       min-width: 170px;
@@ -229,14 +228,14 @@
       line-height: 24px;
       color: @default-color;
       cursor: pointer;
-      background-color: #4d4d4d;
+      background-color: @bg-gray;
       border: 1px solid transparent;
       border-radius: 2px;
 
       &--active {
         border-color: @primary-color;
 
-        .retry-selector-icon {
+        .retry-selector__icon {
           transform: rotate(180deg);
         }
       }
@@ -253,14 +252,14 @@
       }
     }
 
-    &-loading {
+    &__loading {
       position: absolute;
       top: 4px;
       right: 6px;
       background-color: @bg-gray;
     }
 
-    &-content {
+    &__content {
       padding: 9px 2px;
 
       strong {
