@@ -19,6 +19,8 @@ limitations under the License.
 
 package response
 
+import "k8s.io/apimachinery/pkg/api/resource"
+
 // ClusterDetailResponse cluster detail response
 type ClusterDetailResponse struct {
 	Metadata      ClusterMeta            `json:"metadata,omitempty"`
@@ -55,6 +57,6 @@ type ComponentDetail struct {
 
 // ResourceDetail the resource of component
 type ResourceDetail struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
+	CPU    resource.Quantity `json:"cpu,omitempty"`
+	Memory resource.Quantity `json:"memory,omitempty"`
 }
