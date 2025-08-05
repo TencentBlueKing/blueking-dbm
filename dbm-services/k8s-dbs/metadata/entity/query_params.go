@@ -19,36 +19,40 @@ limitations under the License.
 
 package entity
 
+import "time"
+
 // ClusterQueryParams cluster 元数据查询参数
 type ClusterQueryParams struct {
-	ID                  uint64 `gorm:"column:id"`
-	AddonID             uint64 `gorm:"column:addon_id"`
-	AddonClusterVersion string `gorm:"column:addoncluster_version"`
-	TopoName            string `gorm:"column:topo_name" json:"topoName"`
-	K8sClusterConfigID  uint64 `gorm:"column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
-	ClusterName         string `gorm:"column:cluster_name" json:"clusterName"`
-	ClusterAlias        string `gorm:"column:cluster_alias" json:"clusterAlias"`
-	Namespace           string `gorm:"column:namespace" json:"namespace"`
-	BkBizID             uint64 `gorm:"column:bk_biz_id" json:"bkBizId"`
-	BkBizName           string `gorm:"column:bk_biz_name" json:"bkBizName"`
-	BkAppAbbr           string `gorm:"column:bk_app_abbr" json:"bkAppAbbr"`
-	BkAppCode           string `gorm:"column:bk_app_code" json:"bkAppCode"`
-	Status              string `gorm:"column:status" json:"status"`
-	CreatedBy           string `gorm:"column:created_by" json:"createdBy"`
-	UpdatedBy           string `gorm:"column:updated_by" json:"updatedBy"`
+	ID                  uint64   `gorm:"column:id"`
+	AddonID             uint64   `gorm:"column:addon_id"`
+	AddonTypes          []string `json:"addonTypes"`
+	AddonClusterVersion string   `gorm:"column:addoncluster_version"`
+	TopoName            string   `gorm:"column:topo_name" json:"topoName"`
+	K8sClusterConfigID  uint64   `gorm:"column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
+	ClusterName         string   `gorm:"column:cluster_name" json:"clusterName"`
+	ClusterAlias        string   `gorm:"column:cluster_alias" json:"clusterAlias"`
+	Namespace           string   `gorm:"column:namespace" json:"namespace"`
+	BkBizIDs            []uint64 `json:"bkBizIDs"`
+	BkBizName           string   `gorm:"column:bk_biz_name" json:"bkBizName"`
+	BkAppAbbr           string   `gorm:"column:bk_app_abbr" json:"bkAppAbbr"`
+	BkAppCode           string   `gorm:"column:bk_app_code" json:"bkAppCode"`
+	Status              string   `gorm:"column:status" json:"status"`
+	Creators            []string `json:"creators"`
+	Updaters            []string `json:"updaters"`
 }
 
 // ClusterRequestQueryParams cluster 操作元数据查询参数
 type ClusterRequestQueryParams struct {
-	ID             uint64 `gorm:"column:id" json:"id"`
-	RequestID      string `gorm:"column:request_id" json:"requestId"`
-	K8sClusterName string `gorm:"column:k8s_cluster_name" json:"k8sClusterName"`
-	ClusterName    string `gorm:"column:cluster_name" json:"clusterName"`
-	NameSpace      string `gorm:"column:namespace" json:"namespace"`
-	RequestType    string `gorm:"column:request_type" json:"requestType"`
-	RequestParams  string `gorm:"column:request_params" json:"requestParams"`
-	CreatedBy      string `gorm:"column:created_by" json:"createdBy"`
-	UpdatedBy      string `gorm:"column:updated_by" json:"updatedBy"`
+	ID             uint64    `gorm:"column:id" json:"id"`
+	RequestID      string    `gorm:"column:request_id" json:"requestId"`
+	K8sClusterName string    `gorm:"column:k8s_cluster_name" json:"k8sClusterName"`
+	ClusterNames   []string  `json:"clusterNames"`
+	NameSpace      string    `gorm:"column:namespace" json:"namespace"`
+	RequestTypes   []string  `json:"requestTypes"`
+	RequestParams  string    `gorm:"column:request_params" json:"requestParams"`
+	Operators      []string  `json:"operators"`
+	StartTime      time.Time `json:"startTime"`
+	EndTime        time.Time `json:"endTime"`
 }
 
 // AddonQueryParams addon 插件元数据查询参数

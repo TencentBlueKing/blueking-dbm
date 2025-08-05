@@ -47,6 +47,9 @@ const (
 	UpdateMetaDataError
 	GetMetaDataError
 	DeleteMetaDataError
+	ParameterInvalidError
+	ParameterTypeError
+	ParameterValueError
 )
 
 // 存储集群 cluster 操作异常
@@ -100,18 +103,21 @@ const (
 // 定义错误码对于的message
 var codeTag = map[ErrorCode]string{
 	// 纳管系统内置异常
-	AuthError:           "权限不足，请联系管理员",
-	ServerError:         "内部服务器出现错误",
-	EngineTypeError:     "数据库引擎类型有误",
-	AuthorizationError:  "签名信息有误",
-	ThirdAPIError:       "调用第三方 API 接口失败",
-	ResubmitError:       "请勿重复提交",
-	LoginError:          "登录失败",
-	LogoutError:         "注销失败",
-	CreateMetaDataError: "创建元数据失败",
-	UpdateMetaDataError: "更新元数据失败",
-	GetMetaDataError:    "获取元数据失败",
-	DeleteMetaDataError: "删除元数据失败",
+	AuthError:             "权限不足，请联系管理员",
+	ServerError:           "内部服务器出现错误",
+	EngineTypeError:       "数据库引擎类型有误",
+	AuthorizationError:    "签名信息有误",
+	ThirdAPIError:         "调用第三方 API 接口失败",
+	ResubmitError:         "请勿重复提交",
+	LoginError:            "登录失败",
+	LogoutError:           "注销失败",
+	CreateMetaDataError:   "创建元数据失败",
+	UpdateMetaDataError:   "更新元数据失败",
+	GetMetaDataError:      "获取元数据失败",
+	DeleteMetaDataError:   "删除元数据失败",
+	ParameterInvalidError: "参数校验失败",
+	ParameterTypeError:    "参数类型校验失败",
+	ParameterValueError:   "参数值校验失败",
 
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",

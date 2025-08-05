@@ -296,12 +296,11 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
-	var clusterMetaParams = &metaentity.ClusterQueryParams{
+	clusterMeta, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		K8sClusterConfigID: k8sClusterConfig.ID,
 		Namespace:          params.Namespace,
 		ClusterName:        params.ClusterName,
-	}
-	clusterMeta, err := c.clusterMetaProvider.FindByParams(clusterMetaParams)
+	})
 	if err != nil {
 		return nil, 0, err
 	}

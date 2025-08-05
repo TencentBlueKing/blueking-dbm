@@ -84,7 +84,17 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 	error,
 ) {
 	var cluster models.K8sCrdClusterModel
-	result := k.db.Where(params).First(&cluster)
+	query := k.db.Where(&models.K8sCrdClusterModel{})
+	if params.K8sClusterConfigID > 0 {
+		query = query.Where("k8s_cluster_config_id = ?", params.K8sClusterConfigID)
+	}
+	if params.Namespace != "" {
+		query = query.Where("namespace = ?", params.Namespace)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("cluster_name = ?", params.ClusterName)
+	}
+	result := query.First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -113,19 +123,47 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 ) ([]models.K8sCrdClusterModel, uint64, error) {
 	var clusterModels []models.K8sCrdClusterModel
 	var count int64
-	if err := k.db.Model(&models.K8sCrdClusterModel{}).Where(params).Count(&count).Error; err != nil {
-		slog.Error("Count cluster models error", "error", err.Error())
+	query := k.db.Debug().Model(&models.K8sCrdClusterModel{})
+	if len(params.Creators) > 0 {
+		query = query.Where("created_by in (?)", params.Creators)
+	}
+	if len(params.Updaters) > 0 {
+		query = query.Where("updated_by in (?)", params.Updaters)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("cluster_name like ?", "%"+params.ClusterName+"%")
+	}
+	if params.ClusterAlias != "" {
+		query = query.Where("cluster_alias like ?", "%"+params.ClusterAlias+"%")
+	}
+	if params.BkBizName != "" {
+		query = query.Where("bk_biz_name like ?", "%"+params.BkBizName+"%")
+	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if params.Namespace != "" {
+		query = query.Where("namespace = ?", params.Namespace)
+	}
+	if len(params.AddonTypes) > 0 {
+		subQuery := k.db.Debug().Model(&models.K8sCrdStorageAddonModel{}).
+			Select("id").
+			Where("addon_type in (?)", params.AddonTypes)
+		query = query.Where("addon_id in (?)", subQuery)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		slog.Error("集群总数统计失败", "error", err.Error())
 		return nil, 0, err
 	}
 	offset := (pagination.Page - 1) * pagination.Limit
-	if err := k.db.
+	if err := query.
 		Offset(offset).
 		Limit(pagination.Limit).
-		Where(params).
 		Order("created_at DESC").
 		Find(&clusterModels).
 		Error; err != nil {
-		slog.Error("List cluster models error", "error", err.Error())
+		slog.Error("集群列表检索失败", "error", err.Error())
 		return nil, 0, err
 	}
 

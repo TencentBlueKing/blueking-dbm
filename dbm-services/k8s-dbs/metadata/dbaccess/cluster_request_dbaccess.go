@@ -96,22 +96,51 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 ) {
 	var recordModels []*metamodel.ClusterRequestRecordModel
 	var count int64
-	if err := k.db.Model(&metamodel.ClusterRequestRecordModel{}).Where(params).Count(&count).Error; err != nil {
-		slog.Error("Count metamodel error", "error", err.Error())
-		return nil, 0, err
+	query := k.db.Debug().Model(&metamodel.ClusterRequestRecordModel{})
+	if params.K8sClusterName != "" {
+		query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
 	}
-	offset := (pagination.Page - 1) * pagination.Limit
-	if err := k.db.
-		Offset(offset).
-		Limit(pagination.Limit).
-		Where(params).
-		Order("created_at DESC").
-		Find(&recordModels).
-		Error; err != nil {
-		slog.Error("List metamodel error", "error", err.Error())
+	if params.NameSpace != "" {
+		query = query.Where("namespace = ?", params.NameSpace)
+	}
+	if len(params.Operators) > 0 {
+		query = query.Where("created_by in ?", params.Operators)
+	}
+	if !params.StartTime.IsZero() {
+		query = query.Where("created_at >= ?", params.StartTime)
+
+	}
+	if !params.EndTime.IsZero() {
+		query = query.Where("created_at <= ?", params.EndTime)
+	}
+
+	if len(params.RequestTypes) > 0 {
+		query = query.Where("request_type in ?", params.RequestTypes)
+	}
+
+	if len(params.ClusterNames) > 0 {
+		query = query.Where("cluster_name in ?", params.ClusterNames)
+	}
+
+	if params.RequestParams != "" {
+		query = query.Where("request_params like ?", "%"+params.RequestParams+"%")
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		slog.Error("操作记录总数统计失败", "error", err)
 		return nil, 0, err
 	}
 
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := query.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Order("created_at DESC").
+		Find(&recordModels).
+		Error; err != nil {
+		slog.Error("操作记录检索失败", "error", err)
+		return nil, 0, err
+	}
 	return recordModels, uint64(count), nil
 }
 

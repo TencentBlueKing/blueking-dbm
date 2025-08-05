@@ -28,7 +28,6 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/response"
-	"reflect"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -105,16 +104,15 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	var clusterQueryParams metaentity.ClusterQueryParams
-	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &clusterQueryParams,
-		map[string]reflect.Type{"bkBizId": reflect.TypeOf(uint64(0))}); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+	requestParams, err := c.buildListParams(ctx)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	clusterEntities, count, err := c.clusterProvider.ListClusters(&clusterQueryParams, pagination)
+	clusterEntities, count, err := c.clusterProvider.ListClusters(requestParams, pagination)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
@@ -132,4 +130,24 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		Result: data,
 	}
 	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+func (c *ClusterController) buildListParams(ctx *gin.Context) (*metaentity.ClusterQueryParams, error) {
+	var bkBizIDs []uint64
+	for _, bkBizIDStr := range ctx.QueryArray("bkBizId") {
+		bkBizID, err := strconv.ParseUint(bkBizIDStr, 10, 64)
+		if err != nil {
+			return nil, errors.NewK8sDbsError(errors.ParameterTypeError, err)
+		}
+		bkBizIDs = append(bkBizIDs, bkBizID)
+	}
+	requestParams := metaentity.ClusterQueryParams{
+		Creators:     ctx.QueryArray("creator"),
+		Updaters:     ctx.QueryArray("updater"),
+		AddonTypes:   ctx.QueryArray("addonType"),
+		ClusterName:  ctx.Query("clusterName"),
+		ClusterAlias: ctx.Query("clusterAlias"),
+		BkBizIDs:     bkBizIDs,
+	}
+	return &requestParams, nil
 }

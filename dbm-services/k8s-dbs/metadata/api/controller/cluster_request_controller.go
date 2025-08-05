@@ -27,6 +27,7 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	corevo "k8s-dbs/metadata/vo/response"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -48,14 +49,15 @@ func NewClusterRequestRecordController(
 func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
-	}
-	var requestParams metaentity.ClusterRequestQueryParams
-	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &requestParams, nil); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	records, count, err := k.clusterRequestProvider.ListRecords(&requestParams, pagination)
+	requestParams, err := k.buildListParams(ctx)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+	records, count, err := k.clusterRequestProvider.ListRecords(requestParams, pagination)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
@@ -70,4 +72,31 @@ func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 		Result: data,
 	}
 	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
+	*metaentity.ClusterRequestQueryParams,
+	error,
+) {
+	startTimeStr := ctx.Query("startTime")
+	startTime, err := time.Parse(time.DateTime, startTimeStr)
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	}
+	endTimeStr := ctx.Query("endTime")
+	endTime, err := time.Parse(time.DateTime, endTimeStr)
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	}
+	requestPrams := metaentity.ClusterRequestQueryParams{
+		ClusterNames:   ctx.QueryArray("clusterName"),
+		Operators:      ctx.QueryArray("operator"),
+		RequestTypes:   ctx.QueryArray("requestType"),
+		RequestParams:  ctx.Query("requestParams"),
+		K8sClusterName: ctx.Query("k8sClusterName"),
+		NameSpace:      ctx.Query("nameSpace"),
+		StartTime:      startTime,
+		EndTime:        endTime,
+	}
+	return &requestPrams, nil
 }
