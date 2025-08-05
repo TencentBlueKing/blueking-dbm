@@ -78,3 +78,13 @@ func GetAddonCategoryTestDbAccess() dbaccess.AddonCategoryDbAccess {
 	dbAccess := dbaccess.NewAddonCategoryDbAccess(db)
 	return dbAccess
 }
+
+// GetAddonTopologyTestDbAccess 获取测试 AddonTopologyDbAccess
+func GetAddonTopologyTestDbAccess() dbaccess.AddonTopologyDbAccess {
+	db, err := InitTestTable(constant.TbAddonTopology, &metamodel.AddonTopologyModel{})
+	if err != nil {
+		panic(err)
+	}
+	dbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+	return dbAccess
+}
