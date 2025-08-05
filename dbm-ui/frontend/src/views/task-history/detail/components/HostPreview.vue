@@ -15,7 +15,7 @@
   <BkDialog
     class="host-preview-dialog"
     :is-show="isShow"
-    :title="$t('主机预览')"
+    :title="t('主机预览')"
     width="80%"
     @closed="handleClose">
     <div class="host-preview-content">
@@ -23,12 +23,12 @@
         <BkButton
           class="mr-8"
           @click="handleCopyAbnormalIps">
-          {{ $t('复制异常IP') }}
+          {{ t('复制异常IP') }}
         </BkButton>
         <BkButton
           class="mr-8"
           @click="handleCopyIps">
-          {{ $t('复制所有IP') }}
+          {{ t('复制所有IP') }}
         </BkButton>
       </div>
       <BkLoading :loading="loading">
@@ -43,7 +43,7 @@
     </div>
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -62,7 +62,6 @@
 
   interface Props {
     hostIds: number[];
-    // bizId: number,
   }
 
   const props = defineProps<Props>();
@@ -72,9 +71,6 @@
 
   const isAnomalies = ref(false);
 
-  /**
-   * 预览表格配置
-   */
   const columns = [
     {
       field: 'ip',
@@ -155,7 +151,9 @@
   });
 
   watch(isShow, () => {
-    isShow.value && fetchHosts();
+    if (isShow.value) {
+      fetchHosts();
+    }
   });
 
   const fetchHosts = () => {
@@ -168,21 +166,25 @@
     });
   };
 
-  function handleCopyAbnormalIps() {
+  const handleCopyAbnormalIps = () => {
     const abnormalIps = (data.value || []).filter((item) => item.alive === 0).map((item) => item.ip);
-    if (abnormalIps.length === 0) return;
+    if (abnormalIps.length === 0) {
+      return;
+    }
     execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
-  }
+  };
 
-  function handleCopyIps() {
+  const handleCopyIps = () => {
     const ips = (data.value || []).map((item) => item.ip);
-    if (ips.length === 0) return;
+    if (ips.length === 0) {
+      return;
+    }
     execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
-  }
+  };
 </script>
 
 <style lang="less" scoped>
