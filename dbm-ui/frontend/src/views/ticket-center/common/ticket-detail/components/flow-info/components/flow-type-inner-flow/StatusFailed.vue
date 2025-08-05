@@ -3,17 +3,28 @@
     :data="data"
     :ticket-detail="ticketDetail">
     <template #content>
-      <I18nT
-        v-if="isNeedOperation"
-        keypath="m_处理人_p_耗时_t"
-        scope="global">
-        <span style="color: #ea3636">{{ t('执行失败') }}</span>
-        <span>{{ ticketDetail.todo_operators.join(',') }}</span>
-        <CostTimer
-          :is-timing="false"
-          :start-time="utcTimeToSeconds(data.start_time)"
-          :value="data.cost_time" />
-      </I18nT>
+      <template v-if="isNeedOperation">
+        <I18nT
+          keypath="m_处理人_p"
+          scope="global">
+          <span style="color: #ea3636">{{ t('执行失败') }}</span>
+          {{ ticketDetail.todo_operators.join(',') }}
+        </I18nT>
+        <I18nT
+          v-if="ticketDetail.todo_helpers.length > 0"
+          keypath="_协助人_p"
+          scope="global">
+          {{ ticketDetail.todo_helpers.join(',') }}
+        </I18nT>
+        <I18nT
+          keypath="_耗时_t"
+          scope="global">
+          <CostTimer
+            :is-timing="false"
+            :start-time="utcTimeToSeconds(data.start_time)"
+            :value="data.cost_time" />
+        </I18nT>
+      </template>
       <I18nT
         v-else
         keypath="m_耗时_t"

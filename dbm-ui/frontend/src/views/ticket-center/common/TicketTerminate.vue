@@ -28,7 +28,7 @@
 
   const props = defineProps<Props>();
 
-  const { username } = useUserProfile();
+  const { isSuperuser, username } = useUserProfile();
   const { t } = useI18n();
 
   const eventBus = useEventBus();
@@ -45,7 +45,9 @@
         TicketModel.STATUS_TIMER,
         TicketModel.STATUS_TODO,
       ].includes(localTicketData.value.status) &&
-      (localTicketData.value.todo_helpers.includes(username) || localTicketData.value.todo_operators.includes(username))
+      (isSuperuser ||
+        localTicketData.value.todo_helpers.includes(username) ||
+        localTicketData.value.todo_operators.includes(username))
     );
   });
 
