@@ -154,6 +154,9 @@ export function generateCommonData(data: FlowDetail) {
 
 // 判断当前节点的所有子孙节点中是否存在相同的状态
 function isExistSameStatusInDeepChildren(node: TreeNode, status: string): boolean {
+  if (status === 'TODO' && node.todoId > 0) {
+    return true;
+  }
   if (node.status === status) {
     return true;
   }
