@@ -17,6 +17,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/log"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
@@ -88,6 +89,15 @@ func (c *RotateBinlogComp) Start() (err error) {
 			Pwd:    inst.Password,
 			Socket: inst.Socket,
 		}
+		inst.publicCfg = c.ConfigObj.Public
+		// set backupEnable
+		if inst.publicCfg.BackupEnable == cst.BackupEnableAuto || inst.publicCfg.BackupEnable == "" {
+			if inst.Tags.DBRole == cst.RoleMaster {
+				inst.backupEnable = true
+			}
+		} else {
+			inst.backupEnable = cmutil.ToBoolExt(inst.publicCfg.BackupEnable)
+		}
 		if err = validate.GoValidateStruct(inst, true); err != nil {
 			err = errs.WithMessagef(err, "validate instance %s", inst)
 			logger.Error("%+v", err.Error())
@@ -95,20 +105,24 @@ func (c *RotateBinlogComp) Start() (err error) {
 			continue
 		}
 		var backupClient backup.BackupClient
-		if backupClient, err = backup.InitBackupClient(); err != nil {
-			err = errs.WithMessagef(err, "init backup_client")
-			logger.Error("%+v", err.Error())
-			errRet = errors.Join(errRet, err)
-			continue
+		if inst.backupEnable {
+			if backupClient, err = backup.InitBackupClient(); err != nil {
+				err = errs.WithMessagef(err, "init backup_client")
+				logger.Error("%+v", err.Error())
+				errRet = errors.Join(errRet, err)
+				continue
+			}
+			inst.backupClient = backupClient // if nil, ignore backup
+		} else {
+			logger.Info("instance %d backup_client is disabled", inst.Port)
 		}
-		inst.backupClient = backupClient // if nil, ignore backup
+
 		if lastFileBefore, err := inst.Rotate(); err != nil {
 			err = errs.WithMessagef(err, "run rotatebinlog %d", inst.Port)
 			logger.Error("%+v", err)
 			errRet = errors.Join(errRet, err)
 			continue
 		} else {
-			inst.publicCfg = c.ConfigObj.Public
 			if err = inst.RegisterBinlog(lastFileBefore); err != nil {
 				logger.Error(err.Error())
 			}

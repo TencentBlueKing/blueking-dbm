@@ -146,6 +146,16 @@ IOLimitMBPerSec = 300
 ```
 参数 `Public.IOLimitMasterFactor = 0.5` 可进一步限制在 master 上备份的限速，表示的是限速因子，比如 0.5 表示实际限速为 `IOLimitMBPerSec * 0.5`, `Throttle * 0.5`
 
+### 7. 不想将备份打包
+备份打包/切分是为了方便备份文件上传，能上传避免文件数过多，也能避免后续下载时可以多文件同时下载以及下载失败时只需要重试少量文件。
+
+如果备份是临时用于恢复，可以完成数据备份之后不进行打包操作，可以节约一定时间：
+```
+[Public]
+SkipTarball = true
+```
+此时备份的 `.index` 里面 file_list 里面会记录一条 `{"file_type":"directory", "file_name"}`， 目前目录不支持上传备份系统，所以此类备份需要手动传输到您需要恢复的目的地。
+
 ### 7. 关于逻辑备份字符集说明
 首先，mysql 的表结构上的 comment 注释，mysqld 内部都是以 utf8 来编码的，它与表结构定义的 charset 和 表里面数据的字符集 都么有关系。mysqldump 导出表结构时，可以看到都设置为了 utf8，能正确处理。
 

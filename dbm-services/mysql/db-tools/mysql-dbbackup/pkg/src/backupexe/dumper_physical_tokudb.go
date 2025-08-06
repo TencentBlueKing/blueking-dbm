@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package backupexe
 
 import (
@@ -32,11 +42,11 @@ type PhysicalTokudbDumper struct {
 	tokudbCmd        string
 	storageEngine    string
 	mysqlRole        string
-	masterHost       string
-	masterPort       int
 	backupStartTime  time.Time
 	backupEndTime    time.Time
 	backupTargetPath string
+
+	slaveStatus *mysqlcomm.SlaveStatus
 }
 
 // buildArgs construct the instruction parameters for data recovery.
@@ -84,20 +94,18 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string, logBinDisabled bo
 
 	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
-
 	if err != nil {
 		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s",
 			p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
 		return err
 	}
-
 	// keep the storage engine name is lower
 	p.storageEngine = strings.ToLower(p.storageEngine)
 	p.mysqlRole = strings.ToLower(p.cnf.Public.MysqlRole)
 
 	// if the current node is slave, obtain the master ip and port
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
-		p.masterHost, p.masterPort, err = mysqlconn.ShowMysqlSlaveStatus(db)
+		p.slaveStatus, err = mysqlconn.ShowMysqlSlaveStatus(db)
 		if err != nil {
 			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
 				p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err)
@@ -161,6 +169,20 @@ func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 	if err != nil {
 		logger.Log.Errorf("can not run the tokudb physical dumper command:%s, engine:%s, errmsg:%s",
 			mysqlcomm.RemoveMysqlCommandPassword(backupCmd), p.storageEngine, err)
+		// 异常退出需要恢复原始的 slave status 信息
+		if p.slaveStatus != nil && p.slaveStatus.SlaveSqlRunning == "Yes" {
+			db2, err2 := mysqlconn.InitConn(&p.cnf.Public)
+			if err2 != nil {
+				logger.Log.Errorf("failed to connect mysql, host:%s, port:%d, errmsg:%s",
+					p.cnf.Public.MysqlHost, p.cnf.Public.MysqlPort, err2)
+				return err2
+			}
+			defer func() {
+				_ = db2.Close()
+			}()
+			err2 = mysqlconn.StartSlaveThreads(true, true, db2)
+			logger.Log.Warnf("after backup failed: start slave with %v", err2)
+		}
 		return err
 	}
 
@@ -209,11 +231,13 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, m
 		}
 		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogFile = slaveStatus.BinlogFile
 		metaInfo.BinlogInfo.ShowSlaveStatus.BinlogPos = slaveStatus.BinlogPos
-		if p.masterHost != "" {
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
-		}
-		if p.masterPort != 0 {
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
+		if p.slaveStatus != nil {
+			if p.slaveStatus.MasterHost != "" {
+				metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.slaveStatus.MasterHost
+			}
+			if p.slaveStatus.MasterPort != 0 {
+				metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.slaveStatus.MasterPort
+			}
 		}
 	}
 

@@ -58,7 +58,7 @@ func (c *GoApplyBinlogComp) Example() interface{} {
 				BinaryMode:       true,
 			},
 			QuickMode:       true,
-			BinlogDir:       "/data/dbbak/20000/binlog",
+			BinlogDir:       "/data/dbbak/xxxx/20000/binlog_20000",
 			BinlogFiles:     []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
 			BinlogStartFile: "binlog20000.00001",
 			WorkDir:         "/data/dbbak/",
@@ -78,7 +78,7 @@ type GoApplyBinlog struct {
 	TgtInstance native.InsObject   `json:"tgt_instance" validate:"required"`
 	BinlogOpt   *GoMySQLBinlogUtil `json:"binlog_opt" validate:"required"`
 	// 恢复时 binlog 存放目录，一般是下载目录
-	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/123456/binlog"`
+	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/xxxxx/20000/binlog_20000"`
 	// binlog列表
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
 	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
@@ -91,7 +91,7 @@ type GoApplyBinlog struct {
 	StartTime string `json:"start_time"`
 	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
 	StopTime string `json:"stop_time"`
-	// binlog 解析所在目录，存放运行日志
+	// binlog 解析所在目录，存放运行日志，应该要包含端口
 	WorkDir string `json:"work_dir" validate:"required" example:"/data/dbbak/"`
 	WorkID  string `json:"work_id" example:"123456"`
 	// 仅解析 binlog，不做导入
@@ -406,7 +406,7 @@ func (r *GoApplyBinlog) initDirs() error {
 	if r.WorkID == "" {
 		r.WorkID = cmutil.NewTimestampString()
 	}
-	r.taskDir = fmt.Sprintf("%s/apply_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
+	r.taskDir = fmt.Sprintf("%s/apply_binlog_%d_%s", r.WorkDir, r.TgtInstance.Port, r.WorkID)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {
 		return err
 	}
@@ -600,12 +600,13 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		fileSize := cmutil.GetFileSize(fileName)
 		// **** get binlog time
 
-		// stop_time, start_time 都要 > 结束时间，才算终止
+		// stopTime, startTime 都要 > 结束时间，才算终止
 		if r.BinlogOpt.StopTime != "" && stopTime.Compare(stopTimeFilter) > 0 {
 			if (r.BinlogOpt.StartTime != "" && startTime.Compare(stopTimeFilter) > 0) || r.BinlogOpt.StartTime == "" {
 				break
 			}
 		}
+		// startTime,stopTime 都 < 开始时间，不算起始 binlog
 		if r.BinlogOpt.StartTime != "" && stopTime.Compare(startTimeFilter) < 0 && startTime.Compare(startTimeFilter) < 0 {
 			continue
 		}

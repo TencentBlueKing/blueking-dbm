@@ -110,8 +110,9 @@ func (f *GoFlashback) Init() error {
 }
 
 // downloadBinlogFiles 将文件软连接到 downloadDir
+// binlog 的目录样式: /data/dbbak/xxxxxx/20000/binlog_20000
 func (f *GoFlashback) downloadBinlogFiles() error {
-	f.binlogSaveDir = filepath.Join(f.flashback.GetTaskDir(), "binlog")
+	f.binlogSaveDir = filepath.Join(f.flashback.WorkDir, fmt.Sprintf("binlog_%d", f.TgtInstance.Port))
 	if err := osutil.CheckAndMkdir("", f.binlogSaveDir); err != nil {
 		return err
 	}

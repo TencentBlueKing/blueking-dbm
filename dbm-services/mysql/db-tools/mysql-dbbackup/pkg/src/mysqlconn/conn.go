@@ -243,41 +243,25 @@ func GetMysqlCharset(dbh *sql.DB) ([]string, error) {
 
 // ShowMysqlSlaveStatus Show the slave status of mysql server
 // if server is master, return local ip:port
-func ShowMysqlSlaveStatus(db *sql.DB) (masterHost string, masterPort int, err error) {
-	rows, err := db.Query("show slave status")
-	if err != nil {
-		logger.Log.Error("failed to query show slave status, err: ", err)
-		return masterHost, masterPort, err
-	}
-	defer rows.Close()
-	cols, err := rows.Columns()
-	if err != nil {
-		logger.Log.Error("failed to return column names, err: ", err)
-		return masterHost, masterPort, err
-	}
-	index := make([]interface{}, len(cols))
-	data := make([]sql.NullString, len(cols))
-	for i := range index {
-		index[i] = &data[i]
+func ShowMysqlSlaveStatus(db *sql.DB) (result *mysqlcomm.SlaveStatus, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	result = &mysqlcomm.SlaveStatus{}
+	dbx := sqlx.NewDb(db, "mysql")
+
+	if err := dbx.Unsafe().GetContext(ctx, result, "show slave status"); err != nil {
+		return nil, errors.WithMessage(err, "show slave status")
 	}
 
-	for rows.Next() {
-		err := rows.Scan(index...)
-		if err != nil {
-			logger.Log.Error("scan failed: ", err)
-			return "", 0, err
-		}
+	return
+}
 
-		for k, v := range data {
-			if strings.ToUpper(cols[k]) == "MASTER_HOST" {
-				masterHost = v.String
-			}
-			if strings.ToUpper(cols[k]) == "MASTER_PORT" {
-				masterPort = cast.ToInt(v.String)
-			}
-		}
+func GetSlaveStatusMasterInfo(db *sql.DB) (masterHost string, masterPort int, err error) {
+	slaveStatus, err := ShowMysqlSlaveStatus(db)
+	if err != nil {
+		return "", 0, err
 	}
-	return masterHost, masterPort, nil
+	return slaveStatus.MasterHost, slaveStatus.MasterPort, nil
 }
 
 type ShowMasterStatus struct {
@@ -310,15 +294,17 @@ func ShowMysqlMasterStatus(ftwrl bool, db *sql.DB) (status *ShowMasterStatus, er
 
 func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB) error {
 	var err error
+	if ioThread && sqlThread {
+		_, err = db.Exec("START SLAVE")
+		return err
+	}
 	if ioThread {
-		if _, err = db.Exec("START SLAVE io_thread"); err != nil {
-			return err
-		}
+		_, err = db.Exec("START SLAVE io_thread")
+		return err
 	}
 	if sqlThread {
-		if _, err = db.Exec("START SLAVE sql_thread"); err != nil {
-			return err
-		}
+		_, err = db.Exec("START SLAVE sql_thread")
+		return err
 	}
 	return nil
 }
