@@ -281,6 +281,10 @@
         // isAutoFocus = true;
         batchSetTreeNodeOpen();
         const firstLeafNode = findFirstLeafNode(renderTreeData.value)!;
+        if (!firstLeafNode) {
+          return;
+        }
+
         treeRef.value!.setSelect(firstLeafNode);
         handleNodeClick(firstLeafNode);
       }, 500);
