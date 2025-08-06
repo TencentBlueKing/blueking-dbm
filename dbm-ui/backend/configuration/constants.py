@@ -151,6 +151,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     QUICK_MINOR_POAA = EnumField("QUICK_MINOR_POAA", _("小额绿通单据申请"))
     # 资源池独立业务,如果配置该变量,需要联动修改 MANAGE_TOPO::resource.idle.module的值
     RESOURCE_INDEPENDENT_BIZ = EnumField("RESOURCE_INDEPENDENT_BIZ", _("资源池独立业务"))
+    # redie删除key限速配置
+    REDIS_DELETE_RATE = EnumField("REDIS_DELETE_RATE", _("redie删除key限速配置"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
