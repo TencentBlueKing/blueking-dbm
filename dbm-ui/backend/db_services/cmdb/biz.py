@@ -251,5 +251,9 @@ def get_or_create_pending_module():
 
 
 def get_resource_biz():
-    """获取资源池业务"""
+    """
+    获取资源池业务
+    所有主机导入都会放在该业务资源池模块
+    所有主机回收都会到该业务的待回收池模块(独立管控业务除外)
+    """
     return SystemSettings.get_setting_value(key=SystemSettingsEnum.RESOURCE_INDEPENDENT_BIZ) or env.DBA_APP_BK_BIZ_ID

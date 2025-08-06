@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import gettext_lazy as _
 
-from ... import env
+from ...db_services.cmdb.biz import get_resource_biz
 from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
@@ -85,7 +85,8 @@ class _HCMApi(BaseApi):
 
     def create_recycle(self, bk_host_ids: list):
         params = {
-            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            # 所有待回收的机器一定在资源池管控业务
+            "bk_biz_id": get_resource_biz(),
             "bk_host_ids": bk_host_ids,
             "remark": "dbm auto create",
             # 回收策略固定是：立刻销毁

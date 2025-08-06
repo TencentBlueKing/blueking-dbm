@@ -33,6 +33,7 @@ from backend.db_services.cmdb.biz import (
     get_or_create_cmdb_module_with_name,
     get_or_create_pending_module,
     get_or_create_set_with_name,
+    get_resource_biz,
 )
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -401,13 +402,27 @@ class CcManage(object):
         )
         # 如果非独立管控业务，则将主机转移到自定义的pending模块
         if self.hosting_biz_id == env.DBA_APP_BK_BIZ_ID:
-            pending_module = [get_or_create_pending_module()]
-            CCApi.transfer_host_module(
-                {"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids, "bk_module_id": pending_module},
-                use_admin=True,
-            )
+            self.recycle_host_pending_module(bk_host_ids)
 
         self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
+
+    def recycle_host_pending_module(self, bk_host_ids: list):
+        """
+        将主机转移到资源业务的pending模块，用于机器下架的暂存
+        独立管控业务此方法不生效
+        """
+        if self.hosting_biz_id != env.DBA_APP_BK_BIZ_ID:
+            return
+
+        resource_biz, pending_module = get_resource_biz(), get_or_create_pending_module()
+        # 如果资源业务和DBA业务不相同，则先转移到资源业务空闲机
+        if resource_biz != self.hosting_biz_id:
+            self.transfer_host_to_idlemodule_across_biz(resource_biz, bk_host_ids)
+
+        CCApi.transfer_host_module(
+            {"bk_biz_id": resource_biz, "bk_host_id": bk_host_ids, "bk_module_id": [pending_module]},
+            use_admin=True,
+        )
 
     def add_service_instance(
         self,

@@ -279,8 +279,8 @@ class ImportResourceInitStepFlow(object):
             resource_kwargs.update(
                 # 固定回收到公共资源池
                 for_biz=0,
-                # 导入资源池业务ID为主机所属业务
-                bk_biz_id=resource_hosts[0]["bk_biz_id"],
+                # 导入业务是资源池业务
+                bk_biz_id=get_resource_biz(),
                 resource_type=common_kwargs.db_type,
                 os_type=resource_hosts[0]["os_type"],
                 hosts=resource_hosts,
