@@ -159,7 +159,7 @@ func (v *VMClusterConfigBuilder) BuildComponentList(
 		}
 		return componentList, nil
 	case coreconst.VMQueryTopo:
-		componentList, err := v.buildComponentsInQuery(installRequest, serviceVersion)
+		componentList, err := v.buildComponentsInSelect(installRequest, serviceVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -169,8 +169,8 @@ func (v *VMClusterConfigBuilder) BuildComponentList(
 	}
 }
 
-// buildComponentsInQuery VM 查询模式构建组件列表
-func (v *VMClusterConfigBuilder) buildComponentsInQuery(
+// buildComponentsInSelect VM 查询模式构建组件列表
+func (v *VMClusterConfigBuilder) buildComponentsInSelect(
 	installRequest *webreq.ClusterInstallRequest,
 	serviceVersion string,
 ) ([]coreentity.ComponentResource, error) {
@@ -179,8 +179,8 @@ func (v *VMClusterConfigBuilder) buildComponentsInQuery(
 		if component.ComponentName == coreconst.VMSelect {
 			componentResource := buildComponentResource(component, serviceVersion)
 			componentResource.Env = map[string]interface{}{
-				"EXTRA_ARGS": map[string]string{
-					"storageNode": component.StorageNodes,
+				"EXTRA_ARGS": map[string]interface{}{
+					"storageNode": component.StorageNode,
 				},
 			}
 			componentList = append(componentList, componentResource)

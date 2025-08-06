@@ -59,8 +59,8 @@ type Component struct {
 	Replicas      int32             `json:"replicas"`
 	RequestCPU    resource.Quantity `json:"requestCpu"`
 	RequestMemory resource.Quantity `json:"requestMemory"`
-	StorageNodes  string            `json:"storageNodes,omitempty"` // 使用omitempty表示该字段是可选的
-	Storage       resource.Quantity `json:"storage,omitempty"`      // 使用omitempty表示该字段是可选的
+	StorageNode   string            `json:"storageNode,omitempty"` // 使用omitempty表示该字段是可选的
+	Storage       resource.Quantity `json:"storage,omitempty"`     // 使用omitempty表示该字段是可选的
 }
 
 // DeploymentEnv 部署环境设置

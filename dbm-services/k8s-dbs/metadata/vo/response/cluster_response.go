@@ -77,9 +77,10 @@ func (k K8sCrdClusterResponse) MarshalJSON() ([]byte, error) {
 	}
 	if len(topologiesArray) > 0 {
 		for _, topo := range topologiesArray {
-			topo.Name = k.TopoName
-			k.AddonInfo.Topology = topo
-			break
+			if k.TopoName == topo.Name {
+				k.AddonInfo.Topology = topo
+				break
+			}
 		}
 	}
 

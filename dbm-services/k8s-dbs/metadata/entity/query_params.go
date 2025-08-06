@@ -50,7 +50,7 @@ type ClusterRequestQueryParams struct {
 	NameSpace      string    `gorm:"column:namespace" json:"namespace"`
 	RequestTypes   []string  `json:"requestTypes"`
 	RequestParams  string    `gorm:"column:request_params" json:"requestParams"`
-	Operators      []string  `json:"operators"`
+	Creators       []string  `json:"creators"`
 	StartTime      time.Time `json:"startTime"`
 	EndTime        time.Time `json:"endTime"`
 }

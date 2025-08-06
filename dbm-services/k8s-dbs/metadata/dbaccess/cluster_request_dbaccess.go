@@ -103,8 +103,8 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 	if params.NameSpace != "" {
 		query = query.Where("namespace = ?", params.NameSpace)
 	}
-	if len(params.Operators) > 0 {
-		query = query.Where("created_by in ?", params.Operators)
+	if len(params.Creators) > 0 {
+		query = query.Where("created_by in ?", params.Creators)
 	}
 	if !params.StartTime.IsZero() {
 		query = query.Where("created_at >= ?", params.StartTime)

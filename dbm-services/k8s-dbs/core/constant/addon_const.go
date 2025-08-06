@@ -47,7 +47,7 @@ const (
 
 const (
 	VMClusterTopo string = "cluster"
-	VMQueryTopo   string = "query"
+	VMQueryTopo   string = "select"
 )
 
 // Surreal 组件定义

@@ -90,7 +90,7 @@ func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
 	}
 	requestPrams := metaentity.ClusterRequestQueryParams{
 		ClusterNames:   ctx.QueryArray("clusterName"),
-		Operators:      ctx.QueryArray("operator"),
+		Creators:       ctx.QueryArray("creator"),
 		RequestTypes:   ctx.QueryArray("requestType"),
 		RequestParams:  ctx.Query("requestParams"),
 		K8sClusterName: ctx.Query("k8sClusterName"),
