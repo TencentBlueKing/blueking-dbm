@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 
 from pipeline.component_framework.component import Component
 
@@ -16,7 +15,7 @@ from backend import env
 from backend.components import BKMonitorV3Api
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
-logger = logging.getLogger("flow")
+# logger = logging.getLogger("flow")
 
 
 class DisableAlarmShieldService(BaseService):
@@ -28,7 +27,7 @@ class DisableAlarmShieldService(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
 
         shield_id = trans_data.alarm_shield_id
-        logger.info(f"to delete alarm shield {shield_id}")
+        self.log_info(f"to delete alarm shield {shield_id}")
 
         BKMonitorV3Api.disable_shield({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": shield_id})
         return True

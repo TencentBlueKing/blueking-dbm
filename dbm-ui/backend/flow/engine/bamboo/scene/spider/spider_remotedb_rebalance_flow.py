@@ -421,6 +421,21 @@ class TenDBRemoteRebalanceFlow(object):
                 )
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": cluster_info["cluster"]["immute_domain"],
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": list(set([ins.split(IP_PORT_DIVIDER)[0] for ins in instances])),
+                        }
+                    ],
+                },
+            )
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             if self.data["need_checksum"]:
@@ -452,23 +467,6 @@ class TenDBRemoteRebalanceFlow(object):
                     with_cc_standardize=False,
                 )
             )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("屏蔽告警"),
-                act_component_code=AddAlarmShieldComponent.code,
-                kwargs={
-                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.now() + timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
-                    "description": cluster_info["cluster"]["immute_domain"],
-                    "dimensions": [
-                        {
-                            "name": "instance_host",
-                            "values": list(set([ins.split(":")[0] for ins in instances])),
-                        }
-                    ],
-                },
-            )
-
             # 人工确认切换迁移实例
             tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例

@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
-import logging
 
 from pipeline.component_framework.component import Component
 
@@ -17,7 +16,7 @@ from backend import env
 from backend.components.bkmonitorv3.client import BKMonitorV3Api
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
-logger = logging.getLogger("flow")
+# logger = logging.getLogger("flow")
 
 
 class AddAlarmShieldService(BaseService):
@@ -63,11 +62,9 @@ class AddAlarmShieldService(BaseService):
         shield_param.update(
             {"description": self.format_shield_description(bk_biz_id, description=shield_param["description"])}
         )
-        logger.info("alarm shield param: {}".format(json.dumps(shield_param)))
-
+        self.log_info("alarm shield param: {}".format(json.dumps(shield_param)))
         res = BKMonitorV3Api.add_shield(shield_param)
-        logger.info("alarm shield {} created".format(res))
-
+        self.log_info("alarm shield {} created".format(res))
         trans_data.alarm_shield_id = res["id"]
         data.outputs["trans_data"] = trans_data
         return True
