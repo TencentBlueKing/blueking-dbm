@@ -1,7 +1,9 @@
 <template>
-  <component
-    :is="renderCom"
-    :is-error="isError" />
+  <div>
+    <component
+      :is="renderCom"
+      :is-error="isError" />
+  </div>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';

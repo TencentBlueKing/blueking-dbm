@@ -21,6 +21,8 @@
 
   import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
+  import { messageSuccess } from '@utils';
+
   interface Props {
     dbType: DBTypes;
     isError: boolean;
@@ -46,10 +48,14 @@
     if (disabled.value) {
       return;
     }
-    userProfileStore.updateProfile({
-      label: UserPersonalSettings.TOP_DB_TYPES,
-      values: [props.dbType, ...topDbTypes.value.filter((item) => item !== props.dbType)],
-    });
+    userProfileStore
+      .updateProfile({
+        label: UserPersonalSettings.TOP_DB_TYPES,
+        values: [props.dbType, ...topDbTypes.value.filter((item) => item !== props.dbType)],
+      })
+      .then(() => {
+        messageSuccess(t('「n」已全局置顶，所有业务导航将优先展示该类型', { n: dbInfo.name }));
+      });
   };
 </script>
 

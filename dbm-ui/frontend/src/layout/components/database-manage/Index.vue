@@ -15,11 +15,13 @@
           :loading="isModuleLoading"
           :style="{ minHeight: isModuleLoading ? '30px' : 0 }">
           <template v-if="!isModuleLoading">
-            <ModuleGroup
-              v-for="item in renderModuleList"
-              :key="item"
-              :is-error="isModuleError"
-              :name="item" />
+            <TransitionGroup name="rende-db-module">
+              <ModuleGroup
+                v-for="item in renderModuleList"
+                :key="item"
+                :is-error="isModuleError"
+                :name="item" />
+            </TransitionGroup>
           </template>
         </BkLoading>
         <BkMenuGroup
@@ -122,3 +124,9 @@
 
   const styles = useMenuStyles(menuBoxRef);
 </script>
+
+<style lang="less">
+  .rende-db-module-move {
+    transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+  }
+</style>
