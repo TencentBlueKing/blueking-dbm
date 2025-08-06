@@ -15,6 +15,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.utils.redis.redis_util import get_migrate_shutdown_hosts
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -29,9 +30,9 @@ from backend.ticket.constants import TicketType
 class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     class RedisSingleInsMigrateItemSerializer(DisplayInfoSerializer):
         db_version = serializers.CharField(help_text=_("Redis版本"))
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
         old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"))
+        src_cluster = serializers.ListField(child=serializers.JSONField(help_text=_("替换主机信息集合")))
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
@@ -59,7 +60,7 @@ class RedisSingleInsMigrateBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         # 任取一个集群，补充云区域ID
-        cluster = Cluster.objects.get(id=self.ticket_data["infos"][0]["cluster_id"])
+        cluster = Cluster.objects.get(id=self.ticket_data["infos"][0]["src_cluster"][0]["cluster_id"])
         self.ticket_data.update(bk_cloud_id=cluster.bk_cloud_id)
 
 
@@ -78,8 +79,6 @@ class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuild
         """补充实例迁移的信息"""
         for index, info in enumerate(ticket_data["infos"]):
             info.update(
-                src_master=f'{info["old_nodes"]["master"][0]["ip"]}:{info["old_nodes"]["master"][0]["port"]}',
-                src_slave=f'{info["old_nodes"]["slave"][0]["ip"]}:{info["old_nodes"]["slave"][0]["port"]}',
                 dest_master=f'{info["backend_group"][0]["master"]["ip"]}',
                 dest_slave=f'{info["backend_group"][0]["slave"]["ip"]}',
             )
@@ -90,9 +89,17 @@ class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuild
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SINGLE_INS_MIGRATE)
+@builders.BuilderFactory.register(TicketType.REDIS_SINGLE_INS_MIGRATE, is_recycle=True)
 class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisSingleInsMigrateDetailSerializer
     inner_flow_builder = RedisSingleInsMigrateBuilder
     resource_batch_apply_builder = RedisSingleInstanceApplyResourceParamBuilder
     inner_flow_name = _("Redis 主从指定实例迁移")
+    need_patch_recycle_host_details = True
+
+    def patch_ticket_detail(self):
+        for info in self.ticket.details["infos"]:
+            for role in info["old_nodes"]:
+                src_ins_list = [f'{node["ip"]}:{node["port"]}' for node in info["old_nodes"][role]]
+                info["old_nodes"][role] = get_migrate_shutdown_hosts(src_ins_list, self.ticket.bk_biz_id)
+        super().patch_ticket_detail()
