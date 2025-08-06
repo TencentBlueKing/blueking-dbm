@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 
 from django.http import HttpResponse
@@ -228,7 +229,13 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def node_execution_data(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).get_node_execution_data(node_id=validated_data["node_id"]))
+        execution_data = TaskFlowHandler(root_id=root_id).get_node_execution_data(node_id=validated_data["node_id"])
+        # 兼容：execution_data如果无法json序列化，则直接str输出
+        try:
+            json.dumps(execution_data)
+        except (TypeError, Exception):
+            execution_data = {"inputs": str(execution_data["inputs"]), "outputs": str(execution_data["outputs"])}
+        return Response(execution_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取节点操作记录"),
