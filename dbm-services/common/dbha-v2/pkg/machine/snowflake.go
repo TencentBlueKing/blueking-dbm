@@ -25,34 +25,96 @@
 package machine
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"sync"
 	"time"
 )
 
 const (
-	timeBits      = 41 // timestamp bit count
-	machineIDBits = 10 // machine id bit count
-	sequenceBits  = 12 // serial number bit count
-	maxMachineID  = -1 ^ (-1 << machineIDBits)
-	maxSequence   = -1 ^ (-1 << sequenceBits)
-	timeShift     = machineIDBits + sequenceBits
-	machineShift  = sequenceBits
+	timeBits              = 41  // timestamp bit count
+	machineIDBits         = 10  // machine id bit count
+	sequenceBits          = 12  // serial number bit count
+	maxRollbackTimeMillis = 100 // Max rollback time
+	maxMachineID          = -1 ^ (-1 << machineIDBits)
+	maxSequence           = -1 ^ (-1 << sequenceBits)
+	timeShift             = machineIDBits + sequenceBits
+	machineShift          = sequenceBits
 )
 
 type Snowflake struct {
 	mu            sync.Mutex
-	epoch         int64 // Customize era time(in milliseconds).
-	machineID     int64 // Machine ID.
-	sequence      int64 // Serial number.
-	lastTimestamp int64 // The timestamp when the ID was last generated.
-	timeBackward  bool  // Clock rewind indicator.
+	epoch         uint64 // Customize era time(in milliseconds).
+	machineID     uint64 // Machine ID.
+	sequence      uint64 // Serial number.
+	lastTimestamp uint64 // The timestamp when the ID was last generated.
+	timeBackward  bool   // Clock rewind indicator.
 }
 
 // NewSnowflake create new snowflake object
-func NewSnowflake(machineID int64, epoch time.Time) (*Snowflake, error) {
-	return nil, nil
+func NewSnowflake(machineID uint64, epoch time.Time) (*Snowflake, error) {
+	if machineID < 0 || machineID > maxMachineID {
+		return nil, gerrors.New(gerrors.InvalidParameter, "machine-id out of range")
+	}
+
+	return &Snowflake{
+		epoch:     uint64(epoch.UnixMilli()),
+		machineID: machineID,
+	}, nil
 }
 
-func (s *Snowflake) NextID() uint64 {
-	return 0
+func (s *Snowflake) NextID() (uint64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	current := uint64(time.Now().UnixMilli()) - s.epoch
+
+	if current < s.lastTimestamp {
+		s.timeBackward = true
+		offset := s.lastTimestamp - current
+
+		if offset > maxRollbackTimeMillis {
+			// Allow for clock rollbacks within 100 milliseconds.
+			return 0, gerrors.New(gerrors.Failure, "clock moved backwards too much")
+		}
+
+		// Wait for the clock to catch up.
+		time.Sleep(time.Duration(offset) * time.Millisecond)
+		current = uint64(time.Now().UnixMilli()) - s.epoch
+
+		if current < s.lastTimestamp {
+			return 0, gerrors.New(gerrors.Failure, "clock moved backwards after waiting")
+		}
+	}
+
+	if current == s.lastTimestamp {
+		s.sequence = (s.sequence + 1) & maxSequence
+		if s.sequence == 0 {
+			// The current millisecond sequence number has been exhausted.
+			// Waitint for the nexe millisecond.
+			current = uint64(s.waitNextMillis())
+		}
+	} else {
+		s.sequence = current & maxSequence
+	}
+
+	s.lastTimestamp = current
+	return (current << timeShift) | (s.machineID << machineShift) | s.sequence, nil
+}
+
+func (s *Snowflake) waitNextMillis() uint64 {
+	current := uint64(time.Now().UnixMilli()) - s.epoch
+
+	for current <= s.lastTimestamp {
+		time.Sleep(100 * time.Microsecond)
+		current = uint64(time.Now().UnixMilli()) - s.epoch
+	}
+
+	return current
+}
+
+func (s *Snowflake) ParseID(id uint64) (timestamp, machineID, sequence uint64) {
+	timestamp = (id >> timeShift) + uint64(s.epoch)
+	machineID = (id >> machineShift) & maxMachineID
+	sequence = id & maxSequence
+	return
 }

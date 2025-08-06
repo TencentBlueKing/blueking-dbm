@@ -22,32 +22,36 @@
  * SOFTWARE.
  */
 
-package example_test
+package machine_test
 
 import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"testing"
+	"time"
 )
 
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
-
-	harvestC, err := exp.Harvest(ctx)
-
+func TestSnowflake(t *testing.T) {
+	id, err := machine.ID()
 	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
+		t.Fatalf("failed to generate machine-id, %v", err)
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
+	idHash := machine.Hash(id, 10)
 
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
+	t.Logf("machine-id:%s machine-id hash:%d", id, idHash)
+
+	sf, err := machine.NewSnowflake(idHash, time.Now())
+	if err != nil {
+		t.Fatalf("failed to create snowflake, %v", err)
+	}
+
+	for i := 0; i < 10; i++ {
+		id, err := sf.NextID()
+		if err != nil {
+			t.Fatalf("failed to create snowflake id, %v", err)
 		}
+
+		ts, mid, seq := sf.ParseID(id)
+		t.Logf("id:%d timestamp:%d, machine-id:%d, seq:%d", id, ts, mid, seq)
 	}
 }
