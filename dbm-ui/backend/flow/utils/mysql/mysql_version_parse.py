@@ -151,6 +151,7 @@ def tspider_version_parse(mysql_version: str) -> int:
 
     if single != "":
         total += int(single)
+    return total
 
 
 def proxy_version_parse(proxy_version: str) -> int:
