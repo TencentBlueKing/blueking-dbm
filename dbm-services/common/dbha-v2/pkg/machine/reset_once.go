@@ -22,32 +22,42 @@
  * SOFTWARE.
  */
 
-package example_test
+package machine
 
 import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
-	"testing"
+	"sync"
+	"sync/atomic"
 )
 
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
+type ResetOnce struct {
+	done uint32
+	m    sync.Mutex
+}
 
-	harvestC, err := exp.Harvest(ctx)
-
-	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
+func (o *ResetOnce) Do(f func() error) error {
+	if atomic.LoadUint32(&o.done) != 0 {
+		return nil
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
+	return o.do(f)
+}
 
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
-		}
+func (o *ResetOnce) do(f func() error) error {
+	o.m.Lock()
+	defer o.m.Unlock()
+
+	if o.done != 0 {
+		return nil
 	}
+
+	if err := f(); err != nil {
+		return err
+	}
+
+	atomic.StoreUint32(&o.done, 1)
+	return nil
+}
+
+func (o *ResetOnce) Reset() {
+	atomic.StoreUint32(&o.done, 0)
 }
