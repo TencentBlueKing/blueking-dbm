@@ -244,7 +244,7 @@ class MySQLRollbackExerciseFlow(object):
         import_data = {
             "resource_type": "mysql",
             "for_biz": self.rollback_to_bk_biz_id,
-            "bk_biz_id": self.rollback_host["bk_biz_id"],
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "hosts": [
                 {
                     "ip": self.rollback_host["ip"],
