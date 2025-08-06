@@ -50,6 +50,7 @@ const (
 	ParameterInvalidError
 	ParameterTypeError
 	ParameterValueError
+	OperationFobidden
 )
 
 // 存储集群 cluster 操作异常
@@ -118,6 +119,7 @@ var codeTag = map[ErrorCode]string{
 	ParameterInvalidError: "参数校验失败",
 	ParameterTypeError:    "参数类型校验失败",
 	ParameterValueError:   "参数值校验失败",
+	OperationFobidden:     "禁止执行该操作",
 
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",
@@ -126,13 +128,13 @@ var codeTag = map[ErrorCode]string{
 	DeleteClusterError:        "删除集群失败",
 	GetClusterStatusError:     "查询集群状态失败",
 	GetClusterEventError:      "查询集群事件失败",
-	VerticalScalingError:      "集群水平扩缩容失败",
-	HorizontalScalingError:    "集群垂直扩缩容失败",
+	VerticalScalingError:      "集群垂直扩缩容失败",
+	HorizontalScalingError:    "集群水平扩缩容失败",
 	StartClusterError:         "集群启动失败",
 	StopClusterError:          "集群停止失败",
 	RestartClusterError:       "集群重启失败",
 	UpgradeClusterError:       "集群升级失败",
-	VolumeExpansionError:      "集群磁盘扩容失败",
+	VolumeExpansionError:      "集群磁盘扩缩容失败",
 	ExposeClusterError:        "集群暴露服务失败",
 	DescribeOpsRequestError:   "查询操作请求失败",
 	GetOpsRequestStatusError:  "查询操作请求状态失败",

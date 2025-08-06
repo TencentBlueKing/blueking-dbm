@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"k8s-dbs/core"
+	_ "k8s-dbs/core/checker/addonoperation"
 	"k8s-dbs/core/util"
 	"k8s-dbs/router"
 	_ "k8s-dbs/router/core"

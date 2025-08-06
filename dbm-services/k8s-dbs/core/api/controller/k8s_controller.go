@@ -46,7 +46,7 @@ type K8sController struct {
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 	var namespaceReq request.K8sNamespaceRequest
 	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	var namespaceEntity entity.K8sNamespaceEntity
@@ -74,12 +74,12 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	var podLogEntity entity.K8sPodLogQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogEntity, nil); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	logs, count, err := k.k8sProvider.ListPodLogs(&podLogEntity, pagination)
@@ -97,7 +97,6 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 // GetPodRawLogs 获取 pod 日志原始日志
 func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 	var podLogQueryEntity entity.K8sPodLogQueryParams
-
 	targetMap := map[string]reflect.Type{
 		"previous": reflect.TypeOf(true),
 	}
@@ -118,7 +117,7 @@ func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 	var podDetailParams entity.K8sPodDetailQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podDetailParams, nil); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	podDetail, err := k.k8sProvider.GetPodDetail(&podDetailParams)
@@ -133,7 +132,7 @@ func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 func (k *K8sController) DeletePod(ctx *gin.Context) {
 	var podDeleteParams request.K8sPodDeleteRequest
 	if err := ctx.ShouldBindJSON(&podDeleteParams); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteK8sPodError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	var podDeleteEntity entity.K8sPodDelete

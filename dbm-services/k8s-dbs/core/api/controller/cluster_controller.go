@@ -66,9 +66,8 @@ func NewClusterController(
 // VerticalScaling 垂直扩缩
 func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VerticalScalingError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -86,9 +85,8 @@ func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 // HorizontalScaling 水平扩缩
 func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.HorizontalScalingError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -106,9 +104,8 @@ func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 // StartCluster 启动集群
 func (c *ClusterController) StartCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StartClusterError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	requestType := coreconst.StartCluster
@@ -130,9 +127,8 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 // RestartCluster 重启集群
 func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.RestartClusterError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	requestType := coreconst.RestartCluster
@@ -154,9 +150,8 @@ func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 // StopCluster 停止集群
 func (c *ClusterController) StopCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.StopClusterError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	requestType := coreconst.StopCluster
@@ -178,9 +173,8 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 // UpgradeCluster 升级集群
 func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeClusterError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -198,19 +192,17 @@ func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 // UpdateCluster 更新集群
 func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
+	if err := ctx.BindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
 		BkAuth:      &request.BKAuth,
 		RequestType: coreconst.UpdateCluster,
 	}
-	err = c.clusterProvider.UpdateClusterRelease(dbsContext, request, false)
-	if err != nil {
+	if err := c.clusterProvider.UpdateClusterRelease(dbsContext, request, false); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
-		return
+
 	}
 	api.SuccessResponse(ctx, nil, commconst.Success)
 }
@@ -220,7 +212,7 @@ func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.PartialUpdateClusterError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -240,7 +232,7 @@ func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.VolumeExpansionError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -260,7 +252,7 @@ func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeOpsRequestError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	opsRequestData, err := c.opsRequestProvider.DescribeOpsRequest(request)
@@ -281,7 +273,7 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetOpsRequestStatusError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	opsRequestStatus, err := c.opsRequestProvider.GetOpsRequestStatus(request)
@@ -302,7 +294,7 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -322,7 +314,7 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteClusterError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -342,7 +334,7 @@ func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeClusterError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	clusterData, err := c.clusterProvider.DescribeCluster(request)
@@ -363,7 +355,7 @@ func (c *ClusterController) GetClusterStatus(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterStatusError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	clusterStatus, err := c.clusterProvider.GetClusterStatus(request)
@@ -384,7 +376,7 @@ func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	dbsContext := &commentity.DbsContext{
@@ -404,7 +396,7 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	err := ctx.BindJSON(&request)
 	if err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	clusterEventList, err := c.clusterProvider.GetClusterEvent(request)
@@ -424,7 +416,7 @@ func (c *ClusterController) GetClusterEvent(ctx *gin.Context) {
 func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 	var svcEntity coreentity.K8sSvcEntity
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
-		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 

@@ -35,6 +35,8 @@ import (
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	addonopschecker "k8s-dbs/core/checker/addonoperation"
 )
 
 // OpsRequestProvider the OpsRequest provider struct
@@ -226,7 +228,50 @@ func (o *OpsRequestProvider) HorizontalScaling(
 	ctx *commentity.DbsContext,
 	request *coreentity.Request,
 ) (*coreentity.Metadata, error) {
+	clusterEntity, err := o.checkClusterExists(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	for _, component := range request.HorizontalScalingList {
+		checkResult, err := addonopschecker.ComponentOpsChecker.Check(
+			addonopschecker.AddonType(clusterEntity.AddonInfo.AddonType),
+			addonopschecker.AddonComponent(component.ComponentName),
+			addonopschecker.OperationType(ctx.RequestType),
+			request,
+		)
+		if err != nil || !checkResult {
+			return nil, err
+		}
+	}
+
 	return o.withMetaDataSync(ctx, request, o.doHorizontalScaling, metautil.UpdateValWithHScaling)
+}
+
+// checkClusterExists 检查集群是否存在
+func (o *OpsRequestProvider) checkClusterExists(
+	ctx *commentity.DbsContext,
+	request *coreentity.Request,
+) (*metaentity.K8sCrdClusterEntity, error) {
+	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
+			fmt.Errorf("未找到对应的 k8s 集群信息,集群名称:%s, 错误详情:%w", request.K8sClusterName, err))
+	}
+	ctx.K8sClusterConfig = k8sClusterConfig
+	clusterEntity, err := o.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		K8sClusterConfigID: k8sClusterConfig.ID,
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	})
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
+			fmt.Errorf("集群 %s 元数据查找失败，请稍后请重试: %w", request.ClusterName, err))
+	}
+	if clusterEntity == nil {
+		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
+			fmt.Errorf("集群 %s 不存在，请确认集群是否已部署: %w", request.ClusterName, err))
+	}
+	return clusterEntity, nil
 }
 
 // doHorizontalScaling 水平扩容具体实现
@@ -248,6 +293,7 @@ func (o *OpsRequestProvider) doHorizontalScaling(
 		return nil, err
 	}
 
+	// save opsRequest metadata
 	if err = metautil.CreateOpsRequestMetaData(
 		o.opsRequestProvider,
 		o.clusterMetaProvider,
@@ -273,7 +319,25 @@ func (o *OpsRequestProvider) doHorizontalScaling(
 // VolumeExpansion 磁盘扩容装饰方法
 func (o *OpsRequestProvider) VolumeExpansion(
 	ctx *commentity.DbsContext,
-	request *coreentity.Request) (*coreentity.Metadata, error) {
+	request *coreentity.Request,
+) (*coreentity.Metadata, error) {
+	clusterEntity, err := o.checkClusterExists(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, component := range request.ComponentList {
+		checkResult, err := addonopschecker.ComponentOpsChecker.Check(
+			addonopschecker.AddonType(clusterEntity.AddonInfo.AddonType),
+			addonopschecker.AddonComponent(component.ComponentName),
+			addonopschecker.OperationType(ctx.RequestType),
+			request,
+		)
+		if err != nil || !checkResult {
+			return nil, err
+		}
+	}
+
 	return o.withMetaDataSync(ctx, request, o.doVolumeExpansion, metautil.UpdateValWithCompList)
 }
 
