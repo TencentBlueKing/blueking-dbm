@@ -121,13 +121,13 @@
 
   const { isFullscreen, toggle } = useFullscreen(flowCanvasContainerRef);
 
-  const nodeOperationState = {
+  const nodeOperationState = reactive({
     currentNode: undefined as Node | undefined,
     instance: null as Instance | null,
     log: {
       isShow: false,
     },
-  };
+  });
 
   const initEvent = () => {
     const container = document.getElementById('flowCanvasContainer')!;
