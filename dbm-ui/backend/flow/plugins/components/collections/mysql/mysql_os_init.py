@@ -326,11 +326,11 @@ class CleanDataBakDirSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         script_content = """ 
-        rm -rf /data/dbbak;rm -rf /data1/dbbak
+        rm -rf /data/dbbak;rm -rf /data1/dbbak || true
         ps -fe | grep 'db.*exporter' | awk '{print $2}' | while read PID
         do
-            rm -rf $(pwdx ${PID})
-            kill -9 ${PID}
+            rm -rf $(pwdx ${PID}) || true
+            kill -9 ${PID} || true
         done
         """  # noqa
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
