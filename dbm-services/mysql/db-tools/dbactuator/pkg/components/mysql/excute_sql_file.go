@@ -26,6 +26,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/samber/lo"
@@ -267,9 +268,21 @@ func readFile(file string) (content []byte, err error) {
 func (e *ExecuteSQLFileComp) CheckBlockingDDLPcls() (err error) {
 	defer e.closeDb()
 	for _, port := range e.ports {
-		if err = e.checkBlockingAtSpiderOne(port); err != nil {
-			logger.Error("check ddl blocking at %s:%d failed: %s", e.Params.Host, port, err.Error())
-			return err
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer cancel()
+		done := make(chan error, 1)
+		go func() {
+			done <- e.checkBlockingAtSpiderOne(port)
+		}()
+		select {
+		case err = <-done:
+			if err != nil {
+				logger.Error("check ddl blocking at %s:%d failed: %s", e.Params.Host, port, err.Error())
+				return err
+			}
+		case <-ctx.Done():
+			logger.Error("check ddl blocking at %s:%d timeout", e.Params.Host, port)
+			return fmt.Errorf("check ddl blocking at %s:%d timeout", e.Params.Host, port)
 		}
 	}
 	return nil
@@ -283,10 +296,13 @@ func (e *ExecuteSQLFileComp) checkBlockingAtSpiderOne(port int) (err error) {
 	}
 	tdbctlConn := &native.TdbctlDbWork{DbWorker: *e.dbConns[port]}
 	var svrs []native.Server
-	svrs, err = tdbctlConn.SelectServers()
+	svrs, err = tdbctlConn.GetBlockingCheckNode()
 	if err != nil {
-		logger.Error("SelectServers failed:%s", err.Error())
+		logger.Error("GetBlockingCheckNode failed:%s", err.Error())
 		return err
+	}
+	if len(svrs) == 0 {
+		return fmt.Errorf("没有找到检查节点,请检查集群中控路由是否正确")
 	}
 	ctrl := make(chan struct{}, 10)
 	errChan := make(chan error)

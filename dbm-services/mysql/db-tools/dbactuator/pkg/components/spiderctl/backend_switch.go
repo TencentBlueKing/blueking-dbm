@@ -326,7 +326,7 @@ func readPort(text string) string {
 	return matches[1]
 }
 
-// PreCheck precheck
+// PreCheck pre-check
 func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	// verify whether the instance relationship in the parameters is consistent with tdbctl servers
 	logger.Info("verify whether the instance relationship in the parameters is consistent with tdbctl servers")
@@ -344,7 +344,14 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	// 主从延迟检查
 	if r.Params.SlaveDelayCheck {
 		for addr, conn := range r.slavesConn {
-			if err = conn.ReplicateDelayCheck(1, 1024); err != nil {
+			// 前置检查可以稍微宽松一点，因为实际切换也会检查
+			err = cmutil.Retry(cmutil.RetryConfig{
+				Times:     10,
+				DelayTime: 1 * time.Second,
+			}, func() error {
+				return conn.ReplicateDelayCheck(1, 1024)
+			})
+			if err != nil {
 				logger.Error("%s replicate delay abnormal %s", addr, err.Error())
 				return err
 			}
