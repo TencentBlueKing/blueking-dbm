@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.utils.redis.redis_util import get_migrate_shutdown_hosts
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -56,20 +57,33 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
         # 资源申请的一些参数补充
         self.patch_info_affinity_location(roles=["backend_group"])
 
+    def get_master_slave_map(self, old_nodes):
+        master_slave_map = {}
+        for master in old_nodes["master"]:
+            for slave in old_nodes["slave"]:
+                if master["port"] == slave["port"]:
+                    master_slave_map[f'{master["ip"]}:{master["port"]}'] = f'{slave["ip"]}:{slave["port"]}'
+                    break
+        return master_slave_map
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
         cluster__migrate_list_map = defaultdict(list)
         # 按照集群ID进行聚合
         for info in ticket_data["infos"]:
-            migrate_info = {
-                "resource_spec": info["resource_spec"],
-                "src_master": f'{info["old_nodes"]["master"][0]["ip"]}:{info["old_nodes"]["master"][0]["port"]}',
-                "src_slave": f'{info["old_nodes"]["slave"][0]["ip"]}:{info["old_nodes"]["slave"][0]["port"]}',
-                "dest_master": f'{info["backend_group"][0]["master"]["ip"]}',
-                "dest_slave": f'{info["backend_group"][0]["slave"]["ip"]}',
-            }
-            cluster__migrate_list_map[info["cluster_id"]].append(migrate_info)
+            master_slave_map = self.get_master_slave_map(info["old_nodes"])
+            migrate_info = [
+                {
+                    "resource_spec": info["resource_spec"],
+                    "src_master": master,
+                    "src_slave": slave,
+                    "dest_master": f'{info["backend_group"][0]["master"]["ip"]}',
+                    "dest_slave": f'{info["backend_group"][0]["slave"]["ip"]}',
+                }
+                for master, slave in master_slave_map.items()
+            ]
+            cluster__migrate_list_map[info["cluster_id"]].extend(migrate_info)
         # 平铺聚合信息
         ticket_data["infos"] = [
             {"cluster_id": cluster_id, "migrate_list": migrate_list}
@@ -78,9 +92,17 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_INS_MIGRATE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_INS_MIGRATE, is_recycle=True)
 class RedisClusterInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisClusterInsMigrateDetailSerializer
     inner_flow_builder = RedisClusterInsMigrateBuilder
     resource_batch_apply_builder = RedisClusterInstanceApplyResourceParamBuilder
     inner_flow_name = _("Redis 集群指定实例迁移")
+    need_patch_recycle_host_details = True
+
+    def patch_ticket_detail(self):
+        for info in self.ticket.details["infos"]:
+            for role in info["old_nodes"]:
+                src_ins_list = [f'{node["ip"]}:{node["port"]}' for node in info["old_nodes"][role]]
+                info["old_nodes"][role] = get_migrate_shutdown_hosts(src_ins_list, self.ticket.bk_biz_id)
+        super().patch_ticket_detail()
