@@ -14,10 +14,14 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.40.0
 	google.golang.org/grpc v1.72.0
-	google.golang.org/protobuf v1.36.6
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.30.0
+)
+
+require (
+	github.com/denisbrodbeck/machineid v1.0.1
+	google.golang.org/protobuf v1.36.6
 )
 
 require (

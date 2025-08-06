@@ -22,32 +22,34 @@
  * SOFTWARE.
  */
 
-package example_test
+package machine_test
 
 import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"testing"
 )
 
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
-
-	harvestC, err := exp.Harvest(ctx)
-
+func TestID(t *testing.T) {
+	id, err := machine.ID()
 	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
+		t.Fatalf("failed to generate machine-id:%v", err)
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
+	id2, err := machine.ID()
+	if err != nil {
+		t.Fatalf("failed to generate machine-id:%v", err)
+	}
 
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
-		}
+	if id != id2 {
+		t.Fatalf("machine-id is invalid, id(%s), id2(%s)", id, id2)
+	}
+
+	t.Logf("machine-id:%s", id)
+}
+
+func TestSequenceID(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		id := machine.NewSequenceID()
+		t.Logf("sequence-id:%d", id)
 	}
 }

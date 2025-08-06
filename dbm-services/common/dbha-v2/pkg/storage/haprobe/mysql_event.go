@@ -22,32 +22,20 @@
  * SOFTWARE.
  */
 
-package example_test
+package haprobe
 
-import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
-	"testing"
+import "dbm-services/common/dbha-v2/pkg/hanet"
+
+// MySQLEventType mysql event type
+type MySQLEventType int
+
+const (
+	MySQLEventConnectionException MySQLEventType = iota
 )
 
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
-
-	harvestC, err := exp.Harvest(ctx)
-
-	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
-		}
-	}
+// MySQLEvent Include some exception events
+type MySQLEvent struct {
+	Type     MySQLEventType  `json:"type"`
+	Endpoint *hanet.Endpoint `json:"endpoint,omitempty"`
+	Message  string          `json:"message"`
 }
