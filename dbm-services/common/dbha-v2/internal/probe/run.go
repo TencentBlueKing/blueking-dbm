@@ -27,12 +27,13 @@ import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/reporter"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -80,11 +81,14 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	logger.Debug("probe config. %v", config.Cfg)
 
-	clientID := uuid.New()
+	clientID, err := machine.ID()
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "generate machine-id failed, %v", err)
+	}
 
 	p := &Probe{
-		clientID:  clientID.String(),
-		machineID: "",
+		clientID:  clientID,
+		machineID: clientID,
 		serviceID: config.Cfg.ServiceID,
 	}
 

@@ -26,6 +26,7 @@ package hanet
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -33,9 +34,9 @@ import (
 
 // Endpoint for parsing DSN addresses
 type Endpoint struct {
-	Proto string
-	Host  string
-	Port  int
+	Proto string `json:"proto"`
+	Host  string `json:"host"`
+	Port  int    `json:"port"`
 }
 
 // NewEndpoint create new endpoint by DSN
@@ -73,4 +74,8 @@ func NewEndpoints(dsns string) ([]*Endpoint, error) {
 	}
 
 	return epoints, nil
+}
+
+func (e Endpoint) String() string {
+	return fmt.Sprintf("%s://%s:%d", e.Proto, e.Host, e.Port)
 }

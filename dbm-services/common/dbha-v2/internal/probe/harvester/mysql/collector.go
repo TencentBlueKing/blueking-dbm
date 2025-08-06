@@ -116,6 +116,7 @@ func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric) error {
 	return nil
 }
 
+// obtainCPUMetrics obtain the CPU metrics
 func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 	cpuPercent, err := cpu.Percent(1*time.Second, false)
 	if err != nil {
@@ -158,12 +159,14 @@ func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 	return nil
 }
 
+// obtainStorageMetrics obtain the storage metrics
 func obtainStorageMetrics(systemMetric *haprobe.HostMetric) error {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
 		return err
 	}
 
+	// convert the value from BYTE to MB
 	systemMetric.MemTotalMB = memory.Total / 1024 / 1024
 	systemMetric.MemUsedMB = memory.Used / 1024 / 1024
 	systemMetric.MemFreeMB = memory.Free / 1024 / 1024
@@ -201,6 +204,7 @@ func obtainStorageMetrics(systemMetric *haprobe.HostMetric) error {
 	return nil
 }
 
+// obtainNetworkMetrics obtain the network metrics
 func obtainNetworkMetrics(systemMetric *haprobe.HostMetric) error {
 	ipAddress := ""
 	ifaces, err := net.Interfaces()
@@ -266,6 +270,7 @@ func obtainNetworkMetrics(systemMetric *haprobe.HostMetric) error {
 	return err
 }
 
+// obtainPacketLoss obtain the network packet loss
 func obtainPacketLoss() (lossRateIn float64, lossRateOut float64, err error) {
 	stats1, err := gopsutilnet.IOCounters(true)
 	if err != nil {
@@ -304,6 +309,7 @@ func obtainPacketLoss() (lossRateIn float64, lossRateOut float64, err error) {
 	return lossRateIn, lossRateOut, err
 }
 
+// obtainConnectionStatus obtain the connection status
 func obtainConnectionStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToInt(globalStatus, "threads_running", &dbMetric.ThreadsRunning)
 	transferToInt(globalStatus, "aborted_connects", &dbMetric.ConnectionsAborted)
@@ -313,6 +319,7 @@ func obtainConnectionStatus(globalStatus map[string]string, dbMetric *haprobe.Da
 	transferToInt(globalStatus, "connection_errors_peer_address", &dbMetric.ConnectionsErrorsPeerAddr)
 }
 
+// obtainQueryStatus obtain the query status
 func obtainQueryStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToUint64(globalStatus, "queries", &dbMetric.QueryTotal)
 	transferToUint64(globalStatus, "questions", &dbMetric.QueryQuestions)
@@ -323,6 +330,7 @@ func obtainQueryStatus(globalStatus map[string]string, dbMetric *haprobe.Databas
 	transferToUint64(globalStatus, "slow_queries", &dbMetric.QuerySlow)
 }
 
+// obtainQueryCache obtain the query cache status
 func obtainQueryCache(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToUint64(globalStatus, "key_read_requests", &dbMetric.KeyReadRequests)
 	transferToUint64(globalStatus, "key_reads", &dbMetric.KeyReads)
@@ -335,6 +343,7 @@ func obtainQueryCache(globalStatus map[string]string, dbMetric *haprobe.Database
 	transferToUint64(globalStatus, "qcache_free_mem", &dbMetric.QCacheFreeMem)
 }
 
+// obtainTableStatus obtain the table status
 func obtainTableStatus(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToUint64(globalStatus, "created_tmp_disk_tables", &dbMetric.TableCreatedTmpDisk)
 	transferToUint64(globalStatus, "created_tmp_tables", &dbMetric.TableCreatedTmp)
@@ -343,6 +352,7 @@ func obtainTableStatus(globalStatus map[string]string, dbMetric *haprobe.Databas
 	transferToUint(globalStatus, "flush_commands", &dbMetric.TableFlush)
 }
 
+// obtainBinlog obtain binlog information
 func obtainBinlog(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToUint64(globalStatus, "binlog_cache_disk_use", &dbMetric.BinlogCacheDiskUse)
 	transferToUint64(globalStatus, "binlog_cache_use", &dbMetric.BinlogCacheUse)
@@ -350,6 +360,7 @@ func obtainBinlog(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetr
 	transferToUint64(globalStatus, "binlog_stmt_cache_use", &dbMetric.BinlogStmtCacheUse)
 }
 
+// obtainPerformanceSchema obtain performance information
 func obtainPerformanceSchema(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	transferToUint64(globalStatus, "performance_schema_accounts_lost", &dbMetric.SchemaAccountsLost)
 	transferToUint64(globalStatus, "performance_schema_cond_classes_lost", &dbMetric.SchemaCondClassesLost)
@@ -361,6 +372,7 @@ func obtainPerformanceSchema(globalStatus map[string]string, dbMetric *haprobe.D
 	transferToUint64(globalStatus, "performance_schema_table_lock_stat_lost", &dbMetric.SchemaTableLockStatLost)
 }
 
+// obtainOtherMetrics obtain the other information
 func obtainOtherMetrics(globalStatus map[string]string, dbMetric *haprobe.DatabaseMetric) {
 	if val, exists := globalStatus["character_set_server"]; exists {
 		dbMetric.ServerCharset = val
@@ -389,6 +401,7 @@ func obtainOtherMetrics(globalStatus map[string]string, dbMetric *haprobe.Databa
 	dbMetric.AvgTPS = uint((dbMetric.QueryCommits + dbMetric.QueryRollbacks) / v)
 }
 
+// transferToInt converty the value of the key to int value
 func transferToInt(m map[string]string, key string, target *int) {
 	val, ok := m[key]
 	if !ok {
@@ -405,6 +418,7 @@ func transferToInt(m map[string]string, key string, target *int) {
 	*target = v
 }
 
+// transferToUint64 convert the value of the key to uint64 value
 func transferToUint64(m map[string]string, key string, target *uint64) {
 	val, exists := m[key]
 	if !exists {
@@ -421,6 +435,7 @@ func transferToUint64(m map[string]string, key string, target *uint64) {
 	*target = v
 }
 
+// transferToUint convert the value of the key to uint value
 func transferToUint(m map[string]string, key string, target *uint) {
 	val, exists := m[key]
 	if !exists {

@@ -31,6 +31,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"fmt"
@@ -65,12 +66,13 @@ func NewMySql(cfg config.HarvesterConfig) (*MySql, error) {
 	return msql, nil
 }
 
-func (m *MySql) connectMySql() ([]*hamysql.DB, error) {
+func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.MySQLEvent, error) {
 	epoints, err := hanet.NewEndpoints(m.cfg.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	events := []*haprobe.MySQLEvent{}
 	dbs := []*hamysql.DB{}
 	for _, epoint := range epoints {
 		db, err := hamysql.New(
@@ -83,44 +85,52 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, error) {
 
 		if err != nil {
 			logger.Warn("create mysql db operator failed, %v", err)
+			events = append(events, &haprobe.MySQLEvent{
+				Type:     haprobe.MySQLEventConnectionException,
+				Endpoint: epoint,
+				Message:  err.Error(),
+			})
+
 			continue
 		}
 		dbs = append(dbs, db)
 	}
 
 	if len(dbs) == 0 {
-		return nil, gerrors.New(gerrors.ComponentFailure, "no usable mysql db operator")
+		return nil, events, gerrors.New(gerrors.ComponentFailure, "no usable mysql db operator")
 	}
 
-	return dbs, nil
+	return dbs, events, nil
 }
 
 // collectAndSaveMetrics collects and saves metrics.
 func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
-	// 1. collect metrics from system
+	// collect metrics from system
 	systemMetric, err := m.collectSystemMetrics()
 	if err != nil {
+		logger.Error("failed to collect host metrics, %v", err)
 		return nil, err
 	}
 
 	logger.Debug("system metrics(%v)", *systemMetric)
 
-	// 2. collect metrics from mysql instances
-	mysqlMetrics, err := m.collectMysqlMetrics()
+	// collect metrics from mysql instances
+	mysqlMetrics, events, err := m.collectMysqlMetrics()
 	if err != nil {
-		return nil, err
+		logger.Warn("failed to collect mysql metrics, %v", err)
 	}
 
 	logger.Debug("mysql metrics(%v)", mysqlMetrics)
 
-	// 3. combine metrics
+	// combine metrics
 	metrics := &haprobe.MySQLMetric{
-		SequenceID:      0,
+		SequenceID:      machine.NewSequenceID(),
 		MachineID:       m.machineID,
-		MessageID:       "3cb27d64-9c3e-4c60-a2a3-4dbdc82f346f", // TODO: hard code only test
+		MessageID:       machine.NewMessageID(),
 		ServiceID:       m.serviceID,
 		ReportTimestamp: uint64(time.Now().Unix()),
 		Host:            systemMetric,
+		Events:          events,
 		Databases:       mysqlMetrics, // slice, mysql instance metrics
 	}
 
@@ -129,7 +139,6 @@ func (m *MySql) collectAndSaveMetrics() (*haprobe.MySQLMetric, error) {
 
 // collectSystemMetrics collects system metrics.
 func (m *MySql) collectSystemMetrics() (*haprobe.HostMetric, error) {
-
 	systemMetric := &haprobe.HostMetric{}
 	if err := obtainCPUMetrics(systemMetric); err != nil {
 		logger.Info("failed to harvest CPU info. errmsg: %v", err)
@@ -150,12 +159,12 @@ func (m *MySql) collectSystemMetrics() (*haprobe.HostMetric, error) {
 }
 
 // collectMySQLInfo collect all instances MySQL metrics.
-func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, error) {
+func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, []*haprobe.MySQLEvent, error) {
 	var allDbMetrics []*haprobe.DatabaseMetric
 
-	dbs, err := m.connectMySql()
+	dbs, events, err := m.connectMySql()
 	if err != nil {
-		return nil, err
+		return nil, events, err
 	}
 
 	// Iterate over configured instances
@@ -177,11 +186,7 @@ func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, error) {
 		logger.Debug("mysql db metric(%v)", instanceDbMetrics)
 	}
 
-	if len(allDbMetrics) == 0 {
-		return nil, fmt.Errorf("no MySQL instances were successfully connected")
-	}
-
-	return allDbMetrics, nil
+	return allDbMetrics, events, nil
 }
 
 // calculateRealTimeQPS to calculate realtime QPS
