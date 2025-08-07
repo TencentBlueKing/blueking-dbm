@@ -38,9 +38,9 @@ from backend.db_services.taskflow.exceptions import (
 )
 from backend.flow.consts import PENDING_STATES, FlowNodeOperateType, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
+from backend.flow.models import FlowNode, FlowNodeOperateRecord, FlowTree
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models import Flow
-from backend.flow.models import FlowNode, FlowNodeOperateRecord, FlowTree
 from backend.utils.string import format_json_string
 from backend.utils.time import calculate_cost_time, datetime2str
 

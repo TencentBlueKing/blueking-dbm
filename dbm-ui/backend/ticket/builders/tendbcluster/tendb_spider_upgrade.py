@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import (
@@ -41,6 +42,9 @@ class TenDBSpiderUpgradeSerializer(TendbBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
     upgrade_local = serializers.BooleanField(help_text=_("是否本地升级"), default=False)
+    ip_source = serializers.ChoiceField(
+        help_text=_("机器来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
 
 
 class TenDBSpiderUpgradeParamBuilder(builders.FlowParamBuilder):
