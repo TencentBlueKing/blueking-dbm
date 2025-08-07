@@ -104,7 +104,7 @@
   const router = useRouter();
 
   const isLoading = ref(true);
-  const ticketData = shallowRef<TicketModel>();
+  const ticketData = ref<TicketModel>();
 
   const { runAsync: fetchTicketDetails } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
@@ -116,26 +116,25 @@
       manual: true,
       onSuccess(data) {
         ticketData.value = data;
+        loopFetchTicketStatus();
       },
     },
   );
 
   const { refresh: refreshTicketStatus } = useRequest(
-    () => {
-      return getTicketStatus({
+    () =>
+      getTicketStatus({
         ticket_ids: `${props.ticketId}`,
-      });
-    },
+      }),
     {
       manual: true,
       onSuccess(data) {
-        if (ticketData.value) {
-          Object.assign(ticketData.value, {
-            status: data[ticketData.value.id] as string,
-          });
-          if (!ticketData.value.isFinished) {
-            loopFetchTicketStatus();
-          }
+        if (!data[`${props.ticketId}`]) {
+          return;
+        }
+        ticketData.value!.status = data[`${props.ticketId}`] as TicketModel['status'];
+        if (!ticketData.value!.isFinished) {
+          loopFetchTicketStatus();
         }
       },
     },
