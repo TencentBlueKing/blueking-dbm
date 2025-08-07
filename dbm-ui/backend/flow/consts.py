@@ -211,6 +211,7 @@ class FlowNodeOperateType(str, StructuredEnum):
     SKIP = EnumField("skip", _("跳过"))
     FORCE_FAIL = EnumField("force_fail", _("强制失败"))
     CONFIRM = EnumField("confirm", _("确认继续"))
+    PIPELINE_TERMINATE = EnumField("pipeline_terminate", _("流程终止"))
 
 
 class NameSpaceEnum(str, StructuredEnum):

@@ -19,7 +19,7 @@ class ToolboxHandler(ClusterServiceHandler):
         super().__init__(bk_biz_id)
 
     @classmethod
-    def get_execute_cluster_hosts(cls, cluster):
+    def get_execute_net_tcp_cluster_hosts(cls, cluster):
         cluster_type = cluster.cluster_type
         host_ids = []
         # 有可能连后端Master/slave, 也有可能连接Proxy的

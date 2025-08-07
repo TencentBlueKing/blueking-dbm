@@ -559,7 +559,9 @@ class ClusterServiceHandler:
         clusters = Cluster.objects.filter(id__in=cluster_ids).prefetch_related(
             "storageinstance_set__machine", "proxyinstance_set__machine"
         )
-        execute_host_ids = list(itertools.chain(*[cls.get_execute_cluster_hosts(cluster) for cluster in clusters]))
+        execute_host_ids = list(
+            itertools.chain(*[cls.get_execute_net_tcp_cluster_hosts(cluster) for cluster in clusters])
+        )
 
         # 目前暂定执行的上限为1w台机器，超过就报错
         if len(execute_host_ids) > 10000:
@@ -580,8 +582,12 @@ class ClusterServiceHandler:
         return resp
 
     @classmethod
-    def get_execute_cluster_hosts(cls, cluster):
-        pass
+    def get_execute_net_tcp_cluster_hosts(cls, cluster):
+        """
+        查询可执行来源访问分析的主机
+        各个组件子类覆写
+        """
+        raise NotImplementedError
 
     @classmethod
     def get_cluster_proc_net_tcp(cls, job_instance_id: int):
@@ -667,12 +673,14 @@ class ClusterServiceHandler:
             app_dict = AppCache.get_appcache("appcache_dict")
             for bk_biz_id, bk_host_ids in biz__host_ids.items():
                 app = app_dict[str(bk_biz_id)]
-                filter_conditions = {"bk_host_id": bk_host_ids}
-                topos = TopoHandler.query_host_topo_infos(int(bk_biz_id), filter_conditions, 0, len(bk_host_ids))
-
-                for topo in topos["hosts_topo_info"]:
-                    topo["topo"] = [f"{app['bk_biz_name']}/{info}" for info in topo["topo"]]
-                    cc_map[topo["ip"]].update(topo=topo["topo"])
+                # 分批请求cc的拓扑信息
+                batch = 500
+                for i in range(0, len(bk_host_ids), batch):
+                    filter_conditions = {"bk_host_id": bk_host_ids[i : i + batch]}
+                    topos = TopoHandler.query_host_topo_infos(int(bk_biz_id), filter_conditions, 0, batch)
+                    for topo in topos["hosts_topo_info"]:
+                        topo["topo"] = [f"{app['bk_biz_name']}/{info}" for info in topo["topo"]]
+                        cc_map[topo["ip"]].update(topo=topo["topo"])
 
             return cc_map
 

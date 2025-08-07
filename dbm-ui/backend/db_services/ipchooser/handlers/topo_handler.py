@@ -179,10 +179,10 @@ class TopoHandler:
         :param bk_biz_id: 业务ID
         :param filter_conditions: 过滤条件
         :param start: 数据起始位置
-        :param page_size: 拉取数据数量
+        :param page_size: 拉取数据数量，一次只允许拉去500条数据
         """
 
-        page_size = page_size if page_size > 0 else 500
+        page_size = page_size if 0 < page_size <= 500 else 500
         hosts_topo_info = ResourceQueryHelper.query_host_topo_infos(
             bk_biz_id, filter_conditions, start=start, limit=page_size
         )

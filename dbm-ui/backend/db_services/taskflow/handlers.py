@@ -54,6 +54,9 @@ class TaskFlowHandler:
     def revoke_pipeline(self, operator: str, remark: str = ""):
         """撤销当前流程"""
 
+        # 不管是否成功，优先插入操作记录
+        FlowNodeOperateRecord.insert_root_record(self.root_id, operator, FlowNodeOperateType.PIPELINE_TERMINATE)
+
         # 如果当前任务关联了单据流程，则走单据流程的
         # 如果当前的pipeline未被创建，则直接更新FlowTree的状态为撤销态
         tree = FlowTree.objects.get(root_id=self.root_id)
@@ -84,12 +87,12 @@ class TaskFlowHandler:
 
     def retry_node(self, node_id: str, operator: str):
         """重试节点"""
-        flow = FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.RETRY)
+        flow = FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.RETRY, root_id=self.root_id)
         return task.retry_node(root_id=self.root_id, flow_node=flow, retry_times=1)
 
     def skip_node(self, node_id: str, operator: str):
         """跳过节点"""
-        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.SKIP)
+        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.SKIP, root_id=self.root_id)
 
         result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id)
         if not result.result:
@@ -99,7 +102,7 @@ class TaskFlowHandler:
 
     def force_fail_node(self, node_id: str, operator: str):
         """强制失败节点"""
-        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.FORCE_FAIL)
+        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.FORCE_FAIL, root_id=self.root_id)
 
         result = BambooEngine(root_id=self.root_id).force_fail_node(node_id=node_id, ex_data=_("人工强制失败"))
         if not result.result:

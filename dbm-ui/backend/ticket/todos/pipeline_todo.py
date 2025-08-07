@@ -43,13 +43,13 @@ class PipelineTodo(todos.TodoActor):
         engine = BambooEngine(root_id=root_id)
 
         if action == TodoActionType.TERMINATE:
-            FlowNodeOperateRecord.insert_record(node_id, username, FlowNodeOperateType.FORCE_FAIL)
+            FlowNodeOperateRecord.insert_record(node_id, username, FlowNodeOperateType.FORCE_FAIL, root_id=root_id)
             self.todo.set_status(username, TodoStatus.DONE_FAILED)
             # 终止时，直接将流程设置为失败
             engine.force_fail_node(node_id, ex_data=_("人工强制失败"))
             return
 
-        FlowNodeOperateRecord.insert_record(node_id, username, FlowNodeOperateType.CONFIRM)
+        FlowNodeOperateRecord.insert_record(node_id, username, FlowNodeOperateType.CONFIRM, root_id=root_id)
         res = engine.callback(node_id=node_id, desc="")
 
         logger.info(

@@ -75,9 +75,16 @@ class FlowNodeOperateRecord(models.Model):
         db_table = "flow_node_operate_record"
 
     @classmethod
-    def insert_record(cls, flow: Union[str, FlowNode], operator: str, operate_type: str):
+    def insert_record(cls, flow: Union[str, FlowNode], operator: str, operate_type: str, **options):
+        # 如果这里传入的flow只是node_id，请务必在options至少传入root_id，否则查询会很慢
         if isinstance(flow, str):
-            flow = FlowNode.objects.get(node_id=flow)
+            node_filter = {"node_id": flow}
+            # 加速查询
+            if options.get("root_id"):
+                node_filter["root_id"] = options["root_id"]
+            if options.get("version_id"):
+                node_filter["version_id"] = options["version_id"]
+            flow = FlowNode.objects.get(**node_filter)
 
         cls.objects.create(
             root_id=flow.root_id,
@@ -87,3 +94,8 @@ class FlowNodeOperateRecord(models.Model):
             operate_type=operate_type,
         )
         return flow
+
+    @classmethod
+    def insert_root_record(cls, root_id, operator: str, operate_type: str):
+        # 仅插入流程的记录，此时node_id和version_id为空
+        cls.objects.create(root_id=root_id, node_id="", version_id="", operator=operator, operate_type=operate_type)
