@@ -26,7 +26,6 @@ package probe
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/probe/config"
-	"dbm-services/common/dbha-v2/internal/probe/reporter"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
@@ -90,21 +89,6 @@ func Run(cmd *cobra.Command, args []string) error {
 		clientID:  clientID,
 		machineID: clientID,
 		serviceID: config.Cfg.ServiceID,
-	}
-
-	// create reporters
-	for _, cfg := range config.Cfg.Reporters {
-		r, err := reporter.NewReporter(cfg)
-		if err != nil {
-			logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
-			continue
-		}
-
-		p.reporters = append(p.reporters, r)
-	}
-
-	if len(p.reporters) == 0 {
-		//return gerrors.New(gerrors.Failure, "no usable reporter")
 	}
 
 	ctx := context.Background()

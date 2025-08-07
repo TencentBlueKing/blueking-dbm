@@ -114,12 +114,58 @@ func (p *Probe) loadPlugins(ctx context.Context) error {
 	return nil
 }
 
+func (p *Probe) createReporter() {
+	// Once the reporter is created successfully, the network abnormalities of the reporter itself
+	// need to be maintained by the reporter itself.
+
+	cfgs := config.Cfg.Reporters
+
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+
+		for {
+			select {
+			case <-p.quit:
+				return
+
+			default:
+
+				var failedCfgs []config.ReporterConfig
+
+				for _, cfg := range cfgs {
+					r, err := reporter.NewReporter(cfg)
+					if err != nil {
+						logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
+						failedCfgs = append(failedCfgs, cfg)
+						continue
+					}
+
+					p.reporters = append(p.reporters, r)
+				}
+
+				if len(failedCfgs) == 0 {
+					logger.Info("created all reporter successfully, reporter count(%d)", len(p.reporters))
+					return
+				}
+
+				cfgs = failedCfgs
+				failedCfgs = make([]config.ReporterConfig, 0)
+
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+}
+
 func (p *Probe) Run(ctx context.Context) error {
 	p.quit = make(chan struct{})
 
 	if err := p.loadPlugins(ctx); err != nil {
 		return err
 	}
+
+	p.createReporter()
 
 	// event loop
 	for {
