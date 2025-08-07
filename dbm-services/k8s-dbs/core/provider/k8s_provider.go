@@ -230,6 +230,7 @@ func (k *K8sProvider) buildLogStream(entity *coreentity.K8sPodLogQueryParams) (i
 		Timestamps: true,
 		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
 		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
+		Previous:   entity.Previous,
 	}
 
 	// 获取日志流

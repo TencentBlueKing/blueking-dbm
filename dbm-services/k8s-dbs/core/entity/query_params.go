@@ -42,4 +42,5 @@ type K8sPodLogQueryParams struct {
 	Namespace      string `json:"namespace" binding:"required"`
 	PodName        string `json:"podName" binding:"required"`
 	Container      string `json:"container,omitempty"`
+	Previous       bool   `json:"previous,omitempty"`
 }

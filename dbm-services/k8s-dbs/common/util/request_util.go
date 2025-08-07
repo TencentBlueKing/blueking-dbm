@@ -152,6 +152,12 @@ func convertValue(val interface{}, targetType reflect.Type) (interface{}, error)
 		return floatVal, nil
 	case reflect.String:
 		return valStr, nil
+	case reflect.Bool:
+		boolVal, err := strconv.ParseBool(valStr)
+		if err != nil {
+			return nil, err
+		}
+		return boolVal, nil
 	default:
 		return nil, fmt.Errorf("不支持的类型转换: %v", targetType)
 	}

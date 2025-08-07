@@ -31,6 +31,7 @@ import (
 	"k8s-dbs/core/vo/response"
 	"k8s-dbs/errors"
 	metarespvo "k8s-dbs/metadata/vo/response"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -96,7 +97,12 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 // GetPodRawLogs 获取 pod 日志原始日志
 func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 	var podLogQueryEntity entity.K8sPodLogQueryParams
-	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogQueryEntity, nil); err != nil {
+
+	targetMap := map[string]reflect.Type{
+		"previous": reflect.TypeOf(true),
+	}
+
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogQueryEntity, targetMap); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
