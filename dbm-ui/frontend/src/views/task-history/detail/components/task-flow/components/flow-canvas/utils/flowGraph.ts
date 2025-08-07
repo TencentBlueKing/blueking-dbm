@@ -69,8 +69,14 @@ export class FlowGraph {
     this.graph!.fitView();
   }
 
-  focusElement(nodeId: string) {
-    return this.graph?.focusElement(nodeId);
+  async focusElement(nodeId: string) {
+    await this.graph?.focusElement(nodeId);
+    setTimeout(() => {
+      const isVisible = this.isNodeVisible(nodeId);
+      if (!isVisible) {
+        this.focusElement(nodeId);
+      }
+    }, 500);
   }
 
   getClientByCanvas(client: [number, number]) {

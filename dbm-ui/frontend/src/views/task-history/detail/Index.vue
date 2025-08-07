@@ -94,6 +94,7 @@
           <TaskFlow
             ref="taskFlowRef"
             :data="currentTaskflowDetail"
+            @canvas-ready="handleCanvasReady"
             @refresh="handleRefresh" />
         </BkTabPanel>
         <BkTabPanel
@@ -144,6 +145,7 @@
   const { t } = useI18n();
 
   let isInitCanvas = false;
+  let requestInterval = 10000;
 
   const ticketId = ref(0);
   const showHostPreview = ref(false);
@@ -238,6 +240,14 @@
     showRelatedTicketDetail.value = true;
   };
 
+  const handleCanvasReady = (data: { nodesCount: number }) => {
+    if (data.nodesCount > 500) {
+      requestInterval = 30000;
+    } else {
+      requestInterval = 10000;
+    }
+  };
+
   const fetchTaskflowDetails = () => {
     getTaskflowDetails(
       { rootId: rootId.value },
@@ -257,7 +267,7 @@
     });
   };
 
-  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 30000);
+  const { pause } = useTimeoutPoll(fetchTaskflowDetails, () => requestInterval);
 
   onMounted(() => {
     fetchTaskflowDetails();
