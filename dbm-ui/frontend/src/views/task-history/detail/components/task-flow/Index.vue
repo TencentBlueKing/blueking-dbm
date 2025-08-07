@@ -63,7 +63,10 @@
     data?: FlowDetail;
   }
 
-  type Emits = (e: 'refresh') => void;
+  interface Emits {
+    (e: 'refresh'): void;
+    (e: 'nodesCountChange', count: number): void;
+  }
 
   interface Exposes {
     checkAndInitCanvas: () => void;
@@ -101,6 +104,8 @@
         setTimeout(() => {
           const shareData = flowCanvasRef.value!.getShareData();
           nodesMap = shareData.nodesMap;
+          const nodesCount = Object.keys(nodesMap).length;
+          emits('nodesCountChange', nodesCount);
           const edgesMap = shareData.edgesMap;
           const rawTreeData = generateTreeData(props.data!, nodesMap, edgesMap) as TreeNode[];
           treeData.value = [
