@@ -1371,6 +1371,8 @@ class ActKwargs:
             elif info["mongodb"]:
                 cluster_id = info["mongodb"][0]["instances"][0]["cluster_id"]
                 seg_range = info["mongodb"][0]["instances"][0]["seg_range"]
+            elif info["mongos"]:
+                cluster_id = info["mongos"][0]["instances"][0]["cluster_id"]
             cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
             for mongos in info["mongos"]:
                 # 源ip
