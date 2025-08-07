@@ -17,6 +17,10 @@ type LocationSpec struct {
 	City             string   `json:"city" validate:"required"` // 所属城市获取地域
 	SubZoneIds       []string `json:"sub_zone_ids"`
 	IncludeOrExclude *bool    `json:"include_or_exclue"`
+	// ExcludeRackIds  排除机架
+	ExcludeRackIds []string `json:"exclude_rack_ids"`
+	// ExcludeNetDeviceIds 排除网络设备
+	ExcludeNetDeviceIds []string `json:"exclude_net_device_ids"`
 }
 
 // IsEmpty whether the address location parameter is blank

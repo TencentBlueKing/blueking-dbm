@@ -1,3 +1,7 @@
 .codecc
 .idea
 .vscode
+# CodeBuddy
+.codebuddyignore
+# Cursor
+.cursorignore

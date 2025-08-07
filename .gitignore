@@ -14,3 +14,7 @@ package-lock.json
 *.swp
 ### PreCI ###
 .codecc
+# CodeBuddy
+.codebuddyignore
+# Cursor
+.cursorignore
