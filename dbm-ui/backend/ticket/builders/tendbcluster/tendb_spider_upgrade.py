@@ -65,7 +65,7 @@ class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilde
         new_host_info = []
         for host in info["old_nodes"][spider_role]:
             role = f'{spider_role}_{host["ip"]}'
-            new_host_info.extend(host.pop(role))
+            new_host_info.extend(info.pop(role))
         return new_host_info
 
     def post_callback(self):
