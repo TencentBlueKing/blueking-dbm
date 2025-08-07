@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.core.notify.handlers import CmsiHandler
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache
 from backend.utils.time import date2str
 
@@ -41,7 +42,10 @@ def send_msg_2_qywx(sub_title: str, msgs):
         return
 
     bk_biz_id = msgs["BKID"]
-    redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis.value)
+    db_type = DBType.Redis.value
+    if msgs[_("集群类型")] in [ClusterType.MongoShardedCluster.value, ClusterType.MongoReplicaSet.value]:
+        db_type = DBType.MongoDB.value
+    redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=db_type)
     app_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
 
     content = _("=>>   {}\n".format(sub_title))
