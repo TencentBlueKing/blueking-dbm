@@ -61,7 +61,7 @@ class Package(AuditedModel):
         filters = {"pkg_type": pkg_type, "db_type": db_type, "enable": True}
 
         if name:
-            filters["name"] = name
+            filters["name__startswith"] = name
 
         if version != MediumEnum.Latest:
             filters["version"] = version

@@ -173,6 +173,7 @@ class RedisClusterVersionUpdateOnline(object):
                 act_kwargs,
                 {
                     "cluster_domain": cluster_meta_data["immute_domain"],
+                    "target_version_file": input_item["target_version_file"],
                 },
             )
             sub_pipelines.append(sub_builder)
