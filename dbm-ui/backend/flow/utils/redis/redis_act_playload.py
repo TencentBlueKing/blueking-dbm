@@ -2096,18 +2096,21 @@ class RedisActPayload(object):
     def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
         # target_version_file could be None
-        pkg_name = params.get("target_version_file", None)
+        proxy_pkg_prefix = params.get("proxy_pkg_prefix", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
                 version=TwemproxyVersion.TwemproxyLatest,
                 pkg_type=MediumEnum.Twemproxy,
                 db_type=DBType.Redis,
-                name=pkg_name,
+                name_prefix=proxy_pkg_prefix,
             )
         elif is_predixy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis, name=pkg_name
+                version=PredixyVersion.PredixyLatest,
+                pkg_type=MediumEnum.Predixy,
+                db_type=DBType.Redis,
+                name_prefix=proxy_pkg_prefix,
             )
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,

@@ -59,14 +59,14 @@ class RedisProxyVersionUpgradeSceneFlow(object):
                     version=MediumEnum.Latest,
                     pkg_type=MediumEnum.Twemproxy,
                     db_type=DBType.Redis,
-                    name=input_item["target_version_file"],
+                    name_prefix=input_item["target_version_file"],
                 )
             elif is_predixy_proxy_type(cluster.cluster_type):
                 proxy_pkg = Package.get_latest_package(
                     version=MediumEnum.Latest,
                     pkg_type=MediumEnum.Predixy,
                     db_type=DBType.Redis,
-                    name=input_item["target_version_file"],
+                    name_prefix=input_item["target_version_file"],
                 )
             else:
                 raise Exception(

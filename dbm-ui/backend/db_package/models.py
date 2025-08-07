@@ -53,15 +53,15 @@ class Package(AuditedModel):
         pkg_type: str,
         bk_biz_id: Optional[int] = None,
         db_type: Optional[str] = DBType.MySQL,
-        name: Optional[str] = None,
+        name_prefix: Optional[str] = None,
     ) -> "Package":
         """
         根据版本和包类型获取最新的介质包
         """
         filters = {"pkg_type": pkg_type, "db_type": db_type, "enable": True}
 
-        if name:
-            filters["name__startswith"] = name
+        if name_prefix:
+            filters["name__startswith"] = name_prefix
 
         if version != MediumEnum.Latest:
             filters["version"] = version

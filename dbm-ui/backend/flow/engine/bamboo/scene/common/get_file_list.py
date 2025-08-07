@@ -242,7 +242,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
-    def redis_cluster_apply_proxy(self, cluster_type, pkg_name: Optional[str] = None) -> list:
+    def redis_cluster_apply_proxy(self, cluster_type, proxy_name_prefix: Optional[str] = None) -> list:
         """
         部署redis,所有节点需要的proxy pkg包
         """
@@ -252,7 +252,9 @@ class GetFileList(object):
             version = PredixyVersion.PredixyLatest
             pkg_type = MediumEnum.Predixy
 
-        proxy_pkg = Package.get_latest_package(version=version, pkg_type=pkg_type, db_type=DBType.Redis, name=pkg_name)
+        proxy_pkg = Package.get_latest_package(
+            version=version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=proxy_name_prefix
+        )
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )
