@@ -38,6 +38,20 @@
           </template>
         </span>
       </slot>
+      <FlowCollapse
+        v-if="data.err_msg"
+        danger
+        :title="t('失败原因')">
+        <div
+          class="pl-16"
+          :style="{
+            'white-space': 'pre-wrap',
+            'max-height': `${errMessageMaxHeight}px`,
+            overflow: 'auto',
+          }">
+          {{ data.err_msg }}
+        </div>
+      </FlowCollapse>
       <Abstract :data="data" />
     </template>
   </DbTimeLineItem>
@@ -57,6 +71,7 @@
   import TodoList from '../todo-list/Index.vue';
 
   import Abstract from './components/abstract/Index.vue';
+  import FlowCollapse from './components/FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
@@ -74,6 +89,7 @@
   }>();
 
   const { t } = useI18n();
+  const errMessageMaxHeight = window.innerHeight * 0.4;
 
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),

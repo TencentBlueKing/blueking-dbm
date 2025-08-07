@@ -110,9 +110,14 @@
     v-model:is-show="showHostPreview"
     :biz-id="baseInfo.bk_biz_id"
     :host-ids="baseInfo.bk_host_ids || []" />
-  <RelatedTicketDetail
-    v-model:is-show="showRelatedTicketDetail"
-    :ticket-id="Number(currentTaskflowDetail?.flow_info.uid)" />
+  <TableDetailDialog
+    v-model="showRelatedTicketDetail"
+    :default-offset-left="300"
+    :min-width="900">
+    <TicketDetail
+      v-if="Number(currentTaskflowDetail?.flow_info.uid)"
+      :ticket-id="Number(currentTaskflowDetail?.flow_info.uid)" />
+  </TableDetailDialog>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
@@ -120,6 +125,7 @@
   import { getTaskflowDetails } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
+  import TicketDetail from '@components/ticket-detail/index.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
@@ -128,7 +134,6 @@
   import DeliverResult, { type AbstractItem } from './components/DeliverResult.vue';
   import HostPreview from './components/HostPreview.vue';
   import OperationHistory from './components/OperationHistory.vue';
-  import RelatedTicketDetail from './components/RelatedTicketDetail.vue';
   import RouteHeader from './components/RouteHeader.vue';
   import TaskFlow from './components/task-flow/Index.vue';
 
@@ -227,7 +232,9 @@
     }
   };
 
-  const handleShowRelatedTicketDetail = () => {
+  const handleShowRelatedTicketDetail = (event: Event) => {
+    event.stopPropagation();
+    event.preventDefault();
     showRelatedTicketDetail.value = true;
   };
 
