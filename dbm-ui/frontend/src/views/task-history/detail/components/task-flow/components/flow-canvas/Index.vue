@@ -57,6 +57,12 @@
   interface Emits {
     (e: 'clickSingleNode', data: any): void;
     (e: 'refresh'): void;
+    (
+      e: 'ready',
+      data: {
+        nodesCount: number;
+      },
+    ): void;
   }
 
   interface Exposes {
@@ -271,6 +277,9 @@
       if (flowGraphInstance.focusNodeId) {
         flowGraphInstance.updateFocusNode(flowGraphInstance.focusNodeId, true);
       }
+      emits('ready', {
+        nodesCount: Object.keys(flowGraphInstance.nodesMap).length,
+      });
       setTimeout(() => {
         toolsRef.value!.showMiniMap();
       }, 500);
