@@ -9,6 +9,13 @@
     <InfoItem :label="t('主访问入口')">
       {{ data.masterDomainDisplayName }}
     </InfoItem>
+    <InfoItem
+      v-if="clbEntry && clbEntry.target_details[0]"
+      label="CLB">
+      {{ clbEntry.target_details[0]?.clb_ip }}
+      <span>,</span>
+      {{ clbEntry.target_details[0]?.clb_domain }}
+    </InfoItem>
     <InfoItem :label="t('从访问入口')">
       <SlaveDomain
         :cluster-type="ClusterTypes.TENDBHA"
@@ -59,7 +66,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import ClusterEntryDetailModel, { type ClbTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
+  import TendbhaDetailModel from '@services/model/mysql/tendbha-detail';
 
   import { ClusterTypes } from '@common/const';
 
@@ -71,15 +79,21 @@
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   interface Props {
-    data: TendbhaModel;
+    data: TendbhaDetailModel;
   }
 
   export type Emits = (e: 'refresh') => void;
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const clbEntry = computed(() =>
+    (props.data.cluster_entry_details as ClusterEntryDetailModel<ClbTargetDetails>[]).find(
+      (item) => item.cluster_entry_type === 'clb',
+    ),
+  );
 
   const handleSuccess = () => {
     emits('refresh');

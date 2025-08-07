@@ -201,7 +201,7 @@
   import { useRequest } from 'vue-request';
 
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbhaDetailModel from '@services/model/mysql/tendbha-detail';
   import { getTendbhaDetail } from '@services/source/tendbha';
 
   import { useFunController } from '@stores';
@@ -240,7 +240,7 @@
     cluster_id: number;
   }>(ClusterTypes.TENDBHA);
 
-  const data = ref<TendbhaModel>();
+  const data = ref<TendbhaDetailModel>();
 
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
