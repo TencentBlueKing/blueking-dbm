@@ -60,23 +60,44 @@
           </BkButton>
         </BkPopConfirm>
       </template>
-      <BkPopConfirm
-        v-else
-        :confirm-text="t('批量继续')"
-        :content="t('将会立即执行该节点')"
-        :popover-options="{
-          disabled: isDisabled,
-        }"
-        :title="t('确认批量继续n个节点？', { n: data.length })"
-        trigger="click"
-        width="280"
-        @confirm="handleConfirmTodo">
-        <BkButton
-          :disabled="isDisabled"
-          theme="primary">
-          {{ t('批量继续') }}
-        </BkButton>
-      </BkPopConfirm>
+      <template v-else>
+        <BkPopConfirm
+          :confirm-text="t('批量继续')"
+          :content="t('将会立即执行该节点')"
+          :popover-options="{
+            disabled: isDisabled,
+          }"
+          :title="t('确认批量继续n个节点？', { n: data.length })"
+          trigger="click"
+          width="280"
+          @confirm="handleConfirmTodo">
+          <BkButton
+            :disabled="isDisabled"
+            theme="primary">
+            {{ t('批量继续') }}
+          </BkButton>
+        </BkPopConfirm>
+        <BkPopConfirm
+          :confirm-config="{
+            theme: 'danger',
+          }"
+          :confirm-text="t('批量失败')"
+          :content="t('强制失败将立即终止这 n 个节点运行，统一标记为 “失败”', { n: data.length })"
+          :popover-options="{
+            disabled: isDisabled,
+          }"
+          :title="t('确认强制终止 n 个节点并置为失败？', { n: data.length })"
+          trigger="click"
+          width="280"
+          @confirm="handleConfirmForceFail">
+          <BkButton
+            :disabled="isDisabled"
+            theme="danger">
+            {{ t('批量失败') }}
+          </BkButton>
+        </BkPopConfirm>
+      </template>
+
       <BkButton
         v-if="data.length"
         :disabled="isDisabled"

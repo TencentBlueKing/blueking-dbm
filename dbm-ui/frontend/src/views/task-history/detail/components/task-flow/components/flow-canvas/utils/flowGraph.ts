@@ -290,7 +290,9 @@ export class FlowGraph {
   isNodeVisible(nodeId: string) {
     const position = this.graph!.getElementPosition(nodeId);
     const point = this.graph!.getViewportByCanvas(position);
+    console.log('point = ', point);
     const [viewWidth, viewHeight] = this.graph!.getSize();
+    console.log('viewWidth = ', viewWidth, 'viewHeight = ', viewHeight);
     return point[0] >= 0 && point[0] <= viewWidth && point[1] >= 0 && point[1] <= viewHeight;
   }
 

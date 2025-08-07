@@ -17,7 +17,7 @@
       :border="false"
       class="resize-layout-main"
       collapsible
-      :initial-divide="316"
+      :initial-divide="330"
       :is-collapsed="isCollapsed"
       :max="500"
       :min="200"
@@ -41,6 +41,7 @@
           :data="data"
           :root-id="rootId"
           @click-single-node="handleShowLog"
+          @ready="handleCanvasReady"
           @refresh="handleRefresh" />
       </template>
     </BkResizeLayout>
@@ -63,7 +64,15 @@
     data?: FlowDetail;
   }
 
-  type Emits = (e: 'refresh') => void;
+  interface Emits {
+    (e: 'refresh'): void;
+    (
+      e: 'canvasReady',
+      data: {
+        nodesCount: number;
+      },
+    ): void;
+  }
 
   interface Exposes {
     checkAndInitCanvas: () => void;
@@ -122,6 +131,10 @@
       immediate: true,
     },
   );
+
+  const handleCanvasReady = (data: { nodesCount: number }) => {
+    emits('canvasReady', data);
+  };
 
   const handleRefresh = () => {
     emits('refresh');

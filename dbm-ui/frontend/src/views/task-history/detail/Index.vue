@@ -94,6 +94,7 @@
           <TaskFlow
             ref="taskFlowRef"
             :data="currentTaskflowDetail"
+            @canvas-ready="handleCanvasReady"
             @refresh="handleRefresh" />
         </BkTabPanel>
         <BkTabPanel
@@ -115,6 +116,7 @@
     :ticket-id="Number(currentTaskflowDetail?.flow_info.uid)" />
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import { getTaskflowDetails } from '@services/source/taskflow';
@@ -139,6 +141,7 @@
   const { t } = useI18n();
 
   let isInitCanvas = false;
+  let requestInterval = 10000;
 
   const ticketId = ref(0);
   const showHostPreview = ref(false);
@@ -231,7 +234,17 @@
     showRelatedTicketDetail.value = true;
   };
 
+  const handleCanvasReady = (data: { nodesCount: number }) => {
+    if (data.nodesCount > 500) {
+      requestInterval = 30000;
+    } else {
+      requestInterval = 10000;
+    }
+    console.log('requestInterval = ', requestInterval);
+  };
+
   const fetchTaskflowDetails = () => {
+    console.log('fetchTaskflowDetails = ', dayjs().format('YYYY-MM-DD HH:mm:ss'));
     getTaskflowDetails(
       { rootId: rootId.value },
       {
@@ -250,7 +263,7 @@
     });
   };
 
-  const { pause } = useTimeoutPoll(fetchTaskflowDetails, 30000);
+  const { pause } = useTimeoutPoll(fetchTaskflowDetails, () => requestInterval);
 
   onMounted(() => {
     fetchTaskflowDetails();
