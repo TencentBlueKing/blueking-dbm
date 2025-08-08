@@ -87,5 +87,9 @@ class _PartitionApi(BaseApi):
             max_retry_times=1,
         )
 
+        self.partition_conf_query = self.generate_data_api(
+            method="Post", url="/partition/partition_conf_query", description=_("分区配置查询")
+        )
+
 
 DBPartitionApi = _PartitionApi()

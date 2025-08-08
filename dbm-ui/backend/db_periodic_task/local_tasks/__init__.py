@@ -32,6 +32,7 @@ from backend.db_periodic_task.local_tasks.mysql_check_partition import *
 from backend.db_periodic_task.local_tasks.mysql_checksum import check_checksum_task
 from backend.db_periodic_task.local_tasks.mysql_exporter_heartbeat import *
 from backend.db_periodic_task.local_tasks.mysql_failover_drill import *
+from backend.db_periodic_task.local_tasks.mysql_partition import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
 from backend.db_periodic_task.local_tasks.redis_backup import *

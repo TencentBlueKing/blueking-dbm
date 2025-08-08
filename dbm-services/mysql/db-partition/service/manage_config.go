@@ -20,7 +20,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
 	glogger "gorm.io/gorm/logger"
 
 	"dbm-services/common/go-pubpkg/errno"
@@ -697,4 +696,92 @@ func Slice2Map(s []int) map[int]struct{} {
 func ContainsMap(m map[int]struct{}, i int) bool {
 	_, ok := m[i]
 	return ok
+}
+
+// GetDomainInfo 获取分区配置表中的所有cluster_id及其对应的分区配置数
+func GetDomainInfo(clusterType string) (domainsInfo []*DomainInfo, err error) {
+	tbName, err := get_tb_name(clusterType)
+	if err != nil {
+		return nil, err
+	}
+	result := model.DB.Self.Table(tbName).Session(&gorm.Session{Logger: glogger.Default.LogMode(glogger.Info)}).
+		Select("cluster_id, count(*) as conf_cnt").Group("cluster_id").Order("conf_cnt desc").Find(&domainsInfo)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return domainsInfo, nil
+
+}
+
+// GetConfByDomain 根据cluster_id获取对应分区配置 分页查询
+func GetConfByDomain(clusterType string, queryArgs interface{}, page QueryPage) (queryResult *QueryConfByDomain, err error) {
+	tbName, err := get_tb_name(clusterType)
+	if err != nil {
+		return nil, err
+	}
+	// where condition
+	whereCond := &QueryCondition{}
+	bytes, err := json.Marshal(queryArgs)
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(bytes, whereCond); err != nil {
+		return nil, err
+	}
+	configs := []*PartitionConf{}
+
+	result := model.DB.Self.Table(tbName).Session(&gorm.Session{Logger: glogger.Default.LogMode(glogger.Info)}).
+		Where("cluster_id = ?", whereCond.ClusterId).Limit(page.Limit).Offset(page.Offset).Find(&configs)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	// 需要初始化
+	queryResult = &QueryConfByDomain{}
+	queryResult.ClusterId = whereCond.ClusterId
+	queryResult.Configs = configs
+
+	return queryResult, nil
+}
+
+func GetConfById(clusterType string, queryArgs interface{}) (queryResult *QueryConfById, err error) {
+	tbName, err := get_tb_name(clusterType)
+	if err != nil {
+		return nil, err
+	}
+
+	whereCond := &QueryCondition{}
+	bytes, err := json.Marshal(queryArgs)
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(bytes, whereCond); err != nil {
+		return nil, err
+	}
+
+	configs := []*PartitionConf{}
+
+	result := model.DB.Self.Table(tbName).Session(&gorm.Session{Logger: glogger.Default.LogMode(glogger.Info)}).
+		Where("cluster_id = ? AND id = ?", whereCond.ClusterId, whereCond.Id).Find(&configs)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	queryResult = &QueryConfById{}
+	queryResult.ClusterId = whereCond.ClusterId
+	queryResult.Configs = configs
+
+	return queryResult, nil
+}
+
+func get_tb_name(clusterType string) (tbName string, err error) {
+	switch clusterType {
+	case Tendbha, Tendbsingle:
+		tbName = MysqlPartitionConfigV2
+	case Tendbcluster:
+		tbName = SpiderPartitionConfigV2
+	default:
+		return "", errors.New("不支持的db类型")
+	}
+	return tbName, nil
 }

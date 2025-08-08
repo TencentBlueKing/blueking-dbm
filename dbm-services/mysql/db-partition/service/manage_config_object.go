@@ -4,9 +4,11 @@ import "time"
 
 // MysqlPartitionConfig TODO
 const MysqlPartitionConfig = "mysql_partition_config"
+const MysqlPartitionConfigV2 = "mysql_partition_config_v2"
 
 // SpiderPartitionConfig TODO
 const SpiderPartitionConfig = "spider_partition_config"
+const SpiderPartitionConfigV2 = "spider_partition_config_v2"
 
 // MysqlPartitionCronLogTable TODO
 const MysqlPartitionCronLogTable = "mysql_partition_cron_log"
@@ -126,4 +128,51 @@ type ManageLog struct {
 	Operator string    `gorm:"column:operator" json:"operator"`
 	Para     string    `gorm:"column:para" json:"para"`
 	Time     time.Time `gorm:"column:execute_time" json:"execute_time"`
+}
+
+type RequestInfo struct {
+	Name        string      `json:"name"`
+	ClusterType string      `json:"cluster_type"`
+	QueryArgs   interface{} `json:"query_args"`
+	PageArgs    QueryPage   `json:"page_args"`
+}
+
+type QueryPage struct {
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+}
+
+type DomainInfo struct {
+	ClusterId int `json:"cluster_id"`
+	ConfCnt   int `json:"conf_cnt"`
+}
+
+type QueryConfByDomain struct {
+	ClusterId int              `json:"cluster_id"`
+	Configs   []*PartitionConf `json:"configs"`
+}
+
+type PartitionConf struct {
+	//ClusterId             int    `gorm:"cluster_id" json:"cluster_id"` // 集群id 上架集群后，会有唯一id对应
+	Id                    int    `gorm:"column:id" json:"config_id"`
+	DbLike                string `gorm:"column:dblike" json:"dblike"`
+	TbLike                string `gorm:"column:tblike" json:"tblike"`
+	PartitionColumn       string `gorm:"column:partition_column" json:"partition_column"`
+	PartitionColumnType   string `gorm:"column:partition_column_type" json:"partition_column_type"`
+	ExpireTime            int    `gorm:"column:expire_time" json:"expire_time"`                         // 分区过期时间
+	PartitionTimeInterval int    `gorm:"column:partition_time_interval" json:"partition_time_interval"` // 分区间隔
+	ExtraPartition        int    `gorm:"column:extra_partition" json:"extra_partition"`
+	PartitionType         int    `gorm:"column:partition_type" json:"partition_type"`
+	TimeZone              string `gorm:"column:time_zone" json:"time_zone"`
+	Phase                 string `gorm:"column:phase" json:"phase"`
+}
+
+type QueryCondition struct {
+	ClusterId int `gorm:"column:cluster_id" json:"cluster_id"`
+	Id        int `gorm:"column:id" json:"config_id"`
+}
+
+type QueryConfById struct {
+	ClusterId int              `json:"cluster_id"`
+	Configs   []*PartitionConf `json:"configs"`
 }

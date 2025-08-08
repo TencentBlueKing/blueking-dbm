@@ -31,6 +31,7 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupResultModel{})
 	_ = sinker.RegisterModelSinker(&model.BinlogFileModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
+	_ = sinker.RegisterModelSinker(&model.MysqlPartitionResultModel{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})
