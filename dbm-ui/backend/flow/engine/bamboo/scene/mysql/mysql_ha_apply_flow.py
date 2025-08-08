@@ -21,6 +21,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.engine.bamboo.scene.name_service.mysql_clb_operation import MySQLClbFlow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -51,6 +52,7 @@ class MySQLHAApplyFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.enable_clb = data.get("enable_clb", False)
 
     def __calc_install_ports(self, inst_sum: int = 0) -> Tuple[list, list]:
         """
@@ -294,6 +296,19 @@ class MySQLHAApplyFlow(object):
                     )
                 ),
             )
+            if self.enable_clb:
+                # 这里为每个集群都创建一个CLB子流程
+                for cluster in clusters:
+                    clb_data = {
+                        "cluster_id": cluster["cluster_id"],
+                        "created_by": self.data.get("created_by", ""),
+                        "spider_role": cluster.get("spider_role", None),  # 兼容spider_role参数
+                    }
+                    clb_sub_flow = MySQLClbFlow(
+                        root_id=self.root_id,
+                        data=clb_data,
+                    ).build_clb_create_subflow()
+                    sub_pipeline.add_sub_pipeline(sub_flow=clb_sub_flow)
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署MySQL高可用集群")))
 

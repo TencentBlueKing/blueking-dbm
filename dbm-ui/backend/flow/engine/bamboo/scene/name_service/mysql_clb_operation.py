@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -15,7 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.name_service.mysql_clb_comp import (
     ClbOperationType,
     MySQLClbOperationComponent,
@@ -40,6 +41,40 @@ class MySQLClbFlow(object):
         self.kwargs.creator = self.data["created_by"]
         # role 入参是 spider role 区分是建立spider master clb 还是建立spider slave clb
         self.kwargs.role = self.data.get("spider_role", TenDBClusterSpiderRole.SPIDER_MASTER)
+
+    def build_clb_create_subflow(self):
+        """
+        构建 clb 创建子流程
+        """
+        # 创建子流程实例
+        sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+        # 添加创建clb活动节点
+        kwargs_create = copy.deepcopy(asdict(self.kwargs))
+        kwargs_create["name_service_operation_type"] = ClbOperationType.CREATE_CLB.value
+        sub_pipeline.add_act(
+            act_name=_("创建clb"), act_component_code=MySQLClbOperationComponent.code, kwargs=kwargs_create
+        )
+
+        # 添加clb信息写入meta活动节点
+        kwargs_meta = copy.deepcopy(asdict(self.kwargs))
+        kwargs_meta["name_service_operation_type"] = ClbOperationType.ADD_CLB_INFO_TO_META.value
+        sub_pipeline.add_act(
+            act_name=_("clb信息写入meta"),
+            act_component_code=MySQLClbOperationComponent.code,
+            kwargs=kwargs_meta,
+        )
+
+        # 添加clb域名添加到dns活动节点
+        kwargs_dns = copy.deepcopy(asdict(self.kwargs))
+        kwargs_dns["name_service_operation_type"] = ClbOperationType.ADD_CLB_DOMAIN_TO_DNS.value
+        sub_pipeline.add_act(
+            act_name=_("clb域名添加到dns,clb域名信息写入meta"),
+            act_component_code=MySQLClbOperationComponent.code,
+            kwargs=kwargs_dns,
+        )
+
+        return sub_pipeline.build_sub_process(sub_name=_("CLB创建子流程"))
 
     def clb_create_flow(self):
         """

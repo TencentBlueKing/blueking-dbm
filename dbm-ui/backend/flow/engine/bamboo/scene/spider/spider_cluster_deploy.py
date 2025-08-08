@@ -17,7 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.flow.consts import TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -70,6 +70,7 @@ class TenDBClusterApplyFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.enable_clb = data.get("enable_clb", False)
 
         # 兼容多实例部署mysql的方法，只读上下文定义额外的变量
         self.data["clusters"] = []
@@ -391,6 +392,21 @@ class TenDBClusterApplyFlow(object):
                 )
             ),
         )
+        if self.enable_clb:
+            # 这里为集群创建CLB子流程
+            clb_data = {
+                "cluster_id": self.data.get("cluster_id"),
+                "created_by": self.data.get("created_by", ""),
+                "spider_role": TenDBClusterSpiderRole.SPIDER_MASTER,  # Spider集群暂不区分spider_role，后续如有需要可调整
+            }
+            from backend.flow.engine.bamboo.scene.name_service.mysql_clb_operation import MySQLClbFlow
+
+            clb_sub_flow = MySQLClbFlow(
+                root_id=self.root_id,
+                data=clb_data,
+            ).build_clb_create_subflow()
+            deploy_pipeline.add_sub_pipeline(sub_flow=clb_sub_flow)
+
         # 阶段10 remote安装周边组件
         deploy_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_subflow(
