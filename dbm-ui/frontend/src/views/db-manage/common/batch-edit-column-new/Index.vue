@@ -51,7 +51,7 @@
   import BatchEditNumberInput from './edit/NumberInput.vue';
   import BatchEditSelect from './edit/Select.vue';
   import BatchEditTagInput from './edit/TagInput.vue';
-  // import BatchEditTextarea from './edit/Textarea.vue';
+  import BatchEditTextarea from './edit/Textarea.vue';
 
   interface Props {
     cancelHandler?: () => Promise<any> | void;
@@ -73,7 +73,7 @@
     BatchEditNumberInput,
     BatchEditSelect,
     BatchEditTagInput,
-    // BatchEditTextarea,
+    BatchEditTextarea,
   };
 </script>
 <script setup lang="ts">
