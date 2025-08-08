@@ -36,12 +36,12 @@ export type ClusterTypeInfo = {
  * 集群类型对应配置
  */
 export const clusterTypeInfos = {
-  ...bigdata,
-  ...oracle,
-  ...mongodb,
   ...mysql,
   ...redis,
+  ...bigdata,
+  ...mongodb,
   ...sqlserver,
+  ...oracle,
 } as RequiredInfoType;
 
 export type ClusterTypeInfos = keyof typeof clusterTypeInfos;

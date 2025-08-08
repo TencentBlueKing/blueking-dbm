@@ -33,8 +33,8 @@ export type DbInfoType = {
 export const DBTypeInfos = {
   ...mysql,
   ...redis,
+  ...bigdata,
   ...mongodb,
   ...sqlserver,
-  ...bigdata,
   ...oracle,
 } as RequiredInfoType;

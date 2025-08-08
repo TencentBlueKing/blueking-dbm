@@ -7,23 +7,24 @@ import { MachineTypes } from '../machineTypes';
 import { type ClusterTypeInfo } from './index';
 
 export const mysql: ClusterTypeInfo = {
-  [ClusterTypes.TENDBCLUSTER]: {
-    dbType: DBTypes.TENDBCLUSTER,
-    id: ClusterTypes.TENDBCLUSTER,
+  [ClusterTypes.TENDBSINGLE]: {
+    dbType: DBTypes.MYSQL,
+    id: ClusterTypes.TENDBSINGLE,
     machineList: [
       {
-        id: MachineTypes.TENDBCLUSTER_PROXY,
-        name: t('接入层Master'),
+        id: MachineTypes.MYSQL_PROXY,
+        name: 'Proxy',
       },
       {
-        id: MachineTypes.TENDBCLUSTER_BACKEND,
+        id: MachineTypes.MYSQL_BACKEND,
         name: t('后端存储'),
       },
     ],
     moduleId: 'mysql',
-    name: 'TenDBCluster',
-    specClusterName: 'TenDBCluster',
+    name: t('MySQL单节点'),
+    specClusterName: 'MySQL',
   },
+  // eslint-disable-next-line perfectionist/sort-objects
   [ClusterTypes.TENDBHA]: {
     dbType: DBTypes.MYSQL,
     id: ClusterTypes.TENDBHA,
@@ -41,21 +42,22 @@ export const mysql: ClusterTypeInfo = {
     name: t('MySQL主从'),
     specClusterName: 'MySQL',
   },
-  [ClusterTypes.TENDBSINGLE]: {
-    dbType: DBTypes.MYSQL,
-    id: ClusterTypes.TENDBSINGLE,
+  // eslint-disable-next-line perfectionist/sort-objects
+  [ClusterTypes.TENDBCLUSTER]: {
+    dbType: DBTypes.TENDBCLUSTER,
+    id: ClusterTypes.TENDBCLUSTER,
     machineList: [
       {
-        id: MachineTypes.MYSQL_PROXY,
-        name: 'Proxy',
+        id: MachineTypes.TENDBCLUSTER_PROXY,
+        name: t('接入层Master'),
       },
       {
-        id: MachineTypes.MYSQL_BACKEND,
+        id: MachineTypes.TENDBCLUSTER_BACKEND,
         name: t('后端存储'),
       },
     ],
     moduleId: 'mysql',
-    name: t('MySQL单节点'),
-    specClusterName: 'MySQL',
+    name: 'TenDBCluster',
+    specClusterName: 'TenDBCluster',
   },
 };
