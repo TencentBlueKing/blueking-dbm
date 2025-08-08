@@ -52,26 +52,21 @@ class CheckIfNormalSpiderNodeService(DropSpiderRoutingService):
     其他场景，都进入回收列表
     """
 
-    # 定义回收主机的类变量
-    recycle_hosts = []
-
     def _execute(self, data, parent_data) -> bool:
-        # 每次执行都清空一下list，避免重试时候上一次结果被影响到
-        self.recycle_hosts.clear()
 
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
-
+        recycle_hosts = []
         # 判断集群是否还存在
         cluster = self._get_cluster_with_id(kwargs["cluster_id"])
         if not cluster:
             # 表示cluster_id对应的集群已经下架, 则这单据针对这个集群申请到的机器都进入退回列表
-            self.recycle_hosts.extend(kwargs["spider_hosts"])
+            recycle_hosts.extend(kwargs["spider_hosts"])
             return True
 
         # 判断每个spider_ip是否加入到集群中
         for spider_host in kwargs["spider_hosts"]:
-            self._check_ip_for_cluster(
+            if not self._check_ip_for_cluster(
                 cluster=cluster,
                 spider_host=spider_host,
                 spider_role=kwargs["spider_role"],
@@ -79,21 +74,24 @@ class CheckIfNormalSpiderNodeService(DropSpiderRoutingService):
                 is_slave_cluster_create=kwargs["is_slave_cluster_create"],
                 new_db_module_id=kwargs["new_db_module_id"],
                 created_by=kwargs["created_by"],
-            )
-        self.log_info(f"recycle_hosts:{self.recycle_hosts}")
-        if self.recycle_hosts:
+            ):
+                recycle_hosts.append(spider_host)
+
+        self.log_info(f"recycle_hosts:{recycle_hosts}")
+        if recycle_hosts:
             # 输出待回收host信息
             FlowOutputHandler(RecycleOutputContext.ToResourceSerializer).insert_data(
-                global_data["job_root_id"], self.recycle_hosts
+                global_data["job_root_id"], recycle_hosts
             )
 
         return True
 
     def _check_ip_for_cluster(
         self, cluster: Cluster, spider_host: dict, spider_role: TenDBClusterSpiderRole, **kwargs
-    ):
+    ) -> bool:
         """
-        判断ip执行到哪一步了
+        判断ip节点是否已经加入到集群当中
+        返回如果True，表示不退回，反之返回False，表示退回
         """
         check_routing_result = self._check_routing(cluster=cluster, spider_ip=spider_host["ip"])
         check_dns_result, check_clb_result = self._check_entry(
@@ -148,15 +146,12 @@ class CheckIfNormalSpiderNodeService(DropSpiderRoutingService):
             # 刷线路由信息
             if not self.flush_routing(ctl_master=ctl_primary, bk_cloud_id=cluster.bk_cloud_id):
                 raise CalcRecycleFailedException(f"cluster [{cluster.immute_domain}] flush routing error")
-            # 加入回收host队列
-            self.recycle_hosts.append(spider_host)
-            return True
+            return False
 
         else:
             # 剩余检测场景，就是没有路由信息场景
             # 统一加入待回收队列
-            self.recycle_hosts.append(spider_host)
-            return True
+            return False
 
     def _get_cluster_with_id(self, cluster_id) -> Cluster | None:
         """
