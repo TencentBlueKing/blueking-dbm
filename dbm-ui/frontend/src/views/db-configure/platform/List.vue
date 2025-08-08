@@ -13,7 +13,9 @@
 
 <template>
   <div class="platform-db-configure-page">
-    <ClusterTab v-model="state.clusterType" />
+    <ClusterTab
+      v-model="state.clusterType"
+      :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
     <ApplyPermissionCatch :key="state.clusterType">
       <div class="configure-content">
         <BkTab

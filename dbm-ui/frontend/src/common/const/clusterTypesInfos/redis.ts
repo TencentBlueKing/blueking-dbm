@@ -41,19 +41,6 @@ export const redis: ClusterTypeInfo = {
     name: 'Tendisplus',
     specClusterName: 'Redis',
   },
-  [ClusterTypes.REDIS_INSTANCE]: {
-    dbType: DBTypes.REDIS,
-    id: ClusterTypes.REDIS_INSTANCE,
-    machineList: [
-      {
-        id: MachineTypes.REDIS_TENDIS_CACHE,
-        name: t('TendisCache/RedisCluster/Redis主从 后端存储'),
-      },
-    ],
-    moduleId: 'redis',
-    name: t('Redis主从'),
-    specClusterName: 'Redis',
-  },
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
@@ -86,6 +73,20 @@ export const redis: ClusterTypeInfo = {
     ],
     moduleId: 'redis',
     name: 'TendisSSD',
+    specClusterName: 'Redis',
+  },
+  // eslint-disable-next-line perfectionist/sort-objects
+  [ClusterTypes.REDIS_INSTANCE]: {
+    dbType: DBTypes.REDIS,
+    id: ClusterTypes.REDIS_INSTANCE,
+    machineList: [
+      {
+        id: MachineTypes.REDIS_TENDIS_CACHE,
+        name: t('TendisCache/RedisCluster/Redis主从 后端存储'),
+      },
+    ],
+    moduleId: 'redis',
+    name: t('Redis主从'),
     specClusterName: 'Redis',
   },
 };
