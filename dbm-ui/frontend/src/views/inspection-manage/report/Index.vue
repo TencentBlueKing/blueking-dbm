@@ -27,7 +27,7 @@
           </BkButton>
           <SearchBox
             :is-assist="isTodoAssist"
-            :is-show-all="isInspectionReportGlobal"
+            :is-show-all="isPlatform"
             :is-todos="!isInspectionReport"
             style="margin-bottom: 16px"
             @change="handleSearchChange" />
@@ -73,11 +73,8 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const isInspectionReport = route.name === 'inspectionReport';
-  const isInspectionReportGlobal = route.name === 'inspectionReportGlobal';
-
   const exportLoading = ref(false);
-  const tabType = ref((route.query.tabType as DBTypes) || (isInspectionReportGlobal ? DBTypes.MYSQL : ''));
+  const tabType = ref((route.query.tabType as DBTypes) || DBTypes.MYSQL);
   const searchParams = ref<Record<string, any>>({});
   const excludeDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
@@ -85,7 +82,8 @@
 
   const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
-  const isEmptyShow = computed(() => isInspectionReport && !isTabShow.value);
+  const isInspectionReport = computed(() => route.name === 'inspectionReport');
+  const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value?.[tabType.value]) {
@@ -98,8 +96,8 @@
 
   const labelConfig = computed(() => {
     if (
-      isInspectionReport ||
-      isInspectionReportGlobal ||
+      isInspectionReport.value ||
+      isPlatform.value ||
       !dbOverviewConfig.value ||
       !Object.keys(dbReportCountMap.value).length
     ) {
@@ -154,11 +152,11 @@
     if (route.query.manage) {
       Object.assign(query, { manage: route.query.manage });
     }
-    if (isInspectionReport) {
+    if (isInspectionReport.value) {
       Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
     }
 
-    if (!isInspectionReport && !isInspectionReportGlobal) {
+    if (!isInspectionReport.value && !isPlatform.value) {
       Object.assign(query, { status: 0 });
 
       if (!route.query.manage) {
