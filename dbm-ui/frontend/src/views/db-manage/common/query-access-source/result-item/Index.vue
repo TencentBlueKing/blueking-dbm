@@ -270,8 +270,7 @@
         tcpResult.data.forEach((clusterItem) => {
           if (!clusterItem.error.length) {
             successCount.value += 1;
-          }
-          if (!clusterItem.success.length) {
+          } else if (!clusterItem.success.length) {
             failedCount.value += 1;
           }
           if (clusterItem.error.length && clusterItem.success.length) {
