@@ -67,6 +67,10 @@ export default class Redis extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  delete_rate: {
+    default: number;
+    rate_list: number[];
+  };
   disaster_tolerance_level: Affinity;
   dns_to_clb: boolean;
   id: number;
@@ -126,6 +130,7 @@ export default class Redis extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.delete_rate = payload.delete_rate;
     this.disaster_tolerance_level = payload.disaster_tolerance_level || '';
     this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id;

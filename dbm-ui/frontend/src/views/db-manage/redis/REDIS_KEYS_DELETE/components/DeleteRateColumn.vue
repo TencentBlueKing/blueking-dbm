@@ -13,57 +13,62 @@
 
 <template>
   <EditableColumn
-    :field="field"
-    :label="label"
-    :required="required"
-    :width="300">
-    <template #headAppend>
-      <BatchEditColumn
-        :confirm-handler="handleBatchEditConfirm"
-        :label="label">
-        <BatchEditTextarea v-model="batchEditValue" />
-      </BatchEditColumn>
-    </template>
-    <EditableTextarea
+    field="delete_rate"
+    :label="t('每秒删除 Key 个数')"
+    required
+    :width="150">
+    <EditableSelect
       v-model="modelValue"
-      :placeholder="t('请输入正则表达式_多个换行分割')">
-    </EditableTextarea>
+      :clearable="false"
+      :list="list" />
   </EditableColumn>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import BatchEditColumn, { BatchEditTextarea } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
+  import RedisModel from '@services/model/redis/redis';
 
   interface Props {
-    field: string;
-    label: string;
-    required?: boolean;
+    cluster: {
+      delete_rate: RedisModel['delete_rate'];
+      id: number;
+    };
   }
 
-  type Emits = (e: 'batch-edit', value: string, field: string) => void;
-
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>({
+  const modelValue = defineModel<number | string>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const batchEditValue = ref<string>('');
+  const list = shallowRef<
+    {
+      label: number;
+      value: number;
+    }[]
+  >([]);
 
-  const handleBatchEditConfirm = () => {
-    emits('batch-edit', batchEditValue.value, props.field);
-  };
+  watch(
+    () => props.cluster.id,
+    () => {
+      if (props.cluster.id) {
+        if (modelValue.value === '') {
+          modelValue.value = props.cluster.delete_rate.default;
+        }
+        list.value = props.cluster.delete_rate.rate_list.map((item) => ({
+          label: item,
+          value: item,
+        }));
+      } else {
+        modelValue.value = '';
+        list.value = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
-
-<style lang="less" scoped>
-  .batch-select-button {
-    font-size: 14px;
-    color: #3a84ff;
-    cursor: pointer;
-  }
-</style>
