@@ -114,6 +114,7 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
             ticket_flows = list(self.ticket.flows.all())
             # 将新机回收同步给后面两个流程
             clear_flow = ticket_flows[-2]
+            clear_flow.details["ticket_data"]["hosts"] = recycle_hosts
             clear_flow.details["ticket_data"]["recycle_hosts"] = recycle_hosts
             clear_flow.save(update_fields=["details"])
 
