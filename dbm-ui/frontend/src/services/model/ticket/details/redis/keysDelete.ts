@@ -8,6 +8,7 @@ export interface KeysDelete extends DetailBase {
     black_regex: string;
     cluster_id: number;
     create_at: string;
+    delete_rate: number;
     domain: string;
     path: string;
     target: string;

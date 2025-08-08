@@ -38,7 +38,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
-              :width="300">
+              :width="150">
               <EditableBlock
                 v-model="rowData.cluster.cluster_type_name"
                 :placeholder="t('自动生成')">
@@ -57,6 +57,9 @@
               :label="t('排除 Key')"
               @batch-edit="handleBatchEdit">
             </KeyOprationColumn>
+            <DeleteRateColumn
+              v-model="rowData.delete_rate"
+              :cluster="rowData.cluster" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -103,6 +106,7 @@
   import KeyOpreationAlert from '@views/db-manage/redis/common/KeyOpreationAlert.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
+  import DeleteRateColumn from './components/DeleteRateColumn.vue';
 
   interface IDataRow {
     black_regex: string;
@@ -110,9 +114,11 @@
       bk_cloud_id: number;
       cluster_type: string;
       cluster_type_name: string;
+      delete_rate: RedisModel['delete_rate'];
       id: number;
       master_domain: string;
     };
+    delete_rate: number | string;
     white_regex: string;
   }
 
@@ -123,11 +129,13 @@
         bk_cloud_id: 0,
         cluster_type: '',
         cluster_type_name: '',
+        delete_rate: {} as RedisModel['delete_rate'],
         id: 0,
         master_domain: '',
       },
       values.cluster,
     ),
+    delete_rate: '' as number | string,
     white_regex: values.white_regex || '',
   });
 
@@ -152,9 +160,16 @@
             cluster: {
               master_domain: item.domain,
             } as IDataRow['cluster'],
+            // delete_rate: item.delete_rate,
             white_regex: item.white_regex,
           }),
         ),
+      });
+
+      nextTick(() => {
+        formData.tableData.forEach((item, index) =>
+          Object.assign(item, { delete_rate: details.rules[index].delete_rate }),
+        );
       });
     },
   });
@@ -164,6 +179,7 @@
     rules: {
       black_regex: string;
       cluster_id: number;
+      delete_rate: number;
       domain: string;
       white_regex: string;
     }[];
@@ -204,6 +220,7 @@
               bk_cloud_id: item.bk_cloud_id,
               cluster_type: item.cluster_type,
               cluster_type_name: item.cluster_type_name,
+              delete_rate: item.delete_rate,
               id: item.id,
               master_domain: item.master_domain,
             },
@@ -211,11 +228,11 @@
         );
       }
     });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: string[], field: string) => {
+  const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
@@ -232,6 +249,7 @@
           rules: formData.tableData.map((item) => ({
             black_regex: item.black_regex,
             cluster_id: item.cluster.id,
+            delete_rate: Number(item.delete_rate),
             domain: item.cluster.master_domain,
             white_regex: item.white_regex,
           })),
