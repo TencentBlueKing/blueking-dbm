@@ -30,14 +30,14 @@
     resource?: string | number;
   }
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   const props = withDefaults(defineProps<Props>(), {
     bizId: undefined,
     permission: 'normal',
     resource: '',
-  });
-
-  defineOptions({
-    inheritAttrs: false,
   });
 
   const attrs = useAttrs();

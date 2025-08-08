@@ -37,16 +37,16 @@
     (e: 'cancel'): void;
   }
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   withDefaults(defineProps<Props>(), {
     defaultValue: undefined,
     simple: false,
   });
 
   const emits = defineEmits<Emits>();
-
-  defineOptions({
-    inheritAttrs: false,
-  });
 
   const { t } = useI18n();
 

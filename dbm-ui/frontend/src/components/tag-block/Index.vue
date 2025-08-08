@@ -176,7 +176,7 @@
   onMounted(() => {
     calcRenderTagNum();
 
-    const resizeObserver = new ResizeObserver(
+    resizeObserver = new ResizeObserver(
       throttle(() => {
         calcRenderTagNum();
       }),
