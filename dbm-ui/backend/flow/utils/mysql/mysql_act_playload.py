@@ -2517,3 +2517,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def get_partition_v2_payload(self, **kwargs) -> dict:
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
+            "action": DBActuatorActionEnum.MysqlPartitionV2.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {"cluster": self.cluster, "configs": self.ticket_data["configs"]},
+            },
+        }

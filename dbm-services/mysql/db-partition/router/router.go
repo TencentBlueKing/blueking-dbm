@@ -35,4 +35,5 @@ func RegisterRouter(engine *gin.Engine) {
 	p.POST("/migrate_config", handler.MigrateConfig)
 	// 巡检
 	p.POST("/check_log", handler.CheckLog)
+	p.POST("/partition_conf_query", handler.PartitionConfQuery)
 }

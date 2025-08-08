@@ -435,3 +435,45 @@ func SendResponse(r *gin.Context, err error, data interface{}) {
 		Data:    data,
 	})
 }
+
+const (
+	GetDomainInfo   = "get_domain_info"
+	GetConfByDomain = "get_conf_by_domain"
+	GetConfById     = "get_conf_by_id"
+)
+
+func PartitionConfQuery(r *gin.Context) {
+	param := &service.RequestInfo{}
+	if err := r.ShouldBind(&param); err != nil {
+		slog.Error(err.Error())
+		SendResponse(r, errno.ErrBind, nil)
+		return
+	}
+
+	switch param.Name {
+	case GetDomainInfo:
+		domainsInfo, err := service.GetDomainInfo(param.ClusterType)
+		if err != nil {
+			SendResponse(r, err, nil)
+			return
+		}
+		SendResponse(r, nil, domainsInfo)
+	case GetConfByDomain:
+		queryResult, err := service.GetConfByDomain(param.ClusterType, param.QueryArgs, param.PageArgs)
+		if err != nil {
+			SendResponse(r, err, nil)
+			return
+		}
+		SendResponse(r, nil, queryResult)
+	case GetConfById:
+		queryResult, err := service.GetConfById(param.ClusterType, param.QueryArgs)
+		if err != nil {
+			SendResponse(r, err, nil)
+			return
+		}
+		SendResponse(r, nil, queryResult)
+	default:
+		SendResponse(r, fmt.Errorf("unknown api name [%s]", param.Name), "请确认查询名称")
+	}
+
+}

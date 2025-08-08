@@ -49,6 +49,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_single_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_partition_v2_flow import MysqlPartitionV2Flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
@@ -746,3 +747,7 @@ class MySQLController(BaseController):
     def mysql_failover_scene(self):
         flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
         flow.failover_drill()
+
+    def mysql_partition_scene_v2(self):
+        flow = MysqlPartitionV2Flow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_partition_v2_flow()

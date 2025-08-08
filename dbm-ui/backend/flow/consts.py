@@ -516,6 +516,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
+    MysqlPartitionV2 = EnumField("partition-execute-v2", _("mysql分区执行V2"))
 
 
 class RedisActuatorActionEnum(StrStructuredEnum):

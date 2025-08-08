@@ -203,7 +203,7 @@ func (h *DbWorker) Query(query string) ([]map[string]interface{}, error) {
 // QueryWithArgs conv rows list to map
 // 查询结果为空时，返回 not row found
 func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[string]interface{}, error) {
-	logger.Info("Query: %s, params:%v", query, args)
+	// logger.Info("Query: %s, params:%v", query, args)
 	var rows *sql.Rows
 	var err error
 	if len(args) == 0 {
