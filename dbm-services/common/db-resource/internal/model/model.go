@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"dbm-services/common/db-resource/assets"
@@ -38,6 +39,11 @@ var DB *Database
 
 // TbRpOperationInfoColumns tb_rp_operation_info all columns
 var TbRpOperationInfoColumns []string
+var (
+	// SubzoneIdMap 园区ID,园区名称对应关系
+	SubzoneIdMap map[string]string
+	once         sync.Once
+)
 
 func init() {
 	createSysDb()
@@ -59,6 +65,19 @@ func init() {
 	}
 	if len(TbRpOperationInfoColumns) <= 1 {
 		TbRpOperationInfoColumns = []string{"create_time", "-create_time"}
+	}
+
+	once.Do(func() {
+		subzoneIdMap, err := GetSubzoneIdMap()
+		if err != nil {
+			logger.Error("GetSubzoneIdMap failed, err:%s", err.Error())
+			SubzoneIdMap = make(map[string]string) // 避免panic，初始化为空map
+			return
+		}
+		SubzoneIdMap = subzoneIdMap
+	})
+	for k, v := range SubzoneIdMap {
+		logger.Info("subzoneIdMap %s:%s", k, v)
 	}
 	logger.Info("tb_rp_operation_info columns %v", TbRpOperationInfoColumns)
 }

@@ -5,3 +5,5 @@
 .codebuddyignore
 # Cursor
 .cursorignore
+.cursorrules
+.cursorrules.md

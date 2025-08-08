@@ -171,7 +171,7 @@ func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 	}
 	if len(spec.StorageSpecs) > 0 {
 		if err := t.UnmarshalDiskInfo(); err != nil {
-			logger.Error("unmarshal disk info failed, err:%s")
+			logger.Error("unmarshal disk info failed, err:%s", err.Error())
 			return false
 		}
 		for _, diskSpec := range spec.StorageSpecs {
@@ -230,6 +230,27 @@ func GetTbRpDetailAll(sqlstr string) ([]TbRpDetail, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+// GetSubzoneIdMap 获取subzone,subzone_id 对应的关系
+func GetSubzoneIdMap() (map[string]string, error) {
+	var m []TbRpDetail
+	err := DB.Self.Table(TbRpDetailName()).Select("sub_zone,sub_zone_id").Scan(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	// 并合并 tbrpdetailarchive表的信息
+	var mArchive []TbRpDetail
+	errArchive := DB.Self.Table(TbRpDetailArchiveName()).Select("sub_zone,sub_zone_id").Scan(&mArchive).Error
+	if errArchive != nil {
+		return nil, errArchive
+	}
+	m = append(m, mArchive...)
+	subzoneIdMap := make(map[string]string)
+	for _, v := range m {
+		subzoneIdMap[v.SubZoneID] = v.SubZone
+	}
+	return subzoneIdMap, nil
 }
 
 // SetMore TODO
@@ -366,7 +387,7 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
 	if rdb.Error != nil {
 		logger.Error("update status Failed,Error %v", rdb.Error)
-		return nil, err
+		return nil, rdb.Error
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {
 		return nil, fmt.Errorf("required Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),

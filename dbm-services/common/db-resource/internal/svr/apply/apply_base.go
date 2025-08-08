@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -99,9 +100,10 @@ func (param RequestInputParam) BuildMessage() (msg string) {
 		groupCountMap[d.Affinity] += d.Count
 		count += d.Count
 	}
-	msg = fmt.Sprintf("此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg = fmt.Sprintf("\n此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg += fmt.Sprintf("申请的资源类型: %s\n", param.ResourceType)
 	for affinity, count := range groupMap {
-		msg += fmt.Sprintf("按照亲和性%s申请的资源分组%d,总共包含机器数量%d\n", affinity, count, groupCountMap[affinity])
+		msg += fmt.Sprintf("按照亲和性 [%s] 申请: %d组机器,总共机器数量: %d\n", affinity, count, groupCountMap[affinity])
 	}
 	return msg
 }
@@ -294,46 +296,60 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 				message += fmt.Sprintf(" size >= %d G ", d.MinSize)
 			}
 		}
-		message += "\n\r"
+		message += "\n"
 	}
 	return
 }
 
 // GetMessage return apply failed message
 func (a *ObjectDetail) GetMessage() (message string) {
-	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
+	message += fmt.Sprintf(" group: %s\n", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
-		message += fmt.Sprintf("device_class: %v\n\r", a.DeviceClass)
+		message += fmt.Sprintf("device_class: %v\n", a.DeviceClass)
 	}
 	if a.Spec.NotEmpty() {
 		if a.Spec.Cpu.IsNotEmpty() {
-			message += fmt.Sprintf("cpu: %d ~ %d 核\n\r", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
+			message += fmt.Sprintf("cpu: %d ~ %d 核\n", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
 		if a.Spec.Mem.IsNotEmpty() {
-			message += fmt.Sprintf("mem: %d ~ %d M\n\r", a.Spec.Mem.Min, a.Spec.Mem.Max)
+			message += fmt.Sprintf("mem: %d ~ %d M\n", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 	}
 	message += a.GetDiskMatchInfo()
 	if !a.LocationSpec.IsEmpty() {
-		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
+		message += fmt.Sprintf("city: %s \n", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
 			if a.LocationSpec.IsExclude() {
-				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			} else {
-				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			}
 		}
 	}
 	switch a.Affinity {
 	case NONE:
-		message += "资源亲和性： NONE\n\r"
+		message += "资源亲和性： NONE\n"
 	case CROS_SUBZONE:
-		message += "资源亲和性： 同城跨园区\n\r"
+		message += "资源亲和性： 同城跨园区\n"
 	case SAME_SUBZONE:
-		message += "资源亲和性： 同城同园区\n\r"
+		message += "资源亲和性： 同城同园区\n"
 	case SAME_SUBZONE_CROSS_SWTICH:
-		message += "资源亲和性： 同城同园区 跨交换机跨机架\n\r"
+		message += "资源亲和性： 同城同园区 跨交换机跨机架\n"
 	}
-	message += fmt.Sprintf("申请总数: %d \n\r", a.Count)
+	message += fmt.Sprintf("申请总数: %d \n", a.Count)
 	return message
+}
+
+// translateSubzoneIdToName 将subzoneId 转换为subzoneName
+func translateSubzoneIdToName(subzoneIds []string) string {
+	subzoneNames := make([]string, 0, len(subzoneIds))
+	for _, subzoneId := range subzoneIds {
+		subzoneName, ok := model.SubzoneIdMap[subzoneId]
+		if !ok {
+			subzoneNames = append(subzoneNames, subzoneId)
+		} else {
+			subzoneNames = append(subzoneNames, subzoneName)
+		}
+	}
+	return strings.Join(subzoneNames, ",")
 }
