@@ -160,6 +160,7 @@
             :root-id="rootId" />
         </BkTabPanel>
         <BkTabPanel
+          v-if="userProfileStore.isSuperuser"
           :label="t('输入输出')"
           name="i/o">
           <InputOutput
@@ -184,6 +185,8 @@
 
   import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
+
+  import { useUserProfile } from '@stores';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbLog from '@components/db-log/index.vue';
@@ -216,6 +219,7 @@
   });
 
   const { t } = useI18n();
+  const userProfileStore = useUserProfile();
 
   const NODE_STATUS_TEXT: Record<string, string> = {
     CREATED: t('待执行'),
