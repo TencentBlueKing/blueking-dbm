@@ -1,36 +1,103 @@
 <template>
-  <div
-    ref="root"
-    class="cluster-detail-base-info">
-    <slot />
-  </div>
+  <InfoList>
+    <InfoItem :label="t('集群别名')">
+      {{ data.cluster_alias || '--' }}
+      <UpdateClusterAliasName
+        :data="data"
+        @success="handleSuccess" />
+    </InfoItem>
+    <InfoItem :label="masterDomainLabel">
+      {{ data.masterDomainDisplayName }}
+    </InfoItem>
+    <slot name="clbMaster" />
+    <slot name="polaris" />
+    <InfoItem
+      v-if="slots.slaveDomain"
+      :label="t('从访问入口')">
+      <slot name="slaveDomain" />
+    </InfoItem>
+    <slot name="clbSlave" />
+    <InfoItem :label="t('标签')">
+      <ClusterTag
+        :data="data"
+        @success="handleSuccess" />
+    </InfoItem>
+    <InfoItem :label="t('容量使用率')">
+      <ClusterStatsCell
+        :cluster-id="data.id"
+        :cluster-type="clusterType" />
+    </InfoItem>
+    <InfoItem
+      v-if="slots.clusterTypeName"
+      :label="t('架构版本')">
+      <slot name="clusterTypeName" />
+    </InfoItem>
+    <InfoItem
+      v-if="slots.syncMode"
+      :label="t('同步模式')">
+      <slot name="syncMode" />
+    </InfoItem>
+    <slot name="moduleName" />
+    <InfoItem
+      v-if="slots.moduleNames"
+      label="Modules">
+      <slot name="moduleNames" />
+    </InfoItem>
+    <CommonInfo :data="data" />
+  </InfoList>
 </template>
+
 <script lang="ts">
-  import InfoItem from './InfoItem.vue';
+  import type { VNode } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  export { InfoItem };
-</script>
-<script setup lang="ts">
-  const rootRef = useTemplateRef('root');
+  import ClusterTag from '@components/cluster-tag/index.vue';
 
-  onMounted(() => {
-    setTimeout(() => {
-      let maxLabelWidth = 0;
-      const allLabelEleList = rootRef.value!.querySelectorAll('.cluster-detail-base-info-item > .label');
-      allLabelEleList.forEach((item) => {
-        maxLabelWidth = Math.max(maxLabelWidth, item.getBoundingClientRect().width);
-      });
-      allLabelEleList.forEach((item) => {
-        // eslint-disable-next-line no-param-reassign
-        (item as HTMLDivElement).style.width = `${Math.ceil(maxLabelWidth)}px`;
-      });
-    });
-  });
+  import ClusterStatsCell from '@views/db-manage/common/cluster-stats-cell/Index.vue';
+  import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
+
+  import ClbInfo from './ClbInfo.vue';
+  import CommonInfo from './CommonInfo.vue';
+  import InfoList, { InfoItem } from './components/Index.vue';
+  import ModuleNameInfo from './ModuleNameInfo.vue';
+  import PolarisInfo from './PolarisInfo.vue';
+  import type { ClusterDetailModel, ISupportClusterType } from './types';
+
+  export { ClbInfo, InfoItem, InfoList, ModuleNameInfo, PolarisInfo };
 </script>
-<style lang="less">
-  .cluster-detail-base-info {
-    display: flex;
-    padding-top: 20px;
-    flex-wrap: wrap;
+<script setup lang="ts" generic="T extends ISupportClusterType">
+  export interface Props<C extends ISupportClusterType> {
+    clusterType: C;
+    data: ClusterDetailModel<C>;
   }
-</style>
+
+  export type Emits = (e: 'refresh') => void;
+
+  export interface Slots {
+    clbMaster: () => VNode;
+    clbSlave: () => VNode;
+    clusterTypeName: () => VNode;
+    moduleName: () => VNode;
+    moduleNames: () => VNode;
+    polaris: () => VNode;
+    slaveDomain: () => VNode;
+    syncMode: () => VNode;
+  }
+
+  defineProps<Props<T>>();
+  const emits = defineEmits<Emits>();
+  const slots = defineSlots<Slots>();
+
+  const { t } = useI18n();
+
+  const masterDomainLabel = computed(() => {
+    if (slots.slaveDomain && slots.slaveDomain()) {
+      return t('主访问入口');
+    }
+    return t('访问入口');
+  });
+
+  const handleSuccess = () => {
+    emits('refresh');
+  };
+</script>

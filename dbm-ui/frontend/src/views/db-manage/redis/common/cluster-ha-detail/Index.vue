@@ -210,8 +210,18 @@
         :cluster-type="ClusterTypes.REDIS_INSTANCE">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.REDIS_INSTANCE"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #slaveDomain>
+              <SlaveDomain
+                :cluster-type="ClusterTypes.REDIS_INSTANCE"
+                :data="data.slaveEntryList" />
+            </template>
+            <template #moduleNames>
+              <TagBlock :data="data.module_names" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
     </template>
@@ -227,20 +237,19 @@
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
 
-  import RedisModel from '@services/model/redis/redis';
+  import RedisDetailModel from '@services/model/redis/redis-detail';
   import { getRedisDetail } from '@services/source/redis';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, DisplayBox, SlaveDomain } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -256,7 +265,7 @@
 
   const { handleToToolbox } = useRedisClusterListToToolbox();
 
-  const data = ref<RedisModel>();
+  const data = ref<RedisDetailModel>();
 
   const passwordState = reactive({
     fetchParams: {
