@@ -6,8 +6,10 @@ import SuccessImage from '@images/check-line.png';
 import FailImage from '@images/close.png';
 import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
+// import MinusImage from '@images/minus.png';
 import MinusImage from '@images/minus-fill.png';
-import AddImage from '@images/plus-fill.png';
+import PlusImage from '@images/plus-fill.png';
+// import PlusImage from '@images/plus.png';
 import manualConfirmImage from '@images/querenjixu.png';
 import RetryImage from '@images/refresh-2.png';
 import SkipImage from '@images/skip.png';
@@ -75,7 +77,7 @@ export class NormalNode extends Rect {
   }
 
   get isFailed() {
-    return this.data.status === 'FAILED';
+    return ['FAILED', 'REVOKED'].includes(this.data.status);
   }
 
   get isFinished() {
@@ -135,12 +137,23 @@ export class NormalNode extends Rect {
     }
 
     const [width, height] = this.getSize(attributes);
+
+    // const collapseBackgroundStyle = {
+    //   cx: -120,
+    //   cy: 0,
+    //   fill: attributes.collapseBackgroundColor,
+    //   r: 7,
+    //   zIndex: 101,
+    // };
+    // this.upsert('collapseBackground', GCircle, collapseBackgroundStyle, container);
+
     const collapseIconStyle = {
       height: 14,
-      src: this.data.isExpand ? MinusImage : AddImage,
+      src: this.data.isExpand ? MinusImage : PlusImage,
       width: 14,
       x: -width / 2,
       y: -height / 2 + 20,
+      // zIndex: 102,
     };
 
     this.upsert('collapseIcon', GImage, collapseIconStyle, container);
@@ -222,7 +235,7 @@ export class NormalNode extends Rect {
   }
 
   drawOperationShape(attributes: any, container: Group) {
-    if (this.isSubProcess) {
+    if (this.isSubProcess || this.data.isTaskRevoked) {
       return;
     }
     const [width] = this.getSize(attributes);
@@ -466,15 +479,15 @@ export class NormalNode extends Rect {
       }
     }
 
-    const [height, width] = this.getSize(attributes);
+    const [width, height] = this.getSize(attributes);
     // 矩形背景
     const mainStatusBackgroundStyle = {
       fill: strokeColor,
       height: 40,
       radius: 4,
       width: 40,
-      x: -height / 2 + (this.isSubProcess ? 20 : 6),
-      y: -width / 2 + 8,
+      x: -width / 2 + (this.isSubProcess ? 20 : 6),
+      y: -height / 2 + 8,
     };
     this.upsert('mainStatusBackground', GRect, mainStatusBackgroundStyle, container);
     // 节点左侧图标
@@ -482,8 +495,8 @@ export class NormalNode extends Rect {
       height: 17.5,
       src: FileImage,
       width: 15,
-      x: -height / 2 + (this.isSubProcess ? 33 : 19),
-      y: -width / 2 + 19,
+      x: -width / 2 + (this.isSubProcess ? 33 : 19),
+      y: -height / 2 + 19,
     };
     this.upsert('mainStatusImage', GImage, mainStatusImageStyle, container);
     if (this.data.status && !this.isWaitToRun) {
@@ -623,7 +636,7 @@ export class NormalNode extends Rect {
       return;
     }
 
-    const [height, width] = this.getSize(attributes);
+    const [width, height] = this.getSize(attributes);
     const diffSeconds = this.isRunning
       ? Math.floor(Date.now() / 1000) - this.data.started_at
       : this.data.updated_at - this.data.started_at;
@@ -632,8 +645,8 @@ export class NormalNode extends Rect {
       fill: '#fff',
       fontSize: 9,
       text: timeDisplayText,
-      x: -width * 2 - 8,
-      y: -height / 4 + 33,
+      x: -height * 2 - 8,
+      y: -width / 4 + 33,
       zIndex: 2,
     };
     this.upsert('timeDisplayText', GText, timeDisplayTextStyle, container);
@@ -666,6 +679,7 @@ export class NormalNode extends Rect {
         {
           direction: 'normal',
           duration: 3000,
+          easing: 'linear',
           iterations: Infinity,
         },
       );

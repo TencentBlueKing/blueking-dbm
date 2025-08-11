@@ -108,6 +108,7 @@
     {
       field: 'started_time',
       label: t('执行时间'),
+      minWidth: 220,
       render: ({ data }: { data: RetryNodeItem }) => (
         <div class='started-time-column'>
           <span>{data.started_time}</span>

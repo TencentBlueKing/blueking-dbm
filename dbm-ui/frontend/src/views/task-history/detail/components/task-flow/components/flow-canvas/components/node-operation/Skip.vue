@@ -3,9 +3,9 @@
     ref="templateRef"
     class="task-history-flow-operation-main">
     <div class="title">
-      {{ t('确认跳过当前节点继续执行？') }}
+      {{ t('确认跳过当前失败节点？') }}
     </div>
-    <div class="sub-title">{{ t('将会忽略当前节点，继续往下执行') }}</div>
+    <div class="sub-title">{{ t('跳过将忽略当前节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”') }}</div>
     <div class="btn">
       <BkButton
         class="mr-8"

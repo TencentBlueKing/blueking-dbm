@@ -13,17 +13,21 @@
       </div>
       <div class="split-line"></div>
       <div class="zoom-main">
-        <DbIcon
-          v-bk-tooltips="t('缩小')"
-          class="zoom-icon"
-          type="1-jianhaobeifen-2"
-          @click="handleZoomOut" />
+        <div class="tool-item">
+          <DbIcon
+            v-bk-tooltips="t('缩小')"
+            class="zoom-icon"
+            type="1-jianhaobeifen-2"
+            @click="handleZoomOut" />
+        </div>
         <div class="zoom-display">{{ zoomValue }}%</div>
-        <DbIcon
-          v-bk-tooltips="t('放大')"
-          class="zoom-icon"
-          type="1-jianhaobeifen"
-          @click="handleZoomIn" />
+        <div class="tool-item">
+          <DbIcon
+            v-bk-tooltips="t('放大')"
+            class="zoom-icon"
+            type="1-jianhaobeifen"
+            @click="handleZoomIn" />
+        </div>
       </div>
       <div class="split-line"></div>
       <div class="tool-item">
@@ -375,6 +379,8 @@
         justify-content: center;
 
         .zoom-icon {
+          font-size: 16px;
+
           &:hover {
             color: #3a84ff;
           }
@@ -494,12 +500,6 @@
     border: none !important;
     border-radius: 4px;
     box-shadow: 0 1px 6px 0 #0000001f;
-
-    div {
-      background: #3a84ff1a !important;
-      border: 1px solid #3a84ff !important;
-      border-radius: 1px !important;
-    }
   }
 
   .g6-minimap-show {
