@@ -127,8 +127,15 @@
         :cluster-type="ClusterTypes.TENDBSINGLE">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.TENDBSINGLE"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #moduleName>
+              <ModuleNameInfo
+                :cluster-type="ClusterTypes.TENDBSINGLE"
+                :data="data" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
       <ClusterAuthorize
@@ -148,7 +155,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import TendbsingleDetailModel from '@services/model/mysql/tendbsingle-detail';
   import { getTendbsingleDetail } from '@services/source/tendbsingle';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
@@ -156,13 +163,11 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -173,9 +178,11 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const { ModuleNameInfo } = BaseInfoField;
+
   const { t } = useI18n();
 
-  const data = ref<TendbsingleModel>();
+  const data = ref<TendbsingleDetailModel>();
 
   /** 集群授权 */
   const isAuthorizeShow = ref(false);
