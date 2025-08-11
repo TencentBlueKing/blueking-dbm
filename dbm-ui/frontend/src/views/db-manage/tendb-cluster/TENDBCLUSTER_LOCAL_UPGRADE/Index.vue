@@ -89,7 +89,6 @@
           <span class="safe-action-text">{{ t('检查业务连接') }}</span>
         </BkCheckbox>
       </BkFormItem>
-      <BackupSource v-model="formData.backupSource" />
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -119,7 +118,6 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { type TendbCluster } from '@services/model/ticket/ticket';
-  import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -128,7 +126,6 @@
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -182,7 +179,6 @@
   });
 
   const defaultData = () => ({
-    backupSource: BackupSourceType.REMOTE,
     isSafe: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
@@ -209,7 +205,6 @@
     onSuccess(ticketDetail) {
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
-        backupSource: ticketDetail.details.backup_source,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({
             // 集群信息现查，从而带出当前版本信息
@@ -226,7 +221,6 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    backup_source: BackupSourceType;
     infos: {
       cluster_id: number;
       current_version: {
@@ -260,7 +254,6 @@
     if (valid) {
       createTicketRun({
         details: {
-          backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_id: item.cluster.id,
             current_version: item.current_version,

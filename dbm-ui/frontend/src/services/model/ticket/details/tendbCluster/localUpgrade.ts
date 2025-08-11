@@ -1,9 +1,6 @@
-import { BackupSourceType } from '@services/types';
-
 import type { DetailBase, DetailClusters } from '../common';
 
 export interface LocalUpgrade extends DetailBase {
-  backup_source: BackupSourceType;
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
