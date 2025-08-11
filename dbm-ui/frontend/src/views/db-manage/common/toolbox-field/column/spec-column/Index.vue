@@ -146,18 +146,27 @@
     });
   });
 
-  useRequest(getResourceSpecList, {
-    defaultParams: [
-      {
-        enable: props.selectable ? true : undefined,
-        spec_cluster_type: props.clusterType,
-        spec_machine_type: props.machineType,
-      },
-    ],
+  const { run: fetchData } = useRequest(getResourceSpecList, {
+    manual: true,
     onSuccess: (data) => {
       specList.value = data.results || [];
     },
   });
+
+  watch(
+    () => [props.selectable, props.clusterType, props.machineType],
+    () => {
+      fetchData({
+        enable: props.selectable ? true : undefined,
+        limit: -1,
+        spec_cluster_type: props.clusterType,
+        spec_machine_type: props.machineType,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 初始化
   watch(
