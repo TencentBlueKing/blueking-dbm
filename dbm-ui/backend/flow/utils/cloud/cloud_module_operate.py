@@ -13,13 +13,8 @@ from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.components import CCApi
-from backend.db_services.cmdb.biz import (
-    get_or_create_cmdb_module_with_name,
-    get_or_create_pending_module,
-    get_or_create_set_with_name,
-)
+from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.flow.consts import CloudServiceModuleName
 
@@ -135,12 +130,6 @@ class CloudModuleHandler:
         res = CCApi.transfer_host_to_recyclemodule(
             {"bk_biz_id": bk_biz_id, "bk_host_id": recycle_host_ids}, use_admin=True, raw=True
         )
-        if bk_biz_id == env.DBA_APP_BK_BIZ_ID:
-            pending_module = [get_or_create_pending_module()]
-            CCApi.transfer_host_module(
-                {"bk_biz_id": bk_biz_id, "bk_host_id": bk_host_ids, "bk_module_id": pending_module},
-                use_admin=True,
-            )
 
         if not res["result"]:
             logger.error(_("主机{}转移待回收失败，错误信息:{}").format(recycle_host_ids, res["message"]))

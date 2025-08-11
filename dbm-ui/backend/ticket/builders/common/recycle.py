@@ -17,7 +17,6 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings
-from backend.db_services.cmdb.biz import get_or_create_pending_module
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.exceptions import AppBaseException
 from backend.flow.engine.controller.base import BaseController
@@ -92,21 +91,16 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
     @staticmethod
     def __standardized(recycle_hosts):
         """标准化资源主机信息"""
-        recycle_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
         # 统一将回收主机挪到 pending 模块
         bk_host_ids = [host["bk_host_id"] for host in recycle_hosts]
-        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").transfer_host_module(
-            bk_host_ids=bk_host_ids,
-            target_module_ids=[get_or_create_pending_module()],
-        )
-        for host in recycle_hosts:
-            host["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").recycle_host_pending_module(bk_host_ids)
+        recycle_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
         return recycle_hosts
 
     def post_callback(self):
         # 需要根据确定的回收主机，修改数据清理和分池处理的参数
         try:
-            recycle_hosts = self.ticket.current_flow().flow_output_v2[0]["values"]
+            recycle_hosts = self.ticket.current_flow().output_data[0]["values"]
             recycle_hosts = self.__standardized(recycle_hosts)
         except AppBaseException as e:
             BaseTicketFlow(self.ticket.current_flow()).run_error_status_handler(e)
