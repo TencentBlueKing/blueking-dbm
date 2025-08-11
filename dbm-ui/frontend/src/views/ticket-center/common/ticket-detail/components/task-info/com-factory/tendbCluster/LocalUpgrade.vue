@@ -53,9 +53,6 @@
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
     </InfoItem>
-    <InfoItem :label="t('备份源')">
-      {{ ticketDetails.details.backup_source === BackupSourceType.LOCAL ? t('本地备份') : t('远程备份') }}
-    </InfoItem>
   </InfoList>
 </template>
 
@@ -67,9 +64,7 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-
   import VersionContent from '../mysql/components/VersionContent.vue';
-  import { BackupSourceType } from '@services/types';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.LocalUpgrade>;
