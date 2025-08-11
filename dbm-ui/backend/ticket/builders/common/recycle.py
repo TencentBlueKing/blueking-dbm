@@ -19,7 +19,6 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
-from backend.db_services.cmdb.biz import get_or_create_pending_module
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.exceptions import AppBaseException
 from backend.flow.engine.controller.base import BaseController
@@ -95,15 +94,10 @@ class CalcRecycleApplyHostParamBuilder(FlowParamBuilder):
     @staticmethod
     def __standardized(recycle_hosts):
         """标准化资源主机信息"""
-        recycle_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
         # 统一将回收主机挪到 pending 模块
         bk_host_ids = [host["bk_host_id"] for host in recycle_hosts]
-        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").transfer_host_module(
-            bk_host_ids=bk_host_ids,
-            target_module_ids=[get_or_create_pending_module()],
-        )
-        for host in recycle_hosts:
-            host["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID, cluster_type="").recycle_host_pending_module(bk_host_ids)
+        recycle_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
         return recycle_hosts
 
     def post_callback(self):
