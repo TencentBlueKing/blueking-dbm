@@ -34,7 +34,7 @@
         {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
       </template>
     </BkTableColumn>
-    <BkTableColumn
+    <!-- <BkTableColumn
       field="drop_type"
       :label="t('清档类型')"
       :width="270">
@@ -49,7 +49,7 @@
       <template #default="{data}: {data: RowData}">
         {{ data.drop_index ? t('删除索引') : t('保留索引') }}
       </template>
-    </BkTableColumn>
+    </BkTableColumn> -->
     <BkTableColumn
       field="db_patterns"
       :label="t('指定 DB 名')"
@@ -83,11 +83,11 @@
       </template>
     </BkTableColumn>
   </BkTable>
-  <InfoList>
+  <!-- <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
     </InfoItem>
-  </InfoList>
+  </InfoList> -->
 </template>
 
 <script setup lang="tsx">
@@ -99,7 +99,7 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  // import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.RemoveNs>;
