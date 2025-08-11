@@ -24,6 +24,8 @@
 
 package config
 
+import "time"
+
 var Cfg = Configuration{}
 
 // DiscoveryConfig discovery configuration
@@ -35,22 +37,25 @@ type DiscoveryConfig struct {
 
 // InputConfig define the information of data input stream.
 type IntputConfig struct {
-	Name      string   `yaml:"name"      mapstructure:"name"`
-	Enable    bool     `yaml:"enable"    mapstructure:"enable"`
-	Endpoints string   `yaml:"endpoint" mapstructure:"endpoint"`
-	User      string   `yaml:"user"      mapstructure:"user"`
-	Password  string   `yaml:"password"  mapstructure:"password"`
-	Mechanism string   `yaml:"mechanism" mapstructure:"mechanism"`
-	Topics    []string `yaml:"topics"    mapstructure:"topics"`
+	Name            string        `yaml:"name"            mapstructure:"name"`
+	Enable          bool          `yaml:"enable"          mapstructure:"enable"`
+	Endpoints       string        `yaml:"endpoint"        mapstructure:"endpoint"`
+	NetDialTimeout  time.Duration `yaml:"netDialTimeout"  mapstructure:"netDialTimeout"`
+	NetReadTimeout  time.Duration `yaml:"netReadTimeout"  mapstructure:"netReadTimeout"`
+	NetWriteTimeout time.Duration `yaml:"netWriteTimeout" mapstructure:"netWriteTimeout"`
+	User            string        `yaml:"user"            mapstructure:"user"`
+	Password        string        `yaml:"password"        mapstructure:"password"`
+	Mechanism       string        `yaml:"mechanism"       mapstructure:"mechanism"`
+	Topics          []string      `yaml:"topics"          mapstructure:"topics"`
 }
 
 // OutputConfig Configuration related to data storage.
 type OutputConfig struct {
-	Name      string `yaml:"name"      mapstructure:"name"`
-	Enable    bool   `yaml:"enable"    mapstructure:"enable"`
+	Name      string `yaml:"name"     mapstructure:"name"`
+	Enable    bool   `yaml:"enable"   mapstructure:"enable"`
 	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
-	User      string `yaml:"user"      mapstructure:"user"`
-	Password  string `yaml:"password"  mapstructure:"password"`
+	User      string `yaml:"user"     mapstructure:"user"`
+	Password  string `yaml:"password" mapstructure:"password"`
 }
 
 // LogConfig log configuration

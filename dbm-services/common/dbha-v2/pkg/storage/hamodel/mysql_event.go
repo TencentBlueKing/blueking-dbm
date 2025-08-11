@@ -22,32 +22,27 @@
  * SOFTWARE.
  */
 
-package example_test
+package hamodel
 
 import (
-	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
-	"testing"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+	"time"
 )
 
-func TestExample(t *testing.T) {
-	exp := example.NewExample(example.ExampleOptionDbType("example"), example.ExampleOptionReportInterval(10))
-	ctx := context.Background()
+type MySQLEvent struct {
+	// Keys
+	MachineID  string                 `gorm:"column:machine_id;primaryKey"`
+	InstanceID string                 `gorm:"column:instance_id;primaryKey"`
+	Type       haprobe.MySQLEventType `gorm:"column:type"`
+	Endpoint   string                 `gorm:"column:endpoint"`
+	Message    string                 `gorm:"column:message"`
 
-	harvestC, err := exp.Harvest(ctx, "", "")
+	// Time automatically managed by GORM
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt time.Time `gorm:"column:deleted_at"`
+}
 
-	if err != nil {
-		t.Errorf("harvest db status failed, errmsg(%v)", err)
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-
-		case data := <-harvestC:
-			t.Logf("data:%v", data.Value)
-			return
-		}
-	}
+func (t MySQLEvent) TableName() string {
+	return "t_mysql_event"
 }
