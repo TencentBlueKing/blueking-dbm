@@ -708,7 +708,7 @@ func (task *MakeCacheSyncTask) RedisShakeStart(reacquirePort bool) {
 		var logCmd string
 		ctx, cancel := context.WithCancel(context.Background())
 		// redis7版本以上用redis-shake V4 去做同步
-		if err == nil && task.SrcBigVersion >= util.REDISVERSIONUSEV4 {
+		if err == nil && task.SrcBigVersion >= getRedisShakeV4BeginVersion() {
 			task.createShakeV4ConfigFile()
 			logCmd = fmt.Sprintf("%s %s", task.RedisShakeBin, task.ShakeConfFile)
 			task.Logger.Info(logCmd)
@@ -858,9 +858,14 @@ func (task *MakeCacheSyncTask) WatchShake() {
 			task.UpdateDbAndLogLocal("等待源实例执行bgsave...")
 			continue
 		}
+		if metric.Status == ShakeV4ReceiveDdbStatus {
+			task.SetStatus(1)
+			task.UpdateDbAndLogLocal("接收源实例RDB, 进度:%s-%d%%", metric.FullSyncProgressHuman, metric.FullSyncProgress)
+			continue
+		}
 		if metric.Status == ShakeV4FullStatus {
 			task.SetStatus(1)
-			task.UpdateDbAndLogLocal("rdb导入中,进度:%d%%", metric.FullSyncProgress)
+			task.UpdateDbAndLogLocal("rdb导入中,进度:%s-%d%%", metric.FullSyncProgressHuman, metric.FullSyncProgress)
 			continue
 		}
 		if metric.Status == ShakeV4IncrStatus {
@@ -900,30 +905,31 @@ func (task *MakeCacheSyncTask) UpgradeShakeMedia() {
 
 // RedisShakeMetric shake meric
 type RedisShakeMetric struct {
-	StartTime            time.Time   `json:"StartTime"`
-	PullCmdCount         int         `json:"PullCmdCount"`
-	PullCmdCountTotal    int         `json:"PullCmdCountTotal"`
-	BypassCmdCount       int         `json:"BypassCmdCount"`
-	BypassCmdCountTotal  int         `json:"BypassCmdCountTotal"`
-	PushCmdCount         int         `json:"PushCmdCount"`
-	PushCmdCountTotal    int         `json:"PushCmdCountTotal"`
-	SuccessCmdCount      int         `json:"SuccessCmdCount"`
-	SuccessCmdCountTotal int         `json:"SuccessCmdCountTotal"`
-	FailCmdCount         int         `json:"FailCmdCount"`
-	FailCmdCountTotal    int         `json:"FailCmdCountTotal"`
-	Delay                string      `json:"Delay"`
-	AvgDelay             string      `json:"AvgDelay"`
-	NetworkSpeed         int         `json:"NetworkSpeed"`
-	NetworkFlowTotal     int         `json:"NetworkFlowTotal"`
-	FullSyncProgress     int         `json:"FullSyncProgress"`
-	Status               string      `json:"Status"`
-	SenderBufCount       int         `json:"SenderBufCount"`
-	ProcessingCmdCount   int         `json:"ProcessingCmdCount"`
-	TargetDBOffset       int         `json:"TargetDBOffset"`
-	SourceDBOffset       int         `json:"SourceDBOffset"`
-	SourceAddress        string      `json:"SourceAddress"`
-	TargetAddress        []string    `json:"TargetAddress"`
-	Details              interface{} `json:"Details"`
+	StartTime             time.Time   `json:"StartTime"`
+	PullCmdCount          int         `json:"PullCmdCount"`
+	PullCmdCountTotal     int         `json:"PullCmdCountTotal"`
+	BypassCmdCount        int         `json:"BypassCmdCount"`
+	BypassCmdCountTotal   int         `json:"BypassCmdCountTotal"`
+	PushCmdCount          int         `json:"PushCmdCount"`
+	PushCmdCountTotal     int         `json:"PushCmdCountTotal"`
+	SuccessCmdCount       int         `json:"SuccessCmdCount"`
+	SuccessCmdCountTotal  int         `json:"SuccessCmdCountTotal"`
+	FailCmdCount          int         `json:"FailCmdCount"`
+	FailCmdCountTotal     int         `json:"FailCmdCountTotal"`
+	Delay                 string      `json:"Delay"`
+	AvgDelay              string      `json:"AvgDelay"`
+	NetworkSpeed          int         `json:"NetworkSpeed"`
+	NetworkFlowTotal      int         `json:"NetworkFlowTotal"`
+	FullSyncProgress      int         `json:"FullSyncProgress"`
+	FullSyncProgressHuman string      `json:"FullSyncProgressHuman"`
+	Status                string      `json:"Status"`
+	SenderBufCount        int         `json:"SenderBufCount"`
+	ProcessingCmdCount    int         `json:"ProcessingCmdCount"`
+	TargetDBOffset        int         `json:"TargetDBOffset"`
+	SourceDBOffset        int         `json:"SourceDBOffset"`
+	SourceAddress         string      `json:"SourceAddress"`
+	TargetAddress         []string    `json:"TargetAddress"`
+	Details               interface{} `json:"Details"`
 }
 
 type ReaderStatus struct {
@@ -975,7 +981,7 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 	if task.SrcBigVersion == 0 {
 		task.GetSrcRedisVersion()
 	}
-	if task.SrcBigVersion >= util.REDISVERSIONUSEV4 {
+	if task.SrcBigVersion >= getRedisShakeV4BeginVersion() {
 		shakeMetric := RedisShakeV4Metric{}
 		task.Err = json.Unmarshal(resp, &shakeMetric)
 		if task.Err != nil {
@@ -984,12 +990,23 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 			return nil
 		}
 		// 转换成低版本结构体返回
-		return &RedisShakeMetric{
-			Delay: fmt.Sprintf("%d ms",
-				shakeMetric.Reader.AofSentOffset-shakeMetric.Reader.AofReceivedOffset),
-			FullSyncProgress: 100 * shakeMetric.Reader.RdbReceivedBytes / shakeMetric.Reader.RdbFileSizeBytes,
-			Status:           shakeMetric.Reader.Status,
+		reader := shakeMetric.Reader
+		r := &RedisShakeMetric{
+			Status: reader.Status,
 		}
+		if reader.Status == ShakeV4ReceiveDdbStatus {
+			r.FullSyncProgress = 100 * reader.RdbReceivedBytes / reader.RdbFileSizeBytes
+			r.FullSyncProgressHuman = fmt.Sprintf("[%s/%s]", reader.RdbReceivedHuman, reader.RdbFileSizeHuman)
+		}
+		if reader.Status == ShakeV4FullStatus {
+			r.FullSyncProgress = 100 * reader.RdbSentBytes / reader.RdbFileSizeBytes
+			r.FullSyncProgressHuman = fmt.Sprintf("[%s/%s]", reader.RdbSentHuman, reader.RdbFileSizeHuman)
+		}
+		if reader.Status == ShakeV4IncrStatus {
+			r.Delay = fmt.Sprintf("%d bytes", reader.AofReceivedOffset-reader.AofSentOffset)
+		}
+
+		return r
 	} else {
 		shakeMeric := []RedisShakeMetric{}
 		task.Err = json.Unmarshal(resp, &shakeMeric)
@@ -1003,4 +1020,13 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 		}
 	}
 	return nil
+}
+
+// 默认从7才开始使用redis-shake-v4
+func getRedisShakeV4BeginVersion() int {
+	beginVersion := viper.GetInt("redisShakeV4BeginVersion")
+	if beginVersion == 0 {
+		return 7
+	}
+	return beginVersion
 }

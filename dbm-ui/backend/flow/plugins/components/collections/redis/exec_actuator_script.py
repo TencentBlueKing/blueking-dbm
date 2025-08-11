@@ -96,7 +96,11 @@ class ExecuteDBActuatorScriptService(BkJobService):
         db_act_template["data_dir"] = ConfigDefaultEnum.DATA_DIRS[0]
 
         if kwargs["is_update_trans_data"]:
-            self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
+            cluster_log = copy.deepcopy(kwargs["cluster"])
+            for k in ("password", "pwd"):
+                if cluster_log.get(k):
+                    cluster_log[k] = "xxxxxx"
+            self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, cluster_log))
             db_act_template["payload"].update(kwargs["cluster"])
 
         # 这里有些场景没有tendis_backup_info，比如key删除

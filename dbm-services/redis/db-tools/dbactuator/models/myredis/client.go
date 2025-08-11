@@ -1492,7 +1492,7 @@ func (db *RedisClient) Shutdown() (err error) {
 		logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
 			redisCliBin, ip, port, opt)
 		mylog.Logger.Info(logcmd)
-		util.RunBashCmd(cmd, "", nil, 1*time.Minute)
+		util.RunBashCmdReplacePkey(cmd, db.Password, "", nil, 1*time.Minute)
 	}
 	// 再次检查端口是否关闭,如果关闭了,则认为shutdown成功;如果没有关闭,则认为shutdown失败
 	isUsing, _ = util.CheckPortIsInUse(ip, port)
