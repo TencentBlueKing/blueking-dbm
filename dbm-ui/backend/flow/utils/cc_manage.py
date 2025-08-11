@@ -396,13 +396,13 @@ class CcManage(object):
         bk_host_ids = list(set(bk_host_ids))
         self.operate_host_collectors(bk_host_ids, OperateCollectorActionEnum.UNINSTALL.value)
 
-        # 转移机器到待回收
-        CCApi.transfer_host_to_recyclemodule(
-            params={"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}, use_admin=True
-        )
         # 如果非独立管控业务，则将主机转移到自定义的pending模块
+        # 独立业务则转移机器到待回收
         if self.hosting_biz_id == env.DBA_APP_BK_BIZ_ID:
             self.recycle_host_pending_module(bk_host_ids)
+        else:
+            params = {"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}
+            CCApi.transfer_host_to_recyclemodule(params=params, use_admin=True)
 
         self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
 
