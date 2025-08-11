@@ -12,12 +12,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class ExecuteClusterTcpCmdSerializer(serializers.Serializer):
+class MongoExecuteTcpCmdSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 
     class Meta:
         swagger_schema_fields = {"example": {"job_instance_id": 0, "job_instance_name": "xxxx"}}
 
 
-class GetClusterTcpResultSerializer(serializers.Serializer):
+class GetMongoTcpResultSerializer(serializers.Serializer):
     job_instance_id = serializers.IntegerField(help_text=_("job实例ID"))

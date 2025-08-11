@@ -16,10 +16,7 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
 from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
-from backend.db_services.mongodb.toolbox.serializers import (
-    ExecuteClusterTcpCmdSerializer,
-    GetClusterTcpResultSerializer,
-)
+from backend.db_services.mongodb.toolbox.serializers import GetMongoTcpResultSerializer, MongoExecuteTcpCmdSerializer
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterActionPermission
@@ -37,22 +34,22 @@ class ToolboxViewSet(BaseClusterViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("执行集群来源指令"),
-        request_body=ExecuteClusterTcpCmdSerializer(),
+        request_body=MongoExecuteTcpCmdSerializer(),
         tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: ExecuteClusterTcpCmdSerializer()},
+        responses={status.HTTP_200_OK: MongoExecuteTcpCmdSerializer()},
     )
-    @action(methods=["POST"], detail=False, serializer_class=ExecuteClusterTcpCmdSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=MongoExecuteTcpCmdSerializer)
     def execute_cluster_tcp_cmd(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         return Response(ToolboxHandler(bk_biz_id).execute_cluster_net_tcp_cmd(data["cluster_ids"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群来源结果"),
-        request_body=GetClusterTcpResultSerializer(),
+        request_body=GetMongoTcpResultSerializer(),
         tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: GetClusterTcpResultSerializer()},
+        responses={status.HTTP_200_OK: GetMongoTcpResultSerializer()},
     )
-    @action(methods=["POST"], detail=False, serializer_class=GetClusterTcpResultSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=GetMongoTcpResultSerializer)
     def get_cluster_net_tcp_result(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         return Response(ToolboxHandler(bk_biz_id).get_cluster_proc_net_tcp(data["job_instance_id"]))
