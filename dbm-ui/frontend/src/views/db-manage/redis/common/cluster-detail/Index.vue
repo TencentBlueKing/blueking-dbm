@@ -270,8 +270,26 @@
         :cluster-type="ClusterTypes.REDIS_CLUSTER">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.REDIS"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #clbMaster>
+              <ClbInfo
+                :cluster-type="ClusterTypes.REDIS"
+                :data="data" />
+            </template>
+            <template #polaris>
+              <PolarisInfo
+                :cluster-type="ClusterTypes.REDIS"
+                :data="data" />
+            </template>
+            <template #clusterTypeName>
+              {{ data.cluster_type_name || '--' }}
+            </template>
+            <template #moduleNames>
+              <TagBlock :data="data.module_names" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
     </template>
@@ -291,8 +309,9 @@
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import {
     useAddClb,
@@ -304,8 +323,6 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
 
-  import BaseInfo from './components/BaseInfo.vue';
-
   interface Props {
     clusterId: number;
   }
@@ -314,6 +331,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { ClbInfo, PolarisInfo } = BaseInfoField;
 
   const { t } = useI18n();
   const router = useRouter();
