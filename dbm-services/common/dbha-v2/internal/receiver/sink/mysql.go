@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package output
+package sink
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"

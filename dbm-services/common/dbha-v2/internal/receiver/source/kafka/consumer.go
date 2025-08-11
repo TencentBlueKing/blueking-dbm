@@ -27,7 +27,8 @@ package kafka
 import (
 	"context"
 	"crypto/sha512"
-	"dbm-services/common/dbha-v2/internal/receiver/output"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"strings"
@@ -81,29 +82,29 @@ type consumer struct {
 	wg        sync.WaitGroup
 }
 
-func New(endpoints []string, topics []string, user, password, mechanism string) (*consumer, error) {
-	config := sarama.NewConfig()
+func New(cfg config.IntputConfig) (*consumer, error) {
 
-	config.Version = sarama.V3_2_3_0
-	config.Metadata.Full = true
+	cliCfg := sarama.NewConfig()
+
+	cliCfg.Version = sarama.V3_2_3_0
+	cliCfg.Metadata.Full = true
 
 	// Network configuration
-	config.Net.MaxOpenRequests = 5
-	config.Net.DialTimeout = 30 * time.Second
-	config.Net.ReadTimeout = 30 * time.Second
-	config.Net.WriteTimeout = 30 * time.Second
+	cliCfg.Net.DialTimeout = cfg.NetDialTimeout
+	cliCfg.Net.ReadTimeout = cfg.NetReadTimeout
+	cliCfg.Net.WriteTimeout = cfg.NetWriteTimeout
 
 	// SASL Configuration
-	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
-	config.Consumer.Offsets.Initial = sarama.OffsetOldest
-	config.Version = sarama.V0_10_2_0
-	config.Consumer.Return.Errors = true
-	config.Consumer.MaxProcessingTime = 200 * time.Millisecond
-	config.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
+	cliCfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
+	cliCfg.Consumer.Offsets.Initial = sarama.OffsetNewest
+	cliCfg.Version = sarama.V0_10_2_0
+	cliCfg.Consumer.Return.Errors = true
+	cliCfg.Consumer.MaxProcessingTime = 200 * time.Millisecond
+	cliCfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 		sarama.NewBalanceStrategyRange(),
 	}
-	config.Consumer.Offsets.AutoCommit = struct {
+	cliCfg.Consumer.Offsets.AutoCommit = struct {
 		Enable   bool
 		Interval time.Duration
 	}{
@@ -111,32 +112,40 @@ func New(endpoints []string, topics []string, user, password, mechanism string) 
 		Interval: 1 * time.Second,
 	}
 
-	config.Metadata.Full = true
-	config.Net.SASL.User = user
-	config.Net.SASL.Password = password
-	if strings.ToUpper(mechanism) == "SCRAM-SHA-512" {
-		config.Version = sarama.V2_4_0_0
-		config.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
-		config.Net.SASL.Enable = true
-		config.Net.SASL.Handshake = true
-		config.Net.SASL.Version = sarama.SASLHandshakeV1
-		config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+	cliCfg.Metadata.Full = true
+	cliCfg.Net.SASL.User = cfg.User
+	cliCfg.Net.SASL.Password = cfg.Password
+	if strings.ToUpper(cfg.Mechanism) == "SCRAM-SHA-512" {
+		cliCfg.Version = sarama.V2_4_0_0
+		cliCfg.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
+		cliCfg.Net.SASL.Enable = true
+		cliCfg.Net.SASL.Handshake = true
+		cliCfg.Net.SASL.Version = sarama.SASLHandshakeV1
+		cliCfg.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
 			return &xdgSCRAMClient{HashGeneratorFcn: SHA512}
 		}
 	} else {
-		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		cliCfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	}
 
-	group, err := sarama.NewConsumerGroup(endpoints, kafkaConsumerGroupID, config)
+	endpoints := strings.Split(cfg.Endpoints, ";")
+	group, err := sarama.NewConsumerGroup(endpoints, kafkaConsumerGroupID, cliCfg)
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.ComponentFailure, "create kafka client failed, errmsg(%v)", err)
 	}
 
-	kInputer := &consumer{endpoints: endpoints, topics: topics, user: user, password: password, group: group}
+	kInputer := &consumer{
+		endpoints: endpoints,
+		topics:    cfg.Topics,
+		user:      cfg.User,
+		password:  cfg.Password,
+		group:     group,
+	}
+
 	return kInputer, nil
 }
 
-func (k *consumer) Harvest(ctx context.Context, savers []output.Outputter) error {
+func (k *consumer) Harvest(ctx context.Context, savers []sink.Outputter) error {
 	k.wg.Add(1)
 	go func(ctx context.Context) {
 		defer k.wg.Done()
