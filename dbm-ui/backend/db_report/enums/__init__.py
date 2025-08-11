@@ -25,6 +25,7 @@ REPORT_COUNT_CACHE_KEY = "{user}_report_count_key"
 class ReportFieldFormat(str, StructuredEnum):
     TEXT = EnumField("text", _("文本渲染"))
     STATUS = EnumField("status", _("状态渲染"))
+    LINK = EnumField("link", _("链接渲染"))
     # 数据校验失败详情字段
     FAIL_SLAVE_INSTANCE = EnumField("fail_slave_instance", _("数据校验失败详情渲染"))
 
@@ -36,6 +37,7 @@ class ReportType(str, StructuredEnum):
     FULL_BACKUP_CHECK = EnumField("full_backup_check", _("全备检查"))
     BINLOG_BACKUP_CHECK = EnumField("binlog_backup_check", _("binlog检查"))
     CHECKSUM = EnumField("checksum", _("数据校验检查"))
+    MYSQL_BACKUP_RECOVER_TASK = EnumField("mysql_backup_recover_task", _("MySQL备份恢复演练任务报告"))
 
     ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
