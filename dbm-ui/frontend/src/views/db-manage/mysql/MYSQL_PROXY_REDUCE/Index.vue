@@ -123,7 +123,7 @@
   });
 
   const defaultData = () => ({
-    is_safe: false,
+    is_safe: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
