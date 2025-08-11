@@ -29,6 +29,7 @@ type DbsContext struct {
 	K8sClusterConfig   *metaentity.K8sClusterConfigEntity
 	K8sClusterName     string `json:"k8sClusterName"`
 	ClusterName        string `json:"clusterName"`
+	ClusterEntity      *metaentity.K8sCrdClusterEntity
 	Namespace          string `json:"namespace"`
-	RequestType        string `json:"requestType"` // 指定操作类型
+	RequestType        string `json:"requestType"`
 }

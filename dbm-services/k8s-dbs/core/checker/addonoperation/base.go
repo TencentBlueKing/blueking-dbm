@@ -19,7 +19,13 @@ limitations under the License.
 
 package addonoperation
 
-import coreentity "k8s-dbs/core/entity"
+import (
+	"fmt"
+	commentity "k8s-dbs/common/entity"
+	coreconst "k8s-dbs/core/constant"
+	coreentity "k8s-dbs/core/entity"
+	"k8s-dbs/errors"
+)
 
 // AddonType 定义存储类型
 type AddonType string
@@ -85,6 +91,22 @@ const (
 
 // OperationCheckFunc 存储操作检查函数
 type OperationCheckFunc func(
+	ctx *commentity.DbsContext,
 	operation OperationType,
 	request *coreentity.Request,
 ) (bool, error)
+
+// ClusterDeleteCheck 集群删除检查
+// 如果开始了删除保护，则不允许删除集群
+func ClusterDeleteCheck(ctx *commentity.DbsContext, operationType OperationType, _ *coreentity.Request) (bool, error) {
+	if operationType != DeleteCluster {
+		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
+			fmt.Errorf("操作类型错误，不属于集群删除。操作类型:%s", operationType))
+	}
+	terminationPolicy := ctx.ClusterEntity.TerminationPolicy
+	if terminationPolicy == string(coreconst.DoNotTerminate) {
+		return false, errors.NewK8sDbsError(errors.OperationFobidden,
+			fmt.Errorf("已开启删除保护，禁止进行删除操作"))
+	}
+	return true, nil
+}

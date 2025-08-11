@@ -21,12 +21,17 @@ package addonoperation
 
 import (
 	"fmt"
+	commentity "k8s-dbs/common/entity"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 )
 
 // SurrealTikvVExpansionCheck surreal tikv 组件磁盘扩缩容检查
-func SurrealTikvVExpansionCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func SurrealTikvVExpansionCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != VExpansion {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于磁盘扩缩容。操作类型:%s", operationType))
@@ -45,7 +50,11 @@ func SurrealTikvVExpansionCheck(operationType OperationType, request *coreentity
 }
 
 // SurrealTikvHScaleCheck surreal tikv 组件水平扩缩容检查
-func SurrealTikvHScaleCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func SurrealTikvHScaleCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != HScaling {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于水平扩缩容。操作类型:%s", operationType))
@@ -63,7 +72,11 @@ func SurrealTikvHScaleCheck(operationType OperationType, request *coreentity.Req
 }
 
 // SurrealPdVExpansionCheck surreal pd 组件磁盘扩缩容检查
-func SurrealPdVExpansionCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func SurrealPdVExpansionCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != VExpansion {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于磁盘扩缩容。操作类型:%s", operationType))
@@ -82,7 +95,11 @@ func SurrealPdVExpansionCheck(operationType OperationType, request *coreentity.R
 }
 
 // SurrealPdHScaleCheck surreal pd 组件水平扩缩容检查
-func SurrealPdHScaleCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func SurrealPdHScaleCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != HScaling {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于水平扩缩容。操作类型:%s", operationType))
@@ -104,4 +121,5 @@ func init() {
 	ComponentOpsChecker.Register(AddonSurrealDB, ComponentSurrealTikv, HScaling, SurrealTikvHScaleCheck)
 	ComponentOpsChecker.Register(AddonSurrealDB, ComponentSurrealPd, VExpansion, SurrealPdVExpansionCheck)
 	ComponentOpsChecker.Register(AddonSurrealDB, ComponentSurrealPd, HScaling, SurrealPdHScaleCheck)
+	ClusterOpsChecker.Register(AddonSurrealDB, DeleteCluster, ClusterDeleteCheck)
 }

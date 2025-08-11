@@ -19,7 +19,10 @@ limitations under the License.
 
 package addonoperation
 
-import coreentity "k8s-dbs/core/entity"
+import (
+	commentity "k8s-dbs/common/entity"
+	coreentity "k8s-dbs/core/entity"
+)
 
 var ComponentOpsChecker = &ComponentOperationChecker{
 	rules: make(map[AddonType]map[AddonComponent]map[OperationType]OperationCheckFunc),
@@ -48,6 +51,7 @@ func (c *ComponentOperationChecker) Register(
 
 // Check 执行检查
 func (c *ComponentOperationChecker) Check(
+	ctx *commentity.DbsContext,
 	addonType AddonType,
 	component AddonComponent,
 	operation OperationType,
@@ -72,5 +76,5 @@ func (c *ComponentOperationChecker) Check(
 	}
 
 	// 执行检查函数
-	return checker(operation, request)
+	return checker(ctx, operation, request)
 }

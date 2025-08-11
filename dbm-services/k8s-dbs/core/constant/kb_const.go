@@ -49,3 +49,12 @@ const (
 
 // Kubeblocks kb 常量
 const Kubeblocks = "kubeblocks"
+
+type TerminationPolicy string
+
+const (
+	DoNotTerminate TerminationPolicy = "DoNotTerminate"
+	Halt           TerminationPolicy = "Halt"
+	Delete         TerminationPolicy = "Delete"
+	WipeOut        TerminationPolicy = "WipeOut"
+)

@@ -19,7 +19,10 @@ limitations under the License.
 
 package addonoperation
 
-import coreentity "k8s-dbs/core/entity"
+import (
+	commentity "k8s-dbs/common/entity"
+	coreentity "k8s-dbs/core/entity"
+)
 
 var ClusterOpsChecker = &ClusterOperationChecker{
 	rules: make(map[AddonType]map[OperationType]OperationCheckFunc),
@@ -45,6 +48,7 @@ func (c *ClusterOperationChecker) Register(
 
 // Check 执行检查
 func (c *ClusterOperationChecker) Check(
+	ctx *commentity.DbsContext,
 	addonType AddonType,
 	operation OperationType,
 	request *coreentity.Request,
@@ -62,5 +66,5 @@ func (c *ClusterOperationChecker) Check(
 	}
 
 	// 执行检查函数
-	return checker(operation, request)
+	return checker(ctx, operation, request)
 }

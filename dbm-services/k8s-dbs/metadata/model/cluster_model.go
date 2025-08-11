@@ -31,6 +31,7 @@ type K8sCrdClusterModel struct {
 	AddonClusterVersion string                 `gorm:"size:32;column:addoncluster_version" json:"addonClusterVersion"`
 	ServiceVersion      string                 `gorm:"size:32;column:service_version" json:"serviceVersion"`
 	TopoName            string                 `gorm:"size:32;column:topo_name" json:"topoName"`
+	TerminationPolicy   string                 `gorm:"size:32;column:termination_policy" json:"terminationPolicy"`
 	K8sClusterConfigID  uint64                 `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
 	RequestID           string                 `gorm:"not null;column:request_id" json:"requestId"`
 	ClusterName         string                 `gorm:"size:32;not null;column:cluster_name" json:"clusterName"`

@@ -21,12 +21,17 @@ package addonoperation
 
 import (
 	"fmt"
+	commentity "k8s-dbs/common/entity"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/errors"
 )
 
 // VMStorageVExpansionCheck vmstorage 组件磁盘扩缩容检查
-func VMStorageVExpansionCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func VMStorageVExpansionCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != VExpansion {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于磁盘扩缩容。操作类型:%s", operationType))
@@ -44,7 +49,11 @@ func VMStorageVExpansionCheck(operationType OperationType, request *coreentity.R
 }
 
 // VMStorageHScaleCheck vmstorage 组件水平扩缩容检查
-func VMStorageHScaleCheck(operationType OperationType, request *coreentity.Request) (bool, error) {
+func VMStorageHScaleCheck(
+	_ *commentity.DbsContext,
+	operationType OperationType,
+	request *coreentity.Request,
+) (bool, error) {
 	if operationType != HScaling {
 		return false, errors.NewK8sDbsError(errors.ParameterInvalidError,
 			fmt.Errorf("操作类型错误，不属于水平扩缩容。操作类型:%s", operationType))
@@ -64,4 +73,5 @@ func VMStorageHScaleCheck(operationType OperationType, request *coreentity.Reque
 func init() {
 	ComponentOpsChecker.Register(AddonVM, ComponentVMStorage, HScaling, VMStorageHScaleCheck)
 	ComponentOpsChecker.Register(AddonVM, ComponentVMStorage, VExpansion, VMStorageVExpansionCheck)
+	ClusterOpsChecker.Register(AddonVM, DeleteCluster, ClusterDeleteCheck)
 }

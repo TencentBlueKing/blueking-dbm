@@ -25,6 +25,7 @@ import (
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
+	addonopschecker "k8s-dbs/core/checker/addonoperation"
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
@@ -415,24 +416,47 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 
-	// 清理 cluster 关联资源元数据
-	if err = c.clearClusterCRMetaData(ctx, clusterEntity); err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	// 集群操作检查
+	ctx.ClusterEntity = clusterEntity
+	checkResult, err := addonopschecker.ClusterOpsChecker.Check(
+		ctx,
+		addonopschecker.AddonType(clusterEntity.AddonInfo.AddonType),
+		addonopschecker.OperationType(ctx.RequestType),
+		request,
+	)
+	if err != nil || !checkResult {
+		return err
 	}
-
-	// 清理 cluster tag 元数据
-	if err = c.clearClusterTags(ctx, clusterEntity); err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
-	}
-
-	// 清理 cluster release 元数据
-	if err = c.clearClusterRelease(ctx, clusterEntity); err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	// 清理元数据
+	if err := c.clearClusterRelateMeta(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteMetaDataError, err)
 	}
 
 	// 删除集群
 	if err = coreutil.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
 		slog.Error("failed to delete storage addon cluster", "error", err)
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	}
+	return nil
+}
+
+// clearClusterRelateMeta 清理 cluster 关联的元数据信息
+func (c *ClusterProvider) clearClusterRelateMeta(
+	ctx *commentity.DbsContext,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) error {
+	// 清理 cluster 关联资源元数据
+	if err := c.clearClusterCRMetaData(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	}
+
+	// 清理 cluster tag 元数据
+	if err := c.clearClusterTags(ctx, clusterEntity); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	}
+
+	// 清理 cluster release 元数据
+	if err := c.clearClusterRelease(ctx, clusterEntity); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
@@ -536,6 +560,7 @@ func (c *ClusterProvider) createClusterEntity(
 		AddonClusterVersion: request.AddonClusterVersion,
 		ServiceVersion:      serviceVersion,
 		TopoName:            request.TopoName,
+		TerminationPolicy:   request.TerminationPolicy,
 		ClusterName:         request.ClusterName,
 		ClusterAlias:        request.ClusterAlias,
 		Namespace:           request.Namespace,

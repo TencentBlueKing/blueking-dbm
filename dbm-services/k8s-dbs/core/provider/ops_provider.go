@@ -234,6 +234,7 @@ func (o *OpsRequestProvider) HorizontalScaling(
 	}
 	for _, component := range request.HorizontalScalingList {
 		checkResult, err := addonopschecker.ComponentOpsChecker.Check(
+			ctx,
 			addonopschecker.AddonType(clusterEntity.AddonInfo.AddonType),
 			addonopschecker.AddonComponent(component.ComponentName),
 			addonopschecker.OperationType(ctx.RequestType),
@@ -325,9 +326,9 @@ func (o *OpsRequestProvider) VolumeExpansion(
 	if err != nil {
 		return nil, err
 	}
-
 	for _, component := range request.ComponentList {
 		checkResult, err := addonopschecker.ComponentOpsChecker.Check(
+			ctx,
 			addonopschecker.AddonType(clusterEntity.AddonInfo.AddonType),
 			addonopschecker.AddonComponent(component.ComponentName),
 			addonopschecker.OperationType(ctx.RequestType),

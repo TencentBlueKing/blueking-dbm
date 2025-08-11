@@ -32,6 +32,7 @@ type K8sCrdClusterResponse struct {
 	ServiceVersion      string                      `json:"serviceVersion"`
 	TopoName            string                      `json:"topoName"`
 	TopoNameAlias       string                      `json:"topoNameAlias"`
+	TerminationPolicy   string                      `json:"terminationPolicy"`
 	K8sClusterConfig    *K8sClusterConfigResponse   `json:"k8sClusterConfig"`
 	RequestID           string                      `json:"requestId"`
 	ClusterName         string                      `json:"clusterName"`
@@ -99,6 +100,7 @@ func (k K8sCrdClusterResponse) MarshalJSON() ([]byte, error) {
 		"serviceVersion":      k.ServiceVersion,
 		"topoName":            k.TopoName,
 		"topoNameAlias":       k.TopoNameAlias,
+		"terminationPolicy":   k.TerminationPolicy,
 		"k8sClusterConfig":    k.K8sClusterConfig,
 		"requestId":           k.RequestID,
 		"clusterName":         k.ClusterName,
