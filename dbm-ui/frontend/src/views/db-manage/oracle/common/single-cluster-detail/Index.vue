@@ -45,8 +45,10 @@
         :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+          </BaseInfo>
         </template>
       </ActionPanel>
     </template>
@@ -57,16 +59,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import OracleSingleModel from '@services/model/oracle/oracle-single';
+  import OracleSingleDetailModel from '@services/model/oracle/oracle-single-detail';
   import { getOracleSingleClusterDetail } from '@services/source/oracleSingleCluster';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, DisplayBox } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   // import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -76,7 +77,7 @@
 
   const { t } = useI18n();
 
-  const data = ref<OracleSingleModel>();
+  const data = ref<OracleSingleDetailModel>();
 
   const clusterRoleNodeGroup = computed(() => {
     return {

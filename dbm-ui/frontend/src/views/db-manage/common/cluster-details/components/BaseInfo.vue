@@ -1,5 +1,5 @@
 <template>
-  <BaseInfo>
+  <InfoList>
     <InfoItem :label="t('集群别名')">
       {{ data.cluster_alias || '--' }}
     </InfoItem>
@@ -31,14 +31,14 @@
     <InfoItem :label="t('时区')">
       {{ data.cluster_time_zone || '--' }}
     </InfoItem>
-  </BaseInfo>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import BaseInfo, { InfoItem } from '../base-info/Index.vue';
+  import InfoList, { InfoItem } from '../base-info/components/Index.vue';
 
   interface Props {
     data: Pick<

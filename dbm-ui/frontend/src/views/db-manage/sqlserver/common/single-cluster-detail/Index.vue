@@ -93,8 +93,15 @@
         :cluster-type="ClusterTypes.SQLSERVER_SINGLE">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #moduleName>
+              <ModuleNameInfo
+                :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+                :data="data" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
       <!-- 集群授权 -->
@@ -127,14 +134,12 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -144,6 +149,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { ModuleNameInfo } = BaseInfoField;
 
   const { t } = useI18n();
 

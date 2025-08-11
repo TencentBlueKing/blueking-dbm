@@ -135,8 +135,10 @@
         :cluster-type="ClusterTypes.KAFKA">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.KAFKA"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+          </BaseInfo>
         </template>
         <template #hostContent>
           <HostList
@@ -198,7 +200,7 @@
 
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import { ActionPanel, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, BigDataInstanceList, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -206,7 +208,6 @@
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
-  import BaseInfo from './components/BaseInfo.vue';
   import HostList from './components/HostList.vue';
 
   interface Props {

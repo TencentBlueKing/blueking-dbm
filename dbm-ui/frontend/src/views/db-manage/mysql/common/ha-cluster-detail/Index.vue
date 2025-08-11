@@ -175,8 +175,25 @@
         :cluster-type="ClusterTypes.TENDBHA">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.TENDBHA"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #clbMaster>
+              <ClbInfo
+                :cluster-type="ClusterTypes.TENDBHA"
+                :data="data" />
+            </template>
+            <template #slaveDomain>
+              <SlaveDomain
+                :cluster-type="ClusterTypes.TENDBHA"
+                :data="data.slaveEntryList" />
+            </template>
+            <template #moduleName>
+              <ModuleNameInfo
+                :cluster-type="ClusterTypes.TENDBHA"
+                :data="data" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
       <ClusterAuthorize
@@ -211,14 +228,18 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import {
+    ActionPanel,
+    BaseInfo,
+    BaseInfoField,
+    DisplayBox,
+    SlaveDomain,
+  } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import CreateSubscribeRuleSlider from '@views/db-manage/mysql/dumper/components/create-rule/Index.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -228,6 +249,8 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { ClbInfo, ModuleNameInfo } = BaseInfoField;
 
   const { t } = useI18n();
   const funControllerStore = useFunController();

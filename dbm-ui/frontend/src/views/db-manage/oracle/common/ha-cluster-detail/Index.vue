@@ -45,8 +45,15 @@
         :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+            <template #slaveDomain>
+              <SlaveDomain
+                :cluster-type="ClusterTypes.ORACLE_PRIMARY_STANDBY"
+                :data="data.slaveEntryList" />
+            </template>
+          </BaseInfo>
         </template>
       </ActionPanel>
     </template>
@@ -57,16 +64,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import OraclehaModel from '@services/model/oracle/oracle-ha';
+  import OraclehaDetailModel from '@services/model/oracle/oracle-ha-detail';
   import { getOracleHaClusterDetail } from '@services/source/oracleHaCluster';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { ActionPanel, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import { ActionPanel, BaseInfo, DisplayBox, SlaveDomain } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   // import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
@@ -76,7 +82,7 @@
 
   const { t } = useI18n();
 
-  const data = ref<OraclehaModel>();
+  const data = ref<OraclehaDetailModel>();
 
   const clusterRoleNodeGroup = computed(() => {
     return {
