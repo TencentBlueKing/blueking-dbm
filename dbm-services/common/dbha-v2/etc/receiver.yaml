@@ -16,6 +16,9 @@ input:
     endpoint: http://kafk-server:9092
     user: root
     password: 1234567890
+    netDialTimeout: 30s
+    netReadTimeout: 30s
+    netWriteTimeout: 30s
     mechanism: plaintext
     topics: [test]
 
