@@ -117,7 +117,7 @@
   };
 
   const inputRef = ref();
-  const localValue = ref<string | string[]>(props.type === 'taginput' ? [] : '');
+  const localValue = ref<any>(props.type === 'taginput' ? [] : '');
 
   const disabled = computed(() => props.disableFn());
 
