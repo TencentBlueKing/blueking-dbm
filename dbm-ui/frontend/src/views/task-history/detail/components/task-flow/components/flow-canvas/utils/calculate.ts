@@ -39,6 +39,7 @@ export type Node = {
   id: string;
   index: number;
   isExpand: boolean;
+  isTaskRevoked: boolean;
   level: number;
   parent: null | Node;
   style: {
@@ -127,13 +128,14 @@ export function generateCommonData(data: FlowDetail) {
       }),
     {},
   );
+  const isTaskRevoked = data.flow_info.status === 'REVOKED';
 
   const traverse = (list: any[] = []) => {
     list.forEach((item) => {
       if (resetNameTypes.includes(item.type)) {
         Object.assign(item, { name: nodeTypeNameMap[item.type as keyof typeof nodeTypeNameMap] });
       }
-      Object.assign(item, { todoId: nodeIdTodoIdMap[item.id] || 0 });
+      Object.assign(item, { isTaskRevoked, todoId: nodeIdTodoIdMap[item.id] || 0 });
       nodes.push(item);
       if (item.pipeline) {
         pipelineNodeToStartEventMap[item.id] = item.pipeline.start_event.id;

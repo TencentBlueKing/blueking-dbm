@@ -3,9 +3,9 @@
     ref="templateRef"
     class="task-history-flow-operation-main">
     <div class="title">
-      {{ t('确定强制失败吗') }}
+      {{ t('确认强制终止当前执行中节点并置为失败？') }}
     </div>
-    <div class="sub-title">{{ t('将会终止节点运行，并置为强制失败状态') }}</div>
+    <div class="sub-title">{{ t('强制失败将立即终止节点运行，并标记为 “失败”') }}</div>
     <div class="btn">
       <BkButton
         class="mr-8"
