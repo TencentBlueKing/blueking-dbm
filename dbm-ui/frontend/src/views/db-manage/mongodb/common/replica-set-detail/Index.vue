@@ -140,8 +140,10 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET">
         <template #infoContent>
           <BaseInfo
+            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
             :data="data"
-            @refresh="fetchDetailData" />
+            @refresh="fetchDetailData">
+          </BaseInfo>
         </template>
         <template #instanceContent>
           <InstanceList
@@ -181,8 +183,6 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
-
-  import BaseInfo from './components/BaseInfo.vue';
 
   interface Props {
     clusterId: number;
