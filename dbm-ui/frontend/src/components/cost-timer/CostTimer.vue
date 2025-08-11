@@ -32,7 +32,8 @@
   // 计时
   const { pause, resume } = useIntervalFn(
     () => {
-      costTime.value = Math.floor(Date.now() / 1000) - props.startTime;
+      // 通过 Math.max(0, ...) 确保 costTime.value 不会为负数。
+      costTime.value = Math.max(0, Math.floor(Date.now() / 1000) - props.startTime);
     },
     1000,
     { immediate: false },
