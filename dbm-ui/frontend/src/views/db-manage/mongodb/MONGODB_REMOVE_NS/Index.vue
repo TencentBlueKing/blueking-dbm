@@ -45,12 +45,12 @@
                 v-model="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')" />
             </EditableColumn>
-            <DropTypeColumn
+            <!-- <DropTypeColumn
               v-model="item.drop_type"
               @batch-edit="handleBatchEdit" />
             <DropIndexColumn
               v-model="item.drop_index"
-              @batch-edit="handleBatchEdit" />
+              @batch-edit="handleBatchEdit" /> -->
             <DbNameColumn
               v-model="item.db_patterns"
               :cluster-id="item.cluster.id"
@@ -82,7 +82,7 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <BkFormItem
+        <!-- <BkFormItem
           v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
           class="fit-content">
           <BkCheckbox
@@ -91,7 +91,7 @@
             true-label>
             <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
           </BkCheckbox>
-        </BkFormItem>
+        </BkFormItem> -->
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -134,8 +134,8 @@
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
 
-  import DropIndexColumn, { DropIndex } from './components/DropIndexColumn.vue';
-  import DropTypeColumn from './components/DropTypeColumn.vue';
+  // import DropIndexColumn, { DropIndex } from './components/DropIndexColumn.vue';
+  // import DropTypeColumn from './components/DropTypeColumn.vue';
 
   export interface IDataRow {
     cluster: {
@@ -145,8 +145,8 @@
       master_domain: string;
     };
     db_patterns: string[];
-    drop_index: string;
-    drop_type: string;
+    // drop_index: string;
+    // drop_type: string;
     ignore_dbs: string[];
     ignore_tables: string[];
     table_patterns: string[];
@@ -163,15 +163,15 @@
       values.cluster,
     ),
     db_patterns: values.db_patterns || [],
-    drop_index: values.drop_index || '',
-    drop_type: values.drop_type || '',
+    // drop_index: values.drop_index || '',
+    // drop_type: values.drop_type || '',
     ignore_dbs: values.ignore_dbs || [],
     ignore_tables: values.ignore_tables || [],
     table_patterns: values.table_patterns || [],
   });
 
   const createDefaultFormData = () => ({
-    ignore_business_access: false,
+    // ignore_business_access: false,
     payload: createTickePayload(),
     tableData: [createRowData()],
   });
@@ -181,9 +181,9 @@
   useTicketDetail<Mongodb.RemoveNs>(TicketTypes.MONGODB_REMOVE_NS, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos, is_safe: isSafe } = details;
+      const { clusters, infos } = details;
       Object.assign(formData, {
-        ignore_business_access: !isSafe,
+        // ignore_business_access: !isSafe,
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createRowData({
@@ -191,8 +191,8 @@
               master_domain: clusters[item.cluster_ids[0]].immute_domain,
             } as IDataRow['cluster'],
             db_patterns: item.ns_filter.db_patterns,
-            drop_index: item.drop_index ? DropIndex.DELETE : DropIndex.KEEP,
-            drop_type: item.drop_type,
+            // drop_index: item.drop_index ? DropIndex.DELETE : DropIndex.KEEP,
+            // drop_type: item.drop_type,
             ignore_dbs: item.ns_filter.ignore_dbs,
             ignore_tables: item.ns_filter.ignore_tables,
             table_patterns: item.ns_filter.table_patterns,
@@ -205,8 +205,8 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
-      drop_index: boolean;
-      drop_type: string;
+      // drop_index: boolean;
+      // drop_type: string;
       ns_filter: {
         db_patterns: string[];
         ignore_dbs: string[];
@@ -214,7 +214,7 @@
         table_patterns: string[];
       };
     }[];
-    is_safe: boolean;
+    // is_safe: boolean;
   }>(TicketTypes.MONGODB_REMOVE_NS);
 
   const formRef = useTemplateRef('form');
@@ -262,8 +262,8 @@
           infos: formData.tableData.map((tableRow) => ({
             cluster_ids: [tableRow.cluster.id],
             cluster_type: tableRow.cluster.cluster_type,
-            drop_index: tableRow.drop_index !== DropIndex.KEEP,
-            drop_type: tableRow.drop_type,
+            // drop_index: tableRow.drop_index !== DropIndex.KEEP,
+            // drop_type: tableRow.drop_type,
             ns_filter: {
               db_patterns: tableRow.db_patterns,
               ignore_dbs: tableRow.ignore_dbs,
@@ -271,7 +271,7 @@
               table_patterns: tableRow.table_patterns,
             },
           })),
-          is_safe: !formData.ignore_business_access,
+          // is_safe: !formData.ignore_business_access, // 暂未实现
         },
         ...formData.payload,
       });
