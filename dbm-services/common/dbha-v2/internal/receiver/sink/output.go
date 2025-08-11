@@ -22,34 +22,27 @@
  * SOFTWARE.
  */
 
-package input
+package sink
 
 import (
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/input/kafka"
-	"dbm-services/common/dbha-v2/internal/receiver/output"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-
-	"context"
 	"strings"
 )
 
-type DataC chan interface{}
-
-type Inputter interface {
-	Harvest(ctx context.Context, savers []output.Outputter) error
+// Outputter Define the interface for storing data.
+type Outputter interface {
+	Save(msg *Message) error
 	Close()
 }
 
-// NewInputer create a new Inputer.
-func NewInputter(cfg config.IntputConfig) (Inputter, error) {
-	endpoints := strings.Split(cfg.Endpoints, ";")
-
+// NewOutputter create a new saver
+func NewOutputter(cfg config.OutputConfig) (Outputter, error) {
 	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(kafka.Name):
-		return kafka.New(endpoints, cfg.Topics, cfg.User, cfg.Password, cfg.Mechanism)
+	case strings.ToLower(mySQLName):
+		return newMySQL(cfg.Endpoints, cfg.User, cfg.Password)
 
 	default:
-		return nil, gerrors.Newf(gerrors.NotFound, "the inputer(%s) is not found", cfg.Name)
+		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
 	}
 }

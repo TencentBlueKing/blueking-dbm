@@ -38,6 +38,7 @@ var tables = []interface{}{
 	&hamodel.HostMetric{},
 	&hamodel.SkipDBInstance{},
 	&hamodel.DBMMetadata{},
+	&hamodel.MySQLEvent{},
 }
 
 type Migrator struct {
@@ -59,9 +60,14 @@ func (m *Migrator) InitDBHAData() error {
 	}
 
 	for _, epoint := range epoints {
-		db, err := hamysql.New(hamysql.OptionIP(epoint.Host), hamysql.OptionPort(epoint.Port),
-			hamysql.OptionProto(epoint.Proto), hamysql.OptionUser(config.Cfg.DBHAData.User),
-			hamysql.OptionPassword(config.Cfg.DBHAData.Password), hamysql.OptionDBName(hamodel.DatabaseName))
+		db, err := hamysql.New(
+			hamysql.OptionProto(epoint.Proto),
+			hamysql.OptionIP(epoint.Host),
+			hamysql.OptionPort(epoint.Port),
+			hamysql.OptionUser(config.Cfg.DBHAData.User),
+			hamysql.OptionPassword(config.Cfg.DBHAData.Password),
+			hamysql.OptionDBName(hamodel.DatabaseName),
+		)
 
 		if err != nil {
 			return err

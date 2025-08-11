@@ -27,8 +27,8 @@ package receiver
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/input"
-	"dbm-services/common/dbha-v2/internal/receiver/output"
+	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/internal/receiver/source"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
@@ -37,8 +37,8 @@ import (
 
 type Service struct {
 	quit       chan struct{}
-	inputters  []input.Inputter
-	outputters []output.Outputter
+	inputters  []source.Inputter
+	outputters []sink.Outputter
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -56,7 +56,7 @@ func (s *Service) Run(ctx context.Context) error {
 			continue
 		}
 
-		outputter, err := output.NewOutputter(outputerCfg)
+		outputter, err := sink.NewOutputter(outputerCfg)
 		if err != nil {
 			logger.Warn("create new outputer(%s) failed, errmsg(%v)", outputerCfg.Name, err)
 			continue
@@ -71,7 +71,7 @@ func (s *Service) Run(ctx context.Context) error {
 			continue
 		}
 
-		inputter, err := input.NewInputter(inputerCfg)
+		inputter, err := source.NewInputter(inputerCfg)
 		if err != nil {
 			logger.Warn("create new inputer(%s) failed, errmsg(%v)", inputerCfg.Name, err)
 			continue
@@ -108,7 +108,7 @@ func (s *Service) Close() {
 
 	for _, inputter := range s.inputters {
 		wg.Add(1)
-		go func(in input.Inputter) {
+		go func(in source.Inputter) {
 			defer wg.Done()
 			in.Close()
 		}(inputter)
@@ -116,7 +116,7 @@ func (s *Service) Close() {
 
 	for _, outputter := range s.outputters {
 		wg.Add(1)
-		go func(out output.Outputter) {
+		go func(out sink.Outputter) {
 			wg.Done()
 			out.Close()
 		}(outputter)

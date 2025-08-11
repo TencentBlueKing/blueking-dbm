@@ -22,49 +22,32 @@
  * SOFTWARE.
  */
 
-package kafka
+package source
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver/output"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/internal/receiver/source/kafka"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 
-	"github.com/IBM/sarama"
+	"context"
+	"strings"
 )
 
-var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
+type DataC chan interface{}
 
-type consumerHandler struct {
-	savers []output.Outputter
+type Inputter interface {
+	Harvest(ctx context.Context, savers []sink.Outputter) error
+	Close()
 }
 
-func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {
-	logger.Info("begin to consume")
-	return nil
-}
+// NewInputer create a new Inputer.
+func NewInputter(cfg config.IntputConfig) (Inputter, error) {
+	switch strings.ToLower(cfg.Name) {
+	case strings.ToLower(kafka.Name):
+		return kafka.New(cfg)
 
-func (h *consumerHandler) Cleanup(session sarama.ConsumerGroupSession) error {
-	logger.Info("end to consume")
-	return nil
-}
-
-func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for msg := range claim.Messages() {
-		dataLength := len(msg.Value)
-		data := &output.Message{
-			Topic: msg.Topic,
-			Data:  make([]byte, dataLength),
-		}
-
-		if dataLength > 0 {
-			copy(data.Data, msg.Value)
-		}
-
-		for _, saver := range h.savers {
-			if err := saver.Save(data); err != nil {
-				logger.Warn("save the data failed, topic(%s), %v", msg.Topic, err)
-			}
-		}
+	default:
+		return nil, gerrors.Newf(gerrors.Unknown, "unknown inputer: %s", cfg.Name)
 	}
-
-	return nil
 }
