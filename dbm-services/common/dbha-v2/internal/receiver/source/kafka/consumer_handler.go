@@ -22,27 +22,49 @@
  * SOFTWARE.
  */
 
-package output
+package kafka
 
 import (
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"strings"
+	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/IBM/sarama"
 )
 
-// Outputter Define the interface for storing data.
-type Outputter interface {
-	Save(msg *Message) error
-	Close()
+var _ sarama.ConsumerGroupHandler = (*consumerHandler)(nil)
+
+type consumerHandler struct {
+	savers []sink.Outputter
 }
 
-// NewOutputter create a new saver
-func NewOutputter(cfg config.OutputConfig) (Outputter, error) {
-	switch strings.ToLower(cfg.Name) {
-	case strings.ToLower(mySQLName):
-		return newMySQL(cfg.Endpoints, cfg.User, cfg.Password)
+func (h *consumerHandler) Setup(session sarama.ConsumerGroupSession) error {
+	logger.Info("begin to consume")
+	return nil
+}
 
-	default:
-		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
+func (h *consumerHandler) Cleanup(session sarama.ConsumerGroupSession) error {
+	logger.Info("end to consume")
+	return nil
+}
+
+func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for msg := range claim.Messages() {
+		dataLength := len(msg.Value)
+		data := &sink.Message{
+			Topic: msg.Topic,
+			Data:  make([]byte, dataLength),
+		}
+
+		if dataLength > 0 {
+			copy(data.Data, msg.Value)
+		}
+
+		for _, saver := range h.savers {
+			if err := saver.Save(data); err != nil {
+				logger.Warn("save the data failed, topic(%s), %v", msg.Topic, err)
+			}
+		}
 	}
+
+	return nil
 }

@@ -27,7 +27,7 @@ package probe
 import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/internal/receiver/output"
+	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -45,13 +45,13 @@ import (
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
 	wg     sync.WaitGroup
-	savers []output.Outputter
+	savers []sink.Outputter
 	cfg    config.IntputConfig
 	svr    *grpc.Server
 }
 
 // NewProbeServer new a receiver server
-func NewProbeServer(cfg config.IntputConfig, outputers []output.Outputter) (*Probe, error) {
+func NewProbeServer(cfg config.IntputConfig, outputers []sink.Outputter) (*Probe, error) {
 	addr := strings.TrimSpace(cfg.Endpoints)
 	if addr == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")

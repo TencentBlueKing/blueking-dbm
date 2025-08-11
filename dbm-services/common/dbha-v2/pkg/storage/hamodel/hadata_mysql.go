@@ -157,7 +157,7 @@ type DatabaseMetric struct {
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt time.Time `gorm:"column:deleted_at;"`
+	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
 func (t DatabaseMetric) TableName() string {
@@ -173,12 +173,13 @@ type DBHAMySQL struct {
 	ReportTimestamp uint64 `gorm:"column:report_timestamp"`
 
 	Host      *HostMetric       `gorm:"foreignKey:machine_id;references:machine_id"`
+	Events    []*MySQLEvent     `gorm:"foreignKey:machine_id;references:machine_id"`
 	Databases []*DatabaseMetric `gorm:"foreignKey:machine_id;references:machine_id"`
 
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt time.Time `gorm:"column:deleted_at;"`
+	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
 func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
@@ -216,9 +217,24 @@ func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
 		DiskReadOnly:     msg.Host.DiskReadOnly,
 	}
 
+	for _, event := range msg.Events {
+		if event == nil {
+			logger.Warn("skip this recored, event is nil, machine-id: %s", msg.MachineID)
+			continue
+		}
+
+		data.Events = append(data.Events, &MySQLEvent{
+			MachineID:  msg.MachineID,
+			InstanceID: strconv.Itoa(event.Endpoint.Port),
+			Type:       event.Type,
+			Endpoint:   event.Endpoint.String(),
+			Message:    event.Message,
+		})
+	}
+
 	for _, db := range msg.Databases {
 		if db == nil {
-			logger.Warn("skip this record, db metric is nil, machine(%s)", msg.MachineID)
+			logger.Warn("skip this record, db is nil, machine-id: %s", msg.MachineID)
 			continue
 		}
 		data.loadDatabase(db)
