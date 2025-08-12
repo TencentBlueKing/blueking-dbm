@@ -345,9 +345,7 @@
               label_names:
                 sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
               labels:
-                sourceType.value === SourceType.RESOURCE_AUTO
-                  ? item.labels.filter((item) => item.id !== 0).map((item) => String(item.id))
-                  : undefined,
+                sourceType.value === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
               spec_id: item.specId,
             },
           },
