@@ -742,15 +742,15 @@ class MySQLDBMeta(object):
 
     def slave_recover_add_instance(self):
         # tendb ha从节点重建
-        if "resource_spec" in self.ticket_data:
-            resource_spec = self.ticket_data["resource_spec"]["new_slave"]
-        else:
-            cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
-            resource_spec = (
-                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
-                .first()
-                .machine.spec_config
-            )
+        # if "resource_spec" in self.ticket_data:
+        resource_spec = self.ticket_data.get("resource_spec", {}).get("new_slave", {})
+        # else:
+        #     cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+        #     resource_spec = (
+        #         cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+        #         .first()
+        #         .machine.spec_config
+        #     )
         machines = [
             {
                 "ip": self.cluster["install_ip"],
@@ -951,17 +951,18 @@ class MySQLDBMeta(object):
         mysql_pkg = Package.get_latest_package(
             version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
         )
-        if "resource_spec" in self.ticket_data:
-            resource_spec_master = self.ticket_data["resource_spec"]["master"]
-            resource_spec_slave = self.ticket_data["resource_spec"]["slave"]
-        else:
-            cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
-            resource_spec_master = (
-                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
-                .first()
-                .machine.spec_config
-            )
-            resource_spec_slave = resource_spec_master
+        # if "resource_spec" in self.ticket_data:
+        resource_spec_master = self.ticket_data.get("resource_spec", {}).get("master", {})
+        resource_spec_slave = self.ticket_data.get("resource_spec", {}).get("slave", {})
+        # else:
+        #     cluster = Cluster.objects.get(id=self.cluster["cluster_ids"][0])
+        #     resource_spec_master = (
+        #         cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+        #         .first()
+        #         .machine.spec_config
+        #     )
+        #     resource_spec_slave = resource_spec_master
+
         machines = [
             {
                 "ip": self.cluster["new_master_ip"],
