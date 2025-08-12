@@ -75,7 +75,7 @@
 
   import { execCopy } from '@utils';
 
-  import { showDatabasesWithPatterns } from '@/services/source/remoteService';
+  import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   interface RowData {
     dbname: string;

@@ -29,6 +29,14 @@ export interface BackupLogRecord {
   backup_meta_file: string;
   backup_port: string;
   backup_status: string;
+  /**
+   * backup_method
+    - full_by_ticket: 全库备份（单据）
+    - partial_by_ticket: 库表备份（单据）
+    - full_by_regular: 全库备份（例行）
+    - non_full_by_regular: 非全库备份（例行）
+   */
+  backup_method: string;
   backup_time: string;
   backup_type: string;
   bill_id: string;
@@ -51,6 +59,7 @@ export interface BackupLogRecord {
   bk_biz_id: string;
   cluster_address: string;
   cluster_id: string;
+  database_list: string[];
   data_schema_grant: string;
   extra_fields: {
     backup_charset: string;
@@ -58,9 +67,10 @@ export interface BackupLogRecord {
     encrypt_enable: boolean;
     storage_engine: string;
     time_zone: string;
-    total_filesize: number;
     total_size_kb_uncompress: number;
   };
+  total_filesize: number;
+  backup_tool: string;
   file_list: {
     contain_files: null;
     contain_tables: null;
@@ -88,14 +98,14 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 /**
  * 通过日志平台获取集群备份记录
  */
-export function queryBackupLogFromBklog(params: { cluster_id: number }) {
+export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
-export function queryBackupLogFromLoacal(params: { cluster_id: number }) {
+export function queryBackupLogFromLoacal(params: { cluster_id: number; limit?: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_local/`, params);
 }
 
@@ -117,6 +127,25 @@ export function queryLatesBackupLog(params: {
   cluster_id: number;
   job_instance_id?: number;
   rollback_time: string;
+  backup_source?: string;
+  backup_method?: string;
 }) {
   return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
+}
+
+/**
+ * 获取最近备份记录
+ */
+export function queryLatestTimeBackupLog(params: {
+  bk_biz_id: number;
+  cluster_id: number;
+  deadlines_days?: number;
+  latest_time?: string;
+  backup_source?: string;
+  backup_method?: string;
+  limit?: number;
+  offset?: number;
+  is_full_backup?: boolean;
+}) {
+  return http.get<BackupLogRecord>(`${path}/latest_time_backup_log/`, params);
 }

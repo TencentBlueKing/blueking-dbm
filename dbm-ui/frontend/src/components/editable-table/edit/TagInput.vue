@@ -2,12 +2,12 @@
   <!-- prettier-ignore -->
   <BkTagInput
     v-model="(modelValue as string[])"
-    v-bind="{ ...attrs, ...props }"
     allow-auto-match
     allow-create
     class="bk-editable-tag-input"
     clearable
     has-delete-icon
+    v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
     @change="handleChange"
     @focus="handleFocus" />
