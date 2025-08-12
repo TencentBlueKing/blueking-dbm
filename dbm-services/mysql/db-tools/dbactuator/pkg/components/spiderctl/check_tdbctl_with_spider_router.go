@@ -112,7 +112,7 @@ func checkRouter(nodes []native.Server, tdbctlRouters map[string]native.Server) 
 			defer func() { wg.Done(); <-cChan }()
 			sconn, errx := spiderNode.GetConn()
 			if errx != nil {
-				logger.Error("connect to spider %s failed, err: %s", spiderNode.GetEndPoint(), err.Error())
+				logger.Error("connect to spider %s failed, err: %s", spiderNode.GetEndPoint(), errx.Error())
 				errChan <- errx
 				return
 			}

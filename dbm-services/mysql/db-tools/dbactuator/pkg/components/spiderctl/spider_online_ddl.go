@@ -286,7 +286,7 @@ func (c *SpiderOnlineDDLComp) ExecuteByPassTdbctl(port int, db, tb, statement st
 	if doSpiderFirst {
 		logger.Info("[step1] 执行sql:%s on spider", statement)
 		runSteps = append(runSteps, func() error {
-			return c.applySchemaChaneOnSpiders(port, db, statement)
+			return c.applySchemaChangeOnSpiders(port, db, statement)
 		})
 		logger.Info("[step2] 执行sql:%s on backend", statement)
 		runSteps = append(runSteps, func() error {
@@ -299,7 +299,7 @@ func (c *SpiderOnlineDDLComp) ExecuteByPassTdbctl(port int, db, tb, statement st
 		})
 		logger.Info("[step2] 执行sql:%s on spider", statement)
 		runSteps = append(runSteps, func() error {
-			return c.applySchemaChaneOnSpiders(port, db, statement)
+			return c.applySchemaChangeOnSpiders(port, db, statement)
 		})
 	}
 	for _, step := range runSteps {
@@ -341,33 +341,40 @@ func (c *SpiderOnlineDDLComp) writeSplitSQLToFile(originFile string, statements 
 }
 
 // applySchemaChaneOnSpiders apply schema change on spiders
-func (c *SpiderOnlineDDLComp) applySchemaChaneOnSpiders(port int, db, statement string) (err error) {
+func (c *SpiderOnlineDDLComp) applySchemaChangeOnSpiders(port int, db, statement string) (err error) {
 	logger.Info("execute on  %s all spiders 执行sql:%s", db, statement)
 	for _, spc := range c.spiderConnMap[port] {
-		var conn *sql.Conn
-		conn, err = spc.ConnPool.Conn(context.Background())
-		if err != nil {
-			logger.Error("get conn from [%s:%d] 失败:%s", spc.Host, spc.Port, err.Error())
-			return err
-		}
-		defer conn.Close()
-		if spc.IsSpider3 {
-			_, err = conn.ExecContext(context.Background(), "set ddl_execute_by_ctl = 0;")
-			if err != nil {
-				logger.Error("set ddl_execute_by_ctl = 0 on [%s:%d] 失败:%s", spc.Host, spc.Port, err.Error())
-				return err
+		// 使用每次迭代内的匿名函数，确保连接在本次迭代结束时关闭
+		if err = func() error {
+			conn, innerErr := spc.ConnPool.Conn(context.Background())
+			if innerErr != nil {
+				logger.Error("get conn from [%s:%d] 失败:%s", spc.Host, spc.Port, innerErr.Error())
+				return innerErr
 			}
-		}
-		_, err = conn.ExecContext(context.Background(), fmt.Sprintf("use %s;", db))
-		if err != nil {
-			logger.Error("use %s 失败:%s", db, err.Error())
-			return err
-		}
-		_, err = conn.ExecContext(context.Background(), statement)
-		if err != nil {
-			logger.Error("execute on:[%s:%d] 执行sql:%s 失败:%s", spc.Host, spc.Port, statement, err.Error())
+			defer conn.Close()
+
+			if spc.IsSpider3 {
+				_, innerErr = conn.ExecContext(context.Background(), "set ddl_execute_by_ctl = 0;")
+				if innerErr != nil {
+					logger.Error("set ddl_execute_by_ctl = 0 on [%s:%d] 失败:%s", spc.Host, spc.Port, innerErr.Error())
+					return innerErr
+				}
+			}
+			_, innerErr = conn.ExecContext(context.Background(), fmt.Sprintf("use %s;", db))
+			if innerErr != nil {
+				logger.Error("use %s 失败:%s", db, innerErr.Error())
+				return innerErr
+			}
+			_, innerErr = conn.ExecContext(context.Background(), statement)
+			if innerErr != nil {
+				logger.Error("execute on:[%s:%d] 执行sql:%s 失败:%s", spc.Host, spc.Port, statement, innerErr.Error())
+				return innerErr
+			}
+			return nil
+		}(); err != nil {
+			logger.Error("execute on [%s:%d] 执行sql:%s 失败:%s", spc.Host, spc.Port, statement, err.Error())
 			return err
 		}
 	}
-	return err
+	return nil
 }

@@ -675,6 +675,9 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 	} else {
 		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
 	}
+	if len(o.LocationSpec.ExcludeSubZoneIds) > 0 {
+		db.Where("sub_zone_id not in (?)", o.LocationSpec.ExcludeSubZoneIds)
+	}
 	if len(o.LocationSpec.ExcludeRackIds) > 0 {
 		db.Where("rack_id not in (?)", o.LocationSpec.ExcludeRackIds)
 	}

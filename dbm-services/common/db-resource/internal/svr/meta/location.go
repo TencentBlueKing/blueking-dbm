@@ -14,9 +14,12 @@ import "dbm-services/common/go-pubpkg/cmutil"
 
 // LocationSpec location spec param
 type LocationSpec struct {
-	City             string   `json:"city" validate:"required"` // 所属城市获取地域
-	SubZoneIds       []string `json:"sub_zone_ids"`
-	IncludeOrExclude *bool    `json:"include_or_exclue"`
+	City       string   `json:"city" validate:"required"` // 所属城市获取地域
+	SubZoneIds []string `json:"sub_zone_ids"`
+	// 即将废弃字段
+	IncludeOrExclude *bool `json:"include_or_exclue"`
+	// ExcludeSubZoneIds 排除subzone
+	ExcludeSubZoneIds []string `json:"exclude_sub_zone_ids"`
 	// ExcludeRackIds  排除机架
 	ExcludeRackIds []string `json:"exclude_rack_ids"`
 	// ExcludeNetDeviceIds 排除网络设备
