@@ -5,7 +5,6 @@
     <BkRadioGroup
       v-model="importMode"
       class="mb-8"
-      :disabled="disabled"
       @change="handleImportModeChange">
       <BkRadioButton
         label="manual"
@@ -25,8 +24,8 @@
         v-model="modelValue"
         v-bind="attrs"
         :cluster-version-list="clusterVersionList"
-        :disabled="disabled"
-        :execute-objects="executeObjects"
+        :db-names="dbNames"
+        :ignore-dbnames="ignoreDbnames"
         :is-show="isShow"
         @grammar-check="handleGrammarCheck" />
     </KeepAlive>
@@ -78,19 +77,7 @@
   const fileRef = ref<InstanceType<typeof LocalFile>>();
   const isShow = ref(true);
 
-  const disabled = computed(() => props.dbNames.length === 0);
   const renderCom = computed(() => comMap[importMode.value]);
-
-  const executeObjects = computed(() => {
-    return [
-      {
-        dbnames: props.dbNames,
-        ignore_dbnames: props.ignoreDbnames,
-        line_id: 1,
-        // sql_files: modelValue.value,
-      },
-    ];
-  });
 
   watch(
     () => [props.dbNames, props.ignoreDbnames],

@@ -26,7 +26,6 @@
         <div
           key="upload"
           class="create-file-btn mr-4"
-          :class="{ 'create-file-btn-disabled': disabled }"
           @click="handleCreateFile">
           <DbIcon type="add" />
           {{ t('点击添加') }}
@@ -44,13 +43,17 @@
             :key="selectFileName"
             v-model="selectFileData.content"
             :message-list="selectFileData.messageList"
-            :readonly="disabled"
             :title="selectFileName"
             @change="handleEditorChange" />
           <div
             v-if="selectFileData.state === SqlFileModel.UNCHEKED"
             class="footer-action">
             <BkButton
+              v-bk-tooltips="{
+                content: t('请先输入变更 DB'),
+                disabled: !grammarCheckDisabled,
+              }"
+              :disabled="grammarCheckDisabled"
               size="small"
               theme="primary"
               @click="handleGrammarCheck">
@@ -109,13 +112,8 @@
 
   interface Props {
     clusterVersionList: string[];
-    disabled?: boolean;
-    executeObjects?: {
-      dbnames: string[];
-      ignore_dbnames: string[];
-      line_id: number;
-      sql_files: string[];
-    }[];
+    dbNames: string[];
+    ignoreDbnames: string[];
     isShow: boolean;
   }
 
@@ -156,6 +154,8 @@
 
   const styles = shallowRef({});
 
+  const grammarCheckDisabled = computed(() => props.dbNames.length === 0);
+
   const triggerChange = () => {
     window.changeConfirm = true;
     modelValue.value = Object.values(uploadFileDataMap.value).map((item) => item.realFilePath);
@@ -177,9 +177,6 @@
   };
 
   const handleCreateFile = () => {
-    if (props.disabled) {
-      return;
-    }
     const fileName = genFilename();
 
     uploadFileNameList.value = [...uploadFileNameList.value, fileName];
@@ -219,13 +216,16 @@
     });
     params.append('cluster_type', currentDbType);
 
-    if (props.executeObjects) {
-      const finalexecuteObjects = props.executeObjects;
-      Object.assign(finalexecuteObjects[0], {
-        sql_files: Array.from({ length: uploadFileNameList.value.length }, () => '/'),
-      });
-      addJsonToFormData(params, { execute_objects: finalexecuteObjects });
-    }
+    addJsonToFormData(params, {
+      execute_objects: [
+        {
+          dbnames: props.dbNames,
+          ignore_dbnames: props.ignoreDbnames,
+          line_id: 1,
+          sql_files: '/',
+        },
+      ],
+    });
 
     currentFileData.grammarCheckStart();
     grammarCheckHandle(params)
@@ -284,6 +284,7 @@
       uploadFileDataMap.value = cacheData;
       uploadFileNameList.value = Object.keys(cacheData);
       [selectFileName.value] = uploadFileNameList.value;
+      triggerChange();
       emits('grammar-check', true, true);
     },
     setStateToUncheck() {
@@ -318,12 +319,6 @@
 
       &:hover {
         background: rgb(255 255 255 / 20%);
-      }
-
-      &.create-file-btn-disabled {
-        &:hover {
-          cursor: not-allowed;
-        }
       }
     }
 
