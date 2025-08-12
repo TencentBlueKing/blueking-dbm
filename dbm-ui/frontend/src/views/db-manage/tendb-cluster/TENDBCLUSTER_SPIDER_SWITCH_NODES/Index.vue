@@ -252,8 +252,7 @@
             [`${item.host.role}_${item.host.ip}`]: {
               count: 1,
               label_names: item.labels.map((item) => item.value),
-              // 通用标签传空数组
-              labels: item.labels.filter((item) => item.id !== 0).map((item) => String(item.id)),
+              labels: item.labels.map((item) => String(item.id)),
               spec_id: item.host.spec_id,
             },
           },
