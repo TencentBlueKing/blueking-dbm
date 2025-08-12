@@ -279,13 +279,18 @@
 
       const confItems = _.keyBy(currentModule.db_module_info.conf_items, 'conf_name');
       charset.value = confItems.charset?.conf_value || '';
+      const backendVersion = confItems.spider_version?.conf_value || '';
+      const backendDbVersion = confItems.db_version?.conf_value || '';
 
       const filtered = [];
       for (const module of modules) {
         const conf = Object.fromEntries(
           module.db_module_info.conf_items.map(({ conf_name, conf_value }) => [conf_name, conf_value]),
         );
-        if (conf.charset === charset.value && conf.spider_version === dbVersion.value) {
+        const isBackendModules = props.higherSubVersion
+          ? conf.spider_version === dbVersion.value
+          : conf.spider_version === backendVersion && conf.db_version === backendDbVersion;
+        if (conf.charset === charset.value && isBackendModules) {
           filtered.push({
             alias_name: module.alias_name,
             bk_biz_id: module.bk_biz_id,
