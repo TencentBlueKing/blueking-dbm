@@ -19,7 +19,7 @@ from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
     AppCache,
