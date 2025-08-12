@@ -13,9 +13,7 @@
 
 <template>
   <div class="mysql-execute-objects-content">
-    <BkForm
-      ref="formRef"
-      form-type="vertical">
+    <BkForm form-type="vertical">
       <BkFormItem
         class="mb-24"
         label=""
@@ -31,12 +29,12 @@
               v-model="rowData.dbnames"
               field="dbnames"
               :label="t('变更 DB')"
+              required
               :show-batch-edit="false" />
             <DbNameColumn
               v-model="rowData.ignore_dbnames"
               field="ignore_dbnames"
               :label="t('忽略 DB ')"
-              :required="false"
               :show-batch-edit="false" />
           </EditableRow>
         </EditableTable>
@@ -122,7 +120,6 @@
     ],
   };
 
-  const formRef = useTemplateRef('formRef');
   const editableTableRef = useTemplateRef('editableTable');
   const renderSqlRef = useTemplateRef('renderSqlRef');
 
@@ -148,7 +145,7 @@
       return t('语法检测失败');
     }
 
-    return '';
+    return false;
   });
 
   watch(
@@ -165,8 +162,8 @@
     },
   );
 
-  watch(submitButtonTips, () => {
-    disabledConfirm.value = !!submitButtonTips.value;
+  watchEffect(() => {
+    disabledConfirm.value = submitButtonTips.value;
   });
 
   defineExpose<Exposes>({

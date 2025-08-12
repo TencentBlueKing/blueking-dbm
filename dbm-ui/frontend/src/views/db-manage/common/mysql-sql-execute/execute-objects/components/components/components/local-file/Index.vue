@@ -27,7 +27,6 @@
         <div
           key="upload"
           class="upload-btn"
-          :class="{ 'upload-btn-disabled': disabled }"
           @click="handleSelectLocalFile">
           <DbIcon
             class="mr-4"
@@ -45,6 +44,7 @@
         :style="styles">
         <Editor
           v-if="isShow"
+          :key="renderKey"
           :message-list="selectFileData.messageList"
           :model-value="selectFileData.content"
           readonly
@@ -53,6 +53,11 @@
           v-if="selectFileData.state === SqlFileModel.UNCHEKED"
           class="footer-action">
           <BkButton
+            v-bk-tooltips="{
+              content: t('请先输入变更 DB'),
+              disabled: !grammarCheckDisabled,
+            }"
+            :disabled="grammarCheckDisabled"
             size="small"
             theme="primary"
             @click="handleGrammarCheck">
@@ -87,7 +92,6 @@
   <input
     ref="uploadRef"
     accept=".sql"
-    :disabled="disabled"
     multiple
     style="position: absolute; width: 0; height: 0"
     type="file"
@@ -114,13 +118,8 @@
 
   interface Props {
     clusterVersionList: string[];
-    disabled?: boolean;
-    executeObjects?: {
-      dbnames: string[];
-      ignore_dbnames: string[];
-      line_id: number;
-      // sql_files: string[];
-    }[];
+    dbNames: string[];
+    ignoreDbnames: string[];
     isShow: boolean;
   }
 
@@ -152,8 +151,11 @@
   } = useEditableFileContent();
 
   const uploadRef = ref();
+  const renderKey = ref(1);
 
   const styles = shallowRef({});
+
+  const grammarCheckDisabled = computed(() => props.dbNames.length === 0);
 
   const triggerChange = () => {
     window.changeConfirm = true;
@@ -177,10 +179,29 @@
 
   // 开始选择本地文件
   const handleSelectLocalFile = () => {
-    if (props.disabled) {
-      return;
-    }
     uploadRef.value.click();
+  };
+
+  const getFileContent = (fileInfo: SqlFileModel): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!fileInfo.file) {
+        reject(new Error('No file provided'));
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        resolve(result);
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+
+      reader.readAsText(fileInfo.file);
+    });
   };
 
   // 开始上传本地文件
@@ -189,6 +210,7 @@
     if (!files) {
       return;
     }
+    const isAutoUpload = props.dbNames.length > 0;
     const fileNameList: string[] = [];
     const currentFileDataMap = {} as Record<string, SqlFileModel>;
     const params = new FormData();
@@ -198,18 +220,26 @@
       currentFileDataMap[curFile.name] = new SqlFileModel({
         file: curFile,
       });
-      currentFileDataMap[curFile.name].grammarCheckStart();
 
-      // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
-      if (curFile.size > 1073741824) {
-        currentFileDataMap[curFile.name].uploadFailed({
-          content: '--',
-          realFilePath: '/',
-          uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
+      if (isAutoUpload) {
+        currentFileDataMap[curFile.name].grammarCheckStart();
+
+        // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
+        if (curFile.size > 1073741824) {
+          currentFileDataMap[curFile.name].uploadFailed({
+            content: '--',
+            realFilePath: '/',
+            uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
+          });
+          return;
+        }
+        params.append(`sql_files[${fileIndex}]`, curFile);
+      } else {
+        getFileContent(currentFileDataMap[curFile.name]).then((fileContent) => {
+          Object.assign(currentFileDataMap[curFile.name], { content: fileContent });
+          renderKey.value = renderKey.value + 1;
         });
-        return;
       }
-      params.append(`sql_files[${fileIndex}]`, curFile);
     });
 
     // 同名文件覆盖(用新文件覆盖旧文件)
@@ -222,18 +252,25 @@
       selectFileName.value = firstFileName;
     }
 
+    if (!isAutoUpload) {
+      return;
+    }
+
     props.clusterVersionList.forEach((version, index) => {
       params.append(`versions[${index}]`, version);
     });
     params.append('cluster_type', currentDbType);
 
-    if (props.executeObjects) {
-      const finalexecuteObjects = props.executeObjects;
-      Object.assign(finalexecuteObjects[0], {
-        sql_files: Array.from({ length: uploadFileNameList.value.length }, () => '/'),
-      });
-      addJsonToFormData(params, { execute_objects: finalexecuteObjects });
-    }
+    addJsonToFormData(params, {
+      execute_objects: [
+        {
+          dbnames: props.dbNames,
+          ignore_dbnames: props.ignoreDbnames,
+          line_id: 1,
+          sql_files: '/',
+        },
+      ],
+    });
 
     grammarCheckHandle(params)
       .then((data) => {
@@ -267,13 +304,16 @@
     });
     params.append('cluster_type', currentDbType);
 
-    if (props.executeObjects) {
-      const finalexecuteObjects = props.executeObjects;
-      Object.assign(finalexecuteObjects[0], {
-        sql_files: Array.from({ length: uploadFileNameList.value.length }, () => '/'),
-      });
-      addJsonToFormData(params, { execute_objects: finalexecuteObjects });
-    }
+    addJsonToFormData(params, {
+      execute_objects: [
+        {
+          dbnames: props.dbNames,
+          ignore_dbnames: props.ignoreDbnames,
+          line_id: 1,
+          sql_files: '/',
+        },
+      ],
+    });
 
     currentFileData.grammarCheckStart();
     grammarCheckHandle(params)
@@ -354,7 +394,7 @@
       Object.values(uploadFileDataMap.value).forEach((item) => {
         item.reEdit();
       });
-      emits('grammar-check', true, true);
+      emits('grammar-check', false, false);
     },
   });
 </script>
@@ -401,12 +441,6 @@
 
       &:hover {
         background: rgb(255 255 255 / 20%);
-      }
-
-      &.upload-btn-disabled {
-        &:hover {
-          cursor: not-allowed;
-        }
       }
     }
 
