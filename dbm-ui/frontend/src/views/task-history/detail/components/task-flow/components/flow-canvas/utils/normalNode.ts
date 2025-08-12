@@ -518,7 +518,7 @@ export class NormalNode extends Rect {
         fill: attributes.failedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('failedImageBackground', GCircle, failedBackgroundStyle, container);
+      this.upsert('rightTopFailedImageBackground', GCircle, failedBackgroundStyle, container);
       const failedImageStyle = {
         height: 16,
         src: FailImage,
@@ -526,7 +526,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 119 : 112,
         y: -32,
       };
-      this.upsert('failedImage', GImage, failedImageStyle, container);
+      this.upsert('rightTopFailedImage', GImage, failedImageStyle, container);
       return;
     }
 
@@ -538,7 +538,7 @@ export class NormalNode extends Rect {
         fill: attributes.todoImageBackgroundColor,
         r: 9,
       };
-      this.upsert('todoImageBackground', GCircle, todoBackgroundStyle, container);
+      this.upsert('rightTopTodoImageBackground', GCircle, todoBackgroundStyle, container);
       const todoImageStyle = {
         height: 14,
         src: WaitTodoImage,
@@ -546,7 +546,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 120 : 113,
         y: -31,
       };
-      this.upsert('todoImage', GImage, todoImageStyle, container);
+      this.upsert('rightTopTodoImage', GImage, todoImageStyle, container);
       return;
     }
 
@@ -558,7 +558,7 @@ export class NormalNode extends Rect {
         fill: attributes.loadingImageBackgroundColor,
         r: 9,
       };
-      this.upsert('loadingImageBackground', GCircle, loadingBackgroundStyle, container);
+      this.upsert('rightTopLoadingImageBackground', GCircle, loadingBackgroundStyle, container);
       const loadingImageStyle = {
         height: 14,
         src: PendingImage,
@@ -566,7 +566,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 120 : 113,
         y: -31,
       };
-      this.upsert('loadingImage', GImage, loadingImageStyle, container);
+      this.upsert('rightTopLoadingImage', GImage, loadingImageStyle, container);
       return;
     }
     if (this.data.skip) {
@@ -576,13 +576,13 @@ export class NormalNode extends Rect {
         height: 14,
         radius: 2,
         width: 34,
-        x: -width * 2 - 12,
+        x: -height * 2 - 12,
         y: -40,
       };
-      this.upsert('skipedTipWraper', GRect, skipedTipWraperStyle, container);
+      this.upsert('rightTopSkipedTipWraper', GRect, skipedTipWraperStyle, container);
       const {
         attributes: { x: stwX, y: stwY },
-      } = this.getShape('skipedTipWraper');
+      } = this.getShape('rightTopSkipedTipWraper');
       const skipTextStyle = {
         fill: '#fff',
         fontSize: 9,
@@ -590,7 +590,7 @@ export class NormalNode extends Rect {
         x: stwX + 3,
         y: stwY + 14,
       };
-      this.upsert('skipText', GText, skipTextStyle, container);
+      this.upsert('rightTopSkipText', GText, skipTextStyle, container);
 
       // 已跳过图标
       const skipeBackgroundStyle = {
@@ -599,7 +599,7 @@ export class NormalNode extends Rect {
         fill: attributes.skipImageBackgroundColor,
         r: 9,
       };
-      this.upsert('skipImageBackground', GCircle, skipeBackgroundStyle, container);
+      this.upsert('rightTopSkipImageBackground', GCircle, skipeBackgroundStyle, container);
       const skipeImageStyle = {
         height: 12,
         src: SkipSignImage,
@@ -607,7 +607,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 121 : 114,
         y: -31,
       };
-      this.upsert('skipImage', GImage, skipeImageStyle, container);
+      this.upsert('rightTopSkipImage', GImage, skipeImageStyle, container);
       return;
     }
 
@@ -619,7 +619,7 @@ export class NormalNode extends Rect {
         fill: attributes.finishedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('finishedImageBackground', GCircle, finishedBackgroundStyle, container);
+      this.upsert('rightTopFinishedImageBackground', GCircle, finishedBackgroundStyle, container);
       const finishedImageStyle = {
         height: 12,
         src: SuccessImage,
@@ -627,7 +627,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 121 : 114,
         y: -30,
       };
-      this.upsert('finishedImage', GImage, finishedImageStyle, container);
+      this.upsert('rightTopFinishedImage', GImage, finishedImageStyle, container);
     }
   }
 
