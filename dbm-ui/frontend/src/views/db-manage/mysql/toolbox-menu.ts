@@ -65,21 +65,29 @@ export default [
   {
     children: [
       {
-        dbConsoleValue: 'mysql.toolbox.rollback',
-        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-        name: t('定点构造'),
+        bind: [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER],
+        dbConsoleValue: 'mysql.toolbox.fixpoint',
+        id: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER,
+        name: t('构造'),
         parentId: 'fileback',
       },
       {
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        id: TicketTypes.MYSQL_FLASHBACK,
-        name: t('闪回'),
+        id: TicketTypes.MYSQL_ROLLBACK,
+        name: t('回档'),
+        parentId: 'fileback',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.rollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+        name: t('定点构造（旧）'),
         parentId: 'fileback',
       },
     ],
     icon: 'db-icon-rollback',
     id: 'fileback',
-    name: t('回档'),
+    name: t('构造和回档'),
   },
   {
     children: [

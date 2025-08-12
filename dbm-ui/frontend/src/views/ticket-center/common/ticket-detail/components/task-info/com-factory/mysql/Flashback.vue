@@ -13,8 +13,8 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('闪回方式')">
-      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回') : t('库表闪回') }}
+    <InfoItem :label="t('回档类型')">
+      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回回档') : t('库表闪回回档') }}
     </InfoItem>
   </InfoList>
   <BkTable
