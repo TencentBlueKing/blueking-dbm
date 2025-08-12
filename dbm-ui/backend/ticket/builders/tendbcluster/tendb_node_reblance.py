@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
@@ -72,7 +73,7 @@ class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
 
 class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_common_affinity(role="backend_group", role_type=SpecMachineType.BACKEND)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
