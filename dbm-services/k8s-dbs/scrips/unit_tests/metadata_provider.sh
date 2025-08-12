@@ -1,0 +1,1 @@
+go test -v -run TestComponentProviderTestSuite ./k8s-dbs/metadata/provider/testsuite/

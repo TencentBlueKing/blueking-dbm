@@ -1,0 +1,1 @@
+go test -v -run TestComponentDbAccessTestSuite ./k8s-dbs/metadata/dbaccess/testsuite/

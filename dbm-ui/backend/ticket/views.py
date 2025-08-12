@@ -23,6 +23,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -376,6 +377,34 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         for choice in TicketType.get_choices():
             if not is_apply or choice[0] in BuilderFactory.apply_ticket_type:
                 ticket_type_list.append({"key": choice[0], "value": choice[1]})
+        return Response(ticket_type_list)
+
+    @swagger_auto_schema(
+        operation_summary=_("获取单据类型优化版"),
+        query_serializer=TicketTypeSLZ(),
+        responses={status.HTTP_200_OK: TicketTypeResponseSLZ(many=True)},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None, serializer_class=TicketTypeSLZ)
+    def ticket_group_types(self, request, *args, **kwargs):
+        is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
+        ticket_type_list = []
+
+        for db_type in DBType:
+            children = []
+            # 获取该DB类型的所有单据键值
+            ticket_keys = TicketType.get_ticket_type_by_db(db_type.value)
+
+            # 遍历每个单据键值，获取其详细信息
+            for ticket_key in ticket_keys:
+                # 获取该单据的枚举字段对象
+                ticket_field = TicketType.get_choice_label(ticket_key)
+
+                # 检查是否满足过滤条件
+                if not is_apply or ticket_key in BuilderFactory.apply_ticket_type:
+                    children.append({"label": ticket_field, "value": ticket_key})
+            ticket_type_list.append({"children": children, "label": db_type, "value": db_type.value})
+
         return Response(ticket_type_list)
 
     @common_swagger_auto_schema(
