@@ -12,6 +12,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
+from backend.utils.cache import func_cache_decorator
 
 
 # 1. 提供机器城市到逻辑城市的映射, 如机器的城市属性是扬州的, 实际当作南京看待
@@ -60,3 +61,8 @@ class BKSubzone(AuditedModel):
 
     class Meta:
         verbose_name = verbose_name_plural = _("蓝鲸园区表(BKSubzone)")
+
+    @classmethod
+    @func_cache_decorator(cache_time=60 * 60 * 24)
+    def get_subzone_map(cls):
+        return {subzone.bk_sub_zone_id: subzone.bk_sub_zone for subzone in cls.objects.all()}

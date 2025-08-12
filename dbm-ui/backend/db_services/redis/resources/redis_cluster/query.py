@@ -230,6 +230,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
         dns_to_clb: bool = False,
         delete_rate_configs: dict = None,
         **kwargs,
@@ -276,6 +277,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
             cloud_info,
             biz_info,
             cluster_stats_map,
+            cluster_zone_map,
             dns_to_clb,
         )
         cluster_info.update(cluster_extra_info)

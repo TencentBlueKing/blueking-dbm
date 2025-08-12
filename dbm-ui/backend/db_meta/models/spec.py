@@ -84,11 +84,23 @@ class Spec(AuditedModel):
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
     def _get_apply_params_detail(
-        self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE.value, labels=None, location_spec=None
+        self,
+        group_mark,
+        count,
+        bk_cloud_id,
+        affinity=AffinityEnum.NONE.value,
+        labels=None,
+        location_spec=None,
+        tolerance=0,
+        current_hosts=None,
     ):
         # 如果没有城市信息，default表示无城市信息
         if location_spec and location_spec["city"] == "default":
             location_spec = None
+
+        # 如果亲和性为空，则忽略current_hosts
+        if affinity == AffinityEnum.NONE.value:
+            current_hosts = None
 
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
@@ -107,7 +119,10 @@ class Spec(AuditedModel):
             ],
             "count": count,
             "affinity": affinity,
+            "location_spec": location_spec,
             "labels": labels,
+            "tolerance": tolerance,
+            "current_hosts": current_hosts or [],
         }
         # 对于机型和规格，优先以机型为准，机型不存在则用规格申请
         if self.device_class:
@@ -123,12 +138,15 @@ class Spec(AuditedModel):
             }
             apply_params.update(spec=spec)
 
+        # 格式化参数，将bk_sub_zone_id/exclude_rack_ids/exclude_sub_zone_ids转成str，本身为空也不影响
         if location_spec:
-            # 将bk_sub_zone_id/exclude_rack_ids/exclude_sub_zone_ids转成str，本身为空也不影响
-            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids", [])))
-            location_spec["exclude_rack_ids"] = list(map(str, location_spec.get("exclude_rack_ids", [])))
-            location_spec["exclude_sub_zone_ids"] = list(map(str, location_spec.get("exclude_sub_zone_ids", [])))
-            apply_params["location_spec"] = location_spec
+            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids") or []))
+            location_spec["exclude_rack_ids"] = list(map(str, location_spec.get("exclude_rack_ids") or []))
+            location_spec["exclude_sub_zone_ids"] = list(map(str, location_spec.get("exclude_sub_zone_ids") or []))
+
+        for host in apply_params["current_hosts"]:
+            host["sub_zone_id"] = str(host["sub_zone_id"])
+            host["rack_id"] = str(host["rack_id"])
 
         return apply_params
 
@@ -141,11 +159,13 @@ class Spec(AuditedModel):
         affinity=AffinityEnum.NONE.value,
         labels=None,
         location_spec=None,
+        tolerance=0,
+        current_hosts=None,
     ):
         """
         根据规格和分组要求，获取资源申请参数
         @param group_mark: 组名
-        @param group_count: 每组资源数量
+        @param group_count: 每组资源数量 TODO: 此参数后续可被tolerance代替
         @param count: 总数量. count // group_count表示申请组数，每一组都会有亲和性和位置参数的限制
         比如你想申请一批proxy机器，要求这一批proxy机器:
         1. 至少分布在2个以上的机房，那么亲和性你就需要选择"跨机房"，group_count=2
@@ -155,6 +175,8 @@ class Spec(AuditedModel):
         @param affinity: 亲和性
         @param location_spec: 位置参数
         @param labels: 位置参数
+        @param tolerance: 亲和性容忍度(代替group_count)
+        @param current_hosts: 存量主机，和tolerance一起使用可以让资源池整体分配机型
         """
         group_count_list = [group_count] * (count // group_count)
         if count % group_count:
@@ -168,6 +190,8 @@ class Spec(AuditedModel):
                 affinity=affinity,
                 labels=labels,
                 location_spec=location_spec,
+                tolerance=tolerance,
+                current_hosts=current_hosts,
             )
             for index, num in enumerate(group_count_list)
         ]

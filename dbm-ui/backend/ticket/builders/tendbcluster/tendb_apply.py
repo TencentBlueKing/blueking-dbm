@@ -115,7 +115,7 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
-        self.ticket_data["resource_spec"]["spider"]["group_count"] = 2
+        self.ticket_data["resource_spec"]["spider"].update(tolerance=0.5)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

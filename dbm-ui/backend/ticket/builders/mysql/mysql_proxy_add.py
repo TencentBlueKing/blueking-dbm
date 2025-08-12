@@ -12,10 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
-from backend.db_services.dbbase.constants import SourceType
-from backend.db_meta.enums.spec import SpecMachineType
-from backend.db_services.dbbase.constants import IpSource
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
@@ -85,7 +83,7 @@ class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_common_affinity(role="new_proxy", role_type=SpecMachineType.PROXY, group_count=2)
+        self.patch_info_common_affinity(role="new_proxy", remain_machine_type=MachineType.PROXY, tolerance=0.5)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
