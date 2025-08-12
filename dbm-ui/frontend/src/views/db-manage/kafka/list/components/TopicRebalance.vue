@@ -211,7 +211,7 @@
   const popRef = useTemplateRef('pop');
   const formData = reactive({
     instance_list: [] as RowData[],
-    throttle_rate: 500000,
+    throttle_rate: 50000000,
     topics: ['*'],
   });
   const isFilter = ref(false);
