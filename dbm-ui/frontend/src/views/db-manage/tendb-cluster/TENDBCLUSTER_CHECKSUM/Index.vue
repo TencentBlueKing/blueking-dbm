@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -77,7 +77,7 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BkFormItem
         :label="t('定时执行时间')"
@@ -185,7 +185,6 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';

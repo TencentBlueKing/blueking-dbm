@@ -40,7 +40,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import { showDatabasesWithPatterns } from '@/services/source/remoteService';
+  import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   import PriviewDbs from './PriviewDbs.vue';
 
