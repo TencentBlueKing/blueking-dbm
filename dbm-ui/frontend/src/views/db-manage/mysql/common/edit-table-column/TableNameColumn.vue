@@ -23,7 +23,8 @@
     <EditableTagInput
       v-model="modelValue"
       :max-data="single ? 1 : -1"
-      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')" />
+      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+      v-bind="{ ...attrs, ...props }" />
     <template #tips>
       <div class="mysql-table-name-tips">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
@@ -78,6 +79,8 @@
 
   const modelValue = defineModel<string[]>();
 
+  const attrs = useAttrs();
+
   const { t } = useI18n();
 
   const showBatchEdit = ref(false);
@@ -123,6 +126,12 @@
   };
 </script>
 <style lang="less">
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
   .mysql-table-name-tips {
     div {
       display: flex;

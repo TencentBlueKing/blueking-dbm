@@ -17,14 +17,19 @@
             v-model="formData.flashback_type"
             @change="handleFlashbackTypeChange">
             <BkRadioButton
+              label="ROLLBACK_FLASHBACK"
+              style="width: 225px">
+              {{ t('构造回档') }}
+            </BkRadioButton>
+            <BkRadioButton
               label="TABLE_FLASHBACK"
               style="width: 225px">
-              {{ t('库表闪回') }}
+              {{ t('库表闪回回档') }}
             </BkRadioButton>
             <BkRadioButton
               label="RECORD_FLASHBACK"
               style="width: 225px">
-              {{ t('记录级闪回') }}
+              {{ t('记录级闪回回档') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -224,6 +229,10 @@
     if (type === 'TABLE_FLASHBACK') {
       router.push({
         name: 'MySQLDBFlashback',
+      });
+    } else if (type === 'ROLLBACK_FLASHBACK') {
+      router.push({
+        name: TicketTypes.MYSQL_ROLLBACK,
       });
     }
   };

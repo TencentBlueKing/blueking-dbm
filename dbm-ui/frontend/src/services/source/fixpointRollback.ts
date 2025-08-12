@@ -54,6 +54,7 @@ export interface BackupLogRecord {
   data_schema_grant: string;
   extra_fields: {
     backup_charset: string;
+    backup_tool: string;
     bk_cloud_id: number;
     encrypt_enable: boolean;
     storage_engine: string;
@@ -88,14 +89,14 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 /**
  * 通过日志平台获取集群备份记录
  */
-export function queryBackupLogFromBklog(params: { cluster_id: number }) {
+export function queryBackupLogFromBklog(params: { cluster_id: number; limit?: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_bklog/`, params);
 }
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
-export function queryBackupLogFromLoacal(params: { cluster_id: number }) {
+export function queryBackupLogFromLoacal(params: { cluster_id: number; limit?: number }) {
   return http.get<BackupLogRecord[]>(`${path}/query_backup_log_from_local/`, params);
 }
 
@@ -117,6 +118,8 @@ export function queryLatesBackupLog(params: {
   cluster_id: number;
   job_instance_id?: number;
   rollback_time: string;
+  backup_source?: string;
+  backup_type?: string;
 }) {
   return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
 }
