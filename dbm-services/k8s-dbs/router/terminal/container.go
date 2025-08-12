@@ -17,32 +17,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metadata
+package terminal
 
 import (
-	metacontroller "k8s-dbs/metadata/api/controller"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
 	routerutil "k8s-dbs/router/util"
+	"k8s-dbs/terminal/api/controller"
+	terminalprovider "k8s-dbs/terminal/provider"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// BuildClusterReleaseMetaRouter clusterReleaseMeta 管理路由构建
-func BuildClusterReleaseMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
-	metaRouter := baseRouter.Group(BasePath)
-	addonClusterReleaseDbAccess := metadbaccess.NewAddonClusterReleaseDbAccess(db)
-	addonClusterReleaseProvider := metaprovider.NewAddonClusterReleaseProvider(addonClusterReleaseDbAccess)
-	clusterReleaseController := metacontroller.NewClusterReleaseController(addonClusterReleaseProvider)
-	clusterReleaseGroup := metaRouter.Group("/cluster_release")
+// BuildTerminalRouter cluster 管理路由构建
+func BuildTerminalRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
+	terminalRouter := baseRouter.Group(BasePath)
+	terminalController := initTerminalController(db)
 	{
-		clusterReleaseGroup.GET("/id/:id", clusterReleaseController.GetClusterRelease)
-		clusterReleaseGroup.GET("/name/:release_name/namespace/:namespace",
-			clusterReleaseController.GetClusterReleaseByParam)
+		terminalRouter.GET("", terminalController.OpenTerminal)
 	}
 }
 
+// initClusterController 初始化 ClusterController
+func initTerminalController(db *gorm.DB) *controller.ContainerController {
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+	containerProvider := terminalprovider.NewTerminalProvider(k8sClusterConfigProvider)
+	terminalController := controller.NewContainerController(containerProvider)
+	return terminalController
+}
+
 func init() {
-	routerutil.RegisterAPIRouterBuilder(BuildClusterReleaseMetaRouter)
+	routerutil.RegisterAPIRouterBuilder(BuildTerminalRouter)
 }

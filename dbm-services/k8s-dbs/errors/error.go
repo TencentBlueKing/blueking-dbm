@@ -50,7 +50,7 @@ const (
 	ParameterInvalidError
 	ParameterTypeError
 	ParameterValueError
-	OperationFobidden
+	OperationForbidden
 )
 
 // 存储集群 cluster 操作异常
@@ -119,7 +119,7 @@ var codeTag = map[ErrorCode]string{
 	ParameterInvalidError: "参数校验失败",
 	ParameterTypeError:    "参数类型校验失败",
 	ParameterValueError:   "参数值校验失败",
-	OperationFobidden:     "禁止执行该操作",
+	OperationForbidden:    "禁止执行该操作",
 
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",

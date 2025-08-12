@@ -41,7 +41,7 @@ func SurrealTikvVExpansionCheck(
 		if componentName == string(ComponentSurrealTikv) {
 			storageSize := component.Storage
 			if storageSize.Value() < 0 {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden,
+				return false, errors.NewK8sDbsError(errors.OperationForbidden,
 					fmt.Errorf("surreal tikv 节点禁止执行磁盘缩容操作"))
 			}
 		}
@@ -63,7 +63,7 @@ func SurrealTikvHScaleCheck(
 		componentName := hScale.ComponentName
 		if componentName == string(ComponentSurrealTikv) {
 			if hScale.ScaleIn != nil {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden,
+				return false, errors.NewK8sDbsError(errors.OperationForbidden,
 					fmt.Errorf("surreal tikv 组件禁止执行水平缩容操作"))
 			}
 		}
@@ -86,7 +86,7 @@ func SurrealPdVExpansionCheck(
 		if componentName == string(ComponentSurrealPd) {
 			storageSize := component.Storage
 			if storageSize.Value() < 0 {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden,
+				return false, errors.NewK8sDbsError(errors.OperationForbidden,
 					fmt.Errorf("surreal pd 节点禁止执行磁盘缩容操作"))
 			}
 		}
@@ -108,7 +108,7 @@ func SurrealPdHScaleCheck(
 		componentName := hScale.ComponentName
 		if componentName == string(ComponentSurrealPd) {
 			if hScale.ScaleIn != nil {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden,
+				return false, errors.NewK8sDbsError(errors.OperationForbidden,
 					fmt.Errorf("surreal pd 组件禁止执行水平缩容操作"))
 			}
 		}

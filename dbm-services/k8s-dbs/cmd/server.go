@@ -31,6 +31,7 @@ import (
 	_ "k8s-dbs/router/core"
 	_ "k8s-dbs/router/dataweb"
 	_ "k8s-dbs/router/metadata"
+	_ "k8s-dbs/router/terminal"
 	"log"
 	"log/slog"
 	"net/http"

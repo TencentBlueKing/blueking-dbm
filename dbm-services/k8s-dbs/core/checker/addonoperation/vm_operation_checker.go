@@ -41,7 +41,7 @@ func VMStorageVExpansionCheck(
 		if componentName == string(ComponentVMStorage) {
 			storageSize := component.Storage
 			if storageSize.Value() < 0 {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden, fmt.Errorf("vmstorage 节点禁止执行磁盘缩容操作"))
+				return false, errors.NewK8sDbsError(errors.OperationForbidden, fmt.Errorf("vmstorage 节点禁止执行磁盘缩容操作"))
 			}
 		}
 	}
@@ -62,7 +62,7 @@ func VMStorageHScaleCheck(
 		componentName := hScale.ComponentName
 		if componentName == string(ComponentVMStorage) {
 			if hScale.ScaleIn != nil {
-				return false, errors.NewK8sDbsError(errors.OperationFobidden,
+				return false, errors.NewK8sDbsError(errors.OperationForbidden,
 					fmt.Errorf("vmstorage 组件禁止执行水平缩容操作"))
 			}
 		}
