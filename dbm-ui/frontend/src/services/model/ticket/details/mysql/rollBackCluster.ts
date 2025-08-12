@@ -1,30 +1,57 @@
+import type { BackupLogRecord } from '@services/source/fixpointRollback';
+
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
- * MySql 定点构造
+ * Mysql 定点构造
+ * v2版本分出三种单据：MYSQL_FIXPOINT_EXIST_CLUSTER(构造到已有集群)、MYSQL_FIXPOINT_NEW_CLUSTER(构造到新集群)、MYSQL_ROLLBACK(回档)
  */
 export interface RollbackCluster extends DetailBase {
   clusters: DetailClusters;
+  apply_details: {
+    bk_cloud_id: number;
+    charset: string;
+    city: string;
+    cluster_name: string;
+    cluster_shard_num: number;
+    db_app_abbr: string;
+    db_version: string;
+    immutable_domain: string;
+    ip_source: string;
+    module: number;
+    remote_shard_num: number;
+    resource_spec: {
+      backend_group: {
+        count: number;
+        spec_id: number;
+      };
+      spider: {
+        count: number;
+        spec_id: number;
+      };
+    };
+    spider_port: number;
+    spider_version: string;
+  };
+  ignore_check_db: boolean;
   infos: {
     backup_source: string;
-    backupinfo: {
-      backup_id: string;
-      backup_time: string;
-      backup_type: string;
-      master_host: string;
-      master_port: number;
-      mysql_host: string;
-      mysql_port: number;
-      mysql_role: string;
-    };
+    backupinfo: BackupLogRecord;
     cluster_id: number;
+    affect_db?: string[];
     databases: string[];
     databases_ignore: string[];
-    rollback_host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
+    resource_spec: {
+      rollback_host: {
+        count: number;
+        hosts: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }[];
+        spec_id: number;
+      };
     };
     rollback_time: string;
     rollback_type: string;
