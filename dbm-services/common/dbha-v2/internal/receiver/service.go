@@ -29,40 +29,52 @@ import (
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source"
+	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"strings"
 
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
-	quit       chan struct{}
-	inputters  []source.Inputter
-	outputters []sink.Outputter
+	quit         chan struct{}
+	id           string
+	discoveryCli *discovery.Client
+	regCli       *discovery.Registry
+	inputters    []source.Inputter
+	outputters   []sink.Outputter
 }
 
-func (s *Service) Run(ctx context.Context) error {
+func (s *Service) createDiscovery() error {
+	s.id = uuid.New().String()
+
+	cli, err := discovery.NewClientWithOptions(
+		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoints, ";")),
+		discovery.OptionUser(config.Cfg.Discovery.User),
+		discovery.OptionPassword(config.Cfg.Discovery.Password),
+		discovery.OptionServiceID(s.id),
+	)
+
+	if err != nil {
+		return err
+	}
+	s.discoveryCli = cli
+
+	regCli, err := cli.CreateRegistry()
+	if err != nil {
+		return err
+	}
+	s.regCli = regCli
+
+	return nil
+}
+
+func (s *Service) createSource(ctx context.Context) error {
 	if len(config.Cfg.Inputers) == 0 {
 		return gerrors.New(gerrors.InvalidConfiguration, "not set any inputer")
-	}
-
-	if len(config.Cfg.Outputers) == 0 {
-		return gerrors.New(gerrors.InvalidConfiguration, "not set any outputer")
-	}
-
-	for _, outputerCfg := range config.Cfg.Outputers {
-		if !outputerCfg.Enable {
-			logger.Info("the outputer(%s) is disabled", outputerCfg.Name)
-			continue
-		}
-
-		outputter, err := sink.NewOutputter(outputerCfg)
-		if err != nil {
-			logger.Warn("create new outputer(%s) failed, errmsg(%v)", outputerCfg.Name, err)
-			continue
-		}
-
-		s.outputters = append(s.outputters, outputter)
 	}
 
 	for _, inputerCfg := range config.Cfg.Inputers {
@@ -86,7 +98,44 @@ func (s *Service) Run(ctx context.Context) error {
 		s.inputters = append(s.inputters, inputter)
 	}
 
-	logger.Info("dbhav2 receiver server is running")
+	return nil
+}
+
+func (s *Service) createSinks() error {
+	if len(config.Cfg.Outputers) == 0 {
+		return gerrors.New(gerrors.InvalidConfiguration, "not set any outputer")
+	}
+
+	for _, outputerCfg := range config.Cfg.Outputers {
+		if !outputerCfg.Enable {
+			logger.Info("the outputer(%s) is disabled", outputerCfg.Name)
+			continue
+		}
+
+		outputter, err := sink.NewOutputter(outputerCfg)
+		if err != nil {
+			logger.Warn("create new outputer(%s) failed, errmsg(%v)", outputerCfg.Name, err)
+			continue
+		}
+
+		s.outputters = append(s.outputters, outputter)
+	}
+
+	return nil
+}
+
+func (s *Service) Run(ctx context.Context) error {
+	if err := s.createDiscovery(); err != nil {
+		return err
+	}
+
+	if err := s.createSinks(); err != nil {
+		return err
+	}
+
+	if err := s.createSource(ctx); err != nil {
+		return err
+	}
 
 	if s.quit == nil {
 		s.quit = make(chan struct{})
