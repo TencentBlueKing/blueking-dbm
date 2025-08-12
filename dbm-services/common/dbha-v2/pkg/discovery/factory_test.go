@@ -29,12 +29,14 @@ import (
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-var client *clientv3.Client
+var client *discovery.Client
+var etcdClient *clientv3.Client
 var reg *discovery.Registry
 var dis *discovery.Discovery
 
@@ -60,21 +62,26 @@ func setup() {
 		log.Fatal("password is required")
 	}
 
-	cli, err := discovery.NewClient([]string{endpoints}, user, password)
+	cli, err := discovery.NewClientWithOptions(
+		discovery.OptionUser(user),
+		discovery.OptionPassword(password),
+		discovery.OptionEndpoints(strings.Split(endpoints, ";")))
+
 	if err != nil {
 		log.Fatalf("failed to create etcd client. errmsg:%s", err.Error())
 	}
 
 	client = cli
+	etcdClient = cli.OriginClient()
 
-	r, err := discovery.NewRegistry(client, "test-service-id", 10)
+	r, err := cli.CreateRegistry()
 	if err != nil {
 		log.Fatalf("failed to create registry. errmsg:%s", err.Error())
 	}
 
 	reg = r
 
-	d, err := discovery.NewDiscovery(client)
+	d, err := cli.CreateDiscovery()
 	if err != nil {
 		log.Fatalf("failed to create discovery. errmsg:%s", err.Error())
 	}
@@ -88,7 +95,6 @@ func setup() {
 }
 
 func teardown() {
-
 	reg.Close()
 	dis.Close()
 }
