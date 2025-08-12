@@ -26,7 +26,6 @@ package discovery_test
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"log"
 	"testing"
@@ -41,7 +40,7 @@ func TestRegsitrySetService(t *testing.T) {
 		t.Errorf("failed to set service. errmsg: %v", err)
 	}
 
-	resp, err := client.Get(ctx, reg.GetRootKey())
+	resp, err := etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
 		t.Errorf("failed to get service value. errmsg: %v", err)
 	}
@@ -70,7 +69,7 @@ func TestRegistrySet(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	expectedKey := reg.GetRootKey() + "/registry-test-key"
-	resp, err := client.Get(ctx, expectedKey)
+	resp, err := etcdClient.Get(ctx, expectedKey)
 
 	if err != nil {
 		t.Errorf("failed to get child node value. errmsg: %v", err)
@@ -91,7 +90,7 @@ func TestRegistryLeaseManagement(t *testing.T) {
 		t.Errorf("failed to set service. errmsg: %v", err.Error())
 	}
 
-	resp, err := client.Get(ctx, reg.GetRootKey())
+	resp, err := etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
 		t.Errorf("failed to get service value. errmsg: %v", err.Error())
 	}
@@ -103,7 +102,7 @@ func TestRegistryLeaseManagement(t *testing.T) {
 
 	time.Sleep(10 * time.Second)
 
-	resp, err = client.Get(ctx, reg.GetRootKey())
+	resp, err = etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
 		t.Errorf("failed to get service value. errmsg: %v", err.Error())
 	}
@@ -129,7 +128,7 @@ func TestRegistryInvalidParameters(t *testing.T) {
 }
 
 func TestRegistryClose(t *testing.T) {
-	newreg, err := discovery.NewRegistry(client, "test-service-id", 10)
+	newreg, err := client.CreateRegistry()
 	if err != nil {
 		log.Fatalf("failed to create registry. errmsg:%s", err.Error())
 	}
