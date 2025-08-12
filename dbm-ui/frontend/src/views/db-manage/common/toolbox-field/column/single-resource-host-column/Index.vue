@@ -14,6 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :loading="loading"
@@ -51,13 +52,17 @@
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
+    cluster?: {
+      id: number;
+    };
     field: string;
     label: string;
     minWidth?: number;
     params?: ComponentProps<typeof ResourceHostSelector>['params'];
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
+    cluster: undefined,
     minWidth: 200,
     params: () => ({}),
   });
@@ -109,6 +114,13 @@
       }
     },
   });
+
+  const disabledMethod = () => {
+    if (props.cluster) {
+      return props.cluster.id ? false : t('请先选择集群');
+    }
+    return false;
+  };
 
   const handleShowSelector = () => {
     showSelector.value = true;

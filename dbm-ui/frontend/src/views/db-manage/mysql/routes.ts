@@ -42,11 +42,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档')),
   createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
-  createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('闪回')),
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
   createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
+  createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
+  createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
+  createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',
@@ -67,6 +70,8 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级
   createRouteItem(TicketTypes.MYSQL_MIGRATE_UPGRADE, t('版本升级')), // 主从-存储层-迁移升级
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
+  createRouteItem(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, t('构造')),
+  createRouteItem(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, t('构造')),
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
