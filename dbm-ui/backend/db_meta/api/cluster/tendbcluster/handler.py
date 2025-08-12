@@ -353,9 +353,11 @@ class TenDBClusterClusterHandler(ClusterHandler):
             else TenDBClusterSpiderRole.SPIDER_MNT
         )
 
-        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role)
+        inst = ProxyInstance.objects.filter(
+            cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role, status=InstanceStatus.RUNNING
+        )
         if not inst:
-            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, proxy_role))
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, proxy_role))
 
         return inst.first().ip_port
 

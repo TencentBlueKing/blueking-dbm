@@ -66,7 +66,7 @@ class ItsmTodo(todos.TodoActor):
             approve_itsm_ticket(OperateNodeActionType.WITHDRAW, is_approved=False)
             self.todo.set_terminated(username, action)
         # 只允许审批人/admin 通过
-        elif action == TodoActionType.APPROVE and username != own:
+        elif action == TodoActionType.APPROVE:
             if username not in self.todo.operators + self.todo.helpers:
                 username = "admin"
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True)
