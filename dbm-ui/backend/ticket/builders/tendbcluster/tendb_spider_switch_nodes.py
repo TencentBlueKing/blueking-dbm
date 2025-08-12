@@ -13,9 +13,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.enums.spec import SpecMachineType
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
@@ -50,11 +53,25 @@ class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.patch_info_affinity_location(replace_zone=True)
-        for info in self.ticket_data["infos"]:
-            role = f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}'
-            info["resource_spec"][role]["group_count"] = 2
+        infos = self.ticket_data["infos"]
+
+        host_ids = [info["spider_old_ip_list"][0]["bk_host_id"] for info in infos]
+        spider_inst_map = {
+            spider.machine.bk_host_id: spider
+            for spider in ProxyInstance.objects.select_related("machine").filter(machine__bk_host_id__in=host_ids)
+        }
+        cluster_map = Cluster.objects.in_bulk(fetch_cluster_ids(infos))
+
+        for info in infos:
+            self.patch_common_affinity(
+                info,
+                role=f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}',
+                cluster=cluster_map[info["cluster_id"]],
+                role_type=SpecMachineType.PROXY,
+                replace_instances=[spider_inst_map[info["spider_old_ip_list"][0]["bk_host_id"]]],
+                group_count=2,
+                no_need_affinity=info["switch_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
