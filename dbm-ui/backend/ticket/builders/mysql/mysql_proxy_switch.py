@@ -13,7 +13,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_services.dbbase.constants import IpSource, SourceType
+from backend.db_services.dbbase.constants import SourceType
+from backend.db_meta.enums.spec import SpecMachineType
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
@@ -85,7 +87,9 @@ class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location(roles=["target_proxy"], replace_zone=True)
+        self.patch_info_common_affinity(
+            role="target_proxy", role_type=SpecMachineType.PROXY, replace_key="origin_proxy"
+        )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
