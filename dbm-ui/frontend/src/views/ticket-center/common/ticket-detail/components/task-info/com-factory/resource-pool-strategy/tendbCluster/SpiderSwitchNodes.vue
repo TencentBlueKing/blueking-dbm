@@ -56,11 +56,18 @@
       :label="t('资源标签')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
+        <template
+          v-if="data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].label_names.length">
+          <BkTag
+            v-for="item in data.resource_spec.new_slave.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
         <BkTag
-          v-for="item in data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].label_names"
-          :key="item"
-          :theme="labelTheme(item)">
-          {{ item }}
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
         </BkTag>
       </template>
     </BkTableColumn>
@@ -94,6 +101,4 @@
   const { t } = useI18n();
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
-
-  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>
