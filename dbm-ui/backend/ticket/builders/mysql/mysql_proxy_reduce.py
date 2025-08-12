@@ -36,7 +36,7 @@ class MysqlProxyReduceDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MysqlProxyReduceFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_reduce_scene
     # 暂时先为空，等校验函数出来再替换
-    validator = None
+    validator = MySQLController.mysql_proxy_reduce_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_REDUCE, is_recycle=True)
