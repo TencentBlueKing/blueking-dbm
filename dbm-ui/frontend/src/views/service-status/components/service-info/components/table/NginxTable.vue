@@ -31,7 +31,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import NgnixServiceStatusModel from '@/services/model/db-extension/nginx-service-status';
+  import NgnixServiceStatusModel from '@services/model/db-extension/nginx-service-status';
 
   interface Props {
     list: NgnixServiceStatusModel[];

@@ -101,7 +101,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { FlowTypes } from '@/services/source/taskflow';
+  import { FlowTypes } from '@services/source/taskflow';
 
   import { generateDifferentStatusTreeData, searchObj, type TreeNode } from '../flow-canvas/utils';
 

@@ -9,6 +9,7 @@ export default function (tableContentRef: Ref<HTMLElement | undefined>) {
 
   const handleHorizontalScroll = _.throttle(() => {
     const tableEl = tableContentRef.value as HTMLElement;
+    if (!tableEl) return;
     const { scrollLeft } = tableEl;
     const tableWrapperWidth = tableEl.getBoundingClientRect().width;
     const tableWidth = tableEl.querySelector('table')!.getBoundingClientRect().width;
