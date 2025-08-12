@@ -71,9 +71,16 @@ export default [
         parentId: 'fileback',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.fixpoint',
+        id: TicketTypes.MYSQL_FIXPOINT,
+        name: t('构造'),
+        parentId: 'fileback',
+      },
+      {
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        id: TicketTypes.MYSQL_FLASHBACK,
-        name: t('闪回'),
+        id: TicketTypes.MYSQL_ROLLBACK,
+        name: t('回档'),
         parentId: 'fileback',
       },
     ],

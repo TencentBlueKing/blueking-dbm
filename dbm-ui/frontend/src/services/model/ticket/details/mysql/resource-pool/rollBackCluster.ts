@@ -3,9 +3,9 @@ import type { BackupLogRecord } from '@services/source/fixpointRollback';
 import type { ResourcePoolDetailBase } from '../../common';
 
 /**
- * TenDB Cluster 定点构造
+ * Mysql 定点构造
+ * v2版本分出两种单据：MYSQL_FIXPOINT(构造) 和 MYSQL_ROLLBACK(回档)
  */
-
 export interface RollbackCluster extends ResourcePoolDetailBase {
   apply_details: {
     bk_cloud_id: number;
