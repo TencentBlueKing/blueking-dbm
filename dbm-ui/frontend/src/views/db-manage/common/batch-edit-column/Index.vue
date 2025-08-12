@@ -107,7 +107,7 @@
     placeholder?: string;
     single?: boolean;
     title: string;
-    titlePrefixType?: 'edit' | 'entry';
+    titlePrefixType?: 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
   }
 
@@ -135,6 +135,7 @@
   const titlePrefixTypeMap = {
     edit: t('统一设置'),
     entry: t('批量录入'),
+    select: t('批量选择'),
   };
 
   const inputRef = ref();
