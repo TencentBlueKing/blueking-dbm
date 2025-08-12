@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -120,7 +121,7 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
 
 class MysqlFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location()
+        self.patch_info_common_affinity(role="rollback_host", role_type=SpecMachineType.BACKEND)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

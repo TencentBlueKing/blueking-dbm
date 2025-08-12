@@ -13,9 +13,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.enums.spec import SpecMachineType
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbBaseOperateDetailSerializer,
@@ -50,10 +53,17 @@ class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 class TendbSpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.patch_info_affinity_location(roles=["spider_ip_list"])
+        cluster_map = Cluster.objects.in_bulk(fetch_cluster_ids(self.ticket_data["infos"]))
         for info in self.ticket_data["infos"]:
-            info["resource_spec"]["spider_ip_list"]["group_count"] = 2
+            self.patch_common_affinity(
+                info,
+                role="spider_ip_list",
+                cluster=cluster_map[info["cluster_id"]],
+                role_type=SpecMachineType.PROXY,
+                group_count=2,
+                # spider slave扩容无需亲和性
+                no_need_affinity=info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
