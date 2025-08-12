@@ -423,9 +423,7 @@
             label_names:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
             labels:
-              props.sourceType === SourceType.RESOURCE_AUTO
-                ? item.labels.filter((item) => item.id !== 0).map((item) => String(item.id))
-                : undefined,
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
             spec_id: item.specId,
           },
           new_slave: {
@@ -434,9 +432,7 @@
             label_names:
               props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
             labels:
-              props.sourceType === SourceType.RESOURCE_AUTO
-                ? item.labels.filter((item) => item.id !== 0).map((item) => String(item.id))
-                : undefined,
+              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
             spec_id: item.specId,
           },
         },

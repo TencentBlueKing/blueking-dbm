@@ -127,7 +127,7 @@
       message: t('资源标签不能为空'),
       trigger: 'change',
       validator: () => {
-        modelValue.value = ids.value.map((item) => tagMap.value[item]);
+        modelValue.value = ids.value.filter((id) => id !== DEFAULT_TAG_ID).map((item) => tagMap.value[item]);
         return Boolean(ids.value.length);
       },
     },

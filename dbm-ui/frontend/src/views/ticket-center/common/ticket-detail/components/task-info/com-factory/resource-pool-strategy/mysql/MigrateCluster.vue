@@ -87,11 +87,17 @@
         :label="t('资源标签')"
         :min-width="200">
         <template #default="{ data }: { data: RowData }">
+          <template v-if="data.resource_spec.new_slave.label_names.length">
+            <BkTag
+              v-for="item in data.resource_spec.new_slave.label_names"
+              :key="item">
+              {{ item }}
+            </BkTag>
+          </template>
           <BkTag
-            v-for="item in data.resource_spec.new_slave.label_names"
-            :key="item"
-            :theme="labelTheme(item)">
-            {{ item }}
+            v-else
+            theme="success">
+            {{ t('通用无标签') }}
           </BkTag>
         </template>
       </BkTableColumn>
@@ -159,6 +165,4 @@
     [OperaObejctType.CLUSTER]: t('集群迁移'),
     [OperaObejctType.MACHINE]: t('整机迁移'),
   };
-
-  const labelTheme = (labelName: string) => (labelName === t('通用无标签') ? 'success' : '');
 </script>
