@@ -82,19 +82,20 @@ func (r *Registry) grant(ctx context.Context) error {
 	}
 
 	r.wg.Add(2)
-	go r.monitorKeepalive(ctx)
-	go r.checkLeaseTTL(ctx)
+	go func() {
+		defer r.wg.Done()
+		r.monitorKeepalive(ctx)
+	}()
+
+	go func() {
+		defer r.wg.Done()
+		r.checkLeaseTTL(ctx)
+	}()
 
 	return nil
 }
 
 func (r *Registry) monitorKeepalive(ctx context.Context) {
-
-	defer func() {
-		r.wg.Done()
-		logger.Info("exit registry monitor keepalive")
-	}()
-
 	for {
 		select {
 		case <-r.quit:
@@ -117,9 +118,6 @@ func (r *Registry) monitorKeepalive(ctx context.Context) {
 }
 
 func (r *Registry) checkLeaseTTL(ctx context.Context) {
-
-	defer r.wg.Done()
-
 	ttl := time.Duration(math.Floor(float64(r.ttl) / 2))
 	ticker := time.NewTicker(ttl * time.Second)
 
@@ -151,7 +149,6 @@ func (r *Registry) checkLeaseTTL(ctx context.Context) {
 }
 
 func (r *Registry) recoverLease(ctx context.Context) error {
-
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -170,7 +167,6 @@ func (r *Registry) Events() chan *RegistryEvent {
 
 // SetService Create or set the registry root key.
 func (r *Registry) SetService(ctx context.Context, value string) error {
-
 	value = strings.TrimSpace(value)
 
 	if r.leaseId == 0 {
@@ -191,7 +187,6 @@ func (r *Registry) SetService(ctx context.Context, value string) error {
 // If the key has the root key prefix, the key will be applied
 // and then it will be appended to the registry root key.
 func (r *Registry) Set(ctx context.Context, key, value string) error {
-
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return gerrors.New(gerrors.InvalidParameter, "key is required")
