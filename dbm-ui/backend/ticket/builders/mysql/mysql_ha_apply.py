@@ -108,8 +108,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
-        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
+        self.ticket_data["resource_spec"]["proxy"].update(tolerance=0.5)
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):

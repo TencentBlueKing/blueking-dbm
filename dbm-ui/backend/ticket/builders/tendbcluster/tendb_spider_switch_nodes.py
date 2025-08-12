@@ -8,12 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
@@ -54,22 +55,27 @@ class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
         infos = self.ticket_data["infos"]
-
         host_ids = [info["spider_old_ip_list"][0]["bk_host_id"] for info in infos]
-        spider_inst_map = {
-            spider.machine.bk_host_id: spider
-            for spider in ProxyInstance.objects.select_related("machine").filter(machine__bk_host_id__in=host_ids)
-        }
-        cluster_map = Cluster.objects.in_bulk(fetch_cluster_ids(infos))
+        cluster_ids = fetch_cluster_ids(infos)
+        # 获取集群下剩余的spider master
+        remain_spiders = ProxyInstance.objects.select_related("machine").filter(
+            ~Q(machine__bk_host_id__in=host_ids),
+            cluster__in=cluster_ids,
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+        )
+        cluster__spider_inst_map = defaultdict(list)
+        for spider in remain_spiders:
+            cluster__spider_inst_map[spider.cluster.first().id].append(spider.machine)
+
+        cluster_map = Cluster.objects.in_bulk(cluster_ids)
 
         for info in infos:
             self.patch_common_affinity(
                 info,
                 role=f'{info["switch_spider_role"]}_{info["spider_old_ip_list"][0]["ip"]}',
                 cluster=cluster_map[info["cluster_id"]],
-                role_type=SpecMachineType.PROXY,
-                replace_instances=[spider_inst_map[info["spider_old_ip_list"][0]["bk_host_id"]]],
-                group_count=2,
+                exclusive_hosts=cluster__spider_inst_map.get(info["cluster_id"], []),
+                tolerance=0.5,
                 no_need_affinity=info["switch_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
             )
 

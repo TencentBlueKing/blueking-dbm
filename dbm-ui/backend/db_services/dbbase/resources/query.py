@@ -31,6 +31,7 @@ from backend.db_meta.models import (
     Spec,
     StorageInstance,
 )
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
     build_q_for_domain_by_cluster,
@@ -638,6 +639,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         # 获取集群与访问入口的映射
         # cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
         cluster_entry_map = defaultdict(dict)
+
         # 获取DB模块的映射信息
         db_module_queryset = DBModule.objects.filter(cluster_type__in=cls.cluster_types)
         if bk_biz_id is not None:
@@ -647,6 +649,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             module["db_module_id"]: module["db_module_name"]
             for module in db_module_queryset.values("db_module_id", "db_module_name")
         }
+
         # 获取集群操作记录的映射关系
         cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
 
@@ -656,17 +659,19 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             biz_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
         except AppCache.DoesNotExist:
             biz_info = None
-        # 将集群的查询结果序列化为集群字典信息
-        clusters: List[Dict[str, Any]] = []
+
         # 获取集群统计信息，只需要获取一次
         cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cls.cluster_types)
 
-        # 预取remote的spec
+        # 预取集群的规格信息
         db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cls.cluster_types])
-        kwargs["remote_spec_map"] = {
-            spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=db_types)
-        }
+        kwargs["remote_spec_map"] = {s.spec_id: s for s in Spec.objects.filter(spec_cluster_type__in=db_types)}
 
+        # 预取园区信息
+        cluster_zone_map = BKSubzone.get_subzone_map(get_cache=True)
+
+        # 将集群的查询结果序列化为集群字典信息
+        clusters: List[Dict[str, Any]] = []
         for cluster in cluster_list:
             cluster_entry = []
             dns_to_clb = False
@@ -685,6 +690,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                     and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
                 ):
                     dns_to_clb = True
+
             cluster_info = cls._to_cluster_representation(
                 cluster=cluster,
                 cluster_entry=cluster_entry,
@@ -695,6 +701,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                 biz_info=biz_info,
                 cluster_stats_map=cluster_stats_map,
                 dns_to_clb=dns_to_clb,
+                cluster_zone_map=cluster_zone_map,
                 **kwargs,
             )
             clusters.append(cluster_info)
@@ -712,6 +719,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
         dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
@@ -722,10 +730,16 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         @param db_module_names_map: key 是 db_module_id, value 是 db_module_name
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
+        @param cloud_info: 云区域信息
+        @param biz_info: 业务信息
+        @param cluster_stats_map: 集群容量信息映射
+        @param cluster_zone_map: 集群园区信息映射
+        @param dns_to_clb: 是否将域名转换为 clb
         """
         cluster_spec = None
         cluster_entry_map_value = ClusterEntry.get_entries_map(entries=cluster.entries).get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
+        cluster_zone_list = cluster.zone_list or []
 
         # 补充集群规格信息
         if cls.storage_spec_role:
@@ -748,6 +762,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
+            "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
+            "cluster_subzone_ids": cluster_zone_list,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
             "master_domain": cluster_entry_map_value.get("master_domain", ""),
             "slave_domain": cluster_entry_map_value.get("slave_domain", ""),

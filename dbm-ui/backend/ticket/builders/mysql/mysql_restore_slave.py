@@ -13,8 +13,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.enums.spec import SpecMachineType
-from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -93,27 +91,8 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
-    @classmethod
-    def patch_slave_subzone(cls, ticket_data):
-        # 提前查询替换slave相关元数据
-        slave_host_ids = [s["bk_host_id"] for info in ticket_data["infos"] for s in info["old_nodes"]["old_slave"]]
-        slaves = StorageInstance.objects.prefetch_related(
-            "as_receiver__ejector__machine", "machine", "cluster"
-        ).filter(machine__bk_host_id__in=slave_host_ids)
-        slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
-        # 补充替换slave的亲和性信息
-        for info in ticket_data["infos"]:
-            slave = slave_host_map[info["old_nodes"]["old_slave"][0]["bk_host_id"]]
-            cls.patch_common_affinity(
-                info,
-                role="new_slave",
-                role_type=SpecMachineType.BACKEND,
-                cluster=slave.cluster.first(),
-                exclusive_instance=slave.as_receiver.get().ejector,
-            )
-
     def format(self):
-        self.patch_slave_subzone(self.ticket_data)
+        self.patch_info_common_affinity("new_slave", remain_machine_type="master", replace_key="old_slave")
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

@@ -320,6 +320,8 @@ class ResourceApplyFlow(BaseTicketFlow):
                     affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
                     labels=role_spec.get("labels", []),
                     location_spec=role_spec.get("location_spec"),
+                    tolerance=role_spec.get("tolerance", 0),
+                    current_hosts=role_spec.get("current_hosts", []),
                 )
             )
 

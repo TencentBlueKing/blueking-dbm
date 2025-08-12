@@ -76,6 +76,7 @@ class ListRetrieveResource(SqlserverListRetrieveResource, SqlserverSingleExportQ
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        cluster_zone_map: Dict[str, str],
         dns_to_clb: bool = False,
         **kwargs
     ) -> Dict[str, Any]:
@@ -92,6 +93,7 @@ class ListRetrieveResource(SqlserverListRetrieveResource, SqlserverSingleExportQ
             cloud_info,
             biz_info,
             cluster_stats_map,
+            cluster_zone_map,
             dns_to_clb,
             **kwargs
         )

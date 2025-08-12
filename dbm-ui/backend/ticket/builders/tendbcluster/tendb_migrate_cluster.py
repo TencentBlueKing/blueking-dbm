@@ -64,7 +64,7 @@ class TendbClusterMigrateClusterParamBuilder(MysqlMigrateClusterParamBuilder):
 
 class TendbClusterMigrateClusterResourceParamBuilder(MysqlMigrateClusterResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location()
+        self.patch_info_common_affinity(role="backend_group")
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MIGRATE_CLUSTER, is_apply=True, is_recycle=True)
