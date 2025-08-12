@@ -34,14 +34,14 @@
     <div class="mt-8 mb-20">
       <CardCheckbox
         v-model="updateType"
-        :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2 ')"
+        :desc="t('适用于小版本升级，如 3.6.1 -> 3.6.3 或 3.6.1 -> 3.7.3')"
         icon="rebuild"
         :title="t('原地升级')"
         :true-value="TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE" />
       <CardCheckbox
         v-model="updateType"
         class="ml-8"
-        :desc="t('适用于大版本升级，如 5.6.0 ->  5.7.0')"
+        :desc="t('适用于大版本升级，如 spider1.x -> spider3.x')"
         icon="clone"
         :title="t('迁移升级')"
         :true-value="TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE" />
