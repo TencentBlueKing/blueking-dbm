@@ -56,7 +56,7 @@ def get_ticket_zone_list(ticket_data, role="backend_group"):
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
     ]:
-        zone_list = ticket_data["resource_spec"][role]["location_spec"]["sub_zone_ids"]
+        zone_list = ticket_data["resource_spec"][role]["location_spec"].get("sub_zone_ids", [])
     return zone_list
 
 
@@ -87,7 +87,7 @@ def fetch_host_ids(details: Dict[str, Any]) -> List[int]:
     return get_filtered_items(details, host_keys, int)
 
 
-def fetch_machine_ids(details: Dict[str, Any]) -> List[Union[int, str]]:
+def fetch_host_ips(details: Dict[str, Any]) -> List[Union[int, str]]:
     machine_keys = ["ip"]
     return get_filtered_items(details, machine_keys, (int, str))
 
@@ -605,7 +605,7 @@ class BaseTicketFlowBuilderPatchMixin(object):
 
     def patch_machine_details(self):
         """补充主机信息"""
-        machine_ips = [ip for info in self.ticket.details["infos"] for ip in fetch_machine_ids(info["old_nodes"])]
+        machine_ips = [ip for info in self.ticket.details["infos"] for ip in fetch_host_ips(info["old_nodes"])]
 
         if not machine_ips:
             return

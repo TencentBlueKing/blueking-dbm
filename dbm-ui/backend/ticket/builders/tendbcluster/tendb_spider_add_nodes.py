@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.enums.spec import SpecMachineType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -53,16 +53,26 @@ class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 class TendbSpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        cluster_map = Cluster.objects.in_bulk(fetch_cluster_ids(self.ticket_data["infos"]))
+        cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
+        cluster_map = Cluster.objects.in_bulk(cluster_ids)
+        # 获取集群下剩余的spider master
+        remain_spiders = ProxyInstance.objects.select_related("machine").filter(
+            cluster__in=cluster_ids,
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+        )
+        cluster__spider_inst_map = defaultdict(list)
+        for spider in remain_spiders:
+            cluster__spider_inst_map[spider.cluster.first().id].append(spider.machine)
+
         for info in self.ticket_data["infos"]:
             self.patch_common_affinity(
                 info,
                 role="spider_ip_list",
                 cluster=cluster_map[info["cluster_id"]],
-                role_type=SpecMachineType.PROXY,
-                group_count=2,
+                exclusive_hosts=cluster__spider_inst_map.get(info["cluster_id"], []),
                 # spider slave扩容无需亲和性
                 no_need_affinity=info["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+                tolerance=0.5,
             )
 
     def post_callback(self):

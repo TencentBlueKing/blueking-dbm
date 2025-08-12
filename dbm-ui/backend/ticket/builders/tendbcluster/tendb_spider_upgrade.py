@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums.spec import SpecMachineType
+from backend.db_meta.enums import MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -55,8 +55,8 @@ class TenDBSpiderUpgradeParamBuilder(builders.FlowParamBuilder):
 
 class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_common_affinity("spider_master", SpecMachineType.PROXY, group_count=2)
-        self.patch_info_common_affinity("spider_slave", SpecMachineType.PROXY, no_need_affinity=True)
+        self.patch_info_common_affinity("spider_master", remain_machine_type=MachineType.SPIDER, tolerance=0.5)
+        self.patch_info_common_affinity("spider_slave", no_need_affinity=True)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
