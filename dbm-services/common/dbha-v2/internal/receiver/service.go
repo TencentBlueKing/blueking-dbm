@@ -32,16 +32,23 @@ import (
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"encoding/json"
 	"strings"
+	"time"
 
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/hako/durafmt"
+)
+
+const (
+	Name = "receiver"
 )
 
 type Service struct {
 	quit         chan struct{}
-	id           string
+	info         discovery.ServiceInfo
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	inputters    []source.Inputter
@@ -49,13 +56,12 @@ type Service struct {
 }
 
 func (s *Service) createDiscovery() error {
-	s.id = uuid.New().String()
-
 	cli, err := discovery.NewClientWithOptions(
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoints, ";")),
+		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, ";")),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
-		discovery.OptionServiceID(s.id),
+		discovery.OptionServiceName(s.info.Name),
+		discovery.OptionServiceID(s.info.ID),
 	)
 
 	if err != nil {
@@ -69,7 +75,26 @@ func (s *Service) createDiscovery() error {
 	}
 	s.regCli = regCli
 
+	s.updateInfo()
 	return nil
+}
+
+func (s *Service) updateInfo() {
+	if s.info.UpdatedAt.IsZero() {
+		s.info.UpdatedAt = time.Now().Local()
+	}
+
+	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
+
+	data, err := json.Marshal(s.info)
+	if err != nil {
+		logger.Warn("failed to marshal service info to json, errmsg: %v", err)
+		return
+	}
+
+	if err = s.regCli.SetService(context.Background(), string(data)); err != nil {
+		logger.Warn("failed to udpate the service info in the registry, errmsg: %v", err)
+	}
 }
 
 func (s *Service) createSource(ctx context.Context) error {
@@ -125,6 +150,10 @@ func (s *Service) createSinks() error {
 }
 
 func (s *Service) Run(ctx context.Context) error {
+	s.info.Name = Name
+	s.info.ID = uuid.New().String()
+	s.info.StartTime = time.Now().Local()
+
 	if err := s.createDiscovery(); err != nil {
 		return err
 	}
@@ -141,15 +170,21 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	select {
-	case <-s.quit:
-		break
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
 
-	case <-ctx.Done():
-		break
+	for {
+		select {
+		case <-s.quit:
+			return nil
+
+		case <-ctx.Done():
+			return nil
+
+		case <-ticker.C:
+			s.updateInfo()
+		}
 	}
-
-	return nil
 }
 
 func (s *Service) Close() {
