@@ -35,6 +35,8 @@ import (
 	"log/slog"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	kbworkloadv1 "github.com/apecloud/kubeblocks/apis/workloads/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -47,7 +49,6 @@ import (
 	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -226,7 +227,19 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	// install cluster
 	values, err := c.installHelmRelease(request, k8sClient)
 	if err != nil {
-		slog.Error("failed to install helm release", "error", err)
+		exists, checkErr := coreutil.CheckClusterReleaseExists(k8sClient, request.Namespace, request.ClusterName)
+		if checkErr != nil {
+			return dbserrors.NewK8sDbsError(dbserrors.GetClusterError,
+				fmt.Errorf("检索集群 release 失败: %w", err))
+		}
+		if exists {
+			uninstallErr := coreutil.UninstallClusterRelease(k8sClient, request.Namespace,
+				request.ClusterName, metav1.DeletePropagationBackground)
+			if uninstallErr != nil {
+				return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError,
+					fmt.Errorf("卸载集群 release 失败: %w", uninstallErr))
+			}
+		}
 		return dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err)
 	}
 
@@ -238,20 +251,20 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 
 	// save metadata of cluster tag
 	if len(request.Tags) > 0 {
-		if err = c.saveClusterTags(request, clusterEntity); err != nil {
+		if err = c.saveClusterTagsMeta(request, clusterEntity); err != nil {
 			return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 		}
 	}
 
 	// save metadata of cluster release
-	if err = c.saveClusterRelease(request, k8sClusterConfig, values); err != nil {
+	if err = c.saveClusterReleaseMeta(request, k8sClusterConfig, values); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	return nil
 }
 
-// saveClusterRelease 记录集群 release 元数据
-func (c *ClusterProvider) saveClusterRelease(
+// saveClusterReleaseMeta 记录集群 release 元数据
+func (c *ClusterProvider) saveClusterReleaseMeta(
 	request *coreentity.Request,
 	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
 	values map[string]interface{},
@@ -280,7 +293,7 @@ func (c *ClusterProvider) saveClusterRelease(
 }
 
 // saveClusterMetaData 记录集群 tags
-func (c *ClusterProvider) saveClusterTags(
+func (c *ClusterProvider) saveClusterTagsMeta(
 	request *coreentity.Request,
 	cluster *metaentity.K8sCrdClusterEntity,
 ) error {
@@ -312,14 +325,14 @@ func (c *ClusterProvider) saveClusterCRMetaData(
 	k8sClusterConfigID uint64,
 ) (*metaentity.K8sCrdClusterEntity, error) {
 	// 记录 cluster 元数据
-	addedClusterEntity, err := c.createClusterEntity(request, requestID, k8sClusterConfigID)
+	addedClusterEntity, err := c.saveClusterMeta(request, requestID, k8sClusterConfigID)
 	if err != nil {
 		return nil, err
 	}
 
 	clusterID := addedClusterEntity.ID
 	// 记录 component 元数据
-	_, err = c.createComponentEntity(request, clusterID)
+	_, err = c.saveComponentMeta(request, clusterID)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +361,7 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	values, err := c.updateCluster(request, k8sClient, isPartial)
+	values, err := c.updateClusterRelease(request, k8sClient, isPartial)
 	if err != nil {
 		slog.Error("failed to update cluster", "error", err)
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err)
@@ -413,7 +426,12 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 			K8sClusterConfigID: k8sClusterConfig.ID,
 		})
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("检索集群 %s 元数据失败 %w ", request.ClusterName, err))
+	}
+	if clusterEntity == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("集群 %s 不存在", request.ClusterName))
 	}
 
 	// 集群操作检查
@@ -429,13 +447,15 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 	}
 	// 清理元数据
 	if err := c.clearClusterRelateMeta(ctx, clusterEntity); err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.DeleteMetaDataError, err)
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteMetaDataError,
+			fmt.Errorf("清理 cluster 元数据失败: %w", err))
 	}
 
 	// 删除集群
-	if err = coreutil.DeleteStorageAddonCluster(k8sClient, request.ClusterName, request.Namespace); err != nil {
-		slog.Error("failed to delete storage addon cluster", "error", err)
-		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
+	if err = coreutil.UninstallClusterRelease(k8sClient, request.Namespace,
+		request.ClusterName, metav1.DeletePropagationBackground); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError,
+			fmt.Errorf("清理 release 元数据失败: %w", err))
 	}
 	return nil
 }
@@ -451,19 +471,19 @@ func (c *ClusterProvider) clearClusterRelateMeta(
 	}
 
 	// 清理 cluster tag 元数据
-	if err := c.clearClusterTags(ctx, clusterEntity); err != nil {
+	if err := c.clearClusterTagsMeta(ctx, clusterEntity); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 
 	// 清理 cluster release 元数据
-	if err := c.clearClusterRelease(ctx, clusterEntity); err != nil {
+	if err := c.clearClusterReleaseMeta(ctx, clusterEntity); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
 	return nil
 }
 
-// clearClusterRelease 清理 cluster release 元数据
-func (c *ClusterProvider) clearClusterRelease(
+// clearClusterReleaseMeta 清理 cluster release 元数据
+func (c *ClusterProvider) clearClusterReleaseMeta(
 	_ *commentity.DbsContext,
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) error {
@@ -483,8 +503,8 @@ func (c *ClusterProvider) clearClusterRelease(
 	return nil
 }
 
-// clearClusterTags 清理 cluster tag 元数据
-func (c *ClusterProvider) clearClusterTags(
+// clearClusterTagsMeta 清理 cluster tag 元数据
+func (c *ClusterProvider) clearClusterTagsMeta(
 	ctx *commentity.DbsContext,
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 ) error {
@@ -529,8 +549,8 @@ func (c *ClusterProvider) GetClusterStatus(request *coreentity.Request) (*coreen
 	return dataResponse.ClusterStatus, nil
 }
 
-// createClusterEntity Save and return the cluster instance
-func (c *ClusterProvider) createClusterEntity(
+// saveClusterMeta Save and return the cluster instance
+func (c *ClusterProvider) saveClusterMeta(
 	request *coreentity.Request,
 	requestID string,
 	k8sClusterConfigID uint64,
@@ -582,8 +602,8 @@ func (c *ClusterProvider) createClusterEntity(
 	return addedClusterEntity, nil
 }
 
-// createComponentEntity Save and return an array of component instances
-func (c *ClusterProvider) createComponentEntity(
+// saveComponentMeta Save and return an array of component instances
+func (c *ClusterProvider) saveComponentMeta(
 	request *coreentity.Request,
 	crdClusterID uint64,
 ) ([]*metaentity.K8sCrdComponentEntity, error) {
@@ -721,8 +741,8 @@ func (c *ClusterProvider) installHelmRelease(
 	return values, nil
 }
 
-// updateCluster 更新 release
-func (c *ClusterProvider) updateCluster(
+// updateClusterRelease 更新 cluster release
+func (c *ClusterProvider) updateClusterRelease(
 	request *coreentity.Request,
 	k8sClient *commutil.K8sClient,
 	isPartial bool,
@@ -808,7 +828,6 @@ func (c *ClusterProvider) getClusterHelmRepository(
 		ChartName:    request.StorageAddonType + "-cluster",
 		ChartVersion: request.StorageAddonVersion,
 	}
-
 	helmRepo, err := c.clusterHelmRepoProvider.FindByParams(repoParams)
 	if err != nil {
 		slog.Error("failed to find helm repo for cluster", "clusterName", request.ClusterName, "error", err)

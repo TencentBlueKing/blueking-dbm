@@ -164,9 +164,14 @@ var codeTag = map[ErrorCode]string{
 
 // NewK8sDbsError 自定义错误
 func NewK8sDbsError(code ErrorCode, err error) error {
+	errorDetail := codeTag[code]
+	if err != nil {
+		errorDetail = err.Error()
+	}
+
 	return &K8sDbsError{
 		Code:        code,
 		Message:     codeTag[code],
-		ErrorDetail: err.Error(),
+		ErrorDetail: errorDetail,
 	}
 }

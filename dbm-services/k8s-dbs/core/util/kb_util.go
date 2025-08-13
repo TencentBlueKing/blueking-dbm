@@ -199,25 +199,6 @@ func CheckStorageAddonIsCreated(k8sClient *commutil.K8sClient, targetChartFullNa
 	return false, nil
 }
 
-// DeleteStorageAddonCluster helm uninstall storage addon cluster
-func DeleteStorageAddonCluster(k8sClient *commutil.K8sClient, clusterName, namespace string) error {
-
-	// init helm client
-	actionConfig, err := k8sClient.BuildHelmConfig(namespace)
-	if err != nil {
-		return err
-	}
-
-	// uninstall helm chart
-	uninstall := action.NewUninstall(actionConfig)
-	_, err = uninstall.Run(clusterName)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // ReadValuesYaml 读取 values.yaml 文件并解析为 map[string]interface{}
 func ReadValuesYaml(chartPath string) (map[string]interface{}, error) {
 	valuesPath := filepath.Join(chartPath, "values.yaml")
