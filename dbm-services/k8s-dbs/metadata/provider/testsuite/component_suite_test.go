@@ -76,7 +76,7 @@ func (suite *ComponentProviderTestSuite) SetupTest() {
 	testhelper.InitTestTable(suite.mySqlContainer.ConnStr, constant.TbK8sCrdComponent, &model.K8sCrdComponentModel{})
 }
 
-func TestComponentProviderTestSuite(t *testing.T) {
+func TestComponentProvider(t *testing.T) {
 	suite.Run(t, new(ComponentProviderTestSuite))
 }
 
