@@ -30,9 +30,9 @@ var Cfg = Configuration{}
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
-	User      string `yaml:"user"      mapstructure:"user"`
-	Password  string `yaml:"password"  mapstructure:"password"`
+	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
+	User     string `yaml:"user"     mapstructure:"user"`
+	Password string `yaml:"password" mapstructure:"password"`
 }
 
 // InputConfig define the information of data input stream.

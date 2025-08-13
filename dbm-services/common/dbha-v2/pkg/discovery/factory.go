@@ -26,10 +26,21 @@ package discovery
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"fmt"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 )
+
+type ConcurrencyMutex interface {
+	TryLock(key string) error
+	Unlock() error
+}
+
+type concurrencyMutex struct {
+	session *concurrency.Session
+	mutex   *concurrency.Mutex
+	key     string
+}
 
 // Client etcd client
 type Client struct {
@@ -69,9 +80,18 @@ func (c Client) CreateRegistry() (*Registry, error) {
 		return nil, gerrors.New(gerrors.InvalidParameter, "service-id is required")
 	}
 
+	rootKey := c.opts.registryRootKeyPrefix
+	if c.opts.serviceName != "" {
+		rootKey += "/" + c.opts.serviceName
+	}
+
+	if c.opts.serviceID != "" {
+		rootKey += "/" + c.opts.serviceID
+	}
+
 	registry := &Registry{
 		serviceId: c.opts.serviceID,
-		rootKey:   fmt.Sprintf("%s/%s", c.opts.registryRootKeyPrefix, c.opts.serviceID),
+		rootKey:   rootKey,
 		ttl:       defaultTTL,
 		quit:      make(chan struct{}),
 		eventChan: make(chan *RegistryEvent, c.opts.bufferMaxSize),
@@ -89,4 +109,27 @@ func (c Client) CreateDiscovery() (*Discovery, error) {
 	}
 
 	return discovery, nil
+}
+
+func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
+	session, err := concurrency.NewSession(c.etcdCli)
+	if err != nil {
+		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+	}
+
+	mu := concurrency.NewMutex(session, key)
+
+	return &concurrencyMutex{
+		session: session,
+		key:     key,
+		mutex:   mu,
+	}, nil
+}
+
+func (c *concurrencyMutex) TryLock(key string) error {
+	return nil
+}
+
+func (c *concurrencyMutex) Unlock() error {
+	return nil
 }
