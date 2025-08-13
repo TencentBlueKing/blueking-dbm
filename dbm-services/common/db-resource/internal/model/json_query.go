@@ -139,6 +139,7 @@ func (jsonQuery *JSONQueryExpression) Equals(value interface{}, keys ...string) 
 // jointOrContainsBuild jointOrContainsBuild
 // nolint
 func (jsonQuery *JSONQueryExpression) jointOrContainsBuild(builder clause.Builder) {
+	builder.WriteString("(")
 	for idx, v := range jsonQuery.jointOrContainVals {
 		if idx != 0 {
 			builder.WriteString(" OR ")
@@ -148,8 +149,9 @@ func (jsonQuery *JSONQueryExpression) jointOrContainsBuild(builder clause.Builde
 		builder.WriteString(",'")
 		builder.WriteString("[\"")
 		builder.WriteString(v)
-		builder.WriteString("\"]') ")
+		builder.WriteString("\"]')")
 	}
+	builder.WriteString(")")
 }
 
 // extractBuild extractBuild

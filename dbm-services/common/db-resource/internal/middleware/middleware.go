@@ -34,6 +34,8 @@ func init() {
 	RequestLoggerFilter = &ApiLoggerFilter{}
 	RequestLoggerFilter.Add("/ping")
 	RequestLoggerFilter.Add("/metrics")
+	RequestLoggerFilter.Add("/resource/list")
+	RequestLoggerFilter.Add("/resource/list/all")
 }
 
 // ApiLoggerFilter TODO

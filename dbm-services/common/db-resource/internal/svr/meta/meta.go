@@ -56,7 +56,7 @@ func (m *MeasureRange) MatchCpu(db *gorm.DB) {
 func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
 	switch {
 	case m.Min > 0 && m.Max > 0:
-		db.Where(col+" >= ? and "+col+" <= ?", m.Min, m.Max)
+		db.Where(col+" BETWEEN ? AND ?", m.Min, m.Max)
 	case m.Max > 0 && m.Min <= 0:
 		db.Where(col+" <= ?", m.Max)
 	case m.Max <= 0 && m.Min > 0:
