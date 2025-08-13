@@ -32,9 +32,10 @@
         <span>{{ t('添加') }}</span>
       </BkButton>
       <BkTable
-        v-if="executeObjects.length > 0"
+        v-if="modelValue.length > 0"
+        :key="renderKey"
         class="mt-16"
-        :data="executeObjects">
+        :data="modelValue">
         <BkTableColumn
           field="dbnames"
           :label="t('变更 DB')"
@@ -53,14 +54,24 @@
         </BkTableColumn>
         <BkTableColumn
           field="sql_files"
-          :label="t('执行的文件')"
-          width="200">
-          <template #default="{ data }: {data: ExcuteObject}">
-            <I18nT
-              keypath="n个文件"
-              tag="span">
-              <span style="font-weight: bolder">{{ data.sql_files.length }}</span>
-            </I18nT>
+          :label="t('执行的 SQL')"
+          width="300">
+          <template #default="{ data, rowIndex }: {data: ExcuteObject, rowIndex: number}">
+            <BkButton
+              v-if="data.sql_files"
+              text
+              theme="primary"
+              @click="() => handleTableEdit(data, rowIndex)">
+              <template v-if="data.sql_files.length < 2">
+                <DbIcon
+                  style="margin-right: 4px; color: #3a84ff"
+                  type="file" />
+                {{ data.sql_files[0] }}
+              </template>
+              <template v-else>
+                {{ t('n 个 SQL 文件', { n: data.sql_files.length }) }}
+              </template>
+            </BkButton>
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -166,12 +177,12 @@
   const isShowSideSlider = ref(false);
   const disabledConfirm = ref(true);
   const currentIndex = ref(-1);
+  const renderKey = ref(1);
 
   const currentData = shallowRef();
-  const executeObjects = shallowRef<Array<ExcuteObject>>([]);
 
   const allDbnames = computed(() =>
-    executeObjects.value.filter((_item, index) => index !== currentIndex.value).flatMap((item) => item.dbnames),
+    modelValue.value.filter((_item, index) => index !== currentIndex.value).flatMap((item) => item.dbnames),
   );
 
   const handleChange = ({
@@ -182,17 +193,17 @@
     sqlFileData: Record<string, SqlFileModel>;
   }) => {
     if (currentIndex.value > -1) {
-      executeObjects.value.splice(currentIndex.value, 1, rowData);
+      modelValue.value[currentIndex.value] = rowData;
+      renderKey.value = renderKey.value + 1;
       sqlFileCache.splice(currentIndex.value, 1, sqlFileData);
     } else {
-      executeObjects.value = executeObjects.value.concat(rowData);
+      modelValue.value = modelValue.value.concat(rowData);
       sqlFileCache = sqlFileCache.concat(sqlFileData);
     }
-    modelValue.value = executeObjects.value;
   };
 
   const handleTableEdit = (data: ExcuteObject, index: number) => {
-    currentData.value = data;
+    currentData.value = _.cloneDeep(data);
     currentIndex.value = index;
     isShowSideSlider.value = true;
   };
@@ -206,9 +217,8 @@
   };
 
   const handleTableDelete = (index: number) => {
-    executeObjects.value.splice(index, 1);
+    modelValue.value.splice(index, 1);
     sqlFileCache.splice(index, 1);
-    modelValue.value = executeObjects.value;
     formItemRef.value!.clearValidate();
   };
 
@@ -230,15 +240,14 @@
 
   defineExpose<Exposes>({
     setReEditValue(data: Mysql.ImportSqlFile['execute_objects']) {
-      executeObjects.value = data;
       sqlFileCache = data.reduce<Record<string, SqlFileModel>[]>((prev, dataItem) => {
-        const sqlFileInfo = dataItem.sql_files.map((sqlFileName) => {
+        const sqlFileInfo = dataItem.sql_files.reduce<Record<string, SqlFileModel>>((prev, sqlFileName) => {
           const localFileName = getSQLFilename(sqlFileName);
           const sqlFile = new SqlFileModel();
           sqlFile.grammarCheckStart();
           sqlFile.grammarCheckSuccessed({ [localFileName]: new GrammarCheckModel() });
-          return { [localFileName]: sqlFile };
-        });
+          return Object.assign(prev, { [localFileName]: sqlFile });
+        }, {});
         return prev.concat(sqlFileInfo);
       }, []);
     },

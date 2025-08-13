@@ -99,7 +99,7 @@
     () => {
       setTimeout(() => {
         if (props.modelValue !== editor.getValue()) {
-          editor.setValue(props.modelValue);
+          editor.setValue(props.modelValue || '');
           isMessageListFolded.value = true;
         }
       });
