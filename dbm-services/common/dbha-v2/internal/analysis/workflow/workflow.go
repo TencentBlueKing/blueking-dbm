@@ -111,18 +111,28 @@ func (w *Workflow) Run(ctx context.Context) error {
 		w.cfg.ScanInterval = scanIntervalLimitMin
 	}
 
-	for {
-		select {
-		case <-w.quit:
-			return nil
+	w.wg.Add(1)
 
-		case <-ctx.Done():
-			return nil
+	go func() {
+		defer w.wg.Done()
+		ticker := time.NewTicker(w.cfg.ScanInterval)
+		defer ticker.Stop()
 
-		case <-time.After(w.cfg.ScanInterval):
-			w.scanBusinesses(ctx)
+		for {
+			select {
+			case <-w.quit:
+				return
+
+			case <-ctx.Done():
+				return
+
+			case <-ticker.C:
+				w.scanBusinesses(ctx)
+			}
 		}
-	}
+	}()
+
+	return nil
 }
 
 func (w *Workflow) Close() {

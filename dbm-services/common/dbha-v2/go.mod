@@ -24,6 +24,8 @@ require (
 	google.golang.org/protobuf v1.36.6
 )
 
+require github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
+
 require (
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
