@@ -161,13 +161,11 @@ class MySQLProxyClusterReduceFlow(object):
                     op_type=DnsOpType.RECYCLE_RECORD,
                     param={
                         "cluster_id": cluster_id,
-                        "port": cluster["proxy_port"],
-                        "del_ips": [info["proxy_ip"]["ip"]],
+                        "port": origin_proxy.port,
+                        "del_ips": [info["origin_proxy_ip"]["ip"]],
                     },
                 )
                 cluster_sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
-
-                # todo 增加proxy脱离集群的方法，将proxy的backend设置成1.1.1.1:3306
 
                 cluster_sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 

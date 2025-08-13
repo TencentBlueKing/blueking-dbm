@@ -11,8 +11,9 @@ from collections import defaultdict
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import AccessLayer, InstanceStatus
+from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Cluster
+from backend.flow.consts import MIN_TENDB_PROXY_COUNT_IN_TICKET
 from backend.flow.engine.bamboo.scene.mysql.validate.exception import ProxyReduceCountFailedException
 from backend.flow.engine.validate.base_validate import validator_log_format
 from backend.flow.engine.validate.exceptions import DuplicateIPException, TicketDataException
@@ -28,8 +29,8 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
     校验2：同一个flow, 同一主机，所关联集群信息是否有传全
     聚合校验：
     检验3：同一个flow，同一个集群，传入机器不能重复
-    检验4：同一个flow，同一个集群，缩容后proxy节点不能少于1台
-    校验5：同一个flow，同一个集群，缩容后如果proxy数量还剩下两个以上，需要符合集群高可用特性
+    检验4：同一个flow，同一个集群，缩容后proxy节点不能少于2台
+    校验5：同一个flow，同一个集群，缩容后如果proxy节点，要需要符合集群高可用特性
     """
 
     def __calc_reduce_ips_based_on_cluster(self):
@@ -56,8 +57,8 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
     def pre_check_remaining_proxy(self):
         """
         这里根据集群维度，检查缩容后剩余proxy的一些项。目前检查2项:
-        1: 缩容后 running状态的 proxy节点不能少于1台
-        2：缩容后如果proxy数量还剩下两个以上，需要符合集群高可用特性
+        1: 缩容后 running状态的 proxy节点不能少于2台
+        2：缩容后如果proxy节点，要需要符合集群高可用特性
         """
 
         # 一次性遍历所有集群的这次缩容的proxy数量
@@ -68,24 +69,25 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
             cluster = Cluster.objects.get(id=int(cluster_id))
             remaining_proxy = cluster.proxyinstance_set.exclude(machine__ip__in=list(ips))
 
-            # 找出缩容proxy节点后running状态的数量少于1的集群，要保证至少有一个running状态的proxy节点
-            if remaining_proxy.filter(status=InstanceStatus.RUNNING).count() < 1:
-                err_msg += _("集群[{}]缩容后没有running状态的proxy节点，请检查 \n".format(cluster.immute_domain))
+            # 缩容后proxy节点数不能少于2
+            if remaining_proxy.count() < MIN_TENDB_PROXY_COUNT_IN_TICKET:
+                err_msg += _(
+                    "集群[{}]缩容后proxy节点数量不能少于{}，请检查 \n".format(cluster.immute_domain, MIN_TENDB_PROXY_COUNT_IN_TICKET)
+                )
                 continue
 
             # 缩容后如果proxy数量还剩下两个以上，需要符合集群高可用特性
-            if remaining_proxy.count() > 1:
-                check_hosts = [
-                    {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
-                    for i in remaining_proxy
-                ]
-                if not self.check_disaster_tolerance_level(cluster=cluster, hosts=check_hosts):
-                    err_msg += _(
-                        "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
-                            cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
-                        )
+            check_hosts = [
+                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                for i in remaining_proxy
+            ]
+            if not self.check_disaster_tolerance_level(cluster=cluster, hosts=check_hosts):
+                err_msg += _(
+                    "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
+                        cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
                     )
-                    continue
+                )
+                continue
 
         return err_msg
 
@@ -144,7 +146,7 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
         if err:
             raise DuplicateIPException(err)
 
-        # 同一个flow，同一个集群，缩容后proxy节点不能少于1台
+        # 同一个flow，同一个集群，缩容后proxy节点不能少于2台
         # 同一个flow，同一个集群，缩容后如果proxy数量还剩下两个以上，需要符合集群高可用特性
         err = self.pre_check_remaining_proxy()
         if err:

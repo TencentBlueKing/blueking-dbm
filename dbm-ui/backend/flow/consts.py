@@ -83,6 +83,9 @@ MIN_SPIDER_SLAVE_COUNT = 1
 # 定义TenDB-HA的最少proxy实例数量
 MIN_TENDB_PROXY_COUNT = 1
 
+# 定义TenDB-HA的最少proxy实例数量, 在单据提单场景
+MIN_TENDB_PROXY_COUNT_IN_TICKET = 2
+
 TDBCTL_USER = "spider"
 
 # 定义每个flow发起时的实例临时账号名称前缀
