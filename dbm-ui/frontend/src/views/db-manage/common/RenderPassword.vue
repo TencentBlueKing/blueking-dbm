@@ -243,13 +243,7 @@
   const isKafka = computed(() => props.dbType === DBTypes.KAFKA);
   const isClbShow = computed(() => props.dbType === DBTypes.ES);
 
-  const domainDisplay = computed(() => {
-    if (isPulsar.value) {
-      return result.value.domain || '--';
-    }
-
-    return `${result.value.domain}:${result.value.access_port}`;
-  });
+  const domainDisplay = computed(() => `${result.value.domain}:${result.value.access_port}`);
 
   const passwordText = computed(() => {
     if (!isShowPassword.value) {
@@ -336,7 +330,7 @@
 
     let content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
     if (isPulsar.value) {
-      content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
+      content = `${t('集群名称')}: ${clusterName}\n${t('域名')}: ${domainPort}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
     }
     let securityInfo = '';
     if (isKafka.value) {
@@ -360,11 +354,6 @@
         copy(clusterName);
         break;
       case 'domain':
-        if (isPulsar.value) {
-          copy(domain);
-          return;
-        }
-
         copy(domainPort);
         break;
       case 'username':
