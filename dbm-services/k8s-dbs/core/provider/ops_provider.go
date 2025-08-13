@@ -151,15 +151,15 @@ func (o *OpsRequestProvider) withMetaDataSync(
 	}
 
 	if releaseUpdateFn != nil {
-		// 更新集群 release 记录
+		// 更新 cluster release 元数据
 		_, err = releaseUpdateFn(o.releaseMetaProvider, request, dbsCtx.K8sClusterConfigID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// 更新集群 cluster 记录
-	if err = metautil.UpdateClusterLastUpdated(o.clusterMetaProvider, dbsCtx, request); err != nil {
+	// 更新 cluster 元数据
+	if err = metautil.UpdateClusterMeta(o.clusterMetaProvider, dbsCtx, request); err != nil {
 		return nil, err
 	}
 	return result, nil

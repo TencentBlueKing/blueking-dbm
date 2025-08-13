@@ -125,8 +125,8 @@ func SaveAuditLog(
 	return addedRequestRecord, nil
 }
 
-// UpdateClusterLastUpdated 更新 cluster 元数据最近一次更新时间和更新人
-func UpdateClusterLastUpdated(
+// UpdateClusterMeta 更新 cluster 元数据
+func UpdateClusterMeta(
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 	dbsCtx *commentity.DbsContext,
 	request *coreentity.Request,
@@ -139,7 +139,15 @@ func UpdateClusterLastUpdated(
 	if err != nil {
 		return err
 	}
-	clusterEntity.UpdatedBy = request.BkUserName
+	if request.BkUserName != "" {
+		clusterEntity.UpdatedBy = request.BkUserName
+	}
+	if request.TerminationPolicy != "" {
+		clusterEntity.TerminationPolicy = request.TerminationPolicy
+	}
+	if request.AddonClusterVersion != "" {
+		clusterEntity.AddonClusterVersion = request.AddonClusterVersion
+	}
 	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
 	if err != nil {
 		return err

@@ -371,8 +371,8 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 
-	// 更新集群 cluster 记录
-	if err = metautil.UpdateClusterLastUpdated(c.clusterMetaProvider, ctx, request); err != nil {
+	// 更新集群 cluster 元数据
+	if err = metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
 	return nil
