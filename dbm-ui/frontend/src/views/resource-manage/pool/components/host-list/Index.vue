@@ -390,16 +390,16 @@
       showOverflow: true,
     },
     {
-      field: 'bk_disk',
-      label: t('磁盘容量(G)'),
+      field: 'total_data_storage_cap',
+      label: t('数据盘容量（G）'),
       render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo
           data={data.storage_device}
           trigger='click'>
-          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
+          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.total_data_storage_cap || 0}</span>
         </DiskPopInfo>
       ),
-      width: 100,
+      width: 120,
     },
     {
       field: 'updateAtDisplay',
