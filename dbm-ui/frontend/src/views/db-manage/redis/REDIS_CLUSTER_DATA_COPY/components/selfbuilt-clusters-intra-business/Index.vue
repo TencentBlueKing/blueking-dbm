@@ -30,7 +30,7 @@
         field="src_cluster_password"
         :label="t('访问密码')"
         :params="{
-          dstCluster: item.dst_cluster.domain,
+          dstCluster: String(item.dst_cluster.id),
           srcCluster: item.src_cluster,
         }">
       </AccessCodeColumn>
