@@ -33,13 +33,6 @@ class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
     serializer_class = MySQLBackupRecoverTaskSerializer
     report_type = ReportType.MYSQL_BACKUP_RECOVER_TASK
     report_name = _("MySQL备份恢复任务")
-    # 重写 filter_fields，移除 status 字段，因为 MySQLBackupRecoverTask 模型没有这个字段
-    filter_fields = {
-        "bk_biz_id": ["exact"],
-        "cluster_type": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "task_status": ["exact", "in"],  # 使用 task_status 替代 status
-    }
     report_title = [
         {
             "name": "bk_biz_id",

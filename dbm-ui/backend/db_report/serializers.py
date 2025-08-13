@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.models import DBAdministrator
-from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
+from backend.db_periodic_task.models import MySQLBackupRecoverTask
 from backend.db_report import mock_data
 from backend.env import BK_SAAS_HOST, MYSQL_BACKUPRECOVER_BIZ_ID
 
@@ -49,7 +49,6 @@ class MySQLBackupRecoverTaskSerializer(serializers.ModelSerializer):
     """MySQL备份恢复任务序列化器"""
 
     recover_duration = serializers.SerializerMethodField(help_text=_("恢复花费时间(分钟)"))
-    status = serializers.SerializerMethodField(help_text=_("任务状态(布尔值)"))
     task_id = serializers.SerializerMethodField(help_text=_("任务ID链接"))
 
     def get_recover_duration(self, obj):
@@ -58,11 +57,6 @@ class MySQLBackupRecoverTaskSerializer(serializers.ModelSerializer):
             duration = obj.recover_end_time - obj.recover_start_time
             return int(duration.total_seconds() / 60)  # 转换为分钟
         return None
-
-    def get_status(self, obj):
-        """将任务状态转换为布尔值"""
-        # resource_return_success 和 recover_success 返回 True，其他状态返回 False
-        return obj.task_status in [TaskStatus.RESOURCE_RETURN_SUCCESS, TaskStatus.RECOVER_SUCCESS]
 
     def get_task_id(self, obj):
         """生成任务ID的超链接"""

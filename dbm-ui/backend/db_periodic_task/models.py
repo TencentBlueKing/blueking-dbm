@@ -23,6 +23,7 @@ from backend.bk_web import constants
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType
 from backend.db_periodic_task.constants import PeriodicTaskType
+from backend.db_report.report_basemodel import BaseReportABS
 
 logger = logging.getLogger("root")
 
@@ -104,7 +105,7 @@ class TaskStatus:
     RESOURCE_RETURN_SUCCESS = "resource_return_success"
 
 
-class MySQLBackupRecoverTask(AuditedModel):
+class MySQLBackupRecoverTask(BaseReportABS):
     """
     MySQL备份定期回档演练
     """
@@ -131,6 +132,7 @@ class MySQLBackupRecoverTask(AuditedModel):
     task_id = models.CharField(_("关联的任务ID"), max_length=constants.LEN_LONG, default="")
     task_status = models.CharField(_("任务状态"), max_length=constants.LEN_SHORT, default="")
     task_info = models.TextField(_("任务信息"), default="")
+    status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
 
     @classmethod
     def get_all_practiced_biz_ids(cls):
