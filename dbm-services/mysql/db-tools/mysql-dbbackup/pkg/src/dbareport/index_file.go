@@ -124,8 +124,13 @@ type ExtraFields struct {
 	BinlogFormat   string `json:"binlog_format" db:"binlog_format"`
 	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
 	// BackupTool command name xtrabackup / mydumper / mysqldump
-	BackupTool    string `json:"backup_tool" db:"backup_tool"`
+	BackupTool string `json:"backup_tool" db:"backup_tool"`
+	// DataDirSizeMB 所备份实例的原始数据目录大小
 	DataDirSizeMB uint64 `json:"data_dir_size_mb" db:"data_dir_size_mb"`
+	//OriginalBackupDir 原始机器的备份目录
+	// 正常不关注这个备份目录，因为文件上传的到远程之后，都是用相对目录
+	// 但如果从本地获取备份文件，需要这个目录来定位
+	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备

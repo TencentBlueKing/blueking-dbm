@@ -141,5 +141,6 @@ func buildMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) e
 	metaInfo.BackupId = cnfPub.BackupId
 	metaInfo.EncryptEnable = cnfPub.EncryptOpt.EncryptEnable
 	metaInfo.FileRetentionTag = cnf.BackupClient.FileTag
+	metaInfo.OriginalBackupDir = cnf.Public.BackupDir
 	return nil
 }

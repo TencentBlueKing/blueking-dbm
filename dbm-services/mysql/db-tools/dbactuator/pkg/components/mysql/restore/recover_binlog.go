@@ -776,7 +776,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 // Start godoc
 // 一定会解析 binlog
 func (r *RecoverBinlog) Start() error {
-	binlogFiles := strings.Join(r.BinlogFiles, " ")
+	fileCount := r.BinlogFiles
 	if r.ParseOnly {
 		if err := r.buildScript(); err != nil {
 			return err
@@ -798,30 +798,23 @@ func (r *RecoverBinlog) Start() error {
 				}()
 			}
 		}
-
-		// 这里要考虑命令行的长度
-		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
-		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
-		cmd := fmt.Sprintf(
-			`cd %s; %s %s | %s >>%s 2>%s`,
-			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
-		)
-		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
-		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
-		if err != nil {
-			if strings.TrimSpace(stdoutStr) == "" {
-				if errContent, err := osutil.ExecShellCommand(
-					false,
-					fmt.Sprintf("head -2 %s", errFile),
-				); err == nil {
-					if strings.TrimSpace(errContent) != "" {
-						logger.Error(errContent)
-					}
-				}
-			} else {
-				return errors.WithMessagef(err, "errFile: %s", errFile)
+		// 这里要考虑命令行的长度，挨个遍历 binlog file，而不是全部传入命令行
+		// 但要注意导入用的密码，不能在期间发生改变. (ADMIN密码可能会被随机化，临时密码会在单据存续期间保持不变)
+		for i, oneFile := range r.BinlogFiles {
+			outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
+			errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
+			cmd := fmt.Sprintf(
+				`cd %s; %s %s | %s >>%s 2>%s`,
+				r.BinlogDir, r.binlogCli, oneFile, r.mysqlCli, outFile, errFile,
+			)
+			logger.Info("[%d/%d] command:", i+1, fileCount,
+				mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
+			stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
+			if err != nil {
+				errStr, _ := cmutil.NewGrepLines(errFile, true, true).MatchWords(nil, 2)
+				return errors.WithMessagef(err, "errFile: %s\nstdoutStr:%s\nerrContent:%s\n",
+					errFile, stdoutStr, errStr)
 			}
-			return err
 		}
 	} else {
 		return errors.New("flashback=true must have parse_only=true")

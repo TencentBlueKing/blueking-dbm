@@ -638,6 +638,11 @@ func backupTarAndUpload(
 			return tarErr
 		}
 	}
+	defer func() {
+		if err2 := logReport.ReportToLocalBackup(indexFilePath); err2 != nil {
+			logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err2)
+		}
+	}()
 	// 只有 standby 实例 才需要上报（非 standby 默认是不 report, 不 upload）
 	if cnf.BackupClient.EnableBackupClient == "yes" {
 		// run backup_client
@@ -646,11 +651,6 @@ func backupTarAndUpload(
 			return err
 		}
 	}
-	if err = logReport.ReportToLocalBackup(indexFilePath); err != nil {
-		logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err)
-		// return err
-	}
 
-	logger.Log.Info("report backup info: end")
 	return nil
 }

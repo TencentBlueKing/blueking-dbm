@@ -21,7 +21,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 
 	reapi "dbm-services/common/reverseapi/apis/common"
@@ -375,17 +374,6 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 				taskId = ""
 			}
 			f.TaskId = taskId
-			backupTaskResult := BackupLogReport{}
-			backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
-			backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
-			backupTaskResult.EncryptedKey = r.EncryptedKey
-			backupTaskResult.ConsistentBackupTime = metaInfo.BackupConsistentTime
-			backupTaskResult.TaskId = taskId
-			backupTaskResult.FileName = f.FileName
-			backupTaskResult.FileType = f.FileType
-			backupTaskResult.FileSize = f.FileSize
-			backupTaskResult.FileRetentionTag = metaInfo.FileRetentionTag
-			Report().Files.Println(backupTaskResult)
 		}
 		if r.cfg.BackupToRemote.EnableRemote {
 			// 注意：在执行 backup_client 上传之后，.index 文件的内容就不能再修改，也就是 .index 文件里不能记录自身的 task_id

@@ -88,12 +88,24 @@ func reportMycnfConfig(c *infoReport) error {
 		"spider_net_write_timeout",
 		"spider_quick_mode",
 		"spider_bgs_mode",
+		"default_storage_engine",
+		"collation_server",
+		"log_bin", "binlog_format", "binlog_rows_query_log_events", "log_bin_compress",
+		"binlog_group_commit_sync_delay", "binlog_group_commit_sync_no_delay_count",
+		"gtid_mode",
+		"performance_schema",
+		"innodb_io_capacity", "innodb_read_io_threads", "innodb_write_io_threads",
+		"thread_cache_size", "thread_handling",
+		"innodb_buffer_pool_size", "join_buffer_size", "sort_buffer_size", "slave_skip_errors",
 	}
 	mergedItems := lo.Uniq[string](append(strings.Split(items, ","), spiderItems...))
 	res, err := configreport.QueryMycnfConfig(mergedItems, c.db)
 	if err != nil {
 		return err
 	}
+	res["port"] = config.MonitorConfig.Port
+	res["ip"] = config.MonitorConfig.Ip
+	res["cluster_domain"] = config.MonitorConfig.ImmuteDomain
 	event := configreport.NewDynamicEvent("mycnf_config", "tendbha", 1)
 	event.SetPayload(res)
 	report.Println(event)

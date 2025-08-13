@@ -606,6 +606,7 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 				break
 			}
 		}
+		// TODO 需要优化
 		// startTime,stopTime 都 < 开始时间，不算起始 binlog
 		if r.BinlogOpt.StartTime != "" && stopTime.Compare(startTimeFilter) < 0 && startTime.Compare(startTimeFilter) < 0 {
 			continue
