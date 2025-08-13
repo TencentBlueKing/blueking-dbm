@@ -44,7 +44,7 @@
         :label="t('访问密码')"
         :params="{
           dstCluster: item.dst_cluster,
-          srcCluster: item.cluster.master_domain,
+          srcCluster: String(item.cluster.id),
         }">
       </AccessCodeColumn>
       <RegexKeysColumn
