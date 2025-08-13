@@ -111,28 +111,32 @@
       {
         cluster_ids: number[];
         resource_spec: {
-          new_master: {
+          // 自动匹配走backend_group
+          backend_group?: {
             count: number;
-            hosts?: {
-              bk_biz_id: number;
-              bk_cloud_id: number;
-              bk_host_id: number;
-              ip: string;
-            }[];
-            label_names?: string[]; // 标签名称列表，单据详情回显用
-            labels?: string[]; // 标签id列表
+            label_names: string[]; // 标签名称列表，单据详情回显用
+            labels: string[]; // 标签id列表
             spec_id: number;
           };
-          new_slave: {
+          // 手动选择走new_master、new_slave
+          new_master?: {
             count: number;
-            hosts?: {
+            hosts: {
               bk_biz_id: number;
               bk_cloud_id: number;
               bk_host_id: number;
               ip: string;
             }[];
-            label_names?: string[]; // 标签名称列表，单据详情回显用
-            labels?: string[]; // 标签id列表
+            spec_id: number;
+          };
+          new_slave?: {
+            count: number;
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
             spec_id: number;
           };
         };
@@ -334,18 +338,27 @@
         const { infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
+            // 资源池自动匹配
+            if (props.sourceType === SourceType.RESOURCE_AUTO) {
+              return createTableRow({
+                labels: (item.resource_spec.backend_group?.labels || []).map((item) => ({ id: Number(item) })),
+                master: {
+                  ip: item.old_nodes.old_master?.[0]?.ip || '',
+                },
+                specId: item.resource_spec.backend_group?.spec_id || 0,
+              });
+            }
+            // 资源池手动选择
             return createTableRow({
-              labels: (item.resource_spec.new_master.labels || []).map((item) => ({ id: Number(item) })),
               master: {
                 ip: item.old_nodes.old_master?.[0]?.ip || '',
               },
               newMaster: {
-                ip: item.resource_spec.new_master.hosts?.[0]?.ip || '',
+                ip: item.resource_spec.new_master?.hosts?.[0]?.ip || '',
               },
               newSlave: {
-                ip: item.resource_spec.new_slave.hosts?.[0]?.ip || '',
+                ip: item.resource_spec.new_slave?.hosts?.[0]?.ip || '',
               },
-              specId: item.resource_spec.new_master.spec_id,
             });
           });
         }
@@ -417,24 +430,31 @@
       return tableData.value.map((item) => ({
         cluster_ids: item.master.cluster_ids,
         resource_spec: {
-          new_master: {
-            count: 1,
-            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newMaster] : undefined,
-            label_names:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
-            labels:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
-            spec_id: item.specId,
-          },
-          new_slave: {
-            count: 1,
-            hosts: props.sourceType === SourceType.RESOURCE_MANUAL ? [item.newSlave] : undefined,
-            label_names:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => item.value) : undefined,
-            labels:
-              props.sourceType === SourceType.RESOURCE_AUTO ? item.labels.map((item) => String(item.id)) : undefined,
-            spec_id: item.specId,
-          },
+          backend_group:
+            props.sourceType === SourceType.RESOURCE_AUTO
+              ? {
+                  count: 1,
+                  label_names: item.labels.map((item) => item.value),
+                  labels: item.labels.map((item) => String(item.id)),
+                  spec_id: item.specId,
+                }
+              : undefined,
+          new_master:
+            props.sourceType === SourceType.RESOURCE_MANUAL
+              ? {
+                  count: 1,
+                  hosts: [item.newMaster],
+                  spec_id: item.specId,
+                }
+              : undefined,
+          new_slave:
+            props.sourceType === SourceType.RESOURCE_MANUAL
+              ? {
+                  count: 1,
+                  hosts: [item.newSlave],
+                  spec_id: item.specId,
+                }
+              : undefined,
         },
       }));
     },

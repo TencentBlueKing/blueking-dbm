@@ -15,6 +15,14 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
       old_slave: ResourcePoolRecycleHost[];
     };
     resource_spec: {
+      // 自动匹配走backend_group
+      backend_group: {
+        count: number;
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
+        spec_id: number;
+      };
+      // 手动选择走new_master、new_slave
       new_master: {
         count: number;
         hosts: {
@@ -22,10 +30,7 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port: number;
         }[];
-        label_names: string[]; // 标签名称列表，单据详情回显用
-        labels: string[]; // 标签id列表
         spec_id: number;
       };
       new_slave: {
@@ -35,10 +40,7 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port: number;
         }[];
-        label_names: string[]; // 标签名称列表，单据详情回显用
-        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
