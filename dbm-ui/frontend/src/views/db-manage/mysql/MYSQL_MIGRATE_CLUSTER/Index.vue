@@ -167,28 +167,32 @@
     infos: {
       cluster_ids: number[];
       resource_spec: {
-        new_master: {
+        // 自动匹配走backend_group
+        backend_group?: {
           count: number;
-          hosts?: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-          }[];
-          label_names?: string[]; // 标签名称列表，单据详情回显用
-          labels?: string[]; // 标签id列表
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
-        new_slave: {
+        // 手动选择走new_master、new_slave
+        new_master?: {
           count: number;
-          hosts?: {
+          hosts: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
-          label_names?: string[]; // 标签名称列表，单据详情回显用
-          labels?: string[]; // 标签id列表
+          spec_id: number;
+        };
+        new_slave?: {
+          count: number;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
           spec_id: number;
         };
       };
