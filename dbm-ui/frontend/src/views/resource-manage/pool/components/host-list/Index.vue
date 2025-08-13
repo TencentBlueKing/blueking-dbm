@@ -177,7 +177,6 @@
   import { TicketTypes } from '@common/const';
 
   import DbIcon from '@components/db-icon';
-  import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
@@ -395,16 +394,10 @@
       showOverflow: true,
     },
     {
-      field: 'bk_disk',
-      label: t('磁盘容量(G)'),
-      render: ({ data }: { data: DbResourceModel }) => (
-        <DiskPopInfo
-          data={data.storage_device}
-          trigger='click'>
-          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
-        </DiskPopInfo>
-      ),
-      width: 100,
+      field: 'total_data_storage_cap',
+      label: t('数据盘容量（G）'),
+      render: ({ data }: { data: DbResourceModel }) => data.total_data_storage_cap || '--',
+      width: 120,
     },
     {
       field: 'updateAtDisplay',
