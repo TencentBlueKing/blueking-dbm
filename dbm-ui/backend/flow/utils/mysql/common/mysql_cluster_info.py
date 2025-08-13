@@ -17,7 +17,19 @@ from backend.db_meta.models import Cluster
 
 
 def get_version_and_charset(bk_biz_id, db_module_id, cluster_type) -> Any:
-    """获取版本号和字符集信息"""
+    """
+    获取指定业务模块下的数据库版本号和字符集信息。
+
+    Args:
+        bk_biz_id (int or str): 业务ID
+        db_module_id (int or str): 模块ID
+        cluster_type (str): 集群类型（如 "tendbcluster"）
+
+    Returns:
+        tuple: (charset, db_version)
+            charset (str): 字符集信息
+            db_version (str): 数据库版本号
+    """
     data = DBConfigApi.query_conf_item(
         {
             "bk_biz_id": str(bk_biz_id),

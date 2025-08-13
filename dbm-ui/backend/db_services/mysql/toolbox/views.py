@@ -23,6 +23,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry, DBModule
 from backend.db_services.mysql.toolbox.handlers import ToolboxHandler
+from backend.db_services.mysql.toolbox.serializers import GetSpiderVersionModulesSerializer  # 新增
 from backend.db_services.mysql.toolbox.serializers import (
     ChangeClusterSpecSerializer,
     QueryPkgListByCompareVersionSerializer,
@@ -30,6 +31,7 @@ from backend.db_services.mysql.toolbox.serializers import (
     TendbhaAddSlaveDomainSerializer,
     TendbhaTransferToOtherBizSerializer,
 )
+from backend.db_services.mysql.toolbox.upgrade_tool import get_spider_version_modules_api
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
@@ -51,7 +53,6 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         _type_: _description_
     """
 
-    action_permission_map = {}
     default_permission_class = [DBManagePermission()]
 
     # This method is deprecated, use `query_higher_version_pkg_list` instead
@@ -104,6 +105,50 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         machine_type = data["machine_type"]
 
         result = ToolboxHandler().change_cluster_spec(cluster_id, cluster_type, spec_id, machine_type)
+        return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取spider版本模块列表"),
+        request_body=GetSpiderVersionModulesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetSpiderVersionModulesSerializer)
+    def get_spider_version_modules(self, request, **kwargs):
+        """
+        统一的API接口：获取spider版本模块列表
+        通过 higher_major_version 和 higher_sub_version 参数来控制查找策略
+        """
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id = data["cluster_id"]
+        higher_major_version = data["higher_major_version"]
+        higher_sub_version = data["higher_sub_version"]
+
+        # 从请求中获取业务ID，如果没有则从URL参数中获取
+        bk_biz_id = getattr(request, "bk_biz_id", None)
+        if not bk_biz_id:
+            # 如果从请求中无法获取，可以从集群信息中获取
+            from backend.db_meta.models import Cluster
+
+            try:
+                cluster = Cluster.objects.get(id=cluster_id)
+                bk_biz_id = cluster.bk_biz_id
+            except Cluster.DoesNotExist:
+                return Response(
+                    {
+                        "code": 1,
+                        "result": False,
+                        "message": _("集群 %(cluster_id)s 不存在") % {"cluster_id": cluster_id},
+                        "data": [],
+                    }
+                )
+
+        result = get_spider_version_modules_api(
+            cluster_id=cluster_id,
+            bk_biz_id=bk_biz_id,
+            higher_major_version=higher_major_version,
+            higher_sub_version=higher_sub_version,
+        )
+
         return Response(result)
 
 
@@ -166,7 +211,7 @@ class TendbhaTransferToOtherBizViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=TendbhaTransferToOtherBizSerializer)
     def transfer_tendbha_to_other_biz(self, request, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        logger.info("request data: {}".format(data))
+        logger.info(_("请求数据: {}").format(data))
         db_module_id = data["db_module_id"]
         target_biz_id = data["target_biz_id"]
         bk_biz_id = data["bk_biz_id"]

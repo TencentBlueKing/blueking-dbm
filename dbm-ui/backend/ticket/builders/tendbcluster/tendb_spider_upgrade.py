@@ -49,7 +49,7 @@ class TenDBSpiderUpgradeSerializer(TendbBaseOperateDetailSerializer):
 
 class TenDBSpiderUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_spider_upgrade
-    validator = None
+    validator = SpiderController.tendbcluster_spider_upgrade.validator
 
 
 class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilder):

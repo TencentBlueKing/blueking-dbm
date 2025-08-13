@@ -87,10 +87,18 @@ class ChangeClusterSpecSerializer(serializers.Serializer):
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
     machine_type = serializers.CharField(help_text=_("机器类型"))
 
+
+class GetSpiderVersionModulesSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    higher_major_version = serializers.BooleanField(default=False, help_text=_("是否查找更高主版本的模块"))
+    higher_sub_version = serializers.BooleanField(default=False, help_text=_("是否查找同大版本但子版本更高的模块"))
+
     class Meta:
         swagger_schema_fields = {
             "cluster_id": 123,
             "cluster_type": "tendbha",
             "spec_id": 456,
             "machine_type": "storage",
+            "higher_major_version": False,
+            "higher_sub_version": False,
         }

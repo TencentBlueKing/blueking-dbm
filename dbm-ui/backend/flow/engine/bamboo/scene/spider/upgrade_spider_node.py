@@ -8,7 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import logging.config
+import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -54,48 +54,92 @@ logger = logging.getLogger("flow")
 
 class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
     """
-    TendbCluster spider节点迁移
+    TendbCluster spider节点升级流程
+
+    功能说明：
+    1. 支持本地升级：在现有机器上直接升级spider版本
+    2. 支持迁移升级：通过新增机器替换旧机器的方式进行升级
+    3. 继承自TenDBClusterAddNodesFlow和TenDBClusterReduceNodesFlow，复用扩容和缩容功能
+
+    升级模式：
+    - 本地升级(upgrade_local=True)：在现有spider节点上直接升级版本
+    - 迁移升级(upgrade_local=False)：新增spider节点替换旧节点进行升级
+
+    数据格式示例：
         {
-            "upgrade_local": True,
+            "upgrade_local": True,  # 是否本地升级
+            "force": False,         # 是否强制升级
             "infos": [
                 {
-                    "cluster_id": 1,
-                    "pkg_id": 123,
-                    "new_db_moudule_id": 3334,
-                    "spider_master_ip_list": [],
-                    "spider_slave_ip_list": []
+                    "cluster_id": 1,                    # 集群ID
+                    "pkg_id": 123,                      # 目标版本包ID
+                    "new_db_module_id": 3334,           # 新的数据库模块ID
+                    "spider_master_ip_list": [],        # 新增的spider master IP列表(迁移升级时使用)
+                    "spider_slave_ip_list": []          # 新增的spider slave IP列表(迁移升级时使用)
                 }
             ]
         }
+
+    升级流程：
+    1. 本地升级：下发安装包 -> 升级spider slave -> 升级spider master -> 更新元数据
+    2. 迁移升级：新增节点 -> 人工确认 -> 下架旧节点 -> 更新元数据
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
-        @param root_id : 任务流程定义的root_id
-        @param data : 单据传递参数
+        初始化UpgradeSpiderFlow
+
+        参数说明：
+        @param root_id: 任务流程定义的root_id，用于标识整个升级流程
+        @param data: 单据传递参数，包含升级配置信息
+
+        初始化流程：
+        1. 调用父类初始化方法，设置基础流程参数
+        2. 提取升级相关的配置参数
+        3. 设置实例变量，供后续方法使用
         """
-        # 分别初始化父类的init方法
+        # 初始化父类的init方法，设置基础流程参数
         super().__init__(root_id=root_id, data=data)
         super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
 
-        self.root_id = root_id
-        self.uid = data["uid"]
-        self.bk_biz_id = data["bk_biz_id"]
-        self.force_upgrade = data.get("force", False)
-        self.data = data
-        self.upgrade_local = data.get("upgrade_local", False)
+        # 设置流程基础参数
+        self.root_id = root_id  # 流程根ID
+        self.uid = data["uid"]  # 用户ID
+        self.bk_biz_id = data["bk_biz_id"]  # 业务ID
+        self.force_upgrade = data.get("force", False)  # 是否强制升级
+        self.data = data  # 原始数据
+        self.upgrade_local = data.get("upgrade_local", False)  # 是否本地升级
+        # 提取所有涉及的集群ID，去重后保存
         self.cluster_ids = list(set([i["cluster_id"] for i in self.data["infos"]]))
 
     def run(self):
+        """
+        执行spider升级流程的主入口方法
+
+        执行流程：
+        1. 执行前置检查(__pre_check)：验证升级版本和节点数量
+        2. 根据upgrade_local参数选择升级模式：
+           - True: 执行本地升级(local_upgrade)
+           - False: 执行迁移升级(migrate_upgrade)
+
+        升级模式说明：
+        - 本地升级：在现有机器上直接升级spider版本，适用于版本兼容性好的场景
+        - 迁移升级：通过新增机器替换旧机器的方式进行升级，适用于需要保证服务连续性的场景
+        """
+        # 执行前置检查：验证升级版本和节点数量
         self.__pre_check()
+
+        # 根据升级模式选择执行路径
         if self.upgrade_local:
+            # 本地升级：在现有机器上直接升级版本
             self.local_upgrade()
         else:
+            # 迁移升级：通过新增机器替换旧机器进行升级
             self.migrate_upgrade()
 
     # spider_ins.tendbclusterspiderext.spider_role
     def __pre_check(self):
-        """_summary_
+        """
         检查升级版本和源版本
         """
         for info in self.data["infos"]:
@@ -110,7 +154,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 current_version = proxy_version_parse(spider_ins.version)
                 if current_version >= new_spider_version_num:
                     logger.error(
-                        "the upgrade version {} needs to be larger than the current verion {}".format(
+                        "the upgrade version {} needs to be larger than the current version {}".format(
                             new_spider_version_num, current_version
                         )
                     )
@@ -126,7 +170,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 slave_spiders_count = cluster.proxyinstance_set.filter(
                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
                 ).count()
-                if slave_spiders_count > 0 and len(spider_slave_ip_list) < 0:
+                if slave_spiders_count > 0 and len(spider_slave_ip_list) != slave_spiders_count:
                     raise DBMetaException(message=_("待升级spiderSlave节点数传入ip节点数不一致,请确认"))
 
     def migrate_upgrade_for_cluster(
@@ -136,7 +180,6 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
         spider_slave_ip_list: list,
         new_db_module_id: int,
         new_pkg_id: int,
-        resource_spec: dict,
     ):
         """
         根据集群维度，并发处理每个集群的替换节点信息
@@ -249,7 +292,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     spider_slave_ip_list=info["spider_slave_ip_list"],
                     new_db_module_id=info["new_db_module_id"],
                     new_pkg_id=info["pkg_id"],
-                    resource_spec=info.get("resource_spec", {}),
+                    # resource_spec=info.get("resource_spec", {}),
                 )
             )
 
@@ -287,7 +330,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             spiders = ProxyInstance.objects.filter(cluster=cluster)
             if len(spiders) <= 0:
-                raise DBMetaException(message=_("根据cluster ids:{}法找到对应的proxy实例").format(cluster_id))
+                raise DBMetaException(message=_("根据cluster ids:{}无法找到对应的proxy实例").format(cluster_id))
             spider_ips = []
             spider_master_ins = []
             for spider_ins in spiders:
@@ -303,7 +346,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     kwargs=asdict(
                         CheckClientConnKwargs(
                             bk_cloud_id=cluster.bk_cloud_id,
-                            check_instances=spider_ins,
+                            check_instances=spider_master_ins,
                         )
                     ),
                 )
@@ -362,19 +405,20 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
             sub_pipeline.add_parallel_sub_pipeline(part1)
             sub_pipeline.add_parallel_sub_pipeline(part2)
             # 更新集群模块信息
-            sub_pipeline.add_act(
-                act_name=_("更新集群db模块信息"),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
-                        cluster={
-                            "cluster_ids": [cluster_id],
-                            "new_module_id": new_db_module_id,
-                        },
-                    )
-                ),
-            )
+            if new_db_module_id != cluster.db_module_id:
+                sub_pipeline.add_act(
+                    act_name=_("更新集群db模块信息"),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
+                            cluster={
+                                "cluster_ids": [cluster_id],
+                                "new_module_id": new_db_module_id,
+                            },
+                        )
+                    ),
+                )
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("本地升级spider版本")))
         spider_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         spider_upgrade_pipeline.run_pipeline()

@@ -61,26 +61,35 @@ def mysql_version_parse(mysql_version: str) -> int:
     return total
 
 
-def spider_major_version_parse(mysql_version: str, has_prefix=False):
-    if has_prefix:
-        re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
-    else:
-        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+def spider_major_version_parse(mysql_version: str, has_prefix: bool = False):
+    """
+    解析spider版本字符串，返回主版本号和子版本号（均为数字，便于比较）
+
+    :param mysql_version: 版本字符串，如 "tspider-3.6.20" 或 "3.6.20"
+    :param has_prefix: 是否带有前缀（如"tspider-"），默认为False
+    :return: (major_version, sub_version)
+        - major_version: 主版本号（如3.6.20中的3，返回3000000）
+        - sub_version: 子版本号（如3.6.20中的6.20，返回6020）
+        - 若解析失败，返回(0, 0)
+    """
+    # 根据是否有前缀选择正则表达式
+    re_pattern = r"tspider-([\d]+)\.?([\d]+)?\.?([\d]+)?" if has_prefix else r"([\d]+)\.?([\d]+)?\.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
 
-    if len(result) == 0:
-        return 0
+    if not result:
+        # 解析失败，返回(0, 0)
+        return 0, 0
 
     billion, thousand, single = result[0]
 
-    major_version = 0
-    sub_version = 0
-    if billion != "":
-        major_version += int(billion) * 1000000
+    # 主版本号：只取第一个数字（如3），乘以1000000
+    major_version = int(billion) * 1000000 if billion else 0
 
-    if thousand != "":
+    # 子版本号：第二个数字乘以1000，加上第三个数字
+    sub_version = 0
+    if thousand:
         sub_version += int(thousand) * 1000
-    if single != "":
+    if single:
         sub_version += int(single)
 
     return major_version, sub_version
@@ -91,7 +100,7 @@ def major_version_parse(mysql_version: str):
     result = re.findall(re_pattern, mysql_version)
 
     if len(result) == 0:
-        return 0
+        return 0, 0
 
     billion, thousand, single = result[0]
 

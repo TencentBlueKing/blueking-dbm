@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import logging
 import operator
 import re
 from collections import defaultdict
@@ -17,7 +18,7 @@ from typing import Any, Dict, List, Set, Tuple, Union
 
 from django.db.models import F, Q
 from django.forms.models import model_to_dict
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, PLAT_BIZ_ID, AffinityEnum
@@ -39,6 +40,8 @@ from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 from backend.utils.basic import get_target_items_from_details
+
+logger = logging.getLogger("app")
 
 
 def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_types: Union[type, tuple]) -> List:
@@ -177,11 +180,23 @@ class ParamValidateSerializerMixin(object):
             self.validator = ticket_flow_builder.inner_flow_builder.validator
 
         if not self.validator:
+            logger.info(_("单据类型 {} 没有配置验证器，跳过参数验证").format(ticket_type))
             return attrs
 
+        logger.info(_("开始执行单据类型 {} 的参数验证").format(ticket_type))
+        logger.debug(
+            _("验证器: {}，待验证参数: {}").format(
+                self.validator.__name__ if hasattr(self.validator, "__name__") else str(self.validator), attrs
+            )
+        )
+
         errors = self.validator(attrs)
+
         if errors:
+            logger.error(_("单据类型 {} 参数验证失败，错误信息: {}").format(ticket_type, errors))
             raise TicketParamsVerifyException(errors=errors, ticket_type=self.context["ticket_type"])
+
+        logger.info(_("单据类型 {} 参数验证成功").format(ticket_type))
         return attrs
 
 

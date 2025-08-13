@@ -308,7 +308,6 @@ def convert_mysql8_version_num(major_version: int) -> int:
 
 
 def just_cross_one_major_version(current_version_num, refer_version_num) -> bool:
-    print(current_version_num // 1000 - refer_version_num // 1000)
     return (current_version_num // 1000 - refer_version_num // 1000) == 1
 
 
@@ -322,5 +321,4 @@ def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
     Returns:
         bool: _description_
     """
-    print(current_version_num // 1000000 - refer_version_num // 1000000)
     return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1

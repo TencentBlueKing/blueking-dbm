@@ -43,6 +43,7 @@ from backend.flow.engine.bamboo.scene.spider.upgrade_spider_node import UpgradeS
 from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
     TenDBClusterSwitchNodesFlowValidator,
 )
+from backend.flow.engine.bamboo.scene.spider.validate.spider_upgrade_validate import TenDBClusterSpiderUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -247,6 +248,7 @@ class SpiderController(BaseController):
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(TenDBClusterSpiderUpgradeValidator)
     def tendbcluster_spider_upgrade(self):
         """
         tendbcluster spider 节点升级
