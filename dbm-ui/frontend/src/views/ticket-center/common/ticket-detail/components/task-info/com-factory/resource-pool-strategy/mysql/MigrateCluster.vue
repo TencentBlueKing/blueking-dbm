@@ -80,16 +80,16 @@
         :label="t('规格')"
         :min-width="120">
         <template #default="{ data }: { data: RowData }">
-          {{ ticketDetails.details.specs?.[data.resource_spec.new_master.spec_id]?.name || '--' }}
+          {{ ticketDetails.details.specs?.[data.resource_spec.backend_group?.spec_id]?.name || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
         :label="t('资源标签')"
         :min-width="200">
         <template #default="{ data }: { data: RowData }">
-          <template v-if="data.resource_spec.new_slave.label_names.length">
+          <template v-if="data.resource_spec.backend_group?.label_names?.length">
             <BkTag
-              v-for="item in data.resource_spec.new_slave.label_names"
+              v-for="item in data.resource_spec.backend_group.label_names"
               :key="item">
               {{ item }}
             </BkTag>
@@ -113,7 +113,7 @@
               theme="success">
               M
             </BkTag>
-            {{ data.resource_spec.new_master.hosts?.[0]?.ip || '--' }}
+            {{ data.resource_spec.new_master?.hosts?.[0]?.ip || '--' }}
           </div>
           <div>
             <BkTag
@@ -121,7 +121,7 @@
               theme="info">
               S
             </BkTag>
-            {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
+            {{ data.resource_spec.new_slave?.hosts?.[0]?.ip || '--' }}
           </div>
         </template>
       </BkTableColumn>
