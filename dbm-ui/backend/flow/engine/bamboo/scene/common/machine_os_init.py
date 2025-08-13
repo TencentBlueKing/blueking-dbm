@@ -274,11 +274,12 @@ class ImportResourceInitStepFlow(object):
             from backend.ticket.builders.common.base import fetch_apply_hosts
 
             resource_kwargs = asdict(common_kwargs)
+            resource_biz = get_resource_biz()
             resource_kwargs.update(
                 # 固定回收到公共资源池
                 for_biz=0,
                 # 导入业务是资源池业务
-                bk_biz_id=get_resource_biz(),
+                bk_biz_id=resource_biz,
                 resource_type=common_kwargs.db_type,
                 os_type=resource_hosts[0]["os_type"],
                 hosts=resource_hosts,
@@ -286,12 +287,15 @@ class ImportResourceInitStepFlow(object):
                 # 是否资源重导入
                 reimport=self.data["ticket_type"] == TicketType.RECYCLE_APPLY_HOST,
             )
-            # 如果单据类型是，新主机退回，则需要拿到申请的主机信息(原始的标签、主机属性等)
+            # 如果单据类型是，新主机退回，则需要拿到原始申请的主机信息进行回退(原始的标签、主机属性等)
             if resource_kwargs["reimport"]:
                 parent_ticket = Ticket.objects.get(id=self.data["parent_ticket"])
                 apply_hosts = fetch_apply_hosts(parent_ticket.details)
                 host_ids = [host["bk_host_id"] for host in resource_hosts]
                 resource_kwargs["hosts"] = [host for host in apply_hosts if host["bk_host_id"] in host_ids]
+                # 注意这里回收的主机已经统一放到了pending模块，所以要修改下业务ID
+                for host in resource_kwargs["hosts"]:
+                    host["bk_biz_id"] = resource_biz
 
             sub_p = SubBuilder(data=self.data, root_id=self.root_id)
             self.__build_machine_import_pipeline(sub_p, resource_kwargs)
