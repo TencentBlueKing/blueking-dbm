@@ -28,16 +28,73 @@ import (
 	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow"
+	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"encoding/json"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/hako/durafmt"
+)
+
+const (
+	Name = "analysis"
 )
 
 type Service struct {
-	wflow *workflow.Workflow
-	dbs   []*hamysql.DB
+	quit         chan struct{}
+	info         discovery.ServiceInfo
+	discoveryCli *discovery.Client
+	regCli       *discovery.Registry
+	wflow        *workflow.Workflow
+	dbs          []*hamysql.DB
+}
+
+func (s *Service) createDiscovery() error {
+	cli, err := discovery.NewClientWithOptions(
+		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, ";")),
+		discovery.OptionUser(config.Cfg.Discovery.User),
+		discovery.OptionPassword(config.Cfg.Discovery.Password),
+		discovery.OptionServiceName(s.info.Name),
+		discovery.OptionServiceID(s.info.ID),
+	)
+
+	if err != nil {
+		return err
+	}
+	s.discoveryCli = cli
+
+	regCli, err := cli.CreateRegistry()
+	if err != nil {
+		return err
+	}
+	s.regCli = regCli
+
+	s.updateInfo()
+	return nil
+}
+
+func (s *Service) updateInfo() {
+	if s.info.UpdatedAt.IsZero() {
+		s.info.UpdatedAt = time.Now().Local()
+	}
+
+	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
+
+	data, err := json.Marshal(s.info)
+	if err != nil {
+		logger.Warn("failed to marshal service info to json, errmsg: %v", err)
+		return
+	}
+
+	if err = s.regCli.SetService(context.Background(), string(data)); err != nil {
+		logger.Warn("failed to update the service info in the registry, errmsg: %v", err)
+	}
 }
 
 func (s *Service) createStorage() error {
@@ -87,23 +144,50 @@ func (s *Service) createWorkflow() error {
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	// 1. create db storage
+	s.info.Name = Name
+	s.info.ID = uuid.New().String()
+	s.info.StartTime = time.Now().Local()
+
+	// create discovery client
+	if err := s.createDiscovery(); err != nil {
+		return err
+	}
+
+	// create db storage
 	if err := s.createStorage(); err != nil {
 		return err
 	}
 
-	// 2. create notifier
+	// create notifier
 	if err := s.createNotifier(); err != nil {
 		return err
 	}
 
-	// 3. create workflow
+	// create workflow
 	if err := s.createWorkflow(); err != nil {
 		return err
 	}
 
-	// 4. run workflow
-	return s.wflow.Run(ctx)
+	// run workflow
+	if err := s.wflow.Run(ctx); err != nil {
+		return err
+	}
+
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.quit:
+			return nil
+
+		case <-ctx.Done():
+			return nil
+
+		case <-ticker.C:
+			s.updateInfo()
+		}
+	}
 }
 
 func (s *Service) Close() {

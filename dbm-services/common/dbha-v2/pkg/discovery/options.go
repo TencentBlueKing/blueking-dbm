@@ -61,6 +61,7 @@ type options struct {
 	bufferMaxSize         int
 	ttl                   int
 	serviceID             string
+	serviceName           string
 	endpoints             []string
 	dialTimeout           time.Duration
 	autoSyncInterval      time.Duration
@@ -149,6 +150,15 @@ func OptionServiceID(val string) *funcOptions {
 				return gerrors.New(gerrors.InvalidParameter, "service-id is required")
 			}
 
+			return nil
+		},
+	}
+}
+
+func OptionServiceName(val string) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.serviceName = val
 			return nil
 		},
 	}
