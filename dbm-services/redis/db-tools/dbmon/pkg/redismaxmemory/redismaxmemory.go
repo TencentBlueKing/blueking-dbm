@@ -184,11 +184,16 @@ func (job *Job) GetRedisUsedMemory() (err error) {
 				memItem.Err = err
 				return
 			}
-			memItem.MaxMemory, memItem.Err = strconv.ParseInt(maxmemoryStr["maxmemory"], 10, 64)
-			if memItem.Err != nil {
-				memItem.Err = fmt.Errorf("redis(%s) 'config get maxmemory' [maxmemory]:%s parseInt Fail,err:%v",
-					memItem.Addr(), maxmemoryStr["maxmemory"], memItem.Err)
-				return
+			// 兼容：配置项 empty array 4 tendisplus.
+			if maxmemoryStr["maxmemory"] == "" {
+				memItem.MaxMemory, memItem.Err = 0, nil
+			} else {
+				memItem.MaxMemory, memItem.Err = strconv.ParseInt(maxmemoryStr["maxmemory"], 10, 64)
+				if memItem.Err != nil {
+					memItem.Err = fmt.Errorf("redis(%s) 'config get maxmemory' [maxmemory]:%s parseInt Fail,err:%v",
+						memItem.Addr(), maxmemoryStr["maxmemory"], memItem.Err)
+					return
+				}
 			}
 			// 获取 role
 			memItem.Role, memItem.Err = memItem.redisCli.GetRole()

@@ -66,6 +66,10 @@ func (job *CheckJob) Run() {
 	}
 	defer job.closeDB()
 
+	if job.Conf.RedisFullBackup.BackupFileTag == "" {
+		job.Conf.RedisFullBackup.BackupFileTag = consts.RedisFullBackupTAG
+	}
+
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
 		consts.COSInfoFile, job.Conf.RedisFullBackup.BackupFileTag, job.Conf.BackupClientStrorageType)
