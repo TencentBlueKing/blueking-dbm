@@ -57,7 +57,7 @@
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <template
-          v-if="data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`].label_names.length">
+          v-if="data.resource_spec[`${data.switch_spider_role}_${data.spider_old_ip_list[0].ip}`]?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.new_slave.label_names"
             :key="item">

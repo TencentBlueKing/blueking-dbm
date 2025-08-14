@@ -41,7 +41,7 @@
       :label="t('资源标签')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="data.resource_spec.spider_ip_list.label_names.length">
+        <template v-if="data.resource_spec.spider_ip_list?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.spider_ip_list.label_names"
             :key="item">
