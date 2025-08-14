@@ -358,6 +358,7 @@ class MysqlFailoverDrill:
         self.get_ha_cluster_destroy_data()
         # 单独执行下架流程前，保存资源信息，用于后面的资源池回退
         self.get_reimport_info()
+        # 此处获取的是切换后的信息，主从可能已经发生切换
         self.get_failover_drill_data()
         MySQLController(root_id=self.destroy_root_id, ticket_data=self.destroy_info).mysql_ha_destroy_scene()
 
@@ -440,6 +441,8 @@ class MysqlFailoverDrill:
         return drill_ip
 
     def get_dbha_info(self):
+        # 此处获取的是切换后的集群信息，主库ip已经切换成旧从库的，因此不会获取到旧master的切换信息
+        # 所以后面过滤的时候加上slave_ip
         drill_ip = self.get_drill_ip()
         dbha_info = ""
         dbha_status = DBHASwitchResult.FAIL.value
@@ -461,7 +464,8 @@ class MysqlFailoverDrill:
                 resp_data = resp["data"]
                 for d in resp_data:
                     for ip in drill_ip:
-                        if d["ip"] == ip:
+                        # 因为主库可能已经发生切换，此处获取的是切换后的主库ip，但dbha的结果信息里是之前的角色slave_ip
+                        if d["ip"] == ip or d["slave_ip"] == ip:
                             dbha_info += "{}\n".format(d)
                             flag += 1
             else:

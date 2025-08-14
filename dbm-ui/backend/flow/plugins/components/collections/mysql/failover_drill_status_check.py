@@ -59,7 +59,10 @@ class FailoverStatusCheckService(BaseService):
             msg = resp["msg"]
 
             if code == 0:
+                self.log_info("HADB service query success!")
+                self.log_info("query_args:{}".format(kwargs))
                 resp_data = resp["data"]
+                self.log_info("dbha switch info: {}".format(resp_data))
                 for d in resp_data:
                     if d["ip"] == kwargs["ip"]:
                         self.finish_schedule()
