@@ -48,14 +48,14 @@ class GetReportCountSerializer(serializers.Serializer):
 class MySQLBackupRecoverTaskSerializer(serializers.ModelSerializer):
     """MySQL备份恢复任务序列化器"""
 
-    recover_duration = serializers.SerializerMethodField(help_text=_("恢复花费时间(分钟)"))
+    recover_duration = serializers.SerializerMethodField(help_text=_("恢复花费时间(小时)"))
     task_id = serializers.SerializerMethodField(help_text=_("任务ID链接"))
 
     def get_recover_duration(self, obj):
         """计算恢复花费时间"""
         if obj.recover_start_time and obj.recover_end_time:
             duration = obj.recover_end_time - obj.recover_start_time
-            return int(duration.total_seconds() / 60)  # 转换为分钟
+            return round(duration.total_seconds() / 3600, 2)  # 转换为小时，保留两位小数
         return None
 
     def get_task_id(self, obj):

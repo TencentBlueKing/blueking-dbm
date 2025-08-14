@@ -29,7 +29,7 @@ logger = logging.getLogger("root")
 class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
     """MySQL备份恢复任务视图集"""
 
-    queryset = MySQLBackupRecoverTask.objects.all()
+    queryset = MySQLBackupRecoverTask.objects.all().order_by("-create_at")
     serializer_class = MySQLBackupRecoverTaskSerializer
     report_type = ReportType.MYSQL_BACKUP_RECOVER_TASK
     report_name = _("MySQL备份恢复任务")
@@ -71,7 +71,7 @@ class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
         },
         {
             "name": "recover_duration",
-            "display_name": _("恢复花费时间(分钟)"),
+            "display_name": _("恢复花费时间(小时)"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {

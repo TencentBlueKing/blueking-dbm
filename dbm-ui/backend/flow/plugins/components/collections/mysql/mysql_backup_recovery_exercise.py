@@ -35,6 +35,7 @@ class MySQLBackupRecoverTaskMetaSvr(BaseService):
         elif kwargs["task_status"] == "recover_success":
             # 如果是恢复成功，则更新任务结束时间
             tsk.recover_end_time = timezone.now()
+            tsk.status = True
             tsk.save(update_fields=["task_status", "recover_end_time"])
         else:
             tsk.save(update_fields=["task_status"])

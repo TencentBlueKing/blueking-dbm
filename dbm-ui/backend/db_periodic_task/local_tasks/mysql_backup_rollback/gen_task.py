@@ -25,6 +25,7 @@ from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.env import MYSQL_BACKUPRECOVER_BIZ_ID, MYSQL_BACKUPRECOVER_MCH_LABELS_ID
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import MySQLRollbackExerciseFlow
+from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.constants import ResourceApplyErrCode
 from backend.utils.basic import generate_root_id
 
@@ -59,34 +60,44 @@ def bytes_to_gb(bytes: int) -> float:
     return bytes / 1024 / 1024 / 1024
 
 
-def build_resource_apply_params(task_id: str, min_disk_size: int) -> Dict[str, Union[str, Any]]:
+def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version: str) -> Dict[str, Union[str, Any]]:
     """Build resource application parameters
 
     Args:
         task_id: The unique task identifier
         min_disk_size: Minimum disk size required in GB
+        mysql_version: MySQL version string
 
     Returns:
         Dict containing all parameters needed for resource application
     """
+
+    # 基础参数
+    details = {
+        "count": 1,
+        "group_mark": "backup_recovery_exercise_0",
+        "labels": [MYSQL_BACKUPRECOVER_MCH_LABELS_ID],
+        "os_type": "Linux",
+        "storage_spec": [
+            {
+                "max": 2147483647,
+                "min": min_disk_size,
+            }
+        ],
+    }
+
+    # 如果MySQL版本大于等于8.0，则排除tlinux 1.2操作系统
+
+    if mysql_version and mysql_version_parse(mysql_version) >= 8000000:
+        details["os_names"] = ["tliunx-1.2", ""]
+        details["exclude_os_name"] = True
+
     return {
         "for_biz_id": MYSQL_BACKUPRECOVER_BIZ_ID,
         "resource_type": "mysql",
         "task_id": task_id,
         "operator": "system",
-        "details": [
-            {
-                "count": 1,
-                "group_mark": "backup_recovery_exercise_0",
-                "labels": [MYSQL_BACKUPRECOVER_MCH_LABELS_ID],
-                "storage_spec": [
-                    {
-                        "max": 2147483647,
-                        "min": min_disk_size,
-                    }
-                ],
-            }
-        ],
+        "details": [details],
     }
 
 
@@ -194,7 +205,8 @@ def gen_rollback_task():
         # Calculate minimum disk size required
         min_disk_size = calculate_min_disk_size(backup_record["total_filesize"])
         # 申请资源
-        apply_params = build_resource_apply_params(root_id, min_disk_size)
+        mysql_version = backup_record.get("mysql_version", "")
+        apply_params = build_resource_apply_params(root_id, min_disk_size, mysql_version)
         resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:

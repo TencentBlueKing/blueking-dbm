@@ -297,7 +297,6 @@ class MySQLRollbackExerciseFlow(object):
             kwargs={
                 "task_id": self.root_id,
                 "task_status": "resource_return_success",
-                "status": True,
             },
             is_remote_rewritable=True,
         )
