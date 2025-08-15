@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
-from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
@@ -60,6 +60,7 @@ from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
+    CreateDnsKwargs,
     CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
@@ -68,7 +69,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
     ResetSlaveViaDRSKwargs,
-    UpdateDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -721,13 +721,11 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             "act_name": _("添加Standby从库域名{}:{}").format(target_slave.machine.ip, domain),
                             "act_component_code": MySQLDnsManageComponent.code,
                             "kwargs": asdict(
-                                UpdateDnsRecordKwargs(
+                                CreateDnsKwargs(
                                     bk_cloud_id=cluster_model.bk_cloud_id,
-                                    old_instance=old_instance,
-                                    new_instance="{}{}{}".format(
-                                        target_slave.machine.ip, IP_PORT_DIVIDER_FOR_DNS, master.port
-                                    ),
-                                    update_domain_name=domain,
+                                    add_domain_name=domain,
+                                    dns_op_exec_port=target_slave.port,
+                                    exec_ip=[target_slave.machine.ip],
                                 )
                             ),
                         }
@@ -759,18 +757,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 for domain in domain_map[target_slave.machine.ip]:
                     domain_add_list.append(
                         {
-                            "act_name": _("添加从库域名{}:{}").format(target_slave.machine.ip, domain),
+                            "act_name": _("添加Standby从库域名{}:{}").format(target_slave.machine.ip, domain),
                             "act_component_code": MySQLDnsManageComponent.code,
                             "kwargs": asdict(
-                                UpdateDnsRecordKwargs(
+                                CreateDnsKwargs(
                                     bk_cloud_id=cluster_model.bk_cloud_id,
-                                    old_instance="{}#{}".format(target_slave.machine.ip, master.port),
-                                    new_instance="{}#{}".format(target_slave.machine.ip, master.port),
-                                    update_domain_name=domain,
+                                    add_domain_name=domain,
+                                    dns_op_exec_port=target_slave.port,
+                                    exec_ip=[target_slave.machine.ip],
                                 )
                             ),
                         }
                     )
+
                 if len(domain_add_list) > 0:
                     tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
                 cluster = {
