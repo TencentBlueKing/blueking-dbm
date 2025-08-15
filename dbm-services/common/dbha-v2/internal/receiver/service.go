@@ -26,17 +26,17 @@ package receiver
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
+	"sync"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"encoding/json"
-	"strings"
-	"time"
-
-	"sync"
 
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"

@@ -26,10 +26,11 @@ package example
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
+	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
 type ExampleData struct {

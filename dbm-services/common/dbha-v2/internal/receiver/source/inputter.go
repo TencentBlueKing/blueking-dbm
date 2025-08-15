@@ -25,13 +25,13 @@
 package source
 
 import (
+	"context"
+	"strings"
+
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source/kafka"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-
-	"context"
-	"strings"
 )
 
 type DataC chan interface{}

@@ -54,7 +54,7 @@ func (m *Migrator) createDatabase(db *hamysql.DB) error {
 }
 
 func (m *Migrator) InitDBHAData() error {
-	epoints, err := hanet.NewEndpoints(config.Cfg.DBHAData.Endpoints)
+	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
 	if err != nil {
 		return err
 	}
@@ -64,8 +64,8 @@ func (m *Migrator) InitDBHAData() error {
 			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
-			hamysql.OptionUser(config.Cfg.DBHAData.User),
-			hamysql.OptionPassword(config.Cfg.DBHAData.Password),
+			hamysql.OptionUser(config.Cfg.Storage.User),
+			hamysql.OptionPassword(config.Cfg.Storage.Password),
 			hamysql.OptionDBName(hamodel.DatabaseName),
 		)
 

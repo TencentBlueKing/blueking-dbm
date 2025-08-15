@@ -26,8 +26,9 @@ package example_test
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
 	"testing"
+
+	"dbm-services/common/dbha-v2/internal/probe/harvester/example"
 )
 
 func TestExample(t *testing.T) {

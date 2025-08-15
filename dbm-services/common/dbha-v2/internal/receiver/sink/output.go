@@ -25,9 +25,10 @@
 package sink
 
 import (
+	"strings"
+
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"strings"
 )
 
 // Outputter Define the interface for storing data.

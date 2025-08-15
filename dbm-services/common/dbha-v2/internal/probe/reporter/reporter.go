@@ -25,12 +25,12 @@
 package reporter
 
 import (
+	"context"
+	"strings"
+
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"strings"
-
-	"context"
 )
 
 type Reporter interface {

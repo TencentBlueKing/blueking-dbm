@@ -45,8 +45,10 @@ const (
 	InvalidURL
 	InvalidJSOIN
 	InvalidYAML
+	InvalidHttpMethod
 	InvalidConfiguration
 	InternalServerFailure
+	HttpRequestFailed
 	Unimplemented
 	Unsupported
 	OperationFailure
@@ -67,6 +69,11 @@ func New(c Code, msg string) *Error {
 func Newf(c Code, format string, args ...interface{}) *Error {
 	msg := fmt.Sprintf(format, args...)
 	return &Error{code: c, message: msg}
+}
+
+// NewE create a internal error withe the error
+func NewE(c Code, err error) *Error {
+	return &Error{code: c, message: err.Error()}
 }
 
 func (e *Error) Code() Code {

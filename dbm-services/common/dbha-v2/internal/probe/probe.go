@@ -26,14 +26,15 @@ package probe
 
 import (
 	"context"
+	"encoding/json"
+	"sync"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/internal/probe/reporter"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"encoding/json"
-	"sync"
-	"time"
 )
 
 // Probe probe main framework

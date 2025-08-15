@@ -26,13 +26,14 @@ package discovery
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"fmt"
 	"math"
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

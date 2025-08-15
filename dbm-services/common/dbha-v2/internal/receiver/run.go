@@ -26,11 +26,12 @@ package receiver
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/internal/receiver/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"dbm-services/common/dbha-v2/internal/receiver/config"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
