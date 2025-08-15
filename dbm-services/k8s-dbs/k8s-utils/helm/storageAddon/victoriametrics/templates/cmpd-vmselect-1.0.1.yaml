@@ -1,0 +1,94 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: vmselect-1.0.1
+spec:
+  serviceKind: victoriametrics
+  serviceVersion: 1.93.10
+  updateStrategy: BestEffortParallel
+  exporter:
+    scrapePath: /metrics
+    scrapePort: http
+  services:
+    - name: select
+      spec:
+        ports:
+          - name: http
+            port: {{ .Values.vmselect.servicePort }}
+            targetPort: http
+            protocol: TCP
+  vars:
+    - name: VMSTORAGE_ADDR
+      valueFrom:
+        serviceVarRef:
+          compDef: {{ include "victoriametrics-storage.cmpdName" . }}
+          optional: true
+          port:
+            name: vmselect
+            option: Required
+  runtime:
+    automountServiceAccountToken: true
+    terminationGracePeriodSeconds: 60
+    containers:
+      - name: vmselect
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -c
+        args:
+          - |
+            storage_node_arg=""
+            if [ -n "${VMSTORAGE_ADDR}" ]; then
+              storage_node_arg="--storageNode=${VMSTORAGE_ADDR} "
+            fi
+
+            exec /vmselect-prod \
+            ${storage_node_arg} \
+            --cacheDataPath=/cache \
+            --httpListenAddr=:{{ .Values.vmselect.servicePort }} \
+            {{- range $key, $value := .Values.vmselect.extraArgs }}
+            --{{ $key }}={{ $value }} \
+            {{- end }}
+            {{- if .Values.enableTCP6 }}
+            --enableTCP6=true \
+            {{- end }}
+            ${EXTRA_ARGS}
+        env:
+          - name: SERVICE_PORT
+            value: "{{ .Values.vmselect.servicePort }}"
+        ports:
+          - containerPort: {{ .Values.vmselect.servicePort }}
+            name: http
+        volumeMounts:
+          - mountPath: /cache/select
+            name: cache-select
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+    dnsConfig:
+      options:
+        - name: timeout
+          value: "1"
+        - name: attempts
+          value: "3"
+        - name: single-request-reopen
