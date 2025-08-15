@@ -23,15 +23,15 @@
         v-if="cluster.id"
         class="display-content">
         <div class="content-item">
-          <div class="item-title">{{ t('数据库版本') }}：</div>
+          <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
-            {{ modelValue.db_version }}
+            {{ modelValue.db_module_name }}
           </div>
         </div>
         <div class="content-item">
-          <div class="item-title">{{ t('版本包文件') }}：</div>
+          <div class="item-title">{{ t('数据库版本') }}：</div>
           <div class="item-content">
-            {{ modelValue.pkg_name }}
+            {{ modelValue.db_version }}
           </div>
         </div>
         <div class="content-item">
@@ -41,9 +41,9 @@
           </div>
         </div>
         <div class="content-item">
-          <div class="item-title">{{ t('绑定模块') }}：</div>
+          <div class="item-title">{{ t('版本包文件') }}：</div>
           <div class="item-content">
-            {{ modelValue.db_module_name }}
+            {{ modelValue.pkg_name }}
           </div>
         </div>
       </div>

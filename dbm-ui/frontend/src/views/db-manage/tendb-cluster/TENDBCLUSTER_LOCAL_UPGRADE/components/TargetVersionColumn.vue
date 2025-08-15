@@ -23,18 +23,61 @@
         v-if="cluster.id"
         class="display-content">
         <div class="content-item">
-          <div class="item-title">{{ t('数据库版本') }}：</div>
+          <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
             <TableEditSelect
-              ref="versionSelectRef"
+              ref="moduleSelectRef"
               is-plain
-              :list="versionSelectList"
-              :model-value="dbVersion"
+              :list="moduleSelectList"
+              :model-value="newDbModuleId"
               :placeholder="t('请选择')"
               :pop-width="240"
-              :rules="versionRules"
-              @change="(value) => handleVersionChange(value as string)">
+              :rules="moduleRules"
+              @change="(value) => handleModuleChange(value as number)">
+              <template #default="{ item }">
+                <div class="module-option-item">
+                  <div class="module-option-label">
+                    {{ item.name }}
+                  </div>
+                  <div class="module-opiton-info">
+                    {{ item.info }}
+                  </div>
+                </div>
+              </template>
+              <template #footer>
+                <div class="module-select-footer">
+                  <BkButton
+                    class="plus-button"
+                    text
+                    @click="handleCreateModule">
+                    <DbIcon
+                      class="footer-icon mr-4"
+                      type="plus-8" />
+                    {{ t('跳转新建模块') }}
+                  </BkButton>
+                  <BkButton
+                    class="refresh-button"
+                    text
+                    @click="handleRefreshModule">
+                    <DbIcon
+                      class="footer-icon"
+                      type="refresh-2" />
+                  </BkButton>
+                </div>
+              </template>
             </TableEditSelect>
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('数据库版本') }}：</div>
+          <div class="item-content">
+            {{ currentModule?.spider_version || '' }}
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('字符集') }}：</div>
+          <div class="item-content">
+            {{ currentModule?.charset || '' }}
           </div>
         </div>
         <div class="content-item">
@@ -68,73 +111,6 @@
             </TableEditSelect>
           </div>
         </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('字符集') }}：</div>
-          <div class="item-content">
-            {{ charset }}
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('绑定模块') }}：</div>
-          <div class="item-content">
-            <TableEditSelect
-              ref="moduleSelectRef"
-              is-plain
-              :list="moduleSelectList"
-              :model-value="newDbModuleId"
-              :placeholder="t('请选择')"
-              :pop-width="240"
-              :rules="moduleRules"
-              @change="(value) => handleModuleChange(value as number)">
-              <template #default="{ item }">
-                <AuthTemplate
-                  action-id="dbconfig_view"
-                  :biz-id="item.bk_biz_id"
-                  :permission="item.permission.dbconfig_view"
-                  resource="tendbcluster"
-                  style="flex: 1">
-                  <template #default="{ permission }">
-                    <div class="module-option-item">
-                      <div
-                        class="module-option-label"
-                        :class="{ 'not-permission': !permission }"
-                        data-id="dbconfig_view">
-                        {{ item.alias_name }}
-                      </div>
-                      <div class="module-opiton-info">
-                        {{ item.info }}
-                      </div>
-                    </div>
-                  </template>
-                </AuthTemplate>
-              </template>
-              <template #footer>
-                <div class="module-select-footer">
-                  <AuthButton
-                    action-id="dbconfig_edit"
-                    :biz-id="bizId"
-                    class="plus-button"
-                    resource="tendbcluster"
-                    text
-                    @click="handleCreateModule">
-                    <DbIcon
-                      class="footer-icon mr-4"
-                      type="plus-8" />
-                    {{ t('跳转新建模块') }}
-                  </AuthButton>
-                  <BkButton
-                    class="refresh-button"
-                    text
-                    @click="handleRefreshModule">
-                    <DbIcon
-                      class="footer-icon"
-                      type="refresh-2" />
-                  </BkButton>
-                </div>
-              </template>
-            </TableEditSelect>
-          </div>
-        </div>
       </div>
     </EditableBlock>
   </EditableColumn>
@@ -146,12 +122,13 @@
   import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getModules } from '@services/source/cmdb';
-  import { querySpiderHigherVersionPkgList } from '@services/source/mysqlToolbox';
+  import { getSpiderVersionModules } from '@services/source/mysqlToolbox';
 
   import { TicketTypes } from '@common/const';
 
   import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
+
+  type ModulesInfo = ServiceReturnType<typeof getSpiderVersionModules>[0];
 
   interface Props {
     cluster: TendbClusterModel;
@@ -192,20 +169,10 @@
   const route = useRoute();
   const router = useRouter();
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
-
-  const versionSelectList = ref<IListItem[]>([]);
   const packageSelectList = ref<IListItem[]>([]);
   const moduleSelectList = ref<IListItem[]>([]);
-  const charset = ref('');
-  const dbVersion = ref('');
+  const currentModule = ref<ModulesInfo>();
 
-  const versionRules = [
-    {
-      message: t('数据库版本不能为空'),
-      validator: (value: string) => Boolean(value),
-    },
-  ];
   const packageRules = [
     {
       message: t('版本包文件不能为空'),
@@ -226,9 +193,9 @@
         return new Promise((resolve) => {
           // 整理提单参数一并抛出
           modelValue.value = {
-            charset: charset.value,
-            db_module_name: _.get(_.find(moduleSelectList.value, { id: newDbModuleId.value }), 'name', ''),
-            db_version: dbVersion.value,
+            charset: currentModule.value?.charset || '',
+            db_module_name: currentModule.value?.db_module_name || '',
+            db_version: currentModule.value?.spider_version || '',
             pkg_name: _.get(_.find(packageSelectList.value, { id: pkgId.value }), 'name', ''),
           };
           resolve(modelValue.value);
@@ -239,73 +206,20 @@
     },
   ];
 
-  function fetchModuleList() {
-    if (props.cluster.cluster_type) {
-      fetchModules({
-        bk_biz_id: bizId,
-        cluster_type: props.cluster.cluster_type,
-      });
-    }
-  }
-
-  const { run: querySpiderHigherVersionPkgListRun } = useRequest(querySpiderHigherVersionPkgList, {
+  const { run: fetchModuleList } = useRequest(getSpiderVersionModules, {
     manual: true,
-    onSuccess(versions) {
-      versionSelectList.value = _.uniqBy(
-        versions.map((item) => ({
-          id: item.version,
-          name: item.version,
-        })),
-        'id',
-      );
-      packageSelectList.value = versions.map((packageItem) => ({
-        id: packageItem.pkg_id,
-        name: packageItem.pkg_name,
+    onSuccess(data) {
+      const options = data.map((module) => ({
+        ...module,
+        disabled: false,
+        id: module.db_module_id,
+        info: `${module.spider_version || ''}，${module.charset || ''}`,
+        name: module.db_module_name,
       }));
-      if (versions.length) {
-        const [lastestVersion] = versions;
-        dbVersion.value = lastestVersion.version;
-        pkgId.value = lastestVersion.pkg_id;
-        fetchModuleList();
-      }
-    },
-  });
-
-  const { run: fetchModules } = useRequest(getModules, {
-    manual: true,
-    onSuccess(modules) {
-      const currentModule = modules.find((m) => m.db_module_id === props.cluster.db_module_id);
-      if (!currentModule) return;
-
-      const confItems = _.keyBy(currentModule.db_module_info.conf_items, 'conf_name');
-      charset.value = confItems.charset?.conf_value || '';
-      const backendVersion = confItems.spider_version?.conf_value || '';
-      const backendDbVersion = confItems.db_version?.conf_value || '';
-
-      const filtered = [];
-      for (const module of modules) {
-        const conf = Object.fromEntries(
-          module.db_module_info.conf_items.map(({ conf_name, conf_value }) => [conf_name, conf_value]),
-        );
-        const isBackendModules = props.higherSubVersion
-          ? conf.spider_version === dbVersion.value
-          : conf.spider_version === backendVersion && conf.db_version === backendDbVersion;
-        if (conf.charset === charset.value && isBackendModules) {
-          filtered.push({
-            alias_name: module.alias_name,
-            bk_biz_id: module.bk_biz_id,
-            disabled: false,
-            id: module.db_module_id,
-            info: `${conf.spider_version || ''}，${conf.charset || ''}`,
-            name: module.name,
-            permission: module.permission,
-          });
-        }
-      }
-      moduleSelectList.value = filtered;
-      const [first] = filtered;
+      moduleSelectList.value = options;
+      const [first] = options;
       if (first) {
-        newDbModuleId.value = first.id;
+        handleModuleChange(first.id);
       }
     },
   });
@@ -314,7 +228,7 @@
     () => props.cluster.id,
     () => {
       if (props.cluster.id) {
-        querySpiderHigherVersionPkgListRun({
+        fetchModuleList({
           cluster_id: props.cluster.id,
           higher_major_version: props.higherMajorVersion,
           higher_sub_version: props.higherSubVersion,
@@ -329,19 +243,12 @@
   // 单据克隆回填
   watch(moduleSelectList, () => {
     if (modelValue.value.db_module_name) {
-      dbVersion.value = modelValue.value.db_version;
       pkgId.value = Number(_.get(_.find(packageSelectList.value, { name: modelValue.value.pkg_name }), 'id', 0));
-      charset.value = modelValue.value.charset;
       newDbModuleId.value = Number(
         _.get(_.find(moduleSelectList.value, { name: modelValue.value.db_module_name }), 'id', 0),
       );
     }
   });
-
-  const handleVersionChange = (value: string) => {
-    dbVersion.value = value;
-    fetchModuleList();
-  };
 
   const handlePackageChange = (value: number) => {
     const findVersion = packageSelectList.value.find((item) => item.id === value);
@@ -352,13 +259,25 @@
 
   const handleModuleChange = (value: number) => {
     newDbModuleId.value = value;
+    const findModule = moduleSelectList.value.find((item) => item.id === value) as unknown as ModulesInfo;
+    if (!findModule) return;
+    currentModule.value = findModule;
+    const options = findModule.pkg_list.map((item) => ({
+      id: item.pkg_id,
+      name: item.pkg_name,
+    }));
+    packageSelectList.value = options;
+    const [first] = options;
+    if (first) {
+      pkgId.value = first.id;
+    }
   };
 
   const handleCreateModule = () => {
     const url = router.resolve({
       name: 'SelfServiceCreateDbModule',
       params: {
-        bk_biz_id: bizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         type: TicketTypes.TENDBCLUSTER_APPLY,
       },
       query: {
@@ -369,7 +288,11 @@
   };
 
   const handleRefreshModule = () => {
-    fetchModuleList();
+    fetchModuleList({
+      cluster_id: props.cluster.id,
+      higher_major_version: props.higherMajorVersion,
+      higher_sub_version: props.higherSubVersion,
+    });
   };
 </script>
 
@@ -423,12 +346,6 @@
     .module-opiton-info {
       margin-left: auto;
       color: #979ba5;
-    }
-
-    .not-permission {
-      * {
-        color: #70737a !important;
-      }
     }
   }
 

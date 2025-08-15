@@ -131,9 +131,10 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import CurrentVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
-  import TargetVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
 
   import { random } from '@utils';
+
+  import TargetVersionColumn from '@/views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
 
   interface RowData {
     cluster: TendbClusterModel;
@@ -271,25 +272,15 @@
     const valid = await tableRef.value!.validate();
     if (valid) {
       const resourceSpec = (hostList: TendbClusterModel['spider_master'], role: 'spider_master' | 'spider_slave') => {
-        return hostList.reduce<
-          Record<
-            string,
-            {
-              count: number;
-              labels?: string[];
-              spec_id: number;
-            }
-          >
-        >((acc, item) => {
-          const key = `${role}_${item.ip}`;
-          Object.assign(acc, {
-            [key]: {
-              count: 1,
-              spec_id: item.spec_config.id,
-            },
-          });
-          return acc;
-        }, {});
+        if (!hostList.length) {
+          return {};
+        }
+        return {
+          [role]: {
+            count: hostList.length,
+            spec_id: hostList?.[0]?.spec_config?.id,
+          },
+        };
       };
       createTicketRun({
         details: {
