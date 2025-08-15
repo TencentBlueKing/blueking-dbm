@@ -20,7 +20,7 @@
       :initial-divide="330"
       :is-collapsed="isCollapsed"
       :max="500"
-      :min="200"
+      :min="240"
       @after-resize="handleResizeLayout"
       @collapse-change="handleResizeLayout">
       <template #aside>

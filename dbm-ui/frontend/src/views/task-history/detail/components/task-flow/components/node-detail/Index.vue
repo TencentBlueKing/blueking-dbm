@@ -65,8 +65,8 @@
           <BkPopConfirm
             v-if="nodeData.retryable"
             :confirm-text="t('确认继续')"
-            :content="t('将会重新执行')"
-            :title="t('确认重试当前节点？')"
+            :content="t('重试将重新执行当前节点')"
+            :title="t('确认重试当前失败节点？')"
             trigger="click"
             width="288"
             @confirm="handleRetry">
@@ -81,8 +81,8 @@
           <BkPopConfirm
             v-if="nodeData.skippable"
             :confirm-text="t('跳过节点')"
-            :content="t('将会忽略当前节点，继续往下执行')"
-            :title="t('确认跳过当前节点继续执行？')"
+            :content="t('跳过将忽略当前节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”')"
+            :title="t('确认跳过当前失败节点？')"
             trigger="click"
             width="288"
             @confirm="handleSkip">
@@ -97,8 +97,8 @@
           <BkPopConfirm
             v-if="STATUS_TODO"
             :confirm-text="t('继续执行')"
-            :content="t('将会立即执行该节点')"
-            :title="t('确认继续执行？')"
+            :content="t('继续后将立即完成当前节点，并执行后续节点')"
+            :title="t('确认继续执行当前待继续节点？')"
             trigger="click"
             width="288"
             @confirm="handleTodo">
@@ -116,8 +116,8 @@
               theme: 'danger',
             }"
             :confirm-text="t('强制失败')"
-            :content="t('将会终止节点运行，并置为强制失败状态')"
-            :title="t('确认强制失败？')"
+            :content="t('强制失败将立即终止节点运行，并标记为 “失败”')"
+            :title="t('确认强制终止当前执行中节点并置为失败？')"
             trigger="click"
             width="288"
             @confirm="handleForceFail">
@@ -160,6 +160,7 @@
             :root-id="rootId" />
         </BkTabPanel>
         <BkTabPanel
+          v-if="userProfileStore.isSuperuser"
           :label="t('输入输出')"
           name="i/o">
           <InputOutput
@@ -184,6 +185,8 @@
 
   import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
+
+  import { useUserProfile } from '@stores';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbLog from '@components/db-log/index.vue';
@@ -216,6 +219,7 @@
   });
 
   const { t } = useI18n();
+  const userProfileStore = useUserProfile();
 
   const NODE_STATUS_TEXT: Record<string, string> = {
     CREATED: t('待执行'),

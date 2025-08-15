@@ -138,11 +138,13 @@ export class FlowGraph {
           endArrow: true,
           stroke: '#C4C6CC',
         },
-        // type: 'polyline',
         type: 'custom-edge',
       },
       node: {
         state: {
+          // collapseBackgroundHover: {
+          //   collapseBackgroundColor: '#979BA5',
+          // },
           failedImageBackgroundColorHover: {
             failedImageBackgroundColor: '#FF0000',
           },
@@ -178,6 +180,7 @@ export class FlowGraph {
           },
         },
         style: {
+          // collapseBackgroundColor: '#C4C6CC',
           cursor: 'pointer',
           failedImageBackgroundColor: '#FF4D4D',
           fill: '#F5F7FA',
@@ -211,6 +214,11 @@ export class FlowGraph {
       plugins: [
         {
           key: 'minimap',
+          maskStyle: {
+            background: '#3a84ff1a',
+            border: '1px solid #3a84ff',
+            borderRadius: 1,
+          },
           position: 'top-right',
           size: [300, 160],
           type: 'minimap',
@@ -229,6 +237,11 @@ export class FlowGraph {
         this.graph!.setElementState(target.data.id, [...state, 'nodeBackgroundHover']);
         return;
       }
+      // if (targetName === 'collapseBackground' || targetName === 'key') {
+      //   // 折叠背景加深
+      //   this.graph!.setElementState(target.data.id, [...state, 'collapseBackgroundHover']);
+      //   return;
+      // }
       if (targetName === 'rightTopBackground') {
         // 右上角背景加深
         let hoverState = '';
@@ -248,6 +261,9 @@ export class FlowGraph {
             }
             break;
           case 'FAILED':
+            hoverState = 'failedImageBackgroundColorHover';
+            break;
+          case 'REVOKED':
             hoverState = 'failedImageBackgroundColorHover';
             break;
           default:
