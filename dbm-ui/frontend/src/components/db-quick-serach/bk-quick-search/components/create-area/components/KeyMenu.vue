@@ -1,6 +1,6 @@
 <template>
   <div
-    ref="menuRef"
+    ref="root"
     class="bk-quick-search-key-menu">
     <div
       v-for="(dataItem, index) in data"
@@ -20,7 +20,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { ref, toRef } from 'vue';
+  import { toRef, useTemplateRef } from 'vue';
 
   import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
 
@@ -39,14 +39,14 @@
   const modelValue = defineModel<ContextProps['data'][number]>();
 
   const keyList = toRef(props, 'data');
-  const menuRef = ref();
+  const rootRef = useTemplateRef('root');
 
   const handleSelectKey = (data: ContextProps['data'][number]) => {
     modelValue.value = data;
     emits('change', data);
   };
 
-  const { activeIndex } = useMenuKeyboard(keyList, menuRef, (value) => {
+  const { activeIndex } = useMenuKeyboard(keyList, rootRef, (value) => {
     handleSelectKey(value);
   });
 </script>

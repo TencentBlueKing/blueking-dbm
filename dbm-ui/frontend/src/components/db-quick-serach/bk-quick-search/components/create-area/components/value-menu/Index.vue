@@ -173,7 +173,7 @@
     font-size: 12px;
 
     & > * {
-      max-height: 550px;
+      max-height: 450px;
       min-width: 230px;
       min-height: 32px;
       overflow: hidden auto;

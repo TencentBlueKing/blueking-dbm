@@ -86,7 +86,7 @@ export default (
           {
             name: 'flip',
             options: {
-              fallbackPlacements: ['bottom', 'bottom-end'],
+              fallbackPlacements: ['bottom', 'bottom-end', 'top'],
             },
           },
         ],
