@@ -25,8 +25,9 @@
 package hanet_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/hanet"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/hanet"
 )
 
 func TestEndpoint(t *testing.T) {

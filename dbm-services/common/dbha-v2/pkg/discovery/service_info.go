@@ -25,8 +25,9 @@
 package discovery
 
 import (
-	"dbm-services/common/dbha-v2/pkg/hanet"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/hanet"
 )
 
 // ServiceInfo service's infomation

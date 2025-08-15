@@ -25,12 +25,13 @@
 package machine
 
 import (
-	"bk-dbconfig/pkg/core/logger"
 	"crypto/sha256"
 	"encoding/binary"
 	"hash/fnv"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/uuid"

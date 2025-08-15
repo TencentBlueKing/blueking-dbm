@@ -35,12 +35,22 @@ type DiscoveryConfig struct {
 	Password string `yaml:"password" mapstructure:"password"`
 }
 
+// DbmApi the API config of the DBM metadata
+type DbmApi struct {
+	Name    string        `yaml:"name"    mapstructure:"name"`
+	Api     string        `yaml:"api"     mapstructure:"api"`
+	Token   string        `yaml:"token"   mapstructure:"token"`
+	Method  string        `yaml:"method"  mapstructure:"method"`
+	Timeout time.Duration `yaml:"timeout" mapstructure:"timeout"`
+}
+
 // WorkflowConfig workflow's configuration
 type WorkflowConfig struct {
 	WorkerBusinessCount     int           `yaml:"workerBusinessCount"     mapstructure:"workerBusinessCount"`
 	LockBusinessWaitTimeout time.Duration `yaml:"lockBusinessWaitTimeout" mapstructure:"lockBusinessWaitTimeout"`
 	ScanTimeout             time.Duration `yaml:"scanTimeout"             mapstructure:"scanTimeout"`
 	ScanInterval            time.Duration `yaml:"scanInterval"            mapstructure:"scanInterval"`
+	DbmApis                 []DbmApi      `yaml:"dbmApi"                  mapstructure:"dbmApi"`
 }
 
 // MonitorConfig monitor's configuration

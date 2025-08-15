@@ -25,10 +25,11 @@
 package haprobe_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"encoding/json"
 	"testing"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/google/uuid"
 )

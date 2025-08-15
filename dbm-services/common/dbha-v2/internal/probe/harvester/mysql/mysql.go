@@ -26,6 +26,10 @@ package mysql
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -34,9 +38,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-	"fmt"
-	"sync"
-	"time"
 )
 
 const (

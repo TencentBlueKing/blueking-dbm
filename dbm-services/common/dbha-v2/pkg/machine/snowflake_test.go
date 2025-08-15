@@ -25,9 +25,10 @@
 package machine_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/machine"
 	"testing"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/machine"
 )
 
 func TestSnowflake(t *testing.T) {
