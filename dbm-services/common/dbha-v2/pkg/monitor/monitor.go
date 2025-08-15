@@ -26,12 +26,13 @@ package monitor
 
 import (
 	"bytes"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"golang.org/x/net/context"
 )

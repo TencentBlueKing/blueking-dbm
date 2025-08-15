@@ -25,11 +25,12 @@
 package harvester
 
 import (
+	"strings"
+
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"strings"
 )
 
 // NewPlugin creates a new probe plugin.

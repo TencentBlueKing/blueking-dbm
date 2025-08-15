@@ -26,11 +26,14 @@ package workflow
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"strconv"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/discovery"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
 const (
@@ -38,48 +41,44 @@ const (
 )
 
 type Workflow struct {
-	hadata      *DBHAData
-	dbmMetadata *DBMMetadata
-	cfg         config.WorkflowConfig
-	quit        chan struct{}
-	wg          sync.WaitGroup
+	hadata       *DBHAData
+	dbmMetadata  *DBMMetadata
+	discoveryCli *discovery.Client
+	cfg          config.WorkflowConfig
+	quit         chan struct{}
+	wg           sync.WaitGroup
 }
 
-func New(cfg config.WorkflowConfig, db []*hamysql.DB) (*Workflow, error) {
-
+func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
-		cfg:  cfg,
-		quit: make(chan struct{}, 1),
+		hadata:       &DBHAData{db: db},
+		dbmMetadata:  &DBMMetadata{db: db},
+		cfg:          cfg,
+		discoveryCli: cli,
+		quit:         make(chan struct{}, 1),
 	}
 
 	return wflow, nil
 }
 
-func (w *Workflow) lockBusiness(ctx context.Context, bizID int, timeout time.Duration) error {
-	// TODO:
-	_ = ctx
-	_ = bizID
-	_ = timeout
-
-	return nil
-}
-
-func (w *Workflow) unlockBusiness(ctx context.Context, bizID int) error {
-	// TODO:
-	_ = ctx
-	_ = bizID
-
-	return nil
-}
-
-func (w *Workflow) checkBusiness(ctx context.Context, bizID int) error {
-	if err := w.lockBusiness(ctx, bizID, w.cfg.LockBusinessWaitTimeout); err != nil {
+func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) {
+	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
+	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizID))
+	if retErr != nil {
+		return retErr
 	}
-
-	if err := w.unlockBusiness(ctx, bizID); err != nil {
+	if retErr = mu.TryLock(ctx); retErr != nil {
+		return retErr
 	}
+	defer func() {
+		if retErr = mu.Unlock(ctx); retErr != nil {
+			logger.Error("failed to unlock the biz: %d, errmsg: %v", bizID, retErr)
+		}
+	}()
 
-	return nil
+	// TODO: check the biz
+
+	return retErr
 }
 
 func (w *Workflow) scanBusinesses(ctx context.Context) {

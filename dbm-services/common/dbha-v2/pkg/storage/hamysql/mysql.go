@@ -25,8 +25,9 @@
 package hamysql
 
 import (
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"fmt"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

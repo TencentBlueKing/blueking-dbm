@@ -25,12 +25,13 @@
 package probe
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
-	"sync"
 )
 
 type requestEventC chan *proto.ReceiverRequest

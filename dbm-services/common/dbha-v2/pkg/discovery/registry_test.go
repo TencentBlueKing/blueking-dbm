@@ -26,10 +26,11 @@ package discovery_test
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"log"
 	"testing"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
 func TestRegsitrySetService(t *testing.T) {

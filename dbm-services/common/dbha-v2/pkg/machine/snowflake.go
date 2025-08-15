@@ -25,9 +25,10 @@
 package machine
 
 import (
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
 const (

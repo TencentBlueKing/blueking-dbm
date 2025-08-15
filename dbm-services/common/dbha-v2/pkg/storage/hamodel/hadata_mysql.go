@@ -25,10 +25,11 @@
 package hamodel
 
 import (
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"strconv"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (

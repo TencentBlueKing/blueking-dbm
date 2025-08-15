@@ -25,10 +25,11 @@
 package hamysql_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"log"
 	"os"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
 func TestNew(t *testing.T) {

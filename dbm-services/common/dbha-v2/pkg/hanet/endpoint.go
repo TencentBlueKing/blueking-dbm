@@ -25,11 +25,12 @@
 package hanet
 
 import (
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
 // Endpoint for parsing DSN addresses
