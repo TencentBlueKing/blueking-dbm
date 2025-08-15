@@ -115,7 +115,7 @@ interface FlowsDetail {
       skip: boolean;
       skippable: boolean;
       started_at: number;
-      status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
+      status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED' | 'REVOKED';
       timeout?: number;
       type: keyof typeof FlowTypes;
       updated_at: number;

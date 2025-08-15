@@ -255,6 +255,9 @@
               handleShowTooltip('finished', e);
             }
             break;
+          case 'REVOKED':
+            handleShowTooltip('failed', e);
+            break;
           default:
             break;
         }

@@ -2,7 +2,9 @@
   <div class="operate-history-main">
     <DbTable
       ref="tableRef"
+      class="operation-history-table"
       :data-source="getNodeOperateRecord"
+      max-height="100%"
       :pagination="false">
       <BkTableColumn
         field="node_name"
@@ -97,6 +99,17 @@
 </script>
 <style lang="less">
   .operate-history-main {
+    height: 100%;
     padding: 16px 25px;
+    overflow: hidden;
+
+    .operation-history-table {
+      height: 100%;
+      overflow: hidden;
+
+      .bk-nested-loading {
+        height: 100%;
+      }
+    }
   }
 </style>

@@ -11,22 +11,6 @@ type FlowType = FlowDetail['end_event']['type'];
 
 type FlowLine = FlowDetail['flows'][string];
 
-// interface Node {
-//   children?: Node[][];
-//   data: Node;
-//   id: string;
-//   index: number;
-//   isExpand: boolean;
-//   level: number;
-//   parent: null | Node;
-//   style: {
-//     height: number;
-//     width: number;
-//     x: number;
-//     y: number;
-//   };
-// }
-
 export const getewayTypes: FlowType[] = [
   FlowTypes.ParallelGateway,
   FlowTypes.ConvergeGateway,
@@ -35,10 +19,11 @@ export const getewayTypes: FlowType[] = [
 
 export type Node = {
   children?: Node[][];
-  data: Node;
+  data: FlowDetail['activities'][string];
   id: string;
   index: number;
   isExpand: boolean;
+  isTaskRevoked: boolean;
   level: number;
   parent: null | Node;
   style: {
@@ -127,13 +112,14 @@ export function generateCommonData(data: FlowDetail) {
       }),
     {},
   );
+  const isTaskRevoked = data.flow_info.status === 'REVOKED';
 
   const traverse = (list: any[] = []) => {
     list.forEach((item) => {
       if (resetNameTypes.includes(item.type)) {
         Object.assign(item, { name: nodeTypeNameMap[item.type as keyof typeof nodeTypeNameMap] });
       }
-      Object.assign(item, { todoId: nodeIdTodoIdMap[item.id] || 0 });
+      Object.assign(item, { isTaskRevoked, todoId: nodeIdTodoIdMap[item.id] || 0 });
       nodes.push(item);
       if (item.pipeline) {
         pipelineNodeToStartEventMap[item.id] = item.pipeline.start_event.id;
@@ -190,41 +176,49 @@ export function generateTreeData(
   baseData: FlowDetail,
   nodesMap: Record<string, Node>,
   edgesMap: Record<string, Set<string>>,
-  parentProcessNodeId = '',
 ) {
-  const { start_event: startEvent } = baseData;
-  const treeData: TreeNode[] = [];
-  let currentNode = nodesMap[Array.from(edgesMap[startEvent.id])[0]] as any;
+  const deepGenerate = (
+    baseData: FlowDetail,
+    nodesMap: Record<string, Node>,
+    edgesMap: Record<string, Set<string>>,
+    parentProcessNodeId = '',
+  ) => {
+    const { start_event: startEvent } = baseData;
+    const treeData: TreeNode[] = [];
+    let currentNode = nodesMap[Array.from(edgesMap[startEvent.id])[0]] as any;
 
-  while (currentNode && currentNode.type !== 'EmptyEndEvent') {
-    if (parentProcessNodeId) {
-      currentNode.parentProcessNodeId = parentProcessNodeId;
+    while (currentNode && currentNode.type !== 'EmptyEndEvent') {
+      if (parentProcessNodeId) {
+        currentNode.parentProcessNodeId = parentProcessNodeId;
+      }
+      treeData.push(currentNode);
+      if (currentNode.pipeline) {
+        currentNode.children = deepGenerate(currentNode.pipeline, nodesMap, edgesMap, currentNode.id);
+      }
+      const nextNodeIds = Array.from(edgesMap[currentNode.id]);
+      if (nextNodeIds.length > 1) {
+        // 一 对 多的网关节点
+        currentNode.children = [];
+        nextNodeIds.forEach((nextNodeId) => {
+          const nextNode = nodesMap[nextNodeId] as any;
+          if (parentProcessNodeId) {
+            Object.assign(nextNode, { parentProcessNodeId });
+          }
+          if (nextNode.pipeline) {
+            nextNode.children = deepGenerate(nextNode.pipeline, nodesMap, edgesMap, nextNode.id);
+          }
+          currentNode.children.push(nextNode);
+        });
+        const nextNode = nodesMap[Array.from(edgesMap[nodesMap[nextNodeIds[0]].id])[0]];
+        currentNode = nextNode;
+      } else {
+        currentNode = nodesMap[nextNodeIds[0]];
+      }
     }
-    treeData.push(currentNode);
-    if (currentNode.pipeline) {
-      currentNode.children = generateTreeData(currentNode.pipeline, nodesMap, edgesMap, currentNode.id);
-    }
-    const nextNodeIds = Array.from(edgesMap[currentNode.id]);
-    if (nextNodeIds.length > 1) {
-      // 一 对 多的网关节点
-      currentNode.children = [];
-      nextNodeIds.forEach((nextNodeId) => {
-        const nextNode = nodesMap[nextNodeId] as any;
-        if (parentProcessNodeId) {
-          Object.assign(nextNode, { parentProcessNodeId });
-        }
-        if (nextNode.pipeline) {
-          nextNode.children = generateTreeData(nextNode.pipeline, nodesMap, edgesMap, nextNode.id);
-        }
-        currentNode.children.push(nextNode);
-      });
-      const nextNode = nodesMap[Array.from(edgesMap[nodesMap[nextNodeIds[0]].id])[0]];
-      currentNode = nextNode;
-    } else {
-      currentNode = nodesMap[nextNodeIds[0]];
-    }
-  }
-  return treeData;
+    return treeData;
+  };
+
+  return deepGenerate(baseData, nodesMap, edgesMap, '');
 }
 
 export function generateEdges(

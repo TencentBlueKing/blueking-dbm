@@ -27,7 +27,11 @@
             <StatusSign
               class="mr-8"
               :data="statusValue" />
-            <span>{{ statusDisplay }}</span>
+            <div
+              v-overflow-tips
+              class="display-txt">
+              {{ statusDisplay }}
+            </div>
             <DbIcon
               class="arrow-icon"
               type="down-big" />
@@ -469,11 +473,13 @@
     .status-select-main {
       display: flex;
       width: 100%;
+      overflow: hidden;
 
       .select-title {
         display: flex;
         width: 64px;
         height: 32px;
+        min-width: 64px;
         font-size: 12px;
         color: #4d4f56;
         background: #eaebf0;
@@ -483,8 +489,9 @@
       }
 
       .bk-select {
-        flex: 1;
+        overflow: hidden;
         cursor: pointer;
+        flex: 1;
 
         .select-result-display {
           display: flex;
@@ -496,6 +503,13 @@
 
           &:hover {
             border-color: #979ba5 !important;
+          }
+
+          .display-txt {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
 
           .arrow-icon {

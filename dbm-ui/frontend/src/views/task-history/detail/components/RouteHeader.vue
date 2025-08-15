@@ -121,6 +121,7 @@
     const themes = {
       CREATED: 'default',
       FINISHED: 'success',
+      REVOKED: 'danger',
       RUNNING: 'info',
     };
     return themes[status as keyof typeof themes] || 'default';

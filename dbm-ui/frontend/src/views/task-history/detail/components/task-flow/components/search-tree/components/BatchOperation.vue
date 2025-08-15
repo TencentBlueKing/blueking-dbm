@@ -2,6 +2,7 @@
   <div class="batch-operation-main">
     <BkCheckbox
       v-model="isCheckAll"
+      class="operation-checkbox"
       @change="handleChangeAll">
       {{ t('全选') }}
     </BkCheckbox>
@@ -11,50 +12,56 @@
         :confirm-config="{
           theme: 'danger',
         }"
-        :confirm-text="t('强制失败')"
-        :content="t('将会终止节点运行，并置为强制失败状态')"
+        :confirm-text="t('批量失败')"
+        :content="t('强制失败将立即终止这n个节点运行，统一标记为 “失败”', { n: data.length })"
         :popover-options="{
           disabled: isDisabled,
         }"
-        :title="t('确认强制失败n个节点？', { n: data.length })"
+        :title="t('确认强制终止n个节点并置为失败？', { n: data.length })"
         trigger="click"
         width="280"
         @confirm="handleConfirmForceFail">
         <BkButton
           :disabled="isDisabled"
+          :loading="isForceFailLoading"
           theme="danger">
-          {{ t('强制失败') }}
+          {{ t('批量失败') }}
         </BkButton>
       </BkPopConfirm>
       <template v-else-if="status === 'FAILED'">
         <BkPopConfirm
           :confirm-text="t('批量重试')"
-          :content="t('将会重新执行')"
+          :content="t('重试将重新执行这n个节点', { n: data.length })"
           :popover-options="{
             disabled: isDisabled,
           }"
-          :title="t('确认批量重试n个节点？', { n: data.length })"
+          :title="t('确认重试n个失败节点？', { n: data.length })"
           trigger="click"
           width="280"
           @confirm="handleConfirmRetry">
           <BkButton
             :disabled="isDisabled"
+            :loading="isRetryLoading"
             theme="primary">
             {{ t('批量重试') }}
           </BkButton>
         </BkPopConfirm>
         <BkPopConfirm
           :confirm-text="t('批量跳过')"
-          :content="t('将会忽略当前节点，继续往下执行')"
+          :content="
+            t('跳过将忽略这n个节点的失败状态，直接执行后续节点，当前节点将被标记为 “已跳过”', { n: data.length })
+          "
           :popover-options="{
             disabled: isDisabled,
           }"
-          :title="t('确认批量跳过n个节点？', { n: data.length })"
+          :title="t('确认跳过n个失败节点？', { n: data.length })"
           trigger="click"
           width="280"
           @confirm="handleConfirmSkip">
           <BkButton
             :disabled="isDisabled"
+            :loading="isSkipLoading"
+            outline
             theme="primary">
             {{ t('批量跳过') }}
           </BkButton>
@@ -63,16 +70,17 @@
       <template v-else>
         <BkPopConfirm
           :confirm-text="t('批量继续')"
-          :content="t('将会立即执行该节点')"
+          :content="t('继续后将立即完成这n个节点，并执行后续节点', { n: data.length })"
           :popover-options="{
             disabled: isDisabled,
           }"
-          :title="t('确认批量继续n个节点？', { n: data.length })"
+          :title="t('确认继续执行n个待继续节点？', { n: data.length })"
           trigger="click"
           width="280"
           @confirm="handleConfirmTodo">
           <BkButton
             :disabled="isDisabled"
+            :loading="isTodoLoading"
             theme="primary">
             {{ t('批量继续') }}
           </BkButton>
@@ -82,22 +90,22 @@
             theme: 'danger',
           }"
           :confirm-text="t('批量失败')"
-          :content="t('强制失败将立即终止这 n 个节点运行，统一标记为 “失败”', { n: data.length })"
+          :content="t('强制失败将立即终止这n个节点运行，统一标记为 “失败”', { n: data.length })"
           :popover-options="{
             disabled: isDisabled,
           }"
-          :title="t('确认强制终止 n 个节点并置为失败？', { n: data.length })"
+          :title="t('确认强制终止n个节点并置为失败？', { n: data.length })"
           trigger="click"
           width="280"
           @confirm="handleConfirmForceFail">
           <BkButton
             :disabled="isDisabled"
+            :loading="isForceFailLoading"
             theme="danger">
             {{ t('批量失败') }}
           </BkButton>
         </BkPopConfirm>
       </template>
-
       <BkButton
         v-if="data.length"
         :disabled="isDisabled"
@@ -149,28 +157,28 @@
     emits('refresh');
   };
 
-  const { run: runBatchProcessTodo } = useRequest(batchProcessTodo, {
+  const { loading: isTodoLoading, run: runBatchProcessTodo } = useRequest(batchProcessTodo, {
     manual: true,
     onSuccess() {
       handleSuccess();
     },
   });
 
-  const { run: runBatchRetryNodes } = useRequest(batchRetryNodes, {
+  const { loading: isRetryLoading, run: runBatchRetryNodes } = useRequest(batchRetryNodes, {
     manual: true,
     onSuccess() {
       handleSuccess();
     },
   });
 
-  const { run: runBatchSkipTaskflowNode } = useRequest(batchSkipTaskflowNode, {
+  const { loading: isSkipLoading, run: runBatchSkipTaskflowNode } = useRequest(batchSkipTaskflowNode, {
     manual: true,
     onSuccess() {
       handleSuccess();
     },
   });
 
-  const { run: runBatchForceFailTaskflowNode } = useRequest(batchForceFailTaskflowNode, {
+  const { loading: isForceFailLoading, run: runBatchForceFailTaskflowNode } = useRequest(batchForceFailTaskflowNode, {
     manual: true,
     onSuccess() {
       handleSuccess();
@@ -235,6 +243,10 @@
     border: 1px solid #dcdee5;
     align-items: center;
     justify-content: space-between;
+
+    .operation-checkbox {
+      min-width: 48px;
+    }
 
     .btn-operations {
       display: flex;
