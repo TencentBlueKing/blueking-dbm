@@ -22,7 +22,6 @@
     <BkLoading :loading="loading">
       <div class="machine-shrink-wrapper">
         <NodeStatusList
-          v-show="false"
           ref="nodeStatusList"
           v-model="nodeType"
           :list="nodeStatusList"

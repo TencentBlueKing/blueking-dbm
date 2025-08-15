@@ -207,13 +207,9 @@
       v-model:is-show="isShowExpandsion"
       :cluster-data="operationData"
       @change="fetchTableData" />
-    <ClusterExpansion
-      v-if="operationData"
-      v-model:is-show="isShowExpandsion"
-      :cluster-data="operationData"
-      @change="fetchTableData" />
     <ClusterShrink
       v-if="operationData"
+      v-model:is-show="isShowShrink"
       :cluster-data="operationData"
       @change="fetchTableData" />
     <BkDialog

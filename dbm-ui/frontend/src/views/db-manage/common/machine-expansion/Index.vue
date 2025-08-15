@@ -28,13 +28,12 @@
         <BkRadioButton label="resource_pool">
           {{ t('资源池自动匹配') }}
         </BkRadioButton>
-        <BkRadioButton label="manual_input">
+        <!-- <BkRadioButton label="manual_input">
           {{ t('资源池手动选择') }}
-        </BkRadioButton>
+        </BkRadioButton> -->
       </BkRadioGroup>
       <div class="layout">
         <NodeStatusList
-          v-show="false"
           ref="nodeStatusListRef"
           v-model="nodeType"
           :ip-source="ipSource"
@@ -132,7 +131,7 @@
     [DBTypes.DORIS]: TicketTypes.DORIS_SCALE_UP,
     [DBTypes.ES]: TicketTypes.ES_SCALE_UP,
     [DBTypes.HDFS]: TicketTypes.HDFS_SCALE_UP,
-    [DBTypes.KAFKA]: TicketTypes.HDFS_SCALE_UP,
+    [DBTypes.KAFKA]: TicketTypes.KAFKA_SCALE_UP,
     [DBTypes.PULSAR]: TicketTypes.PULSAR_SCALE_UP,
   };
 

@@ -28,14 +28,15 @@
         <BkRadioButton label="resource_pool">
           {{ t('资源池自动匹配') }}
         </BkRadioButton>
-        <BkRadioButton label="manual_input">
+        <!-- <BkRadioButton label="manual_input">
           {{ t('资源池手动选择') }}
-        </BkRadioButton>
+        </BkRadioButton> -->
       </BkRadioGroup>
-      <div>
+      <template
+        v-for="[key, nodeInfo] in Object.entries(modelValue)"
+        :key="key">
         <div
-          v-for="[key, nodeInfo] in Object.entries(modelValue)"
-          :key="key"
+          v-show="nodeInfo.oldHostList.length > 0"
           class="node-item">
           <div class="item-label">{{ nodeInfo.label }}</div>
           <ReourcePanel
@@ -53,7 +54,7 @@
             :ip-source="ipSource"
             @remove-node="handleRemoveNode" />
         </div>
-      </div>
+      </template>
     </div>
     <div
       v-else

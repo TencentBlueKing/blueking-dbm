@@ -171,6 +171,7 @@
       @change="handleOperationChange" />
     <ClusterReplace
       v-if="clusterData"
+      v-model:is-show="isShowReplace"
       :cluster-data="clusterData"
       :machine-list="operationMachineList"
       @change="handleOperationChange" />
