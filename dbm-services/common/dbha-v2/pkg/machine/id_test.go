@@ -25,8 +25,9 @@
 package machine_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/machine"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/machine"
 )
 
 func TestID(t *testing.T) {

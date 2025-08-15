@@ -24,25 +24,36 @@
 
 package config
 
-var Cfg = Configuration{}
+import "time"
 
-// ServiceConfig service configuration
-type ServiceConfig struct {
-	ListenAddress string `yaml:"listenAddress"    mapstructure:"listenAddress"`
-}
+var Cfg = Configuration{}
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
-	User      string `yaml:"user"      mapstructure:"user"`
-	Password  string `yaml:"password"  mapstructure:"password"`
+	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
+	User     string `yaml:"user"     mapstructure:"user"`
+	Password string `yaml:"password" mapstructure:"password"`
 }
 
-// DBHADataConfig dbha database configuration
-type DBHADataConfig struct {
-	Endpoints string `yaml:"endpoints" mapstructure:"endpoints"`
-	User      string `yaml:"user"      mapstructure:"user"`
-	Password  string `yaml:"password"  mapstructure:"password"`
+// ServiceConfig service configuration
+type ServiceConfig struct {
+	ListenAddress string `yaml:"listenAddress" mapstructure:"listenAddress"`
+}
+
+// DbmApi the API config of the DBM metadata
+type DbmApi struct {
+	Name    string        `yaml:"name"    mapstructure:"name"`
+	Api     string        `yaml:"api"     mapstructure:"api"`
+	Token   string        `yaml:"token"   mapstructure:"token"`
+	Method  string        `yaml:"method"  mapstructure:"method"`
+	Timeout time.Duration `yaml:"timeout" mapstructure:"timeout"`
+}
+
+// StorageConfig dbha database configuration
+type StorageConfig struct {
+	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
+	User     string `yaml:"user"     mapstructure:"user"`
+	Password string `yaml:"password" mapstructure:"password"`
 }
 
 // LogConfig log configuration
@@ -57,8 +68,9 @@ type LogConfig struct {
 type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
-	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	DBHAData  DBHADataConfig  `yaml:"storage"  mapstructure:"storage"`
+	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
+	DbmApis   []DbmApi        `yaml:"dbmApi"    mapstructure:"dbmApi"`
+	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

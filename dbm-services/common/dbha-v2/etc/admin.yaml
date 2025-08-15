@@ -2,14 +2,42 @@ name: admin
 version: v2.0.0
 
 discovery:
-  endpoints: http://127.0.0.1:2379;http://127.0.0.2:2379
+  endpoint: http://127.0.0.1:2379
   user: root
-  password: 1234567890
+  password: dbhatest
+
+service:
+  listenAdress: tcp://127.0.0.1:2688
+
+dbmApi:
+  - name: metadata
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: updateStatus
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/update_status
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: swapMySQLRole
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/swap_role
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: swapTendisCluster
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap
+    method: post
+    timeout: 10s
+    token: ""
 
 storage:
-  endpoints: 127.0.0.1:3306
+  endpoint: tcp://127.0.0.1:3306
   user: root
-  password: 123456
+  password: dbhatest
 
 log:
   path: /var/log/dbha/logs/admin.log

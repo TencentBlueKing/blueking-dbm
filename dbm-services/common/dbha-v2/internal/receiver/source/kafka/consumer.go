@@ -27,13 +27,14 @@ package kafka
 import (
 	"context"
 	"crypto/sha512"
+	"strings"
+	"sync"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/xdg-go/scram"

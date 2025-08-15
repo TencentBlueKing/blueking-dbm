@@ -26,6 +26,10 @@ package analysis
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow"
 	"dbm-services/common/dbha-v2/pkg/discovery"
@@ -34,9 +38,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"encoding/json"
-	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
@@ -52,7 +53,7 @@ type Service struct {
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
-	dbs          []*hamysql.DB
+	db           *hamysql.DB
 }
 
 func (s *Service) createDiscovery() error {
@@ -98,35 +99,27 @@ func (s *Service) updateInfo() {
 }
 
 func (s *Service) createStorage() error {
-	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
+	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
 	if err != nil {
 		logger.Error("invalid storage configuration, %v", err)
 		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
 	}
 
-	for _, epoint := range epoints {
-		db, err := hamysql.New(
-			hamysql.OptionProto(epoint.Proto),
-			hamysql.OptionIP(epoint.Host),
-			hamysql.OptionPort(epoint.Port),
-			hamysql.OptionDBName(hamodel.DatabaseName),
-			hamysql.OptionUser(config.Cfg.Storage.User),
-			hamysql.OptionPassword(config.Cfg.Storage.Password),
-		)
+	db, err := hamysql.New(
+		hamysql.OptionProto(epoint.Proto),
+		hamysql.OptionIP(epoint.Host),
+		hamysql.OptionPort(epoint.Port),
+		hamysql.OptionDBName(hamodel.DatabaseName),
+		hamysql.OptionUser(config.Cfg.Storage.User),
+		hamysql.OptionPassword(config.Cfg.Storage.Password),
+	)
 
-		if err != nil {
-			logger.Warn("create mysql storage failed, %v", err)
-			continue
-		}
-
-		s.dbs = append(s.dbs, db)
+	if err != nil {
+		logger.Warn("create mysql storage failed, %v", err)
+		return err
 	}
 
-	if len(s.dbs) == 0 {
-		logger.Error("not any usable db, endpoints(%s)", config.Cfg.Storage.Endpoint)
-		return gerrors.Newf(gerrors.ComponentFailure, "not any usable db, endpoints(%s)", config.Cfg.Storage.Endpoint)
-	}
-
+	s.db = db
 	return nil
 }
 
@@ -135,7 +128,7 @@ func (s *Service) createNotifier() error {
 }
 
 func (s *Service) createWorkflow() error {
-	wflow, err := workflow.New(config.Cfg.Workflow, s.dbs)
+	wflow, err := workflow.New(config.Cfg.Workflow, s.discoveryCli, s.db)
 	if err != nil {
 		return err
 	}

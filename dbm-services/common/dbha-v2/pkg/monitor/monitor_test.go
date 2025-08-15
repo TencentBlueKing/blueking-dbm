@@ -25,9 +25,10 @@
 package monitor_test
 
 import (
-	"dbm-services/common/dbha-v2/pkg/monitor"
 	"encoding/json"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/monitor"
 )
 
 func TestMonitorEvent(t *testing.T) {

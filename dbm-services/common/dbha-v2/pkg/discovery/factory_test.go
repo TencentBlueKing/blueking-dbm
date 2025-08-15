@@ -26,11 +26,12 @@ package discovery_test
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/pkg/discovery"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/discovery"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

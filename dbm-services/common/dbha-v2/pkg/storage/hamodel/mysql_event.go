@@ -25,8 +25,9 @@
 package hamodel
 
 import (
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 type MySQLEvent struct {
