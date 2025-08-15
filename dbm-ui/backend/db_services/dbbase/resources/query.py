@@ -20,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
     AppCache,
@@ -91,7 +91,11 @@ class CommonQueryResourceMixin(abc.ABC):
         """集群的通用属性查询"""
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
-            "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
+            "storageinstance_set",
+            "proxyinstance_set",
+            "clusterentry_set",
+            "storageinstance_set__machine",
+            "proxyinstance_set__machine",
         ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
         if cluster_ids:
             clusters = clusters.filter(id__in=cluster_ids)
@@ -101,14 +105,26 @@ class CommonQueryResourceMixin(abc.ABC):
         # 初始化用于存储Excel数据的字典列表
         headers = [
             {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "db_type", "name": _("db类型")},
             {"id": "cluster_name", "name": _("集群名称")},
             {"id": "cluster_alias", "name": _("集群别名")},
             {"id": "cluster_type", "name": _("集群类型")},
             {"id": "master_domain", "name": _("主域名")},
             {"id": "slave_domain", "name": _("从域名")},
-            {"id": "major_version", "name": _("主版本")},
-            {"id": "region", "name": _("地域")},
-            {"id": "disaster_tolerance_level", "name": _("容灾级别")},
+            {"id": "clb", "name": _("clb")},
+            {"id": "polaris", "name": _("北极星")},
+            {"id": "tags", "name": _("标签")},
+            {"id": "status", "name": _("状态")},
+            {"id": "cluster_stats", "name": _("容量使用率")},
+            {"id": "db_module_name", "name": _("模块")},
+            {"id": "major_version", "name": _("版本")},
+            {"id": "disaster_tolerance_level", "name": _("容灾要求")},
+            {"id": "region", "name": _("地域园区")},
+            {"id": "cluster_spec", "name": _("规格")},
+            {"id": "bk_cloud_id", "name": _("管控区域")},
+            {"id": "creator", "name": _("创建人")},
+            {"id": "create_at", "name": _("部署时间")},
+            {"id": "cluster_time_zone", "name": _("时区")},
         ]
         role_header_ids = set()
 
@@ -117,32 +133,92 @@ class CommonQueryResourceMixin(abc.ABC):
         ):
             """
             把实例信息填充到集群信息中
+            要求插入至标签的前面
             """
             for ins in instances:
                 # 获取存储实例所属角色
-                role = ins.instance_role
+                if ins.cluster_type == ClusterType.TenDBCluster.value and isinstance(ins, ProxyInstance):
+                    role = ins.tendbclusterspiderext.spider_role
+                elif ins.machine.machine_type in [MachineType.MONOG_CONFIG, MachineType.MONGOS, MachineType.MONGODB]:
+                    role = ins.machine.machine_type
+                else:
+                    role = ins.instance_role
 
                 # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
                 if role in cluster_info:
-                    cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
+                    cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
                 else:
                     role_header_ids.add(role)
-                    cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
+                    cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+        # 获取集群容量使用率的映射信息
+        cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cluster_types)
+        # 获取DB模块的映射信息
+        db_module_queryset = DBModule.objects.filter(cluster_type__in=cluster_types, bk_biz_id=bk_biz_id)
+        # 提取所需的字段和构建映射
+        db_module_names_map = {
+            module["db_module_id"]: module["db_module_name"]
+            for module in db_module_queryset.values("db_module_id", "db_module_name")
+        }
+
+        # 预取remote的spec
+        db_types = set([ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cluster_types])
+        remote_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=db_types)}
 
         # 遍历所有的集群对象
         data_list = []
         for cluster in clusters:
+            clb_entry = ""
+            polaris_entry = ""
+            # 补充集群规格信息
+            storage = next((inst for inst in cluster.storageinstance_set.all()), None)
+            cluster_spec_id = storage.machine.spec_id if storage else 0
+            cluster_spec = remote_spec_map.get(cluster_spec_id)
+            for entry in cluster.clusterentry_set.all():
+                # 处理集群非DNS访问入口信息
+                if entry.cluster_entry_type != ClusterEntryType.DNS.value:
+                    entry_detail = entry.detail
+                    if entry.cluster_entry_type in [ClusterEntryType.CLB, ClusterEntryType.CLBDNS]:
+                        clb_entry += f"\n{entry_detail.get('clb_ip', '')}"
+                        clb_entry += f"\n{entry_detail.get('clb_domain', '')}"
+                    elif entry.cluster_entry_type == ClusterEntryType.POLARIS.value:
+                        polaris_entry += f"\n{entry_detail.get('polaris_l5', '')}"
+                        polaris_entry += f"\n{entry_detail.get('polaris_name', '')}"
+
+            # 内存使用率
+            cluster_stats = cluster_stats_map.get(cluster.immute_domain, "")
+            if cluster_stats:
+                if "used" in cluster_stats:
+                    cluster_stats = (
+                        f"{cluster_stats.get('in_use', 0)}% "
+                        f"({cluster_stats.get('used', 0)}/{cluster_stats.get('total', 0)})"
+                    )
+                else:
+                    cluster_stats = f"0% ({cluster_stats.get('total', 0)})"
+
             # 创建一个空字典来保存当前集群的信息
             cluster_info = {
                 "cluster_id": cluster.id,
+                "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                 "cluster_name": cluster.name,
                 "cluster_alias": cluster.alias,
                 "cluster_type": cluster.cluster_type,
                 "master_domain": cluster.immute_domain,
                 "slave_domain": cluster_entry_map[cluster.id].get("slave_domain", ""),
+                "clb": clb_entry,
+                "polaris": polaris_entry,
+                "tags": [tag.desc for tag in cluster.tags.all()] or "",
+                "status": cluster.status,
+                "cluster_stats": cluster_stats,
+                "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
                 "major_version": cluster.major_version,
+                "disaster_tolerance_level": cluster.disaster_tolerance_level,
                 "region": cluster.region,
-                "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
+                "cluster_spec": cluster_spec.spec_name if cluster_spec else "",
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "creator": cluster.creator,
+                "create_at": datetime2str(cluster.create_at),
+                "cluster_time_zone": cluster.time_zone,
             }
             fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
             fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
@@ -150,10 +226,17 @@ class CommonQueryResourceMixin(abc.ABC):
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
 
-        for ins_role in InstanceRole.get_values():
-            if ins_role in role_header_ids:
-                headers.append({"id": ins_role, "name": InstanceRole.get_choice_label(ins_role)})
-
+        # 在"tags"之前插入实例数据
+        insert_position = next((index for index, header in enumerate(headers) if header["id"] == "tags"), None)
+        # 收集需要插入的header
+        dynamic_headers = [
+            {"id": ins_role, "name": InstanceRole.get_choice_label(ins_role)}
+            for ins_role in InstanceRole.get_values()
+            + TenDBClusterSpiderRole.get_values()
+            + [MachineType.MONOG_CONFIG.value, MachineType.MONGOS.value, MachineType.MONGODB.value]
+            if ins_role in role_header_ids
+        ]
+        headers[insert_position:insert_position] = dynamic_headers
         return headers, data_list
 
     @staticmethod
