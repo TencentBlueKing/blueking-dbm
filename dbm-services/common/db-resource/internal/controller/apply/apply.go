@@ -71,6 +71,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {
 		logger.Error("use request id %s,query apply resource failed %s", param.RequestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if len(hostIds) != int(cnt) {
@@ -142,8 +143,8 @@ func (c *ApplyHandler) PreApplyResource(r *gin.Context) {
 }
 
 func newLocker(key string, requestId string) *lock.SpinLock {
-	return lock.NewSpinLock(&lock.RedisLock{Name: key, RandKey: requestId, Expiry: 120 * time.Second}, 60,
-		350*time.Millisecond)
+	redisLock := lock.NewRedisLock(key, requestId, 120*time.Second)
+	return lock.NewSpinLock(redisLock, 60, 350*time.Millisecond)
 }
 
 // ApplyBase apply resource base func

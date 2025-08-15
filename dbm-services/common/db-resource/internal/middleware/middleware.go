@@ -103,6 +103,7 @@ func ApiLogger(c *gin.Context) {
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {
 		if !RequestLoggerFilter.filter(c.Request.RequestURI) {
+			c.Next()
 			return
 		}
 		var bodyBytes []byte

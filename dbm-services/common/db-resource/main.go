@@ -18,9 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
-	"dbm-services/mysql/db-simulation/app/config"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
@@ -66,7 +66,7 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:              config.GAppConfig.ListenAddr,
+		Addr:              config.AppConfig.ListenAddress,
 		Handler:           app,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
