@@ -3,9 +3,9 @@
     ref="templateRef"
     class="task-history-flow-operation-main">
     <div class="title">
-      {{ t('确认继续执行？') }}
+      {{ t('确认继续执行当前待继续节点？') }}
     </div>
-    <div class="sub-title">{{ t('将会立即执行该节点') }}</div>
+    <div class="sub-title">{{ t('继续后将立即完成当前节点，并执行后续节点') }}</div>
     <div class="btn">
       <BkButton
         class="mr-8"

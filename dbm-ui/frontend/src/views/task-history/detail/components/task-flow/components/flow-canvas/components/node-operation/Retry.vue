@@ -3,9 +3,9 @@
     ref="templateRef"
     class="task-history-flow-operation-main">
     <div class="title">
-      {{ t('确认重试当前节点？') }}
+      {{ t('确认重试当前失败节点？') }}
     </div>
-    <div class="sub-title">{{ t('将会重新执行') }}</div>
+    <div class="sub-title">{{ t('重试将重新执行当前节点') }}</div>
     <div class="btn">
       <BkButton
         class="mr-8"
@@ -13,7 +13,7 @@
         size="small"
         theme="primary"
         @click.stop="handleRetryClick">
-        {{ t('确认继续') }}
+        {{ t('确认重试') }}
       </BkButton>
       <BkButton
         size="small"

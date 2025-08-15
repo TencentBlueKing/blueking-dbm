@@ -6,8 +6,10 @@ import SuccessImage from '@images/check-line.png';
 import FailImage from '@images/close.png';
 import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
+// import MinusImage from '@images/minus.png';
 import MinusImage from '@images/minus-fill.png';
-import AddImage from '@images/plus-fill.png';
+import PlusImage from '@images/plus-fill.png';
+// import PlusImage from '@images/plus.png';
 import manualConfirmImage from '@images/querenjixu.png';
 import RetryImage from '@images/refresh-2.png';
 import SkipImage from '@images/skip.png';
@@ -75,7 +77,7 @@ export class NormalNode extends Rect {
   }
 
   get isFailed() {
-    return this.data.status === 'FAILED';
+    return ['FAILED', 'REVOKED'].includes(this.data.status);
   }
 
   get isFinished() {
@@ -135,12 +137,23 @@ export class NormalNode extends Rect {
     }
 
     const [width, height] = this.getSize(attributes);
+
+    // const collapseBackgroundStyle = {
+    //   cx: -120,
+    //   cy: 0,
+    //   fill: attributes.collapseBackgroundColor,
+    //   r: 7,
+    //   zIndex: 101,
+    // };
+    // this.upsert('collapseBackground', GCircle, collapseBackgroundStyle, container);
+
     const collapseIconStyle = {
       height: 14,
-      src: this.data.isExpand ? MinusImage : AddImage,
+      src: this.data.isExpand ? MinusImage : PlusImage,
       width: 14,
       x: -width / 2,
       y: -height / 2 + 20,
+      // zIndex: 102,
     };
 
     this.upsert('collapseIcon', GImage, collapseIconStyle, container);
@@ -222,7 +235,7 @@ export class NormalNode extends Rect {
   }
 
   drawOperationShape(attributes: any, container: Group) {
-    if (this.isSubProcess) {
+    if (this.isSubProcess || this.data.isTaskRevoked) {
       return;
     }
     const [width] = this.getSize(attributes);
@@ -466,15 +479,15 @@ export class NormalNode extends Rect {
       }
     }
 
-    const [height, width] = this.getSize(attributes);
+    const [width, height] = this.getSize(attributes);
     // 矩形背景
     const mainStatusBackgroundStyle = {
       fill: strokeColor,
       height: 40,
       radius: 4,
       width: 40,
-      x: -height / 2 + (this.isSubProcess ? 20 : 6),
-      y: -width / 2 + 8,
+      x: -width / 2 + (this.isSubProcess ? 20 : 6),
+      y: -height / 2 + 8,
     };
     this.upsert('mainStatusBackground', GRect, mainStatusBackgroundStyle, container);
     // 节点左侧图标
@@ -482,8 +495,8 @@ export class NormalNode extends Rect {
       height: 17.5,
       src: FileImage,
       width: 15,
-      x: -height / 2 + (this.isSubProcess ? 33 : 19),
-      y: -width / 2 + 19,
+      x: -width / 2 + (this.isSubProcess ? 33 : 19),
+      y: -height / 2 + 19,
     };
     this.upsert('mainStatusImage', GImage, mainStatusImageStyle, container);
     if (this.data.status && !this.isWaitToRun) {
@@ -505,7 +518,7 @@ export class NormalNode extends Rect {
         fill: attributes.failedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('failedImageBackground', GCircle, failedBackgroundStyle, container);
+      this.upsert('rightTopFailedImageBackground', GCircle, failedBackgroundStyle, container);
       const failedImageStyle = {
         height: 16,
         src: FailImage,
@@ -513,7 +526,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 119 : 112,
         y: -32,
       };
-      this.upsert('failedImage', GImage, failedImageStyle, container);
+      this.upsert('rightTopFailedImage', GImage, failedImageStyle, container);
       return;
     }
 
@@ -525,7 +538,7 @@ export class NormalNode extends Rect {
         fill: attributes.todoImageBackgroundColor,
         r: 9,
       };
-      this.upsert('todoImageBackground', GCircle, todoBackgroundStyle, container);
+      this.upsert('rightTopTodoImageBackground', GCircle, todoBackgroundStyle, container);
       const todoImageStyle = {
         height: 14,
         src: WaitTodoImage,
@@ -533,7 +546,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 120 : 113,
         y: -31,
       };
-      this.upsert('todoImage', GImage, todoImageStyle, container);
+      this.upsert('rightTopTodoImage', GImage, todoImageStyle, container);
       return;
     }
 
@@ -545,7 +558,7 @@ export class NormalNode extends Rect {
         fill: attributes.loadingImageBackgroundColor,
         r: 9,
       };
-      this.upsert('loadingImageBackground', GCircle, loadingBackgroundStyle, container);
+      this.upsert('rightTopLoadingImageBackground', GCircle, loadingBackgroundStyle, container);
       const loadingImageStyle = {
         height: 14,
         src: PendingImage,
@@ -553,7 +566,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 120 : 113,
         y: -31,
       };
-      this.upsert('loadingImage', GImage, loadingImageStyle, container);
+      this.upsert('rightTopLoadingImage', GImage, loadingImageStyle, container);
       return;
     }
     if (this.data.skip) {
@@ -563,13 +576,13 @@ export class NormalNode extends Rect {
         height: 14,
         radius: 2,
         width: 34,
-        x: -width * 2 - 12,
+        x: -height * 2 - 12,
         y: -40,
       };
-      this.upsert('skipedTipWraper', GRect, skipedTipWraperStyle, container);
+      this.upsert('rightTopSkipedTipWraper', GRect, skipedTipWraperStyle, container);
       const {
         attributes: { x: stwX, y: stwY },
-      } = this.getShape('skipedTipWraper');
+      } = this.getShape('rightTopSkipedTipWraper');
       const skipTextStyle = {
         fill: '#fff',
         fontSize: 9,
@@ -577,7 +590,7 @@ export class NormalNode extends Rect {
         x: stwX + 3,
         y: stwY + 14,
       };
-      this.upsert('skipText', GText, skipTextStyle, container);
+      this.upsert('rightTopSkipText', GText, skipTextStyle, container);
 
       // 已跳过图标
       const skipeBackgroundStyle = {
@@ -586,7 +599,7 @@ export class NormalNode extends Rect {
         fill: attributes.skipImageBackgroundColor,
         r: 9,
       };
-      this.upsert('skipImageBackground', GCircle, skipeBackgroundStyle, container);
+      this.upsert('rightTopSkipImageBackground', GCircle, skipeBackgroundStyle, container);
       const skipeImageStyle = {
         height: 12,
         src: SkipSignImage,
@@ -594,7 +607,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 121 : 114,
         y: -31,
       };
-      this.upsert('skipImage', GImage, skipeImageStyle, container);
+      this.upsert('rightTopSkipImage', GImage, skipeImageStyle, container);
       return;
     }
 
@@ -606,7 +619,7 @@ export class NormalNode extends Rect {
         fill: attributes.finishedImageBackgroundColor,
         r: 9,
       };
-      this.upsert('finishedImageBackground', GCircle, finishedBackgroundStyle, container);
+      this.upsert('rightTopFinishedImageBackground', GCircle, finishedBackgroundStyle, container);
       const finishedImageStyle = {
         height: 12,
         src: SuccessImage,
@@ -614,7 +627,7 @@ export class NormalNode extends Rect {
         x: this.isSubProcess ? 121 : 114,
         y: -30,
       };
-      this.upsert('finishedImage', GImage, finishedImageStyle, container);
+      this.upsert('rightTopFinishedImage', GImage, finishedImageStyle, container);
     }
   }
 
@@ -623,7 +636,7 @@ export class NormalNode extends Rect {
       return;
     }
 
-    const [height, width] = this.getSize(attributes);
+    const [width, height] = this.getSize(attributes);
     const diffSeconds = this.isRunning
       ? Math.floor(Date.now() / 1000) - this.data.started_at
       : this.data.updated_at - this.data.started_at;
@@ -632,8 +645,8 @@ export class NormalNode extends Rect {
       fill: '#fff',
       fontSize: 9,
       text: timeDisplayText,
-      x: -width * 2 - 8,
-      y: -height / 4 + 33,
+      x: -height * 2 - 8,
+      y: -width / 4 + 33,
       zIndex: 2,
     };
     this.upsert('timeDisplayText', GText, timeDisplayTextStyle, container);
@@ -666,6 +679,7 @@ export class NormalNode extends Rect {
         {
           direction: 'normal',
           duration: 3000,
+          easing: 'linear',
           iterations: Infinity,
         },
       );
