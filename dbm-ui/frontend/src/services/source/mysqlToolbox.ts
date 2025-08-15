@@ -45,3 +45,31 @@ export function querySpiderHigherVersionPkgList(params: {
     }[]
   >(`/apis/mysql/toolbox/query_spider_higher_version_pkg_list/`, params);
 }
+
+/**
+ * 获取spider版本模块列表
+ */
+export function getSpiderVersionModules(params: {
+  cluster_id: number;
+  higher_major_version?: boolean; // 是否查找更高主版本的模块
+  higher_sub_version?: boolean; // 是否查找同大版本但子版本更高的模块
+}) {
+  return http.post<
+    {
+      db_module_id: number;
+      db_module_name: string;
+      spider_version: string;
+      module_alias_name: string;
+      db_version: string;
+      charset: string;
+      spider_version_num: number;
+      pkg_list: {
+        pkg_id: number;
+        pkg_name: string;
+        major_version: number;
+        sub_version: number;
+        full_version: number;
+      }[];
+    }[]
+  >(`/apis/mysql/toolbox/get_spider_version_modules/`, params);
+}

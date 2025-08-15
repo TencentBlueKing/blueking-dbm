@@ -64,7 +64,8 @@
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-  import VersionContent from '../mysql/components/VersionContent.vue';
+
+  import VersionContent from './components/VersionContent.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.LocalUpgrade>;
