@@ -19,7 +19,6 @@ export default (options = {} as { exclude: string[] }) => {
     const serachList = [
       {
         id: 'ids',
-        multiple: true,
         name: t('单号'),
       },
       {
@@ -42,14 +41,14 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'single',
       },
       {
-        data: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
+        id: 'status',
+        list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
           acc.push({
             label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
             value: key,
           });
           return acc;
         }, []),
-        id: 'status',
         name: t('单据状态'),
         type: 'multiple',
       },

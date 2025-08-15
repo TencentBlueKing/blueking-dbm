@@ -88,7 +88,6 @@
       default?: boolean;
       description?: string;
       id: string;
-      inputInclude?: boolean;
       list?: {
         children?: {
           label: string;
@@ -97,7 +96,6 @@
         label: string;
         value: string | number;
       }[];
-      multiple?: boolean;
       name: string;
       pasteParseMethod?: (value: string) => string[];
       placeholder?: string;

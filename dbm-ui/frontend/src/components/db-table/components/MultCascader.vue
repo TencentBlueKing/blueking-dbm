@@ -38,6 +38,9 @@
             class="value-item"
             :class="{ active: item.value === parentKey }"
             @click="() => handleSelectParent(item)">
+            <Checkbox
+              v-bind="calcParentCheckStatus(item)"
+              @change="(value) => handleParentChange(value, item)" />
             {{ item.label }}
           </div>
         </div>
@@ -126,6 +129,23 @@
     );
   });
 
+  const calcParentCheckStatus = (parentData: Props['list'][number]) => {
+    let indeterminate = false;
+    let checked = true;
+    parentData.children.forEach((item) => {
+      if (!localValueIdMap.value[item.value]) {
+        checked = false;
+      }
+      if (localValueIdMap.value[item.value]) {
+        indeterminate = true;
+      }
+    });
+    return {
+      checked,
+      indeterminate: checked ? false : indeterminate,
+    };
+  };
+
   let isInnerSelfChange = false;
   watch(
     () => props.value,
@@ -171,6 +191,24 @@
     parentKey.value = item.value;
   };
 
+  const handleParentChange = (checked: boolean, data: Props['list'][number]['children'][number]) => {
+    const latestValueMap = { ...localValueIdMap.value };
+    const childrenList = _.find(props.list, (item) => item.value === data.value)?.children || [];
+
+    childrenList.forEach((item) => {
+      if (checked) {
+        latestValueMap[item.value] = item.value;
+      } else {
+        delete latestValueMap[item.value];
+      }
+    });
+
+    localValueIdMap.value = latestValueMap;
+
+    isInnerSelfChange = true;
+    emits('change', Object.values(latestValueMap));
+  };
+
   const handleChange = (data: Props['list'][number]['children'][number]) => {
     const latestValueMap = { ...localValueIdMap.value };
 
@@ -199,7 +237,7 @@
     }
 
     .parent-wrapper {
-      flex: 1;
+      flex: 0 1 auto;
       overflow-y: auto;
     }
 

@@ -182,7 +182,7 @@ export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
   >(`${path}/flow_types/`, params ?? {});
 }
 
-export function getTicketGroupTypes(params?: { is_apply: 0 | 1 }) {
+export function getTicketGroupTypes() {
   return http.get<
     {
       children: {
@@ -192,7 +192,13 @@ export function getTicketGroupTypes(params?: { is_apply: 0 | 1 }) {
       label: string;
       value: string;
     }[]
-  >(`${path}/ticket_group_types/`, params ?? {});
+  >(
+    `${path}/ticket_group_types/`,
+    {},
+    {
+      cache: true,
+    },
+  );
 }
 
 /**

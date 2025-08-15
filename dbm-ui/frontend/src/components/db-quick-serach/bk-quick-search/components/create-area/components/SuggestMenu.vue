@@ -1,6 +1,6 @@
 <template>
   <div
-    ref="menuRef"
+    ref="root"
     class="bk-quick-search-suggest-menu">
     <div
       v-for="(item, index) in renderList"
@@ -26,7 +26,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, watch } from 'vue';
+  import { computed, useTemplateRef, watch } from 'vue';
 
   import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
@@ -47,13 +47,11 @@
 
   const context = inject(BK_QUICK_SEARCH);
 
-  const menuRef = ref<HTMLElement>();
+  const rootRef = useTemplateRef('root');
 
   const renderList = computed(() => {
     const valueList = context!.pasteParseMethod(props.keyword);
     const result: IValue[] = [];
-
-    console.log('valueList = ', valueList);
 
     if (valueList.length === 1) {
       const valueWord = valueList[0];
@@ -152,7 +150,7 @@
     emits('change', value);
   };
 
-  const { activeIndex } = useMenuKeyboard(renderList, menuRef, (value) => {
+  const { activeIndex } = useMenuKeyboard(renderList, rootRef, (value) => {
     handleChange(value);
   });
 

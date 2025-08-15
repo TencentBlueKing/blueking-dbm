@@ -2,7 +2,7 @@ import { nextTick, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue'
 
 export default <T>(
   list: Ref<T[]>,
-  listRef: Ref<HTMLElement | undefined>,
+  listRef: Ref<HTMLElement | null>,
   submitCallback: (value: T, index: number) => void,
 ) => {
   const activeIndex = ref(0);

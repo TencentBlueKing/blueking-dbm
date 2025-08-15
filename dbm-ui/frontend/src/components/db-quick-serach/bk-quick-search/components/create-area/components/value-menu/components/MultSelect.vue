@@ -1,17 +1,20 @@
 <template>
   <div
-    ref="menuRef"
-    class="bk-quick-search-type-mult-select">
-    <div
-      v-for="(valueItem, index) in renderList"
-      :key="valueItem.value"
-      class="value-item"
-      :class="{ active: activeIndex === index }"
-      @click="handleChange(valueItem)">
-      <Checkbox
-        :checked="Boolean(checkedMap[valueItem.value])"
-        style="pointer-events: none" />
-      {{ valueItem.label }}
+    ref="root"
+    class="bk-quick-search-type-mult-select"
+    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth + 12}px` : '' }">
+    <div ref="layout">
+      <div
+        v-for="(valueItem, index) in renderList"
+        :key="valueItem.value"
+        class="value-item"
+        :class="{ active: activeIndex === index }"
+        @click="handleChange(valueItem)">
+        <Checkbox
+          :checked="Boolean(checkedMap[valueItem.value])"
+          style="pointer-events: none" />
+        {{ valueItem.label }}
+      </div>
     </div>
     <div
       v-if="keyword && renderList.length < 1"
@@ -23,7 +26,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { Checkbox } from 'tdesign-vue-next';
-  import { computed, ref, toRef } from 'vue';
+  import { computed, onMounted, ref, useTemplateRef } from 'vue';
 
   import useMenuKeyboard from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
 
@@ -50,10 +53,10 @@
     default: () => [],
   });
 
-  const localList = toRef(props, 'list');
-
-  const menuRef = ref();
+  const rootRef = useTemplateRef('root');
+  const layoutRef = useTemplateRef('layout');
   const localValue = ref<Props['list']>([]);
+  const contentMinWidth = ref(0);
 
   const checkedMap = computed(() =>
     localValue.value.reduce(
@@ -68,10 +71,10 @@
   const renderList = computed(() => {
     const keyword = `${props.keyword || ''}`.trim().toLowerCase();
     if (!keyword) {
-      return localList.value;
+      return props.list;
     }
 
-    return _.filter(localList.value, (item) => item.label.toLowerCase().includes(keyword));
+    return _.filter(props.list, (item) => item.label.toLowerCase().includes(keyword));
   });
 
   let isInnerSelfChange = false;
@@ -90,6 +93,15 @@
     },
   );
 
+  watch(
+    () => props.list,
+    () => {
+      nextTick(() => {
+        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+      });
+    },
+  );
+
   const handleChange = (data: IResult) => {
     if (checkedMap.value[data.value]) {
       localValue.value = _.filter(localValue.value, (item) => item.value !== data.value);
@@ -101,8 +113,12 @@
     emits('change', [...localValue.value]);
   };
 
-  const { activeIndex } = useMenuKeyboard(renderList, menuRef, (value) => {
+  const { activeIndex } = useMenuKeyboard(renderList, rootRef, (value) => {
     handleChange(value);
+  });
+
+  onMounted(() => {
+    contentMinWidth.value = layoutRef.value!.getBoundingClientRect().width;
   });
 </script>
 <style lang="less">

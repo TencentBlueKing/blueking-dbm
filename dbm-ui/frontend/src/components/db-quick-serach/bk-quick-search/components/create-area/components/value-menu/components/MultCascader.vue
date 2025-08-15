@@ -1,9 +1,9 @@
 <template>
   <div
-    ref="menuRef"
-    class="bk-quick-search-type-mult-cascader">
+    class="bk-quick-search-type-mult-cascader"
+    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth + 12}px` : '' }">
     <div
-      v-if="isSearch && renderSearchList.length > 0"
+      v-if="isSearching && renderSearchList.length > 0"
       key="search"
       class="search-wrapper">
       <div
@@ -17,7 +17,10 @@
         {{ item.searchLabel }}
       </div>
     </div>
-    <template v-if="!isSearch">
+    <div
+      v-if="!isSearching"
+      ref="layout"
+      class="list-layout">
       <div class="parent-wrapper">
         <div
           v-for="item in list"
@@ -25,6 +28,9 @@
           class="value-item"
           :class="{ active: item.value === parentKey }"
           @click="() => handleSelectParent(item)">
+          <Checkbox
+            v-bind="calcParentCheckStatus(item)"
+            @change="(value) => handleParentChange(value, item)" />
           {{ item.label }}
         </div>
       </div>
@@ -42,9 +48,9 @@
           {{ item.label }}
         </div>
       </div>
-    </template>
+    </div>
     <div
-      v-if="isSearch && renderSearchList.length < 1"
+      v-if="isSearching && renderSearchList.length < 1"
       class="bk-quick-search-type-menu-filter-empty">
       未搜索到 "{{ keyword }}" 相关数据
     </div>
@@ -53,7 +59,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { Checkbox } from 'tdesign-vue-next';
-  import { ref } from 'vue';
+  import { ref, useTemplateRef } from 'vue';
 
   interface Props {
     keyword: string;
@@ -82,10 +88,12 @@
     default: () => [],
   });
 
+  const layoutRef = useTemplateRef('layout');
   const parentKey = ref<string | number>(props.list[0].value);
   const localValueIdMap = shallowRef<Record<string, IResult>>({});
+  const contentMinWidth = ref(0);
 
-  const isSearch = computed(() => Boolean(props.keyword && _.trim(props.keyword)));
+  const isSearching = computed(() => Boolean(props.keyword && _.trim(props.keyword)));
   const childrenList = computed(() => _.find(props.list, (item) => item.value === parentKey.value)?.children || []);
 
   const renderSearchList = computed(() => {
@@ -113,6 +121,23 @@
       }[],
     );
   });
+
+  const calcParentCheckStatus = (parentData: Props['list'][number]) => {
+    let indeterminate = false;
+    let checked = true;
+    parentData.children.forEach((item) => {
+      if (!localValueIdMap.value[item.value]) {
+        checked = false;
+      }
+      if (localValueIdMap.value[item.value]) {
+        indeterminate = true;
+      }
+    });
+    return {
+      checked,
+      indeterminate: checked ? false : indeterminate,
+    };
+  };
 
   let isInnerSelfChange = false;
   watch(
@@ -146,8 +171,33 @@
     },
   );
 
+  watch(
+    () => props.list,
+    () => {
+      nextTick(() => {
+        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+      });
+    },
+  );
+
   const handleSelectParent = (item: IResult) => {
     parentKey.value = item.value;
+  };
+
+  const handleParentChange = (checked: boolean, data: IResult) => {
+    const latestValueMap = { ...localValueIdMap.value };
+    const childrenList = _.find(props.list, (item) => item.value === data.value)?.children || [];
+    childrenList.forEach((item) => {
+      if (checked) {
+        latestValueMap[item.value] = item;
+      } else {
+        delete latestValueMap[item.value];
+      }
+    });
+    localValueIdMap.value = latestValueMap;
+
+    isInnerSelfChange = true;
+    emits('change', Object.values(latestValueMap));
   };
 
   const handleChange = (data: IResult) => {
@@ -163,12 +213,20 @@
     isInnerSelfChange = true;
     emits('change', Object.values(latestValueMap));
   };
+
+  onMounted(() => {
+    contentMinWidth.value = layoutRef.value!.getBoundingClientRect().width;
+  });
 </script>
 <style lang="less">
   .bk-quick-search-type-mult-cascader {
-    display: flex;
-    padding: 8px 0;
-    overflow: hidden;
+    .list-layout {
+      display: flex;
+      height: 100%;
+      max-height: inherit;
+      padding: 8px 0;
+      overflow: hidden;
+    }
 
     .parent-wrapper {
       flex: 0 1 auto;

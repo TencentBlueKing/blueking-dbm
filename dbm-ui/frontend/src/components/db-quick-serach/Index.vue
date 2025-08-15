@@ -42,15 +42,16 @@
           [`${currentDataConfig.id}__lte`]: item.values[1].value,
           [`${currentDataConfig.id}`]: `${item.values[0].value},${item.values[1].value}`,
         });
-      }
-      if (currentDataConfig.type === 'multiple' || currentDataConfig.type === 'multiple-cascader') {
+      } else if (currentDataConfig.type === 'multiple' || currentDataConfig.type === 'multiple-cascader') {
         Object.assign(result, {
           [currentDataConfig.id]: item.values.map((value) => value.value),
         });
+      } else {
+        Object.assign(result, {
+          [currentDataConfig.id]: item.values.map((value) => value.value).join(','),
+        });
       }
-      Object.assign(result, {
-        [currentDataConfig.id]: item.values.map((value) => value.value).join(','),
-      });
+
       return result;
     }, {});
   };
@@ -183,7 +184,7 @@
   const handleChange = (value: IValue[]) => {
     isInnerSelfChange = true;
     const result = formatResult(value);
-    console.log('handleChange ==== ', result);
+    console.log('handleChange ==== ', value, result);
 
     modelValue.value = result;
     emits('change', result, value);
