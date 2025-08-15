@@ -26,11 +26,12 @@ package discovery
 
 import (
 	"context"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"fmt"
 	"strings"
 	"sync"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -108,7 +109,6 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 							Value:     []byte(event.Kv.Value),
 						}
 						watchEventChan <- event
-
 					}
 				}
 

@@ -25,8 +25,9 @@
 package config_test
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"testing"
+
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 
 	"github.com/spf13/viper"
 )

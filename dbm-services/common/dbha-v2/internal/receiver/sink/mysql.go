@@ -25,13 +25,14 @@
 package sink
 
 import (
+	"encoding/json"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-	"encoding/json"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

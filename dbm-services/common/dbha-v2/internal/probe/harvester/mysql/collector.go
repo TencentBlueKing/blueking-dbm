@@ -25,15 +25,16 @@
 package mysql
 
 import (
-	"dbm-services/common/dbha-v2/pkg/converter"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"fmt"
 	"math"
 	"net"
 	"strings"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/converter"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"

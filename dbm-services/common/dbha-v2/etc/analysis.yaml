@@ -2,7 +2,7 @@ name: analysis
 version: v2.0.0
 
 discovery:
-  endpoint: http://127.0.0.1:2379;http://127.0.0.2:2379
+  endpoint: http://etcd-server:2379
   user: root
   password: 1234567890
 
@@ -10,6 +10,31 @@ workflow:
   lockBusinessWaitTimeout: 5s
   scanTimeout: 60s
   scanInterval: 3s
+  
+  dbmApi:
+  - name: metadata
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: updateStatus
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/update_status
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: swapMySQLRole
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/swap_role
+    method: post
+    timeout: 10s
+    token: ""
+
+  - name: swapTendisCluster
+    api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap
+    method: post
+    timeout: 10s
+    token: ""
 
 monitor:
   dataID: 0

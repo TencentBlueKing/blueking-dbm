@@ -25,8 +25,9 @@
 package discovery
 
 import (
-	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

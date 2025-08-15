@@ -25,15 +25,16 @@
 package reporter
 
 import (
-	"dbm-services/common/dbha-v2/pkg/constant"
-	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/proto"
 	"fmt"
 	"io"
 	"math/rand"
 	"sync"
 	"time"
+
+	"dbm-services/common/dbha-v2/pkg/constant"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/proto"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

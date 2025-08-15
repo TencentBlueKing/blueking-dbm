@@ -25,8 +25,9 @@
 package config_test
 
 import (
-	"dbm-services/common/dbha-v2/internal/admin/config"
 	"testing"
+
+	"dbm-services/common/dbha-v2/internal/admin/config"
 
 	"github.com/spf13/viper"
 )
@@ -38,12 +39,12 @@ func TestConfig(t *testing.T) {
 	viper.SetConfigFile(adminCfgFile)
 
 	if err := viper.ReadInConfig(); err != nil {
-		t.Fatalf("viper read in config failed, errmsg(%v)", err)
+		t.Fatalf("viper read in config failed, errmsg: %v", err)
 	}
 
 	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		t.Fatalf("viper unmarshal failed, errmsg(%v)", err)
+		t.Fatalf("viper unmarshal failed, errmsg: %v", err)
 	}
 
-	t.Log("analysis cfg:", config.Cfg)
+	t.Log("admin cfg:", config.Cfg)
 }

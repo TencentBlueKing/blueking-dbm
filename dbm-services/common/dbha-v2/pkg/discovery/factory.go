@@ -25,6 +25,8 @@
 package discovery
 
 import (
+	"context"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -32,8 +34,8 @@ import (
 )
 
 type ConcurrencyMutex interface {
-	TryLock(key string) error
-	Unlock() error
+	TryLock(ctx context.Context) error
+	Unlock(ctx context.Context) error
 }
 
 type concurrencyMutex struct {
@@ -60,6 +62,14 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 		}
 	}
 
+	if cli.opts.serviceName != "" {
+		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceName
+	}
+
+	if cli.opts.serviceID != "" {
+		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceID
+	}
+
 	etcdCli, err := clientv3.New(cli.opts.Config())
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.ComponentFailure, "%v", err)
@@ -76,22 +86,9 @@ func (c Client) OriginClient() *clientv3.Client {
 
 // CreateRegistry create new etcd registry
 func (c Client) CreateRegistry() (*Registry, error) {
-	if c.opts.serviceID == "" {
-		return nil, gerrors.New(gerrors.InvalidParameter, "service-id is required")
-	}
-
-	rootKey := c.opts.registryRootKeyPrefix
-	if c.opts.serviceName != "" {
-		rootKey += "/" + c.opts.serviceName
-	}
-
-	if c.opts.serviceID != "" {
-		rootKey += "/" + c.opts.serviceID
-	}
-
 	registry := &Registry{
 		serviceId: c.opts.serviceID,
-		rootKey:   rootKey,
+		rootKey:   c.opts.registryRootKeyPrefix,
 		ttl:       defaultTTL,
 		quit:      make(chan struct{}),
 		eventChan: make(chan *RegistryEvent, c.opts.bufferMaxSize),
@@ -117,19 +114,25 @@ func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
 		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
 	}
 
-	mu := concurrency.NewMutex(session, key)
-
-	return &concurrencyMutex{
+	mu := &concurrencyMutex{
 		session: session,
-		key:     key,
-		mutex:   mu,
-	}, nil
+		key:     c.opts.registryRootKeyPrefix + "/" + key,
+	}
+
+	mu.mutex = concurrency.NewMutex(session, mu.key)
+	return mu, nil
 }
 
-func (c *concurrencyMutex) TryLock(key string) error {
+func (c *concurrencyMutex) TryLock(ctx context.Context) error {
+	if err := c.mutex.TryLock(context.Background()); err != nil {
+		return gerrors.Newf(gerrors.Failure, "%v", err)
+	}
 	return nil
 }
 
-func (c *concurrencyMutex) Unlock() error {
+func (c *concurrencyMutex) Unlock(ctx context.Context) error {
+	if err := c.mutex.Unlock(context.Background()); err != nil {
+		return gerrors.Newf(gerrors.Failure, "%v", err)
+	}
 	return nil
 }

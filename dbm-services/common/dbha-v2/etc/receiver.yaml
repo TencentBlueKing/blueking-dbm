@@ -4,7 +4,7 @@ version: v2.0.0
 discovery:
   endpoint: http://etcd-server:2379
   user: root
-  password: 1234567890
+  password: dbhatest
 
 input:
   - name: probe
@@ -27,7 +27,7 @@ output:
     enable: true
     endpoint: 127.0.0.1:3306
     user: root
-    password: 123456
+    password: dbhatest
 
 log:
   path: /var/log/dbha/logs/receiver.log
