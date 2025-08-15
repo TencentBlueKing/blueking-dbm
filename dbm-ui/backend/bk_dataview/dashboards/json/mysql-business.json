@@ -1576,8 +1576,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1742,8 +1741,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2029,8 +2027,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2181,8 +2178,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -2380,8 +2376,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -3634,7 +3629,7 @@
       {
         "current": {},
         "hide": 1,
-        "includeAll": false,
+        "includeAll": true,
         "label": "dbrole",
         "multi": false,
         "name": "dbrole",
@@ -3654,7 +3649,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "MySQL-AppReview",
-  "version": 33,
+  "version": 41,
   "weekStart": "",
   "__inputs": [
     {

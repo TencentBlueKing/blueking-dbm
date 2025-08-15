@@ -282,7 +282,10 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 - 可通过调整 `Public.AcquireLockWaitTimeout` 来调整 mydumper `--lock-wait-timeout` 值。
 - 调整备份时间段
 
-#### 5. Couldn't acquire global lock, snapshots will not be consistent
+#### 5. Unable to obtain lock. Please try again later
+有 mysiam 表？
+
+#### 6. Couldn't acquire global lock, snapshots will not be consistent
 > CRITICAL **: Couldn't acquire global lock, snapshots will not be consistent: 
 > Lock wait timeout exceeded; try restarting transaction
 

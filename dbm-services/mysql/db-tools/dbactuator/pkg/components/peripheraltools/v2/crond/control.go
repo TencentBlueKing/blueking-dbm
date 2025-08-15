@@ -1,12 +1,13 @@
 package crond
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
 	"fmt"
 	"os/exec"
 	"os/user"
 	"path"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/pkg/errors"
 
@@ -68,7 +69,7 @@ func Start() (err error) {
 
 		startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
 		errStrPrefix := fmt.Sprintf("grep error from %s", startErrFilePath)
-		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, true).MatchWords(
+		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, false).MatchWords(
 			[]string{"ERROR", "panic"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Info(errStrPrefix)

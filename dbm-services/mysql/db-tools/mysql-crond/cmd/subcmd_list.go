@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
@@ -48,6 +50,11 @@ func listEntries(cmd *cobra.Command, status string) []*api.SimpleEntry {
 	var err error
 	apiUrl := ""
 	configFile, _ := cmd.Flags().GetString("config")
+	if !cmutil.FileExists(configFile) {
+		// 改从当前命令行所在目录查找，先获取当前 executable 路径
+		exePath, _ := os.Executable()
+		configFile = filepath.Join(filepath.Dir(exePath), "runtime.yaml")
+	}
 	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)

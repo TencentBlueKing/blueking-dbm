@@ -811,7 +811,7 @@ func (r *RecoverBinlog) Start() error {
 				mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 			stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
 			if err != nil {
-				errStr, _ := cmutil.NewGrepLines(errFile, true, true).MatchWords(nil, 2)
+				errStr, _ := cmutil.NewGrepLines(errFile, true, false).MatchWords(nil, 2)
 				return errors.WithMessagef(err, "errFile: %s\nstdoutStr:%s\nerrContent:%s\n",
 					errFile, stdoutStr, errStr)
 			}

@@ -743,7 +743,7 @@ func (r *GoApplyBinlog) Start() error {
 				return errors.WithMessage(err, retContent)
 			}
 			// 因为错误日志都重定向到文件了，所以真实错误判断要从 errFile 中读取
-			errContent, _ := cmutil.NewGrepLines(errFile, true, true).
+			errContent, _ := cmutil.NewGrepLines(errFile, true, false).
 				MatchWordsExclude([]string{"Using a password"}, 2)
 			if errContent != "" || err != nil {
 				logger.Error(errContent)

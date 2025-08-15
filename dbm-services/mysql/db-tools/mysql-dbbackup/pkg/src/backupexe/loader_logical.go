@@ -189,6 +189,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if l.cnf.Threads > 0 {
 		// cpus, err := cmutil.GetCPUInfo()
 		args = append(args, fmt.Sprintf("--threads=%d", l.cnf.Threads))
+		args = append(args, fmt.Sprintf("--max-threads-for-schema-creation=%d", l.cnf.Threads))
 	}
 	if l.cnf.EnableBinlog {
 		args = append(args, "--enable-binlog")
@@ -199,6 +200,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if l.cnf.CreateTableIfNotExists {
 		args = append(args, "--append-if-not-exist")
 	}
+
 	if tableFilter, err := l.cnf.BuildArgsTableFilterForMydumper(); err != nil {
 		return err
 	} else {

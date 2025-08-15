@@ -18,19 +18,9 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	actorCst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/inforeport/configreport"
 )
-
-// PkgVersion 介质版本信息上报
-type PkgVersion struct {
-	PkgName string
-	PkgPath string
-
-	Version string
-	GitHash string
-	BuildAt string
-	Msg     string
-}
 
 func CollectPkgVersion() error {
 	report, err := configreport.GetMixedReport("pkg_version.log")
@@ -44,27 +34,33 @@ func CollectPkgVersion() error {
 		"mysql-table-checksum": filepath.Join(actorCst.ChecksumInstallPath, "mysql-table-checksum"),
 		"mysql-crond":          filepath.Join(actorCst.MySQLCrondInstallPath, "mysql-crond"),
 		"backup_client":        filepath.Join(actorCst.BackupClientInstallPath, "bin", "backup_client"),
-		"dbactuator":           filepath.Join(actorCst.DBAToolkitPath, "dbactuator"),
+		//"dbactuator":           filepath.Join(actorCst.DBAToolkitPath, "dbactuator"),
+		"gomysqlbinlog": filepath.Join(actorCst.DBAToolkitPath, "gomysqlbinlog"),
 	}
 	//var pkgs []*PkgVersion
 	for pkgName, pkgPath := range binaries {
+		if config.MonitorConfig.MachineType == "spider" &&
+			(pkgName == "rotatebinlog" || pkgName == "mysql-table-checksum") {
+			continue
+		}
 		var onePkg = &PkgVersion{
 			PkgName: pkgName,
 			PkgPath: pkgPath,
 		}
-		if outStr, errStr, err := cmutil.ExecCommand(false, "", pkgPath, "version"); err != nil {
+		if pkgName == "gomysqlbinlog" {
+			var anyPkg anyPackage = &gomysqlbinlogPkg{}
+			onePkg = anyPkg.GetPkgVersion(pkgPath)
+		} else if outStr, errStr, err := cmutil.ExecCommand(false, "", pkgPath, "version"); err != nil {
 			onePkg.Msg = fmt.Sprintf("run %s: %v, out: %s, err: %s", pkgName, err, outStr, errStr)
 		} else {
-			if pkgVer, err := parseVersion(outStr); err != nil {
+			if pkgVer, err := parseCommonVersion(outStr); err != nil {
 				onePkg.Msg = err.Error()
 			} else {
 				onePkg.Version = pkgVer.Version
 				onePkg.GitHash = pkgVer.GitHash
 				onePkg.BuildAt = pkgVer.BuildAt
-
 			}
 		}
-		//pkgs = append(pkgs, onePkg)
 		event := configreport.NewDynamicEvent("pkg_version", "tendbha", 1)
 		event.SetPayload(onePkg)
 		report.Println(event)
@@ -72,9 +68,9 @@ func CollectPkgVersion() error {
 	return nil
 }
 
-// parseVersion 解析版本信息
+// parseCommonVersion 解析版本信息
 // Version: 0.3.2, GitHash: , BuildAt:
-func parseVersion(versionStr string) (*PkgVersion, error) {
+func parseCommonVersion(versionStr string) (*PkgVersion, error) {
 	regVer := regexp.MustCompile(`Version: ([.\d]*), GitHash: (\w*), BuildAt:(.*)`)
 	regVersion := regVer.FindStringSubmatch(versionStr)
 	onePkg := PkgVersion{}
@@ -86,4 +82,30 @@ func parseVersion(versionStr string) (*PkgVersion, error) {
 		return nil, errors.Errorf("parse version failed: %s", versionStr)
 	}
 	return &onePkg, nil
+}
+
+type gomysqlbinlogPkg struct {
+}
+
+func (p *gomysqlbinlogPkg) PkgName() string {
+	return "gomysqlbinlog"
+}
+
+func (p *gomysqlbinlogPkg) GetPkgVersion(pkgPath string) *PkgVersion {
+	var onePkg = &PkgVersion{
+		PkgName: p.PkgName(),
+		PkgPath: pkgPath,
+	}
+	if outStr, errStr, err := cmutil.ExecCommand(false, "", pkgPath, "--version"); err != nil {
+		onePkg.Msg = fmt.Sprintf("run %s: %v, out: %s, err: %s", p.PkgName(), err, outStr, errStr)
+	} else {
+		verReg := regexp.MustCompile(`gomysqlbinlog version (\S+)`)
+		m := verReg.FindStringSubmatch(outStr)
+		if len(m) > 1 {
+			onePkg.Version = m[1]
+		} else {
+			onePkg.Msg = fmt.Sprintf("parse version failed: %s", outStr)
+		}
+	}
+	return onePkg
 }

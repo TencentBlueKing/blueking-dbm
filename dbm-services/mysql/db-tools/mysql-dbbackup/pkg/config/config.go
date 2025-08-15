@@ -13,6 +13,7 @@ type BackupConfig struct {
 	PhysicalBackup         PhysicalBackup         `ini:"PhysicalBackup"`
 	PhysicalLoad           PhysicalLoad           `ini:"PhysicalLoad"`
 	BackupToRemote         SSHConfig              `ini:"BackupToRemote"`
+	Schedule               Schedule               `ini:"Schedule"`
 
 	configFilePath string `ini:"-"`
 }

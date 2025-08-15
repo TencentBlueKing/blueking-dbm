@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -61,14 +62,22 @@ func GetGormDB(dsn *InstanceDsn, sessionVars map[string]interface{}) (*gorm.DB, 
 
 // GetConn 内置 var: charset,parseTime,loc,time_zone
 func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, err error) {
+	if sessionVars == nil {
+		sessionVars = map[string]interface{}{}
+	}
+	if time.Local == time.UTC {
+		sessionVars["loc"] = "UTC"
+		sessionVars["time_zone"] = "'+00:00'"
+	} else {
+		sessionVars["loc"] = "Local"
+	}
+	sessionVars = lo.Assign(dsn.SessionVariables, sessionVars)
 	sessionParams := []string{}
 	for k, v := range sessionVars {
 		sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k,
 			base64.URLEncoding.EncodeToString([]byte(cast.ToString(v)))))
 	}
-	//tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // we use UTC to get and set rather than Local
-	tz := "loc=Local"
-	sessionParams = append(sessionParams, tz)
+
 	if dsn.Charset == "" {
 		dsn.Charset = "utf8mb4"
 	}

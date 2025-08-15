@@ -144,6 +144,12 @@ func GetStorageEngine(dbh *sql.DB) (string, error) {
 	return strings.ToLower(version[0]), nil
 }
 
+// GetProcesslist get processlist
+func GetProcesslist(ctx context.Context, db *sql.DB) ([]native.SelectProcessListResp, error) {
+	dbw := native.DbWorker{Db: db}
+	return dbw.SelectLongRunningProcesslist(1)
+}
+
 // GetDataDir get datadir from mysql server
 // if failed, try to get datadir from my.cnf -- todo not implemented
 func GetDataDir(dbh *sql.DB, myCnfPath string) (string, error) {
