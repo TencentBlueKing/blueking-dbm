@@ -66,7 +66,7 @@
                 <DbIcon
                   style="margin-right: 4px; color: #3a84ff"
                   type="file" />
-                {{ data.sql_files[0] }}
+                {{ getSQLFilename(data.sql_files[0]) }}
               </template>
               <template v-else>
                 {{ t('n 个 SQL 文件', { n: data.sql_files.length }) }}
