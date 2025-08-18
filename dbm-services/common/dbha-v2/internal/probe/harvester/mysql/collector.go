@@ -137,25 +137,25 @@ func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 		return gerrors.New(gerrors.Failure, "failed to obtain CPU time, empty data set")
 	}
 
-	systemMetric.CPUUsagePercent = cpuPercent[0]
+	systemMetric.CpuUsagePercent = cpuPercent[0]
 
 	total := cpuTimes[0].Total()
 	if math.Float64bits(total) == 0 {
 		return gerrors.New(gerrors.Failure, "total CPU time is zero")
 	}
 
-	systemMetric.CPUUserPercent = cpuTimes[0].User / total * 100
-	systemMetric.CPUSystemPercent = cpuTimes[0].System / total * 100
-	systemMetric.CPUIOWaitPercent = cpuTimes[0].Iowait / total * 100
+	systemMetric.CpuUserPercent = cpuTimes[0].User / total * 100
+	systemMetric.CpuSystemPercent = cpuTimes[0].System / total * 100
+	systemMetric.CpuIOWaitPercent = cpuTimes[0].Iowait / total * 100
 
 	load, err := load.Avg()
 	if err != nil {
 		return gerrors.Newf(gerrors.ComponentFailure, "failed to obtain CPU load average, %v", err)
 	}
 
-	systemMetric.CPULoad1 = load.Load1
-	systemMetric.CPULoad5 = load.Load5
-	systemMetric.CPULoad15 = load.Load15
+	systemMetric.CpuLoad1 = load.Load1
+	systemMetric.CpuLoad5 = load.Load5
+	systemMetric.CpuLoad15 = load.Load15
 
 	return nil
 }

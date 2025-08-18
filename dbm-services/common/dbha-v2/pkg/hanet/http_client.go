@@ -54,18 +54,48 @@ var supportedHttpMethods map[HttpMethod]struct{} = map[HttpMethod]struct{}{
 
 type HttpClient struct {
 	headers map[string]string
+	timeout time.Duration
 	cli     *http.Client
 }
 
 func NewHttpClient() *HttpClient {
 	return &HttpClient{
 		headers: map[string]string{},
+		timeout: 5 * time.Second,
 		cli:     &http.Client{},
 	}
 }
 
+func NewHttpClientWithHeaders(headers map[string]string) *HttpClient {
+	cli := &HttpClient{
+		headers: map[string]string{},
+		timeout: 5 * time.Second,
+		cli:     &http.Client{},
+	}
+
+	for key, val := range headers {
+		cli.headers[key] = val
+	}
+
+	return cli
+}
+
 func (h HttpMethod) String() string {
 	return string(h)
+}
+
+func (c *HttpClient) SetHeader(key, value string) *HttpClient {
+	if c.headers == nil {
+		c.headers = map[string]string{}
+	}
+
+	c.headers[key] = value
+	return c
+}
+
+func (c *HttpClient) SetTimeout(timeout time.Duration) *HttpClient {
+	c.timeout = timeout
+	return c
 }
 
 func (c HttpClient) verifyMethod(method HttpMethod) error {
@@ -76,22 +106,38 @@ func (c HttpClient) verifyMethod(method HttpMethod) error {
 	return gerrors.Newf(gerrors.InvalidHttpMethod, "invalid http method: %s, errmsg: unsupported", method)
 }
 
+// Post send a POST request.
+func (c HttpClient) Post(ctx context.Context, url string, data []byte) (code int, resp []byte, err error) {
+	return c.Request(ctx, url, HttpMethodPost, data)
+}
+
+// Get send a GET request.
+func (c HttpClient) Get(ctx context.Context, url string, data []byte) (code int, resp []byte, err error) {
+	return c.Request(ctx, url, HttpMethodGet, data)
+}
+
+// Delete send a DELETE request.
+func (c HttpClient) Delete(ctx context.Context, url string, data []byte) (code int, resp []byte, err error) {
+	return c.Request(ctx, url, HttpMethodDelete, data)
+}
+
+// Delete send a PUT request.
+func (c HttpClient) Put(ctx context.Context, url string, data []byte) (code int, resp []byte, err error) {
+	return c.Request(ctx, url, HttpMethodPut, data)
+}
+
 // Request post the request with URL
 //
 // url: the requet address, eg: http://127.0.0.1/request
 // method: POST,GET,DELETE,PUT
 // headers: http request header
-// timeout: the http request timeout(seconds)
 // data: the http request data
-func (c HttpClient) Request(url string, method HttpMethod, headers map[string]string,
-	timeout time.Duration, data []byte) (code int, resp []byte, err error) {
+func (c HttpClient) Request(ctx context.Context, url string,
+	method HttpMethod, data []byte) (code int, resp []byte, err error) {
 
 	if err = c.verifyMethod(method); err != nil {
 		return
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 
 	var req *http.Request
 	var errReq error
@@ -112,16 +158,13 @@ func (c HttpClient) Request(url string, method HttpMethod, headers map[string]st
 		req.Header.Set(key, val)
 	}
 
-	// set the headers of this request
-	for key, val := range headers {
-		req.Header.Set(key, val)
-	}
-
 	rsp, errDo := c.cli.Do(req)
 	if errDo != nil {
 		err = gerrors.NewE(gerrors.HttpRequestFailed, errDo)
 		return
 	}
+
+	code = rsp.StatusCode
 
 	defer func() {
 		if errClose := rsp.Body.Close(); errClose != nil {
