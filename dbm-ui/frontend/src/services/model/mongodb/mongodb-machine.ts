@@ -31,6 +31,7 @@ export default class MongodbMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as MongodbMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -43,6 +44,7 @@ export default class MongodbMachine {
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
+    this.spec_name = payload.spec_name;
     this.instance_role = payload.instance_role;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
