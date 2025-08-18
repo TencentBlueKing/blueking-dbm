@@ -138,3 +138,13 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     resource_batch_apply_builder = MysqlFixPointRollbackResourceParamBuilder
     inner_flow_name = _("定点构造执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT, is_apply=True)
+class MysqlFixPointFlowBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK, is_apply=True)
+class MysqlRollbackFlowBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点回档执行")
