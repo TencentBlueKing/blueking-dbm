@@ -311,7 +311,7 @@
       // 其它类型的节点数不能全部被缩容，至少保留一个
       let bookkeeperNodeNum = 0;
       let brokerNodeNum = 0;
-      (tableRef.value.getData() as PulsarMachineModel[]).forEach((nodeItem) => {
+      (tableRef.value?.getData<PulsarMachineModel>() || []).forEach((nodeItem) => {
         if (nodeItem.isBookkeeper) {
           bookkeeperNodeNum = bookkeeperNodeNum + 1;
         } else if (nodeItem.isBroker) {

@@ -300,7 +300,7 @@
       let observerNodeNum = 0;
       let hotNodeNum = 0;
       let coldNodeNum = 0;
-      (tableRef.value.getData() as DorisMachineModel[]).forEach((nodeItem) => {
+      (tableRef.value?.getData<DorisMachineModel>() || []).forEach((nodeItem) => {
         if (nodeItem.isObserver) {
           observerNodeNum = observerNodeNum + 1;
         } else if (nodeItem.isHot) {
