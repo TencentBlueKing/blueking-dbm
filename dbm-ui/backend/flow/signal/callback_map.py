@@ -46,6 +46,6 @@ def call_ticket_handler(ticket_type, **kwargs):
     if not handler:
         logger.info(_("该单据类型未注册：{}, 不执行".format(ticket_type)))
         return
-
+    logger.info(_("调用单据类型: {}, 参数: {}").format(ticket_type, kwargs))
     # 动态调用处理函数并解参
     return handler(**kwargs)

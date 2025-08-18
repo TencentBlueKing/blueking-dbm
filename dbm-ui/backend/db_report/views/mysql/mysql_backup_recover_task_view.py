@@ -16,7 +16,7 @@ from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
-from backend.db_periodic_task.models import MySQLBackupRecoverTask
+from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase
 from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
 from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
@@ -29,7 +29,7 @@ logger = logging.getLogger("root")
 class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
     """MySQL备份恢复任务视图集"""
 
-    queryset = MySQLBackupRecoverTask.objects.all().order_by("-create_at")
+    queryset = MySQLBackupRecoverTask.objects.filter(phase=TaskPhase.DONE).order_by("-create_at")
     serializer_class = MySQLBackupRecoverTaskSerializer
     report_type = ReportType.MYSQL_BACKUP_RECOVER_TASK
     report_name = _("MySQL备份恢复任务")

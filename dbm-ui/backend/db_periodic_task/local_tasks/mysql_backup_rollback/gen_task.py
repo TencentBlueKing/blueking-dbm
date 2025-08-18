@@ -26,7 +26,7 @@ from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbac
 from backend.env import MYSQL_BACKUPRECOVER_BIZ_ID, MYSQL_BACKUPRECOVER_MCH_LABELS_ID
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import MySQLRollbackExerciseFlow
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
-from backend.ticket.constants import ResourceApplyErrCode
+from backend.ticket.constants import ResourceApplyErrCode, TicketType
 from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
@@ -240,7 +240,7 @@ def gen_rollback_task():
 
             flow_context = {
                 "uid": root_id,
-                "ticket_type": "MYSQL_ROLLBACK_EXERCISE",
+                "ticket_type": TicketType.MYSQL_ROLLBACK_EXERCISE,
                 "exercise_cluster_id": cluster.id,
                 "backup_id": backup_id,
                 "rollback_host": rollback_host,

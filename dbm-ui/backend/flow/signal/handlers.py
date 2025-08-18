@@ -75,12 +75,8 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
     # 针对不同类型单据，调用个性化方法
     # 所有不同类型传入的参数这里是一致的
     logger.info("call_ticket_handler execute")
-    try:
-        ticket = Ticket.objects.get(id=tree.uid)
-    except (Ticket.DoesNotExist, ValueError):
-        return
     call_ticket_handler(
-        ticket_type=ticket.ticket_type, node_id=node_id, root_id=root_id, ticket_id=tree.uid, status=to_state
+        ticket_type=tree.ticket_type, node_id=node_id, root_id=root_id, ticket_id=tree.uid, status=to_state
     )
 
 

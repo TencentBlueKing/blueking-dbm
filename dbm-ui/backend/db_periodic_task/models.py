@@ -105,6 +105,13 @@ class TaskStatus:
     RESOURCE_RETURN_SUCCESS = "resource_return_success"
 
 
+class TaskPhase:
+    # 初始化
+    DONE = "done"
+    # 执行中
+    RUNNING = "running"
+
+
 class MySQLBackupRecoverTask(BaseReportABS):
     """
     MySQL备份定期回档演练
@@ -132,6 +139,8 @@ class MySQLBackupRecoverTask(BaseReportABS):
     task_id = models.CharField(_("关联的任务ID"), max_length=constants.LEN_LONG, default="")
     task_status = models.CharField(_("任务状态"), max_length=constants.LEN_SHORT, default="")
     task_info = models.TextField(_("任务信息"), default="")
+    # 定义任务的运行阶段
+    phase = models.CharField(_("阶段"), max_length=constants.LEN_SHORT, default="")
     status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
 
     @classmethod
