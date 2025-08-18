@@ -64,7 +64,7 @@ var addonHelmRepoEntityList = []metaenitty.AddonHelmRepoEntity{
 	},
 }
 
-var dbsContext = &commentity.DbsContext{
+var dbsCtx = &commentity.DbsContext{
 	BkAuth: &commentity.BKAuth{
 		BkUserName:  "bkuser",
 		BkAppCode:   "bkappcode",
@@ -111,7 +111,7 @@ func TestAddonHelmRepoProvider(t *testing.T) {
 
 func (suite *AddonHelmRepoProviderTestSuite) TestCreateHelmRepo() {
 	t := suite.T()
-	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, addonHelmRepoEntity)
+	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, addonHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.ID)
 	assert.Equal(t, addonHelmRepoEntity.RepoName, repo.RepoName)
@@ -122,7 +122,7 @@ func (suite *AddonHelmRepoProviderTestSuite) TestCreateHelmRepo() {
 
 func (suite *AddonHelmRepoProviderTestSuite) TestDeleteHelmRepoByID() {
 	t := suite.T()
-	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, addonHelmRepoEntity)
+	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, addonHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.ID)
 
@@ -134,7 +134,7 @@ func (suite *AddonHelmRepoProviderTestSuite) TestDeleteHelmRepoByID() {
 
 func (suite *AddonHelmRepoProviderTestSuite) TestFindHelmRepoByID() {
 	t := suite.T()
-	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, addonHelmRepoEntity)
+	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, addonHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.ID)
 
@@ -148,7 +148,7 @@ func (suite *AddonHelmRepoProviderTestSuite) TestFindHelmRepoByID() {
 
 func (suite *AddonHelmRepoProviderTestSuite) TestFindByParams() {
 	t := suite.T()
-	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, addonHelmRepoEntity)
+	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, addonHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.ID)
 
@@ -166,7 +166,7 @@ func (suite *AddonHelmRepoProviderTestSuite) TestFindByParams() {
 
 func (suite *AddonHelmRepoProviderTestSuite) TestUpdateHelmRepo() {
 	t := suite.T()
-	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, addonHelmRepoEntity)
+	repo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, addonHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.ID)
 
@@ -181,7 +181,7 @@ func (suite *AddonHelmRepoProviderTestSuite) TestUpdateHelmRepo() {
 func (suite *AddonHelmRepoProviderTestSuite) TestListHelmRepos() {
 	t := suite.T()
 	for _, repo := range addonHelmRepoEntityList {
-		helmRepo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsContext, &repo)
+		helmRepo, err := suite.addonHelmRepoProvider.CreateHelmRepo(dbsCtx, &repo)
 		assert.NoError(t, err)
 		assert.NotNil(t, helmRepo.ID)
 	}

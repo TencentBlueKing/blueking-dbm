@@ -64,14 +64,14 @@ func TestCreateClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{
 			BkUserName:  "bkuser",
 			BkAppCode:   "bkappcode",
 			BkAppSecret: "bkappsecret",
 		},
 	}
-	added, err := repoProvider.CreateHelmRepo(dbsContext, repo)
+	added, err := repoProvider.CreateHelmRepo(dbsCtx, repo)
 	assert.NoError(t, err)
 	assert.Equal(t, added.RepoName, repo.RepoName)
 	assert.Equal(t, added.RepoRepository, repo.RepoRepository)
@@ -94,14 +94,14 @@ func TestDeleteClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{
 			BkUserName:  "bkuser",
 			BkAppCode:   "bkappcode",
 			BkAppSecret: "bkappsecret",
 		},
 	}
-	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
+	_, err = repoProvider.CreateHelmRepo(dbsCtx, repo)
 	assert.NoError(t, err)
 
 	rows, err := repoProvider.DeleteHelmRepoByID(1)
@@ -122,14 +122,14 @@ func TestUpdateClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{
 			BkUserName:  "bkuser",
 			BkAppCode:   "bkappcode",
 			BkAppSecret: "bkappsecret",
 		},
 	}
-	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
+	_, err = repoProvider.CreateHelmRepo(dbsCtx, repo)
 	assert.NoError(t, err)
 
 	updateRepo := &metaentity.AddonClusterHelmRepoEntity{
@@ -167,7 +167,7 @@ func TestListClusterHelmRepo(t *testing.T) {
 			CreatedBy:      "test-user",
 		},
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{
 			BkUserName:  "bkuser",
 			BkAppCode:   "bkappcode",
@@ -175,7 +175,7 @@ func TestListClusterHelmRepo(t *testing.T) {
 		},
 	}
 	for _, repo := range repos {
-		_, err := repoProvider.CreateHelmRepo(dbsContext, &repo)
+		_, err := repoProvider.CreateHelmRepo(dbsCtx, &repo)
 		assert.NoError(t, err)
 	}
 
@@ -212,14 +212,14 @@ func TestGetClusterHelmRepo(t *testing.T) {
 		ChartVersion:   "test-chartversion",
 		ChartName:      "test-chartname",
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &commentity.BKAuth{
 			BkUserName:  "bkuser",
 			BkAppCode:   "bkappcode",
 			BkAppSecret: "bkappsecret",
 		},
 	}
-	_, err = repoProvider.CreateHelmRepo(dbsContext, repo)
+	_, err = repoProvider.CreateHelmRepo(dbsCtx, repo)
 	assert.NoError(t, err)
 
 	params := &metaentity.HelmRepoQueryParams{

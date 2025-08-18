@@ -89,7 +89,7 @@ func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *metaentity.K8s
 		return nil, err
 	}
 	addedEntity := metaentity.K8sClusterAddonsEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
 		return nil, err
 	}
@@ -103,7 +103,6 @@ func (k *K8sClusterAddonsProviderImpl) CreateClusterAddon(entity *metaentity.K8s
 		return nil, err
 	}
 	addedEntity.StorageAddon = addonEntity
-
 	return &addedEntity, nil
 }
 

@@ -27,6 +27,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	pventity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	dbserrors "k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
@@ -138,58 +139,46 @@ func (a *AddonProvider) validateProvider() error {
 
 // ManageAddon 管理 addon 插件
 func (a *AddonProvider) ManageAddon(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	entity *pventity.AddonEntity,
 	operation coreconst.AddonOperation,
 ) error {
-	_, err := metautil.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, a.reqRecordMeta)
+	_, err := metautil.SaveCommonAuditV2(a.reqRecordMeta, dbsCtx)
 	if err != nil {
-		slog.Error("Failed to create request record", "error", err)
-		return fmt.Errorf("failed to create request record for addon: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 	k8sClusterConfig, err := a.clusterConfigMeta.FindConfigByName(entity.K8sClusterName)
 	if err != nil {
-		slog.Error("Failed to find k8s cluster config", "error", err)
-		return fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		slog.Error("Failed to create k8s client", "error", err)
-		return fmt.Errorf("failed to create k8sClient: %w", err)
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 	switch operation {
 	case coreconst.InstallAddonOP:
 		if err = a.installAddonHelmRelease(entity, k8sClient); err != nil {
-			slog.Error("Failed to install helm release", "error", err)
 			return fmt.Errorf("failed to install helm release: %w", err)
 		}
-		_, err = a.createClusterAddon(dbsContext, entity)
+		_, err = a.createClusterAddon(dbsCtx, entity)
 		if err != nil {
-			slog.Error("Failed to create cluster addon record", "error", err)
 			return fmt.Errorf("failed to create cluster addon record: %w", err)
 		}
 	case coreconst.UninstallAddonOP:
 		if err = a.UnInstallAddonHelmRelease(entity, k8sClient); err != nil {
-			slog.Error("Failed to uninstall helm release", "error", err)
 			return fmt.Errorf("failed to uninstall helm release: %w", err)
 		}
-		err = a.deleteClusterAddon(dbsContext, entity)
-		if err != nil {
-			slog.Error("Failed to delete cluster addon record", "error", err)
+		if err = a.deleteClusterAddon(dbsCtx, entity); err != nil {
 			return fmt.Errorf("failed to delete cluster addon record: %w", err)
 		}
 	case coreconst.UpgradeAddonOP:
 		if err = a.UpgradeAddonHelmRelease(entity, k8sClient); err != nil {
-			slog.Error("Failed to upgrade helm release", "error", err)
 			return fmt.Errorf("failed to upgrade helm release: %w", err)
 		}
-		err = a.updateClusterAddon(dbsContext, entity)
-		if err != nil {
-			slog.Error("Failed to update cluster addon record", "error", err)
+		if err = a.updateClusterAddon(dbsCtx, entity); err != nil {
 			return fmt.Errorf("failed to update cluster addon record: %w", err)
 		}
 	default:
-		slog.Warn("Unsupported operation", "operation", operation)
 		return fmt.Errorf("unsupported operation: %s", operation)
 	}
 	return nil
@@ -341,7 +330,10 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 }
 
 // createClusterAddon 记录 k8s 集群 addon 的安装信息
-func (a *AddonProvider) createClusterAddon(dbsContext *commentity.DbsContext, entity *pventity.AddonEntity) (
+func (a *AddonProvider) createClusterAddon(
+	dbsCtx *commentity.DbsContext,
+	entity *pventity.AddonEntity,
+) (
 	*metaentity.K8sClusterAddonsEntity,
 	error,
 ) {
@@ -354,8 +346,8 @@ func (a *AddonProvider) createClusterAddon(dbsContext *commentity.DbsContext, en
 	clusterAddon := metaentity.K8sClusterAddonsEntity{
 		K8sClusterName: entity.K8sClusterName,
 		AddonID:        storageAddon.ID,
-		CreatedBy:      dbsContext.BkAuth.BkUserName,
-		UpdatedBy:      dbsContext.BkAuth.BkUserName,
+		CreatedBy:      dbsCtx.BkAuth.BkUserName,
+		UpdatedBy:      dbsCtx.BkAuth.BkUserName,
 	}
 
 	addedClusterAddon, err := a.clusterAddonsMeta.CreateClusterAddon(&clusterAddon)
@@ -396,7 +388,7 @@ func (a *AddonProvider) deleteClusterAddon(_ *commentity.DbsContext, entity *pve
 }
 
 // updateClusterAddon 更新 k8s 集群 addon 的安装信息
-func (a *AddonProvider) updateClusterAddon(dbsContext *commentity.DbsContext, entity *pventity.AddonEntity) error {
+func (a *AddonProvider) updateClusterAddon(dbsCtx *commentity.DbsContext, entity *pventity.AddonEntity) error {
 	storageAddon, err := a.getStorageAddon(entity)
 	if err != nil {
 		slog.Error("failed to get storage addon", "error", err)
@@ -413,7 +405,7 @@ func (a *AddonProvider) updateClusterAddon(dbsContext *commentity.DbsContext, en
 	}
 	if len(clusterAddons) == 1 {
 		clusterAddon := &clusterAddons[0]
-		clusterAddon.UpdatedBy = dbsContext.BkAuth.BkUserName
+		clusterAddon.UpdatedBy = dbsCtx.BkAuth.BkUserName
 		_, err := a.clusterAddonsMeta.UpdateClusterAddon(clusterAddon)
 		if err != nil {
 			slog.Error("failed to update cluster addon record", "error", err, "addon_id", clusterAddons[0].ID)

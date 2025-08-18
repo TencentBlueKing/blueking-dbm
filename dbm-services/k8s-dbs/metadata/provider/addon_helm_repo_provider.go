@@ -32,7 +32,7 @@ import (
 // AddonHelmRepoProvider 定义 addon cluster helm repo 业务逻辑层访问接口
 type AddonHelmRepoProvider interface {
 	CreateHelmRepo(
-		dbsContext *commentity.DbsContext,
+		dbsCtx *commentity.DbsContext,
 		entity *metaentity.AddonHelmRepoEntity,
 	) (*metaentity.AddonHelmRepoEntity, error)
 	DeleteHelmRepoByID(id uint64) (uint64, error)
@@ -49,12 +49,12 @@ type AddonHelmRepoProviderImpl struct {
 
 // CreateHelmRepo 创建
 func (a *AddonHelmRepoProviderImpl) CreateHelmRepo(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	entity *metaentity.AddonHelmRepoEntity,
 ) (*metaentity.AddonHelmRepoEntity, error) {
 	model := metamodel.AddonHelmRepoModel{}
-	entity.CreatedBy = dbsContext.BkAuth.BkUserName
-	entity.UpdatedBy = dbsContext.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	if err := copier.Copy(&model, entity); err != nil {
 		slog.Error("Failed to copy entity to model", "error", err)
 		return nil, err

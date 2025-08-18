@@ -31,13 +31,13 @@ import (
 
 // K8sCrdStorageAddonProvider 定义 addon 业务逻辑层访问接口
 type K8sCrdStorageAddonProvider interface {
-	CreateStorageAddon(dbsContext *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (
+	CreateStorageAddon(dbsCtx *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (
 		*metaentity.K8sCrdStorageAddonEntity, error)
 	DeleteStorageAddonByID(id uint64) (uint64, error)
 	FindStorageAddonByID(id uint64) (*metaentity.K8sCrdStorageAddonEntity, error)
 	FindVersionsByParams(params *metaentity.AddonVersionQueryParams) ([]*metaentity.AddonVersionEntity, error)
 	FindStorageAddonByParams(params *metaentity.AddonQueryParams) ([]*metaentity.K8sCrdStorageAddonEntity, error)
-	UpdateStorageAddon(dbsContext *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (uint64, error)
+	UpdateStorageAddon(dbsCtx *commentity.DbsContext, entity *metaentity.K8sCrdStorageAddonEntity) (uint64, error)
 	ListStorageAddons(pagination commentity.Pagination) ([]*metaentity.K8sCrdStorageAddonEntity, error)
 }
 
@@ -84,12 +84,12 @@ func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByParams(params *metaen
 
 // CreateStorageAddon 创建 addon
 func (k *K8sCrdStorageAddonProviderImpl) CreateStorageAddon(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	entity *metaentity.K8sCrdStorageAddonEntity,
 ) (*metaentity.K8sCrdStorageAddonEntity, error) {
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
-	entity.CreatedBy = dbsContext.BkAuth.BkUserName
-	entity.UpdatedBy = dbsContext.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	err := copier.Copy(&storageAddonModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)
@@ -131,11 +131,11 @@ func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByID(id uint64) (*metae
 
 // UpdateStorageAddon 更新 addon
 func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	entity *metaentity.K8sCrdStorageAddonEntity,
 ) (uint64, error) {
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
-	entity.UpdatedBy = dbsContext.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	err := copier.Copy(&storageAddonModel, entity)
 	if err != nil {
 		slog.Error("Failed to copy entity to copied model", "error", err)

@@ -44,20 +44,24 @@ type K8sController struct {
 
 // CreateNamespace 创建 namespace
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
-	var namespaceReq request.K8sNamespaceRequest
-	if err := ctx.ShouldBindJSON(&namespaceReq); err != nil {
+	var reqVo request.K8sNamespaceRequest
+	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
 	var namespaceEntity entity.K8sNamespaceEntity
-	if err := copier.Copy(&namespaceEntity, &namespaceReq); err != nil {
+	if err := copier.Copy(&namespaceEntity, &reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
-		BkAuth: &namespaceReq.BKAuth,
+	dbsCtx := commentity.DbsContext{
+		BkAuth:           &reqVo.BKAuth,
+		K8sClusterName:   reqVo.K8sClusterName,
+		Namespace:        reqVo.Name,
+		RequestType:      coreconst.CreateK8sNs,
+		APIRequestParams: reqVo,
 	}
-	added, err := k.k8sProvider.CreateNamespace(&dbsContext, &namespaceEntity)
+	added, err := k.k8sProvider.CreateNamespace(&dbsCtx, &namespaceEntity)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
@@ -140,11 +144,11 @@ func (k *K8sController) DeletePod(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
+	dbsCtx := commentity.DbsContext{
 		BkAuth:      &podDeleteParams.BKAuth,
 		RequestType: coreconst.DeleteK8sPod,
 	}
-	err := k.k8sProvider.DeletePod(&dbsContext, &podDeleteEntity)
+	err := k.k8sProvider.DeletePod(&dbsCtx, &podDeleteEntity)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteK8sPodError, err))
 		return

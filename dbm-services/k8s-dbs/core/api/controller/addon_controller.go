@@ -40,21 +40,24 @@ type AddonController struct {
 
 // InstallAddon 安装 addon 插件
 func (a *AddonController) InstallAddon(ctx *gin.Context) {
-	var installReqVo reqvo.AddonOperationRequest
-	if err := ctx.ShouldBindJSON(&installReqVo); err != nil {
+	var reqVo reqvo.AddonOperationRequest
+	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
 		return
 	}
 	var addonEntity entity.AddonEntity
-	if err := copier.Copy(&addonEntity, &installReqVo); err != nil {
+	if err := copier.Copy(&addonEntity, &reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
-		BkAuth: &installReqVo.BKAuth,
+	dbsCtx := commentity.DbsContext{
+		BkAuth:           &reqVo.BKAuth,
+		K8sClusterName:   addonEntity.K8sClusterName,
+		RequestType:      string(coreapiconst.InstallAddonOP),
+		APIRequestParams: reqVo,
 	}
 
-	err := a.addonProvider.ManageAddon(&dbsContext, &addonEntity, coreapiconst.InstallAddonOP)
+	err := a.addonProvider.ManageAddon(&dbsCtx, &addonEntity, coreapiconst.InstallAddonOP)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
 		return
@@ -64,20 +67,23 @@ func (a *AddonController) InstallAddon(ctx *gin.Context) {
 
 // UninstallAddon 卸载 addon 插件
 func (a *AddonController) UninstallAddon(ctx *gin.Context) {
-	var uninstallReqVo reqvo.AddonOperationRequest
-	if err := ctx.ShouldBindJSON(&uninstallReqVo); err != nil {
+	var reqVo reqvo.AddonOperationRequest
+	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UninstallAddonError, err))
 		return
 	}
 	var addonEntity entity.AddonEntity
-	if err := copier.Copy(&addonEntity, &uninstallReqVo); err != nil {
+	if err := copier.Copy(&addonEntity, &reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UninstallAddonError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
-		BkAuth: &uninstallReqVo.BKAuth,
+	dbsCtx := commentity.DbsContext{
+		BkAuth:           &reqVo.BKAuth,
+		K8sClusterName:   addonEntity.K8sClusterName,
+		RequestType:      string(coreapiconst.UninstallAddonOP),
+		APIRequestParams: reqVo,
 	}
-	err := a.addonProvider.ManageAddon(&dbsContext, &addonEntity, coreapiconst.UninstallAddonOP)
+	err := a.addonProvider.ManageAddon(&dbsCtx, &addonEntity, coreapiconst.UninstallAddonOP)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UninstallAddonError, err))
 		return
@@ -87,20 +93,23 @@ func (a *AddonController) UninstallAddon(ctx *gin.Context) {
 
 // UpgradeAddon 更新 addon 插件
 func (a *AddonController) UpgradeAddon(ctx *gin.Context) {
-	var upgradeReqVo reqvo.AddonOperationRequest
-	if err := ctx.ShouldBindJSON(&upgradeReqVo); err != nil {
+	var reqVo reqvo.AddonOperationRequest
+	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeAddonError, err))
 		return
 	}
 	var addonEntity entity.AddonEntity
-	if err := copier.Copy(&addonEntity, &upgradeReqVo); err != nil {
+	if err := copier.Copy(&addonEntity, &reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeAddonError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
-		BkAuth: &upgradeReqVo.BKAuth,
+	dbsCtx := commentity.DbsContext{
+		BkAuth:           &reqVo.BKAuth,
+		K8sClusterName:   addonEntity.K8sClusterName,
+		RequestType:      string(coreapiconst.UpgradeAddonOP),
+		APIRequestParams: reqVo,
 	}
-	err := a.addonProvider.ManageAddon(&dbsContext, &addonEntity, coreapiconst.UpgradeAddonOP)
+	err := a.addonProvider.ManageAddon(&dbsCtx, &addonEntity, coreapiconst.UpgradeAddonOP)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeAddonError, err))
 		return

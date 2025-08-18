@@ -19,16 +19,10 @@ limitations under the License.
 
 package entity
 
-import commtypes "k8s-dbs/common/types"
-
 // AddonEntity addon 创建请求结构体
 type AddonEntity struct {
-	K8sClusterName string                 `json:"k8sClusterName,omitempty"`
-	AddonType      string                 `json:"addonType,omitempty"`
-	AddonVersion   string                 `json:"addonVersion,omitempty"`
-	IsHistory      bool                   `json:"isHistory"`
-	CreatedBy      string                 `json:"createdBy"`
-	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
-	UpdatedBy      string                 `json:"updatedBy"`
-	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
+	K8sClusterName string `json:"k8sClusterName,omitempty"`
+	AddonType      string `json:"addonType,omitempty"`
+	AddonVersion   string `json:"addonVersion,omitempty"`
+	IsHistory      bool   `json:"isHistory"`
 }

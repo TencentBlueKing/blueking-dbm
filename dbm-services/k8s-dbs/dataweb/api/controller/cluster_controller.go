@@ -62,11 +62,11 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth:      &request.BKAuth,
 		RequestType: coreconst.CreateCluster,
 	}
-	if err := c.clusterProvider.CreateCluster(dbsContext, clusterConfig); err != nil {
+	if err := c.clusterProvider.CreateCluster(dbsCtx, clusterConfig); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}

@@ -34,46 +34,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// CreateRequestRecord Save request
-func CreateRequestRecord(
-	dbsContext *commentity.DbsContext,
-	requestParams interface{},
-	requestType string,
-	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
-) (*metaentity.ClusterRequestRecordEntity, error) {
-	if requestParams == nil {
-		return nil, fmt.Errorf("requestParams is nil")
-	}
-
-	if requestType == "" {
-		return nil, fmt.Errorf("requestType is empty")
-	}
-	serializedRequest, err := json.Marshal(requestParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize request parameters: %w", err)
-	}
-
-	requestRecord := &metaentity.ClusterRequestRecordEntity{
-		RequestID:     commutil.RequestID(),
-		RequestType:   requestType,
-		RequestParams: string(serializedRequest),
-		CreatedBy:     dbsContext.BkAuth.BkUserName,
-		UpdatedBy:     dbsContext.BkAuth.BkUserName,
-	}
-	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request record entity: %w", err)
-	}
-	return addedRequestRecord, nil
-}
-
 // SaveCommonAuditV2 记录通用审计日志
 func SaveCommonAuditV2(
 	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 	dbsCtx *commentity.DbsContext,
-	requestParams interface{},
 ) (*metaentity.ClusterRequestRecordEntity, error) {
-	requestBytes, err := json.Marshal(requestParams)
+	requestBytes, err := json.Marshal(dbsCtx.APIRequestParams)
 	if err != nil {
 		return nil, fmt.Errorf("serialization request failed: %v", err)
 	}

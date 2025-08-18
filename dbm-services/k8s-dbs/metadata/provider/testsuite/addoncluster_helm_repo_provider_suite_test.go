@@ -101,7 +101,7 @@ func TestAddonClusterHelmRepoProvider(t *testing.T) {
 
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestCreateHelmRepo() {
 	t := suite.T()
-	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, addonClusterHelmRepoEntity)
+	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, addonClusterHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotZero(t, addedEntity.ID)
 	assert.Equal(t, addonClusterHelmRepoEntity.RepoName, addedEntity.RepoName)
@@ -114,7 +114,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) TestCreateHelmRepo() {
 
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestDeleteHelmRepoByID() {
 	t := suite.T()
-	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, addonClusterHelmRepoEntity)
+	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, addonClusterHelmRepoEntity)
 	assert.NoError(t, err)
 
 	rows, err := suite.addonClusterHelmRepoProvider.DeleteHelmRepoByID(uint64(addedEntity.ID))
@@ -124,7 +124,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) TestDeleteHelmRepoByID() {
 
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestFindHelmRepoByID() {
 	t := suite.T()
-	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, addonClusterHelmRepoEntity)
+	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, addonClusterHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotZero(t, addedEntity.ID)
 
@@ -143,7 +143,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) TestFindHelmRepoByID() {
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestFindByParams() {
 	t := suite.T()
 	for _, entity := range addonClusterHelmRepoEntityList {
-		result, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, entity)
+		result, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, entity)
 		assert.NoError(t, err)
 		assert.NotZero(t, result.ID)
 	}
@@ -159,7 +159,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) TestFindByParams() {
 
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestUpdateHelmRepo() {
 	t := suite.T()
-	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, addonClusterHelmRepoEntity)
+	addedEntity, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, addonClusterHelmRepoEntity)
 	assert.NoError(t, err)
 	assert.NotZero(t, addedEntity.ID)
 
@@ -172,7 +172,7 @@ func (suite *AddonClusterHelmRepoProviderTestSuite) TestUpdateHelmRepo() {
 func (suite *AddonClusterHelmRepoProviderTestSuite) TestListHelmRepos() {
 	t := suite.T()
 	for _, entity := range addonClusterHelmRepoEntityList {
-		result, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsContext, entity)
+		result, err := suite.addonClusterHelmRepoProvider.CreateHelmRepo(dbsCtx, entity)
 		assert.NoError(t, err)
 		assert.NotZero(t, result.ID)
 	}

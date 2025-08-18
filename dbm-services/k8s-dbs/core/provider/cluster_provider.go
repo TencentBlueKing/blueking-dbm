@@ -309,10 +309,10 @@ func (c *ClusterProvider) saveClusterTagsMeta(
 		}
 		tagEntities = append(tagEntities, tagEntity)
 	}
-	dbsContext := &commentity.DbsContext{
+	dbsCtx := &commentity.DbsContext{
 		BkAuth: &request.BKAuth,
 	}
-	_, err := c.ClusterTagProvider.BatchCreate(dbsContext, tagEntities)
+	_, err := c.ClusterTagProvider.BatchCreate(dbsCtx, tagEntities)
 	if err != nil {
 		return err
 	}

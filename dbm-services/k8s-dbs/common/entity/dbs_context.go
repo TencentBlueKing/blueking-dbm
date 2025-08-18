@@ -30,6 +30,7 @@ type DbsContext struct {
 	K8sClusterName     string `json:"k8sClusterName"`
 	ClusterName        string `json:"clusterName"`
 	ClusterEntity      *metaentity.K8sCrdClusterEntity
-	Namespace          string `json:"namespace"`
-	RequestType        string `json:"requestType"`
+	Namespace          string      `json:"namespace"`
+	RequestType        string      `json:"requestType"`
+	APIRequestParams   interface{} `json:"apiRequestParams"`
 }

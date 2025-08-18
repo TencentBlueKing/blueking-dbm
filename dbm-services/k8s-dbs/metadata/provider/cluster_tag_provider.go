@@ -31,12 +31,12 @@ import (
 // K8sCrdClusterTagProvider 定义 cluster tag 业务逻辑层访问接口
 type K8sCrdClusterTagProvider interface {
 	Create(
-		dbsContext *commentity.DbsContext,
+		dbsCtx *commentity.DbsContext,
 		entity *entitys.K8sCrdClusterTagEntity,
 	) (*entitys.K8sCrdClusterTagEntity, error)
-	BatchCreate(dbsContext *commentity.DbsContext, inputEntities []*entitys.K8sCrdClusterTagEntity) (uint64, error)
-	DeleteByClusterID(dbsContext *commentity.DbsContext, clusterID uint64) (uint64, error)
-	FindByClusterID(dbsContext *commentity.DbsContext, clusterID uint64) ([]*entitys.K8sCrdClusterTagEntity, error)
+	BatchCreate(dbsCtx *commentity.DbsContext, inputEntities []*entitys.K8sCrdClusterTagEntity) (uint64, error)
+	DeleteByClusterID(dbsCtx *commentity.DbsContext, clusterID uint64) (uint64, error)
+	FindByClusterID(dbsCtx *commentity.DbsContext, clusterID uint64) ([]*entitys.K8sCrdClusterTagEntity, error)
 }
 
 // K8sCrdClusterTagProviderImpl K8sCrdClusterTagProvider 具体实现
@@ -46,13 +46,13 @@ type K8sCrdClusterTagProviderImpl struct {
 
 // BatchCreate 批次创建 tags
 func (k K8sCrdClusterTagProviderImpl) BatchCreate(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	inputEntities []*entitys.K8sCrdClusterTagEntity,
 ) (uint64, error) {
 	dbModels := make([]*models.K8sCrdClusterTagModel, 0, len(inputEntities))
 	for _, inputEntity := range inputEntities {
-		inputEntity.CreatedBy = dbsContext.BkAuth.BkUserName
-		inputEntity.UpdatedBy = dbsContext.BkAuth.BkUserName
+		inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
+		inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	}
 	err := copier.Copy(&dbModels, &inputEntities)
 	if err != nil {
@@ -67,12 +67,12 @@ func (k K8sCrdClusterTagProviderImpl) BatchCreate(
 
 // Create 单次创建 tag
 func (k K8sCrdClusterTagProviderImpl) Create(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	inputEntity *entitys.K8sCrdClusterTagEntity,
 ) (*entitys.K8sCrdClusterTagEntity, error) {
 	dbModel := models.K8sCrdClusterTagModel{}
-	inputEntity.CreatedBy = dbsContext.BkAuth.BkUserName
-	inputEntity.UpdatedBy = dbsContext.BkAuth.BkUserName
+	inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
+	inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	err := copier.Copy(&dbModel, inputEntity)
 	if err != nil {
 		return nil, err

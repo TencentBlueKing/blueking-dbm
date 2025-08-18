@@ -80,10 +80,10 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	dbsContext := commentity.DbsContext{
+	dbsCtx := commentity.DbsContext{
 		BkAuth: &reqVo.BKAuth,
 	}
-	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&dbsContext, &repoEntity)
+	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&dbsCtx, &repoEntity)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return

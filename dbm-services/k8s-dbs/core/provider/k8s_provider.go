@@ -28,7 +28,6 @@ import (
 	commentity "k8s-dbs/common/entity"
 	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
-	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
 	dbserrors "k8s-dbs/errors"
@@ -73,7 +72,7 @@ func (k *K8sProvider) DeletePod(
 	ctx.Namespace = entity.Namespace
 	ctx.ClusterName = entity.ClusterName
 	// 记录审计日志
-	_, err = metautil.SaveCommonAuditV2(k.reqRecordProvider, ctx, entity)
+	_, err = metautil.SaveCommonAuditV2(k.reqRecordProvider, ctx)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
@@ -100,10 +99,10 @@ func (k *K8sProvider) DeletePod(
 
 // CreateNamespace 创建命名空间
 func (k *K8sProvider) CreateNamespace(
-	dbsContext *commentity.DbsContext,
+	dbsCtx *commentity.DbsContext,
 	entity *coreentity.K8sNamespaceEntity,
 ) (*coreentity.K8sNamespaceEntity, error) {
-	_, err := metautil.CreateRequestRecord(dbsContext, entity, coreconst.CreateK8sNs, k.reqRecordProvider)
+	_, err := metautil.SaveCommonAuditV2(k.reqRecordProvider, dbsCtx)
 	if err != nil {
 		return nil, err
 	}
