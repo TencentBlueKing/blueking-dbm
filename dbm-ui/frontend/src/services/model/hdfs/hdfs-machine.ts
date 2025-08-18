@@ -33,12 +33,14 @@ export default class HdfsMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as HdfsMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.bk_os_name = payload.bk_os_name;
+    this.spec_name = payload.spec_name;
     this.bk_rack_id = payload.bk_rack_id;
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
