@@ -30,12 +30,6 @@
             {{ t('强制失败') }}
           </BkTag>
           <BkTag
-            v-else-if="data.operate_type === 'pipeline_terminate'"
-            theme="danger"
-            type="stroke">
-            {{ t('终止任务') }}
-          </BkTag>
-          <BkTag
             v-else
             theme="warning"
             type="stroke">
