@@ -16,7 +16,7 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -42,6 +42,55 @@ class ToolboxHandler(ClusterServiceHandler):
 
     def __init__(self, bk_biz_id: int):
         super().__init__(bk_biz_id)
+
+    def seg_instance_info(self, storage_queryset):
+        # 这里不要用prefetch，在实例数过多的时候内存处理反而比sql查询更慢，这里提前做map缓存
+        storage_ids = list(storage_queryset.values_list("id", flat=True))
+        # 获得tuple对应的id映射
+        seg_ranges = NosqlStorageSetDtl.objects.filter(bk_biz_id=self.bk_biz_id, instance__in=storage_ids).values_list(
+            "instance", "seg_range"
+        )
+        seg_range_map = {t[0]: t[1] for t in seg_ranges}
+        # 获取实例的主从对应关系元组列表
+        instance_tuple = (
+            StorageInstanceTuple.objects.filter(ejector__in=storage_ids)
+            .order_by("-create_at")
+            .values_list("ejector", "receiver")
+        )
+        # 获取实例id对应的分片信息
+        for t in instance_tuple:
+            if t[0] in seg_range_map:
+                seg_range_map[t[1]] = seg_range_map[t[0]]
+
+        return seg_range_map, instance_tuple
+
+    @staticmethod
+    def remote_tuple_info(seg_range_map, instance_tuple, cluster_type, instances):
+        remote_infos = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
+        for inst in instances:
+            seg_range = seg_range_map.get(inst.id, "")
+            remote_infos[inst.instance_role].append({**inst.simple_desc, "seg_range": seg_range, "id": inst.id})
+
+        # 对 master 和 slave 的 seg_range 进行排序
+        machine_list = []
+        for role in [InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value]:
+            remote_infos[role].sort(key=lambda x: int(x["seg_range"].split("-")[0]) if x["seg_range"] else -1)
+            machine_list.extend([inst["bk_host_id"] for inst in remote_infos[role]])
+
+        # 集群类型Tendisplus、RedisCluster无分片信息 需特殊处理主从对应关系
+        if cluster_type in [ClusterType.TendisPredixyRedisCluster, ClusterType.TendisPredixyTendisplusCluster]:
+            result = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
+            master_index = {master["id"]: master for master in remote_infos[InstanceRole.REDIS_MASTER.value]}
+            slave_index = {slave["id"]: slave for slave in remote_infos[InstanceRole.REDIS_SLAVE.value]}
+
+            for master_id, slave_id in instance_tuple:
+                if master_id in master_index:
+                    result[InstanceRole.REDIS_MASTER.value].append(master_index[master_id])
+                if slave_id in slave_index:
+                    result[InstanceRole.REDIS_SLAVE.value].append(slave_index[slave_id])
+            remote_infos = result
+
+        return machine_list, remote_infos
 
     def query_cluster_ips(
         self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None, cluster_status=None
