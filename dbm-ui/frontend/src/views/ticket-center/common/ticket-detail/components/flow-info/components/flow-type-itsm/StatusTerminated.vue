@@ -21,10 +21,6 @@
           {{ t('查看详情') }}
         </a>
       </template>
-      <TodoList
-        v-if="data.todos.length > 0"
-        :data="data.todos"
-        :flow-data="data" />
     </template>
   </StatusTerminated>
 </template>
@@ -40,7 +36,6 @@
   import { utcTimeToSeconds } from '@utils';
 
   import StatusTerminated from '../flow-type-common/StatusTerminated.vue';
-  import TodoList from '../todo-list/Index.vue';
 
   interface Props {
     data: FlowMode<
