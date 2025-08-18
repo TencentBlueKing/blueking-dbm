@@ -45,18 +45,12 @@ def get_flush_routing_sql_for_server(ctl_master: str, bk_cloud_id: int, add_spid
             message=_("[_get_flush_routing_server_name]select mysql.servers failed: {}".format(res[0]["error_msg"]))
         )
     for i in res[0]["cmd_results"][1]["table_data"]:
-        if i["Wrapper"] == "TDBCTL":
-            # 中控slave节点加入
+        if i["Wrapper"] == "TDBCTL" and f"{i['Host']}:{i['Port']}" != ctl_master:
+            # 避开primary，只有中控slave节点加入
             get_flush_routing_sql_list.append(f"TDBCTL FLUSH SERVER {i['Server_name']} ROUTING;")
 
         elif i["Host"] in [s["ip"] for s in add_spiders]:
             # 本次加入的spider节点
             get_flush_routing_sql_list.append(f"TDBCTL FLUSH SERVER {i['Server_name']} ROUTING;")
-
-    if not get_flush_routing_sql_list:
-        # 需要flush routing不可能是空的，所以这里异常
-        raise AddSpiderNodeFailedException(
-            message=_("[_get_flush_routing_server_name]get_flush_routing_sql_list is null,check")
-        )
 
     return get_flush_routing_sql_list

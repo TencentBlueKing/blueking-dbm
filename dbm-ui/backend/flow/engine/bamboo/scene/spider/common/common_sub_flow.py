@@ -86,18 +86,23 @@ def add_spider_slaves_sub_flow(
     tdbctl_pass = get_random_string(length=10)
 
     # 获取到集群对应的spider端口，作为这次的安装
-    # 获取模板spider，先更加spider_slave获取，如果不存在，则根据spider_master获取
+    # 获取模板spider作为模板spider节点，从spider_slave列表中获取
+    # 部署只读集群的场景，可以用is_clone_user参数控制不做克隆
     spiders = cluster.proxyinstance_set.filter(
         status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
     )
     if spiders:
         tmp_spider = spiders[0]
+        spider_port = tmp_spider.port
     else:
-        tmp_spider = cluster.proxyinstance_set.filter(
-            status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        )[0]
+        # 如果集群没有running同角色spider实例，会存在克隆权限的风险，这里先不退出，给tmp_spider属性设置None，到下层判断是否要做权限克隆
+        # spider_port 属性拿spider master角色，如果是第一次部署slave集群，则默认spider master端口和spider slave 是一致的
+        tmp_spider = None
+        spider_port = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+        )[0].port
 
-    parent_global_data["spider_ports"] = [tmp_spider.port]
+    parent_global_data["spider_ports"] = [spider_port]
     # 获取版本和字符集信息
     parent_global_data["db_module_id"] = new_db_module_id if new_db_module_id else cluster.db_module_id
     parent_global_data["spider_charset"], parent_global_data["spider_version"] = get_spider_version_and_charset(
@@ -179,9 +184,34 @@ def add_spider_slaves_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+    # 阶段5 下发actor，并执行spider-slave 路由初始化
+    sub_pipeline.add_act(
+        act_name=_("添加对应路由关系"),
+        act_component_code=AddSpiderRoutingComponent.code,
+        kwargs=asdict(
+            AddSpiderRoutingKwargs(
+                cluster_id=cluster.id,
+                add_spiders=add_spider_slaves,
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                user=TDBCTL_USER,
+                passwd=tdbctl_pass,
+            )
+        ),
+    )
+
     if is_clone_user:
-        # 阶段5 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
+        # 阶段6 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
         # 如果是slave集群部署，则不需要克隆权限， 应该is_clone_user=False
+        # 如果上层获取的tmp_spider为空，则这里报异常，因为无法做权限克隆，扩容后会丢失权限
+        if not tmp_spider:
+            raise AddSpiderNodeFailedException(
+                message=_(
+                    "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(
+                        cluster.immute_domain, TenDBClusterSpiderRole.SPIDER_SLAVE
+                    )
+                )
+            )
+
         acts_list = []
         for spider in add_spider_slaves:
             acts_list.append(
@@ -204,21 +234,6 @@ def add_spider_slaves_sub_flow(
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 阶段6 下发actor，并执行spider-slave 路由初始化
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
-                add_spiders=add_spider_slaves,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
-    )
-
     # 阶段7 添加从域名
     if slave_domain:
         # 这里针对spider_slave集群部署的场景，从域名是传进来的
@@ -229,7 +244,7 @@ def add_spider_slaves_sub_flow(
                 CreateDnsKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     add_domain_name=slave_domain,
-                    dns_op_exec_port=tmp_spider.port,
+                    dns_op_exec_port=spider_port,
                     exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
                 )
             ),
@@ -242,7 +257,7 @@ def add_spider_slaves_sub_flow(
             op_type=DnsOpType.CREATE,
             param={
                 "cluster_id": cluster.id,
-                "port": tmp_spider.port,
+                "port": spider_port,
                 "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
                 "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
             },
@@ -288,6 +303,12 @@ def add_spider_masters_sub_flow(
         bk_biz_id=cluster.bk_biz_id, db_module_id=parent_global_data["db_module_id"]
     )
     parent_global_data["ctl_charset"] = parent_global_data["spider_charset"]
+
+    # 不过角色后续处理的行为不一样
+    if is_add_spider_mnt:
+        role = TenDBClusterSpiderRole.SPIDER_MNT.value
+    else:
+        role = TenDBClusterSpiderRole.SPIDER_MASTER.value
 
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
@@ -376,12 +397,22 @@ def add_spider_masters_sub_flow(
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
-    if is_add_spider_mnt:
-        role = TenDBClusterSpiderRole.SPIDER_MNT.value
-    else:
-        role = TenDBClusterSpiderRole.SPIDER_MASTER.value
+    # 阶段6 执行spider-master 路由初始化, 内置账号密码随机生成，不需要平台来维护，避免误操作影响
+    sub_pipeline.add_act(
+        act_name=_("添加对应路由关系"),
+        act_component_code=AddSpiderRoutingComponent.code,
+        kwargs=asdict(
+            AddSpiderRoutingKwargs(
+                cluster_id=cluster.id,
+                add_spiders=add_spider_masters,
+                add_spider_role=role,
+                user=TDBCTL_USER,
+                passwd=tdbctl_pass,
+            )
+        ),
+    )
 
+    # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
     spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=role)
     if not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
         # 如果添加节点的角色是spider_mnt, 但是集群没有相应的角色，作为第一次添加，不做权限克隆
@@ -392,11 +423,15 @@ def add_spider_masters_sub_flow(
         is_clone_user = True
         tmp_spider = spiders[0]
     else:
-        # 如果spiders没有返回，则构建流程失败
-        raise AddSpiderNodeFailedException(message=_("构建流程失败，集群找不到相应角色[{}]的spider实例作为权限克隆的来源".format(role)))
+        # 如果扩容角色是master，且spiders没有running状态的节点，则扩容时无法做权限克隆，故异常，表示构建流程失败
+        raise AddSpiderNodeFailedException(
+            message=_(
+                "[{}]构建流程失败，集群找不到相应角色[{}]的且running状态的spider实例作为权限克隆的来源，请检查集群".format(cluster.immute_domain, role)
+            )
+        )
 
     if is_clone_user:
-        # 阶段6 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
+        # 阶段7 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
         acts_list = []
         for spider in add_spider_masters:
             acts_list.append(
@@ -418,21 +453,6 @@ def add_spider_masters_sub_flow(
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 阶段7 执行spider-master 路由初始化, 内置账号密码随机生成，不需要平台来维护，避免误操作影响
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
-                add_spiders=add_spider_masters,
-                add_spider_role=role,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
-    )
 
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
@@ -456,19 +476,6 @@ def add_spider_masters_sub_flow(
             ),
         )
 
-        # 阶段8 添加域名映射关系
-        # sub_pipeline.add_act(
-        #     act_name=_("添加集群域名"),
-        #     act_component_code=MySQLDnsManageComponent.code,
-        #     kwargs=asdict(
-        #         CreateDnsKwargs(
-        #             bk_cloud_id=cluster.bk_cloud_id,
-        #             add_domain_name=cluster.immute_domain,
-        #             dns_op_exec_port=tmp_spider.port,
-        #             exec_ip=[ip_info["ip"] for ip_info in add_spider_masters],
-        #         )
-        #     ),
-        # )
         entrysub_process = BuildEntrysManageSubflow(
             root_id=root_id,
             ticket_data=parent_global_data,

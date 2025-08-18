@@ -117,21 +117,23 @@ class TenDBClusterReduceNodesFlow(object):
                 message=_("[{}]集群最后不能少于{}个spider_slave实例".format(cluster.immute_domain, self.mix_spider_slave_count))
             )
         # 判断剩余的spider节点是否满足集群的容灾要求, 如果只剩一个spider节点，则不做判断.
-        check_hosts = [
-            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
-            for i in remaining_spiders
-        ]
-        if len(check_hosts) > 1:
-            if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
-                cluster=cluster, hosts=check_hosts
-            ):
-                raise CheckDisasterToleranceException(
-                    message=_(
-                        "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
-                            cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
+        # spider_slave 角色，不做容灾检查
+        if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+            check_hosts = [
+                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                for i in remaining_spiders
+            ]
+            if len(check_hosts) > 1:
+                if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
+                    cluster=cluster, hosts=check_hosts
+                ):
+                    raise CheckDisasterToleranceException(
+                        message=_(
+                            "[{}]集群剩余spider节点不满足容灾要求[{}]，请检查，剩余的节点信息:{}".format(
+                                cluster.immute_domain, cluster.disaster_tolerance_level, check_hosts
+                            )
                         )
                     )
-                )
 
         return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
@@ -203,18 +205,6 @@ class TenDBClusterReduceNodesFlow(object):
                 ),
             )
 
-        # 删除spider的路由关系
-        sub_pipeline.add_act(
-            act_name=_("删除spider的路由关系"),
-            act_component_code=DropSpiderRoutingComponent.code,
-            kwargs=asdict(
-                DropSpiderRoutingKwargs(
-                    cluster_id=cluster.id,
-                    reduce_spiders=reduce_spiders,
-                )
-            ),
-        )
-
         entry_role = ClusterEntryRole.MASTER_ENTRY.value
         if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
             entry_role = ClusterEntryRole.SLAVE_ENTRY.value
@@ -233,6 +223,18 @@ class TenDBClusterReduceNodesFlow(object):
         # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
         if not disable_manual_confirm:
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+        # 删除spider的路由关系
+        sub_pipeline.add_act(
+            act_name=_("删除spider的路由关系"),
+            act_component_code=DropSpiderRoutingComponent.code,
+            kwargs=asdict(
+                DropSpiderRoutingKwargs(
+                    cluster_id=cluster.id,
+                    reduce_spiders=reduce_spiders,
+                )
+            ),
+        )
 
         # 根据场景执行下架spider子流程
         sub_pipeline.add_sub_pipeline(

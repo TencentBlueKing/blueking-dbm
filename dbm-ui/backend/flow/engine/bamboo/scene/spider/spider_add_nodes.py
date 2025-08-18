@@ -92,20 +92,22 @@ class TenDBClusterAddNodesFlow(object):
 
         # 在做一下容灾级别检查，因为flow validator 只能做前置检验，这是没有申请到机器，所以只能在flow构建时判断
         # 查询出集群已经存在的spider信息
-        exists_hosts = [
-            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
-            for i in cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=add_spider_role)
-        ]
-        if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
-            cluster, add_spider_hosts + exists_hosts
-        ):
-            raise CheckDisasterToleranceException(
-                message=_(
-                    "[{}]集群spider节点不满足容灾要求[{}]，请检查，添加后预期节点信息:{}".format(
-                        cluster.immute_domain, cluster.disaster_tolerance_level, add_spider_hosts + exists_hosts
+        # spider_slave角色不做容灾检查
+        if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+            exists_hosts = [
+                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                for i in cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=add_spider_role)
+            ]
+            if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(
+                cluster, add_spider_hosts + exists_hosts
+            ):
+                raise CheckDisasterToleranceException(
+                    message=_(
+                        "[{}]集群spider节点不满足容灾要求[{}]，请检查，添加后预期节点信息:{}".format(
+                            cluster.immute_domain, cluster.disaster_tolerance_level, add_spider_hosts + exists_hosts
+                        )
                     )
                 )
-            )
 
         # 补充这次单据需要的隐形参数，spider版本以及字符集
         sub_flow_context = {

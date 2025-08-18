@@ -129,6 +129,11 @@ class AddSpiderRoutingService(BaseService):
             ctl_master=ctl_master, bk_cloud_id=bk_cloud_id, add_spiders=add_spiders
         )
         self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+
+        # 如果返回为空，直接返回
+        if not get_flush_routing_sql_list:
+            return True
+
         res = DRSApi.rpc(
             {
                 "addresses": [ctl_master],
@@ -142,15 +147,30 @@ class AddSpiderRoutingService(BaseService):
             return False
         return True
 
-    def _exec_create_node(self, cluster: Cluster, user: str, passwd: str, spider_ip: str, spider_port: int, tag: str):
+    def _exec_create_node(
+        self, cluster: Cluster, ctl_master: str, user: str, passwd: str, spider_ip: str, spider_port: int, wrapper: str
+    ):
         """
         定义通过中控master添加node的公共方法
         因为添加节点时候，需要导出导入表结构，如果碰到多表集群容易超时，所以timeout设置12小时。
+        @param cluster: 集群对象
+        @param ctl_master: 当前集群的中控primary，格式ip:port
+        @param user: spider内置账号
+        @param passwd: passwd
+        @param spider_ip: 待加入节点ip
+        @param: spider_port: 待加入节点port
+        @param: wrapper: 对应mysql.server表的wrapper值
         """
         cmds = ["set tc_admin=1"]
+        # 这里为了暂时解决 Data source error: SPT0 异常问题，create node 之前，做一次flush routing，重置FORCE和CACHE值
+        flush_list = get_flush_routing_sql_for_server(ctl_master=ctl_master, bk_cloud_id=cluster.bk_cloud_id)
+        if flush_list:
+            # 如果不是空，拿第一flush即可
+            cmds.append(flush_list[0])
+
         rpc_params = {
-            "addresses": [cluster.tendbcluster_ctl_primary_address()],
-            "cmds": cmds,
+            "addresses": [ctl_master],
+            "cmds": [],
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
             "query_timeout": 43200,
@@ -158,17 +178,16 @@ class AddSpiderRoutingService(BaseService):
 
         if not self._check_node_is_add(cluster=cluster, spider_ip=spider_ip, spider_port=spider_port):
             # 代表这个节点在集群的路由表已经存在，则这里选择跳过
-            # todo 这里出现重复只能选择跳过，如果选择重做还没有想好逻辑，而且重做会有风险。
             return True
 
-        if tag == "TDBCTL":
+        if wrapper == "TDBCTL":
             # 如果create node 是一个tdbctl，则由于gtid的原因需要先reset master，保证新实例GTID_EXECUTED为空，再create node
             if not self._reset_master(spider_ip=spider_ip, spider_port=spider_port, bk_cloud_id=cluster.bk_cloud_id):
                 return False
 
         sql = (
             "tdbctl create node wrapper '{}' options(user '{}', password '{}', host '{}', port {}) with database"
-        ).format(tag, user, passwd, spider_ip, spider_port)
+        ).format(wrapper, user, passwd, spider_ip, spider_port)
 
         rpc_params["cmds"] = cmds + [sql]
         self.log_info(f"exec add-node cmds:[{rpc_params['cmds']}]")
@@ -279,36 +298,38 @@ class AddSpiderRoutingService(BaseService):
         for add_spider in kwargs["add_spiders"]:
 
             if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
-                tag = "SPIDER_SLAVE"
+                wrapper = "SPIDER_SLAVE"
             elif kwargs["add_spider_role"] in [
                 TenDBClusterSpiderRole.SPIDER_MASTER.value,
                 TenDBClusterSpiderRole.SPIDER_MNT.value,
             ]:
-                tag = "SPIDER"
+                wrapper = "SPIDER"
             else:
                 raise NormalSpiderFlowException(message=_("This spider-role is not supported,check"))
 
             # 执行添加node的方法，方法幂等
             if not self._exec_create_node(
                 cluster=cluster,
+                ctl_master=ctl_master,
                 user=kwargs["user"],
                 passwd=kwargs["passwd"],
                 spider_ip=add_spider["ip"],
                 spider_port=spider_port,
-                tag=tag,
+                wrapper=wrapper,
             ):
                 return False
 
             if kwargs["add_spider_role"] == TenDBClusterSpiderRole.SPIDER_MASTER.value:
                 # 对中控实例也执行添加node行为
-                tag = "TDBCTL"
+                wrapper = "TDBCTL"
                 if not self._exec_create_node(
                     cluster=cluster,
+                    ctl_master=ctl_master,
                     user=kwargs["user"],
                     passwd=ctl_pass,
                     spider_ip=add_spider["ip"],
                     spider_port=admin_port,
-                    tag=tag,
+                    wrapper=wrapper,
                 ):
                     return False
 

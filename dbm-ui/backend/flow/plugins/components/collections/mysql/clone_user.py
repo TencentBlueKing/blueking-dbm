@@ -19,7 +19,7 @@ from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.exceptions import ApiResultError
-from backend.flow.consts import UserName
+from backend.flow.consts import TDBCTL_USER, UserName
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -59,6 +59,7 @@ class CloneUserService(BaseService):
                     "system_users": [
                         *UserName.get_values(),
                         "gcs_dba",
+                        TDBCTL_USER,  # 增加对spider内置不做克隆处理
                     ],
                     **self.extra_log,
                     "uid": "{}".format(global_data.get("uid", "0")),  # 保持是字符串

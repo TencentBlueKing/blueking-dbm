@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.instance_phase import InstancePhase
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
@@ -26,21 +26,16 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
-from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
-from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
-from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     CreateDnsKwargs,
     DBMetaOPKwargs,
-    DelServiceInstKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     RecycleDnsRecordKwargs,
@@ -53,8 +48,6 @@ from backend.flow.utils.mysql.mysql_version_parse import (
     proxy_version_parse,
     tspider_version_parse,
 )
-from backend.flow.utils.spider.spider_act_dataclass import CtlDropRoutingKwargs
-from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -183,7 +176,6 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 add_spider_hosts=spider_master_ip_list,
                 new_db_module_id=new_db_module_id,
                 new_pkg_id=new_pkg_id,
-                resource_spec=resource_spec,
             )
         )
 
@@ -196,7 +188,6 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     add_spider_hosts=spider_slave_ip_list,
                     new_db_module_id=new_db_module_id,
                     new_pkg_id=new_pkg_id,
-                    resource_spec=resource_spec,
                 )
             )
 
@@ -476,158 +467,3 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
             ),
         )
         return sub_pipeline.build_sub_process(sub_name=_("{}spider实例升级").format(ip))
-
-
-def reduce_spider_flow(
-    cluster: Cluster,
-    reduce_spiders: list,
-    root_id: str,
-    parent_global_data: dict,
-    spider_role: TenDBClusterSpiderRole,
-):
-    """
-    减少spider节点的子流程, 提供给集群缩容接入层或者替换类单据所用
-    @param cluster: 待操作的集群
-    @param reduce_spiders: 待卸载的spider节点机器信息
-    @param root_id: flow流程的root_id
-    @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
-    @param spider_role: 本次操作的spider角色
-    """
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-
-    # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-    exec_act_kwargs = ExecActuatorKwargs(
-        cluster_type=ClusterType.TenDBCluster,
-        bk_cloud_id=cluster.bk_cloud_id,
-    )
-
-    # 获取集群对应的spider端口
-    spider_port = cluster.proxyinstance_set.first().port
-    spider_admin_port = cluster.proxyinstance_set.first().admin_port
-
-    # 先回收集群所有服务实例内容，避免出现误报监控
-    del_instance_list = []
-    for spider in reduce_spiders:
-        del_instance_list.append({"ip": spider["ip"], "port": spider_port})
-
-    sub_pipeline.add_act(
-        act_name=_("删除注册CC系统的服务实例"),
-        act_component_code=DelCCServiceInstComponent.code,
-        kwargs=asdict(
-            DelServiceInstKwargs(
-                cluster_id=cluster.id,
-                del_instance_list=del_instance_list,
-            )
-        ),
-    )
-
-    # 阶段1 下发spider安装介质包
-    sub_pipeline.add_act(
-        act_name=_("下发db-actuator介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=[ip_info["ip"] for ip_info in reduce_spiders],
-                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-            )
-        ),
-    )
-
-    # 阶段2 卸载相关db组件
-    acts_list = []
-    for spider in reduce_spiders:
-        exec_act_kwargs.exec_ip = spider["ip"]
-        exec_act_kwargs.cluster = {"spider_port": spider_port}
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_payload.__name__
-        acts_list.append(
-            {
-                "act_name": _("{}:{} 卸载spider实例".format(spider["ip"], spider_port)),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(exec_act_kwargs),
-            }
-        )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 阶段3 如果这次卸载的是spider-master，需要卸载对应的中控实例
-    if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-        # 回收对应ctl的路由信息，如果涉及到ctl primary，先切换，再回收
-        reduce_ctls = cluster.proxyinstance_set.filter(machine__ip__in=[ip_info["ip"] for ip_info in reduce_spiders])
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=reduce_ctls_routing(
-                root_id=root_id, parent_global_data=parent_global_data, cluster=cluster, reduce_ctls=list(reduce_ctls)
-            )
-        )
-        # 卸载ctl的进程
-        acts_list = []
-        for ctl in reduce_spiders:
-            exec_act_kwargs.exec_ip = ctl["ip"]
-            exec_act_kwargs.cluster = {"spider_ctl_port": spider_admin_port}
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_ctl_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("{}:{} 卸载中控实例".format(ctl["ip"], spider_admin_port)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(exec_act_kwargs),
-                }
-            )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 阶段4 清空相关集群元信息；相关的cmdb注册信息
-    sub_pipeline.add_act(
-        act_name=_("清理db_meta元信息"),
-        act_component_code=SpiderDBMetaComponent.code,
-        kwargs=asdict(
-            DBMetaOPKwargs(
-                db_meta_class_func=SpiderDBMeta.del_spider_nodes_meta.__name__,
-                cluster={
-                    "cluster_id": cluster.id,
-                    "spiders": reduce_spiders,
-                },
-            )
-        ),
-    )
-
-    # 阶段5 清理机器配置，这里不需要做实例级别的配置清理，因为目前平台spider的单机单实例部署，专属一套集群
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-    sub_pipeline.add_act(
-        act_name=_("清理机器周边配置"),
-        act_component_code=MySQLClearMachineComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-
-    return sub_pipeline.build_sub_process(sub_name=_("下架spider节点"))
-
-
-def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster, reduce_ctls: list):
-    """
-    根据回收spider-ctl，构建专属的中控实例路由删除的子流程
-    """
-    reduce_ctl_secondary_list = []
-
-    # 计算每个待回收的ctl的角色，分配下架行为
-    for ctl in reduce_ctls:
-        reduce_ctl_secondary_list.append(f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}")
-
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-
-    acts_list = []
-    for ctl in reduce_ctl_secondary_list:
-        acts_list.append(
-            {
-                "act_name": _("卸载中控实例路由[{}]".format(ctl)),
-                "act_component_code": CtlDropRoutingComponent.code,
-                "kwargs": asdict(
-                    CtlDropRoutingKwargs(
-                        cluster_id=cluster.id,
-                        reduce_ctl=ctl,
-                    )
-                ),
-            }
-        )
-    if len(acts_list) > 0:
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))

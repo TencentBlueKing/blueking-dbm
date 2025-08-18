@@ -112,9 +112,11 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
                 AffinityEnum.MAX_EACH_ZONE_EQUAL,
             )
             or reduced_to_count == 1
+            or role == TenDBClusterSpiderRole.SPIDER_SLAVE
         ):
             # 这类容灾级别不需要判断容灾级别，属于没有要求
             # 获取剩余spider数量只有一台的情况下，也没有容灾要求
+            # 如果处理spider slave角色，也没有容灾要求
             # 尽量避开ctl primary
             except_reduce_spiders = [
                 spider for spider in all_spiders if spider.machine.ip != ctl_primary.split(":")[0]

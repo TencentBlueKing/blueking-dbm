@@ -231,6 +231,11 @@ class CtlSwitchToSlaveService(BaseService):
             bk_cloud_id=bk_cloud_id,
         )
         self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
+
+        # 如果返回为空，直接返回
+        if not get_flush_routing_sql_list:
+            return True
+
         res = DRSApi.rpc(
             {
                 "addresses": [f"{ctl_master.machine.ip}{IP_PORT_DIVIDER}{ctl_master.admin_port}"],
