@@ -499,6 +499,9 @@ def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool 
     if trimSuffix:
         versions = [version.replace(".tar.gz", "") for version in versions]
         versions = [version.replace(".tgz", "") for version in versions]
+
+    versions = list(set(versions))
+
     return versions
 
 
@@ -611,7 +614,7 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
         return "redis-" + version_str
 
 
-def get_cluster_proxy_version(cluster_id: int) -> list:
+def get_cluster_proxy_version(cluster_id: int, target_ips: set = None) -> list:
     """
     获取redis cluster proxy版本列表
     """
@@ -623,14 +626,16 @@ def get_cluster_proxy_version(cluster_id: int) -> list:
     passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
     if is_predixy_proxy_type(cluster.cluster_type):
         for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-            versions.add(
-                get_online_predixy_version(
-                    proxy.machine.ip, proxy.port, cluster.bk_cloud_id, passwd_ret.get("redis_proxy_password")
+            if not target_ips or proxy.machine.ip in target_ips:
+                versions.add(
+                    get_online_predixy_version(
+                        proxy.machine.ip, proxy.port, cluster.bk_cloud_id, passwd_ret.get("redis_proxy_password")
+                    )
                 )
-            )
     elif is_twemproxy_proxy_type(cluster.cluster_type):
         for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-            versions.add(get_online_twemproxy_version(proxy.machine.ip, proxy.port, cluster.bk_cloud_id))
+            if not target_ips or proxy.machine.ip in target_ips:
+                versions.add(get_online_twemproxy_version(proxy.machine.ip, proxy.port, cluster.bk_cloud_id))
     return list(versions)
 
 

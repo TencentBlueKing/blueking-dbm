@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging.config
+import logging
+from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict, List, Optional
@@ -95,48 +96,70 @@ class RedisClusterVersionUpdateOnline(object):
         async_multi_clusters_precheck(to_precheck_cluster_ids)
 
         for input_item in self.data["infos"]:
+            node_type = input_item["node_type"]
+            if node_type not in (RedisVerUpdateNodeType.Proxy, RedisVerUpdateNodeType.Backend):
+                raise Exception(
+                    _(
+                        "未知的结点类型: '{}' 必须是 '{}' 或 '{}'".format(
+                            node_type, RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value
+                        )
+                    )
+                )
+
             cluster_ids = []
             if "cluster_ids" in input_item and input_item["cluster_ids"]:
                 cluster_ids = input_item["cluster_ids"]
             else:
                 cluster_ids.append(input_item["cluster_id"])
 
-            if not input_item["target_version"]:
+            if not input_item.get("target_versions"):
                 raise Exception(_("redis集群 {} 目标版本为空?").format(cluster_ids))
+
+            # Map version to IPs.
+            version_ips = defaultdict(set)
             for cluster_id in cluster_ids:
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
 
                 # 检查版本是否合法
-                valid_versions = []
-                if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
-                    valid_versions = get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
-                elif input_item["node_type"] == RedisVerUpdateNodeType.Backend:
-                    valid_versions = get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
-                if input_item["target_version"] not in valid_versions:
-                    raise Exception(
-                        _("redis集群 {},节点类型:{},目标版本 {} 不合法,合法的版本:{}").format(
-                            cluster.immute_domain,
-                            input_item["node_type"],
-                            input_item["target_version"],
-                            valid_versions,
+                valid_versions = (
+                    get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
+                    if node_type == RedisVerUpdateNodeType.Proxy
+                    else get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
+                )
+
+                for version_obj in input_item["target_versions"]:
+                    ver = version_obj["version"]
+                    ip = version_obj["ip"]
+                    if ver not in valid_versions:
+                        raise Exception(
+                            _("redis集群 {},节点类型:{},目标版本 {} 不合法,合法的版本:{}").format(
+                                cluster.immute_domain,
+                                node_type,
+                                ver,
+                                valid_versions,
+                            )
                         )
-                    )
-                # 检查版本是否已经满足
-                err = ""
-                if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
-                    proxy_vers = get_cluster_proxy_version(cluster_id)
-                    if len(proxy_vers) == 1 and proxy_vers[0] == input_item["target_version"]:
-                        err = _("集群{} proxy当前版本{} == 目标版本:{},无需升级").format(
-                            cluster.immute_domain, proxy_vers[0], input_item["target_version"]
-                        )
-                elif input_item["node_type"] == RedisVerUpdateNodeType.Backend:
-                    redis_ver = get_cluster_redis_version(cluster_id)
-                    if version_ge(redis_ver, input_item["target_version"]):
-                        err = _("集群{} storage当前版本{} > 目标版本:{},不支持降级").format(
-                            cluster.immute_domain, redis_ver, input_item["target_version"]
-                        )
-                if err:
-                    raise Exception(err)
+                    version_ips[ver].add(ip)
+
+                # 进一步检查各IP机器上的版本
+                if node_type == RedisVerUpdateNodeType.Proxy:
+                    for target_version, ips in version_ips.items():
+                        proxy_vers = get_cluster_proxy_version(cluster_id, ips)
+                        if len(proxy_vers) == 1 and proxy_vers[0] == target_version:
+                            raise Exception(
+                                _("集群{} proxy当前版本{} == 目标版本:{},无需升级").format(
+                                    cluster.immute_domain, proxy_vers[0], target_version
+                                )
+                            )
+                else:
+                    for target_version, ips in version_ips.items():
+                        redis_ver = get_cluster_redis_version(cluster_id)
+                        if version_ge(redis_ver, target_version):
+                            raise Exception(
+                                _("集群{} storage当前版本{} > 目标版本:{},不支持降级").format(
+                                    cluster.immute_domain, redis_ver, target_version
+                                )
+                            )
 
     @staticmethod
     def get_cluster_ids_from_info_item(info_item: Dict) -> List[int]:
@@ -148,37 +171,49 @@ class RedisClusterVersionUpdateOnline(object):
             cluster_ids.append(info_item["cluster_id"])
         return cluster_ids
 
-    def version_update_flow(self):
-        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        trans_files = GetFileList(db_type=DBType.Redis)
+    def _create_proxy_upgrade_sub_pipelines(self, input_item, cluster_ids, redis_pipeline):
+        """Create sub-pipelines for proxy upgrades."""
         sub_pipelines = []
-        bk_biz_id = self.data["bk_biz_id"]
-
-        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        # 先升级 proxy
-        sub_pipelines = []
-        for input_item in self.data["infos"]:
-            cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
-            cluster_id = int(cluster_ids[0])
-
-            if input_item["node_type"] != RedisVerUpdateNodeType.Proxy:
-                continue
+        for cluster_id in cluster_ids:
             cluster_meta_data = get_cluster_info_by_cluster_id(int(cluster_id))
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
             act_kwargs.is_update_trans_data = True
-            sub_builder = ClusterProxysUpgradeAtomJob(
-                self.root_id,
-                self.data,
-                act_kwargs,
-                {
-                    "cluster_domain": cluster_meta_data["immute_domain"],
-                    "target_version": input_item["target_version"],
-                },
-            )
-            sub_pipelines.append(sub_builder)
+
+            versions = defaultdict(set)
+            for target in input_item["target_versions"]:
+                versions[target["version"]].add(target["ip"])
+
+            for version, ips in versions.items():
+                sub_builder = ClusterProxysUpgradeAtomJob(
+                    self.root_id,
+                    self.data,
+                    act_kwargs,
+                    {
+                        "cluster_domain": cluster_meta_data["immute_domain"],
+                        "target_ips": ips,
+                        "target_version": version,
+                    },
+                )
+                sub_pipelines.append(sub_builder)
+
         if sub_pipelines:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+    def version_update_flow(self):
+        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+        trans_files = GetFileList(db_type=DBType.Redis)
+        bk_biz_id = self.data["bk_biz_id"]
+
+        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+        # 先升级 proxy
+        for input_item in self.data["infos"]:
+            cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
+            cluster_id = int(cluster_ids[0])
+
+            if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
+                self._create_proxy_upgrade_sub_pipelines(input_item, cluster_ids, redis_pipeline)
+
         # 再升级 storage
         sub_pipelines = []
         for input_item in self.data["infos"]:

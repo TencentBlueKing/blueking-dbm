@@ -32,18 +32,24 @@ logger = logging.getLogger("flow")
 
 def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
-    ### SubBuilder: 集群所有proxy升级版本
+    ### SubBuilder: 升级所有Proxy或部分指定IP到目标版本
     Args:
         param (Dict): {
             "cluster_domain": "cache.test.testapp.db",
+            "target_ips" (optional): {"1.1.1.1", "2.2.2.2"}
             "target_version" (optional): "twemproxy-0.4.1-v29"
         }
     """
     cluster_ips_set = set()
     cluster = Cluster.objects.get(immute_domain=param["cluster_domain"])
-    for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-        cluster_ips_set.add(proxy.machine.ip)
     cluster_info = get_cluster_info_by_id(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id)
+
+    if param.get("target_ips"):
+        cluster_ips_set = param["target_ips"]
+    else:
+        # If `target_ips` are not specified, we upgrade all IPs under the domain.
+        for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+            cluster_ips_set.add(proxy.machine.ip)
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     act_kwargs = deepcopy(sub_kwargs)
@@ -51,12 +57,10 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
     trans_files = GetFileList(db_type=DBType.Redis)
 
     proxy_pkg_prefix = param.get("target_version", None)
-    if proxy_pkg_prefix:
-        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, proxy_pkg_prefix)
-    else:
-        # If not specified, we upgrade proxy to the latest.
-        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type)
+    # If version not specified, the latest proxy will be selected.
+    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, proxy_pkg_prefix)
 
+    if not proxy_pkg_prefix:
         # This in fact extract the whole file name instead of prefix only, but it also works.
         def extract_file_name(path: str):
             parts = path.split("/")
