@@ -54,7 +54,10 @@
     exportSqlServerHaClusterToExcel,
     exportSqlServerHaInstanceToExcel,
   } from '@services/source/sqlserveHaCluster';
-  import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
+  import {
+    exportSqlServerSingleClusterToExcel,
+    exportSqlServerSingleInstanceToExcel,
+  } from '@services/source/sqlserverSingleCluster';
   import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
@@ -147,6 +150,7 @@
     },
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
+      instance: exportSqlServerSingleInstanceToExcel,
     },
     tendbha: {
       cluster: exportTendbhaClusterToExcel,
