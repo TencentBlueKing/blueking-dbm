@@ -10,29 +10,25 @@ workflow:
   lockBusinessWaitTimeout: 5s
   scanTimeout: 60s
   scanInterval: 3s
+  updateDbmCacheInterval: 10s
   
-  dbmApi:
-  - name: metadata
+  dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
-    method: post
     timeout: 10s
     token: ""
 
-  - name: updateStatus
+  dbmApiUpdateStatus:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/update_status
-    method: post
     timeout: 10s
     token: ""
 
-  - name: swapMySQLRole
+  dbmApiSwapMysqlRole:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/swap_role
-    method: post
     timeout: 10s
     token: ""
 
-  - name: swapTendisCluster
+  dbmApiSwapTendisCluster:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/tendis_cluster_swap
-    method: post
     timeout: 10s
     token: ""
 

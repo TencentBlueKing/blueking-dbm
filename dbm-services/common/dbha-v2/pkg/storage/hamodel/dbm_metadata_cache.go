@@ -24,29 +24,93 @@
 
 package hamodel
 
-import "time"
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"time"
 
-type DBMMetadata struct {
-	BkIDCCityID     int           `json:"bk_idc_city_id"    gorm:"column:bk_idc_city_id"`
-	BkBizID         int           `json:"bk_biz_id"         gorm:"column:bk_biz_id"`
-	BkCloudID       int           `json:"bk_cloud_id"       gorm:"column:bk_cloud_id"`
-	LogicalCityID   int           `json:"logical_city_id"   gorm:"column:logical_city_id"`
-	LogicalCityName string        `json:"logical_city_name" gorm:"column:logcial_city_name"`
-	ListenPort      int           `json:"port"              gorm:"column:port"`
-	ListenIP        string        `json:"ip"                gorm:"column:ip"`
-	Cluster         string        `json:"cluster"           gorm:"column:cluster"`
-	ClusterID       int           `json:"cluster_id"        gorm:"column:cluster_id"`
-	ClusterType     string        `json:"cluster_type"      gorm:"column:cluster_type"`
-	MachineType     string        `json:"machine_type"      gorm:"column:machine_type"`
-	Status          string        `json:"status"            gorm:"column:status"`
-	BindEntries     string        `json:"bind_entries"      gorm:"column:bind_entries"`
-	CreatedAt       time.Time     `json:"-"                 gorm:"column:created_at"`
-	UpdatedAt       time.Time     `json:"-"                 gorm:"column:updated_at"`
-	DeletedAt       time.Time     `json:"-"                 gorm:"column:deleted_at;index"`
-	SyncedAt        time.Time     `json:"-"                 gorm:"column:synced_at"`
-	SyncDuration    time.Duration `json:"-"                 gorm:"column:sync_duration;type:bigint"`
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+)
+
+const (
+	// Define variables for all the field names of the database tables
+	// to avoid hard-coding the field names in the business code.
+	DbmMetadataFieldBkCloudID       = "bk_cloud_id"
+	DbmMetadataFieldListenIP        = "ip"
+	DbmMetadataFieldListenPort      = "port"
+	DbmMetadataFieldBkIdcCityID     = "bk_idc_city_id"
+	DbmMetadataFieldBkBizID         = "bk_biz_id"
+	DbmMetadataFieldLogicalCityID   = "logical_city_id"
+	DbmMetadataFieldLogicalCityName = "logical_city_name"
+	DbmMetadataFieldCluster         = "cluster"
+	DbmMetadataFieldClusterID       = "cluster_id"
+	DbmMetadataFieldClusterType     = "cluster_type"
+	DbmMetadataFieldMachineType     = "machine_type"
+	DbmMetadataFieldStatus          = "status"
+	DbmMetadataFieldBindEntry       = "bind_entry"
+	DbmMetadataFieldCreatedAt       = "created_at"
+	DbmMetadataFieldDeletedAt       = "deleted_at"
+	DbmMetadataFieldSyncDuration    = "sync_duration"
+)
+
+type BindEntry struct {
+	BindPort       int         `json:"bind_port"`
+	BindIps        []string    `json:"bind_ips"`
+	Domain         string      `json:"domain"`
+	EntryRole      string      `json:"entry_role"`
+	ForwardEntryId interface{} `json:"forward_entry_id"`
+	ClbIP          string      `json:"clb_ip"`
+	ClbID          string      `json:"clb_id"`
+	ClbListenerID  string      `json:"listener_id"`
+	ClbRegion      string      `json:"clb_region"`
 }
 
-func (t DBMMetadata) TableName() string {
+type BindEntryType map[string][]BindEntry
+
+// Scan Implement Scanner interface for reading from DB.
+func (be *BindEntryType) Scan(value interface{}) error {
+	if value == nil {
+		*be = nil
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return gerrors.Newf(gerrors.Failure, "failed to scan BindEntryType: expected []byte, got: %T", value)
+	}
+
+	return json.Unmarshal(bytes, be)
+}
+
+// Value Implement Valuer interface for writing to DB.
+func (be BindEntryType) Value() (driver.Value, error) {
+	if be == nil {
+		return nil, nil
+	}
+
+	return json.Marshal(be)
+}
+
+type DbmMetadata struct {
+	BkCloudID       int           `gorm:"column:bk_cloud_id;primaryKey"`
+	ListenIP        string        `gorm:"column:ip;primaryKey"`
+	ListenPort      int           `gorm:"column:port;primaryKey"`
+	BkIdcCityID     int           `gorm:"column:bk_idc_city_id"`
+	BkBizID         int           `gorm:"column:bk_biz_id"`
+	LogicalCityID   int           `gorm:"column:logical_city_id"`
+	LogicalCityName string        `gorm:"column:logcial_city_name"`
+	Cluster         string        `gorm:"column:cluster"`
+	ClusterID       int           `gorm:"column:cluster_id"`
+	ClusterType     string        `gorm:"column:cluster_type"`
+	MachineType     string        `gorm:"column:machine_type"`
+	Status          string        `gorm:"column:status"`
+	BindEntry       BindEntryType `gorm:"column:bind_entry;type:json"`
+	CreatedAt       time.Time     `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt       time.Time     `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt       time.Time     `gorm:"column:deleted_at;index"`
+	SyncDuration    time.Duration `gorm:"column:sync_duration;type:bigint"`
+}
+
+func (t DbmMetadata) TableName() string {
 	return "t_dbm_metadata"
 }

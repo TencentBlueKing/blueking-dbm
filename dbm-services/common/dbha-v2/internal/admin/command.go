@@ -68,7 +68,7 @@ var MigrateCmd = &cobra.Command{
 		}
 
 		mig := &migrator.Migrator{}
-		if err := mig.InitDBHAData(); err != nil {
+		if err := mig.InitDbhaData(); err != nil {
 			logger.Error("migrate dbhadata failed, %v", err)
 		}
 	},
