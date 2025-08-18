@@ -29,11 +29,11 @@ declare module 'vue' {
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
     NewFeatureGuide: typeof import('@components/new-feature-guide/Index.vue').default;
     OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
+    PrimaryTable: typeof import('@blueking/tdesign-ui').PrimaryTable;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
     SmartAction: typeof import('@components/smart-action/Index.vue').default;
+    TableColumn: typeof import('@blueking/tdesign-ui').TableColumn;
     TableDetailDialog: typeof import('@components/table-detail-dialog/Index.vue').default;
-    // TTable: typeof import('@blueking/tdesign-ui').PrimaryTable;
-    // TTableColumn: typeof import('@blueking/tdesign-ui').TableColumn;
   }
 }
 
