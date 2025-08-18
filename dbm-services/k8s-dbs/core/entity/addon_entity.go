@@ -26,7 +26,7 @@ type AddonEntity struct {
 	K8sClusterName string                 `json:"k8sClusterName,omitempty"`
 	AddonType      string                 `json:"addonType,omitempty"`
 	AddonVersion   string                 `json:"addonVersion,omitempty"`
-	Description    string                 `json:"description"`
+	IsHistory      bool                   `json:"isHistory"`
 	CreatedBy      string                 `json:"createdBy"`
 	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
 	UpdatedBy      string                 `json:"updatedBy"`

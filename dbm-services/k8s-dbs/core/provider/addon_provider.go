@@ -227,9 +227,8 @@ func (a *AddonProvider) installAddonHelmRelease(
 		slog.Error("failed to get helm repo", "error", err)
 		return err
 	}
-
 	install := action.NewInstall(actionConfig)
-	install.ReleaseName = entity.AddonType
+	install.ReleaseName = getAddonReleaseName(entity)
 	install.Namespace = coreconst.AddonDefaultNamespace
 	install.RepoURL = helmRepo.RepoRepository
 	install.Version = entity.AddonVersion
@@ -275,7 +274,11 @@ func (a *AddonProvider) UnInstallAddonHelmRelease(
 	unInstall := action.NewUninstall(actionConfig)
 	unInstall.Timeout = coreconst.HelmOperationTimeout
 	unInstall.Wait = true
-	_, err = unInstall.Run(entity.AddonType)
+	releaseName := getAddonReleaseName(entity)
+	if entity.IsHistory {
+		releaseName = entity.AddonType
+	}
+	_, err = unInstall.Run(releaseName)
 	if err != nil {
 		slog.Error("addon uninstall failed", "addonName", entity.AddonType,
 			"namespace", coreconst.AddonDefaultNamespace, "error", err)
@@ -283,6 +286,11 @@ func (a *AddonProvider) UnInstallAddonHelmRelease(
 			entity.AddonType, coreconst.AddonDefaultNamespace, err)
 	}
 	return nil
+}
+
+// getAddonReleaseName 获取 addon release 名称
+func getAddonReleaseName(entity *pventity.AddonEntity) string {
+	return fmt.Sprintf("%s-%s", entity.AddonType, entity.AddonVersion)
 }
 
 // UpgradeAddonHelmRelease 更新 chart release
@@ -318,7 +326,11 @@ func (a *AddonProvider) UpgradeAddonHelmRelease(
 		slog.Error("failed to load helm chart requested", "error", err)
 		return fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
-	_, err = upgrade.Run(entity.AddonType, chart, nil)
+	releaseName := getAddonReleaseName(entity)
+	if entity.IsHistory {
+		releaseName = entity.AddonType
+	}
+	_, err = upgrade.Run(releaseName, chart, nil)
 	if err != nil {
 		slog.Error("Addon upgrade failed", "addonName", entity.AddonType, "error", err)
 		return fmt.Errorf("addon upgrade failed for addonName %q in namespace %q: %w",

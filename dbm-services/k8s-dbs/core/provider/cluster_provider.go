@@ -48,6 +48,7 @@ import (
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbappv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -824,9 +825,11 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 func (c *ClusterProvider) getClusterHelmRepository(
 	request *coreentity.Request,
 ) (*metaentity.AddonClusterHelmRepoEntity, error) {
+	addonClusterVersion := lo.Ternary(request.AddonClusterVersion == "",
+		request.StorageAddonVersion, request.AddonClusterVersion)
 	repoParams := &metaentity.HelmRepoQueryParams{
 		ChartName:    request.StorageAddonType + "-cluster",
-		ChartVersion: request.StorageAddonVersion,
+		ChartVersion: addonClusterVersion,
 	}
 	helmRepo, err := c.clusterHelmRepoProvider.FindByParams(repoParams)
 	if err != nil {

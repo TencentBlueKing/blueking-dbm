@@ -23,8 +23,9 @@ import commentity "k8s-dbs/common/entity"
 
 // AddonOperationRequest Addon 操作请求结构体
 type AddonOperationRequest struct {
-	K8sClusterName    string `json:"k8sClusterName,omitempty"`
-	AddonType         string `json:"addonType,omitempty"`
-	AddonVersion      string `json:"addonVersion,omitempty"`
+	K8sClusterName    string `json:"k8sClusterName"`
+	AddonType         string `json:"addonType"`
+	AddonVersion      string `json:"addonVersion"`
+	IsHistory         bool   `json:"isHistory"`
 	commentity.BKAuth `json:",inline"`
 }
