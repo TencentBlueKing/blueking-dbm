@@ -29,6 +29,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	validate "k8s-dbs/core/validate"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
@@ -347,7 +348,11 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	request *coreentity.Request,
 	isPartial bool,
 ) error {
-	_, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
+	err := validate.Params(request)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	_, err = metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
