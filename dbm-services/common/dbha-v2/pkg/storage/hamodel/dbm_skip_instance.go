@@ -26,14 +26,28 @@ package hamodel
 
 import "time"
 
-type SkipDBInstance struct {
+const (
+	// Define variables for all the field names of the database tables
+	// to avoid hard-coding the field names in the business code.
+	SkipDbInstanceFieldBkCloudID    = "bk_cloud_id"
+	SkipDbInstanceFieldBkBizID      = "bk_biz_id"
+	SkipDbInstanceFieldInstanceIP   = "instance_ip"
+	SkipDbInstanceFieldInstancePort = "instance_port"
+	SkipDbInstanceFieldCreatedAt    = "created_at"
+	SkipDbInstanceFieldUpdatedAt    = "updated_at"
+	SkipDbInstanceFieldDeletedAt    = "deleted_at"
+)
+
+type SkipDbInstance struct {
 	BkCloudID    int       `gorm:"column:bk_cloud_id;primaryKey"`
-	BizID        int       `gorm:"column:biz_id;primaryKey"`
+	BkBizID      int       `gorm:"column:bk_biz_id;primaryKey"`
 	InstanceIP   string    `gorm:"column:instance_ip;primaryKey"`
 	InstancePort int       `gorm:"column:instance_port;premaryKey"`
-	CreatedAt    time.Time `gorm:"column:created_at"`
+	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt    time.Time `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt    time.Time `gorm:"column:deleted_at"`
 }
 
-func (t SkipDBInstance) TableName() string {
+func (t SkipDbInstance) TableName() string {
 	return "t_skip_dbinstance"
 }

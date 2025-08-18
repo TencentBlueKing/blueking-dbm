@@ -41,7 +41,7 @@ type Outputter interface {
 func NewOutputter(cfg config.OutputConfig) (Outputter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
-		return newMySQL(cfg.Endpoints, cfg.User, cfg.Password)
+		return newMysql(cfg.Endpoints, cfg.User, cfg.Password)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Unsupported, "unsupported storage(%s)", cfg.Name)
