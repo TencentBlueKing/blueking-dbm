@@ -31,6 +31,7 @@ export default class TendbhaMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
+  spec_name: string;
 
   constructor(payload = {} as TendbhaMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -47,6 +48,7 @@ export default class TendbhaMachine {
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.related_clusters = payload.related_clusters;
+    this.spec_name = payload.spec_name;
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
