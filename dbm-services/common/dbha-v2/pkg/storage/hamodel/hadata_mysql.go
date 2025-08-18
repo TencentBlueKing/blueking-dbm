@@ -33,7 +33,32 @@ import (
 )
 
 const (
-	DatabaseName = "dbha_data"
+	// Define variables for all the field names of the database tables
+	// to avoid hard-coding the field names in the business code.
+	DatabaseName                    = "dbha_data"
+	HostMetricFieldMachineID        = "machine_id"
+	HostMetricFieldCpuUsagePercent  = "cpu_usage_percent"
+	HostMetricFieldCpuUserPercent   = "cpu_user_percent"
+	HostMetricFieldCpuSystemPercent = "cpu_system_percent"
+	HostMetricFieldCpuIOWaitPercent = "cpu_iowait_percent"
+	HostMetricFieldCpuLoad1         = "cpu_load_1"
+	HostMetricFieldCpuLoad5         = "cpu_load_5"
+	HostMetricFieldCpuLoad15        = "cpu_load_15"
+	HostMetricFieldMemTotalMB       = "mem_total_mb"
+	HostMetricFieldMemUsedMB        = "mem_used_mb"
+	HostMetricFieldMemFreeMB        = "mem_free_mb"
+	HostMetricFieldMemCacheMB       = "mem_cache_mb"
+	HostMetricFieldMemAvailableMB   = "mem_available_mb"
+	HostMetricFieldSwapTotalMB      = "swap_total_mb"
+	HostMetricFieldSwapUsedMB       = "swap_used_mb"
+	HostMetricFieldDiskUsagePercent = "disk_usage_percent"
+	HostMetricFieldDiskTotal        = "disk_total"
+	HostMetricFieldDiskUsed         = "disk_used"
+	HostMetricFieldDiskAvailable    = "disk_available"
+	HostMetrifFieldDiskReadOnly     = "disk_read_only"
+	HostMetrifFieldCreatedAt        = "created_at"
+	HostMetricFieldUpdatedAt        = "updated_at"
+	HostMetricFieldDeletedAt        = "deleted_at"
 )
 
 // HostMetric host metric
@@ -42,13 +67,13 @@ type HostMetric struct {
 	MachineID string `gorm:"column:machine_id;primaryKey"`
 
 	// CPU
-	CPUUsagePercent  float64 `gorm:"column:cpu_usage_percent"`
-	CPUUserPercent   float64 `gorm:"column:cpu_user_percent"`
-	CPUSystemPercent float64 `gorm:"column:cpu_system_percent"`
-	CPUIOWaitPercent float64 `gorm:"column:cpu_iowait_percent"`
-	CPULoad1         float64 `gorm:"column:cpu_load_1"`
-	CPULoad5         float64 `gorm:"column:cpu_load_5"`
-	CPULoad15        float64 `gorm:"column:cpu_load_15"`
+	CpuUsagePercent  float64 `gorm:"column:cpu_usage_percent"`
+	CpuUserPercent   float64 `gorm:"column:cpu_user_percent"`
+	CpuSystemPercent float64 `gorm:"column:cpu_system_percent"`
+	CpuIOWaitPercent float64 `gorm:"column:cpu_iowait_percent"`
+	CpuLoad1         float64 `gorm:"column:cpu_load_1"`
+	CpuLoad5         float64 `gorm:"column:cpu_load_5"`
+	CpuLoad15        float64 `gorm:"column:cpu_load_15"`
 
 	// Mem
 	MemTotalMB     uint64 `gorm:"column:mem_total_mb"`
@@ -165,8 +190,8 @@ func (t DatabaseMetric) TableName() string {
 	return "t_mysql_metric"
 }
 
-// DBHAMySQL contains system and databases metrics
-type DBHAMySQL struct {
+// DbhaData contains system and databases metrics
+type DbhaData struct {
 	MachineID       string `gorm:"column:machine_id;primaryKey"`
 	SequenceID      uint64 `gorm:"column:sequence_id"`
 	MessageID       string `gorm:"column:message_id"`
@@ -174,7 +199,7 @@ type DBHAMySQL struct {
 	ReportTimestamp uint64 `gorm:"column:report_timestamp"`
 
 	Host      *HostMetric       `gorm:"foreignKey:machine_id;references:machine_id"`
-	Events    []*MySQLEvent     `gorm:"foreignKey:machine_id;references:machine_id"`
+	Events    []*MysqlEvent     `gorm:"foreignKey:machine_id;references:machine_id"`
 	Databases []*DatabaseMetric `gorm:"foreignKey:machine_id;references:machine_id"`
 
 	// Time automatically managed by GORM
@@ -183,8 +208,8 @@ type DBHAMySQL struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
-func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
-	data := &DBHAMySQL{}
+func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
+	data := &DbhaData{}
 
 	data.MachineID = msg.MachineID
 	data.SequenceID = msg.SequenceID
@@ -195,13 +220,13 @@ func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
 	data.Host = &HostMetric{
 		MachineID: msg.MachineID,
 
-		CPUUsagePercent:  msg.Host.CPUUsagePercent,
-		CPUUserPercent:   msg.Host.CPUUserPercent,
-		CPUSystemPercent: msg.Host.CPUSystemPercent,
-		CPUIOWaitPercent: msg.Host.CPUIOWaitPercent,
-		CPULoad1:         msg.Host.CPULoad1,
-		CPULoad5:         msg.Host.CPULoad5,
-		CPULoad15:        msg.Host.CPULoad15,
+		CpuUsagePercent:  msg.Host.CpuUsagePercent,
+		CpuUserPercent:   msg.Host.CpuUserPercent,
+		CpuSystemPercent: msg.Host.CpuSystemPercent,
+		CpuIOWaitPercent: msg.Host.CpuIOWaitPercent,
+		CpuLoad1:         msg.Host.CpuLoad1,
+		CpuLoad5:         msg.Host.CpuLoad5,
+		CpuLoad15:        msg.Host.CpuLoad15,
 
 		MemTotalMB:     msg.Host.MemTotalMB,
 		MemUsedMB:      msg.Host.MemUsedMB,
@@ -224,7 +249,7 @@ func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
 			continue
 		}
 
-		data.Events = append(data.Events, &MySQLEvent{
+		data.Events = append(data.Events, &MysqlEvent{
 			MachineID:  msg.MachineID,
 			InstanceID: strconv.Itoa(event.Endpoint.Port),
 			Type:       event.Type,
@@ -238,17 +263,18 @@ func NewDBHAMySQL(msg *haprobe.MySQLMetric) *DBHAMySQL {
 			logger.Warn("skip this record, db is nil, machine-id: %s", msg.MachineID)
 			continue
 		}
+
 		data.loadDatabase(db)
 	}
 
 	return data
 }
 
-func (t DBHAMySQL) TableName() string {
+func (t DbhaData) TableName() string {
 	return "t_dbha_mysql"
 }
 
-func (t *DBHAMySQL) loadDatabase(db *haprobe.DatabaseMetric) {
+func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 	t.Databases = append(t.Databases, &DatabaseMetric{
 		MachineID:  t.MachineID,
 		InstanceID: strconv.Itoa(db.ListenPort),

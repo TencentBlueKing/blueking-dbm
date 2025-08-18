@@ -46,17 +46,17 @@ type Message struct {
 	Data  []byte
 }
 
-type mySQL struct {
+type mysql struct {
 	dbs []*hamysql.DB
 }
 
-func newMySQL(endpoints, user, password string) (*mySQL, error) {
+func newMysql(endpoints, user, password string) (*mysql, error) {
 	epoints, err := hanet.NewEndpoints(endpoints)
 	if err != nil {
 		return nil, err
 	}
 
-	msql := &mySQL{}
+	msql := &mysql{}
 
 	for _, epoint := range epoints {
 
@@ -78,7 +78,7 @@ func newMySQL(endpoints, user, password string) (*mySQL, error) {
 	return msql, nil
 }
 
-func (s *mySQL) Save(msg *Message) error {
+func (s *mysql) Save(msg *Message) error {
 	mysqlMetric := &haprobe.MySQLMetric{}
 	if err := json.Unmarshal([]byte(msg.Data), mysqlMetric); err != nil {
 		return gerrors.Newf(gerrors.InvalidJSOIN, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
@@ -91,7 +91,7 @@ func (s *mySQL) Save(msg *Message) error {
 			msg.Topic, *mysqlMetric)
 	}
 
-	data := hamodel.NewDBHAMySQL(mysqlMetric)
+	data := hamodel.NewDbhaData(mysqlMetric)
 
 	for _, db := range s.dbs {
 		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
@@ -106,5 +106,5 @@ func (s *mySQL) Save(msg *Message) error {
 	return nil
 }
 
-func (s *mySQL) Close() {
+func (s *mysql) Close() {
 }

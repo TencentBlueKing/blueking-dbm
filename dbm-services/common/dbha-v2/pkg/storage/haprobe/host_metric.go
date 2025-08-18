@@ -27,13 +27,13 @@ package haprobe
 // HostMetric host metric
 type HostMetric struct {
 	// CPU
-	CPUUsagePercent  float64 `json:"cpu_usage_percent"`
-	CPUUserPercent   float64 `json:"cpu_user_percent"`
-	CPUSystemPercent float64 `json:"cpu_system_percent"`
-	CPUIOWaitPercent float64 `json:"cpu_iowait_percent"`
-	CPULoad1         float64 `json:"cpu_load_1"`
-	CPULoad5         float64 `json:"cpu_load_5"`
-	CPULoad15        float64 `json:"cpu_load_15"`
+	CpuUsagePercent  float64 `json:"cpu_usage_percent"`
+	CpuUserPercent   float64 `json:"cpu_user_percent"`
+	CpuSystemPercent float64 `json:"cpu_system_percent"`
+	CpuIOWaitPercent float64 `json:"cpu_iowait_percent"`
+	CpuLoad1         float64 `json:"cpu_load_1"`
+	CpuLoad5         float64 `json:"cpu_load_5"`
+	CpuLoad15        float64 `json:"cpu_load_15"`
 
 	// Mem
 	MemTotalMB     uint64 `json:"mem_total_mb"`

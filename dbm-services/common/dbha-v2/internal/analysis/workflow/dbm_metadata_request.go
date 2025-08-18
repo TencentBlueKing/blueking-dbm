@@ -22,68 +22,20 @@
  * SOFTWARE.
  */
 
-package gerrors
+package workflow
 
-import "fmt"
-
-// Code dbha global error code type
-type Code int
-
-// Internal Error Code
-const (
-	Unknown Code = iota - 2
-	Failure
-	Success
-	Timeout
-	Exited
-	NotFound
-	NotExists
-	NetException
-	NetConnectionBroken
-	QueueFull
-	InvalidParameter
-	InvalidURL
-	InvalidJSOIN
-	InvalidYAML
-	InvalidHttpMethod
-	InvalidConfiguration
-	InternalServerFailure
-	HttpRequestFailed
-	Unimplemented
-	Unsupported
-	OperationFailure
-	ComponentFailure
-)
-
-type Error struct {
-	code    Code
-	message string
+var defaultDbmRequst = dbmRequest{
+	MachineOnly: true,
 }
 
-// New create a internal error.
-func New(c Code, msg string) *Error {
-	return &Error{code: c, message: msg}
-}
-
-// Newf create a internal error with format.
-func Newf(c Code, format string, args ...interface{}) *Error {
-	msg := fmt.Sprintf(format, args...)
-	return &Error{code: c, message: msg}
-}
-
-// NewE create a internal error withe the error
-func NewE(c Code, err error) *Error {
-	if err == nil {
-		return nil
-	}
-
-	return &Error{code: c, message: err.Error()}
-}
-
-func (e *Error) Code() Code {
-	return e.code
-}
-
-func (e *Error) Error() string {
-	return e.message
+type dbmRequest struct {
+	BkCloudID      int      `json:"bk_cloud_id"`
+	DbCloudToken   string   `json:"db_cloud_token"`
+	LogicalCityIDs []string `json:"logical_city_ids"`
+	Addresses      []string `json:"addresses"`
+	Statuses       []string `json:"statuses"`
+	ClusterTypes   []string `json:"cluster_types"`
+	HashCnt        int      `json:"hash_cnt"`
+	HashValue      int      `json:"hash_value"`
+	MachineOnly    bool     `json:"machine_only"`
 }

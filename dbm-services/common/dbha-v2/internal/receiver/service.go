@@ -170,8 +170,9 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
+	timerTimeout := 3 * time.Second
+	timer := time.NewTimer(timerTimeout)
+	defer timer.Stop()
 
 	for {
 		select {
@@ -181,8 +182,9 @@ func (s *Service) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 
-		case <-ticker.C:
+		case <-timer.C:
 			s.updateInfo()
+			timer.Reset(timerTimeout)
 		}
 	}
 }

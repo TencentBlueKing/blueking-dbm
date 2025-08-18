@@ -127,13 +127,14 @@ func (s *Service) createNotifier() error {
 	return nil
 }
 
-func (s *Service) createWorkflow() error {
+func (s *Service) createWorkflow(ctx context.Context) error {
 	wflow, err := workflow.New(config.Cfg.Workflow, s.discoveryCli, s.db)
 	if err != nil {
 		return err
 	}
 	s.wflow = wflow
-	return nil
+
+	return s.wflow.Run(ctx)
 }
 
 func (s *Service) Run(ctx context.Context) error {
@@ -157,17 +158,13 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 
 	// create workflow
-	if err := s.createWorkflow(); err != nil {
+	if err := s.createWorkflow(ctx); err != nil {
 		return err
 	}
 
-	// run workflow
-	if err := s.wflow.Run(ctx); err != nil {
-		return err
-	}
-
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
+	timerTimeout := 3 * time.Second
+	timer := time.NewTimer(timerTimeout)
+	defer timer.Stop()
 
 	for {
 		select {
@@ -177,8 +174,9 @@ func (s *Service) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 
-		case <-ticker.C:
+		case <-timer.C:
 			s.updateInfo()
+			timer.Reset(timerTimeout)
 		}
 	}
 }

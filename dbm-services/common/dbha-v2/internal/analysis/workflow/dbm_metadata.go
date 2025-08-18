@@ -26,41 +26,150 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/hanet"
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-type DBMMetadata struct {
-	db *hamysql.DB
-	wg sync.WaitGroup
+const (
+	minUpdateDbmCacheInterval = 5 * time.Second
+	maxCountPerPage           = 200
+)
+
+type DbmMetadata struct {
+	db      *hamysql.DB
+	httpCli *hanet.HttpClient
+	wg      sync.WaitGroup
 }
 
-func (dbm *DBMMetadata) updateCache() error {
-	// TODO:
+func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
+	datas := []*hamodel.DbmMetadata{}
+	for _, rsp := range resp.Data {
+		meta := &hamodel.DbmMetadata{
+			BkIdcCityID:     rsp.BkIdcCityID,
+			BkBizID:         rsp.BkBizID,
+			BkCloudID:       rsp.BkCloudID,
+			LogicalCityID:   rsp.LogicalCityID,
+			LogicalCityName: rsp.LogicalCityName,
+			ListenPort:      rsp.Port,
+			ListenIP:        rsp.IP,
+			Cluster:         rsp.Cluster,
+			ClusterID:       rsp.ClusterID,
+			ClusterType:     rsp.ClusterType,
+			MachineType:     rsp.MachineType,
+			Status:          rsp.Status,
+			BindEntry:       hamodel.BindEntryType{},
+		}
+
+		for key, vals := range rsp.BindEntry {
+			for _, val := range vals {
+				meta.BindEntry[key] = append(meta.BindEntry[key], hamodel.BindEntry{
+					BindPort:       val.BindPort,
+					BindIps:        val.BindIps,
+					Domain:         val.Domain,
+					EntryRole:      val.EntryRole,
+					ForwardEntryId: val.ForwardEntryId,
+					ClbIP:          val.ClbIP,
+					ClbID:          val.ClbID,
+					ClbListenerID:  val.ClbListenerID,
+					ClbRegion:      val.ClbRegion,
+				})
+			}
+		}
+
+		datas = append(datas, meta)
+	}
+
+	err := dbm.db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+		Clauses(clause.OnConflict{UpdateAll: true}).
+		Create(datas).Error
+
+	return err
+}
+
+func (dbm *DbmMetadata) queryMetadataFromDBM(ctx context.Context) error {
+	req := defaultDbmRequst
+	req.HashCnt = maxCountPerPage
+	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
+
+	for idx := range maxCountPerPage {
+		req.HashValue = idx
+
+		data, err := json.Marshal(&req)
+		if err != nil {
+			logger.Warn("failed to marsha the dbm request metadata, errmsg: %v", err)
+			continue
+		}
+
+		code, resp, err := dbm.httpCli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
+		if err != nil {
+			logger.Warn("failed to send http post request, errmsg: %v", err)
+			continue
+		}
+
+		if http.StatusOK != code {
+			logger.Warn("http post request return the bad status, status code: %d, errmsg: %v", code, err)
+			continue
+		}
+
+		if len(resp) == 0 {
+			logger.Warn("response nothing, api: %v", config.Cfg.Workflow.DbmApiMetadata.Api)
+			continue
+		}
+
+		metaRsp := &dbmRespond{}
+		if err := json.Unmarshal(resp, metaRsp); err != nil {
+			logger.Warn("failed to unmarshal metadata respond, api: %s, code: %d resp: %s errmsg: %v",
+				config.Cfg.Workflow.DbmApiMetadata.Api, code, string(resp), err)
+			continue
+		}
+
+		if len(metaRsp.Data) == 0 {
+			logger.Debug("metadata respond is empty, idx: %d api: %s, code: %d resp: %s errmsg: %v",
+				idx, config.Cfg.Workflow.DbmApiMetadata.Api, code, string(resp), err)
+			continue
+		}
+
+		if err := dbm.saveRespond(metaRsp); err != nil {
+			logger.Warn("failed to save the metadata: %v, errmsg: %v", metaRsp, err)
+		}
+	}
 
 	return nil
 }
 
-func (dbm *DBMMetadata) watchUpdatedEvent(ctx context.Context) error {
-	dbm.wg.Add(1)
+func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
+	if err := dbm.queryMetadataFromDBM(ctx); err != nil {
+		logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
+	}
 
 	go func() {
 		defer dbm.wg.Done()
 
-		ticker := time.NewTicker(5 * time.Second)
+		timer := time.NewTimer(config.Cfg.Workflow.UpdateDbmCacheInterval)
 
 		for {
 			select {
 			case <-ctx.Done():
+				logger.Info("exit dbm metadata manager")
 				return
 
-			case <-ticker.C:
-				// TODO:
+			case <-timer.C:
+				if err := dbm.queryMetadataFromDBM(ctx); err != nil {
+					logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
+				}
 
-			default:
-				return
+				timer.Reset(config.Cfg.Workflow.UpdateDbmCacheInterval)
 			}
 		}
 	}()
@@ -68,18 +177,20 @@ func (dbm *DBMMetadata) watchUpdatedEvent(ctx context.Context) error {
 	return nil
 }
 
-func (dbm *DBMMetadata) Run(ctx context.Context) error {
-	if err := dbm.watchUpdatedEvent(ctx); err != nil {
-		return err
+func (dbm *DbmMetadata) Run(ctx context.Context) error {
+	if dbm.httpCli == nil {
+		dbm.httpCli = hanet.NewHttpClientWithHeaders(map[string]string{
+			"Content-Type": "application/json",
+		})
 	}
 
-	if err := dbm.updateCache(); err != nil {
+	if err := dbm.updateCache(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (dbm *DBMMetadata) Close() {
+func (dbm *DbmMetadata) Close() {
 	dbm.wg.Wait()
 }

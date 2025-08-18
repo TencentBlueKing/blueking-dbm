@@ -25,23 +25,26 @@
 package workflow
 
 import (
-	"context"
-
+	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
-type DBHAData struct {
+type DbhaData struct {
 	db *hamysql.DB
 }
 
-func (ha *DBHAData) getBizIDs() ([]int, error) {
-	return nil, nil
-}
+func (ha *DbhaData) getBizIDs() ([]int, error) {
 
-func (ha *DBHAData) loadData() error {
-	return nil
-}
+	bkBizIDs := []int{}
 
-func (ha *DBHAData) Run(ctx context.Context) error {
-	return nil
+	err := ha.db.DB().Model(&hamodel.DbmMetadata{}).
+		Select(hamodel.DbmMetadataFieldBkBizID).
+		Group(hamodel.DbmMetadataFieldBkBizID).Find(&bkBizIDs).Error
+
+	if err != nil {
+		return bkBizIDs, gerrors.NewE(gerrors.ComponentFailure, err)
+	}
+
+	return bkBizIDs, nil
 }

@@ -41,8 +41,8 @@ const (
 )
 
 type Workflow struct {
-	hadata       *DBHAData
-	dbmMetadata  *DBMMetadata
+	hadata       *DbhaData
+	dbmMetadata  *DbmMetadata
 	discoveryCli *discovery.Client
 	cfg          config.WorkflowConfig
 	quit         chan struct{}
@@ -51,8 +51,8 @@ type Workflow struct {
 
 func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
-		hadata:       &DBHAData{db: db},
-		dbmMetadata:  &DBMMetadata{db: db},
+		hadata:       &DbhaData{db: db},
+		dbmMetadata:  &DbmMetadata{db: db},
 		cfg:          cfg,
 		discoveryCli: cli,
 		quit:         make(chan struct{}, 1),
@@ -62,14 +62,18 @@ func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Wor
 }
 
 func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) {
+	logger.Debug("check the business: %d", bizID)
+
 	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
 	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizID))
 	if retErr != nil {
 		return retErr
 	}
+
 	if retErr = mu.TryLock(ctx); retErr != nil {
 		return retErr
 	}
+
 	defer func() {
 		if retErr = mu.Unlock(ctx); retErr != nil {
 			logger.Error("failed to unlock the biz: %d, errmsg: %v", bizID, retErr)
@@ -88,11 +92,12 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 		return
 	}
 
+	wgBizs := sync.WaitGroup{}
 	for _, bizID := range bizIDs {
-		w.wg.Add(1)
+		wgBizs.Add(1)
 
 		go func(bizID int) {
-			defer w.wg.Done()
+			defer wgBizs.Done()
 
 			if err := w.checkBusiness(ctx, bizID); err != nil {
 				// TODO: notify admin
@@ -100,6 +105,8 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 
 		}(bizID)
 	}
+
+	wgBizs.Wait()
 }
 
 func (w *Workflow) Run(ctx context.Context) error {
@@ -110,12 +117,17 @@ func (w *Workflow) Run(ctx context.Context) error {
 		w.cfg.ScanInterval = scanIntervalLimitMin
 	}
 
+	if err := w.dbmMetadata.Run(ctx); err != nil {
+		logger.Error("failed to run the dbm metadata manager, errmsg: %v", err)
+		return err
+	}
+
 	w.wg.Add(1)
 
 	go func() {
 		defer w.wg.Done()
-		ticker := time.NewTicker(w.cfg.ScanInterval)
-		defer ticker.Stop()
+		timer := time.NewTimer(w.cfg.ScanInterval)
+		defer timer.Stop()
 
 		for {
 			select {
@@ -125,8 +137,9 @@ func (w *Workflow) Run(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 
-			case <-ticker.C:
+			case <-timer.C:
 				w.scanBusinesses(ctx)
+				timer.Reset(w.cfg.ScanInterval)
 			}
 		}
 	}()

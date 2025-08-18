@@ -33,12 +33,12 @@ import (
 )
 
 var tables = []interface{}{
-	&hamodel.DBHAMySQL{},
+	&hamodel.DbhaData{},
 	&hamodel.DatabaseMetric{},
 	&hamodel.HostMetric{},
-	&hamodel.SkipDBInstance{},
-	&hamodel.DBMMetadata{},
-	&hamodel.MySQLEvent{},
+	&hamodel.SkipDbInstance{},
+	&hamodel.DbmMetadata{},
+	&hamodel.MysqlEvent{},
 }
 
 type Migrator struct {
@@ -53,7 +53,7 @@ func (m *Migrator) createDatabase(db *hamysql.DB) error {
 	return nil
 }
 
-func (m *Migrator) InitDBHAData() error {
+func (m *Migrator) InitDbhaData() error {
 	epoints, err := hanet.NewEndpoints(config.Cfg.Storage.Endpoint)
 	if err != nil {
 		return err

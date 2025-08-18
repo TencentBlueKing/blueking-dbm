@@ -30,7 +30,20 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-type MySQLEvent struct {
+const (
+	// Define variables for all the field names of the database tables
+	// to avoid hard-coding the field names in the business code.
+	MysqlEventFieldMachineID  = "machine_id"
+	MysqlEventFieldInstanceID = "instance_id"
+	MysqlEventFieldType       = "type"
+	MysqlEventFieldEndpoint   = "endpoint"
+	MysqlEventFieldMessage    = "messge"
+	MysqlEventCreatedAt       = "created_at"
+	MysqlEventUpdatedAt       = "updated_at"
+	MysqlEventDeletedAt       = "deleted_at"
+)
+
+type MysqlEvent struct {
 	// Keys
 	MachineID  string                 `gorm:"column:machine_id;primaryKey"`
 	InstanceID string                 `gorm:"column:instance_id;primaryKey"`
@@ -44,6 +57,6 @@ type MySQLEvent struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
-func (t MySQLEvent) TableName() string {
+func (t MysqlEvent) TableName() string {
 	return "t_mysql_event"
 }
