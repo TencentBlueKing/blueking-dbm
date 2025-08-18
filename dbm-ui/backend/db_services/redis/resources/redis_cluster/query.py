@@ -22,13 +22,13 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Machine, NosqlStorageSetDtl, StorageInstanceTuple
+from backend.db_meta.models import AppCache, Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.resources.constants import SQL_QUERY_MASTER_SLAVE_STATUS
+from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYPE, SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.utils.basic import dictfetchall
 
 
@@ -36,17 +36,8 @@ from backend.utils.basic import dictfetchall
 class RedisListRetrieveResource(query.ListRetrieveResource):
     """查看twemproxy-redis架构的资源"""
 
-    cluster_types = [
-        ClusterType.TendisPredixyRedisCluster.value,
-        ClusterType.TendisPredixyTendisplusCluster.value,
-        ClusterType.TendisTwemproxyRedisInstance.value,
-        ClusterType.TwemproxyTendisSSDInstance.value,
-        ClusterType.TendisTwemproxyTendisplusIns.value,
-        ClusterType.TendisRedisInstance.value,
-        ClusterType.TendisTendisplusInsance.value,
-        ClusterType.TendisRedisCluster.value,
-        ClusterType.TendisTendisplusCluster.value,
-    ]
+    cluster_types = REDIS_LIST_CLUSTER_TYPE
+
     handler_map = {
         ClusterType.TwemproxyTendisSSDInstance: TendisSSDClusterHandler,
         ClusterType.TendisTwemproxyRedisInstance: TendisCacheClusterHandler,
@@ -103,23 +94,10 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         offset: int,
         **kwargs,
     ) -> ResourceList:
-        # 这里不要用prefetch，在实例数过多的时候内存处理反而比sql查询更慢，这里提前做map缓存
-        storage_ids = list(storage_queryset.values_list("id", flat=True))
-        # 获得tuple对应的id映射
-        seg_ranges = NosqlStorageSetDtl.objects.filter(bk_biz_id=bk_biz_id, instance__in=storage_ids).values_list(
-            "instance", "seg_range"
-        )
-        seg_range_map = {t[0]: t[1] for t in seg_ranges}
-        # 获取实例的主从对应关系元组列表
-        instance_tuple = (
-            StorageInstanceTuple.objects.filter(ejector__in=storage_ids)
-            .order_by("-create_at")
-            .values_list("ejector", "receiver")
-        )
-        # 获取实例id对应的分片信息
-        for t in instance_tuple:
-            if t[0] in seg_range_map:
-                seg_range_map[t[1]] = seg_range_map[t[0]]
+        from backend.db_services.redis.toolbox.handlers import ToolboxHandler
+
+        seg_range_map, instance_tuple = ToolboxHandler(bk_biz_id).seg_instance_info(storage_queryset)
+
         return super()._filter_cluster_hook(
             bk_biz_id,
             cluster_queryset,
@@ -150,29 +128,11 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         seg_range_map = kwargs["seg_range_map"]
         instance_tuple = kwargs["instance_tuple"]
         # 填充分片信息
-        remote_infos = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
-        for inst in cluster.storages:
-            seg_range = seg_range_map.get(inst.id, "")
-            remote_infos[inst.instance_role].append({**inst.simple_desc, "seg_range": seg_range, "id": inst.id})
+        from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 
-        # 对 master 和 slave 的 seg_range 进行排序
-        machine_list = []
-        for role in [InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value]:
-            remote_infos[role].sort(key=lambda x: int(x["seg_range"].split("-")[0]) if x["seg_range"] else -1)
-            machine_list.extend([inst["bk_host_id"] for inst in remote_infos[role]])
-
-        # 集群类型Tendisplus、RedisCluster无分片信息 需特殊处理主从对应关系
-        if cluster.cluster_type in [ClusterType.TendisPredixyRedisCluster, ClusterType.TendisPredixyTendisplusCluster]:
-            result = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
-            master_index = {master["id"]: master for master in remote_infos[InstanceRole.REDIS_MASTER.value]}
-            slave_index = {slave["id"]: slave for slave in remote_infos[InstanceRole.REDIS_SLAVE.value]}
-
-            for master_id, slave_id in instance_tuple:
-                if master_id in master_index:
-                    result[InstanceRole.REDIS_MASTER.value].append(master_index[master_id])
-                if slave_id in slave_index:
-                    result[InstanceRole.REDIS_SLAVE.value].append(slave_index[slave_id])
-            remote_infos = result
+        machine_list, remote_infos = ToolboxHandler.remote_tuple_info(
+            seg_range_map, instance_tuple, cluster.cluster_type, cluster.storages
+        )
 
         machine_list = list(set(machine_list))
         machine_pair_cnt = len(machine_list) / 2
