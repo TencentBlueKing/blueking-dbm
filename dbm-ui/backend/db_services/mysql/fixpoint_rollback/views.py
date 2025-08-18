@@ -35,6 +35,7 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
     QueryFixpointLogSerializer,
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.ticket.builders.common.constants import MySQLBackupType
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import str2datetime
@@ -74,7 +75,8 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
     def query_backup_log_from_local(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_local()
+        kwargs.update({"backup_type": MySQLBackupType.FULL_BACKUP})
+        logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_local(**kwargs)
         return Response(logs)
 
     @common_swagger_auto_schema(
@@ -94,6 +96,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
             handler.query_latest_backup_log(
                 rollback_time=str2datetime(validated_data["rollback_time"]),
                 backup_source=validated_data.get("backup_source"),
+                backup_type=validated_data.pop("backup_type"),
             )
         )
 
