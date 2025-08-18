@@ -30,7 +30,7 @@ DATE_FORMAT(CONVERT_TZ(backup_end_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+
 DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_consistent_time,
 DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_time
 from infodba_schema.local_backup_report
-where {cond} and server_id=@@server_id and backup_consistent_time>DATE_SUB(CURDATE(),INTERVAL 1 WEEK) and is_full_backup=1 order by backup_consistent_time desc {limit}"""  # noqa
+where {cond} and server_id=@@server_id and backup_consistent_time>DATE_SUB(CURDATE(),INTERVAL 1 WEEK) and {backup_type} order by backup_consistent_time desc {limit}"""  # noqa
 
 
 def get_local_backup_list(instances: list, cluster: Cluster, query_cmds: str = None) -> list:
@@ -42,7 +42,7 @@ def get_local_backup_list(instances: list, cluster: Cluster, query_cmds: str = N
     @return: dict
     """
     #  为了兼容 backup_time和backup_consistent_time是一样的
-    query_cmds = query_cmds or cmds.format(cond="true", limit="")
+    query_cmds = query_cmds or cmds.format(cond="true", backup_type="is_full_backup=1", limit="")
     backups = []
     for addr in instances:
         res = DRSApi.rpc(
@@ -92,9 +92,9 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
     if end_time:
         end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
         cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
-        query_cmds = cmds.format(cond=cond, limit="limit 1")
+        query_cmds = cmds.format(cond=cond, backup_type="is_full_backup=1", limit="limit 1")
     else:
-        query_cmds = cmds.format(cond="true", limit="limit 1")
+        query_cmds = cmds.format(cond="true", backup_type="is_full_backup=1", limit="limit 1")
 
     backups = get_local_backup_list(instances, cluster, query_cmds)
     # 多份备份比较 backup map 列表....
