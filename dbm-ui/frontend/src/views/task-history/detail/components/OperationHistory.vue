@@ -10,7 +10,11 @@
         field="node_name"
         fixed="left"
         :label="t('节点名称')"
-        :min-width="300" />
+        :min-width="300">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.node_name || '--' }}</span>
+        </template>
+      </BkTableColumn>
       <BkTableColumn
         field="operate_type"
         :label="t('操作类型')"
@@ -33,6 +37,12 @@
             theme="danger"
             type="stroke">
             {{ t('强制失败') }}
+          </BkTag>
+          <BkTag
+            v-else-if="data.operate_type === 'pipeline_terminate'"
+            theme="danger"
+            type="stroke">
+            {{ t('终止任务') }}
           </BkTag>
           <BkTag
             v-else
