@@ -20,8 +20,8 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
 from backend.exceptions import AppBaseException
-from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
-from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import cmds, get_local_backup_list
+from backend.ticket.builders.common.constants import MySQLBackupSource, MySQLBackupType
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
 
 logger = logging.getLogger("flow")
@@ -408,7 +408,7 @@ class FixPointRollbackHandler:
 
         return binlog_record
 
-    def query_backup_log_from_local(self) -> List[Dict[str, Any]]:
+    def query_backup_log_from_local(self, **kwargs) -> List[Dict[str, Any]]:
         """
         查询集群本地的备份记录
         """
@@ -417,19 +417,34 @@ class FixPointRollbackHandler:
             "machine__ip", "port"
         )
         instances = [f"{inst['machine__ip']}:{inst['port']}" for inst in instances]
+        backup_type = kwargs.get("backup_type", "")
+
+        if backup_type == MySQLBackupType.ALL_BACKUP:
+            backup_type = "1=1"
+        elif backup_type == MySQLBackupType.DB_TABLE_BACKUP:
+            backup_type = "is_full_backup=0 and bill_id!=0"
+        else:
+            backup_type = "is_full_backup=1"
+        query_cmds = cmds.format(cond="true", backup_type=backup_type, limit="")
+
         # 查询集群本地的备份记录
-        local_backup_logs = get_local_backup_list(instances=instances, cluster=self.cluster)
+        local_backup_logs = get_local_backup_list(instances=instances, cluster=self.cluster, query_cmds=query_cmds)
         return local_backup_logs
 
     def query_latest_backup_log(
-        self, rollback_time: datetime, backup_source: str = MySQLBackupSource.REMOTE.value, **kwargs
+        self,
+        rollback_time: datetime,
+        backup_source: str = MySQLBackupSource.REMOTE.value,
+        backup_type: str = MySQLBackupType.FULL_BACKUP.value,
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         根据回档时间查询最新一次的备份记录
         """
+        kwargs.update({"backup_type": backup_type})
         if backup_source == MySQLBackupSource.LOCAL.value:
             # 本地查询
-            backup_logs = self.query_backup_log_from_local()
+            backup_logs = self.query_backup_log_from_local(**kwargs)
         else:
             # 日志平台查询
             end_time = rollback_time
