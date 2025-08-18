@@ -21,6 +21,7 @@ package request
 
 import (
 	coreentity "k8s-dbs/common/entity"
+	coreconst "k8s-dbs/core/constant"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -73,6 +74,6 @@ type DeploymentEnv struct {
 
 // AdvancedSettings 高级部署设置
 type AdvancedSettings struct {
-	TerminationPolicy string            `json:"terminationPolicy"`
-	Labels            map[string]string `json:"labels"`
+	TerminationPolicy coreconst.TerminationPolicy `json:"terminationPolicy"`
+	Labels            map[string]string           `json:"labels"`
 }

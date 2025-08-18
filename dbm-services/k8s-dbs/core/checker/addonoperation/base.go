@@ -104,7 +104,7 @@ func ClusterDeleteCheck(ctx *commentity.DbsContext, operationType OperationType,
 			fmt.Errorf("操作类型错误，不属于集群删除。操作类型:%s", operationType))
 	}
 	terminationPolicy := ctx.ClusterEntity.TerminationPolicy
-	if terminationPolicy == string(coreconst.DoNotTerminate) {
+	if terminationPolicy == coreconst.DoNotTerminate {
 		return false, errors.NewK8sDbsError(errors.OperationFobidden,
 			fmt.Errorf("已开启删除保护，禁止进行删除操作"))
 	}

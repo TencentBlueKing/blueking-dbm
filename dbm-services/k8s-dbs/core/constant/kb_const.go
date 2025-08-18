@@ -19,6 +19,11 @@ limitations under the License.
 
 package constant
 
+import (
+	"fmt"
+	dbsErrors "k8s-dbs/errors"
+)
+
 // 描述 KB CRD
 const (
 	ClusterDefinition   = "ClusterDefinition"
@@ -58,3 +63,25 @@ const (
 	Delete         TerminationPolicy = "Delete"
 	WipeOut        TerminationPolicy = "WipeOut"
 )
+
+// UnmarshalText 自定义 TerminationPolicy UnmarshalText 实现
+func (t *TerminationPolicy) UnmarshalText(input []byte) error {
+	val := string(input)
+	switch val {
+	case "DoNotTerminate":
+		*t = DoNotTerminate
+		return nil
+	case "Halt":
+		*t = Halt
+		return nil
+	case "Delete":
+		*t = Delete
+		return nil
+	case "WipeOut":
+		*t = WipeOut
+		return nil
+	default:
+		return dbsErrors.NewK8sDbsError(dbsErrors.ParameterInvalidError,
+			fmt.Errorf("不支持的集群删除策略: %s", val))
+	}
+}

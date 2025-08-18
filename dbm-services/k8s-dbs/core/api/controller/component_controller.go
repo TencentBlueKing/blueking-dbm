@@ -47,8 +47,7 @@ func NewComponentController(componentProvider *provider.ComponentProvider) *Comp
 // DescribeComponent 查看组件详情
 func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
+	if err := ctx.ShouldBindJSON(&request); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}

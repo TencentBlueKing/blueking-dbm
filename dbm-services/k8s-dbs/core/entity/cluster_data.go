@@ -20,6 +20,8 @@ limitations under the License.
 package entity
 
 import (
+	coreconst "k8s-dbs/core/constant"
+
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -54,7 +56,7 @@ type Metadata struct {
 type Spec struct {
 	Version                 string                       `json:"version,omitempty"`
 	TopoName                string                       `json:"topoName,omitempty"`
-	TerminationPolicy       string                       `json:"terminationPolicy,omitempty"`
+	TerminationPolicy       coreconst.TerminationPolicy  `json:"terminationPolicy,omitempty"`
 	ComponentMap            map[string]ComponentResource `json:"componentMap,omitempty"`
 	ComponentList           []ComponentResource          `json:"componentList,omitempty"`
 	Dependencies            *Dependencies                `json:"dependencies,omitempty"`

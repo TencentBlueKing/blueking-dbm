@@ -251,7 +251,7 @@ func mergeMetaData(values map[string]interface{}, request *entity.Request) error
 	setIfNotEmpty("clusterName", request.ClusterName)
 	setIfNotEmpty("namespace", request.Namespace)
 	setIfNotEmpty("topoName", request.TopoName)
-	setIfNotEmpty("terminationPolicy", request.TerminationPolicy)
+	setIfNotEmpty("terminationPolicy", string(request.TerminationPolicy))
 
 	metaDataMap := map[string]interface{}{
 		"labels":      request.Labels,

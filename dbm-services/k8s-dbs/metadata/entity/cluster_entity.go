@@ -21,36 +21,37 @@ package entity
 
 import (
 	commtypes "k8s-dbs/common/types"
+	coreconst "k8s-dbs/core/constant"
 
 	corev1 "k8s.io/api/core/v1"
 )
 
 // K8sCrdClusterEntity cluster entity 定义
 type K8sCrdClusterEntity struct {
-	ID                  uint64                    `json:"id"`
-	AddonID             uint64                    `json:"addonId"`
-	AddonClusterVersion string                    `json:"addonClusterVersion"`
-	ServiceVersion      string                    `json:"serviceVersion"`
-	AddonInfo           *K8sCrdStorageAddonEntity `json:"addonInfo"`
-	TopoName            string                    `json:"topoName"`
-	TerminationPolicy   string                    `json:"terminationPolicy"`
-	K8sClusterConfigID  uint64                    `json:"k8sClusterConfigId"`
-	K8sClusterConfig    *K8sClusterConfigEntity   `json:"k8sClusterConfig"`
-	RequestID           string                    `json:"requestId"`
-	ClusterName         string                    `json:"clusterName"`
-	ClusterAlias        string                    `json:"clusterAlias"`
-	Namespace           string                    `json:"namespace"`
-	BkBizID             uint64                    `json:"bkBizId"`
-	BkBizName           string                    `json:"bkBizName"`
-	BkAppAbbr           string                    `json:"bkAppAbbr"`
-	BkAppCode           string                    `json:"bkAppCode"`
-	Tags                []*K8sCrdClusterTagEntity `json:"tags"`
-	Status              string                    `json:"status"`
-	Description         string                    `json:"description"`
-	CreatedBy           string                    `json:"createdBy"`
-	CreatedAt           commtypes.JSONDatetime    `json:"createdAt"`
-	UpdatedBy           string                    `json:"updatedBy"`
-	UpdatedAt           commtypes.JSONDatetime    `json:"updatedAt"`
+	ID                  uint64                      `json:"id"`
+	AddonID             uint64                      `json:"addonId"`
+	AddonClusterVersion string                      `json:"addonClusterVersion"`
+	ServiceVersion      string                      `json:"serviceVersion"`
+	AddonInfo           *K8sCrdStorageAddonEntity   `json:"addonInfo"`
+	TopoName            string                      `json:"topoName"`
+	TerminationPolicy   coreconst.TerminationPolicy `json:"terminationPolicy"`
+	K8sClusterConfigID  uint64                      `json:"k8sClusterConfigId"`
+	K8sClusterConfig    *K8sClusterConfigEntity     `json:"k8sClusterConfig"`
+	RequestID           string                      `json:"requestId"`
+	ClusterName         string                      `json:"clusterName"`
+	ClusterAlias        string                      `json:"clusterAlias"`
+	Namespace           string                      `json:"namespace"`
+	BkBizID             uint64                      `json:"bkBizId"`
+	BkBizName           string                      `json:"bkBizName"`
+	BkAppAbbr           string                      `json:"bkAppAbbr"`
+	BkAppCode           string                      `json:"bkAppCode"`
+	Tags                []*K8sCrdClusterTagEntity   `json:"tags"`
+	Status              string                      `json:"status"`
+	Description         string                      `json:"description"`
+	CreatedBy           string                      `json:"createdBy"`
+	CreatedAt           commtypes.JSONDatetime      `json:"createdAt"`
+	UpdatedBy           string                      `json:"updatedBy"`
+	UpdatedAt           commtypes.JSONDatetime      `json:"updatedAt"`
 }
 
 // ClusterTopologyEntity cluster topology entity 定义

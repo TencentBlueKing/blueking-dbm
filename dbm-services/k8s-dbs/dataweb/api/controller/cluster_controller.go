@@ -50,7 +50,7 @@ func NewClusterController(
 // CreateCluster 创建集群
 func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 	request := &webreq.ClusterInstallRequest{}
-	if err := ctx.BindJSON(&request); err != nil {
+	if err := ctx.ShouldBindJSON(request); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
