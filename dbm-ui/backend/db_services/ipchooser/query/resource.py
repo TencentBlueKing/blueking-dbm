@@ -203,7 +203,7 @@ class ResourceQueryHelper:
         # 构建bk_host_id对bk_biz_id的映射
         bk_host_id_to_biz_id = {
             item["bk_host_id"]: item["bk_biz_id"]
-            for item in CCApi.find_host_biz_relations({"bk_host_id": [host["bk_host_id"] for host in cc_hosts]})
+            for item in CCApi.batch_find_host_biz_relations({"bk_host_id": [host["bk_host_id"] for host in cc_hosts]})
         }
 
         for index, cc_host in enumerate(cc_hosts):
