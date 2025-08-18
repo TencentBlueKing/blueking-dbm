@@ -71,7 +71,7 @@
       </BkTable>
     </InfoItem>
     <InfoItem
-      :label="t('目标DB')"
+      :label="t('变更内容')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn
@@ -141,6 +141,7 @@
     :execute-object="currentExecuteObject"
     :path="ticketDetails.details.path"
     :select-file-name="selectFileName"
+    :version-list="versionList"
     :whole-file-list="uploadFileList" />
 </template>
 
@@ -170,6 +171,9 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;
+  const versionList = _.uniq(clusterIds.map((clusterId) => clusters[clusterId].major_version));
 
   const selectFileName = ref('');
   const currentExecuteObject = ref<TargetDbRow>();
