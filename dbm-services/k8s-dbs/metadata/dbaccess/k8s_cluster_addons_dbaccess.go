@@ -114,7 +114,7 @@ func (k *K8sClusterAddonsDbAccessImpl) ListByPage(pagination commentity.Paginati
 ) {
 	var clusterAddonModel []metamodel.K8sClusterAddonsModel
 	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).
-		Where("active=1").Find(&clusterAddonModel).Error; err != nil {
+		Find(&clusterAddonModel).Error; err != nil {
 		slog.Error("List storageAddon error", "error", err.Error())
 		return nil, 0, err
 	}
