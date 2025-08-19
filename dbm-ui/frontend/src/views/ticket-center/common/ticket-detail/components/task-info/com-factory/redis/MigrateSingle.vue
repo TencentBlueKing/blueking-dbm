@@ -20,6 +20,13 @@
       field="primary_key"
       fixed="left"
       :label="isDomain ? t('目标集群') : t('目标 Master 主机')">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="(item, index) in data.primary_key"
+          :key="index">
+          {{ item }}
+        </div>
+      </template>
     </BkTableColumn>
     <BkTableColumn
       field="old_nodes"
@@ -73,17 +80,7 @@
   const { infos, specs } = props.ticketDetails.details;
   const isDomain = infos[0].display_info.migrate_type === 'domain';
 
-  const infoMap = props.ticketDetails.details.infos.reduce<
-    Record<
-      string,
-      {
-        db_version: string;
-        instances: string[][];
-        primary_key: string;
-        spec_name: number;
-      }
-    >
-  >((prevMap, item) => {
+  const tableData = props.ticketDetails.details.infos.map((item) => {
     const primaryKey = isDomain ? item.display_info.domain : item.display_info.ip;
     const specName = specs[item.resource_spec.backend_group.spec_id].name;
 
@@ -91,25 +88,13 @@
     const slaveItem = item.old_nodes.slave[0];
     const instances = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
 
-    if (prevMap[primaryKey]) {
-      return Object.assign({}, prevMap, {
-        [primaryKey]: {
-          ...prevMap[primaryKey],
-          instances: prevMap[primaryKey].instances.concat([instances]),
-        },
-      });
-    }
-    return Object.assign({}, prevMap, {
-      [primaryKey]: {
-        db_version: item.db_version,
-        instances: [instances],
-        primary_key: primaryKey,
-        spec_name: specName,
-      },
-    });
-  }, {});
-
-  const tableData = Object.values(infoMap);
+    return {
+      db_version: item.db_version,
+      instances: [instances],
+      primary_key: primaryKey.split(','),
+      spec_name: specName,
+    };
+  });
 </script>
 
 <style lang="less" scoped>

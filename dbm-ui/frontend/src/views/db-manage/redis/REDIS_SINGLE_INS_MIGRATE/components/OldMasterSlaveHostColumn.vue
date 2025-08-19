@@ -35,6 +35,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -54,15 +55,17 @@
   }
 
   const props = defineProps<Props>();
-  const moduleValue = defineModel<
-    {
+  const modleValue = defineModel<{
+    old_nodes: {
+      master: IHostData[];
+      slave: IHostData[];
+    };
+    src_cluster: {
       cluster_id: number;
-      old_nodes: {
-        master: IHostData[];
-        slave: IHostData[];
-      };
-    }[]
-  >();
+      master_ins: string;
+      slave_ins: string;
+    }[];
+  }>();
 
   const { t } = useI18n();
 
@@ -127,7 +130,10 @@
 
   watch(
     () => props.data,
-    () => {
+    (newData, oldData) => {
+      if (_.isEqual(newData, oldData)) {
+        return;
+      }
       if (props.data.length > 0) {
         const instances = props.data.map((item) => item.instance);
         runQueryMachineInstancePair({
@@ -151,13 +157,32 @@
         {},
       );
 
-      moduleValue.value = instanceInfo.value.map((item) => ({
-        cluster_id: clusterMap[`${item.master.ip}:${item.master.port}`],
+      const clusters: {
+        cluster_id: number;
+        master_ins: string;
+        slave_ins: string;
+      }[] = [];
+      const masters: IHostData[] = [];
+      const slaves: IHostData[] = [];
+
+      instanceInfo.value.forEach((item) => {
+        const clusterId = clusterMap[`${item.master.ip}:${item.master.port}`];
+        clusters.push({
+          cluster_id: clusterId,
+          master_ins: `${item.master.ip}:${item.master.port}`,
+          slave_ins: `${item.slave.ip}:${item.slave.port}`,
+        });
+        masters.push(item.master);
+        slaves.push(item.slave);
+      });
+
+      modleValue.value = {
         old_nodes: {
-          master: [item.master],
-          slave: [item.slave],
+          master: masters,
+          slave: slaves,
         },
-      }));
+        src_cluster: clusters,
+      };
     }
   });
 </script>

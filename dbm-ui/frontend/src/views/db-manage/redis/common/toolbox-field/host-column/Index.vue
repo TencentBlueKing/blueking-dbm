@@ -34,9 +34,9 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisMachineModel from '@services/model/redis/redis-machine';
-  import { getRedisMachineList } from '@services/source/redis';
+  import { getGlobalMachine } from '@services/source/dbbase';
 
+  import { DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
@@ -44,7 +44,6 @@
   type InstanceSelectorProps = ComponentProps<typeof InstanceSelector>;
 
   interface Props {
-    afterInput?: (data: RedisMachineModel) => void;
     clusterTypes: InstanceSelectorProps['clusterTypes'];
     disabled?: boolean;
     label: string;
@@ -103,17 +102,13 @@
       if (!modelValue.value.bk_host_id && modelValue.value.ip) {
         isLoading.value = true;
         modelValue.value.bk_host_id = 0;
-        getRedisMachineList({
+        getGlobalMachine({
+          db_type: DBTypes.REDIS,
           ip: modelValue.value.ip,
         })
           .then((data) => {
             if (data.results.length > 0) {
-              if (props.afterInput) {
-                modelValue.value.bk_host_id = data.results[0].bk_host_id;
-                props.afterInput(data.results[0]);
-              } else {
-                [modelValue.value] = data.results;
-              }
+              [modelValue.value] = data.results;
             }
           })
           .finally(() => {

@@ -36,7 +36,6 @@
             :key="index">
             <HostColumn
               v-model="item.host"
-              :after-input="(data: RedisMachineModel) => afterInput(data, index)"
               :cluster-types="[ClusterTypes.REDIS]"
               :label="t('主库主机')"
               :placeholder="t('请输入IP（单个）')"
@@ -49,28 +48,11 @@
                 <div
                   v-for="(relatedClusterItem, relatedClusterIndex) in item.host.related_clusters"
                   :key="relatedClusterIndex">
-                  {{ relatedClusterItem }}
+                  {{ relatedClusterItem.immute_domain }}
                 </div>
               </EditableBlock>
             </EditableColumn>
-            <EditableColumn
-              :label="t('待切换的 Master 实例')"
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                <div
-                  v-for="(masterInstanceItem, masterInstanceIndex) in item.host.master_instances"
-                  :key="masterInstanceIndex">
-                  {{ masterInstanceItem }}
-                </div>
-              </EditableBlock>
-            </EditableColumn>
-            <EditableColumn
-              :label="t('待切换的从库主机')"
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ item.host.slave_ip }}
-              </EditableBlock>
-            </EditableColumn>
+            <MasterSlaveInfoColumn v-model="item.host" />
             <OnlineSwitchTypeColumn
               v-model="item.online_switch_type"
               @batch-edit="handleBatchEdit" />
@@ -116,9 +98,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type RedisMachineModel from '@services/model/redis/redis-machine';
   import { type Redis } from '@services/model/ticket/ticket';
-  import { queryMachineInstancePair } from '@services/source/redisToolbox';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -131,15 +111,19 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
 
+  import MasterSlaveInfoColumn from './components/MasterSlaveInfoColumn.vue';
   import OnlineSwitchTypeColumn from './components/OnlineSwitchTypeColumn.vue';
 
   interface IDataRow {
     host: {
+      bk_cloud_id: number;
       bk_host_id: number;
-      cluster_ids: number[];
       ip: string;
       master_instances: string[];
-      related_clusters: string[];
+      related_clusters: {
+        id: number;
+        immute_domain: string;
+      }[];
       slave_ip: string;
     };
     online_switch_type: string;
@@ -148,11 +132,11 @@
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     host: Object.assign(
       {
+        bk_cloud_id: 0,
         bk_host_id: 0,
-        cluster_ids: [] as number[],
         ip: '',
         master_instances: [] as string[],
-        related_clusters: [] as string[],
+        related_clusters: [] as IDataRow['host']['related_clusters'],
         slave_ip: '',
       },
       values.host,
@@ -207,26 +191,20 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   // 批量选择
-  const handleHostBatchEdit = async (list: IValue[]) => {
+  const handleHostBatchEdit = (list: IValue[]) => {
     const newList: IDataRow[] = [];
-    const ips = list.map((item) => `${item.bk_cloud_id}:${item.ip}`);
-    const pairResult = await queryMachineInstancePair({ machines: ips });
-
-    const masterIpMap = pairResult.machines!;
-
     list.forEach((proxyData) => {
       const { ip } = proxyData;
-      const key = `${proxyData.bk_cloud_id}:${ip}`;
       if (!selectedMap.value[ip]) {
         newList.push(
           createRowData({
             host: {
+              bk_cloud_id: proxyData.bk_cloud_id,
               bk_host_id: proxyData.bk_host_id,
-              cluster_ids: masterIpMap[key].related_clusters.map((item) => item.id),
               ip,
-              master_instances: masterIpMap[key].related_pair_instances.map((item) => item.instance),
-              related_clusters: masterIpMap[key].related_clusters.map((item) => item.immute_domain),
-              slave_ip: masterIpMap[key].ip,
+              master_instances: [],
+              related_clusters: proxyData.related_clusters,
+              slave_ip: '',
             },
           }),
         );
@@ -234,21 +212,6 @@
     });
     formData.tableData = [...(formData.tableData[0].host.ip ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
-  };
-
-  const afterInput = async (host: RedisMachineModel, index: number) => {
-    const machine = `${host.bk_cloud_id}:${host.ip}`;
-    const pairResult = await queryMachineInstancePair({ machines: [machine] });
-
-    const masterIpMap = pairResult.machines!;
-    formData.tableData[index].host = {
-      bk_host_id: host.bk_host_id,
-      cluster_ids: masterIpMap[machine].related_clusters.map((item) => item.id),
-      ip: host.ip,
-      master_instances: masterIpMap[machine].related_pair_instances.map((item) => item.instance),
-      related_clusters: masterIpMap[machine].related_clusters.map((item) => item.immute_domain),
-      slave_ip: masterIpMap[machine].ip,
-    };
   };
 
   const handleBatchEdit = (value: string, field: string) => {
@@ -266,7 +229,7 @@
         details: {
           force: formData.force,
           infos: formData.tableData.map((tableItem) => ({
-            cluster_ids: tableItem.host.cluster_ids,
+            cluster_ids: tableItem.host.related_clusters.map((item) => item.id),
             online_switch_type: tableItem.online_switch_type,
             pairs: [
               {

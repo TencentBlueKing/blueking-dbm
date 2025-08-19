@@ -12,11 +12,20 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       field="display_info.instance"
       :label="t('目标 Master 实例')"
       :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="(item, index) in data.display_info.instance.split(',')"
+          :key="index">
+          {{ item }}
+        </div>
+      </template>
     </BkTableColumn>
     <BkTableColumn
       field="cluster_id"
