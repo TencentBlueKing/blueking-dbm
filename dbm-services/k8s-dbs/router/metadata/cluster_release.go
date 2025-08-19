@@ -38,7 +38,7 @@ func BuildClusterReleaseMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	k8sClusterConfigMetaGroup := metaRouter.Group("/cluster_release")
 	{
 		k8sClusterConfigMetaGroup.GET("/id/:id", clusterReleaseController.GetClusterRelease)
-		k8sClusterConfigMetaGroup.GET("/name/:release_name/namespace/:namespace",
+		k8sClusterConfigMetaGroup.GET("/name/:releaseName/namespace/:namespace",
 			clusterReleaseController.GetClusterReleaseByParam)
 	}
 }

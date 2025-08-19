@@ -37,7 +37,7 @@ func BuildClusterHelmRepoMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaController := metacontroller.NewClusterHelmRepoController(metaProvider)
 	repoMetaGroup := metaRouter.Group("/addoncluster_helm_repo")
 	{
-		repoMetaGroup.GET("", metaController.GetClusterHelmRepoByID)
+		repoMetaGroup.GET("/:id", metaController.GetClusterHelmRepoByID)
 		repoMetaGroup.POST("", metaController.CreateClusterHelmRepo)
 	}
 }

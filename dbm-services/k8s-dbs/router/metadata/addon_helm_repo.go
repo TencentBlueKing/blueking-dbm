@@ -37,7 +37,7 @@ func BuildAddonHelmRepoMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaController := metacontroller.NewAddonHelmRepoController(metaProvider)
 	repoMetaGroup := metaRouter.Group("/addon_helm_repo")
 	{
-		repoMetaGroup.GET("", metaController.GetAddonHelmRepoByID)
+		repoMetaGroup.GET("/:id", metaController.GetAddonHelmRepoByID)
 		repoMetaGroup.POST("", metaController.CreateAddonHelmRepo)
 	}
 }
