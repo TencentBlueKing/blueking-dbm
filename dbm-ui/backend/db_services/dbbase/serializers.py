@@ -213,6 +213,7 @@ class WebConsoleSerializer(serializers.Serializer):
         # mysql 额外参数
         charset = serializers.ChoiceField(help_text=_("字符集"), choices=SQLCharset.get_choices(), required=False)
         timezone = serializers.CharField(help_text=_("时区"), required=False)
+        role = serializers.CharField(help_text=_("链接角色"), required=False)
 
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     cmd = serializers.CharField(help_text=_("sql语句"))
