@@ -29,26 +29,23 @@
         <EditableTable
           ref="editableTable"
           class="mt-16 mb-16"
-          :model="formData.tableData">
+          :model="formData.tableData"
+          :rules="rules">
           <EditableRow
             v-for="(item, index) in formData.tableData"
             :key="index">
             <HostColumn
               v-model="item.host"
-              :after-input="(data: RedisMachineModel) => afterInput(data, index)"
               :cluster-types="[ClusterTypes.REDIS]"
               :label="t('待重建从库主机')"
               :selected="selected"
               :tab-list-config="tabListConfig"
               @batch-edit="handleBatchEdit" />
-            <EditableColumn
-              :label="t('关联主库主机')"
+            <MasterHostColumn
+              v-model="slaveMasterMap"
               readonly
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ item.host.ip && slaveMasterMap[item.host.ip] ? slaveMasterMap[item.host.ip].ip : '' }}
-              </EditableBlock>
-            </EditableColumn>
+              :related_clusters="item.host.related_clusters"
+              :slave-ip="item.host.ip" />
             <EditableColumn
               :label="t('所属集群')"
               :min-width="200"
@@ -118,8 +115,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -127,7 +122,7 @@
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
   import { listClustersCreateSlaveProxy, queryMasterSlavePairs } from '@services/source/redisToolbox';
-  import type { MachineRelatedCluster, MachineSpecConfig } from '@services/types';
+  import type { MachineSpecConfig } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -141,13 +136,17 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
 
+  import MasterHostColumn from './components/MasterHostColumn.vue';
   // import SpecColumnBefore from './components/SpecColumn.vue';
 
   interface IDataRow {
     host: {
       bk_host_id: number;
       ip: string;
-      related_clusters: MachineRelatedCluster[];
+      related_clusters: {
+        id: number;
+        immute_domain: string;
+      }[];
       related_instances: {
         status: string;
       }[];
@@ -161,7 +160,7 @@
       {
         bk_host_id: 0,
         ip: '',
-        related_clusters: [] as MachineRelatedCluster[],
+        related_clusters: [] as IDataRow['host']['related_clusters'],
         related_instances: [] as IDataRow['host']['related_instances'],
         spec_config: {} as MachineSpecConfig,
       },
@@ -271,11 +270,23 @@
               limit: -1,
             }),
           isRemotePagination: false,
-          statusFilter: (data: RedisMachineModel) => !data.isMasterFailover,
+          statusFilter: (data: RedisMachineModel) => !data.isSlaveFailover,
         },
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
+
+  const rules = {
+    'host.ip': [
+      {
+        message: t('无异常slave实例，无法重建'),
+        trigger: 'blur',
+        validator: (_value: string, { rowData }: { rowData: IDataRow }) => {
+          return rowData.host.related_instances.some((item) => item.status === 'unavailable');
+        },
+      },
+    ],
+  };
 
   // slave -> master
   const slaveMasterMap = shallowRef<Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]['masters']>>(
@@ -294,71 +305,20 @@
   //   },
   // );
 
-  // 更新slave -> master 映射表
-  const updateSlaveMasterMap = async (clusterIds: number[]) => {
-    const retArr = await Promise.all(
-      clusterIds.map((id) =>
-        queryMasterSlavePairs({
-          cluster_id: id,
-        }),
-      ),
-    );
-    retArr.forEach((pairs) => {
-      if (pairs !== null) {
-        pairs.forEach((item) => {
-          slaveMasterMap.value[item.slave_ip] = item.masters;
-        });
-      }
-    });
-  };
-
-  const afterInput = async (data: RedisMachineModel, index: number) => {
-    const clusterIds = data.related_clusters.map((item) => item.id);
-    await updateSlaveMasterMap(clusterIds);
-    if (data.isSlaveFailover) {
-      formData.tableData[index].host = data;
-      // sortTableByCluster();
-    } else {
-      Message({
-        message: t('无异常slave实例，无法重建'),
-        theme: 'warning',
-      });
-    }
-  };
-
   // 批量选择
   const handleBatchEdit = async (list: IValue[]) => {
-    // 已选的主机信息
-    const machineIpMap = list.reduce(
-      (results, item) => {
-        Object.assign(results, {
-          [item.ip]: item,
-        });
-        return results;
-      },
-      {} as Record<string, RedisMachineModel>,
-    );
-
-    const clusterIds = [
-      ...new Set(
-        _.flatMap(Object.values(machineIpMap).map((item) => item.related_clusters.map((cluster) => cluster.id))),
-      ),
-    ];
-
-    await updateSlaveMasterMap(clusterIds);
-
     const newList: IDataRow[] = [];
     list.forEach((item) => {
       const { ip } = item;
-      if (!selectedMap.value[ip] && machineIpMap[ip].isSlaveFailover) {
+      if (!selectedMap.value[ip] && item.isSlaveFailover) {
         newList.push(
           createRowData({
             host: {
               bk_host_id: item.bk_host_id,
               ip: item.ip,
-              related_clusters: machineIpMap[item.ip].related_clusters,
-              related_instances: machineIpMap[item.ip].related_instances,
-              spec_config: machineIpMap[item.ip].spec_config,
+              related_clusters: item.related_clusters,
+              related_instances: item.related_instances,
+              spec_config: item.spec_config,
             },
           }),
         );
