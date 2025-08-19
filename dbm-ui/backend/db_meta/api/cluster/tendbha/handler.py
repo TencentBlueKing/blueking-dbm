@@ -17,7 +17,14 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums import (
+    ClusterType,
+    InstanceInnerRole,
+    InstancePhase,
+    InstanceRole,
+    InstanceStatus,
+    MachineType,
+)
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
@@ -171,11 +178,23 @@ class TenDBHAClusterHandler(ClusterHandler):
     def delete_slaves(self, slaves: List[Dict]):
         delete_slaves(self.cluster, slaves)
 
-    def get_remote_address(self) -> StorageInstance:
+    def get_remote_address(self, role=None) -> StorageInstance:
         """查询DRS访问远程数据库的地址"""
-        return StorageInstance.objects.get(
-            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
-        ).ip_port
+        if not role:
+            return StorageInstance.objects.get(
+                cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
+            ).ip_port
+
+        query_set = StorageInstance.objects.filter(
+            cluster=self.cluster,
+            instance_role=role,
+            status=InstanceStatus.RUNNING.value,
+            phase=InstancePhase.ONLINE.value,
+        )
+        if role == InstanceRole.BACKEND_SLAVE.value and query_set.filter(is_stand_by=True).exists():
+            return query_set.filter(is_stand_by=True).first().ip_port
+
+        return query_set.first().ip_port
 
     @transaction.atomic
     def add_tbinlogdumper(self, add_confs: list):
