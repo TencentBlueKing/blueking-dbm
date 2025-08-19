@@ -4,7 +4,7 @@ import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
 export interface MigrateSingle extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    cluster_id: number;
+    cluster_id: number; // 历史协议
     db_version: string;
     display_info: {
       domain: string;
@@ -33,6 +33,11 @@ export interface MigrateSingle extends DetailBase {
         spec_id: number;
       };
     };
+    src_cluster: {
+      cluster_id: number;
+      master_ins: string;
+      slave_ins: string;
+    }[];
   }[];
   specs: DetailSpecs;
 }

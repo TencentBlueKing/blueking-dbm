@@ -12,6 +12,9 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="editableTable"
     class="mt-16 mb-16"
@@ -69,6 +72,7 @@
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
   import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
@@ -79,7 +83,6 @@
   interface Exposes {
     getValue: () => Promise<
       {
-        cluster_id: number;
         db_version: string;
         display_info: {
           domain: string;
@@ -108,6 +111,11 @@
             spec_id: number;
           };
         };
+        src_cluster: {
+          cluster_id: number;
+          master_ins: string;
+          slave_ins: string;
+        }[];
       }[]
     >;
     resetTable: () => void;
@@ -136,12 +144,16 @@
       spec_config: NonNullable<IValue['spec_config']>;
     };
     instance_data: {
-      cluster_id: number;
       old_nodes: {
         master: IHostData[];
         slave: IHostData[];
       };
-    }[];
+      src_cluster: {
+        cluster_id: number;
+        master_ins: string;
+        slave_ins: string;
+      }[];
+    };
     target_spec_id: number;
   }
 
@@ -159,13 +171,31 @@
       },
       values.host,
     ),
-    instance_data: [] as IDataRow['instance_data'],
+    instance_data: {} as IDataRow['instance_data'],
     target_spec_id: values.target_spec_id || 0,
   });
 
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('主库主机'),
+    },
+    {
+      case: t('无限制'),
+      key: 'spec_name',
+      label: t('规格'),
+    },
+    {
+      case: 'Redis-6',
+      key: 'version',
+      label: t('目标版本'),
+    },
+  ];
 
   const rules = {
     'host.ip': [
@@ -253,27 +283,48 @@
     window.changeConfirm = true;
   };
 
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const newList = data.reduce<IDataRow[]>((acc, item) => {
+      acc.push(
+        createRowData({
+          db_version: item.version,
+          host: {
+            ip: item.ip,
+          } as IDataRow['host'],
+          target_spec_id: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableData.value = [...newList];
+    } else {
+      tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
+    }
+    setTimeout(() => {
+      editableTableRef.value!.validate();
+    }, 200);
+  };
+
   defineExpose<Exposes>({
     getValue: () =>
       editableTableRef.value!.validate().then((validateResult) => {
         if (validateResult) {
-          return tableData.value.flatMap((tableItem) =>
-            tableItem.instance_data.map((instanceItem) => ({
-              ...instanceItem,
-              db_version: tableItem.db_version,
-              display_info: {
-                domain: '',
-                ip: tableItem.host.ip,
-                migrate_type: 'machine',
+          return tableData.value.flatMap((tableItem) => ({
+            ...tableItem.instance_data,
+            db_version: tableItem.db_version,
+            display_info: {
+              domain: '',
+              ip: tableItem.host.ip,
+              migrate_type: 'machine',
+            },
+            resource_spec: {
+              backend_group: {
+                count: 1,
+                spec_id: tableItem.target_spec_id,
               },
-              resource_spec: {
-                backend_group: {
-                  count: 1,
-                  spec_id: tableItem.target_spec_id,
-                },
-              },
-            })),
-          );
+            },
+          }));
         }
         return [];
       }),

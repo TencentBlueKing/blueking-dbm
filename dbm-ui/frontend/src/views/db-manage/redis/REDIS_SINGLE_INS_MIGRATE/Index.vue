@@ -96,7 +96,6 @@
 
   const { loading: isSubmitting, run: createSingleTicketRun } = useCreateTicket<{
     infos: {
-      cluster_id: number;
       db_version: string;
       display_info: {
         domain: string;
@@ -125,6 +124,11 @@
           spec_id: number;
         };
       };
+      src_cluster: {
+        cluster_id: number;
+        master_ins: string;
+        slave_ins: string;
+      }[];
     }[];
   }>(TicketTypes.REDIS_SINGLE_INS_MIGRATE);
 
