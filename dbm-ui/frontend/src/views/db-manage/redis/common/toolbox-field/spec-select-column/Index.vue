@@ -133,11 +133,25 @@
   );
 
   watch(
-    () => props.currentSpecIds,
+    [modelValue, () => props.currentSpecIds],
     () => {
       if (props.currentSpecIds?.length === 1 && !modelValue.value) {
         [modelValue.value] = props.currentSpecIds;
+        return;
       }
+
+      // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
+      if (modelValue.value && typeof modelValue.value === 'string') {
+        const matchedSpecId = specList.value.filter(
+          (item) => item.specData.name === (modelValue.value as unknown as string),
+        )?.[0]?.specData.id;
+        if (matchedSpecId) {
+          modelValue.value = matchedSpecId;
+        }
+      }
+    },
+    {
+      immediate: true,
     },
   );
 </script>

@@ -114,7 +114,7 @@
       return;
     }
 
-    const lines = inputValue.value.split(/\n|\\n/).filter((text) => text);
+    const lines = inputValue.value.split(/\n/).filter((text) => text);
 
     const getContents = (value: string) => {
       const contents = value
