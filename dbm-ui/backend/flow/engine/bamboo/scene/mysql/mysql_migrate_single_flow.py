@@ -12,10 +12,8 @@ import copy
 import logging.config
 import uuid
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
@@ -23,14 +21,12 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import DBA_SYSTEM_USER, LONG_JOB_TIMEOUT, MediumEnum, TendbSingleRestoreEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
-from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_single_backup
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import restore_single_remote_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.single_recover_switch import single_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -39,7 +35,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -59,6 +54,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -280,25 +276,25 @@ class MySQLMigrateSingleFlow(object):
                             sub_name=_("{} tendbSingle发起备份").format(cluster_model.immute_domain)
                         )
                     )
-
-                    backup_info = get_local_single_backup([master_model.ip_port], cluster_model, backup_id=backup_id)
-                    if backup_info is None:
-                        logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
-                    cluster["backupinfo"] = backup_info
+                    cluster["backup_id"] = backup_id.hex
                     cluster["recover_grants"] = False
+                    cluster["backup_source"] = MySQLBackupSource.LOCAL
                 else:
-                    # 从远程查询备份
-                    rollback_time = datetime.now(timezone.utc)
-                    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
-                    backup_info = rollback_handler.query_latest_backup_log(rollback_time)
-                    if backup_info is None:
-                        logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
-                    cluster["backupinfo"] = backup_info
+                    cluster["backup_source"] = MySQLBackupSource.REMOTE
+                    cluster["backup_id"] = None
+                # sync_cluster 构造用于调用恢复子流程数据
+                sync_cluster = copy.deepcopy(cluster)
+                sync_cluster["new_slave_ip"] = self.data["new_orphan_ip"]
+                sync_cluster["new_slave_port"] = master_model.port
+                sync_cluster["master_ip"] = master_model.machine.ip
+                sync_cluster["master_port"] = master_model.port
+                sync_cluster["change_master_force"] = True
                 sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=restore_single_remote_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=copy.deepcopy(cluster)
+                    sub_flow=mysql_restore_data_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=copy.deepcopy(sync_cluster),
+                        cluster_model=cluster_model,
                     )
                 )
 

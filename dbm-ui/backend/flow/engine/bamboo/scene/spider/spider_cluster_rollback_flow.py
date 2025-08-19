@@ -22,7 +22,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterPhase, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
+from backend.db_services.mysql.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import MySQLBackupTypeEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -113,17 +113,22 @@ class TenDBRollBackDataFlow(object):
                 db_module_id=source_cluster.db_module_id,
                 cluster_type=source_cluster.cluster_type,
             )
+
             # 先查询恢复介质
             if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
                 backup_info = self.data["backupinfo"]
             else:
-                rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"], check_full_backup=True)
-                rollback_time = self.data["rollback_time"]
-                backup_info = rollback_handler.query_latest_backup_log(str2datetime(rollback_time))
+                backup_handler = MySQLBackupHandler(cluster_id=source_cluster.id, is_full_backup=True)
+                rollback_time = str2datetime(self.data["rollback_time"])
+                backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
                     raise TendbGetBackupInfoFailedException(
-                        message=_("获取实例 {} 的备份信息失败".format(self.data["source_cluster_id"]))
+                        message=_(
+                            "获取实例 {} 的备份信息失败 {} sql: {}".format(
+                                self.data["source_cluster_id"], backup_handler.errmsg, backup_handler.query
+                            )
+                        )
                     )
             # 将shard id 转换为int类型。TODO: 字段入库后，后端存储是json字段，会自动把key为int --> str。
             backup_info["remote_node"] = {int(shard_id): info for shard_id, info in backup_info["remote_node"].items()}

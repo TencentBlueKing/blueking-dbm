@@ -28,10 +28,6 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_standby_dns, get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
-    priv_recover_sub_flow,
-    slave_recover_sub_flow,
-)
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
@@ -224,47 +220,33 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     "bk_cloud_id": cluster_model.bk_cloud_id,
                     "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
                     "charset": self.data["charset"],
+                    "backup_source": self.ticket_data.get("backup_source"),
                     "change_master_force": True,
-                    "change_master": True,
                 }
-                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                if self.local_backup:
-                    # 获取本地备份并恢复
-                    inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
+                if not self.add_slave_only:
+                    cluster["restore_privilege"] = True
+                    cluster["privilege_ips"] = [self.data["old_slave_ip"]]
+
+                if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
+                    filter_ips = [master.machine.ip]
                     stand_by_slaves = cluster_model.storageinstance_set.filter(
                         instance_inner_role=InstanceInnerRole.SLAVE.value,
                         is_stand_by=True,
                         status=InstanceStatus.RUNNING.value,
-                    ).exclude(machine__ip__in=[self.data["new_slave_ip"]])
-                    if len(stand_by_slaves) > 0:
-                        inst_list.append(
-                            "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                        )
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=mysql_restore_data_sub_flow(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster=cluster,
-                            cluster_model=cluster_model,
-                            ins_list=inst_list,
-                        )
                     )
-
+                    filter_ips.extend([slave.machine.ip for slave in stand_by_slaves])
                 else:
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=slave_recover_sub_flow(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
-                        )
-                    )
-
-                    priv_sub_flow = priv_recover_sub_flow(
+                    filter_ips = None
+                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_data_sub_flow(
                         root_id=self.root_id,
                         ticket_data=copy.deepcopy(self.data),
-                        cluster_info=cluster,
-                        ips=[self.data["new_slave_ip"]],
+                        cluster=cluster,
+                        cluster_model=cluster_model,
+                        filter_ips=filter_ips,
                     )
-                    if priv_sub_flow:
-                        sync_data_sub_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
+                )
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
@@ -652,34 +634,24 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "change_master_force": True,
                 "cluster_type": cluster_model.cluster_type,
                 "change_master": True,
+                "backup_source": self.ticket_data.get("backup_source"),
+                "restore_privilege": True,
+                "privilege_ips": [target_slave.machine.ip],
             }
 
-            if self.local_backup:
-                inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
-                tendb_migrate_pipeline.add_sub_pipeline(
-                    sub_flow=mysql_restore_data_sub_flow(
-                        root_id=self.root_id,
-                        ticket_data=copy.deepcopy(self.data),
-                        cluster=cluster,
-                        cluster_model=cluster_model,
-                        ins_list=inst_list,
-                    )
-                )
+            if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
+                filter_ips = [master.machine.ip]
             else:
-                tendb_migrate_pipeline.add_sub_pipeline(
-                    sub_flow=slave_recover_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
-                    )
-                )
-                priv_sub_flow = priv_recover_sub_flow(
+                filter_ips = None
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=mysql_restore_data_sub_flow(
                     root_id=self.root_id,
                     ticket_data=copy.deepcopy(self.data),
-                    cluster_info=cluster,
-                    ips=[target_slave.machine.ip],
+                    cluster=cluster,
+                    cluster_model=cluster_model,
+                    filter_ips=filter_ips,
                 )
-                if priv_sub_flow:
-                    tendb_migrate_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
-
+            )
             # 屏蔽
             tendb_migrate_pipeline.add_act(
                 act_name=_("数据同步屏蔽监控 {}").format(target_slave.ip_port),
@@ -725,7 +697,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                                     bk_cloud_id=cluster_model.bk_cloud_id,
                                     add_domain_name=domain,
                                     dns_op_exec_port=target_slave.port,
-                                    exec_ip=[target_slave.machine.ip],
+                                    exec_ip=target_slave.machine.ip,
                                 )
                             ),
                         }
@@ -764,12 +736,11 @@ class MySQLRestoreSlaveRemoteFlow(object):
                                     bk_cloud_id=cluster_model.bk_cloud_id,
                                     add_domain_name=domain,
                                     dns_op_exec_port=target_slave.port,
-                                    exec_ip=[target_slave.machine.ip],
+                                    exec_ip=target_slave.machine.ip,
                                 )
                             ),
                         }
                     )
-
                 if len(domain_add_list) > 0:
                     tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
                 cluster = {

@@ -23,7 +23,6 @@ from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
@@ -230,27 +229,25 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     "file_target_path": f"{self.backup_target_path}/{master.port}",
                     "charset": self.data["charset"],
                     "change_master_force": True,
+                    "change_master": True,
                     "cluster_type": cluster_class.cluster_type,
                     "shard_id": shard_id,
+                    "backup_source": self.ticket_data["backup_source"],
                 }
-                if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=slave_recover_sub_flow(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
-                        )
-                    )
+                if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
+                    filter_ips = [master.machine.ip]
                 else:
-                    cluster["change_master"] = True
-                    inst_list = [master.ip_port]
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=mysql_restore_data_sub_flow(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster=cluster,
-                            cluster_model=cluster_class,
-                            ins_list=inst_list,
-                        )
+                    filter_ips = None
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_data_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=cluster,
+                        cluster_model=cluster_class,
+                        filter_ips=filter_ips,
                     )
+                )
+
                 cluster = {
                     "phase": InstancePhase.ONLINE.value,
                     "storage_status": InstanceStatus.RUNNING.value,

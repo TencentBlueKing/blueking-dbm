@@ -441,12 +441,18 @@ class UpgradeRemoteFlow(object):
             ins_cluster = self._build_instance_cluster_info(cluster_info, node, shard_id)
             # 构建同步数据子流程
             sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
-                # 远程备份源场景
-                self._handle_remote_backup_sync(sync_data_sub_pipeline, backup_info, shard_id, ins_cluster)
-            else:
-                # 本地备份源场景
-                self._handle_local_backup_sync(sync_data_sub_pipeline, node, ins_cluster, cluster_class)
+            filter_ips = None
+            if self.ticket_data["backup_source"] == MySQLBackupSource.LOCAL.value:
+                filter_ips = [node["master"]["ip"], node["slave"]["ip"]]
+            sync_data_sub_pipeline.add_sub_pipeline(
+                sub_flow=mysql_restore_master_slave_sub_flow(
+                    root_id=self.root_id,
+                    ticket_data=copy.deepcopy(self.data),
+                    cluster=ins_cluster,
+                    cluster_model=cluster_class,
+                    filter_ips=filter_ips,
+                )
+            )
 
             # 添加同步完成后的元数据更新动作
             sync_data_sub_pipeline.add_act(

@@ -36,6 +36,7 @@ logger = logging.getLogger("flow")
 
 def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict):
     """
+    todo 废弃
     mysql 定点回档类型 远程备份文件+指定时间
     @param root_id: flow 流程root_id
     @param ticket_data: 关联单据 ticket对象
@@ -116,6 +117,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
 
 def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: dict):
     """
+    todo 废弃
     mysql 定点回档类型 远程备份+指定备份文件
     @param root_id: flow 流程root_id
     @param ticket_data: 关联单据 ticket对象
@@ -176,6 +178,7 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
 
 def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: dict):
     """
+    todo 废弃
     mysql 定点回档类型 本地备份+指定备份文件
     @param root_id: flow 流程root_id
     @param ticket_data: 关联单据 ticket对象
@@ -202,7 +205,7 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
                 bk_cloud_id=cluster_info["bk_cloud_id"],
                 file_list=task_ids,
                 file_target_path=cluster_info["file_target_path"],
-                source_ip_list=[backup_info["instance_ip"]],
+                source_ip_list=[backup_info["backup_host"]],
                 exec_ip=cluster_info["rollback_ip"],
             )
         ),
@@ -241,6 +244,7 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
 
 def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict, cluster_model: Cluster):
     """
+    todo 废弃
     mysql 定点回档类型 本地备份+时间
     @param root_id: 流程 root_id
     @param ticket_data: 单据输入的tick_data

@@ -104,16 +104,18 @@ def slave_migrate_switch_sub_flow(
             )
         ),
     )
-
-    clone_data = [
-        {
-            "source": old_master,
-            "target": new_slave,
-            "bk_cloud_id": cluster.bk_cloud_id,
-        }
-    ]
+    clone_data = []
+    if old_slave_storage.is_stand_by:
+        # 只有 is_stand_by 才可以从主节点同步一致的权限 todo 后续非standby 是否从其slave组的正常节点克隆权限
+        clone_data.append(
+            {
+                "source": old_master,
+                "target": new_slave,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
     if old_slave_storage.status == InstanceStatus.RUNNING.value:
-        logging.info("clone old slave privilege")
+        logging.info("{} clone old slave privilege".format(old_slave_storage.ip_port))
         clone_data.append(
             {
                 "source": old_slave,
@@ -121,12 +123,15 @@ def slave_migrate_switch_sub_flow(
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
+    else:
+        logging.info("{} old slave is not running".format(old_slave_storage.ip_port))
     logging.info(clone_data)
-    sub_pipeline.add_act(
-        act_name=_("克隆权限"),
-        act_component_code=CloneUserComponent.code,
-        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-    )
+    if len(clone_data) > 0:
+        sub_pipeline.add_act(
+            act_name=_("克隆权限"),
+            act_component_code=CloneUserComponent.code,
+            kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+        )
 
     domain_map = get_tendb_ha_entry(cluster.id)
     domain_add_list = []

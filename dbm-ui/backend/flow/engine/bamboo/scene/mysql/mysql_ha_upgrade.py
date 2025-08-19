@@ -18,7 +18,6 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
@@ -31,10 +30,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_ten
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
-    remote_instance_migrate_sub_flow,
-    slave_recover_sub_flow,
-)
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_data_sub_flow,
     mysql_restore_master_slave_sub_flow,
@@ -821,34 +816,29 @@ def build_sync_data_sub_pipelines(
             "change_master_force": True,
             "change_master": True,
         }
+
         sync_data_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(parent_global_data))
         if local_backup:
-            # 获取本地备份并恢复
-            inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
+            cluster["backup_source"] = MySQLBackupSource.LOCAL.value
+            filter_ips = [master.machine.ip]
             stand_by_slaves = cluster_model.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value,
                 is_stand_by=True,
                 status=InstanceStatus.RUNNING.value,
-            ).exclude(machine__ip__in=[new_slave_ip])
-            if len(stand_by_slaves) > 0:
-                inst_list.append(
-                    "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                )
-            sync_data_sub_pipeline.add_sub_pipeline(
-                sub_flow=mysql_restore_data_sub_flow(
-                    root_id=root_id,
-                    ticket_data=copy.deepcopy(parent_global_data),
-                    cluster=cluster,
-                    cluster_model=cluster_model,
-                    ins_list=inst_list,
-                )
             )
+            filter_ips.extend([slave.machine.ip for slave in stand_by_slaves])
         else:
-            sync_data_sub_pipeline.add_sub_pipeline(
-                sub_flow=slave_recover_sub_flow(
-                    root_id=root_id, ticket_data=copy.deepcopy(parent_global_data), cluster_info=cluster
-                )
+            cluster["backup_source"] = MySQLBackupSource.REMOTE.value
+            filter_ips = None
+        sync_data_sub_pipeline.add_sub_pipeline(
+            sub_flow=mysql_restore_data_sub_flow(
+                root_id=root_id,
+                ticket_data=copy.deepcopy(parent_global_data),
+                cluster=cluster,
+                cluster_model=cluster_model,
+                filter_ips=filter_ips,
             )
+        )
 
         sync_data_sub_pipeline.add_act(
             act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
@@ -1100,33 +1090,26 @@ def build_ms_pair_sync_data_sub_pipelines(
             "change_master": True,
         }
         sync_data_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(parent_global_data))
+        filter_ips = None
         if local_backup:
             stand_by_slaves = cluster_model.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value,
                 is_stand_by=True,
                 status=InstanceStatus.RUNNING.value,
             ).exclude(machine__ip__in=[new_master_ip, new_slave_ip])
-            #     从standby从库找备份
-            inst_list = ["{}{}{}".format(master_model.machine.ip, IP_PORT_DIVIDER, master_model.port)]
-            if len(stand_by_slaves) > 0:
-                inst_list.append(
-                    "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                )
-            sync_data_sub_pipeline.add_sub_pipeline(
-                sub_flow=mysql_restore_master_slave_sub_flow(
-                    root_id=root_id,
-                    ticket_data=copy.deepcopy(parent_global_data),
-                    cluster=cluster,
-                    cluster_model=cluster_model,
-                    ins_list=inst_list,
-                )
+            # 从standby从库找备份
+            filter_ips = [master_model.machine.ip]
+            filter_ips.extend([slave.machine.ip for slave in stand_by_slaves])
+        sync_data_sub_pipeline.add_sub_pipeline(
+            sub_flow=mysql_restore_master_slave_sub_flow(
+                root_id=root_id,
+                ticket_data=copy.deepcopy(parent_global_data),
+                cluster=cluster,
+                cluster_model=cluster_model,
+                filter_ips=filter_ips,
             )
-        else:
-            sync_data_sub_pipeline.add_sub_pipeline(
-                sub_flow=remote_instance_migrate_sub_flow(
-                    root_id=root_id, ticket_data=copy.deepcopy(parent_global_data), cluster_info=cluster
-                )
-            )
+        )
+
         sync_data_sub_pipeline.add_act(
             act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
             act_component_code=MySQLDBMetaComponent.code,

@@ -1658,6 +1658,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         tendb 恢复权限
         """
+        logger.info(self.cluster["sql_files"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.FastExecuteSqlFile.value,
@@ -1718,7 +1719,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "master_port": self.cluster["target_port"],
                     "is_gtid": False,
                     "max_tolerate_delay": 0,
-                    "force": self.cluster["change_master_force"],
+                    "force": self.cluster.get("change_master_force", False),
                     "bin_file": bin_file,
                     "bin_position": bin_position,
                 },
@@ -1736,8 +1737,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         binlog_files = self.cluster["binlog_files"]
         backup_time = self.cluster["backup_time"]
         binlog_files_list = binlog_files.split(",")
-        # binlog_start_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
-        # binlog_start_pos = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
         binlog_start_file = self.cluster["binlog_start_file"]
         binlog_start_pos = int(self.cluster["binlog_start_pos"])
         if binlog_start_file not in binlog_files_list:
