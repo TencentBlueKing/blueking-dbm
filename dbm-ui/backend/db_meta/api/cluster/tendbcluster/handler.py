@@ -347,18 +347,19 @@ class TenDBClusterClusterHandler(ClusterHandler):
         """
         查询DRS访问远程数据库的地址，你默认查询remote的db
         """
-        proxy_role = (
-            TenDBClusterSpiderRole.SPIDER_MASTER
-            if role == TenDBBackUpLocation.REMOTE
-            else TenDBClusterSpiderRole.SPIDER_MNT
-        )
+        if role == TenDBBackUpLocation.REMOTE:
+            role = TenDBClusterSpiderRole.SPIDER_MASTER
 
         inst = ProxyInstance.objects.filter(
-            cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role, status=InstanceStatus.RUNNING
+            cluster=self.cluster, tendbclusterspiderext__spider_role=role, status=InstanceStatus.RUNNING
         )
         if not inst:
-            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, proxy_role))
-
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, role))
+        if (
+            role == TenDBClusterSpiderRole.SPIDER_SLAVE.value
+            and inst.filter(storageinstance__is_stand_by=True).exists()
+        ):
+            return inst.filter(storageinstance__is_stand_by=True).first().ip_port
         return inst.first().ip_port
 
     @classmethod
