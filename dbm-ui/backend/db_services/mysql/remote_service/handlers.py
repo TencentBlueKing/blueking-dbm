@@ -278,7 +278,12 @@ class RemoteServiceHandler:
         """
         # 获取远程执行地址
         cluster = Cluster.objects.get(id=cluster_id)
-        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
+        cluster_id__role_map = {}
+        if kwargs.get("options", {}).get("role"):
+            cluster_id__role_map[cluster_id] = kwargs.get("options", {}).get("role")
+        __, remote_address = self._get_cluster_address(
+            cluster_id__role_map=cluster_id__role_map, cluster_id=cluster.id
+        )
 
         # 请求rpc
         try:
