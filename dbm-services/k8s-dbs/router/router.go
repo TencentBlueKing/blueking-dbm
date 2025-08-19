@@ -23,11 +23,11 @@ package router
 import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
-	"k8s-dbs/common/api"
-	routerutil "k8s-dbs/router/util"
-	"log"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
+	routerutil "k8s-dbs/router/util"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -50,19 +50,18 @@ func (r *Router) Run(addr string) {
 // NewRouter 创建并初始化 Router
 func NewRouter(db *gorm.DB) *Router {
 	router := gin.Default()
+	baseRouter := router.Group(basePath)
+	registerTrace(router)
+	routerutil.BuildHealthRouter(baseRouter)
+	routerutil.BuildAPIRouters(db, baseRouter)
+	return &Router{Engine: router}
+}
+
+func registerTrace(router *gin.Engine) {
 	// setup trace
 	trace.Setup()
 	// apm: add otlgin middleware
 	router.Use(otelgin.Middleware("k8s_dbs"))
 	// apm: add prom metrics middleware
 	metric.NewPrometheus("").Use(router)
-
-	baseRouter := router.Group(basePath)
-	buildHealthRouter(baseRouter)
-	routerutil.BuildAPIRouters(db, baseRouter)
-	return &Router{Engine: router}
-}
-
-func buildHealthRouter(router *gin.RouterGroup) gin.IRoutes {
-	return router.GET(api.HealthCheckURL, api.HealthCheck)
 }

@@ -39,7 +39,7 @@ type ClusterResponseData struct {
 
 // Metadata the metadata of request and response
 type Metadata struct {
-	ClusterName         string            `json:"clusterName,omitempty"`
+	ClusterName         string            `json:"clusterName,omitempty" binding:"k8sReleaseName" msg:"集群名称格式不合法，只能包含小写字母、数字和连字符(-)，可以用点(.)分隔,且要求长度小于 53"` //nolint:lll
 	ClusterAlias        string            `json:"clusterAlias,omitempty"`
 	ComponentName       string            `json:"componentName,omitempty"`
 	OpsRequestName      string            `json:"opsRequestName,omitempty"`
@@ -54,12 +54,11 @@ type Metadata struct {
 
 // Spec Specific data
 type Spec struct {
-	Version                 string                       `json:"version,omitempty"`
-	TopoName                string                       `json:"topoName,omitempty"`
-	TerminationPolicy       coreconst.TerminationPolicy  `json:"terminationPolicy,omitempty"`
-	ComponentMap            map[string]ComponentResource `json:"componentMap,omitempty"`
-	ComponentList           []ComponentResource          `json:"componentList,omitempty"`
-	Dependencies            *Dependencies                `json:"dependencies,omitempty"`
+	Version                 string                      `json:"version,omitempty"`
+	TopoName                string                      `json:"topoName,omitempty"`
+	TerminationPolicy       coreconst.TerminationPolicy `json:"terminationPolicy,omitempty"`
+	ComponentList           []ComponentResource         `json:"componentList,omitempty" binding:"dive"`
+	Dependencies            *Dependencies               `json:"dependencies,omitempty"`
 	opv1.SpecificOpsRequest `json:",inline"`
 	OpsService              `json:",inline"`
 	ObserveConfig           *ObserveConfig `json:"observeConfig,omitempty"`
@@ -87,7 +86,7 @@ type ComponentResource struct {
 	ComponentName          string                  `json:"componentName,omitempty"`
 	ComponentDef           string                  `json:"componentDef,omitempty"`
 	Version                string                  `json:"version,omitempty"`
-	Replicas               int32                   `json:"replicas,omitempty"`
+	Replicas               int32                   `json:"replicas,omitempty" binding:"gte=1,lte=1000" msg:"replicas 配置有误，范围 1～1000"` // nolint:lll
 	Env                    map[string]interface{}  `json:"env,omitempty"`
 	Request                *Resource               `json:"request,omitempty"`
 	Limit                  *Resource               `json:"limit,omitempty"`
@@ -103,7 +102,7 @@ type ComponentResource struct {
 // Equivalent to Kubernetes cluster.spec.volumeClaimTemplates field.
 type VolumeClaimTemplates struct {
 	AccessModes      []string          `json:"accessModes,omitempty"`
-	Storage          resource.Quantity `json:"storage,omitempty"`
+	Storage          resource.Quantity `json:"storage,omitempty" binding:"storageQuantity" msg:"storage 配置有误，范围 100GB～100000GB"` // nolint:lll
 	StorageClassName string            `json:"storageClassName,omitempty"`
 	VolumeMode       string            `json:"volumeMode,omitempty"`
 }

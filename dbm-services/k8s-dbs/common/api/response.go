@@ -22,7 +22,8 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	dbsErrors "k8s-dbs/errors"
+	commvalidator "k8s-dbs/common/validator"
+	dbserrors "k8s-dbs/errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,7 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	// 判断错误类型
 	// As - 获取错误的具体实现
 	var code ResponseCode
-	var dbsError = new(dbsErrors.K8sDbsError)
+	var dbsError = new(dbserrors.K8sDbsError)
 	var message string
 	if errors.As(err, &dbsError) {
 		code = ResponseCode(dbsError.Code)
@@ -78,4 +79,14 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusOK, resp)
 	response, _ := json.Marshal(resp)
 	ctx.Set("response", string(response))
+}
+
+// HandleValidationError 封装校验错误处理逻辑
+func HandleValidationError(ctx *gin.Context, err error, request any) {
+	ok, msg := commvalidator.ValidateError(err, request)
+	if ok {
+		ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, errors.New(msg)))
+	} else {
+		ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+	}
 }

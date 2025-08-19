@@ -20,6 +20,7 @@ limitations under the License.
 package util
 
 import (
+	"k8s-dbs/common/api"
 	coreprovider "k8s-dbs/core/provider"
 	metadbaccess "k8s-dbs/metadata/dbaccess"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -138,4 +139,9 @@ func BuildAPIRouters(db *gorm.DB, engine *gin.RouterGroup) {
 	for _, builder := range CustomRouterBuilders {
 		builder(db, engine)
 	}
+}
+
+// BuildHealthRouter 健康检查路由构建
+func BuildHealthRouter(router *gin.RouterGroup) gin.IRoutes {
+	return router.GET(api.HealthCheckURL, api.HealthCheck)
 }

@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	_ "k8s-dbs/common/validator"
 	"k8s-dbs/core"
 	_ "k8s-dbs/core/checker/addonoperation"
 	"k8s-dbs/core/util"

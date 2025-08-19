@@ -6,6 +6,7 @@ require (
 	github.com/apecloud/kbcli v0.9.3
 	github.com/apecloud/kubeblocks v1.0.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-playground/validator/v10 v10.25.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -82,7 +83,6 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.25.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
