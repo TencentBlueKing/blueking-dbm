@@ -15,9 +15,9 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
 from backend.db_meta.enums import ClusterType
+from backend.db_services.mysql.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.engine.bamboo.scene.mysql.common.get_binlog_backup import get_backup_binlog
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBinlogFailedException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
@@ -82,14 +82,14 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value and False:
         spider_has_binlog = cluster.get("spider_has_binlog", False)
         if spider_has_binlog:
-            binlog_result = get_backup_binlog(
-                cluster_id=cluster["cluster_id"],
-                start_time=str2datetime(backup_info["backup_time"]),
-                end_time=str2datetime(cluster["rollback_time"]),
-                backup_info=backup_info,
+            backup_handler = MySQLBackupHandler(cluster_id=cluster["cluster_id"])
+            binlog_result = backup_handler.get_binlog_for_rollback(
+                backup_info, str2datetime(backup_info["backup_time"]), str2datetime(cluster["rollback_time"])
             )
             if "query_binlog_error" in binlog_result.keys():
-                raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
+                raise TendbGetBinlogFailedException(
+                    message="{} binlog sql: {}".format(binlog_result["query_binlog_error"], backup_handler.query)
+                )
 
             cluster_ins = copy.deepcopy(cluster)
             cluster_ins.update(binlog_result)
@@ -196,14 +196,14 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
         #  指定时间点的定点回档则需要执行binlog前滚。滚动到指定的时间点。
 
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-            binlog_result = get_backup_binlog(
-                cluster_id=cluster["cluster_id"],
-                start_time=str2datetime(backup_info["backup_time"]),
-                end_time=str2datetime(cluster["rollback_time"]),
-                backup_info=backup_info,
+            backup_handler = MySQLBackupHandler(cluster_id=cluster["cluster_id"])
+            binlog_result = backup_handler.get_binlog_for_rollback(
+                backup_info, str2datetime(backup_info["backup_time"]), str2datetime(cluster["rollback_time"])
             )
             if "query_binlog_error" in binlog_result.keys():
-                raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
+                raise TendbGetBinlogFailedException(
+                    message="{} binlog sql: {}".format(binlog_result["query_binlog_error"], backup_handler.query)
+                )
 
             cluster_ins = copy.deepcopy(cluster)
             cluster_ins.update(binlog_result)

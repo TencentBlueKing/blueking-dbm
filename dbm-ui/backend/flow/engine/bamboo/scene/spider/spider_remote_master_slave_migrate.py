@@ -11,22 +11,19 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
+from backend.db_services.mysql.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
-    remote_instance_migrate_sub_flow,
     remote_node_uninstall_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
@@ -137,10 +134,11 @@ class TendbClusterMigrateRemoteFlow(object):
             if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
                 # 先查询备份，如果备份不存在则退出
                 # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-                backup_handler = FixPointRollbackHandler(cluster_class.id, check_full_backup=True)
-                restore_time = datetime.now(timezone.utc)
+                backup_handler = MySQLBackupHandler(
+                    cluster_id=cluster_class.id, is_full_backup=True, check_instance_exist=True
+                )
                 shard_list = [int(shard_id) for shard_id in cluster_info["my_shards"].keys()]
-                backup_info = backup_handler.query_latest_backup_log(restore_time, shard_list=shard_list)
+                backup_info = backup_handler.get_spider_latest_backup_info(shard_list=shard_list)
                 logger.debug(backup_info)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(cluster_class.id))
@@ -247,41 +245,22 @@ class TendbClusterMigrateRemoteFlow(object):
                 ins_cluster["file_target_path"] = f"{self.backup_target_path}/{node['new_master']['port']}"
                 ins_cluster["shard_id"] = shard_id
                 ins_cluster["change_master_force"] = False
+                ins_cluster["backup_source"] = self.ticket_data["backup_source"]
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                if (
-                    self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value
-                ):  # 判断 remote_node 下每个分片的备份信息是否正常
-                    shard_backupinfo = backup_info["remote_node"].get(shard_id, {})
-                    ins_cluster["backupinfo"] = shard_backupinfo
-                    logger.debug(shard_backupinfo)
-                    if len(shard_backupinfo) == 0 or len(shard_backupinfo.get("file_list_details", {})) == 0:
-                        logger.error(
-                            "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
-                        )
-                        raise TendbGetBackupInfoFailedException(
-                            message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
-                        )
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=remote_instance_migrate_sub_flow(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
-                        )
+
+                filter_ips = None
+                if self.ticket_data["backup_source"] == MySQLBackupSource.LOCAL.value:
+                    filter_ips = [node["master"]["ip"], node["slave"]["ip"]]
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_master_slave_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=ins_cluster,
+                        cluster_model=cluster_class,
+                        filter_ips=filter_ips,
                     )
-                else:
-                    ins_cluster["change_master"] = False
-                    inst_list = [
-                        "{}{}{}".format(node["master"]["ip"], IP_PORT_DIVIDER, node["master"]["port"]),
-                        "{}{}{}".format(node["slave"]["ip"], IP_PORT_DIVIDER, node["slave"]["port"]),
-                    ]
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=mysql_restore_master_slave_sub_flow(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster=ins_cluster,
-                            cluster_model=cluster_class,
-                            ins_list=inst_list,
-                        )
-                    )
+                )
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步完毕,写入数据节点的主从关系"),

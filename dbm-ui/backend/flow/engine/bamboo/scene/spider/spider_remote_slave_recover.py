@@ -27,7 +27,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import instal
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
     remote_node_uninstall_sub_flow,
-    slave_recover_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -215,36 +214,31 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     "charset": self.data["charset"],
                     "cluster_type": cluster_class.cluster_type,
                     "shard_id": shard_id,
+                    "backup_source": self.ticket_data["backup_source"],
                 }
 
-                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=slave_recover_sub_flow(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
-                        )
-                    )
-                else:
-                    ins_cluster["change_master"] = True
-                    inst_list = ["{}{}{}".format(node["master"]["ip"], IP_PORT_DIVIDER, node["master"]["port"])]
-                    #  查询出正常的slave节点
+                if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
+                    filter_ips = [master.machine.ip]
                     slaves = cluster_class.storageinstance_set.filter(
                         machine__ip=node["slave"]["ip"],
                         port=node["slave"]["port"],
                         instance_inner_role=InstanceInnerRole.SLAVE.value,
                         status=InstanceStatus.RUNNING.value,
-                    ).exclude(machine__ip__in=[node["new_slave"]["ip"]])
-                    if len(slaves) > 0:
-                        inst_list.append("{}{}{}".format(slaves[0].machine.ip, IP_PORT_DIVIDER, slaves[0].port))
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=mysql_restore_data_sub_flow(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster=ins_cluster,
-                            cluster_model=cluster_class,
-                            ins_list=inst_list,
-                        )
                     )
+                    filter_ips.extend([slave.machine.ip for slave in slaves])
+                else:
+                    filter_ips = None
+                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_data_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=ins_cluster,
+                        cluster_model=cluster_class,
+                        filter_ips=filter_ips,
+                    )
+                )
+
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
                     act_component_code=SpiderDBMetaComponent.code,

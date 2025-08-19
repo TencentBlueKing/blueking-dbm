@@ -11,30 +11,22 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType, MySQLMonitorPauseTime
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
-    priv_recover_sub_flow,
-    remote_instance_migrate_sub_flow,
-)
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
@@ -45,7 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
@@ -288,7 +279,10 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["bk_cloud_id"] = cluster_model.bk_cloud_id
                 cluster["change_master_force"] = False
                 cluster["change_master"] = False
+                cluster["restore_privilege"] = True
+                cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
                 cluster["charset"] = self.data["charset"]
+                cluster["backup_source"] = self.ticket_data["backup_source"]
                 checksum_info["details"]["infos"] = []
                 checksum_info["details"]["infos"].append(
                     {
@@ -319,48 +313,26 @@ class MySQLMigrateClusterRemoteFlow(object):
                 )
 
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+                filter_ips = None
                 if self.local_backup:
                     stand_by_slaves = cluster_model.storageinstance_set.filter(
                         instance_inner_role=InstanceInnerRole.SLAVE.value,
                         is_stand_by=True,
                         status=InstanceStatus.RUNNING.value,
                     ).exclude(machine__ip__in=[self.data["new_slave_ip"], self.data["new_master_ip"]])
-                    #     从standby从库找备份
-                    inst_list = ["{}{}{}".format(master_model.machine.ip, IP_PORT_DIVIDER, master_model.port)]
-                    if len(stand_by_slaves) > 0:
-                        inst_list.append(
-                            "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
-                        )
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=mysql_restore_master_slave_sub_flow(
-                            root_id=self.root_id,
-                            ticket_data=copy.deepcopy(self.data),
-                            cluster=cluster,
-                            cluster_model=cluster_model,
-                            ins_list=inst_list,
-                        )
-                    )
-                else:
-                    rollback_time = datetime.now(timezone.utc)
-                    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id, check_full_backup=True)
-                    backup_info = rollback_handler.query_latest_backup_log(rollback_time)
-                    if backup_info is None:
-                        logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
-                    cluster["backupinfo"] = backup_info
-                    sync_data_sub_pipeline.add_sub_pipeline(
-                        sub_flow=remote_instance_migrate_sub_flow(
-                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
-                        )
-                    )
-                    priv_sub_flow = priv_recover_sub_flow(
+                    # 从standby从库找备份
+                    filter_ips = [master_model.machine.ip]
+                    filter_ips.extend([slave.machine.ip for slave in stand_by_slaves])
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_master_slave_sub_flow(
                         root_id=self.root_id,
                         ticket_data=copy.deepcopy(self.data),
-                        cluster_info=cluster,
-                        ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        cluster=cluster,
+                        cluster_model=cluster_model,
+                        filter_ips=filter_ips,
                     )
-                    if priv_sub_flow:
-                        sync_data_sub_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
+                )
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("数据恢复完毕,写入新主节点和旧主节点的关系链元数据"),
