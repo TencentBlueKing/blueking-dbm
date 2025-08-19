@@ -191,7 +191,7 @@
       if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
         return;
       }
-      if (props.selectable) {
+      if (props.selectable && modelValue.value) {
         const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
         if (!isExist) {
           modelValue.value = 0;

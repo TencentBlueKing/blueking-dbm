@@ -116,7 +116,7 @@ export const QueryKeyMap: Record<string, string> = {
 };
 
 // redis 规格有关的集群与机器类型映射，主要处理 RedisCluster 和 Redis主从 合入  TendisCache后端存储的情况
-export const specClusterMachineMap: Record<string, string> = {
+export const specClusterMachineMap: Record<string, MachineTypes> = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: MachineTypes.REDIS_TENDIS_CACHE,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: MachineTypes.REDIS_TENDIS_PLUS,
   [ClusterTypes.REDIS_INSTANCE]: MachineTypes.REDIS_TENDIS_CACHE,

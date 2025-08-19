@@ -12,6 +12,9 @@
 -->
 
 <template>
+  <BatchInput
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
     ref="editableTable"
     class="mt-16 mb-16"
@@ -19,28 +22,29 @@
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
-      <ClusterColumn
-        v-model="item.cluster"
-        :cluster-types="[ClusterTypes.REDIS]"
+      <ClusterBatchColumn
+        v-model="item.batchCluster"
         :selected="selected"
+        :selected-map="selectedMap"
         :tab-list-config="tabListConfig"
         @batch-edit="handleClusterBatchEdit" />
       <OldMasterSlaveHostColumn
         v-model="item.instance_data"
-        :data="item.cluster.redis_master" />
-      <SpecSelectColumn
+        :data="Object.values(item.batchCluster.clusters).flatMap((item) => item.redis_master)" />
+      <SpecColumn
         v-model="item.target_spec_id"
-        :bk-cloud-id="item.cluster.bk_cloud_id"
-        :cluster-type="ClusterTypes.REDIS"
-        :current-spec-ids="item.cluster.cluster_spec.spec_id ? [item.cluster.cluster_spec.spec_id] : []"
+        :cluster-type="DBTypes.REDIS"
+        :current-spec-id-list="Object.values(item.batchCluster.clusters).map((item) => item.cluster_spec.spec_id)"
         field="target_spec_id"
-        :label="t('规格')"
-        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]">
-      </SpecSelectColumn>
+        label="规格"
+        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]"
+        required
+        selectable
+        @batch-edit="handleBatchEdit" />
       <TargetVersionSelectColumn
         v-model="item.db_version"
-        :cluster-type="item.cluster.cluster_type"
-        :current-versions="item.cluster.major_version ? [item.cluster.major_version] : []" />
+        :cluster-type="Object.values(item.batchCluster.clusters)?.[0]?.cluster_type"
+        :current-versions="Object.values(item.batchCluster.clusters).flatMap((item) => item.major_version)" />
       <OperationColumn
         :create-row-method="createRowData"
         :table-data="tableData" />
@@ -48,59 +52,31 @@
   </EditableTable>
 </template>
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
-  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
-  import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
-  import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
+
+  import { useTicketDetail } from '@/hooks';
 
   import OldMasterSlaveHostColumn from '../OldMasterSlaveHostColumn.vue';
 
+  import ClusterBatchColumn from './components/ClusterBatchColumn.vue';
+
   interface Exposes {
-    getValue: () => Promise<
-      {
-        cluster_id: number;
-        db_version: string;
-        display_info: {
-          domain: string;
-          ip: string;
-          migrate_type: string; // domain | machine
-        };
-        old_nodes: {
-          master: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-          slave: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-        };
-        resource_spec: {
-          backend_group: {
-            count: number;
-            spec_id: number;
-          };
-        };
-      }[]
-    >;
+    getValue: () => Promise<Redis.MigrateSingle['infos']>;
     resetTable: () => void;
-    setTableByTicketClone: (infos: TicketModel<Redis.MigrateSingle>) => void;
   }
 
   interface IHostData {
@@ -112,47 +88,84 @@
   }
 
   interface IDataRow {
-    cluster: {
-      bk_cloud_id: number;
-      cluster_spec: RedisModel['cluster_spec'];
-      cluster_type: string;
-      id: number;
-      major_version: string;
-      master_domain: string;
-      redis_master: RedisModel['redis_master'];
-    };
+    batchCluster: ComponentProps<typeof ClusterBatchColumn>['modelValue'];
     db_version: string;
     instance_data: {
-      cluster_id: number;
-      old_nodes: {
+      origin_old_nodes: {
         master: IHostData[];
         slave: IHostData[];
       };
-    }[];
+      src_cluster: {
+        cluster_id: number;
+        master_ins: string;
+        slave_ins: string;
+      }[];
+    };
     target_spec_id: number;
   }
 
   const createRowData = (values = {} as Partial<IDataRow>) => ({
-    cluster: Object.assign(
+    batchCluster: Object.assign(
       {
-        bk_cloud_id: 0,
-        cluster_spec: {} as RedisModel['cluster_spec'],
-        cluster_type: '',
-        id: 0,
-        major_version: '',
-        master_domain: '',
-        redis_master: [] as RedisModel['redis_master'],
+        clusters: {} as IDataRow['batchCluster']['clusters'],
+        renderText: '',
       },
-      values.cluster,
+      values.batchCluster,
     ),
     db_version: values.db_version || '',
-    instance_data: [] as IDataRow['instance_data'],
+    instance_data: {} as IDataRow['instance_data'],
     target_spec_id: values.target_spec_id || 0,
   });
 
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+    onSuccess(ticketDetail) {
+      const { infos } = ticketDetail.details;
+      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+        const migrateDomain = infoItem.migrate_domain!;
+        if (prevMap[migrateDomain]) {
+          return Object.assign({}, prevMap, {
+            [migrateDomain]: prevMap[migrateDomain].concat(infoItem),
+          });
+        }
+        return Object.assign({}, prevMap, {
+          [migrateDomain]: [infoItem],
+        });
+      }, {});
+
+      tableData.value = Object.values(rowMap).map((infoItem) => {
+        const rowItem = infoItem[0];
+        return createRowData({
+          batchCluster: {
+            renderText: rowItem.migrate_domain?.replaceAll(',', '\n') || '',
+          } as IDataRow['batchCluster'],
+          db_version: rowItem.db_version,
+          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
+        });
+      });
+    },
+  });
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.1.db\\nredis.test.2.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: t('无限制'),
+      key: 'spec_name',
+      label: t('规格'),
+    },
+    {
+      case: 'Redis-6',
+      key: 'version',
+      label: t('目标版本'),
+    },
+  ];
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
@@ -166,7 +179,11 @@
 
   const tableData = ref([createRowData()]);
 
-  const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selected = computed(() =>
+    tableData.value
+      .filter((item) => item.batchCluster.renderText)
+      .flatMap((item) => Object.values(item.batchCluster.clusters)),
+  );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
@@ -175,20 +192,45 @@
       if (!selectedMap.value[item.master_domain]) {
         newList.push(
           createRowData({
-            cluster: {
-              bk_cloud_id: item.bk_cloud_id,
-              cluster_spec: item.cluster_spec,
-              cluster_type: item.cluster_type,
-              id: item.id,
-              major_version: item.major_version,
-              master_domain: item.master_domain,
-              redis_master: item.redis_master,
-            },
+            batchCluster: {
+              renderText: item.master_domain,
+            } as IDataRow['batchCluster'],
           }),
         );
       }
     });
-    tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
+
+    tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...newList];
+    window.changeConfirm = true;
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const newList = data.reduce<IDataRow[]>((acc, item) => {
+      acc.push(
+        createRowData({
+          batchCluster: {
+            renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
+          } as IDataRow['batchCluster'],
+          db_version: item.version,
+          target_spec_id: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableData.value = [...newList];
+    } else {
+      tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...newList];
+    }
+    setTimeout(() => {
+      editableTableRef.value!.validate();
+    }, 200);
+  };
+
+  const handleBatchEdit = (value: number, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
     window.changeConfirm = true;
   };
 
@@ -196,52 +238,28 @@
     getValue: () =>
       editableTableRef.value!.validate().then((validateResult) => {
         if (validateResult) {
-          return tableData.value.flatMap((tableItem) =>
-            tableItem.instance_data.map((instanceItem) => ({
-              ...instanceItem,
+          return tableData.value.map((tableItem) => {
+            return {
+              ...tableItem.instance_data,
               db_version: tableItem.db_version,
-              display_info: {
-                domain: tableItem.cluster.master_domain,
-                ip: '',
-                migrate_type: 'domain',
-              },
+              migrate_domain: Object.values(tableItem.batchCluster.clusters)
+                .map((item) => item.master_domain)
+                .join(','),
+              // migrate_ip: '',
+              migrate_type: 'domain',
               resource_spec: {
                 backend_group: {
                   count: 1,
                   spec_id: tableItem.target_spec_id,
                 },
               },
-            })),
-          );
+            };
+          });
         }
         return [];
       }),
     resetTable: () => {
       tableData.value = [createRowData()];
-    },
-    setTableByTicketClone: (ticketDetail: TicketModel<Redis.MigrateSingle>) => {
-      const { infos } = ticketDetail.details;
-      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
-        if (prevMap[infoItem.display_info.domain]) {
-          return Object.assign({}, prevMap, {
-            [infoItem.display_info.domain]: prevMap[infoItem.display_info.domain].concat(infoItem),
-          });
-        }
-        return Object.assign({}, prevMap, {
-          [infoItem.display_info.domain]: [infoItem],
-        });
-      }, {});
-
-      tableData.value = Object.values(rowMap).map((infoItem) => {
-        const rowItem = infoItem[0];
-        return createRowData({
-          cluster: {
-            master_domain: rowItem.display_info.domain,
-          } as IDataRow['cluster'],
-          db_version: rowItem.db_version,
-          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
-        });
-      });
     },
   });
 </script>
