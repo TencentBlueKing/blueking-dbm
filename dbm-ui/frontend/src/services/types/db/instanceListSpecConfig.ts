@@ -4,7 +4,7 @@ export interface InstanceListSpecConfig {
     max: number;
     min: number;
   };
-  device_class: string;
+  device_class: string[];
   id: number;
   mem: {
     max: number;
