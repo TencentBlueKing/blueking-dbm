@@ -116,9 +116,11 @@
       .then((data) => {
         const hotOriginalHostList: EsMachineModel[] = [];
         const coldOriginalHostList: EsMachineModel[] = [];
+        const clientOriginalHostList: EsMachineModel[] = [];
 
         let hotDiskTotal = 0;
         let coldDiskTotal = 0;
+        let clientDiskTotal = 0;
 
         data.results.forEach((hostItem) => {
           if (hostItem.isHot) {
@@ -129,6 +131,10 @@
             coldDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
             coldOriginalHostList.push(hostItem);
           }
+          if (hostItem.isClient) {
+            clientDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            clientOriginalHostList.push(hostItem);
+          }
         });
 
         nodeInfoMap.hot.totalDisk = hotDiskTotal;
@@ -136,6 +142,9 @@
 
         nodeInfoMap.cold.totalDisk = coldDiskTotal;
         nodeInfoMap.cold.originalHostList = coldOriginalHostList;
+
+        nodeInfoMap.client.totalDisk = clientDiskTotal;
+        nodeInfoMap.client.originalHostList = clientOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
