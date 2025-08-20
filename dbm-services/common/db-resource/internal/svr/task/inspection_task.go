@@ -11,6 +11,7 @@
 package task
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -96,12 +97,61 @@ func InspectCheckResource() (err error) {
 		}
 		if len(bkhostIds) == 0 {
 			logger.Info("没差查询到host ids:[%v]任何模块信息", hostgp)
+
+			// 先查询要更新的机器信息，用于记录状态变更日志
+			var machineDetails []model.TbRpDetail
+			err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in (?) and  status = ? ",
+				hostIds, model.Unused).Find(&machineDetails).Error
+			if err != nil {
+				logger.Error("query machine details failed %s", err.Error())
+				return err
+			}
+
+			// 更新状态
 			err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in (?) and  status = ? ",
 				hostIds, model.Unused).
 				Update("status", model.UsedByOther).Error
 			if err != nil {
 				logger.Error("update machine status failed %s", err.Error())
 				return err
+			}
+
+			// 记录状态变更日志
+			for _, machine := range machineDetails {
+				requestID := ori.RequestId
+				batchSize := len(hostgp)
+				inspectionType := "cc_topo_relation_check"
+				context := &model.StatusChangeContext{
+					// 主机业务信息
+					BKBizID:      &machine.BkBizId,
+					DedicatedBiz: &machine.DedicatedBiz,
+
+					// 资源信息
+					SubZone:     &machine.SubZone,
+					SubZoneID:   &machine.SubZoneID,
+					City:        &machine.City,
+					CityID:      &machine.CityID,
+					DeviceClass: &machine.DeviceClass,
+
+					// 允许的模块信息
+					AllowedModules: []int{allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId},
+
+					// 其他信息
+					RequestID:      &requestID,
+					BatchSize:      &batchSize,
+					InspectionType: &inspectionType,
+				}
+				model.LogStatusChange(
+					machine.BkHostID,
+					machine.IP,
+					machine.BkCloudID,
+					model.Unused,
+					model.UsedByOther,
+					model.ReasonHostNotFoundInCC,
+					fmt.Sprintf("在CC中查询不到主机ID[%v]的模块信息，业务ID[%d]，园区[%s]", hostgp, machine.BkBizId, machine.SubZone),
+					context,
+					"system",
+				)
 			}
 			return nil
 		}
@@ -110,6 +160,17 @@ func InspectCheckResource() (err error) {
 				continue
 			}
 			logger.Info("host %d,set %d  module %d,not allow", m.BKHostId, m.BKSetId, m.BKModuleId)
+
+			// 先查询机器详细信息，用于记录状态变更日志
+			var machineDetail model.TbRpDetail
+			err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id = ? and  status = ? ",
+				m.BKHostId, model.Unused).First(&machineDetail).Error
+			if err != nil {
+				logger.Error("query machine detail failed %s", err.Error())
+				return err
+			}
+
+			// 更新状态
 			err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id = ? and  status = ? ",
 				m.BKHostId, model.Unused).Updates(map[string]interface{}{"status": model.UsedByOther, "update_time": time.Now()}).
 				Error
@@ -117,6 +178,43 @@ func InspectCheckResource() (err error) {
 				logger.Error("update machine status failed %s", err.Error())
 				return err
 			}
+
+			// 记录状态变更日志
+			requestID := ori.RequestId
+			inspectionType := "cc_module_validation"
+			context := &model.StatusChangeContext{
+				// 主机业务信息
+				BKBizID:      &machineDetail.BkBizId,
+				DedicatedBiz: &machineDetail.DedicatedBiz,
+
+				// CC拓扑信息
+				BKSetID:        &m.BKSetId,
+				BKModuleID:     &m.BKModuleId,
+				AllowedModules: []int{allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId},
+
+				// 资源信息
+				SubZone:     &machineDetail.SubZone,
+				SubZoneID:   &machineDetail.SubZoneID,
+				City:        &machineDetail.City,
+				CityID:      &machineDetail.CityID,
+				DeviceClass: &machineDetail.DeviceClass,
+
+				// 其他信息
+				RequestID:      &requestID,
+				InspectionType: &inspectionType,
+			}
+			model.LogStatusChange(
+				machineDetail.BkHostID,
+				machineDetail.IP,
+				machineDetail.BkCloudID,
+				model.Unused,
+				model.UsedByOther,
+				model.ReasonCCModuleNotAllow,
+				fmt.Sprintf("主机所在模块ID[%d]不在允许的资源模块[%d]范围内，当前业务ID[%d]，集合ID[%d]，园区[%s]",
+					m.BKModuleId, allowCCModuleInfo.CC_MANAGE_TOPO.ResourceModuleId, machineDetail.BkBizId, m.BKSetId, machineDetail.SubZone),
+				context,
+				"system",
+			)
 		}
 	}
 	return nil
