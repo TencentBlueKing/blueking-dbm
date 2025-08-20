@@ -27,7 +27,7 @@ from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
-from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import rollback_remote_and_backupid
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import tendbha_rollback_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
@@ -193,7 +193,6 @@ class MySQLRollbackExerciseFlow(object):
             "cluster_type": cluster_class.cluster_type,
             "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, master.port),
             "skip_local_exists": True,
-            "backupinfo": self.data["backupinfo"],
             "rollback_ip": self.rollback_host["ip"],
             "rollback_port": self.rollback_port,
         }
@@ -211,12 +210,20 @@ class MySQLRollbackExerciseFlow(object):
             kwargs=asdict(exec_act_kwargs),
             is_remote_rewritable=True,
         )
-        # 回档备份文件
-        pipeline.add_sub_pipeline(
-            sub_flow=rollback_remote_and_backupid(
-                root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
-            )
+        #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
+        backup_id = self.data.get("backup_id", None)
+        if backup_id is None or backup_id == "":
+            backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
+        mycluster["backup_id"] = backup_id
+        backup_info, rollback_sub_flow = tendbha_rollback_data_sub_flow(
+            root_id=self.root_id,
+            uid=self.ticket_data["uid"],
+            cluster_model=cluster_class,
+            cluster_info=mycluster,
         )
+        pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
+        mycluster["backupinfo"] = backup_info
+
         # 更新演练任务状态
         pipeline.add_act(
             act_name=_("更新演练任务状态"),

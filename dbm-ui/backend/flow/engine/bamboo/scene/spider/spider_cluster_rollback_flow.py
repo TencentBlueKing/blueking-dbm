@@ -22,8 +22,8 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterPhase, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.mysql_backup.handers import MySQLBackupHandler
-from backend.flow.consts import MySQLBackupTypeEnum, RollbackType
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
+from backend.flow.consts import DBA_SYSTEM_USER, MySQLBackupTypeEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database
@@ -120,7 +120,7 @@ class TenDBRollBackDataFlow(object):
             else:
                 backup_handler = MySQLBackupHandler(cluster_id=source_cluster.id, is_full_backup=True)
                 rollback_time = str2datetime(self.data["rollback_time"])
-                backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time)
+                backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time, limit_one=True)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
                     raise TendbGetBackupInfoFailedException(
@@ -130,7 +130,7 @@ class TenDBRollBackDataFlow(object):
                             )
                         )
                     )
-            # 将shard id 转换为int类型。TODO: 字段入库后，后端存储是json字段，会自动把key为int --> str。
+            # 将shard id 转换为int类型。字段入库后，后端存储是json字段，会自动把key为int --> str。
             backup_info["remote_node"] = {int(shard_id): info for shard_id, info in backup_info["remote_node"].items()}
 
             # 下发 actuator
@@ -190,6 +190,7 @@ class TenDBRollBackDataFlow(object):
                 exec_ip=clusters_info["target"]["dbctl_ip"],
                 bk_cloud_id=target_cluster.bk_cloud_id,
                 cluster_type=target_cluster.cluster_type,
+                run_as_system_user=DBA_SYSTEM_USER,
                 cluster=cluster,
                 get_mysql_payload_func=MysqlActPayload.spider_priv_backup_demand_payload.__name__,
             )
@@ -198,7 +199,7 @@ class TenDBRollBackDataFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-
+            exec_act_kwargs.run_as_system_user = None
             for spider_node in clusters_info["target_spiders"]:
                 if "spider_node" not in backup_info:
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息不存在"))

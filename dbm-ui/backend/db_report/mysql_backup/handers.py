@@ -26,7 +26,7 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.mysql_backup_result import MysqlBackupResult
 from backend.db_meta.models.mysql_binlog_backup_result import MysqlBinlogResult
-from backend.db_services.mysql.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
+from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
 from backend.utils.time import compare_time
 
 logger = logging.getLogger("flow")

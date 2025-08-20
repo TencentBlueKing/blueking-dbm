@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.mysql_backup.handers import MySQLBackupHandler
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_flow import (
@@ -31,6 +31,7 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.utils.time import str2datetime
 
@@ -59,6 +60,7 @@ def mysql_restore_data_sub_flow(
                    - master_ip: 原主节点IP
                    - master_port: 原主节点端口
                    - file_target_path: 备份文件目标路径
+                   - charset: 字符集
                    - backup_source: 备份源类型（本地/远程）
                    - backup_id: 指定备份ID（可选）
                    - binlog_sync: 是否同步binlog建立主从关系
@@ -240,6 +242,7 @@ def mysql_restore_master_slave_sub_flow(
                    - new_slave_port: 新从节点端口
                    - master_ip: 原主节点IP
                    - master_port: 原主节点端口
+                   - charset: 字符集
                    - file_target_path: 备份文件目标路径
                    - backup_source: 备份源类型（本地/远程）
                    - shard_id: 分片ID（TenDB Cluster专用）
@@ -440,14 +443,11 @@ def priv_recover_sub_flow(
     root_id: str, ticket_data: dict, cluster_model: Cluster, ips: list, privilege_ips: list = None
 ):
     """
-    定义 tendbHa 从集群备份的主从节点恢复权限。这里主要用于恢复从节点权限,补充主从权限差异时slave重建直接从 。
-    恢复权限目前只从远程下载权限文件
-    主节点克隆权限可能有权限不全的问题。
-    tendb privilege recover 指定实例权限恢复。
+    定义 tendbHa 从集群备份的主从节点恢复权限。这里主要用于恢复从节点权限,补充主从权限差异时slave重建直接从。恢复权限目前只从远程下载权限文件
     @param root_id:  flow流程的root_id
     @param ticket_data: 关联单据 ticket对象
     @param cluster_model:  cluster对象
-    @param ips: 实例ip
+    @param ips:  指定恢复权限的ip
     @param privilege_ips:  指定查询权限的过滤ip
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -511,7 +511,20 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
     @param root_id: flow 流程root_id
     @param uid: 单据 uid
     @param cluster_model: 关联的cluster对象
-    @param cluster_info: 关联的cluster对象
+    @param cluster_info: 集群配置信息，包含以下关键字段：
+                   - cluster_id: 集群ID
+                   - rollback_ip: 回档实例ip
+                   - rollback_port: 回档实例端口
+                   - rollback_type: 回档类型
+                   - master_port: 原主节点端口
+                   - file_target_path: 备份文件目标路径
+                   - rollback_type: 回档类型（本地/远程/时间/备份ID)
+                   - backup_id: 指定备份ID,如果为空表示查询指定回档时间的最近一份备份
+                   - charset: 字符集
+                   - databases: 数据库列表
+                   - databases_ignore: 忽略数据库列表
+                   - tables_ignore: 忽略表列表
+                   - enable_binlog: 恢复数据时候是否记录binlog,默认False
     """
     #  阶段1 查询备份
     rollback_time = None
@@ -629,3 +642,35 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
     return backup_info, sub_pipeline.build_sub_process(
         sub_name=_("tendbHa定点回档 {}:{} ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"]))
     )
+
+
+def remote_node_uninstall_sub_flow(root_id: str, ticket_data: dict, ip: str):
+    """
+    卸载remotedb 指定ip节点下的所有实例
+    @param root_id: flow流程的root_id
+    @param ticket_data: 单据 data 对象
+    @param ip: 指定卸载的ip
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"]}
+    instances = get_remotedb_info(cluster["uninstall_ip"], cluster["bk_cloud_id"])
+    sub_pipeline_list = []
+    for instance in instances:
+        cluster["backend_port"] = instance["port"]
+        sub_pipeline_list.append(
+            {
+                "act_name": _("卸载MySQL实例:{}:{}".format(cluster["uninstall_ip"], cluster["backend_port"])),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=cluster["uninstall_ip"],
+                        bk_cloud_id=cluster["bk_cloud_id"],
+                        cluster=cluster,
+                        get_mysql_payload_func=MysqlActPayload.get_uninstall_mysql_payload.__name__,
+                    )
+                ),
+            }
+        )
+
+    sub_pipeline.add_parallel_acts(acts_list=sub_pipeline_list)
+    return sub_pipeline.build_sub_process(sub_name=_("Remote node {} 卸载整机实例".format(cluster["uninstall_ip"])))
