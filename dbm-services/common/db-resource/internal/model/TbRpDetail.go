@@ -270,13 +270,26 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		if t.DeviceClassIsLocalSSD() {
 			dks = bk.SetDiskType(disk.Disk, bk.SSD)
 		}
+		// 判断是否存在相同的diskId
+		diskIdSet := make(map[string]struct{})
+		hasSameDiskId := false
+		for _, dk := range dks {
+			if _, exist := diskIdSet[dk.DiskId]; exist {
+				logger.Info("发现重复的diskId: %s,可能存在分盘", dk.DiskId)
+				hasSameDiskId = true
+			} else {
+				diskIdSet[dk.DiskId] = struct{}{}
+			}
+		}
 		if len(diskDetailMap) > 0 {
 			rebuildDks := make([]bk.DiskInfo, 0)
 			for _, dk := range dks {
 				dd := dk
 				if detail, exist := diskDetailMap[dk.DiskId]; exist {
-					dd.Size = detail.DiskSize
-					dd.DiskType = TransferCloudDiskType(detail.DiskType)
+					if !hasSameDiskId {
+						dd.Size = detail.DiskSize
+						dd.DiskType = TransferCloudDiskType(detail.DiskType)
+					}
 				}
 				rebuildDks = append(rebuildDks, dd)
 			}

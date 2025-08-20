@@ -61,6 +61,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/operation/create", c.RecordImportResource)
 		r.POST("/spec/sum", c.SpecSum)
 		r.POST("/groupby/label/count", c.GroupByLabelCount)
+		r.POST("/refresh/disk/info", c.RefreshDiskInfo)
 	}
 }
 

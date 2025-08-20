@@ -415,3 +415,179 @@ func buildJobIpList(ss []HostInfo) (ipList []bk.IPList) {
 	}
 	return
 }
+
+// RefreshDiskInfoParam 刷新磁盘信息参数
+type RefreshDiskInfoParam struct {
+	DeviceClass string `json:"device_class"`
+}
+
+// RefreshDiskInfo 刷新所有资源的磁盘信息
+func (c *MachineResourceHandler) RefreshDiskInfo(r *rf.Context) {
+	var input RefreshDiskInfoParam
+	if err := c.Prepare(r, &input); err != nil {
+		logger.Error("prepare failed %s", err.Error())
+		return
+	}
+
+	var rsList []model.TbRpDetail
+	var err error
+	if input.DeviceClass == "" {
+		err = model.DB.Self.Table(model.TbRpDetailName()).Find(&rsList).Error
+	} else {
+		err = model.DB.Self.Table(model.TbRpDetailName()).Where("device_class = ?", input.DeviceClass).Find(&rsList).Error
+	}
+	if err != nil {
+		logger.Error("查询资源记录失败: %s", err.Error())
+		c.SendResponse(r, err, err.Error())
+		return
+	}
+
+	if len(rsList) == 0 {
+		logger.Info("没有找到需要刷新的资源记录")
+		c.SendResponse(r, nil, "没有找到需要刷新的资源记录")
+		return
+	}
+
+	// 按业务ID分组处理资源
+	bizMap := lo.GroupBy(rsList, func(item model.TbRpDetail) int {
+		return item.BkBizId
+	})
+
+	successCount, failedCount, errorMessages := refreshDiskInfoByBiz(bizMap)
+
+	// 返回刷新结果
+	result := buildRefreshResult(successCount, failedCount, len(rsList), errorMessages)
+
+	logger.Info("磁盘信息刷新完成: 成功 %d 台, 失败 %d 台, 总计 %d 台", successCount, failedCount, len(rsList))
+
+	c.SendResponse(r, nil, result)
+}
+
+// refreshDiskInfoByBiz 按业务分组刷新磁盘信息
+func refreshDiskInfoByBiz(bizMap map[int][]model.TbRpDetail) (int, int, []string) {
+	var successCount, failedCount int
+	var errorMessages []string
+
+	for bizId, bizRsList := range bizMap {
+		logger.Info("开始刷新业务 %d 的磁盘信息, 共 %d 台主机", bizId, len(bizRsList))
+
+		// 构建主机列表和OS映射
+		ipList, hostOsMap := buildHostListAndOsMap(bizRsList)
+
+		// 获取磁盘信息
+		diskResp, err := bk.GetDiskInfo(ipList, bizId, hostOsMap)
+		if err != nil {
+			errMsg := fmt.Sprintf("业务 %d 获取磁盘信息失败: %s", bizId, err.Error())
+			logger.Error(errMsg)
+			errorMessages = append(errorMessages, errMsg)
+			failedCount += len(bizRsList)
+			continue
+		}
+
+		// 获取云主机详细信息
+		cvmInfoMap := getCvmInfoForBiz(bizRsList, bizId)
+
+		// 更新主机磁盘信息
+		bizSuccessCount, bizFailedCount, bizErrors := updateHostsDiskInfo(bizRsList, diskResp, cvmInfoMap)
+		successCount += bizSuccessCount
+		failedCount += bizFailedCount
+		errorMessages = append(errorMessages, bizErrors...)
+
+		// 记录失败的主机信息
+		for ip, errMsg := range diskResp.IpFailedLogMap {
+			logger.Warn("主机 %s 磁盘信息获取失败: %s", ip, errMsg)
+		}
+	}
+
+	return successCount, failedCount, errorMessages
+}
+
+// buildHostListAndOsMap 构建主机列表和操作系统映射
+func buildHostListAndOsMap(bizRsList []model.TbRpDetail) ([]bk.IPList, map[string]string) {
+	var ipList []bk.IPList
+	hostOsMap := make(map[string]string)
+
+	for _, rs := range bizRsList {
+		ipList = append(ipList, bk.IPList{
+			IP:        rs.IP,
+			BkCloudID: rs.BkCloudID,
+		})
+		hostOsMap[rs.IP] = rs.OsType
+	}
+
+	return ipList, hostOsMap
+}
+
+// getCvmInfoForBiz 获取业务的云主机信息
+func getCvmInfoForBiz(bizRsList []model.TbRpDetail, bizId int) map[string]yunti.InstanceDetail {
+	var cvmInfoMap map[string]yunti.InstanceDetail
+
+	if config.AppConfig.Yunti.IsNotEmpty() {
+		logger.Info("尝试从云平台获取业务 %d 的主机信息", bizId)
+		var ipStringList []string
+		for _, rs := range bizRsList {
+			ipStringList = append(ipStringList, rs.IP)
+		}
+
+		var err error
+		cvmInfoMap, err = getCvmMachDetailInfo(ipStringList)
+		if err != nil {
+			logger.Warn("查询业务 %d 云主机信息失败: %s", bizId, err.Error())
+		}
+	}
+
+	return cvmInfoMap
+}
+
+// updateHostsDiskInfo 更新主机磁盘信息
+func updateHostsDiskInfo(bizRsList []model.TbRpDetail, diskResp bk.GetDiskResp,
+	cvmInfoMap map[string]yunti.InstanceDetail) (int, int, []string) {
+	var successCount, failedCount int
+	var errorMessages []string
+
+	for _, rs := range bizRsList {
+		// 获取云主机磁盘详细信息
+		diskDetails := []yunti.CvmDataDisk{}
+		if v, ok := cvmInfoMap[rs.IP]; ok {
+			// 如果内存信息为空，使用云平台的内存信息
+			if rs.DramCap <= 0 {
+				rs.DramCap = v.Memory * 1000
+			}
+			diskDetails = v.DatadiskList
+			for _, disk := range v.DatadiskList {
+				logger.Info("从云平台获取 %s 的磁盘信息: %v", rs.IP, disk.DiskId)
+			}
+		}
+
+		// 设置磁盘和云主机信息
+		rs.SetMore(rs.IP, diskResp.IpLogContentMap, diskDetails)
+
+		// 更新数据库记录
+		if err := model.DB.Self.Table(model.TbRpDetailName()).Where("id = ?", rs.ID).Updates(&rs).Error; err != nil {
+			errMsg := fmt.Sprintf("更新主机 %s 磁盘信息失败: %s", rs.IP, err.Error())
+			logger.Error(errMsg)
+			errorMessages = append(errorMessages, errMsg)
+			failedCount++
+		} else {
+			logger.Info("成功更新主机 %s 的磁盘信息", rs.IP)
+			successCount++
+		}
+	}
+
+	return successCount, failedCount, errorMessages
+}
+
+// buildRefreshResult 构建刷新结果
+func buildRefreshResult(successCount, failedCount, totalCount int, errorMessages []string) map[string]interface{} {
+	result := map[string]interface{}{
+		"success_count": successCount,
+		"failed_count":  failedCount,
+		"total_count":   totalCount,
+	}
+
+	if len(errorMessages) > 0 {
+		result["errors"] = errorMessages
+	}
+
+	return result
+}
