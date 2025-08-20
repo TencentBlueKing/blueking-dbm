@@ -12,22 +12,10 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
+    :columns="columns"
     :data="tableData"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="ip"
-      :label="t('待替换的主机')" />
-    <BkTableColumn
-      field="role"
-      :label="t('角色类型')" />
-    <BkTableColumn
-      field="cluster_domain"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="spec_name"
-      :label="t('规格需求')" />
-  </BkTable>
+    row-key="ip" />
 </template>
 
 <script setup lang="ts">
@@ -49,6 +37,13 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const columns = [
+    { colKey: 'ip', ellipsis: true, title: t('待替换的主机') },
+    { colKey: 'role', ellipsis: true, title: t('角色类型') },
+    { colKey: 'cluster_domain', ellipsis: true, title: t('所属集群') },
+    { colKey: 'spec_name', ellipsis: true, title: t('规格需求') },
+  ];
 
   const tableData = computed(
     () => props.ticketDetails.details.infos?.flatMap((info) => info.display_info?.data ?? []) ?? [],

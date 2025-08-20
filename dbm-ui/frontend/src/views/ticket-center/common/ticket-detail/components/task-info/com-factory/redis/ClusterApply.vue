@@ -98,20 +98,10 @@
         <InfoItem
           :label="t('集群部署方案')"
           style="flex: 1 0 100%">
-          <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
-            <BkTableColumn
-              field="spec_name"
-              :label="t('资源规格')" />
-            <BkTableColumn
-              field="machine_pair"
-              :label="t('需机器组数')" />
-            <BkTableColumn
-              field="cluster_shard_num"
-              :label="t('集群分片')" />
-            <BkTableColumn
-              field="cluster_capacity"
-              :label="t('集群容量G')" />
-          </BkTable>
+          <PrimaryTable
+            :columns="columns"
+            :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
+            row-key="spec_name"/>
         </InfoItem>
       </template>
     </InfoList>
@@ -165,6 +155,13 @@
     role: '',
     title: t('主机预览'),
   });
+
+  const columns = [
+    { colKey: 'spec_name', title: t('资源规格') },
+    { colKey: 'machine_pair', title: t('需机器组数') },
+    { colKey: 'cluster_shard_num', title: t('集群分片') },
+    { colKey: 'cluster_capacity', title: t('集群容量G') },
+  ];
 
   /**
    * 获取申请容量内容
