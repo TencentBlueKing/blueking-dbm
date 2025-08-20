@@ -28,7 +28,7 @@ func NewDefaultBackupSchedule() map[string]*Schedule {
 	backendSchedule := &Schedule{
 		CronTime:      "0 3 * * *",
 		Command:       filepath.Join(cst.DbbackupGoInstallPath, "dbbackup_main.sh"),
-		Args:          "",
+		Args:          "> /home/mysql/dbbackup-go/logs/main.log 2>&1",
 		JobName:       "dbbackup-schedule",
 		MysqlCrondUrl: "http://127.0.0.1:9999",
 	}

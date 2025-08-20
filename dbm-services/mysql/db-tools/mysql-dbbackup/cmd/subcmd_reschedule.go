@@ -35,6 +35,7 @@ var subCmdReschedule = &cobra.Command{
 func init() {
 	subCmdReschedule.Flags().StringP("config", "c", "", "config files to backup")
 	subCmdReschedule.Flags().Bool("remove", false, "remove backup jobs from mysql-crond")
+	subCmdReschedule.Flags().String("cluster-type", "", "cluster type: tendbcluster,tendbha,tendbsingle")
 	subCmdReschedule.MarkFlagRequired("config")
 	rootCmd.AddCommand(subCmdReschedule)
 }
@@ -42,6 +43,7 @@ func init() {
 func handleScheduler(cmd *cobra.Command) (err error) {
 	confFile, _ := cmd.Flags().GetString("config")
 	delSchedule, _ := cmd.Flags().GetBool("remove")
+
 	var cnf = config.BackupConfig{}
 	viper.SetConfigType("ini")
 	viper.SetConfigFile(confFile)
@@ -51,12 +53,20 @@ func handleScheduler(cmd *cobra.Command) (err error) {
 	if err = viper.Unmarshal(&cnf); err != nil {
 		return err
 	}
+	clusterType, _ := cmd.Flags().GetString("cluster-type")
+	if clusterType == "" && strings.HasPrefix(cnf.Public.ClusterAddress, "spider.") {
+		clusterType = "tendbcluster"
+	}
+
 	defaultJobs := config.NewDefaultBackupSchedule()
 	if delSchedule == true {
-		crondManager := ma.NewManager(cnf.Schedule.MysqlCrondUrl)
-		for jobName, _ := range defaultJobs {
+		for jobName, job := range defaultJobs {
+			crondManager := ma.NewManager(job.MysqlCrondUrl)
 			_, err1 := crondManager.Delete(jobName, true)
 			if err1 != nil {
+				if strings.Contains(err1.Error(), "not found") {
+					continue
+				}
 				err = errs.Join(err, err1)
 			}
 		}
@@ -64,11 +74,15 @@ func handleScheduler(cmd *cobra.Command) (err error) {
 	}
 	// spider集群: spider: spiderbackup-schedule, spiderbackup-check
 	// tendb 集群: dbbackup-schedule
-	if strings.HasPrefix(cnf.Public.ClusterAddress, "spider.") {
+	if strings.EqualFold(clusterType, "tendbcluster") {
 		remoteSchedule := defaultJobs["spiderbackup-check"]
-		if err = addSchedule(remoteSchedule.MysqlCrondUrl, remoteSchedule); err != nil {
-			return err
+		if !(strings.EqualFold(cnf.Public.MysqlRole, cst.BackupRoleSpiderMnt) ||
+			strings.EqualFold(cnf.Public.MysqlRole, cst.BackupRoleSpiderSlave)) {
+			if err = addSchedule(remoteSchedule.MysqlCrondUrl, remoteSchedule); err != nil {
+				return err
+			}
 		}
+
 		if strings.EqualFold(cnf.Public.MysqlRole, cst.BackupRoleSpiderMaster) {
 			// tendbcluster 集群的 CronTime 只对 spider 节点有用
 			if cnf.Schedule.CronTime == "" {
@@ -108,8 +122,6 @@ func initScheduleWithDefault(schedule config.Schedule, jobName string) *config.S
 	}
 	if schedule.Command == "" {
 		schedule.Command = (*defaultJobs[jobName]).Command
-	}
-	if schedule.Args == "" {
 		schedule.Args = (*defaultJobs[jobName]).Args
 	}
 	if schedule.MysqlCrondUrl == "" {

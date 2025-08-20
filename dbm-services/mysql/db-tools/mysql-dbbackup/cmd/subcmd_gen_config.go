@@ -170,6 +170,7 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 		PhysicalBackup: config.PhysicalBackup{
 			DefaultsFile: util.GetMyCnfFileName(cfg.Port),
 		},
+		Schedule: config.Schedule{},
 	}
 
 	err := writeIniFile(cfg, &iniData)

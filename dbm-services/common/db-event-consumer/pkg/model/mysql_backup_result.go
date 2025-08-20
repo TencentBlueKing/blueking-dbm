@@ -37,7 +37,7 @@ type MysqlBackupResultModel struct {
 	ShardValue      int    `json:"shard_value" db:"shard_value" gorm:"column:shard_value;type:int;NOT NULL;index:uk_cluster,unique,priority:2"`
 	BillId          string `json:"bill_id" db:"bill_id" gorm:"column:bill_id;type:varchar(32);NOT NULL"`
 	BkBizId         int    `json:"bk_biz_id" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL"`
-	MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(32);NOT NULL"`
+	MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(120);NOT NULL"`
 	DataSchemaGrant string `json:"data_schema_grant" db:"data_schema_grant" gorm:"column:data_schema_grant;type:varchar(32);NOT NULL"`
 	// IsFullBackup 是否包含数据的全备
 	IsFullBackup     bool   `json:"is_full_backup" db:"is_full_backup" gorm:"column:is_full_backup;type:tinyint;NOT NULL"`

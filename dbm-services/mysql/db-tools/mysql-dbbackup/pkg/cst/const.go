@@ -65,6 +65,8 @@ const (
 	WrapperTdbctl = "TDBCTL"
 	// ServerNamePrefix TODO
 	ServerNamePrefix       = "SPT"
+	BackupRoleSpiderSlave  = cst.BackupRoleSpiderSlave
+	BackupRoleSpiderMnt    = cst.BackupRoleSpiderMnt
 	BackupRoleTdbctl       = cst.BackupRoleTdbctl
 	BackupRoleSpiderMaster = cst.BackupRoleSpiderMaster
 )

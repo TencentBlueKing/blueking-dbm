@@ -1,85 +1,63 @@
 package dbbackup
 
 import (
+	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"slices"
+
 	"dbm-services/common/go-pubpkg/logger"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	ma "dbm-services/mysql/db-tools/mysql-crond/api"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"encoding/json"
-	"fmt"
-	"path"
-	"path/filepath"
-	"slices"
-	"strings"
 
 	"gopkg.in/ini.v1"
 )
 
-func addCrontabLegacy(cm *ma.Manager, schedule string) (err error) {
-	logger.Info("legacy")
-	var jobItem ma.JobDefine
-	logFile := path.Join(cst.DbbackupGoInstallPath, "logs/main.log")
-	jobItem = ma.JobDefine{
-		Name:     "dbbackup-schedule",
-		Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup_main.sh"),
-		WorkDir:  cst.DbbackupGoInstallPath,
-		Args:     []string{">", logFile, "2>&1"},
-		Schedule: schedule,
-		Creator:  "system",
-		Enable:   true,
-	}
-	logger.Info("adding job_item to crond: %+v", jobItem)
-	if _, err = cm.CreateOrReplace(jobItem, true); err != nil {
+func addCrontabLegacy(port int, schedule string) (err error) {
+	logger.Info("add dbbackup crond for tendb legacy")
+	tl, err := tools.NewToolSetWithPick(tools.ToolDbbackupGo)
+	if err != nil {
+		logger.Error(err.Error())
 		return err
+	}
+	scheduleCmd := fmt.Sprintf("%s reschedule -c %s"+
+		"&& chown -R mysql:mysql %s",
+		tl.MustGet(tools.ToolDbbackupGo),
+		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),
+		cst.DbbackupGoInstallPath,
+	)
+	str, err := osutil.ExecShellCommand(false, scheduleCmd)
+	if err != nil {
+		logger.Error(
+			"failed to register dbbackup-schedule to crond: %s(%s)", str, err.Error(),
+		)
 	}
 	return nil
 }
 
-func addCrontabSpider(cm *ma.Manager, role string, port int, schedule string) (err error) {
+func addCrontabSpider(role string, port int, schedule string) (err error) {
 	logger.Info("add dbbackup crond for spider, role: %s, port: %d", role, port)
-	var jobItem ma.JobDefine
-	if strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderMaster) {
-		logger.Info("add schedule")
-		dbbackupConfFile := fmt.Sprintf("dbbackup.%d.ini", port)
-		jobItem = ma.JobDefine{
-			Name:     "spiderbackup-schedule",
-			Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup"),
-			WorkDir:  cst.DbbackupGoInstallPath,
-			Args:     []string{"spiderbackup", "schedule", "--config", dbbackupConfFile},
-			Schedule: schedule,
-			Creator:  "system",
-			Enable:   true,
-		}
-		logger.Info("adding job_item to crond: %+v", jobItem)
-		id, err := cm.CreateOrReplace(jobItem, true)
-		if err != nil {
-			logger.Error(err.Error())
-			return err
-		}
-		logger.Info("adding job_item to crond: id: %s", id)
+	tl, err := tools.NewToolSetWithPick(tools.ToolDbbackupGo)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
 	}
-	if !(strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderMnt) ||
-		strings.ToLower(role) == strings.ToLower(cst.BackupRoleSpiderSlave)) { // MASTER,SLAVE,REPEATER
-		logger.Info("add check")
-		jobItem = ma.JobDefine{
-			Name:     "spiderbackup-check",
-			Command:  filepath.Join(cst.DbbackupGoInstallPath, "dbbackup"),
-			WorkDir:  cst.DbbackupGoInstallPath,
-			Args:     []string{"spiderbackup", "check", "--run"},
-			Schedule: "*/1 * * * *",
-			Creator:  "system",
-			Enable:   true,
-		}
-		logger.Info("adding job_item to crond: %+v", jobItem)
-		id, err := cm.CreateOrReplace(jobItem, true)
-		if err != nil {
-			logger.Error(err.Error())
-			return err
-		}
-		logger.Info("adding job_item to crond: id: %s", id)
+	scheduleCmd := fmt.Sprintf("%s reschedule -c %s --cluster-type tendbcluster"+
+		"&& chown -R mysql:mysql %s",
+		tl.MustGet(tools.ToolDbbackupGo),
+		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),
+		cst.DbbackupGoInstallPath,
+	)
+	str, err := osutil.ExecShellCommand(false, scheduleCmd)
+	if err != nil {
+		logger.Error(
+			"failed to register spiderbackup tasks to crond: %s(%s)", str, err.Error(),
+		)
 	}
 	return nil
 }
@@ -145,11 +123,10 @@ func addOneCrond(port int) (err error) {
 		return err
 	}
 
-	cm := ma.NewManager("http://127.0.0.1:9999")
 	logger.Info("cluster type: %s", backupCfg.ClusterType)
 
 	if backupCfg.ClusterType == cst.TendbCluster {
-		err = addCrontabSpider(cm, backupCfg.Role, port, opt.CrontabTime)
+		err = addCrontabSpider(backupCfg.Role, port, opt.CrontabTime)
 		if err != nil {
 			logger.Error(err.Error())
 			return err
@@ -157,7 +134,7 @@ func addOneCrond(port int) (err error) {
 		return nil
 
 	} else {
-		err = addCrontabLegacy(cm, opt.CrontabTime)
+		err = addCrontabLegacy(port, opt.CrontabTime)
 		if err != nil {
 			logger.Error(err.Error())
 			return err
