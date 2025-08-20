@@ -13,8 +13,9 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import TruncateDataTypeEnum
+from backend.flow.consts import InstanceStatus, TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mysql.general_check_db_in_using import GeneralCheckDBInUsingComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import BKCloudIdKwargs
@@ -26,7 +27,11 @@ def build_check_cluster_table_using_sub_flow(root_id: str, cluster_obj: Cluster,
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     instance_pipes = []
-    for spider_instance in cluster_obj.proxyinstance_set.all():
+    for spider_instance in (
+        cluster_obj.proxyinstance_set.filter(status=InstanceStatus.RUNNING)
+        .exclude(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE)
+        .all()
+    ):
         instance_pipe = SubBuilder(
             root_id=root_id,
             data={

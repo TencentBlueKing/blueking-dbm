@@ -26,12 +26,9 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
-    remote_instance_migrate_sub_flow,
-    remote_node_uninstall_sub_flow,
-)
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
+    remote_node_uninstall_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     ALLDEPARTS,
@@ -496,55 +493,6 @@ class UpgradeRemoteFlow(object):
             }
         )
         return ins_cluster
-
-    def _handle_remote_backup_sync(self, pipeline: SubBuilder, backup_info: dict, shard_id: str, ins_cluster: dict):
-        """处理远程备份源同步场景
-
-        Args:
-            pipeline: 流程构建器
-            backup_info: 备份信息
-            shard_id: 分片ID
-            ins_cluster: 实例集群信息
-        """
-        shard_backupinfo = backup_info["remote_node"].get(shard_id, {})
-        ins_cluster["backupinfo"] = shard_backupinfo
-        logger.debug(shard_backupinfo)
-
-        if not shard_backupinfo or not shard_backupinfo.get("file_list_details"):
-            error_msg = _("获取集群分片 {} shard {} 的备份信息失败").format(self.data["cluster_id"], shard_id)
-            logger.error("cluster %s shard %s backup info not exists", self.data["cluster_id"], shard_id)
-            raise TendbGetBackupInfoFailedException(message=_(error_msg))
-
-        pipeline.add_sub_pipeline(
-            sub_flow=remote_instance_migrate_sub_flow(
-                root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
-            )
-        )
-
-    def _handle_local_backup_sync(self, pipeline: SubBuilder, node: dict, ins_cluster: dict, cluster_class: Cluster):
-        """处理本地备份源同步场景
-
-        Args:
-            pipeline: 流程构建器
-            node: 节点信息
-            ins_cluster: 实例集群信息
-            cluster_class: 集群类实例
-        """
-        ins_cluster["change_master"] = False
-        inst_list = [
-            f"{node['master']['ip']}{IP_PORT_DIVIDER}{node['master']['port']}",
-            f"{node['slave']['ip']}{IP_PORT_DIVIDER}{node['slave']['port']}",
-        ]
-
-        pipeline.add_sub_pipeline(
-            sub_flow=mysql_restore_master_slave_sub_flow(
-                root_id=self.root_id,
-                ticket_data=copy.deepcopy(self.data),
-                cluster=ins_cluster,
-                cluster_model=cluster_class,
-                ins_list=inst_list,
-            )
-        )
 
 
 def build_install_remote_mspair_sub_pipeline(

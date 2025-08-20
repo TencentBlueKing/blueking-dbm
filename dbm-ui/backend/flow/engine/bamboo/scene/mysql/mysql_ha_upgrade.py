@@ -364,6 +364,7 @@ def tendbha_cluster_upgrade_subflow(
         old_slave_ip=old_slave_ip,
         local_backup=local_backup,
         charset=charset,
+        backup_source=backup_source,
     )
     ms_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
     ms_process = ms_sub_pipeline.build_sub_process(sub_name=_("安装主从节点,并同步数据"))
@@ -717,6 +718,7 @@ def build_sync_data_sub_pipelines(
             "new_slave_port": master.port,
             "bk_cloud_id": cluster_model.bk_cloud_id,
             "file_target_path": f"/data/dbbak/{root_id}/{master.port}",
+            "charset": charset,
         }
 
         sync_data_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(parent_global_data))
@@ -978,6 +980,7 @@ def build_ms_pair_sync_data_sub_pipelines(
             "cluster_id": cluster_model.id,
             "bk_cloud_id": cluster_model.bk_cloud_id,
             "backup_source": backup_source,
+            "charset": charset,
         }
         sync_data_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(parent_global_data))
         filter_ips = None
