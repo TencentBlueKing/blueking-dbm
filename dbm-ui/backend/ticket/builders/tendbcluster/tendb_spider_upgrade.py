@@ -49,6 +49,7 @@ class TenDBSpiderUpgradeSerializer(TendbBaseOperateDetailSerializer):
 
 class TenDBSpiderUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_spider_upgrade
+    validator = None
 
 
 class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
@@ -56,24 +57,15 @@ class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilde
         # 在跨机房亲和性要求下，接入层spider的亲和性要求至少分布在2个机房
         self.patch_info_affinity_location()
         for info in self.ticket_data["infos"]:
-            for k, v in info["old_nodes"].items():
-                for node in v:
-                    role = f'{k}_{node["ip"]}'
-                    info["resource_spec"][role]["group_count"] = 2
-
-    def get_new_host_info(self, info, spider_role):
-        new_host_info = []
-        for host in info["old_nodes"][spider_role]:
-            role = f'{spider_role}_{host["ip"]}'
-            new_host_info.extend(info.pop(role))
-        return new_host_info
+            for role in info["resource_spec"]:
+                info["resource_spec"][role]["group_count"] = 2
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             # 格式化规格信息
-            info["spider_master_ip_list"] = self.get_new_host_info(info, "spider_master")
-            info["spider_slave_ip_list"] = self.get_new_host_info(info, "spider_slave")
+            info["spider_master_ip_list"] = info.pop("spider_master")
+            info["spider_slave_ip_list"] = info.pop("spider_slave") if info.get("spider_slave") else []
 
         next_flow.save(update_fields=["details"])
 
