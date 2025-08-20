@@ -138,6 +138,8 @@ class ListMachineSLZ(serializers.Serializer):
     instance_status = serializers.ChoiceField(
         help_text=_("集群状态"), choices=InstanceStatus.get_choices(), required=False
     )
+    spec_ids = serializers.CharField(help_text=_("规格ID(多个过滤以逗号分隔)"), required=False)
+    spec_names = serializers.CharField(help_text=_("规格名称(多个过滤以逗号分隔)"), required=False)
     creator = serializers.CharField(help_text=_("创建者"), required=False)
 
 

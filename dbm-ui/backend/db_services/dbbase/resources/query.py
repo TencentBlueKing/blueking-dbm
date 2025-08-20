@@ -886,6 +886,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
         query_filters = Q(cluster_type__in=cls.cluster_types)
         if bk_biz_id is not None:
             query_filters &= Q(bk_biz_id=bk_biz_id)
+
+        def filter_spec_name_func(query_params):
+            """过滤规格名称"""
+            filter_spec = Q()
+            spec_names = query_params.get("spec_names", "").split(",")
+            if spec_names:
+                filter_spec_ids = list(Spec.objects.filter(spec_name__in=spec_names).values_list("spec_id", flat=True))
+                filter_spec &= Q(spec_id__in=filter_spec_ids)
+            return filter_spec
+
         # 定义内置的过滤参数map
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
@@ -919,6 +929,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "creator": Q(creator__icontains=query_params.get("creator")),
+            # 规格id筛选
+            "spec_ids": Q(spec_id__in=query_params.get("spec_ids", "").split(",")),
+            # 规格名称筛选
+            "spec_names": filter_spec_name_func(query_params),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
 
@@ -928,6 +942,11 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 query_filters &= filter_params_map[param]
 
         machine_queryset = Machine.objects.filter(query_filters).distinct()
+        # 获取规格信息
+        spec_ids = list(machine_queryset.values_list("spec_id", flat=True).distinct())
+        spec_query = Spec.objects.filter(spec_id__in=spec_ids)
+        kwargs["remote_spec_map"] = {spec.spec_id: spec for spec in spec_query}
+
         machine_infos = cls._filter_machine_hook(bk_biz_id, machine_queryset, limit, offset, **kwargs)
         return machine_infos
 
@@ -983,6 +1002,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         bk_cloud_name = cloud_info.get(str(machine.bk_cloud_id), {}).get("bk_cloud_name", "")
+        machine_spec = kwargs["remote_spec_map"].get(machine.spec_id)
         machine_info = {
             "bk_host_id": machine.bk_host_id,
             "ip": machine.ip,
@@ -994,6 +1014,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,
             "spec_config": machine.spec_config,
+            "spec_name": machine_spec.spec_name if machine_spec else "",
             "bk_sub_zone": machine.bk_sub_zone,
             "bk_os_name": machine.bk_os_name,
             "bk_rack_id": machine.bk_rack_id,
