@@ -10450,11 +10450,11 @@ sub main {
    # ########################################################################
    my %crc_args     = $rc->get_crc_args(dbh => $master_dbh);
    my $checksum_dml = "REPLACE INTO $repl_table "
-                    . "(master_ip, master_port, db, tbl, chunk, chunk_index,"
+                    . "(ticket_id, master_ip, master_port, db, tbl, chunk, chunk_index,"
                     . " lower_boundary, upper_boundary, this_cnt, this_crc) "
                     . "SELECT "
                     . ($cluster->is_cluster_node($master_cxn) ? ' /*!99997*/' : '')
-                    . "?, ?, ?, ?, ?, ?, ?, ?,";
+                    . "?, ?, ?, ?, ?, ?, ?, ?, ?,";
    my $past_cols    = " COUNT(*), '0'";
 
    # ########################################################################
@@ -11372,6 +11372,7 @@ sub exec_nibble {
 	 alarm $timeout;
 	 $sth->{nibble}->execute(
 # REPLACE INTO repl_table SELECT
+             $o->get('ticket-id'),
 			 $o->get('host'),
 			 $o->get('port'),	 
 			 $tbl->{db},             # db
@@ -12961,6 +12962,12 @@ Create the L<"--replicate"> database and table if they do not exist.
 The structure of the replicate table is the same as the suggested table
 mentioned in L<"--replicate">.
 
+=item --ticket-id
+
+type: int; default: 0
+
+Distinguish daily checksum from demand checksum.
+
 =item --databases
 
 short form: -d; type: hash; group: Filter
@@ -13303,9 +13310,11 @@ structure (MAGIC_create_replicate):
      master_crc     CHAR(40)         NULL,
      master_cnt     INT              NULL,
      ts             TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-     PRIMARY KEY (master_ip, master_port, db, tbl, chunk),
+     ticket_id      BIGINT       NOT NULL DEFAULT 0,
+     PRIMARY KEY (master_ip, master_port, db, tbl, chunk, ticket_id),
      INDEX db_tbl_chunk (db, tbl, chunk),
-     INDEX ts_db_tbl (ts, db, tbl)
+     INDEX ts_db_tbl (ts, db, tbl),
+     INDEX ticket_id (ticket_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 Note: lower_boundary and upper_boundary data type can be BLOB. See L<"--binary-index">.

@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/reporter"
 	"fmt"
 	"log/slog"
@@ -52,11 +53,6 @@ func (r *Checker) masterHosts() (ip string, port int, err error) {
 
 // Report 只在 repeater, slave 的例行校验做上报
 func (r *Checker) Report() error {
-	if !r.hasHistoryTable {
-		slog.Info("report history table not found")
-		return nil
-	}
-
 	masterIP, masterPort, err := r.masterHosts()
 	if err != nil {
 		slog.Error("get master hosts: ", slog.String("error", err.Error()))
@@ -65,13 +61,24 @@ func (r *Checker) Report() error {
 	slog.Info("query master info",
 		slog.String("master ip", masterIP), slog.Int("master port", masterPort))
 
+	_, err = r.conn.ExecContext(
+		context.Background(),
+		fmt.Sprintf(`UPDATE %s.%s SET reported = 1
+								WHERE master_ip = ? AND master_port = ? AND reported = 0 AND ticket_id <> 0`,
+			config.ResultDb, config.ResultHistoryTable), masterIP, masterPort)
+	if err != nil {
+		slog.Error("update ticket result to 1 to skip report", slog.String("error", err.Error()))
+		return err
+	}
+	slog.Info("update ticket result to 1 to skip report")
+
 	rows, err := r.db.Queryx(
 		fmt.Sprintf(`SELECT master_ip, master_port,
 									db, tbl,
 									chunk, chunk_time, chunk_index,
 									lower_boundary, upper_boundary,
 									this_crc, this_cnt, master_crc, master_cnt, ts
-							FROM %s WHERE master_ip = ? AND master_port = ? AND reported = 0
+							FROM %s.%s WHERE master_ip = ? AND master_port = ? AND reported = 0 AND ticket_id = 0
 										AND (this_crc <> master_crc or this_cnt <> master_cnt)
 							UNION
 							SELECT master_ip, master_port,
@@ -79,8 +86,11 @@ func (r *Checker) Report() error {
 							       chunk, chunk_time, chunk_index,
 							       lower_boundary, upper_boundary,
 							       this_crc, this_cnt, master_crc, master_cnt, ts
-							FROM %s WHERE master_ip = ? AND master_port = ? AND reported = 0
-										AND (db = ? OR db = ?)`, r.resultHistoryTable, r.resultHistoryTable),
+							FROM %s.%s WHERE master_ip = ? AND master_port = ? AND reported = 0 AND ticket_id = 0
+										AND (db = ? OR db = ?)`,
+			config.ResultDb, config.ResultHistoryTable,
+			config.ResultDb, config.ResultHistoryTable,
+		),
 		masterIP, masterPort, masterIP, masterPort,
 		dailyStr, roundStartStr,
 	)
@@ -108,8 +118,8 @@ func (r *Checker) Report() error {
 	_, err = r.conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(`UPDATE %s.%s SET reported = 1
-								WHERE master_ip = ? AND master_port = ? AND reported = 0`,
-			r.resultDB, r.resultHistoryTable), masterIP, masterPort)
+								WHERE master_ip = ? AND master_port = ? AND reported = 0 AND ticket_id = 0`,
+			config.ResultDb, config.ResultHistoryTable), masterIP, masterPort)
 	if err != nil {
 		slog.Error("update reported", slog.String("error", err.Error()))
 		return err

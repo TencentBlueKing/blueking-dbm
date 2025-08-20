@@ -1,22 +1,16 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path"
-	"path/filepath"
-
-	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/spf13/viper"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-var executable string
-var executableName string
-var executableDir string
 
 func init() {
 	// Here you will define your flags and configuration settings.
@@ -25,10 +19,6 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-
-	executable, _ = os.Executable()
-	executableName = filepath.Base(executable)
-	executableDir = filepath.Dir(executable)
 }
 
 func initLogger(cfg *config.LogConfig, mode config.CheckMode) {
@@ -54,16 +44,16 @@ func initLogger(cfg *config.LogConfig, mode config.CheckMode) {
 		if mode == config.GeneralMode {
 			logFile = path.Join(
 				*cfg.LogFileDir,
-				fmt.Sprintf("%s_%d.log", executableName, config.ChecksumConfig.Port),
+				fmt.Sprintf("%s_%d.log", config.ExecutableName, config.ChecksumConfig.Port),
 			)
 		} else {
 			logFile = path.Join(
 				*cfg.LogFileDir,
 				fmt.Sprintf(
-					"%s_%d_%s.log",
-					executableName,
+					"%s_%d_%d.log",
+					config.ExecutableName,
 					config.ChecksumConfig.Port,
-					viper.GetString("uuid"),
+					viper.GetInt64("ticket-id"),
 				),
 			)
 		}

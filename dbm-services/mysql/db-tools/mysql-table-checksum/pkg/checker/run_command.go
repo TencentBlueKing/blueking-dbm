@@ -19,140 +19,6 @@ import (
 var roundStartStr = "_dba_fake_round_start"
 var dailyStr = "_dba_fake_daily"
 
-func (r *Checker) Run() error {
-	slog.Info("run mode", slog.String("mode", string(r.Mode)))
-	stackDepth := 0
-
-RunCheckLabel:
-	slog.Info("run", slog.Int("stack depth", stackDepth))
-	stackDepth += 1
-	if stackDepth > 2 {
-		err := fmt.Errorf("retry stack too deep: %d", stackDepth)
-		slog.Error("run stack check", slog.String("error", err.Error()))
-		return err
-	}
-
-	if r.Mode == config.GeneralMode {
-		if stackDepth == 1 {
-			err := r.writeFakeResult(dailyStr, dailyStr)
-			if err != nil {
-				slog.Error("write daily fake", slog.String("error", err.Error()))
-				return err
-			}
-			slog.Info("write daily fake success")
-		}
-
-		if !config.ChecksumConfig.Enable {
-			slog.Info("general checksum disabled")
-			return nil
-		}
-	}
-
-	isEmptyResultTbl, err := r.isEmptyResultTbl()
-	if err != nil {
-		return err
-	}
-	if r.Mode == config.GeneralMode && isEmptyResultTbl {
-		slog.Info("result table is empty")
-		err := r.writeFakeResult(roundStartStr, roundStartStr)
-		if err != nil {
-			slog.Error("write round start", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("round start")
-	}
-
-	// ------- 跑校验 -------
-	output, err, pterr := r.run()
-	if err != nil {
-		return err
-	}
-	if output == nil {
-		return fmt.Errorf("output is nil")
-	}
-
-	if r.Mode == config.GeneralMode {
-		slog.Info("run in general mode")
-
-		// 清理太老的 history
-		_, err := r.conn.ExecContext(
-			context.Background(),
-			fmt.Sprintf(`DELETE FROM %s WHERE ts < NOW() - INTERVAL 10 DAY`, r.resultHistoryTable))
-		if err != nil {
-			slog.Error("run in general mode delete 10 days ago history", slog.String("error", err.Error()))
-		}
-		slog.Info("run in general mode delete 10 days ago history")
-
-		// 校验摘要是空的, 有两种可能
-		// 1. 应用过滤器后, 没有库表需要校验
-		// 2. checksum 中有所有库表的校验结果, 这一轮轮空了
-		if len(output.Summaries) == 0 {
-			var cnt int
-			err = r.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM %s.%s", r.resultDB, r.resultTbl)).Scan(&cnt)
-			if err != nil {
-				slog.Error("query result table rows count", slog.String("error", err.Error()))
-				return err
-			}
-			slog.Info("query result table rows count", slog.Int("rows count", cnt))
-			/*
-				由于会写入 round start 假数据
-				所以如果行数大于 1, 则说明有真实的校验结果
-				完成了一轮
-			*/
-			if cnt > 1 {
-				//Replicate 是带有库前缀的字符串
-				_, err := r.db.Exec(fmt.Sprintf(`TRUNCATE TABLE %s`, r.Config.PtChecksum.Replicate))
-				if err != nil {
-					slog.Error(
-						"truncate regular result table",
-						slog.String("error", err.Error()),
-						slog.String("table name", r.Config.PtChecksum.Replicate),
-					)
-					return err
-				}
-
-				// 清掉上一轮的结构后再跑一次
-				slog.Info("clear last round result and run again")
-				goto RunCheckLabel
-			} else {
-				// 什么都没干, 又没有库表需要校验
-				// 直接返回
-				return nil
-			}
-		}
-
-		err = r.moveResult()
-		if err != nil {
-			return err
-		}
-	} else {
-		slog.Info("run in demand mode")
-	}
-
-	fmt.Println(output.String())
-
-	if pterr != nil {
-		return pterr
-	}
-
-	return nil
-}
-
-func (r *Checker) isEmptyResultTbl() (bool, error) {
-	var resultCnt int
-	err := r.db.QueryRow(
-		fmt.Sprintf(
-			"SELECT COUNT(*) FROM %s.%s WHERE master_ip = ? AND master_port = ?",
-			r.resultDB, r.resultTbl),
-		r.Config.Ip, r.Config.Port).Scan(&resultCnt)
-	if err != nil {
-		slog.Error("check result table is empty", slog.String("error", err.Error()))
-		return false, err
-	}
-
-	return resultCnt == 0, nil
-}
-
 func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
 	// 为了兼容 flashback, 这里拼上库前缀
 	ts := time.Now().Format("2006-01-02 15:04:05")
@@ -164,8 +30,8 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string) error {
 			"lower_boundary, upper_boundary, "+
 			"this_crc, this_cnt, master_crc, master_cnt, ts) "+
 			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			r.resultDB,
-			r.resultHistoryTable),
+			config.ResultDb,
+			config.ResultHistoryTable),
 		r.Config.Ip, r.Config.Port,
 		fakeDB, fakeTbl, 0, 0, "",
 		"1=1", "1=1",

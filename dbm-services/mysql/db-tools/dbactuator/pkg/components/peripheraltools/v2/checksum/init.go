@@ -13,7 +13,7 @@ import (
 func NewRuntimeConfig(
 	bkBizId, clusterId, port int,
 	role, schedule, immuteDomain, ip, user, password, apiUrl, logDir string,
-	runtimeHour int,
+	runtimeHour int, ticketId int64,
 	tl *tools.ToolSet) *config.Config {
 	cfg := config.Config{
 		BkBizId: bkBizId,
@@ -38,6 +38,10 @@ func NewRuntimeConfig(
 				{
 					"name":  "run-time",
 					"value": fmt.Sprintf("%dh", runtimeHour),
+				},
+				{
+					"name":  "ticket-id",
+					"value": fmt.Sprintf("%d", ticketId),
 				},
 			},
 			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),

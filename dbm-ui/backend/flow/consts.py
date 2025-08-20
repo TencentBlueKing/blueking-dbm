@@ -816,10 +816,6 @@ SYSTEM_DBS = ["mysql", "test", "db_infobase", "information_schema", "performance
 STAGE_DB_HEADER = "stage_truncate"
 ROLLBACK_DB_TAIL = "rollback"
 
-# 定义数据检验的常量
-CHECKSUM_DB = "infodba_schema"
-CHECKSUM_TABlE_PREFIX = "checksum_"
-
 # 定义单据生成随机账号的前缀
 ACCOUNT_PREFIX = "_temp_"
 

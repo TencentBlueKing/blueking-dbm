@@ -14,8 +14,9 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.flow.consts import CHECKSUM_DB, CHECKSUM_TABlE_PREFIX
+from backend.flow.consts import INFODBA_SCHEMA
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE
 from backend.ticket.models import Ticket
 
 
@@ -28,6 +29,8 @@ class MySQLChecksumReportService(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
+        ticket_id = kwargs["ticket_id"]
+
         skip_tables = []
         if trans_data.checksum_report:
             if trans_data.checksum_report["summaries"]:
@@ -36,9 +39,7 @@ class MySQLChecksumReportService(BaseService):
                         skip_tables.append(table_checksum["table"])
 
         diff_sql, consistent_sql = self._generate_sql(
-            global_data["master_ip"],
-            global_data["master_port"],
-            "{}.{}{}".format(CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, global_data["ran_str"]),
+            global_data["master_ip"], global_data["master_port"], f"{INFODBA_SCHEMA}.{MYSQL_CHECKSUM_TABLE}", ticket_id
         )
 
         address = "{}{}{}".format(global_data["slave_ip"], IP_PORT_DIVIDER, global_data["slave_port"])
@@ -96,21 +97,23 @@ class MySQLChecksumReportService(BaseService):
             flags = ticket.details.get("is_consistent_list", {})
             flags.update({address: trans_data.is_consistent})
             ticket.update_details(
-                is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, global_data["ran_str"])
+                is_consistent_list=flags,
+                checksum_ticket_id=global_data["uid"],
+                # checksum_table="checksum"
             )
 
         return True
 
     @staticmethod
-    def _generate_sql(master_ip, master_port, replicate_table):
+    def _generate_sql(master_ip, master_port, replicate_table, ticket_id):
         where_master = "master_ip = '{}' and master_port = {}".format(master_ip, master_port)
 
         where_not_consistent = "(this_crc <> master_crc or this_cnt <> master_cnt)"
         where_consistent = "(this_crc = master_crc and this_cnt = master_cnt)"
 
         diff_tables = "concat(db,'.',tbl,' checksum failed! Number of different chunks: ',count(*)) as res "
-        diff_sql = "select {} from {} where {} and {} group by db,tbl;".format(
-            diff_tables, replicate_table, where_master, where_not_consistent
+        diff_sql = "select {} from {} where {} and {} and ticket_id = {} group by db,tbl;".format(
+            diff_tables, replicate_table, where_master, where_not_consistent, ticket_id
         )
 
         consistent_tables = "concat(db,'.',tbl,' checksum succeeded! Total chunks: ',count(*)) as res"

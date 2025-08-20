@@ -13,18 +13,14 @@ import (
 
 // Checker 检查器
 type Checker struct {
-	Config             *config.Config
-	Mode               config.CheckMode
-	db                 *sqlx.DB
-	conn               *sqlx.Conn
-	args               []string
-	cancel             context.CancelFunc
-	startTS            time.Time
-	resultHistoryTable string
-	resultDB           string
-	resultTbl          string
-	hasHistoryTable    bool
-	reporter           *reporter.Reporter
+	Config   *config.Config
+	Mode     config.CheckMode
+	db       *sqlx.DB
+	conn     *sqlx.Conn
+	args     []string
+	cancel   context.CancelFunc
+	startTS  time.Time
+	reporter *reporter.Reporter
 }
 
 // ChecksumSummary 结果汇总报表

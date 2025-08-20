@@ -51,6 +51,7 @@ type PtTableChecksumParam struct {
 	SystemDbs                 []string    `json:"system_dbs"`                   // 系统表
 	StageDBHeader             string      `json:"stage_db_header"`
 	RollbackDBTail            string      `json:"rollback_db_tail"`
+	TicketId                  int64       `json:"ticket_id"`
 }
 
 // SlaveInfo slave 描述
@@ -62,7 +63,7 @@ type SlaveInfo struct {
 
 // PtTableChecksumCtx 上下文信息
 type PtTableChecksumCtx struct {
-	uid     string
+	//uid     string
 	cfgFile string
 	dbh     *sqlx.DB
 }
@@ -111,8 +112,8 @@ func (c *PtTableChecksumComp) Precheck() (err error) {
 }
 
 // Init 连接 master
-func (c *PtTableChecksumComp) Init(uid string) (err error) {
-	c.uid = uid
+func (c *PtTableChecksumComp) Init( /*uid string*/ ) (err error) {
+	//c.uid = uid
 
 	dsn := fmt.Sprintf(
 		`%s:%s@tcp(%s:%d)/test`,
@@ -138,7 +139,7 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 		c.Params.BkBizId, c.Params.ClusterId, c.Params.MasterPort,
 		c.Params.InnerRole, "", c.Params.ImmuteDomain, c.Params.MasterIp,
 		c.GeneralParam.RuntimeAccountParam.MonitorUser, c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		"http://127.0.0.1:9999", logDir, c.Params.RuntimeHour, c.tools)
+		"http://127.0.0.1:9999", logDir, c.Params.RuntimeHour, c.Params.TicketId, c.tools)
 
 	cfg.PtChecksum.Replicate = c.Params.ReplicateTable
 
@@ -169,7 +170,7 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 		return err
 	}
 
-	c.cfgFile = path.Join("/tmp", fmt.Sprintf("checksum_%d_%s.yaml", c.Params.MasterPort, c.uid))
+	c.cfgFile = path.Join("/tmp", fmt.Sprintf("checksum_%d_%d.yaml", c.Params.MasterPort, c.Params.TicketId))
 	err = os.WriteFile(c.cfgFile, yamlData, 0644)
 	if err != nil {
 		logger.Error("write config failed: %s", err.Error())
@@ -235,7 +236,7 @@ func (c *PtTableChecksumComp) doChecksum() (err error) {
 		mysqlTableChecksumPath, []string{
 			"demand",
 			"--config", c.cfgFile,
-			"--uuid", c.uid,
+			"--ticket-id", fmt.Sprintf("%d", c.Params.TicketId),
 		}...,
 	)
 	logger.Info("command: %s", command)

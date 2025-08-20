@@ -55,10 +55,12 @@ type PtTableSyncParam struct {
 	IsSyncNonInnodbTbls bool   `json:"is_sync_non_innodb"`
 	SyncUser            string `json:"sync_user" validate:"required"`
 	SyncPass            string `json:"sync_pass" validate:"required"`
-	CheckSumTable       string `json:"check_sum_table" validate:"required"`
-	StartTime           string `json:"start_time"`
-	EndTime             string `json:"end_time"`
-	IsRoutineTrigger    bool   `json:"is_routine_trigger"`
+	//InfodbaSchema       string `json:"infodba_schema" validate:"required"`
+	//ChecksumTable       string `json:"checksum_table" validate:"required"`
+	ChecksumTicketId int64  `json:"checksum_ticket_id" validate:"required"`
+	StartTime        string `json:"start_time"`
+	EndTime          string `json:"end_time"`
+	IsRoutineTrigger bool   `json:"is_routine_trigger"`
 	// Synctables        []string `json:"sync_tables"`
 	// SyncDbs           []string `json:"SyncDbs"`
 }
@@ -94,7 +96,7 @@ func (c *PtTableSyncComp) Example() interface{} {
 			MasterHost:          "1.1.1.2",
 			MasterPort:          10000,
 			IsSyncNonInnodbTbls: false,
-			CheckSumTable:       "checksum",
+			ChecksumTicketId:    0,
 			SyncUser:            "xxx",
 			SyncPass:            "xxx",
 		},
@@ -147,7 +149,11 @@ func (c *PtTableSyncComp) Precheck() (err error) {
 
 	// 判断传入过来的checksum表是否存在
 	if !c.isExistCheckSumTable() {
-		return fmt.Errorf("the checksum table [%s.%s] maybe not exit ", checkSumDB, c.Params.CheckSumTable)
+		return fmt.Errorf("the checksum table %s.[%s, %s] maybe not exit ", checkSumDB, checkSumTable, checkSumHistoryTable)
+	}
+
+	if (c.Params.IsRoutineTrigger && c.Params.ChecksumTicketId != 0) || (!c.Params.IsRoutineTrigger && c.Params.ChecksumTicketId == 0) {
+		return fmt.Errorf("checksum ticket id [%d]", c.Params.ChecksumTicketId)
 	}
 
 	slaveStatus, err := c.dbConn.ShowSlaveStatus()
@@ -226,24 +232,26 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 			continue
 		}
 
-		if c.Params.IsRoutineTrigger {
-			// 例行检查发起的数据修复，用临时表作为修复依据
-			getChecksumName = c.PtTableSyncCtx.tempCheckSumTableName
-			if !c.CopyTableCheckSumReport(syncTable.DbName, syncTable.TableName, getChecksumName) {
-				return fmt.Errorf("copy table data error")
-			}
-
-		} else {
-			// 否则使用传入记录表
-			getChecksumName = c.Params.CheckSumTable
+		//if c.Params.IsRoutineTrigger {
+		// 例行检查发起的数据修复，用临时表作为修复依据
+		getChecksumName = c.PtTableSyncCtx.tempCheckSumTableName
+		if !c.CopyTableCheckSumReport(syncTable.DbName, syncTable.TableName, getChecksumName) {
+			return fmt.Errorf("copy table data error")
 		}
+
+		//} else {
+		//	// 否则使用传入记录表
+		//	getChecksumName = c.Params.ChecksumTable
+		//}
 
 		// 拼接pt-table-sync 的执行命令
 		syncCmd := fmt.Sprintf(
 			"%s --replicate=%s.%s --sync-to-master --no-buffer-to-client --no-check-child-tables "+
-				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute --algorithms=Nibble ",
+				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute --algorithms=Nibble ", //+
+			//"--where='ticket_id = %d'",
 			PtTableSyncPath, checkSumDB, getChecksumName, chunkSize, syncTable.DbName,
 			syncTable.TableName, tableCharSet, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
+			//c.Params.ChecksumTicketId,
 		)
 
 		logger.Info("executing %s", syncCmd)
@@ -286,14 +294,14 @@ func (c *PtTableSyncComp) getTableSyncMap() (err error) {
 		// 例行检测校验触发的数据修复场景
 		checkSQL = fmt.Sprintf(
 			`select db as DbName ,tbl as TableName from %s.%s where (this_crc <> master_crc or this_cnt <> master_cnt) 
-			 and (ts between '%s' and '%s')  group by db, tbl`,
-			checkSumDB, c.Params.CheckSumTable, c.Params.StartTime, c.Params.EndTime,
+			 and (ts between '%s' and '%s') and ticket_id = %d group by db, tbl`,
+			checkSumDB, checkSumHistoryTable, c.Params.StartTime, c.Params.EndTime, c.Params.ChecksumTicketId,
 		)
 	} else {
 		// 常规校验而触发数据修复
 		checkSQL = fmt.Sprintf(
-			"select db as DbName ,tbl as TableName from %s.%s where this_crc <> master_crc or this_cnt <> master_cnt group by db, tbl",
-			checkSumDB, c.Params.CheckSumTable,
+			"select db as DbName ,tbl as TableName from %s.%s where this_crc <> master_crc or this_cnt <> master_cnt and ticket_id = %d group by db, tbl",
+			checkSumDB, checkSumHistoryTable, c.Params.ChecksumTicketId,
 		)
 	}
 
@@ -311,12 +319,18 @@ func (c *PtTableSyncComp) getTableSyncMap() (err error) {
 // isExistCheckSumTable 判断本地实例是否存在checksum表
 func (c *PtTableSyncComp) isExistCheckSumTable() bool {
 	checkSumSql := fmt.Sprintf(
-		"select 1 from information_schema.tables where TABLE_SCHEMA = '%s' and TABLE_NAME = '%s' ;",
-		checkSumDB, c.Params.CheckSumTable,
+		"select count(*) from information_schema.tables where TABLE_SCHEMA = '%s' and TABLE_NAME IN ('%s', '%s') ;",
+		checkSumDB, checkSumTable, checkSumHistoryTable,
 	)
-	_, err := c.dbConn.Query(checkSumSql)
+
+	var tableCnt int
+	err := c.dbConn.Db.QueryRow(checkSumSql).Scan(&tableCnt)
 	if err != nil {
 		logger.Error(err.Error())
+		return false
+	}
+	if tableCnt != 2 {
+		logger.Error("table %s or %s is not exist", checkSumTable, checkSumHistoryTable)
 		return false
 	}
 	return true
@@ -368,37 +382,43 @@ func (c *PtTableSyncComp) DropSyncUser() (err error) {
 }
 
 // CopyTableCheckSumReport 处理将需要修复表的异常检验结果复制到临时表
-// 这个针对巡检例行校验而触发的数据修复场景
 // 原因是实例的checksum-report是历史表，包括存在很多历史记录，影响到pt-table-sync工具修复进度
 func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName string, tempCheckSumTableName string) bool {
 	// 定义复制数据SQL列表
 	var copySQLs []string
 
 	// 校验必要参数的逻辑
-	if !(c.Params.IsRoutineTrigger && len(c.Params.StartTime) != 0 && len(c.Params.EndTime) != 0) {
+	logger.Info("param: %s\n", c.Params)
+	if !c.Params.IsRoutineTrigger && len(c.Params.StartTime) != 0 && len(c.Params.EndTime) != 0 {
 		logger.Error(
 			"the required parameter is unreasonable,if is_routine_trigger is true, start_time and end_time is not null ",
 		)
 		return false
 	}
 
+	if !c.Params.IsRoutineTrigger {
+		c.Params.StartTime = "1970-01-01 00:00:00"
+		c.Params.EndTime = "2999-01-01 00:00:00"
+	}
+
 	// 导入异常记录在临时表上
 	copySQLs = append(copySQLs, "set sql_log_bin = OFF;")
 	copySQLs = append(copySQLs, fmt.Sprintf("create table if not exists %s.%s like %s.%s ;",
-		checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable))
+		checkSumDB, tempCheckSumTableName, checkSumDB, checkSumHistoryTable))
 	copySQLs = append(copySQLs, fmt.Sprintf("truncate table %s.%s ;", checkSumDB, tempCheckSumTableName))
 	copySQLs = append(
 		copySQLs,
 		fmt.Sprintf(
-			"insert into %s.%s select * from %s.%s  where db = '%s' and tbl = '%s' and ts between '%s' and '%s' ;",
+			"insert into %s.%s select * from %s.%s  where db = '%s' and tbl = '%s' and ts between '%s' and '%s' and ticket_id = %d ;",
 			checkSumDB,
 			tempCheckSumTableName,
 			checkSumDB,
-			c.Params.CheckSumTable,
+			checkSumHistoryTable,
 			DBName,
 			tableName,
 			c.Params.StartTime,
 			c.Params.EndTime,
+			c.Params.ChecksumTicketId,
 		),
 	)
 	copySQLs = append(copySQLs, "set sql_log_bin = ON;")

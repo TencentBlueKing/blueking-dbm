@@ -47,7 +47,7 @@ class PtTableSyncService(ExecuteDBActuatorScriptService):
             "master_port": master_port,
             "sync_user": kwargs["sync_user"],
             "sync_pass": kwargs["sync_pass"],
-            "check_sum_table": kwargs["check_sum_table"],
+            "checksum_ticket_id": kwargs.get("checksum_ticket_id", 0),
             "is_sync_non_innodb": global_data["is_sync_non_innodb"],
         }
 

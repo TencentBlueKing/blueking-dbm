@@ -19,16 +19,49 @@ type Checker struct {
 }
 
 func (c *Checker) Run() (msg string, err error) {
+	var sqls = []string{
+		"set tc_admin = 0;",
+	}
+
+	var infoDBCount int
+	err = c.db.QueryRowx(
+		`SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA  WHERE SCHEMA_NAME = 'infodba_schema';`,
+	).Scan(&infoDBCount)
+	if err != nil {
+		slog.Error(name, slog.String("err", err.Error()))
+		return "", err
+	}
+	slog.Info(name, slog.Int("count(infodba_schema)", infoDBCount))
+
+	if infoDBCount == 0 {
+		slog.Info(name, slog.String("", "need create infodba_schema"))
+		sqls = append(sqls, `create database if not exists infodba_schema`)
+	}
+
+	var procCount int = 0
+	if infoDBCount == 1 {
+
+		err = c.db.QueryRowx(`select count(*) from mysql.proc 
+                where db = 'infodba_schema' and 
+                      name in ('check_all', 'check_db_conflict', 'check_db_conflict_one_ip', 
+                               'check_password', 'dba_grant', 'dba_grant_one_ip', 'dba_grant_one_ip_db');`,
+		).Scan(&procCount)
+		if err != nil {
+			slog.Error(name, slog.String("err", err.Error()))
+			return "", err
+		}
+		slog.Info(name, slog.Int("count(infodba_schema grant proc)", procCount))
+	}
+
+	if procCount == 7 {
+		return "", nil
+	}
+
 	grantProcContent, err := staticembed.ProcedureSQL.ReadFile(staticembed.GrantProcedureSQLFileName)
 	if err != nil {
 		return "", err
 	}
 
-	// 兼容
-	sqls := []string{
-		"set tc_admin = 0;",
-		"create database if not exists infodba_schema",
-	}
 	for _, line := range strings.SplitAfterN(string(grantProcContent), "#", -1) {
 		// 这是在补全, 所以过滤掉 drop 语句
 		if !regexp.MustCompile(`^\\s*$`).MatchString(line) &&

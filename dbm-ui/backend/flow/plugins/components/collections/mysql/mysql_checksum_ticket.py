@@ -26,6 +26,8 @@ class MySQLCheckSumTicket(BaseService):
     """
 
     def _execute(self, data, parent_data) -> bool:
+        trans_data = data.get_one_of_inputs("trans_data")
+
         kwargs = data.get_one_of_inputs("kwargs")
         self.log_info(kwargs)
         checksum_time = datetime.now().astimezone() + timedelta(minutes=20)
@@ -43,6 +45,12 @@ class MySQLCheckSumTicket(BaseService):
             details=details,
         )
         restore_ticket.add_related_ticket(checksum_ticket)
+
+        checksum_ticket_id = checksum_ticket.id
+        self.log_info(f"checksum ticket id: {checksum_ticket_id}")
+        trans_data.checksum_ticket_id = checksum_ticket_id
+
+        data.outputs["trans_data"] = trans_data
         return True
 
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"dbm-services/common/reverseapi/define"
 	"dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/migrate"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,6 +21,11 @@ import (
 
 func generateRun(mode config.CheckMode, configPath string) error {
 	err := config.InitConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	err = migrate.Migrate()
 	if err != nil {
 		return err
 	}
@@ -53,7 +59,7 @@ func generateRun(mode config.CheckMode, configPath string) error {
 			return err
 		}
 		slog.Info("run checksum on master start")
-		err = ck.Run()
+		err = ck.RunV2()
 		if err != nil {
 			slog.Error("run checksum on master", slog.String("error", err.Error()))
 			return err
@@ -68,7 +74,7 @@ func generateRun(mode config.CheckMode, configPath string) error {
 		}
 
 		slog.Info("run checksum on repeater start")
-		err = ck.Run()
+		err = ck.RunV2()
 		if err != nil {
 			slog.Error("run checksum on repeater", slog.String("error", err.Error()))
 			return err

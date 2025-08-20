@@ -126,7 +126,7 @@ class PtTableSyncFlow(object):
                             bk_cloud_id=cluster.bk_cloud_id,
                             sync_user=sync_account,
                             sync_pass=sync_pwd,
-                            check_sum_table=self.data["checksum_table"],
+                            checksum_ticket_id=self.data.get("checksum_ticket_id", 0),
                         )
                     ),
                 )

@@ -132,13 +132,14 @@ func init() {
 	demandForceSwitchStrategies = []switchStrategy{
 		{Name: "resume", Value: false, HasOpposite: false},
 		{Name: "replicate-check", Value: true, HasOpposite: true},
+		{Name: "empty-replicate-table", Value: false, HasOpposite: true},
 	}
 	demandDefaultSwitchStrategies = []switchStrategy{}
 	demandForceKVStrategies = []kvStrategy{
 		{
 			Name: "recursion-method",
 			Value: func(checker *Checker) interface{} {
-				return fmt.Sprintf("dsn=D=%s,t=dsns", checker.resultDB)
+				return fmt.Sprintf("dsn=D=%s,t=dsns", config.ResultDb)
 			},
 			Enable: true,
 		},

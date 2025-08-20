@@ -70,7 +70,7 @@ var subCmdReschedule = &cobra.Command{
 		eid, err := manager.CreateOrReplace(
 			ma.JobDefine{
 				Name:    fmt.Sprintf("mysql-checksum-%d", config.ChecksumConfig.Port),
-				Command: executable,
+				Command: config.Executable,
 				Args: []string{
 					"general",
 					"--config", configPath,

@@ -31,12 +31,10 @@ from backend.db_package.models import Package
 from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
-    CHECKSUM_DB,
     ROLLBACK_DB_TAIL,
     STAGE_DB_HEADER,
     SYSTEM_DBS,
     TDBCTL_USER,
-    CHECKSUM_TABlE_PREFIX,
     ConfigTypeEnum,
     DataSyncSource,
     DBActuatorActionEnum,
@@ -1040,12 +1038,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
-                    "replicate_table": "{}.{}{}".format(
-                        CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
-                    ),
+                    "replicate_table": "infodba_schema.checksum",
+                    # "replicate_table": "{}.{}{}".format(
+                    #     CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
+                    # ),
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
                     "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "ticket_id": self.cluster["ticket_id"],
                 },
             },
         }
@@ -1105,7 +1105,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "is_sync_non_innodb": self.cluster.get("is_sync_non_innodb", False),
                     "sync_user": self.cluster["sync_user"],
                     "sync_pass": self.cluster["sync_pass"],
-                    "check_sum_table": self.cluster["check_sum_table"],
+                    "checksum_ticket_id": self.cluster.get("checksum_ticket_id", 0),
                     "is_routine_trigger": is_routine_trigger,
                 },
             },

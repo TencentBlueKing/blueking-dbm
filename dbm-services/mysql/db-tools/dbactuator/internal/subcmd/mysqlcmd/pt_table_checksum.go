@@ -73,7 +73,7 @@ func (c *PtTableChecksumAct) Run() (err error) {
 		{
 			FunName: "初始化",
 			Func: func() error {
-				return c.Service.Init(c.Uid)
+				return c.Service.Init( /*c.Uid*/ )
 			},
 		},
 		{

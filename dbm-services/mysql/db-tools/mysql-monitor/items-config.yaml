@@ -281,7 +281,7 @@
   role: []
 - name: maintaingrantproc
   enable: true
-  schedule: '@every 1m'
+  schedule: '0 55 23 * * *'
   machine_type:
   - spider
   - remote

@@ -252,7 +252,7 @@ class PtTableSyncKwargs:
     bk_cloud_id: int  # 操作的云区域id
     sync_user: str  # 数据修复时临时账号的名称
     sync_pass: str  # 数据修复时临时账号的密码
-    check_sum_table: str  # 校验结果的表名称
+    checksum_ticket_id: int
     is_routine_checksum: bool = False  # 是否是例行校验而触发的数据修复单据，默认不是，不是代表通过单据校验而触发修复
 
 
@@ -689,3 +689,10 @@ class InitiativeDownloadFileKwargs:
     file_url: str
     md5sum: str
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+
+
+@dataclass
+class WaitingForTicketFinishKwargs:
+    ticket_id_trans_data_key: str
+    success_on_statuses: str = None
+    fail_on_statuses: str = None

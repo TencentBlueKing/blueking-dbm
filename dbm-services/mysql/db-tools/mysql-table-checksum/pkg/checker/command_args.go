@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"log/slog"
 	"os"
@@ -96,7 +97,7 @@ func (r *Checker) ptArgsConnectInfo() []string {
 
 func (r *Checker) ptArgsReplicate() []string {
 	return []string{
-		fmt.Sprintf("--replicate=%s", r.Config.PtChecksum.Replicate),
+		fmt.Sprintf("--replicate=%s.%s", config.ResultDb, config.ResultTable),
 	}
 }
 

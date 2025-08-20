@@ -34,10 +34,9 @@ type Filter struct {
 }
 
 type PtChecksum struct {
-	Path      string                   `yaml:"path"`
-	Switches  []string                 `yaml:"switches"`
-	Args      []map[string]interface{} `yaml:"args"`
-	Replicate string                   `yaml:"replicate"`
+	Path     string                   `yaml:"path"`
+	Switches []string                 `yaml:"switches"`
+	Args     []map[string]interface{} `yaml:"args"`
 }
 
 type Cluster struct {
@@ -93,7 +92,8 @@ func InitConfig(configPath string) error {
 	ChecksumConfig = &Config{
 		Enable: true,
 	}
-	err = yaml.UnmarshalStrict(content, ChecksumConfig)
+	//err = yaml.UnmarshalStrict(content, ChecksumConfig)
+	err = yaml.Unmarshal(content, ChecksumConfig)
 	if err != nil {
 		slog.Error("init config", slog.String("error", err.Error()))
 		return err

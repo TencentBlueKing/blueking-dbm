@@ -5,7 +5,6 @@ import (
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
 	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
@@ -124,7 +123,6 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 					"value": cfg.Runtime,
 				},
 			},
-			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),
 		},
 		Log: &config.LogConfig{
 			Console:    false,

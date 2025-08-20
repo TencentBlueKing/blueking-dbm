@@ -27,11 +27,12 @@ create table if not exists infodba_schema.`checksum`(
     master_crc char(40) DEFAULT NULL,
     master_cnt int(11) DEFAULT NULL,
     ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`master_ip`,`master_port`,`db`,`tbl`,`chunk`),
+    ticket_id BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`master_ip`,`master_port`,`db`,`tbl`,`chunk`,`ticket_id`),
     KEY `ts_db_tbl` (`ts`,`db`,`tbl`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 replace into infodba_schema.checksum
-values('0.0.0.0','3306', 'test', 'test', 0, NULL, NULL, '1=1', '1=1', '0', 0, '0', 0, now());
+values('0.0.0.0','3306', 'test', 'test', 0, NULL, NULL, '1=1', '1=1', '0', 0, '0', 0, 0, now());
 
 CREATE TABLE if not exists infodba_schema.`checksum_history` (
    `master_ip` char(32) NOT NULL DEFAULT '0.0.0.0',
@@ -48,8 +49,9 @@ CREATE TABLE if not exists infodba_schema.`checksum_history` (
    `master_crc` char(40) DEFAULT NULL,
    `master_cnt` int(11) DEFAULT NULL,
    `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   `ticket_id` BIGINT NOT NULL DEFAULT 0,
    `reported` int(11) DEFAULT '0',
-   PRIMARY KEY (`master_ip`,`master_port`,`db`,`tbl`,`chunk`,`ts`),
+   PRIMARY KEY (`master_ip`,`master_port`,`db`,`tbl`,`chunk`,`ticket_id`,`ts`),
    KEY `ts_db_tbl` (`ts`,`db`,`tbl`),
    KEY `idx_reported` (`reported`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

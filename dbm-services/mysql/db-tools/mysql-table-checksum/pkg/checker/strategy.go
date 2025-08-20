@@ -6,9 +6,8 @@ import (
 )
 
 type switchStrategy struct {
-	Name  string
-	Value bool
-	// Enable      bool
+	Name        string
+	Value       bool
 	HasOpposite bool
 }
 

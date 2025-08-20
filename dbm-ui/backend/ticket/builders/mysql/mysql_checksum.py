@@ -107,7 +107,8 @@ class MySQLChecksumFlowParamBuilder(builders.FlowParamBuilder):
 
         # 更新校验表和触发类型 TODO: 考虑用serializer序列化数据
         table_sync_flow.details["ticket_data"].update(
-            checksum_table=self.ticket_data["checksum_table"], trigger_type=MySQLDataRepairTriggerMode.MANUAL.value
+            checksum_ticket_id=self.ticket_data.get("checksum_ticket_id", 0),
+            trigger_type=MySQLDataRepairTriggerMode.MANUAL.value,
         )
         table_sync_flow.save(update_fields=["details"])
 

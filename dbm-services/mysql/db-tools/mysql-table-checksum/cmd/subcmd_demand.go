@@ -21,9 +21,9 @@ func init() {
 	_ = subCmdDemand.MarkPersistentFlagRequired("config")
 	_ = viper.BindPFlag("demand-config", subCmdDemand.PersistentFlags().Lookup("config"))
 
-	subCmdDemand.PersistentFlags().StringP("uuid", "", "", "unique id for each demand")
-	_ = subCmdDemand.MarkPersistentFlagRequired("uuid")
-	_ = viper.BindPFlag("uuid", subCmdDemand.PersistentFlags().Lookup("uuid"))
+	subCmdDemand.PersistentFlags().Int64P("ticket-id", "", 0, "unique id for each demand")
+	_ = subCmdDemand.MarkPersistentFlagRequired("ticket-id")
+	_ = viper.BindPFlag("ticket-id", subCmdDemand.PersistentFlags().Lookup("ticket-id"))
 
 	rootCmd.AddCommand(subCmdDemand)
 }
