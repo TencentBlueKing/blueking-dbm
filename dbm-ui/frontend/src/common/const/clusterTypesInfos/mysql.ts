@@ -49,7 +49,7 @@ export const mysql: ClusterTypeInfo = {
     machineList: [
       {
         id: MachineTypes.TENDBCLUSTER_PROXY,
-        name: t('接入层Master'),
+        name: t('接入层'),
       },
       {
         id: MachineTypes.TENDBCLUSTER_BACKEND,

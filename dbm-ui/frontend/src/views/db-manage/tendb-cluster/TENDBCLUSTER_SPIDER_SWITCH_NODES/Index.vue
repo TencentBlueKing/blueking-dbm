@@ -40,9 +40,7 @@
             v-model="item.host.spec_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             field="host.spec_id"
-            :machine-type="
-              item.host.role === 'spider_slave' ? MachineTypes.TENDBCLUSTER_BACKEND : MachineTypes.TENDBCLUSTER_PROXY
-            "
+            :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
             required />
           <ResourceTagColumn
             v-model="item.labels"
