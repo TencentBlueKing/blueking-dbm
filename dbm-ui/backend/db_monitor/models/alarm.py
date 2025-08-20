@@ -331,11 +331,11 @@ class DutyRule(AuditedModel):
                                 }
                             ],
                             "duty_users": [[{"id": member, "type": "user"} for member in arrange["members"]]],
+                            "group_type": "auto",
+                            "group_number": group_number,
                         }
                         for arrange in self.duty_arranges
                     ],
-                    "group_type": "auto",
-                    "group_number": group_number,
                 }
             )
         #  2. 判断是否存量的轮值规则，如果是，则走更新流程
