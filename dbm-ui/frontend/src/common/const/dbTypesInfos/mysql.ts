@@ -26,7 +26,7 @@ export const mysql: DbInfoType = {
     id: DBTypes.TENDBCLUSTER,
     machineList: [
       {
-        label: t('接入层Master'),
+        label: t('接入层'),
         value: MachineTypes.TENDBCLUSTER_PROXY,
       },
       {
