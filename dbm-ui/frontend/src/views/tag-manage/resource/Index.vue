@@ -23,9 +23,12 @@
           {{ t('全局') }}
         </BkTag>
         <span class="title-divider">|</span>
-        <BusinessSelector
-          v-model="curBizId"
-          @change="handleBizChange" />
+        <DbAppSelect
+          :list="bizs"
+          :model-value="curBiz"
+          type="text"
+          @change="handleBizChange">
+        </DbAppSelect>
       </div>
       <div
         v-else
@@ -41,7 +44,7 @@
       <div class="header-action mb-16">
         <BkButton
           class="operation-btn"
-          :disabled="curBizId === 0"
+          :disabled="curBiz?.bk_biz_id === 0"
           theme="primary"
           @click="handleCreate">
           {{ t('新建') }}
@@ -77,7 +80,7 @@
     </div>
     <CreateTag
       v-model:is-show="isCreateTagDialogShow"
-      :biz-id="curBizId"
+      :biz-id="curBiz?.bk_biz_id"
       @create="handleCreateSuccess" />
   </div>
 </template>
@@ -89,17 +92,26 @@
   import { useRequest } from 'vue-request';
 
   import ResourceTagModel from '@services/model/db-resource/ResourceTag';
+  import type { getBizs } from '@services/source/cmdb';
   import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
+
+  import DbAppSelect from '@components/db-app-select/Index.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
 
-  import BusinessSelector from './components/BusinessSelector.vue';
+  import { useGlobalBizs } from '@/stores';
+
   import CreateTag from './components/CreateTag.vue';
   import EditableCell from './components/EditableCell.vue';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+  const { bizs, currentBizInfo, publicBiz } = useGlobalBizs();
+
+  const isBusiness = route.name === 'BizResourceTag';
 
   const tableRef = ref();
   const selected = ref<ResourceTagModel[]>([]);
@@ -108,11 +120,8 @@
   const curEditId = ref(-1);
   const searchValue = ref([]);
 
+  const curBiz = shallowRef(isBusiness ? currentBizInfo : publicBiz);
   const bindIpMap = shallowRef<Map<number, number>>(new Map()); // 标签ID与当前标签绑定的IP数的映射
-
-  const isBusiness = route.name === 'BizResourceTag';
-
-  const curBizId = ref(isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0);
 
   const searchSelectData = [
     {
@@ -255,7 +264,7 @@
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value.fetchData({
       ...searchParams,
-      bk_biz_id: curBizId.value,
+      bk_biz_id: curBiz.value?.bk_biz_id,
       ordering: '-create_at',
       type: 'resource',
     });
@@ -282,7 +291,7 @@
       ),
       onConfirm: () => {
         runDelete({
-          bk_biz_id: curBizId.value,
+          bk_biz_id: curBiz.value!.bk_biz_id,
           ids: selectedIds.value,
         });
       },
@@ -298,13 +307,13 @@
   const handleBlur = (data: ResourceTagModel, val: string) => {
     if (val && data.value !== val) {
       validateTag({
-        bk_biz_id: curBizId.value,
+        bk_biz_id: curBiz.value!.bk_biz_id,
         tags: [{ key: 'dbresource', value: val }],
         type: 'resource',
       }).then((existData) => {
         if (existData.length === 0) {
           runUpdate({
-            bk_biz_id: curBizId.value,
+            bk_biz_id: curBiz.value!.bk_biz_id,
             id: data.id,
             type: 'resource',
             value: val,
@@ -324,13 +333,13 @@
 
   const handleDelete = (data: ResourceTagModel) => {
     runDelete({
-      bk_biz_id: curBizId.value,
+      bk_biz_id: curBiz.value!.bk_biz_id,
       ids: [data.id],
     });
   };
 
-  const handleBizChange = (bkBizId: number) => {
-    curBizId.value = bkBizId;
+  const handleBizChange = (appInfo?: IAppItem) => {
+    curBiz.value = appInfo;
     fetchData();
   };
 
@@ -349,7 +358,7 @@
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof listTag>) => {
     getRelatedResource({
-      bk_biz_id: curBizId.value,
+      bk_biz_id: curBiz.value!.bk_biz_id,
       ids: data.results.map((item) => item.id),
       resource_type: 'resource',
     });
