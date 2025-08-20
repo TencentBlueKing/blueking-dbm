@@ -319,8 +319,8 @@ class DataAPI(object):
                     if self.after_request is not None:
                         response_result = self.after_request(response_result)
 
-                if self.cache_time and "cache_key" in locals():
-                    self._set_cache(locals()["cache_key"], response_result)
+                    if self.cache_time and "cache_key" in locals():
+                        self._set_cache(locals()["cache_key"], response_result)
 
                 response = DataResponse(response_result, self.request_id)
                 return response
