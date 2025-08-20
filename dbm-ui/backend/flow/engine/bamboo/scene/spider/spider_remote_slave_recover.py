@@ -233,7 +233,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     sub_flow=mysql_restore_data_sub_flow(
                         root_id=self.root_id,
                         ticket_data=copy.deepcopy(self.data),
-                        cluster=cluster,
+                        cluster=ins_cluster,
                         cluster_model=cluster_class,
                         filter_ips=filter_ips,
                     )
