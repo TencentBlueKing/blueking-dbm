@@ -31,6 +31,7 @@ export default () => {
         const fileInfo = fileDataMap.value[sqlFileName];
         if (fileInfo) {
           fileDataMap.value[sqlFileName].content = data.content;
+          fileDataMap.value[sqlFileName].file = new File([data.content], fileName);
         }
       })
       .finally(() => {
