@@ -41,6 +41,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
+	"go.uber.org/zap"
 )
 
 const (
@@ -54,6 +55,7 @@ type Service struct {
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
 	db           *hamysql.DB
+	logger       *zap.Logger // only for the gRPC
 }
 
 func (s *Service) createDiscovery() error {
@@ -63,6 +65,7 @@ func (s *Service) createDiscovery() error {
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
+		discovery.OptionLogger(s.logger),
 	)
 
 	if err != nil {
@@ -93,7 +96,10 @@ func (s *Service) updateInfo() {
 		return
 	}
 
-	if err = s.regCli.SetService(context.Background(), string(data)); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	if err = s.regCli.SetService(ctx, string(data)); err != nil {
 		logger.Warn("failed to update the service info in the registry, errmsg: %v", err)
 	}
 }

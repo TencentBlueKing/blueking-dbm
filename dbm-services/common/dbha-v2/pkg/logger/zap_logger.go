@@ -35,6 +35,10 @@ type ZapLogger struct {
 	sugaredLogger *zap.SugaredLogger
 }
 
+func (z *ZapLogger) OriginLogger() *zap.Logger {
+	return z.logger
+}
+
 func (z *ZapLogger) Debug(format string, args ...interface{}) {
 	z.sugaredLogger.Debugf(format, args...)
 }

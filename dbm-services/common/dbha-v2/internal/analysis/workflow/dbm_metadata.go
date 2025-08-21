@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -44,12 +45,14 @@ import (
 const (
 	minUpdateDbmCacheInterval = 5 * time.Second
 	maxCountPerPage           = 200
+	electionName              = "sync-dbm-metadata"
 )
 
 type DbmMetadata struct {
-	db      *hamysql.DB
-	httpCli *hanet.HttpClient
-	wg      sync.WaitGroup
+	db           *hamysql.DB
+	httpCli      *hanet.HttpClient
+	wg           sync.WaitGroup
+	discoveryCli *discovery.Client
 }
 
 func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
@@ -135,8 +138,6 @@ func (dbm *DbmMetadata) queryMetadataFromDBM(ctx context.Context) error {
 		}
 
 		if len(metaRsp.Data) == 0 {
-			logger.Debug("metadata respond is empty, idx: %d api: %s, code: %d resp: %s errmsg: %v",
-				idx, config.Cfg.Workflow.DbmApiMetadata.Api, code, string(resp), err)
 			continue
 		}
 
@@ -153,14 +154,51 @@ func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
 		logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
 	}
 
+	election, err := dbm.discoveryCli.CreateElection(electionName)
+	if err != nil {
+		return err
+	}
+
+	dbm.wg.Add(1)
 	go func() {
 		defer dbm.wg.Done()
+
+		if err := election.Campaign(ctx); err != nil {
+			election.Close()
+			logger.Warn("election failure, errmsg: %v", err)
+			election = nil
+		}
 
 		timer := time.NewTimer(config.Cfg.Workflow.UpdateDbmCacheInterval)
 
 		for {
+
+			if election == nil {
+				election, err = dbm.discoveryCli.CreateElection(electionName)
+				if err != nil {
+					election.Close()
+					logger.Warn("election failure, errmsg: %v", err)
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+
+				if err := election.Campaign(ctx); err != nil {
+					election.Close()
+					logger.Warn("election failure, errmsg: %v", err)
+					election = nil
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+			}
+
 			select {
+			case <-election.Done():
+				election.Close()
+				logger.Warn("network anomaly requires a re-election")
+				election = nil
+
 			case <-ctx.Done():
+				election.Close()
 				logger.Info("exit dbm metadata manager")
 				return
 

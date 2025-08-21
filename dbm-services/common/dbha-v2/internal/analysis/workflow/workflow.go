@@ -51,8 +51,11 @@ type Workflow struct {
 
 func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
-		hadata:       &DbhaData{db: db},
-		dbmMetadata:  &DbmMetadata{db: db},
+		hadata: &DbhaData{db: db},
+		dbmMetadata: &DbmMetadata{
+			db:           db,
+			discoveryCli: cli,
+		},
 		cfg:          cfg,
 		discoveryCli: cli,
 		quit:         make(chan struct{}, 1),
@@ -69,6 +72,7 @@ func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) 
 	if retErr != nil {
 		return retErr
 	}
+	defer mu.Close()
 
 	if retErr = mu.TryLock(ctx); retErr != nil {
 		return retErr
