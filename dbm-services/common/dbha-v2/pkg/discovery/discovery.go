@@ -53,14 +53,15 @@ type WatchEvent struct {
 
 // Discovery service discovery
 type Discovery struct {
-	quit   chan struct{}
-	client *clientv3.Client
-	wg     sync.WaitGroup
+	quit             chan struct{}
+	cliMu            sync.RWMutex
+	client           *clientv3.Client
+	createEtcdClient func() (*clientv3.Client, error)
+	wg               sync.WaitGroup
 }
 
 // Watch Subscribe to target key events and receive data from the watch channel.
 func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, error) {
-
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
@@ -70,14 +71,25 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 		d.quit = make(chan struct{})
 	}
 
+	d.cliMu.Lock()
+	if d.client == nil {
+		etcdCli, err := d.createEtcdClient()
+		if err != nil {
+			d.cliMu.Unlock()
+			return nil, err
+		}
+		d.client = etcdCli
+	}
+
 	// set watcher
 	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
 	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
 
+	d.cliMu.Unlock()
+
 	d.wg.Add(1)
 
 	go func() {
-
 		defer d.wg.Done()
 		defer close(watchEventChan)
 		for {
@@ -91,6 +103,16 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 				return
 
 			case watchResp := <-watchChan:
+				if err := watchResp.Err(); err != nil {
+					d.cliMu.Lock()
+					d.client.Close()
+					d.client = nil
+					d.cliMu.Unlock()
+
+					logger.Error("failed to read watch event, errmsg: %v", err)
+					return
+				}
+
 				for _, event := range watchResp.Events {
 					switch event.Type {
 					case clientv3.EventTypePut:
@@ -120,7 +142,6 @@ func (d *Discovery) Watch(ctx context.Context, key string) (chan *WatchEvent, er
 
 // WatchWithPrefix Subscribe to target key events with preifix and receive data from the watch channel.
 func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *WatchEvent, error) {
-
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return nil, gerrors.New(gerrors.InvalidParameter, "the watched key is required")
@@ -130,9 +151,21 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 		d.quit = make(chan struct{})
 	}
 
+	d.cliMu.Lock()
+	if d.client == nil {
+		etcdCli, err := d.createEtcdClient()
+		if err != nil {
+			d.cliMu.Unlock()
+			return nil, err
+		}
+		d.client = etcdCli
+	}
+
 	// set watcher
 	watchChan := d.client.Watch(ctx, key, clientv3.WithPrefix())
 	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
+
+	d.cliMu.Unlock()
 
 	d.wg.Add(1)
 
@@ -152,6 +185,15 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 				return
 
 			case watchResp := <-watchChan:
+				if err := watchResp.Err(); err != nil {
+					d.cliMu.Lock()
+					d.client.Close()
+					d.client = nil
+					d.cliMu.Unlock()
+					logger.Error("failed to read watch event, errmsg: %v", err)
+					return
+				}
+
 				for _, event := range watchResp.Events {
 					switch event.Type {
 					case clientv3.EventTypePut:
@@ -181,8 +223,9 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (chan *Watc
 
 // Get Only get the value of the key.
 func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
-
 	key = strings.TrimSpace(key)
+	d.cliMu.RLock()
+	defer d.cliMu.RUnlock()
 
 	resp, err := d.client.Get(ctx, key)
 	if err != nil {
@@ -204,8 +247,9 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 
 // GetWithPrefix Get all values that start with the specified key preifix.
 func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][]byte, error) {
-
 	key = strings.TrimSpace(key)
+	d.cliMu.RLock()
+	defer d.cliMu.RUnlock()
 
 	resp, err := d.client.Get(ctx, key, clientv3.WithPrefix())
 

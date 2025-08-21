@@ -25,29 +25,16 @@
 package discovery
 
 import (
-	"context"
-
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-type ConcurrencyMutex interface {
-	TryLock(ctx context.Context) error
-	Unlock(ctx context.Context) error
-}
-
-type concurrencyMutex struct {
-	session *concurrency.Session
-	mutex   *concurrency.Mutex
-	key     string
-}
-
 // Client etcd client
 type Client struct {
-	opts    options
-	etcdCli *clientv3.Client
+	opts             options
+	createEtcdClient func() (*clientv3.Client, error)
 }
 
 // NewClientWithOptions create etcd client with option
@@ -66,33 +53,36 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceName
 	}
 
-	if cli.opts.serviceID != "" {
-		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceID
-	}
+	cli.createEtcdClient = func() (*clientv3.Client, error) {
+		etcdCli, err := clientv3.New(cli.opts.Config())
+		if err != nil {
+			return nil, gerrors.Newf(gerrors.ComponentFailure, "%v", err)
+		}
 
-	etcdCli, err := clientv3.New(cli.opts.Config())
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "%v", err)
+		return etcdCli, nil
 	}
-	cli.etcdCli = etcdCli
 
 	return cli, nil
 }
 
 // OriginClient return the origin etcd client
-func (c Client) OriginClient() *clientv3.Client {
-	return c.etcdCli
+func (c Client) OriginClient() (*clientv3.Client, error) {
+	return c.createEtcdClient()
 }
 
 // CreateRegistry create new etcd registry
 func (c Client) CreateRegistry() (*Registry, error) {
+	rootKey := c.opts.registryRootKeyPrefix
+	if c.opts.serviceID != "" {
+		rootKey += "/" + c.opts.serviceID
+	}
+
 	registry := &Registry{
-		serviceId: c.opts.serviceID,
-		rootKey:   c.opts.registryRootKeyPrefix,
-		ttl:       defaultTTL,
-		quit:      make(chan struct{}),
-		eventChan: make(chan *RegistryEvent, c.opts.bufferMaxSize),
-		client:    c.etcdCli,
+		serviceID:        c.opts.serviceID,
+		rootKey:          rootKey,
+		ttl:              defaultTTL,
+		quit:             make(chan struct{}),
+		createEtcdClient: c.createEtcdClient,
 	}
 
 	return registry, nil
@@ -101,38 +91,56 @@ func (c Client) CreateRegistry() (*Registry, error) {
 // CreateDiscovery create etcd discovery
 func (c Client) CreateDiscovery() (*Discovery, error) {
 	discovery := &Discovery{
-		quit:   make(chan struct{}),
-		client: c.etcdCli,
+		quit:             make(chan struct{}),
+		createEtcdClient: c.createEtcdClient,
 	}
 
 	return discovery, nil
 }
 
+// CreateMutex returns concurrency mutex.
 func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
-	session, err := concurrency.NewSession(c.etcdCli)
+	etcdCli, err := c.createEtcdClient()
 	if err != nil {
-		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+		return nil, err
 	}
 
+	session, err := concurrency.NewSession(etcdCli)
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+	}
+
+	muKey := c.opts.registryRootKeyPrefix + "/mutex/" + key
 	mu := &concurrencyMutex{
+		etcdCli: etcdCli,
 		session: session,
-		key:     c.opts.registryRootKeyPrefix + "/" + key,
+		key:     muKey,
+		mutex:   concurrency.NewMutex(session, muKey),
 	}
 
-	mu.mutex = concurrency.NewMutex(session, mu.key)
 	return mu, nil
 }
 
-func (c *concurrencyMutex) TryLock(ctx context.Context) error {
-	if err := c.mutex.TryLock(context.Background()); err != nil {
-		return gerrors.Newf(gerrors.Failure, "%v", err)
+// CreateElection returns concurrency election.
+func (c Client) CreateElection(name string) (ConcurrencyElection, error) {
+	etcdCli, err := c.createEtcdClient()
+	if err != nil {
+		return nil, err
 	}
-	return nil
-}
 
-func (c *concurrencyMutex) Unlock(ctx context.Context) error {
-	if err := c.mutex.Unlock(context.Background()); err != nil {
-		return gerrors.Newf(gerrors.Failure, "%v", err)
+	session, err := concurrency.NewSession(etcdCli)
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
 	}
-	return nil
+
+	electionKey := c.opts.registryRootKeyPrefix + "/election/leader/" + name
+
+	election := &concurrencyElection{
+		etcdCli:  etcdCli,
+		session:  session,
+		election: concurrency.NewElection(session, electionKey),
+		key:      c.opts.serviceID,
+	}
+
+	return election, nil
 }

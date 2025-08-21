@@ -30,11 +30,13 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 )
 
 const (
 	defaultChannelBuffMaxSize    = 1024
 	defaultTTL                   = 6
+	defaultMaxUnaryRetries       = 3
 	defaultDialTimeout           = 5 * time.Second
 	defaultAutoSyncInterval      = 60 * time.Second
 	defaultKeepAliveTime         = 30 * time.Second
@@ -54,6 +56,7 @@ var defaultOptions = options{
 	keepAliveTime:         defaultKeepAliveTime,
 	keepAliveTimeout:      defaultKeepAliveTimeout,
 	registryRootKeyPrefix: defaultRegistryRootKeyPrefix,
+	maxUnaryRetries:       defaultMaxUnaryRetries,
 }
 
 type options struct {
@@ -69,6 +72,8 @@ type options struct {
 	keepAliveTime         time.Duration
 	keepAliveTimeout      time.Duration
 	registryRootKeyPrefix string
+	maxUnaryRetries       uint
+	Logger                *zap.Logger
 }
 
 func (o options) Config() clientv3.Config {
@@ -91,6 +96,12 @@ func (o options) Config() clientv3.Config {
 		// DialKeepAliveTimeout is the time that the client waits for a response for the
 		// keep-alive probe. If the response is not received in this time, the connection is closed.
 		DialKeepAliveTimeout: o.keepAliveTimeout,
+
+		// MaxUnaryRetries is the maximum number of retries for unary RPCs.
+		MaxUnaryRetries: 5,
+
+		// Logger export the gRPC log into the custom.
+		Logger: o.Logger,
 	}
 }
 
@@ -214,6 +225,24 @@ func OptionRegistryRootKeyPrefix(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.registryRootKeyPrefix = val
+			return nil
+		},
+	}
+}
+
+func OptionMaxUnaryRetries(val uint) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.maxUnaryRetries = val
+			return nil
+		},
+	}
+}
+
+func OptionLogger(val *zap.Logger) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.Logger = val
 			return nil
 		},
 	}
