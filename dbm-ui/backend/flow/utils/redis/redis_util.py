@@ -9,12 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
+from collections import defaultdict
 from typing import Dict, List
+
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, RedisCapacityUpdateType
 
@@ -240,3 +243,39 @@ def get_tendisplus_shutdown_hosts(cluster_id, target_group_num: int, update_mode
         shutdown_master_hosts.append(master_ip)
         shutdown_slave_hosts.append(master_slave_dict[master_ip])
     return shutdown_master_hosts, shutdown_slave_hosts
+
+
+def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
+    """
+    获取迁移单据时需要下架的机器
+    """
+    ips = set()
+    migrate_ports = defaultdict(set)
+    shutdown_hosts = []
+    for ins in src_ins_list:
+        ip = ins.split(IP_PORT_DIVIDER)[0]
+        port = int(ins.split(IP_PORT_DIVIDER)[1])
+
+        ips.add(ip)
+        migrate_ports[ip].add(port)
+
+    # 查询出ips对应的所有实例
+    storages = StorageInstance.find_storage_instance_by_ip(list(ips)).filter(bk_biz_id=bk_biz_id)
+
+    exist_ports = defaultdict(set)
+    # 遍历实例，确认端口，如果端口都没了，就是要下架的机器
+    for s in storages:
+        ip = s.machine.ip
+        port = s.port
+        exist_ports[ip].add(port)
+
+    for ip in list(ips):
+        if ip not in exist_ports:
+            raise Exception(_("有ip[{}]不在元数据中".format(ip)))
+        # 如果迁移端口不在已有端口中，报错
+        if len(migrate_ports[ip] - exist_ports[ip]) > 0:
+            raise Exception(_("{}有迁移端口{}不在元数据中".format(ip, migrate_ports[ip] - exist_ports[ip])))
+        if len(exist_ports[ip] - migrate_ports[ip]) == 0:
+            shutdown_hosts.append(ip)
+
+    return shutdown_hosts

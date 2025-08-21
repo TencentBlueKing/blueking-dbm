@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
-from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -19,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_LAST_IO_SECOND_AGO, DEFAULT_MASTER_DIFF_TIME, DEPENDENCIES_PLUGINS, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -45,6 +44,50 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
+# {
+#     "bk_biz_id": 10,
+#     "bk_cloud_id": 0,
+#     "uid": "2022051612120001",
+#     "created_by":"admin",
+#     "ticket_type":"REDIS_SINGLE_INS_MIGRATE",
+#     "infos":[
+#         {
+#           "src_cluster":[
+#               {
+#                   "cluster_id": "257",
+#                   "master_ins": "1.1.1.1:30005",
+#                   "slave_ins":"1.1.1.2:30005"
+#               },{
+#                   "cluster_id": "258",
+#                   "master_ins": "1.1.1.1:30006",
+#                   "slave_ins":"1.1.1.2:30006"
+#               }
+#           ],
+#           "db_version":"Redis-6",
+#           "dest_master": "2.2.2.1",
+#           "dest_slave": "2.2.2.2",
+#           "resource_spec":{
+#                       ....
+#           }
+#         },
+#         {
+#           "src_cluster":[
+#               {
+#                   "cluster_id": "259",
+#                   "master_ins": "1.1.1.1:30007",
+#                   "slave_ins":"1.1.1.2:30007"
+#               }
+#           ],
+#           "db_version":"Redis-6",
+#           "dest_master": "2.2.2.3",
+#           "dest_slave": "2.2.2.4",
+#           "resource_spec":{
+#               ...
+#           }
+#         }
+#     ]
+# }
+
 
 class RedisSingleInsMigrateFlow(object):
     """
@@ -60,91 +103,82 @@ class RedisSingleInsMigrateFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def __pre_check(self) -> dict:
+    def __pre_check(self, info) -> dict:
         """
-        检查参数
-        1、新机器端口是否冲突
-        2、新机器主从是否一致
-        3、新机器版本是否一致
-        4、机器角色是否混用
+        参数检查：
+            1、端口是否有冲突
+            2、cluster_type是否一致
+            3、传参和实际ip是否一致
+            4、检查是否与目标端IP端口冲突
+        数据整理：
+            1、安装端口list
+            2、部署版本
+            3、源实例版本、映射 关系
         """
-        machine_ports = defaultdict(list)
-        src_master_list = defaultdict(list)
-        machine_link = {}
-        new_db_version = {}
-        cluster_type_map = {}
-        slave_ip_list = []
-        master_ip_list = []
-        machine_spec_dict = {}
-        for info in self.data["infos"]:
-            cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=self.data["bk_biz_id"])
-            origin_db_version = cluster.major_version
-            master = info["dest_master"]
-            slave = info["dest_slave"]
-            version = info.get("db_version") or origin_db_version
-            src_master = info["src_master"]
-            port = int(src_master.split(IP_PORT_DIVIDER)[1])
+        # TODO 目前是从资源池获取，先判断目标IP是否被使用。 后续视情况是否改成机器合并场景
+        m = Machine.objects.filter(ip__in=[info["dest_master"], info["dest_slave"]]).values("ip")
+        if len(m) != 0:
+            raise Exception("[{}] is used.".format(m))
 
-            if master in slave_ip_list:
-                raise Exception(_("{} 不能既是master又是slave".format(master)))
-            if slave in master_ip_list:
-                raise Exception(_("{} 不能既是master又是slave".format(slave)))
+        target_cluster_type = ""
+        src_ports = []
+        src_master_list = []
+        old_master_slave = {}
+        src_ips = set()
 
-            # 之前没遍历过这个ip
-            if master not in new_db_version:
-                new_db_version[master] = version
-                machine_link[master] = slave
-                master_ip_list.append(master)
-                slave_ip_list.append(slave)
-                machine_spec_dict[master] = info["resource_spec"]["master"]
-                machine_spec_dict[slave] = info["resource_spec"]["slave"]
-                cluster_type_map[master] = cluster.cluster_type
-
-            else:
-                if version != new_db_version[master]:
-                    raise Exception(_("{}:db_version:{}不一致".format(master, version)))
-                if port in machine_ports[master]:
-                    raise Exception(_("{}:port:{}冲突".format(master, port)))
-                if slave != machine_link[master]:
-                    raise Exception(_("{}存在不同slave".format(master)))
-                if cluster_type_map[master] != cluster.cluster_type:
-                    raise Exception(_("{}存在不同cluster_type".format(master)))
-
-            machine_ports[master].append(port)
-
-            # 获取源实例的slave实例
+        for ins in info["src_cluster"]:
+            cluster_id = ins["cluster_id"]
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+            cluster_type = cluster.cluster_type
             master_obj = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)[0]
-            old_master_ip = master_obj.machine.ip
-            if old_master_ip != src_master.split(IP_PORT_DIVIDER)[0]:
-                raise Exception(_("{}和集群{}不匹配".format(master, cluster.immute_domain)))
-            if master_obj.port != port:
-                raise Exception(_("{}端口不匹配, 传参为{}, 实际端口为{}".format(cluster.immute_domain, master_obj.port, port)))
+            meta_old_master_ip = master_obj.machine.ip
+            meta_old_slave_ip = master_obj.as_ejector.get().receiver.machine.ip
+            meta_port = master_obj.port
 
-            old_slave_ip = master_obj.as_ejector.get().receiver.machine.ip
+            if target_cluster_type != "" and target_cluster_type != cluster_type:
+                raise Exception(_("源端实例类型不一致，请先统一类型后再迁移"))
+
+            old_master_ins = ins["master_ins"]
+            old_slave_ins = ins["slave_ins"]
+            if old_master_ins.split(IP_PORT_DIVIDER)[0] != meta_old_master_ip:
+                raise Exception(_("源端实例IP{}与集群{}元数据{}不一致，不支持迁移", old_master_ins, cluster_id, meta_old_master_ip))
+            if old_slave_ins.split(IP_PORT_DIVIDER)[0] != meta_old_slave_ip:
+                raise Exception(_("源端实例IP{}与集群{}元数据{}不一致，不支持迁移", old_slave_ins, cluster_id, meta_old_slave_ip))
+
+            port = int(old_master_ins.split(IP_PORT_DIVIDER)[1])
+            if port != meta_port:
+                raise Exception(_("源端实例port{}与集群{}元数据{}不一致，不支持迁移", port, cluster_id, meta_port))
+            if port in src_ports:
+                raise Exception(_("源端实例端口{}冲突，不支持迁移", port))
+
+            if meta_old_master_ip in old_master_slave:
+                if old_master_slave[meta_old_master_ip] != meta_old_slave_ip:
+                    raise Exception(_("{}存在不同slave".format(meta_old_master_ip)))
+            else:
+                old_master_slave[meta_old_master_ip] = meta_old_slave_ip
+
+            src_ports.append(port)
+            target_cluster_type = cluster.cluster_type
 
             # 默认主从实例的端口是一致的
-            src_master_list[master].append(
+            src_master_list.append(
                 {
-                    "old_master_ip": old_master_ip,
-                    "old_slave_ip": old_slave_ip,
+                    "old_master_ip": meta_old_master_ip,
+                    "old_slave_ip": meta_old_slave_ip,
                     "port": port,
-                    "cluster_id": info["cluster_id"],
+                    "cluster_id": cluster_id,
                     "cluster_name": cluster.name,
-                    "origin_db_version": origin_db_version,
+                    "origin_db_version": cluster.major_version,
                     "immute_domain": cluster.immute_domain,
                 }
             )
+            src_ips.add(meta_old_master_ip)
+            src_ips.add(meta_old_slave_ip)
 
         return {
-            # 新机器主从机器对应关系
-            "repl_dict": machine_link,
-            # 新master机器对应的源实例相关信息列表
-            "src_master_info": dict(src_master_list),
-            # 新机器对应版本
-            "new_db_version": new_db_version,
-            # 新机器对应规格
-            "machine_spec_dict": machine_spec_dict,
-            "cluster_type_map": cluster_type_map,
+            "src_ips": list(src_ips),
+            "src_master_list": src_master_list,
+            "cluster_type": target_cluster_type,
         }
 
     def get_redis_install_sub_pipelines(self, act_kwargs, master_ip, slave_ip, spec_info, src_master_info) -> list:
@@ -159,8 +193,8 @@ class RedisSingleInsMigrateFlow(object):
             "ip": master_ip,
             "ports": [port],
             "instance_numb": 1,
-            "spec_id": spec_info[master_ip]["id"],
-            "spec_config": spec_info[master_ip],
+            "spec_id": spec_info["id"],
+            "spec_config": spec_info,
             # 老实例的db版本，主要用来获取配置
             "origin_db_version": src_master_info["origin_db_version"],
         }
@@ -183,8 +217,8 @@ class RedisSingleInsMigrateFlow(object):
             "ip": slave_ip,
             "ports": [port],
             "instance_numb": 1,
-            "spec_id": spec_info[slave_ip]["id"],
-            "spec_config": spec_info[slave_ip],
+            "spec_id": spec_info["id"],
+            "spec_config": spec_info,
             "origin_db_version": src_master_info["origin_db_version"],
         }
         install_redis_sub_pipeline.append(
@@ -225,21 +259,24 @@ class RedisSingleInsMigrateFlow(object):
         return sync_relations
 
     def redis_single_ins_migrate_flow(self):
-        # 检查参数
-        # 初始化需要信息(slave_ins/domain_name)
-        # 安装实例
-        # 建立主从关系
-        # 切换
-        # 下架老实例
-        # 更新dbmon
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        info = self.__pre_check()
-
+        # 单行记录，目标机器是同一台机器的迁移
         sub_pipelines = []
-        for master_ip, slave_ip in info["repl_dict"].items():
-            all_ip = [master_ip, slave_ip]
-            db_version = info["new_db_version"][master_ip]
-            src_master_list = info["src_master_info"][master_ip]
+        for info in self.data["infos"]:
+            """
+            0、初始化配置，下发介质
+            1、安装实例
+            2、主从复制
+            3、切换
+            4、下架
+            """
+            migrate_data = self.__pre_check(info)
+            dest_master_ip = info["dest_master"]
+            dest_slave_ip = info["dest_slave"]
+            dest_ips = [dest_master_ip, dest_slave_ip]
+            db_version = info["db_version"]
+            cluster_type = migrate_data["cluster_type"]
+            src_master_list = migrate_data["src_master_list"]
 
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
@@ -250,8 +287,10 @@ class RedisSingleInsMigrateFlow(object):
             act_kwargs.cluster["sync_type"] = SyncType.SYNC_MMS.value
             act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
             act_kwargs.cluster["bk_cloud_id"] = self.data["bk_cloud_id"]
-            act_kwargs.cluster["cluster_type"] = info["cluster_type_map"][master_ip]
+            act_kwargs.cluster["cluster_type"] = cluster_type
+
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
@@ -259,9 +298,9 @@ class RedisSingleInsMigrateFlow(object):
             # 下发介质包
             trans_files = GetFileList(db_type=DBType.Redis)
             act_kwargs.file_list = trans_files.redis_cluster_apply_backend(db_version)
-            act_kwargs.exec_ip = all_ip
+            act_kwargs.exec_ip = dest_ips
             sub_pipeline.add_act(
-                act_name=_("Redis-{}-下发介质包").format(all_ip),
+                act_name=_("Redis-{}-下发介质包").format(dest_ips),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -269,7 +308,7 @@ class RedisSingleInsMigrateFlow(object):
             # 初始化插件
             act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
             sub_pipeline.add_act(
-                act_name=_("Redis-{}-初始化机器").format(all_ip),
+                act_name=_("Redis-{}-初始化机器").format(dest_ips),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
@@ -277,13 +316,13 @@ class RedisSingleInsMigrateFlow(object):
             acts_list = []
             acts_list.append(
                 {
-                    "act_name": _("Redis-{}-安装backup-client工具").format(all_ip),
+                    "act_name": _("Redis-{}-安装backup-client工具").format(dest_ips),
                     "act_component_code": DownloadBackupClientComponent.code,
                     "kwargs": asdict(
                         DownloadBackupClientKwargs(
                             bk_cloud_id=self.data["bk_cloud_id"],
                             bk_biz_id=int(self.data["bk_biz_id"]),
-                            download_host_list=all_ip,
+                            download_host_list=dest_ips,
                         ),
                     ),
                 }
@@ -295,21 +334,21 @@ class RedisSingleInsMigrateFlow(object):
                         "act_component_code": InstallNodemanPluginServiceComponent.code,
                         "kwargs": asdict(
                             InstallNodemanPluginKwargs(
-                                bk_cloud_id=int(self.data["bk_cloud_id"]), ips=all_ip, plugin_name=plugin_name
+                                bk_cloud_id=int(self.data["bk_cloud_id"]), ips=dest_ips, plugin_name=plugin_name
                             )
                         ),
                     }
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 密码可能不一致 ，需要能够按照端口安装Redis实例
+            # 密码可能不一致 ，按照端口安装Redis实例
             src_sub_pipelines = []
             for src_master_info in src_master_list:
                 src_sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
                 act_kwargs.cluster["cluster_name"] = src_master_info["cluster_name"]
                 src_sub_pipeline.add_parallel_sub_pipeline(
                     self.get_redis_install_sub_pipelines(
-                        act_kwargs, master_ip, slave_ip, info["machine_spec_dict"], src_master_info
+                        act_kwargs, dest_master_ip, dest_slave_ip, info["resource_spec"], src_master_info
                     )
                 )
 
@@ -319,8 +358,8 @@ class RedisSingleInsMigrateFlow(object):
                     "sync_type": act_kwargs.cluster["sync_type"],
                     "origin_1": src_master_info["old_master_ip"],
                     "origin_2": src_master_info["old_slave_ip"],
-                    "sync_dst1": master_ip,
-                    "sync_dst2": slave_ip,
+                    "sync_dst1": dest_master_ip,
+                    "sync_dst2": dest_slave_ip,
                     "ins_link": [{"origin_1": port, "origin_2": port, "sync_dst1": port, "sync_dst2": port}],
                 }
                 src_sub_pipeline.add_sub_pipeline(
@@ -351,16 +390,11 @@ class RedisSingleInsMigrateFlow(object):
                     )
                 src_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_shutdown_sub_pipelines)
 
-                src_sub_pipelines.append(
-                    src_sub_pipeline.build_sub_process(sub_name=_("{}同步子流程").format(src_master_info["cluster_name"]))
-                )
-                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=src_sub_pipelines)
-
                 if src_master_info["origin_db_version"] != db_version:  # 更新元数据中集群版本
                     act_kwargs.cluster["cluster_ids"] = [src_master_info["cluster_id"]]
                     act_kwargs.cluster["db_version"] = db_version
                     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_cluster_version_update.__name__
-                    sub_pipeline.add_act(
+                    src_sub_pipeline.add_act(
                         act_name=_("Redis-元数据更新集群版本"),
                         act_component_code=RedisDBMetaComponent.code,
                         kwargs=asdict(act_kwargs),
@@ -372,27 +406,32 @@ class RedisSingleInsMigrateFlow(object):
                     act_kwargs.cluster["target_version"] = src_master_info["origin_db_version"]
 
                     act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
-                    sub_pipeline.add_act(
+                    src_sub_pipeline.add_act(
                         act_name=_("{}-dbconfig更新版本").format(src_master_info["immute_domain"]),
                         act_component_code=RedisDBMetaComponent.code,
                         kwargs=asdict(act_kwargs),
                     )
 
-                # 刷新dbmon
-                acts_list = []
-                for ip in [master_ip, slave_ip, src_master_info["old_master_ip"], src_master_info["old_slave_ip"]]:
-                    act_kwargs.exec_ip = ip
-                    act_kwargs.cluster["ip"] = ip
-                    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-                    acts_list.append(
-                        {
-                            "act_name": _("{}-重装bkdbmon").format(ip),
-                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                            "kwargs": asdict(act_kwargs),
-                        }
-                    )
-                sub_pipeline.add_parallel_acts(acts_list)
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("主从实例迁移至{}").format(master_ip)))
+                src_sub_pipelines.append(
+                    src_sub_pipeline.build_sub_process(sub_name=_("{}同步子流程").format(src_master_info["cluster_name"]))
+                )
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=src_sub_pipelines)
+
+            # 刷新dbmon
+            acts_list = []
+            for ip in [dest_master_ip, dest_slave_ip] + migrate_data["src_ips"]:
+                act_kwargs.exec_ip = ip
+                act_kwargs.cluster["ip"] = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("{}-重装bkdbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list)
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("主从实例迁移至{}").format(dest_master_ip)))
 
         redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)
         redis_pipeline.run_pipeline()

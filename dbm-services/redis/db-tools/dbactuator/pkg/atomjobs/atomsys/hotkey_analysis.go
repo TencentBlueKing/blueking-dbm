@@ -3,19 +3,20 @@ package atomsys
 import (
 	"bufio"
 	"container/heap"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
+	"unicode"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -234,18 +235,19 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 		// 按行读取文件内容
 		for scanner.Scan() {
 			line := scanner.Text() // 获取当前行的内容
+			entry, err := parseLogLine(line)
+			if err != nil {
+				job.runtime.Logger.Warn("%s parse log error [%+s]", line, err.Error())
+				continue
+			}
 
-			splitList := strings.Split(line, " ")
-			if len(splitList) < 13 {
-				job.runtime.Logger.Warn("%s is Illegal")
+			if len(entry.Keys) == 0 {
+				job.runtime.Logger.Warn("%s parse log keys is empty", line)
 				continue
 			}
 			// key 大小写区分。 cmd 大小写不区分
-			key := strings.Trim(splitList[12], "\"")
-			cmd := strings.ToLower(strings.Trim(splitList[11], "\""))
-			if cmd == "auth" {
-				key = "******"
-			}
+			key := entry.Keys[0]
+			cmd := entry.Cmd
 
 			//统计
 			allTotalCount++
@@ -325,6 +327,10 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 		left++
 		right--
 	}
+	if hotkeyList == nil || len(hotkeyList) == 0 {
+		job.runtime.Logger.Info(fmt.Sprintf("list is empty skip.."))
+		return
+	}
 	ret, err := cli.Do(http.MethodPost, ReportUrl, HotkeyParams{HotKeyInfos: hotkeyList})
 	if err != nil {
 		job.runtime.Logger.Error(err.Error())
@@ -383,4 +389,177 @@ func (h *MinHeap) Pop() interface{} {
 	x := old[n-1]
 	*h = old[0 : n-1]
 	return x
+}
+
+// LogEntry 代表一行日志的所有字段
+type LogEntry struct {
+	Time     time.Time // 日志时间
+	ClientIP string    // 客户端 IP:PORT
+	ServerIP string    // 服务器 IP:PORT
+	Cmd      string    // Redis 命令（大写）
+	Keys     []string  // 解析出的 key 列表
+	Args     []string  // 所有参数（含 key）
+	RawLine  string    // 原始行
+}
+
+var logRe = regexp.MustCompile(
+	`(?s)^\[([^\]]+)\]\s+client:\s+(\S+)\s+=>\s+(\S+)(?:\s+\[[^\]]+\])?.*?\s("(?:[^"\\]|\\.)*"(?:\s+"(?:[^"\\]|\\.)*")*)\s*$`)
+
+func parseLogLine(line string) (*LogEntry, error) {
+	m := logRe.FindStringSubmatch(line)
+	if len(m) != 5 {
+		return nil, fmt.Errorf("line format not match")
+	}
+
+	// 1. 时间
+	t, err := time.ParseInLocation("2006-01-02 15:04:05", m[1], time.Local)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. 拆分命令及参数
+	args := tokenizeArgs(m[4])
+	if len(args) == 0 {
+		return nil, fmt.Errorf("no command")
+	}
+	cmd := strings.ToUpper(args[0])
+
+	// 3. 计算 keys
+	keys := extractKeys(cmd, args)
+
+	return &LogEntry{
+		Time:     t,
+		ClientIP: m[2],
+		ServerIP: m[3],
+		Cmd:      cmd,
+		Keys:     keys,
+		Args:     args,
+		RawLine:  line,
+	}, nil
+}
+
+// 把 "cmd" "arg1" "arg2" ... 拆成 []string（已去引号）
+func tokenizeArgs(s string) []string {
+	s = strings.TrimSpace(s)
+	var out []string
+	var cur strings.Builder
+	inQuote := false
+	escaped := false
+	for _, r := range s {
+		switch {
+		case escaped:
+			cur.WriteRune(r)
+			escaped = false
+		case r == '\\':
+			escaped = true
+		case r == '"' && !inQuote:
+			inQuote = true
+		case r == '"' && inQuote:
+			out = append(out, cur.String())
+			cur.Reset()
+			inQuote = false
+		case unicode.IsSpace(r) && !inQuote:
+			continue
+		default:
+			cur.WriteRune(r)
+		}
+	}
+	return out
+}
+
+// 根据命令类型提取 key
+func extractKeys(cmd string, args []string) []string {
+	switch strings.ToUpper(cmd) {
+
+	case "AUTH":
+		return []string{"********"}
+
+	// 1. 带 numkeys 的命令
+	case "EVAL", "EVALSHA",
+		"ZUNION", "ZINTER", "ZDIFF",
+		"ZUNIONSTORE", "ZINTERSTORE", "ZDIFFSTORE",
+		"SUNIONSTORE", "SINTERSTORE", "SDIFFSTORE":
+		if len(args) < 3 {
+			return nil
+		}
+		numKeys, _ := strconv.Atoi(args[2])
+		end := 3 + numKeys
+		if end > len(args) {
+			return nil
+		}
+		return args[3:end]
+
+	// 2. XREAD / XREADGROUP
+	case "XREAD", "XREADGROUP":
+		// 找到 STREAMS 关键字
+		idx := -1
+		for i, a := range args {
+			if strings.ToUpper(a) == "STREAMS" {
+				idx = i
+				break
+			}
+		}
+		if idx == -1 || idx+2 > len(args) {
+			return nil
+		}
+		// key 个数 = (剩余参数长度) / 2
+		rest := len(args) - idx - 1
+		keyCnt := rest / 2
+		return args[idx+1 : idx+1+keyCnt]
+
+	// 3. MIGRATE 的 KEYS 子句
+	case "MIGRATE":
+		idx := -1
+		for i, a := range args {
+			if strings.ToUpper(a) == "KEYS" {
+				idx = i
+				break
+			}
+		}
+		if idx == -1 {
+			// 单 key 写法：MIGRATE host port key ...
+			if len(args) < 4 {
+				return nil
+			}
+			return []string{args[3]}
+		}
+		return args[idx+1:]
+
+	// 4. BLPOP / BRPOP / BRPOPLPUSH / BLMOVE / BZPOP* / BZMPOP
+	case "BLPOP", "BRPOP", "BRPOPLPUSH", "BLMOVE",
+		"BZPOPMIN", "BZPOPMAX", "BZMPOP":
+		if len(args) < 3 {
+			return nil
+		}
+		return args[1 : len(args)-1] // 最后一个是 timeout
+
+	// 5. SORT / SORT_RO 的 STORE 子句
+	case "SORT", "SORT_RO":
+		keys := []string{args[1]} // 第 1 个 key
+		for i := 2; i < len(args)-1; i++ {
+			if strings.ToUpper(args[i]) == "STORE" {
+				keys = append(keys, args[i+1])
+			}
+		}
+		return keys
+
+	// 6. GEORADIUS* 的 STORE / STOREDIST
+	case "GEORADIUS", "GEORADIUS_RO",
+		"GEORADIUSBYMEMBER", "GEORADIUSBYMEMBER_RO":
+		keys := []string{args[1]} // key
+		for i := 2; i < len(args)-1; i++ {
+			upper := strings.ToUpper(args[i])
+			if upper == "STORE" || upper == "STOREDIST" {
+				keys = append(keys, args[i+1])
+			}
+		}
+		return keys
+
+	// 7. 其余命令：默认第 1 个参数就是 key
+	default:
+		if len(args) < 2 {
+			return nil
+		}
+		return []string{args[1]}
+	}
 }
