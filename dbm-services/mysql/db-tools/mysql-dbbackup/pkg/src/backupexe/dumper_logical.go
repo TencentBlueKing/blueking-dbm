@@ -245,8 +245,8 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo
 			MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
 		}
 	}
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
-
+	metaInfo.JudgeBackupMethod(cnf)
+	metaInfo.JudgeLogicalFilter(cnf)
 	return nil
 }
 

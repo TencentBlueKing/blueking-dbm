@@ -31,11 +31,13 @@ func addCrontabLegacy(port int, schedule string) (err error) {
 		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),
 		cst.DbbackupGoInstallPath,
 	)
+	logger.Info("crond register cmd: %s", scheduleCmd)
 	str, err := osutil.ExecShellCommand(false, scheduleCmd)
 	if err != nil {
 		logger.Error(
 			"failed to register dbbackup-schedule to crond: %s(%s)", str, err.Error(),
 		)
+		return err
 	}
 	return nil
 }
@@ -53,11 +55,13 @@ func addCrontabSpider(role string, port int, schedule string) (err error) {
 		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),
 		cst.DbbackupGoInstallPath,
 	)
+	logger.Info("crond register cmd: %s", scheduleCmd)
 	str, err := osutil.ExecShellCommand(false, scheduleCmd)
 	if err != nil {
 		logger.Error(
 			"failed to register spiderbackup tasks to crond: %s(%s)", str, err.Error(),
 		)
+		return err
 	}
 	return nil
 }
@@ -128,7 +132,6 @@ func addOneCrond(port int) (err error) {
 	if backupCfg.ClusterType == cst.TendbCluster {
 		err = addCrontabSpider(backupCfg.Role, port, opt.CrontabTime)
 		if err != nil {
-			logger.Error(err.Error())
 			return err
 		}
 		return nil
@@ -136,7 +139,6 @@ func addOneCrond(port int) (err error) {
 	} else {
 		err = addCrontabLegacy(port, opt.CrontabTime)
 		if err != nil {
-			logger.Error(err.Error())
 			return err
 		}
 		return nil

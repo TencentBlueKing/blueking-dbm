@@ -54,9 +54,9 @@ type BackupMetaFileBase struct {
 	// BackupBeginTime use time.RFC3339
 	BackupBeginTime time.Time `json:"backup_begin_time" db:"backup_begin_time"`
 	BackupEndTime   time.Time `json:"backup_end_time" db:"backup_end_time"`
-
 	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
 	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`
+	BackupMethod         string    `json:"backup_method" db:"backup_method"`
 }
 
 // IndexContent the content of the index file
@@ -131,11 +131,13 @@ type ExtraFields struct {
 	// 正常不关注这个备份目录，因为文件上传的到远程之后，都是用相对目录
 	// 但如果从本地获取备份文件，需要这个目录来定位
 	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
+	// BackupFilter backup object filter db.table
+	BackupFilter string `json:"backup_filter" db:"backup_filter"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
 // 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
-func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
+func (i *IndexContent) judgeIsFullBackup(cnf *config.Public) bool {
 	if cnf.IsFullBackup < 0 {
 		i.IsFullBackup = false
 		return false
@@ -155,7 +157,53 @@ func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
 		i.IsFullBackup = true
 	}
 	i.IsFullBackup = true
+
+	if cnf.BillId != "" {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByTicket
+		} else {
+			i.BackupMethod = config.BackupPartialByTicket
+		}
+	} else {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByRegular
+		} else {
+			i.BackupMethod = config.BackupNonFullByRegular
+		}
+	}
 	return true
+}
+
+func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
+	i.judgeIsFullBackup(&cnf.Public)
+
+	if cnf.Public.BillId != "" {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByTicket
+		} else {
+			i.BackupMethod = config.BackupPartialByTicket
+		}
+	} else {
+		if i.IsFullBackup {
+			i.BackupMethod = config.BackupFullByRegular
+		} else {
+			i.BackupMethod = config.BackupNonFullByRegular
+		}
+	}
+}
+
+func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {
+	// 物理备份目前不支持备份部分库表
+	if cnf.Public.BackupType == cst.BackupPhysical {
+		return ""
+	}
+	if i.IsFullBackup {
+		i.BackupFilter = cnf.LogicalBackup.Regex
+		//i.BackupFilter = "*.*"
+	} else {
+		i.BackupFilter = cnf.LogicalBackup.Regex
+	}
+	return i.BackupFilter
 }
 
 func (r *BackupLogReport) BuildMetaInfo(cnf *config.BackupConfig, metaInfo *IndexContent) error {

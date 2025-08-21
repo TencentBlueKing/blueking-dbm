@@ -248,7 +248,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 // PrepareBackupMetaInfo prepare the backup result of Physical Backup(innodb)
 // xtrabackup备份完成后，解析 xtrabackup_info 等文件
 func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	metaInfo.JudgeBackupMethod(cnf)
 	// 物理备份，在 tarball 阶段再获取binlog info
 	//return nil
 

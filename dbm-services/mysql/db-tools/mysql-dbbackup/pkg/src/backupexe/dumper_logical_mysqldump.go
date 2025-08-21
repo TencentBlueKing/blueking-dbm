@@ -362,7 +362,8 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig,
 			MasterPort: l.slaveStatus.MasterPort,
 		}
 	}
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	metaInfo.JudgeBackupMethod(cnf)
+	metaInfo.JudgeLogicalFilter(cnf)
 	return nil
 }
 

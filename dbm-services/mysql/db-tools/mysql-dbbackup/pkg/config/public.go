@@ -166,3 +166,14 @@ func (c *Public) TargetName() string {
 func (c *Public) SetTargetName(targetName string) {
 	c.targetName = targetName
 }
+
+const (
+	// BackupFullByRegular 例行全备
+	BackupFullByRegular = "full_by_regular"
+	// BackupNonFullByRegular 例行非全备,data_grant_schema != 'all' or data_grant_schema != "data,schema")
+	BackupNonFullByRegular = "non_full_by_regular"
+	// BackupFullByTicket 单据全库备份
+	BackupFullByTicket = "full_by_ticket"
+	// BackupPartialByTicket 单据库表备份
+	BackupPartialByTicket = "partial_by_ticket"
+)

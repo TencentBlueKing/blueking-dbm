@@ -259,7 +259,7 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, 
 	}
 
 	// teh mark indicating whether the update is a full backup or not
-	metaInfo.JudgeIsFullBackup(&cnf.Public)
+	metaInfo.JudgeBackupMethod(cnf)
 	if err = os.Remove(tmpFileName); err != nil {
 		logger.Log.Errorf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
 		return err
