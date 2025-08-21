@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -25,6 +27,12 @@ from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
 
+class ExecuteSQLObjectsSerializer(serializers.Serializer):
+    dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
+    ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
+    sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
+
+
 class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
     sql_filenames = serializers.ListField(help_text=_("sql文件名列表"), child=serializers.CharField(), required=False)
@@ -35,9 +43,18 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
     versions = serializers.ListField(help_text=_("版本列表"), child=serializers.CharField(), default=[], required=False)
+    execute_objects = serializers.CharField(help_text=_("sql执行体信息"), required=False)
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
+
+    def validate_execute_objects(self, value):
+        execute_objects = json.loads(value)
+        for execute_object in execute_objects:
+            serializer = ExecuteSQLObjectsSerializer(data=execute_object)
+            if not serializer.is_valid():
+                raise serializers.ValidationError(serializer.errors)
+        return execute_objects
 
     def validate(self, attrs):
         if not (attrs.get("sql_content") or attrs.get("sql_files") or attrs.get("sql_filenames")):
@@ -65,10 +82,7 @@ class SQLGrammarCheckResponseSerializer(serializers.Serializer):
 
 
 class SQLSemanticCheckSerializer(serializers.Serializer):
-    class ExecuteSQLObjectSerializer(serializers.Serializer):
-        dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
-        ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField())
-        sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
+    class ExecuteSQLObjectSerializer(ExecuteSQLObjectsSerializer):
         import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
 
     class SQLImportModeSerializer(serializers.Serializer):
