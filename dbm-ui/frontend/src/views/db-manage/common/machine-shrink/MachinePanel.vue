@@ -26,7 +26,9 @@
       class="mb16"
       theme="warning">
       <template #title>
-        <I18nT keypath="当前仅剩n台 IP_无法缩容">
+        <I18nT
+          keypath="当前仅剩n台 IP_无法缩容"
+          scope="global">
           <span>{{ data.originalNodeList.length }}</span>
         </I18nT>
       </template>
@@ -41,7 +43,9 @@
         </template>
         <div class="data-preview-table">
           <div class="data-preview-header">
-            <I18nT keypath="共n台，共nG">
+            <I18nT
+              keypath="共n台，共nG"
+              scope="global">
               <span
                 class="number"
                 style="color: #3a84ff">
@@ -103,12 +107,14 @@
         class="mt-16">
         <I18nT
           keypath="当前容量：nG"
+          scope="global"
           tag="span">
           <span style="font-weight: bolder">{{ data.totalDisk }}</span>
         </I18nT>
         ，
         <I18nT
           keypath="缩容后预估：nG"
+          scope="global"
           tag="span">
           <span style="font-weight: bolder">{{ estimateCapacity }}</span>
         </I18nT>

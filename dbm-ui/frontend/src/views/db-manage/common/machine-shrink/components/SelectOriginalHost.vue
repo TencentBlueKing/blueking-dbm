@@ -26,6 +26,7 @@
       <I18nT
         class="mr-16"
         keypath="已选n台_共nG"
+        scope="global"
         tag="span">
         <span
           class="number"

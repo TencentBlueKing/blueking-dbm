@@ -20,6 +20,7 @@
             <span>{{ t('被替换的节点 IP') }}</span>
             <I18nT
               keypath="(共n台_磁盘容量nG)"
+              scope="global"
               tag="span">
               <span style="padding: 0 4px">
                 {{ oldHostList.length }}
@@ -37,6 +38,7 @@
                 <I18nT
                   v-if="oldHostList.length > hostList.length"
                   keypath="已选n台_少n台_共nG"
+                  scope="global"
                   style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
@@ -46,6 +48,7 @@
                 <I18nT
                   v-else-if="oldHostList.length < hostList.length"
                   keypath="已选n台_多n台_共nG"
+                  scope="global"
                   style="color: #ea3636"
                   tag="span">
                   <span>{{ hostList.length }}</span>
@@ -54,7 +57,8 @@
                 </I18nT>
                 <I18nT
                   v-else
-                  keypath="已选n台_共nG">
+                  keypath="已选n台_共nG"
+                  scope="global">
                   <span>{{ hostList.length }}</span>
                   <span>{{ localHostDisk }}</span>
                 </I18nT>
