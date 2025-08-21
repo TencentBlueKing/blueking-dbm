@@ -125,6 +125,6 @@ func (suite *ClusterTagDbAccessTestSuite) TestBatchCreateClusterTag() {
 	assert.Equal(t, batchClusterTagSamples[0].ClusterTag, foundClusterTags[0].ClusterTag)
 }
 
-func TestClusterTagDbAccessTestSuite(t *testing.T) {
+func TestClusterTagDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterTagDbAccessTestSuite))
 }

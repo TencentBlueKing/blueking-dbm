@@ -183,6 +183,6 @@ func (suite *AddonTopologyDbAccessTestSuite) TestListAddonTopologyByLimit() {
 	}
 }
 
-func TestAddonTopologyDbAccessTestSuite(t *testing.T) {
+func TestAddonTopologyDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonTopologyDbAccessTestSuite))
 }

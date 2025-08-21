@@ -168,6 +168,6 @@ func (suite *ClusterRequestDbAccessTestSuite) TestListClusterRequestByPage() {
 	}
 }
 
-func TestClusterRequestDbAccessTestSuite(t *testing.T) {
+func TestClusterRequestDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterRequestDbAccessTestSuite))
 }

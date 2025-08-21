@@ -131,6 +131,6 @@ func (suite *OpsRequestDbAccessTestSuite) TestGetOpsRequest() {
 	assert.Equal(t, opsRequest.OpsRequestType, foundOpsRequest.OpsRequestType)
 }
 
-func TestOpsRequestDbAccessTestSuite(t *testing.T) {
+func TestOpsRequestDbAccess(t *testing.T) {
 	suite.Run(t, new(OpsRequestDbAccessTestSuite))
 }

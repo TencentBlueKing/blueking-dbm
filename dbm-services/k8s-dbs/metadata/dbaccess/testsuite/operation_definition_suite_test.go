@@ -133,6 +133,6 @@ func (suite *OperationDefinitionDbAccessTestSuite) TestListOperationDefinitionsB
 	}
 }
 
-func TestOpDefinitionDbAccessTestSt(t *testing.T) {
+func TestOperationDefinitionDbAccess(t *testing.T) {
 	suite.Run(t, new(OperationDefinitionDbAccessTestSuite))
 }

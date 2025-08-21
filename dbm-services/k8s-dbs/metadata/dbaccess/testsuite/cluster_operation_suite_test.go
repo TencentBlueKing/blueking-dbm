@@ -128,6 +128,6 @@ func (suite *ClusterOperationDbAccessTestSuite) TestListClusterOperationByPage()
 	}
 }
 
-func TestClusterOperationDbAccessTestSt(t *testing.T) {
+func TestClusterOperationDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterOperationDbAccessTestSuite))
 }

@@ -134,6 +134,6 @@ func (suite *ComponentOperationDbAccessTestSuite) TestListComponentOperationsByP
 	}
 }
 
-func TestCmpOperationDbAccessTestSt(t *testing.T) {
+func TestComponentOperationDbAccess(t *testing.T) {
 	suite.Run(t, new(ComponentOperationDbAccessTestSuite))
 }

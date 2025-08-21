@@ -180,6 +180,6 @@ func (suite *K8sClusterConfigDbAccessTestSuite) TestFindRegionsByParams() {
 	assert.NotNil(t, regions)
 }
 
-func TestK8sClusterConfigDbAccessTestSt(t *testing.T) {
+func TestK8sClusterConfigDbAccess(t *testing.T) {
 	suite.Run(t, new(K8sClusterConfigDbAccessTestSuite))
 }

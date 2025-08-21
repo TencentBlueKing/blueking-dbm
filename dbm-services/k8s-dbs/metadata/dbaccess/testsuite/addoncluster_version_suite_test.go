@@ -192,6 +192,6 @@ func (suite *AddonClusterVersionDbAccessTestSuite) TestListAddonClusterVersionsB
 	}
 }
 
-func TestClusterVersionDbAccessTestSt(t *testing.T) {
+func TestAddonClusterVersionDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonClusterVersionDbAccessTestSuite))
 }

@@ -203,6 +203,6 @@ func (suite *ClusterDbAccessTestSuite) TestListClustersByPage() {
 	}
 }
 
-func TestClusterDbAccessTestSuite(t *testing.T) {
+func TestClusterDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterDbAccessTestSuite))
 }

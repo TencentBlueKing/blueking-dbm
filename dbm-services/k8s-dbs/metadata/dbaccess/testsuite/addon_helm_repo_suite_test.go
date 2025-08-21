@@ -206,6 +206,6 @@ func (suite *AddonHelmRepoDbAccessTestSuite) TestListAddonHelmReposByPage() {
 	}
 }
 
-func TestAddonHelmRepoDbAccessTestSuite(t *testing.T) {
+func TestAddonHelmRepoDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonHelmRepoDbAccessTestSuite))
 }

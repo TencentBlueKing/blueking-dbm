@@ -203,6 +203,6 @@ func (suite *AddonClusterHelmRepoDbAccessTestSuite) TestListAddonClusterHelmRepo
 	}
 }
 
-func TestClusterHelmRepoDbAccessTestSt(t *testing.T) {
+func TestAddonClusterHelmRepoDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonClusterHelmRepoDbAccessTestSuite))
 }

@@ -138,6 +138,6 @@ func (suite *ComponentDbAccessTestSuite) TestDeleteComponentByClusterID() {
 	assert.Equal(t, uint64(1), rows)
 }
 
-func TestComponentDbAccessTestSuite(t *testing.T) {
+func TestComponentDbAccess(t *testing.T) {
 	suite.Run(t, new(ComponentDbAccessTestSuite))
 }

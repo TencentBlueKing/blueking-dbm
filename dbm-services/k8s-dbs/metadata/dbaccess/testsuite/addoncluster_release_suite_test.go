@@ -218,6 +218,6 @@ func (suite *AddonClusterReleaseDbAccessTestSuite) TestListAddonClusterReleaseBy
 	}
 }
 
-func TestClusterReleaseDbAccessTestSt(t *testing.T) {
+func TestAddonClusterReleaseDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonClusterReleaseDbAccessTestSuite))
 }

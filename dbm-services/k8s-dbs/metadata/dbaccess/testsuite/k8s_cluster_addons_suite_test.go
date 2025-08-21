@@ -179,6 +179,6 @@ func (suite *K8sClusterAddonsDbAccessTestSuite) TestFindK8sClusterAddonsByParams
 	assert.Equal(t, k8sClusterAddons.K8sClusterName, foundK8sClusterAddons[0].K8sClusterName)
 }
 
-func TestK8sClusterAddonsDbAccessTestSt(t *testing.T) {
+func TestK8sClusterAddonsDbAccess(t *testing.T) {
 	suite.Run(t, new(K8sClusterAddonsDbAccessTestSuite))
 }

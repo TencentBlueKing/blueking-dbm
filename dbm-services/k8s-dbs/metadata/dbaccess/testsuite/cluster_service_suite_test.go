@@ -147,6 +147,6 @@ func (suite *ClusterServiceDbAccessTestSuite) TestGetClusterService() {
 	assert.Equal(t, clusterService.Description, foundClusterService.Description)
 }
 
-func TestClusterServiceDbAccessTestSuite(t *testing.T) {
+func TestClusterServiceDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterServiceDbAccessTestSuite))
 }

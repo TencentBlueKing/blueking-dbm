@@ -126,6 +126,6 @@ func (suite *AddonCategoryDbAccessTestSuite) TestListAddonCategoryByLimit() {
 	}
 }
 
-func TestAddonCategoryDbAccessTestSuite(t *testing.T) {
+func TestAddonCategoryDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonCategoryDbAccessTestSuite))
 }

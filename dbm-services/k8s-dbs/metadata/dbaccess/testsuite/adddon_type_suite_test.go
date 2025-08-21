@@ -147,6 +147,6 @@ func (suite *AddonTypeDbAccessTestSuite) TestListAddonTypeByLimit() {
 	}
 }
 
-func TestAddonTypeDbAccessTestSuite(t *testing.T) {
+func TestAddonTypeDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonTypeDbAccessTestSuite))
 }

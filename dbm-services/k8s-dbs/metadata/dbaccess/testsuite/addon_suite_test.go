@@ -237,6 +237,6 @@ func (suite *AddonDbAccessTestSuite) TestFindStorageAddonVersByParams() {
 	assert.Equal(t, addon.SupportedVersions, versions[0].SupportedVersions)
 }
 
-func TestStorageAddonDbAccessTestSuite(t *testing.T) {
+func TestAddonDbAccess(t *testing.T) {
 	suite.Run(t, new(AddonDbAccessTestSuite))
 }
