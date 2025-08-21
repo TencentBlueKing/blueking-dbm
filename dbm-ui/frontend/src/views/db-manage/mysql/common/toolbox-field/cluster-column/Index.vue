@@ -16,10 +16,11 @@
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
-    :label="t('目标集群')"
+    :label="t(label)"
     :loading="loading"
-    :min-width="200"
-    required>
+    :min-width="minWidth"
+    required
+    :rowspan="rowspan">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -61,14 +62,17 @@
      */
     allowRepeat?: boolean;
     /**
-     * 选择器tab集群类型，不传默认 TENDBHA
+     * 选择器tab集群类型
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    label?: string;
+    minWidth?: number;
     /**
      * @description 只允许选择单一类型的集群
      * @default false
      */
     onlyOneType?: boolean;
+    rowspan?: number;
     selected: {
       cluster_type: ClusterTypes;
       id: number;
@@ -87,7 +91,10 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    label: '目标集群',
+    minWidth: 200,
     onlyOneType: false,
+    rowspan: 1,
     supportOfflineData: false,
     tabListConfig: () =>
       ({
@@ -133,7 +140,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -152,8 +159,10 @@
   });
 
   const handleChange = (value: string) => {
-    modelValue.value.id = 0;
-    modelValue.value.master_domain = value;
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as TendbhaModel;
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
