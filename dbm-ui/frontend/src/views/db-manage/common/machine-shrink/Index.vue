@@ -22,7 +22,7 @@
     <BkLoading :loading="loading">
       <div class="machine-shrink-wrapper">
         <NodeStatusList
-          ref="nodeStatusList"
+          ref="nodeStatusListRef"
           v-model="nodeType"
           :list="nodeStatusList"
           :node-info="modelValue" />
@@ -52,6 +52,7 @@
 </template>
 <script lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { useCreateTicket } from '@hooks';
@@ -171,7 +172,7 @@
     },
   });
 
-  const nodeStatusListRef = useTemplateRef('nodeStatusList');
+  const nodeStatusListRef = useTemplateRef('nodeStatusListRef');
   const nodeType = ref(Object.keys(modelValue.value)[0]);
 
   const nodeStatusList = computed(() =>
@@ -179,6 +180,23 @@
       key,
       label: modelValue.value[key].label,
     })),
+  );
+
+  watch(
+    isShow,
+    () => {
+      if (!isShow.value) {
+        return;
+      }
+      const firstNotEmptyNodeType = _.find(
+        Object.keys(modelValue.value),
+        (nodeType) => modelValue.value[nodeType].hostList.length > 0,
+      );
+      nodeType.value = firstNotEmptyNodeType ? firstNotEmptyNodeType : Object.keys(modelValue.value)[0];
+    },
+    {
+      immediate: true,
+    },
   );
 
   // 缩容节点主机修改

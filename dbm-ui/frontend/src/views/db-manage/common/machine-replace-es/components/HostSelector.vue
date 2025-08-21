@@ -37,6 +37,7 @@
         <template #submitTips="{ hostList: resultHostList }">
           <I18nT
             keypath="需n台_已选n台"
+            scope="global"
             style="font-size: 14px; color: #63656e"
             tag="span">
             <span

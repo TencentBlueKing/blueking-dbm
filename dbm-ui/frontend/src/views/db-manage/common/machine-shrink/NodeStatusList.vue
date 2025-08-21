@@ -70,10 +70,10 @@
 
   const validateStatusMemo = reactive(
     props.list.reduce(
-      (result, item) => ({
-        ...result,
-        [item.key]: false,
-      }),
+      (result, item) =>
+        Object.assign(result, item, {
+          [item.key]: false,
+        }),
       {} as Record<string, boolean>,
     ),
   );
@@ -85,7 +85,9 @@
 
   defineExpose<Exposes>({
     validate() {
-      Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
+      Object.keys(validateStatusMemo).forEach((key) => {
+        validateStatusMemo[key] = true;
+      });
       return Object.values(props.nodeInfo).some((nodeData) => nodeData.hostList.length > 0);
     },
   });

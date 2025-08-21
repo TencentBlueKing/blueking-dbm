@@ -15,7 +15,9 @@
     v-if="hostList.length > 0"
     class="data-preview-table">
     <div class="data-preview-header">
-      <I18nT keypath="共n台_共nGB">
+      <I18nT
+        keypath="共n台_共nGB"
+        scope="global">
         <span
           class="number"
           style="color: #3a84ff">

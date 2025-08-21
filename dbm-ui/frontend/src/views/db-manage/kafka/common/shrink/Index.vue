@@ -86,7 +86,6 @@
 
         nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
         nodeInfoMap.broker.totalDisk = brokerDiskTotal;
-        console.log('nodeInfoMap', nodeInfoMap);
       })
       .finally(() => {
         isLoading.value = false;

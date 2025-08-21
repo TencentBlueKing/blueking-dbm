@@ -33,7 +33,9 @@
         </div>
         <div class="form-block-item">
           <div class="form-block-title">
-            <I18nT keypath="扩容数量（当前n台）">
+            <I18nT
+              keypath="扩容数量（当前n台）"
+              scope="global">
               {{ originalHostNums }}
             </I18nT>
             <span class="required-flag">*</span>
@@ -51,12 +53,14 @@
       class="disk-tips mt-16">
       <I18nT
         keypath="当前容量：nG"
+        scope="global"
         tag="span">
         <span style="font-weight: bolder">{{ data.totalDisk }}</span>
       </I18nT>
       ，
       <I18nT
         keypath="扩容后预估：nG"
+        scope="global"
         tag="span">
         <span style="font-weight: bolder">{{ estimateCapacity + data.totalDisk }}</span>
       </I18nT>

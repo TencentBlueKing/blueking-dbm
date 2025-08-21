@@ -133,8 +133,6 @@
       const coldHostList: TShrinkNode['hostList'] = [];
       const clientHostList: TShrinkNode['hostList'] = [];
 
-      console.log('watch machiline  = ', props.machineList);
-
       let hotShrinkDisk = 0;
       let coldShrinkDisk = 0;
       let clientShrinkDisk = 0;
