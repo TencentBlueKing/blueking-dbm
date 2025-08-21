@@ -94,7 +94,7 @@
     [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
-    [TicketTypes.MYSQL_CHECKSUM]: 'MySQLChecksum', // Mysql 数据校验修复
+    [TicketTypes.MYSQL_CHECKSUM]: TicketTypes.MYSQL_CHECKSUM, // Mysql 数据校验修复
     [TicketTypes.MYSQL_CLB_BIND_DOMAIN]: 'DatabaseTendbha', // mysql 主域名指向CLB ip
     [TicketTypes.MYSQL_CLB_UNBIND_DOMAIN]: 'DatabaseTendbha', // mysql 解绑主域名指向clb
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
@@ -180,7 +180,7 @@
     [TicketTypes.TENDBCLUSTER_ADD_CLB]: 'tendbClusterList', // tendbcluster 启用clb
     [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
-    [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum
+    [TicketTypes.TENDBCLUSTER_CHECKSUM]: TicketTypes.TENDBCLUSTER_CHECKSUM, // Spider checksum
     [TicketTypes.TENDBCLUSTER_CLB_BIND_DOMAIN]: 'tendbClusterList', // tendbcluster 主域名指向CLB ip
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
     [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆

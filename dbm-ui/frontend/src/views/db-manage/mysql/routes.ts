@@ -90,14 +90,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   // 记录级闪回
   // 两个闪回两个路由，这里没问题
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('闪回')),
-  {
-    path: 'checksum/:page?',
-    name: 'MySQLChecksum',
-    meta: {
-      navName: t('数据校验修复'),
-    },
-    component: () => import('@views/db-manage/mysql/checksum/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',
