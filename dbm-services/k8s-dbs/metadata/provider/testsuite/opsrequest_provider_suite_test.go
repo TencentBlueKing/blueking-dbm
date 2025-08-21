@@ -166,3 +166,27 @@ func (suite *OpsrequestProviderTestSuite) TestUpdateOpsRequest() {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
+
+func (suite *OpsrequestProviderTestSuite) TestFindOpsRequestByParam() {
+	t := suite.T()
+	for _, ops := range k8sCrdOpsRequestEntityList {
+		entity, err := suite.clusterProvider.CreateOpsRequest(&ops)
+		assert.NoError(t, err)
+		assert.NotZero(t, entity.ID)
+	}
+
+	requestParams := metaenitty.OpsRequestQueryParams{}
+	requestParams.RequestID = "request_id_01"
+	entities, err := suite.clusterProvider.FindOpsRequestByParam(&requestParams)
+	assert.NoError(t, err)
+	assert.Len(t, entities, 2)
+
+	opsNames := make(map[string]bool)
+	for _, ops := range entities {
+		opsNames[ops.OpsRequestName] = true
+	}
+	for _, ops := range k8sCrdOpsRequestEntityList {
+		assert.True(t, opsNames[ops.OpsRequestName], ops.OpsRequestName)
+	}
+
+}

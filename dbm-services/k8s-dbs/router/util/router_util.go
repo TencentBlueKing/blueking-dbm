@@ -79,6 +79,13 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 	return clusterProvider
 }
 
+// BuildK8sCrdOpsRequestProvider 构建 K8sCrdOpsRequestProvider
+func BuildK8sCrdOpsRequestProvider(db *gorm.DB) metaprovider.K8sCrdOpsRequestProvider {
+	crdOpsRequestDbAccess := metadbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsRequestMetaProvider := metaprovider.NewK8sCrdOpsRequestProvider(crdOpsRequestDbAccess)
+	return opsRequestMetaProvider
+}
+
 // BuildCoreAPIProviders 构建 core api providers
 func BuildCoreAPIProviders(db *gorm.DB) (*CoreAPIProviders, error) {
 	clusterMetaProvider := BuildClusterMetaProvider(db)
