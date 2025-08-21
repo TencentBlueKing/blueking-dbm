@@ -226,7 +226,7 @@ func (a *AddonProvider) installAddonHelmRelease(
 	install.Wait = true
 	install.Username = helmRepo.RepoUsername
 	install.Password = helmRepo.RepoPassword
-	chartRequested, err := install.ChartPathOptions.LocateChart(install.ReleaseName, helmcli.New())
+	chartRequested, err := install.ChartPathOptions.LocateChart(entity.AddonType, helmcli.New())
 	if err != nil {
 		slog.Error("failed to locate helm chart requested", "error", err)
 		return fmt.Errorf("failed to locate helm chart requested\n%s", err)

@@ -7,12 +7,16 @@ spec:
     - name: cluster
       default: true
       components:
-        - compDef: {{ include "victoriametrics-insert.cmpdName" . }}
-          name: vminsert
-        - compDef: {{ include "victoriametrics-select.cmpdName" . }}
-          name: vmselect
-        - compDef: {{ include "victoriametrics-storage.cmpdName" . }}
-          name: vmstorage
+        - name: vminsert
+          compDef: {{ include "victoriametrics-insert.cmpdRegexpPattern" . }}
+        - name: vmselect
+          compDef: {{ include "victoriametrics-select.cmpdRegexpPattern" . }}
+        - name: vmstorage
+          compDef: {{ include "victoriametrics-storage.cmpdRegexpPattern" . }}
+      orders:
+        provision:
+          - vmstorage
+          - vminsert,vmselect
     - name: select
       default: false
       components:

@@ -10,6 +10,6 @@ type ResourceQuota struct {
 
 // Resource defines the CPU and memory requests and limits for a Kubernetes component.
 type Resource struct {
-	CPU    resource.Quantity `json:"cpu,omitempty" binding:"cpuQuantity" msg:"cpu 配置有误，范围 1Core～48Core"`
-	Memory resource.Quantity `json:"memory,omitempty" binding:"memoryQuantity" msg:"memory 配置有误，范围 1GB～128GB"`
+	CPU    resource.Quantity `json:"cpu,omitempty" binding:"omitempty,cpuQuantity" msg:"cpu 配置有误，范围 1Core～48Core"`
+	Memory resource.Quantity `json:"memory,omitempty" binding:"omitempty,memoryQuantity" msg:"memory 配置有误，范围 1GB～128GB"`
 }

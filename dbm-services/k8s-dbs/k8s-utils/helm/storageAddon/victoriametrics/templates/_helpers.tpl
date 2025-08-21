@@ -13,10 +13,24 @@ vminsert-{{ .Chart.Version}}
 {{- end -}}
 
 {{/*
+Define victoriametrics stroage component definition regular expression name prefix
+*/}}
+{{- define "victoriametrics-insert.cmpdRegexpPattern" -}}
+^vminsert-
+{{- end -}}
+
+{{/*
 Define victoriametrics select component definition name
 */}}
 {{- define "victoriametrics-select.cmpdName" -}}
 vmselect-{{ .Chart.Version}}
+{{- end -}}
+
+{{/*
+Define victoriametrics select component definition regular expression name prefix
+*/}}
+{{- define "victoriametrics-select.cmpdRegexpPattern" -}}
+^vmselect-
 {{- end -}}
 
 {{/*
@@ -27,24 +41,31 @@ vmstorage-{{ .Chart.Version}}
 {{- end -}}
 
 {{/*
+Define victoriametrics storage component definition regular expression name prefix
+*/}}
+{{- define "victoriametrics-storage.cmpdRegexpPattern" -}}
+^vmstorage-
+{{- end -}}
+
+{{/*
 Define victoriametrics insert component definition name
 */}}
 {{- define "victoriametrics-insert.cmpvName" -}}
-vminsert-{{ .Chart.Version}}
+vminsert-cmpv
 {{- end -}}
 
 {{/*
 Define victoriametrics select component definition name
 */}}
 {{- define "victoriametrics-select.cmpvName" -}}
-vmselect-{{ .Chart.Version}}
+vmselect-cmpv
 {{- end -}}
 
 {{/*
 Define victoriametrics storage component definition name
 */}}
 {{- define "victoriametrics-storage.cmpvName" -}}
-vmstorage-{{ .Chart.Version}}
+vmstorage-cmpv
 {{- end -}}
 
 {{/*

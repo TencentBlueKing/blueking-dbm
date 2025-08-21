@@ -5,29 +5,29 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
-        - vmselect-1.93.10
-        - vmselect-1.115.0
+        - vmselect-1.93.10-2.0.0
+        - vmselect-1.115.0-2.0.0
       compDefs:
-        - {{ include "victoriametrics-select.cmpdName" . }}
+        - vmselect-2.0.0
     - releases:
-        - vmselect-1.93.10-1.0.1
-        - vmselect-1.115.0-1.0.1
+        - vmselect-1.93.10-2.0.1
+        - vmselect-1.115.0-2.0.1
       compDefs:
-        - vmselect-1.0.1
+        - vmselect-2.0.1
   releases:
-    - name: vmselect-1.93.10
-      serviceVersion: 1.93.10
+    - name: vmselect-1.93.10-2.0.0
+      serviceVersion: 1.93.10-2.0.0
       images:
         vmselect: victoriametrics/vmselect:v1.93.10-cluster
-    - name: vmselect-1.115.0
-      serviceVersion: 1.115.0
+    - name: vmselect-1.115.0-2.0.0
+      serviceVersion: 1.115.0-2.0.0
       images:
         vmselect: victoriametrics/vmselect:v1.115.0-cluster
-    - name: vmselect-1.93.10-1.0.1
-      serviceVersion: 1.93.10-1.0.1
+    - name: vmselect-1.93.10-2.0.1
+      serviceVersion: 1.93.10-2.0.1
       images:
         vmselect: victoriametrics/vmselect:v1.93.10-cluster
-    - name: vmselect-1.115.0-1.0.1
-      serviceVersion: 1.115.0-1.0.1
+    - name: vmselect-1.115.0-2.0.1
+      serviceVersion: 1.115.0-2.0.1
       images:
         vmselect: victoriametrics/vmselect:v1.115.0-cluster

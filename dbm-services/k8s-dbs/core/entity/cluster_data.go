@@ -86,7 +86,7 @@ type ComponentResource struct {
 	ComponentName          string                  `json:"componentName,omitempty"`
 	ComponentDef           string                  `json:"componentDef,omitempty"`
 	Version                string                  `json:"version,omitempty"`
-	Replicas               int32                   `json:"replicas,omitempty" binding:"gte=1,lte=1000" msg:"replicas 配置有误，范围 1～1000"` // nolint:lll
+	Replicas               int32                   `json:"replicas,omitempty" binding:"omitempty,gte=1,lte=1000" msg:"replicas 配置有误，范围 1～1000"` // nolint:lll
 	Env                    map[string]interface{}  `json:"env,omitempty"`
 	Request                *Resource               `json:"request,omitempty"`
 	Limit                  *Resource               `json:"limit,omitempty"`
@@ -102,7 +102,7 @@ type ComponentResource struct {
 // Equivalent to Kubernetes cluster.spec.volumeClaimTemplates field.
 type VolumeClaimTemplates struct {
 	AccessModes      []string          `json:"accessModes,omitempty"`
-	Storage          resource.Quantity `json:"storage,omitempty" binding:"storageQuantity" msg:"storage 配置有误，范围 100GB～100000GB"` // nolint:lll
+	Storage          resource.Quantity `json:"storage,omitempty" binding:"omitempty,storageQuantity" msg:"storage 配置有误，范围 100GB～100000GB"` // nolint:lll
 	StorageClassName string            `json:"storageClassName,omitempty"`
 	VolumeMode       string            `json:"volumeMode,omitempty"`
 }

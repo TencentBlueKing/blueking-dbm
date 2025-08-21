@@ -1,5 +1,5 @@
 # 引用的addon版本
-addonVersion: 1.0.0
+addonVersion: 2.0.0
 
 # 元数据
 clusterName: victoriametrics-cluster
@@ -12,7 +12,7 @@ terminationPolicy: Delete
 topoName: cluster
 componentList:
   - componentName: vminsert
-    serviceVersion: "1.93.10"
+    serviceVersion: "1.93.10-2.0.0"
     instanceUpdateStrategy:
       maxUnavailable: 25%
     env:
@@ -26,7 +26,7 @@ componentList:
         memory: 1Gi
 
   - componentName: vmselect
-    serviceVersion: "1.93.10"
+    serviceVersion: "1.93.10-2.0.0"
     instanceUpdateStrategy:
       maxUnavailable: 25%
     env:
@@ -40,7 +40,7 @@ componentList:
         memory: 1Gi
 
   - componentName: vmstorage
-    serviceVersion: "1.93.10"
+    serviceVersion: "1.93.10-2.0.0"
     env:
     replicas: 1
     resources:

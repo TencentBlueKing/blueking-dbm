@@ -173,8 +173,8 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 // UpgradeCluster 升级集群
 func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	if err := ctx.ShouldBindJSON(request); err != nil {
-		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		api.HandleValidationError(ctx, err, request)
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
