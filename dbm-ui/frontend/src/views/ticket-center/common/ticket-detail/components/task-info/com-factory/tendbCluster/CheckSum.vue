@@ -30,6 +30,7 @@
   </InfoList>
   <BkTable
     :data="tableData"
+    :show-overflow="false"
     :merge-cells="mergeCells">
     <BkTableColumn
       fixed="left"
@@ -50,15 +51,52 @@
     <BkTableColumn
       :label="t('校验从库')"
       :width="220">
+      <template #header>
+        <span class="tendbcluster-checksum-ip-header">
+          <span>{{ t('校验从库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopy('slave', 'ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopy('slave', 'instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }">
-        {{ data.slave || '--' }}
+        <span v-if="data.checksum_scope === 'all'">{{ t('全部') }}</span>
+        <div v-else-if="data.slave">
+          <p
+            v-for="item in data.slave.split(',')"
+            :key="item">
+            {{ item }}
+          </p>
+        </div>
+        <span v-else>--</span>
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('校验主库')"
       :width="220">
+      <template #header>
+        <span class="tendbcluster-checksum-ip-header">
+          <span>{{ t('校验主库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopy('slave', 'ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopy('slave', 'instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }">
-        {{ data.master || '--' }}
+        <span v-if="data.checksum_scope === 'all'">{{ t('全部') }}</span>
+        <span v-else>
+          {{ data.master || '--' }}
+        </span>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -92,7 +130,6 @@
   </BkTable>
 </template>
 <script setup lang="ts">
-  import { type UnwrapRef, watchEffect } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { VxeTablePropTypes } from '@blueking/vxe-table';
@@ -107,8 +144,24 @@
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
+  import PopoverCopy from '@components/popover-copy/Index.vue';
+
+  import { execCopy } from '@utils';
+  import _ from 'lodash';
+
   interface Props {
     ticketDetails: TicketModel<TendbCluster.CheckSum>;
+  }
+
+  interface RowData {
+    db_patterns: string[];
+    ignore_dbs: string[];
+    ignore_tables: string[];
+    master: string;
+    slave: string;
+    table_patterns: string[];
+    checksum_scope: string;
+    cluster_id: number;
   }
 
   defineOptions({
@@ -125,36 +178,56 @@
     manual: t('手动执行'),
   } as Record<string, string>;
 
-  const tableData = shallowRef<
-    (Pick<Props['ticketDetails']['details']['infos'][number], 'cluster_id' | 'checksum_scope'> &
-      Props['ticketDetails']['details']['infos'][number]['backup_infos'][number])[]
-  >([]);
+  const tableData = shallowRef<RowData[]>([]);
+
   const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
 
-  type RowData = UnwrapRef<typeof tableData>[number];
+  watch(
+    () => props.ticketDetails.details.infos,
+    (infos) => {
+      // 先构造表格数据
+      const clusterMap = _.groupBy(infos, 'cluster_id');
+      tableData.value = Object.values(clusterMap).flatMap((list) =>
+        list.flatMap((item) =>
+          item.backup_infos.map((row) => ({
+            ...row,
+            cluster_id: item.cluster_id,
+            checksum_scope: item.checksum_scope,
+          })),
+        ),
+      );
 
-  watchEffect(() => {
-    let rowIndex = 0;
-    props.ticketDetails.details.infos.forEach((infoItem) => {
-      infoItem.backup_infos.forEach((backupInfoItem) => {
-        tableData.value.push({
-          ...infoItem,
-          ...backupInfoItem,
-        });
-      });
-      mergeCells.value.push({
-        col: 0,
-        colspan: 1,
-        row: rowIndex,
-        rowspan: infoItem.backup_infos.length,
-      });
-      mergeCells.value.push({
-        col: 1,
-        colspan: 1,
-        row: rowIndex,
-        rowspan: infoItem.backup_infos.length,
-      });
-      rowIndex += infoItem.backup_infos.length;
-    });
-  });
+      // 再行合并
+      const groupedData = _.groupBy(tableData.value, 'cluster_id');
+      mergeCells.value = Object.values(groupedData).flatMap((list, index) => [
+        { col: 0, colspan: 1, row: index, rowspan: list.length },
+        { col: 1, colspan: 1, row: index, rowspan: list.length },
+      ]);
+    },
+    { immediate: true },
+  );
+
+  const handleCopy = (role: 'master' | 'slave', field: 'ip' | 'instance') => {
+    const items = tableData.value.map((item) => (item[role] && field === 'ip' ? item[role].split(':')[0] : item[role]));
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
 </script>
+<style lang="less">
+  .tendbcluster-checksum-ip-header {
+    display: flex;
+
+    &:hover {
+      .copy-btn {
+        display: block;
+      }
+    }
+
+    .copy-btn {
+      display: none;
+      margin-left: 4px;
+      cursor: pointer;
+    }
+  }
+</style>

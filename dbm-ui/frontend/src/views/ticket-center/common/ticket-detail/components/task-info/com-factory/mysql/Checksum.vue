@@ -26,8 +26,9 @@
     </InfoItem>
   </InfoList>
   <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :data="tableData"
+    :show-overflow="false"
+    :merge-cells="mergeCells">
     <BkTableColumn
       :label="t('目标集群')"
       :min-width="220">
@@ -35,33 +36,61 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('校验主库')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.master.ip }}
+    <BkTableColumn
+      :label="t('校验从库')"
+      :min-width="150">
+      <template #header>
+        <span class="mysql-checksum-ip-header">
+          <span>{{ t('校验从库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopySlave('ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopySlave('instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验从库')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="(item, index) in data.slaves"
           :key="index">
-          <p class="pt-2 pb-2">{{ item.ip }}: {{ item.port }}</p>
+          <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('校验DB')">
+    <BkTableColumn
+      :label="t('校验主库')"
+      :min-width="150">
+      <template #header>
+        <span class="mysql-checksum-ip-header">
+          <span>{{ t('校验主库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopyMaster('ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopyMaster('instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
+      <template #default="{ data }: { data: RowData }"> {{ data.master.ip }}:{{ data.master.port }} </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('校验 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.db_patterns" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('忽略 DB 名')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('校验表名')">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.table_patterns" />
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略表名')">
@@ -74,6 +103,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
+
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -83,6 +114,10 @@
   import { utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  import PopoverCopy from '@components/popover-copy/Index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.CheckSum>;
@@ -95,7 +130,84 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = shallowRef<RowData[]>([]);
+
+  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+
+  watch(
+    () => props.ticketDetails.details.infos,
+    () => {
+      const clusterMap: Record<string, RowData[]> = {};
+      props.ticketDetails.details.infos.forEach((item) => {
+        const clusterId = item.cluster_id;
+        if (!clusterMap[clusterId]) {
+          clusterMap[clusterId] = [item];
+        } else {
+          clusterMap[clusterId].push(item);
+        }
+      });
+
+      Object.values(clusterMap).forEach((list) => {
+        const preRow = mergeCells.value[mergeCells.value.length - 1] || {
+          col: 0,
+          colspan: 1,
+          row: 0,
+          rowspan: 1,
+        };
+        mergeCells.value.push({
+          col: 0,
+          colspan: 1,
+          row: preRow.row + preRow.rowspan - 1,
+          rowspan: list.length,
+        });
+        tableData.value.push(...list);
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleCopySlave = (field: 'ip' | 'instance') => {
+    const slaves = tableData.value.reduce<RowData['slaves']>((acc, item) => {
+      if (item.slaves.length) {
+        return [...acc, ...item.slaves];
+      }
+      return acc;
+    }, []);
+    const items = slaves.map((item) => (item && field === 'instance' ? `${item.ip}:${item.port}` : item.ip));
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
+
+  const handleCopyMaster = (field: 'ip' | 'instance') => {
+    const items = tableData.value.map((item) =>
+      item.master && field === 'instance' ? `${item.master.ip}:${item.master.port}` : item.master.ip,
+    );
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
 </script>
+<style lang="less">
+  .mysql-checksum-ip-header {
+    display: flex;
+
+    &:hover {
+      .copy-btn {
+        display: block;
+      }
+    }
+
+    .copy-btn {
+      display: none;
+      margin-left: 4px;
+      cursor: pointer;
+    }
+  }
+</style>

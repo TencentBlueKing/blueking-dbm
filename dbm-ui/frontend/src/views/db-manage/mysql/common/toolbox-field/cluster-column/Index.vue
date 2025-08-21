@@ -16,9 +16,10 @@
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
-    :label="t('目标集群')"
+    :label="t(label)"
     :loading="loading"
-    :min-width="200"
+    :min-width="minWidth"
+    :rowspan="rowspan"
     required>
     <template #headAppend>
       <span
@@ -61,9 +62,11 @@
      */
     allowRepeat?: boolean;
     /**
-     * 选择器tab集群类型，不传默认 TENDBHA
+     * 选择器tab集群类型
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    label?: string;
+    minWidth?: number;
     /**
      * @description 只允许选择单一类型的集群
      * @default false
@@ -80,6 +83,7 @@
      */
     supportOfflineData?: boolean;
     tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
+    rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
@@ -87,8 +91,11 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    label: '目标集群',
+    minWidth: 200,
     onlyOneType: false,
     supportOfflineData: false,
+    rowspan: 1,
     tabListConfig: () =>
       ({
         [ClusterTypes.TENDBHA]: {
@@ -133,7 +140,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
@@ -152,8 +159,10 @@
   });
 
   const handleChange = (value: string) => {
-    modelValue.value.id = 0;
-    modelValue.value.master_domain = value;
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as TendbhaModel;
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
