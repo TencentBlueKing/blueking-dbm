@@ -10,10 +10,10 @@ package sinker
 
 import (
 	"database/sql"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"log/slog"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -75,12 +75,13 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 	sessionParams := []string{}
 	for k, v := range sessionVars {
 		sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k,
-			base64.URLEncoding.EncodeToString([]byte(cast.ToString(v)))))
+			url.QueryEscape(cast.ToString(v))))
 	}
 
 	if dsn.Charset == "" {
 		dsn.Charset = "utf8mb4"
 	}
+	slog.Info("session variables", slog.String("db", dsn.Address), slog.Any("sessionVars", sessionVars))
 
 	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&parseTime=True&%s",
 		dsn.User,

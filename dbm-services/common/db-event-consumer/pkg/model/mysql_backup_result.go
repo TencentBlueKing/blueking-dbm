@@ -25,7 +25,7 @@ import (
 
 type MysqlBackupResultModel struct {
 	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
-	//dbareport.ModelBackupReport
+	// dbareport.ModelBackupReport
 
 	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(60);NOT NULL;index:uk_cluster,unique,priority:4" validate:"required"`
 	BackupType      string `json:"backup_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
@@ -40,26 +40,18 @@ type MysqlBackupResultModel struct {
 	MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(120);NOT NULL"`
 	DataSchemaGrant string `json:"data_schema_grant" db:"data_schema_grant" gorm:"column:data_schema_grant;type:varchar(32);NOT NULL"`
 	// IsFullBackup 是否包含数据的全备
-	IsFullBackup     bool   `json:"is_full_backup" db:"is_full_backup" gorm:"column:is_full_backup;type:tinyint;NOT NULL"`
-	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
-	TotalFilesize    uint64 `json:"total_filesize" db:"total_filesize" gorm:"column:total_filesize;type:bigint;NOT NULL"`
+	IsFullBackup         bool      `json:"is_full_backup" db:"is_full_backup" gorm:"column:is_full_backup;type:tinyint;NOT NULL"`
+	FileRetentionTag     string    `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
+	TotalFilesize        uint64    `json:"total_filesize" db:"total_filesize" gorm:"column:total_filesize;type:bigint;NOT NULL"`
+	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:timestamp;NOT NULL;index:uk_hostport,unique,priority:4"`
+	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time" gorm:"column:backup_begin_time;type:timestamp;NOT NULL"`
+	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time" gorm:"column:backup_end_time;type:timestamp;NOT NULL"`
+	BackupMethod         string    `json:"backup_method" db:"backup_method" gorm:"column:backup_method;type:varchar(32)"`
 
-	BackupConsistentTime time.Time       `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:datetime;NOT NULL;index:uk_hostport,unique,priority:4"`
-	BackupBeginTime      time.Time       `json:"backup_begin_time" db:"backup_begin_time" gorm:"column:backup_begin_time;type:datetime;NOT NULL"`
-	BackupEndTime        time.Time       `json:"backup_end_time" db:"backup_end_time" gorm:"column:backup_end_time;type:datetime;NOT NULL"`
-	BinlogInfo           json.RawMessage `json:"binlog_info" db:"binlog_info" gorm:"column:binlog_info;type:text;NOT NULL"`
-	FileList             json.RawMessage `json:"file_list" db:"file_list" gorm:"column:file_list;type:text;NOT NULL"`
-	ExtraFields          json.RawMessage `json:"extra_fields" db:"extra_fields" gorm:"column:extra_fields;type:text;NOT NULL"`
-	/*
-		// BinlogInfo show slave status / show master status
-		BinlogInfo BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
-		// FileList backup tar file list
-		FileList     []TarFileItem `json:"file_list" db:"file_list"`
-		ExtraFields  ExtraFields   `json:"extra_fields" db:"extra_fields"`
-	*/
-	BackupStatus string `json:"backup_status" db:"backup_status" gorm:"column:backup_status;type:varchar(32);NOT NULL"`
-	// UNIQUE KEY `uk_hostport` (`backup_host`,`backup_port`,`mysql_role`,`backup_consistent_time`)
-	// UNIQUE KEY `uk_cluster` (`cluster_address`,`shard_value`,`mysql_role`,`backup_id`),
+	BinlogInfo   json.RawMessage `json:"binlog_info" db:"binlog_info" gorm:"column:binlog_info;type:text;NOT NULL"`
+	FileList     json.RawMessage `json:"file_list" db:"file_list" gorm:"column:file_list;type:text;NOT NULL"`
+	ExtraFields  json.RawMessage `json:"extra_fields" db:"extra_fields" gorm:"column:extra_fields;type:text;NOT NULL"`
+	BackupStatus string          `json:"backup_status" db:"backup_status" gorm:"column:backup_status;type:varchar(32);NOT NULL"`
 }
 
 func (m *MysqlBackupResultModel) TableName() string {
@@ -133,6 +125,7 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"backup_begin_time",
 		"backup_end_time",
 		"backup_status",
+		"backup_method",
 		"mysql_version",
 		"file_retention_tag",
 		"total_filesize",
@@ -175,6 +168,7 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BackupBeginTime,
 			modelObj.BackupEndTime,
 			modelObj.BackupStatus,
+			modelObj.BackupMethod,
 			modelObj.MysqlVersion,
 			modelObj.FileRetentionTag,
 			modelObj.TotalFilesize,
