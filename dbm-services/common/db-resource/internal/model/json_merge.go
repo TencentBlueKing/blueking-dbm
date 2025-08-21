@@ -40,7 +40,7 @@ func (m *JSONMergeBuilder) Build(builder clause.Builder) {
 	builder.WriteByte(')')
 }
 
-// JsonMerge IntArry json merge int array
+// JsonMerge IntArray json merge int array
 func JsonMerge(column string, keys []string) *JSONMergeBuilder {
 	return &JSONMergeBuilder{
 		column: column,

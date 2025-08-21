@@ -61,13 +61,18 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import { grammarCheck } from '@services/source/mysqlSqlImport';
+  import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
+  import { grammarCheck as oracleGrammarCheck } from '@services/source/oracleSqlImport';
+  import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
+
+  import { DBTypes } from '@common/const';
 
   import { getSQLFilename } from '@utils';
 
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
   interface Props {
+    dbTypes: keyof typeof grammarCheckMap;
     modelValue: string;
     readonly?: boolean;
     title: string;
@@ -86,11 +91,23 @@
 
   const emits = defineEmits<Emits>();
 
+  const grammarCheckMap = {
+    [DBTypes.MONGODB]: undefined,
+    [DBTypes.MYSQL]: mysqlGrammarCheck,
+    [DBTypes.ORACLE]: oracleGrammarCheck,
+    [DBTypes.SQLSERVER]: sqlserverGrammarCheck,
+    [DBTypes.TENDBCLUSTER]: mysqlGrammarCheck,
+  };
+
   const handleGrammarCheck = () => {
+    const grammarCheckApi = grammarCheckMap[props.dbTypes];
+    if (!grammarCheckApi) {
+      return;
+    }
     isChecking.value = true;
     const params = new FormData();
     params.append('sql_content', props.modelValue);
-    grammarCheck(params)
+    grammarCheckApi(params)
       .then((data) => {
         const grammarCheckData = data;
         if (!grammarCheckData) {

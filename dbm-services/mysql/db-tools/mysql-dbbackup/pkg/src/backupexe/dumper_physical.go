@@ -199,7 +199,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 		} else {
 			logger.Log.Infof("will set global slave_parallel_workers=%s after backup finished", originVal)
 			defer func() {
-				if err = mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
+				if err := mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
 					logger.Log.Errorf("set global slave_parallel_workers=%s failed, err: %s", originVal, err.Error())
 				}
 			}()
@@ -232,7 +232,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
 		errStrDetail, _ := cmutil.NewGrepLines(xtrabackupLogFile, true, false).
-			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file"}, 5)
+			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file", "Note"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

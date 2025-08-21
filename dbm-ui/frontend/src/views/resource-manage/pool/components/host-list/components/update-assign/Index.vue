@@ -1,10 +1,18 @@
 <template>
   <BkDialog
+    class="update-assign-dialog"
     :is-show="isShow"
     render-directive="if"
-    :title="t('编辑资源归属')"
     width="600"
     @closed="handleCancel">
+    <template #header>
+      <div class="update-assign-header">
+        <div>{{ t('编辑资源归属') }}</div>
+        <div class="update-assign-sub-title">
+          {{ editData?.ip || '' }}
+        </div>
+      </div>
+    </template>
     <BkForm
       ref="formRef"
       class="mt-16"
@@ -14,16 +22,12 @@
         :label="t('所属业务')"
         property="for_biz"
         required>
-        <BkSelect
-          v-model="formData.for_biz"
-          :allow-empty-values="[0]"
-          :disabled="isBusiness">
-          <BkOption
-            v-for="bizItem in bizList"
-            :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
-            :value="bizItem.bk_biz_id" />
-        </BkSelect>
+        <DbAppSelect
+          :disabled="isBusiness"
+          :list="globalBizsStore.bizs"
+          :model-value="currentApp"
+          :show-public-biz="!isBusiness"
+          @change="handleAppChange" />
       </BkFormItem>
       <BkFormItem
         :label="t('所属DB')"
@@ -38,6 +42,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
+        v-if="formData.for_biz !== 0"
         :label="t('资源标签')"
         property="labels">
         <TagSelector
@@ -75,7 +80,11 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import DbAppSelect from '@components/db-app-select/Index.vue';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
+
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   interface Props {
     editData: DbResourceModel;
@@ -105,6 +114,7 @@
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
   const isBusiness = route.name === 'BizResourcePool';
+  const currentApp = shallowRef<BizItem | undefined>();
 
   watch(
     () => props.editData,
@@ -112,6 +122,7 @@
       if (!Object.keys(props.editData).length) {
         return;
       }
+      currentApp.value = globalBizsStore.bizIdMap.get(props.editData.for_biz.bk_biz_id);
       formData.for_biz = props.editData.for_biz.bk_biz_id;
       formData.resource_type = props.editData.resource_type;
       formData.labels = props.editData.labels.map((item) => item.id);
@@ -154,6 +165,11 @@
     },
   });
 
+  const handleAppChange = (appInfo?: IAppItem) => {
+    currentApp.value = appInfo;
+    formData.for_biz = appInfo!.bk_biz_id;
+  };
+
   const handleSubmit = async () => {
     await formRef.value!.validate();
     runUpdate({
@@ -170,3 +186,34 @@
     isShow.value = false;
   };
 </script>
+<style lang="less">
+  .update-assign-dialog {
+    .update-assign-header {
+      display: flex;
+      align-items: center;
+    }
+
+    .update-assign-sub-title {
+      position: relative;
+      display: flex;
+      height: 22px;
+      padding-left: 8px;
+      margin-left: 8px;
+      font-family: MicrosoftYaHei, sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      letter-spacing: 0;
+      color: #979ba5;
+
+      &::before {
+        position: absolute;
+        top: 6px;
+        left: 0;
+        width: 1px;
+        height: 14px;
+        background-color: #979ba580;
+        content: '';
+      }
+    }
+  }
+</style>

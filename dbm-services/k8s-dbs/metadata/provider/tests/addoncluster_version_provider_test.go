@@ -20,9 +20,9 @@ limitations under the License.
 package tests
 
 import (
-	testhelper "k8s-dbs/metadata/helper"
+	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	testutil "k8s-dbs/metadata/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +36,7 @@ var sampleAcEntity = &entitys.AddonClusterVersionEntity{
 }
 
 func TestCreateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	acVersionProvider := provider.NewAddonClusterVersionProvider(dbAccess)
 	added, err := acVersionProvider.CreateAcVersion(sampleAcEntity)
 	assert.NoError(t, err)
@@ -47,7 +47,7 @@ func TestCreateAcVersion(t *testing.T) {
 }
 
 func TestDeleteAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	acVersionProvider := provider.NewAddonClusterVersionProvider(dbAccess)
 	_, err := acVersionProvider.CreateAcVersion(sampleAcEntity)
 	assert.NoError(t, err)
@@ -58,7 +58,7 @@ func TestDeleteAcVersion(t *testing.T) {
 }
 
 func TestUpdateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	acVersionProvider := provider.NewAddonClusterVersionProvider(dbAccess)
 	_, err := acVersionProvider.CreateAcVersion(sampleAcEntity)
 	assert.NoError(t, err)

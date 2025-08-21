@@ -255,3 +255,12 @@ AUTOFIX_ACTION_TEMPLATE = {
     "plugin_id": 2,
     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
 }
+
+
+class MonitorEventType(str, StructuredEnum):
+    """
+    自定义上报事件名称
+    声明后不要轻易修改，如果要修改记得修改对应的监控策略
+    """
+
+    MYSQL_DBHA_AUTOFIX_FAILED = EnumField("mysql-dbha-autofix-failed", _("MySQL DBHA自愈失败"))

@@ -59,23 +59,22 @@ func RunLocalCmd(
 		cmdCtx.Stdout = outFileHandler
 	}
 	cmdCtx.Stderr = &errBuffer
-	mylog.Logger.Debug(fmt.Sprintf("Running a new local cmd:%s,opts:%+v", cmd, opts))
 
 	if err = cmdCtx.Start(); err != nil {
-		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd cmd Start fail,err:%v,cmd:%s,opts:%+v", err, cmd, opts))
+		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd cmd Start fail,err:%v,cmd:%s", err, cmd))
 		return "", fmt.Errorf("RunLocalCmd cmd Start fail,err:%v", err)
 	}
 	if dealPidMethod != nil {
 		dealPidMethod.DealProcessPid(cmdCtx.Process.Pid)
 	}
 	if err = cmdCtx.Wait(); err != nil {
-		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd cmd wait fail,err:%v,errBuffer:%s,retBuffer:%s,cmd:%s,opts:%+v",
-			err, errBuffer.String(), retBuffer.String(), cmd, opts))
+		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd cmd wait fail,err:%v,errBuffer:%s,retBuffer:%s,cmd:%s",
+			err, errBuffer.String(), retBuffer.String(), cmd))
 		return "", fmt.Errorf("RunLocalCmd cmd wait fail,err:%v", err)
 	}
 	retStr = retBuffer.String()
 	if len(errBuffer.String()) > 0 {
-		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd fail,err:%v,cmd:%s,opts:%+v", errBuffer.String(), cmd, opts))
+		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd fail,err:%v,cmd:%s", errBuffer.String(), cmd))
 		err = fmt.Errorf("RunLocalCmd fail,err:%s", retBuffer.String()+"\n"+errBuffer.String())
 	} else {
 		err = nil

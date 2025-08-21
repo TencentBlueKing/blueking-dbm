@@ -10,20 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+from collections import defaultdict
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
-    ALLDEPARTS,
-    DeployPeripheralToolsDepart,
-)
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
-    standardize_mysql_cluster_by_ip_subflow,
-    standardize_mysql_cluster_subflow,
+    standardize_mysql_cluster_by_cluster_subflow,
 )
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 
@@ -35,47 +32,6 @@ class MySQLStandardizeFlow(object):
         self.root_id = root_id
         self.data = deepcopy(data)
 
-    def standardize_by_ip(self):
-        """
-        目前特化给自愈用
-        """
-        cluster_id = self.data["cluster_id"]
-        ip = self.data["ip"]
-        bk_biz_id = self.data["bk_biz_id"]
-        bk_cloud_id = self.data["bk_cloud_id"]
-
-        pipe = Builder(
-            root_id=self.root_id,
-            data=copy.deepcopy(self.data),
-            need_random_pass_cluster_ids=[cluster_id],
-        )
-        pipe.add_sub_pipeline(
-            sub_flow=standardize_mysql_cluster_by_ip_subflow(
-                root_id=self.root_id,
-                data=copy.deepcopy(self.data),
-                bk_cloud_id=bk_cloud_id,
-                bk_biz_id=bk_biz_id,
-                ips=[ip],
-                departs=[
-                    DeployPeripheralToolsDepart.MySQLCrond,
-                    DeployPeripheralToolsDepart.MySQLMonitor,
-                    DeployPeripheralToolsDepart.MySQLRotateBinlog,
-                    DeployPeripheralToolsDepart.MySQLDBBackup,
-                    DeployPeripheralToolsDepart.MySQLTableChecksum,
-                ],
-                with_cc_standardize=False,
-                with_instance_standardize=False,
-                with_collect_sysinfo=False,
-                with_deploy_binary=True,
-                with_bk_plugin=False,
-                with_actuator=True,
-                with_push_config=True,
-                with_backup_client=False,
-            )
-        )
-        logger.info(_("构建MySQL存储自愈自动重标准化流程成功"))
-        pipe.run_pipeline(is_drop_random_user=True, init_trans_data_class=SystemInfoContext())
-
     def new_bill(self):
         """
         独立提交的标准化单据
@@ -83,54 +39,32 @@ class MySQLStandardizeFlow(object):
         不支持部分实例标准化, 必须整集群
         """
         cluster_ids = list(set(self.data["cluster_ids"]))
-        cluster_type = self.data["cluster_type"]
         bk_biz_id = self.data["bk_biz_id"]
 
-        # 按云区域聚合的集群描述结构
-        # {
-        #    0: {
-        #            "single.test.db": {
-        #                                 "proxy": ["1.1.1.1:1000", ...],
-        #                                 "storage": ["2.2.2.2:2000", ...],
-        #                              },
-        #            ...
-        #       },
-        #    ...
-        bk_cloud_id_cluster_details = {}
+        bk_cloud_id_clusters = defaultdict(list)
 
-        for cluster_obj in Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, id__in=cluster_ids):
-            # 集群描述结构
-            # {
-            #    "proxy": ["1.1.1.1:1000", ...],
-            #    "storage": ["2.2.2.2:20000", ]
-            # {
-            cluster_detail: Dict[str, List[str]] = {
-                "proxy": [i.ip_port for i in cluster_obj.proxyinstance_set.all()],
-                "storage": [i.ip_port for i in cluster_obj.storageinstance_set.all()],
-            }
-            if cluster_obj.bk_cloud_id not in bk_cloud_id_cluster_details:
-                bk_cloud_id_cluster_details[cluster_obj.bk_cloud_id] = {}
-
-            bk_cloud_id_cluster_details[cluster_obj.bk_cloud_id][cluster_obj.immute_domain] = cluster_detail
+        for cluster_obj in Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=cluster_ids):
+            bk_cloud_id_clusters[cluster_obj.bk_cloud_id].append(cluster_obj.pk)
 
         subpipes = []
-        for bk_cloud_id, cluster_details in bk_cloud_id_cluster_details.items():
+        for bk_cloud_id, cloud_cluster_ids in bk_cloud_id_clusters.items():
             subpipes.append(
-                standardize_mysql_cluster_subflow(
+                standardize_mysql_cluster_by_cluster_subflow(
                     root_id=self.root_id,
                     data=copy.deepcopy(self.data),
                     bk_cloud_id=bk_cloud_id,
                     bk_biz_id=bk_biz_id,
-                    cluster_type=self.data.get("cluster_type"),
-                    clusters_detail=cluster_details,
-                    departs=self.data.get("departs", ALLDEPARTS),
+                    cluster_ids=list(set(cloud_cluster_ids)),
+                    departs=ALLDEPARTS,
                     with_deploy_binary=self.data.get("with_deploy_binary", True),
                     with_push_config=self.data.get("with_push_config", True),
                     with_collect_sysinfo=self.data.get("with_collect_sysinfo", True),
                     with_actuator=True,
-                    with_bk_plugin=self.data.get("with_bk_plugin", True),
-                    with_cc_standardize=self.data.get("with_cc_standardize", True),
-                    with_instance_standardize=self.data.get("with_instance_standardize", True),
+                    with_bk_plugin=self.data.get("with_deploy_binary", True),
+                    with_cc_standardize=self.data.get("with_cc_standardize", False),
+                    with_instance_standardize=self.data.get("with_instance_standardize", False),
+                    with_backup_client=self.data.get("with_deploy_binary", True),
+                    with_exporter_config=self.data.get("with_push_config", True),
                 )
             )
 

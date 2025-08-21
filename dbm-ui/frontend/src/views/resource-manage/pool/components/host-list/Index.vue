@@ -34,9 +34,7 @@
             renderDirective: 'show',
             hideIgnoreReference: true,
           }">
-          <BkButton
-            class="ml-8"
-            :disabled="selectionHostIdList.length < 1">
+          <BkButton :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
           </BkButton>
@@ -47,11 +45,7 @@
                   {{ t('重新设置资源归属') }}
                 </BkDropdownItem>
                 <BkDropdownItem
-                  v-bk-tooltips="{
-                    content: t('仅支持同业务的主机'),
-                    disabled: isSelectedSameBiz,
-                  }"
-                  :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
+                  :class="isSelectedGlobalResource || !isSelectedSameBiz ? 'disabled-cls' : ''"
                   @click="() => handleShowBatchAddTags()">
                   {{ t('添加资源标签') }}
                 </BkDropdownItem>
@@ -105,13 +99,20 @@
           type="refresh" />
         {{ t('刷新数据') }}
       </BkButton>
-      <AuthButton
-        action-id="resource_manage"
-        class="quick-search-btn"
-        @click="handleGoTaskHistory">
-        <DbIcon type="history-2" />
-        <span class="ml-4">{{ t('导入记录') }}</span>
-      </AuthButton>
+      <RouterLink
+        style="margin-left: auto"
+        target="_blank"
+        :to="{
+          name: props.type === ResourcePool.global ? 'ticketPlatformManage' : 'bizTicketManage',
+          query: {
+            ticket_type__in: TicketTypes.RESOURCE_IMPORT,
+          },
+        }">
+        <AuthButton action-id="resource_manage">
+          <DbIcon type="history-2" />
+          <span class="ml-4">{{ t('导入记录') }}</span>
+        </AuthButton>
+      </RouterLink>
     </div>
     <RenderTable
       ref="tableRef"
@@ -173,6 +174,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import DbIcon from '@components/db-icon';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -180,7 +183,6 @@
   import { execCopy, messageWarn } from '@utils';
 
   import { ResourcePool } from '../../type';
-  import { useImportResourcePoolTooltip } from '../hooks/useImportResourcePoolTip';
 
   import BatchAddTags from './components/batch-add-tags/Index.vue';
   import BatchAssign from './components/batch-assign/Index.vue';
@@ -207,9 +209,6 @@
   const { currentBizId } = useGlobalBizs();
 
   const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
-  const { taskHistoryListHref } = useImportResourcePoolTooltip({
-    isCurrentBiz: props.type !== ResourcePool.global,
-  });
 
   const searchBoxRef = useTemplateRef('searchBoxRef');
   const tableRef = useTemplateRef('tableRef');
@@ -223,7 +222,10 @@
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
   const isShowBatchAddTags = ref(false);
+  // 是否选中同一业务的主机
   const isSelectedSameBiz = ref(false);
+  // 是否选中公共资源池主机
+  const isSelectedGlobalResource = ref(false);
 
   const selectionList = shallowRef<DbResourceModel[]>([]);
   const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
@@ -393,16 +395,16 @@
       showOverflow: true,
     },
     {
-      field: 'bk_disk',
-      label: t('磁盘容量(G)'),
+      field: 'total_data_storage_cap',
+      label: t('数据盘容量（G）'),
       render: ({ data }: { data: DbResourceModel }) => (
         <DiskPopInfo
           data={data.storage_device}
           trigger='click'>
-          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.bk_disk}</span>
+          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.total_data_storage_cap || 0}</span>
         </DiskPopInfo>
       ),
-      width: 100,
+      width: 120,
     },
     {
       field: 'updateAtDisplay',
@@ -474,14 +476,10 @@
     });
   };
 
-  // 跳转历史任务
-  const handleGoTaskHistory = () => {
-    window.open(taskHistoryListHref, '_blank');
-  };
-
   const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
     selectionList.value = selectionListWholeData;
     isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
+    isSelectedGlobalResource.value = selectionListWholeData.some((item) => item.for_biz.bk_biz_id === 0);
   };
 
   const handleClearSearch = () => {
@@ -509,6 +507,14 @@
   };
 
   const handleShowBatchAddTags = () => {
+    if (isSelectedGlobalResource.value) {
+      messageWarn(t('仅业务资源支持添加标签'));
+      return;
+    }
+    if (!isSelectedSameBiz.value) {
+      messageWarn(t('仅支持同业务的主机批量添加资源标签'));
+      return;
+    }
     isShowBatchAddTags.value = true;
   };
 
@@ -535,10 +541,6 @@
     .action-box {
       display: flex;
       align-items: center;
-
-      .quick-search-btn {
-        margin-left: auto;
-      }
 
       .search-selector {
         width: 560px;

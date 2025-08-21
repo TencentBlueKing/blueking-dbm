@@ -108,13 +108,14 @@ interface FlowsDetail {
       incoming: string[];
       name?: string;
       optional: boolean;
-      outgoing: string;
+      outgoing: string | string[];
       pipeline?: FlowsDetail;
+      retry: number;
       retryable: boolean;
       skip: boolean;
       skippable: boolean;
       started_at: number;
-      status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
+      status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED' | 'REVOKED';
       timeout?: number;
       type: keyof typeof FlowTypes;
       updated_at: number;
@@ -134,10 +135,12 @@ interface FlowsDetail {
   };
   flow_info: {
     bk_biz_id: number;
+    bk_biz_name: string;
     bk_host_ids: number[];
     cost_time: number;
     created_at: string;
     created_by: string;
+    flow_alias: string;
     root_id: string;
     status: string;
     ticket_type: string;
@@ -223,6 +226,58 @@ export function forceFailflowNode(params: { node_id: string; root_id: string }) 
 /**
  * 批量重试
  */
-export function batchRetryNodes(params: { root_id: string }) {
-  return http.post<{ root_id: string }>(`${path}/${params.root_id}/batch_retry_nodes/`, params);
+export function batchRetryNodes(params: { nodes?: string[]; root_id: string }) {
+  return http.post<{ id: number }[]>(`${path}/${params.root_id}/batch_retry_nodes/`, params);
+}
+
+/**
+ * 批量跳过节点
+ */
+export function batchSkipTaskflowNode(params: { nodes?: string[]; root_id: string }) {
+  return http.post<{ id: number }[]>(`${path}/${params.root_id}/batch_skip_nodes/`, params);
+}
+
+/**
+ * 批量强制失败节点
+ */
+export function batchForceFailTaskflowNode(params: { nodes?: string[]; root_id: string }) {
+  return http.post<{ id: number }[]>(`${path}/${params.root_id}/batch_force_fail_nodes/`, params);
+}
+
+/**
+ * 获取节点运行时数据
+ */
+export function getNodeExecutionData(params: { node_id: string; root_id: string }) {
+  return http.get<{
+    inputs: Record<string, any>;
+    outputs: Record<string, any>;
+  }>(`${path}/${params.root_id}/node_execution_data/`, params);
+}
+
+/**
+ * 获取节点操作记录
+ */
+export function getNodeOperateRecord(params: { node_id?: string; root_id: string }) {
+  return http
+    .get<
+      {
+        id: number;
+        node_id: string;
+        node_name: string;
+        operate_date: string;
+        operate_type: string;
+        operator: string;
+        root_id: string;
+        version_id: string;
+      }[]
+    >(`${path}/${params.root_id}/node_operate_records/`, params)
+    .then((data) =>
+      Object.assign(
+        {},
+        {
+          count: data.length,
+          results: data,
+        },
+      ),
+    );
 }

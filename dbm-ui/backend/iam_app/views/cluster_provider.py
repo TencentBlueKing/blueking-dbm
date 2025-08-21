@@ -153,3 +153,12 @@ class SQLServerClusterResourceProvider(MySQLResourceProvider):
     def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         cluster_type__label = {ClusterType.SqlserverSingle: _("单节点"), ClusterType.SqlserverHA: _("高可用")}
         return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)
+
+
+class OracleClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.ORACLE
+    cluster_types: ClusterType = [ClusterType.OraclePrimaryStandby, ClusterType.OracleSingleNone]
+
+    def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
+        cluster_type__label = {ClusterType.OracleSingleNone: _("单节点"), ClusterType.OraclePrimaryStandby: _("主从")}
+        return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)

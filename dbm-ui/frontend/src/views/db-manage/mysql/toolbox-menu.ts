@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -70,6 +71,7 @@ export default [
         parentId: 'fileback',
       },
       {
+        bind: ['MySQLDBFlashback', TicketTypes.MYSQL_FLASHBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
         id: 'MySQLDBFlashback',
         name: t('闪回'),
@@ -102,6 +104,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.MYSQL_RESTORE_SLAVE],
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
         id: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
@@ -121,7 +124,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.masterSlaveSwap',
-        id: 'MySQLMasterSlaveSwap',
+        id: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'migrate',
       },
@@ -132,13 +135,20 @@ export default [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.proxyReduce',
+        id: TicketTypes.MYSQL_PROXY_REDUCE,
+        name: t('缩容Proxy'),
+        parentId: 'migrate',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
         name: t('添加Proxy'),
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.masterFailover',
+        bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'mysql.toolbox.instanceFailover',
         id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'migrate',
@@ -147,6 +157,12 @@ export default [
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
         id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),
+        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.clusterStandardize',
+        id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
         parentId: 'migrate',
       },
     ],

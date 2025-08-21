@@ -154,7 +154,7 @@ class MySQLBaseOperateDetailSerializer(
 
     def validate_slave_is_stand_by(self, attrs):
         """校验从库的is_stand_by标志必须为true"""
-        slave_insts = [f"{info['slave_ip']['ip']}" for info in attrs["infos"]]
+        slave_insts = [f"{info['slave_ip']['ip'].split(':')[0]}" for info in attrs["infos"]]
         CommonValidate.validate_slave_is_stand_by(slave_insts)
 
     def validated_cluster_latest_backup(self, cluster_ids, backup_source, backup_type=None):
@@ -172,6 +172,18 @@ class MySQLBaseOperateDetailSerializer(
         # 默认全局校验只需要校验集群的状态
         self.validate_cluster_can_access(attrs)
         attrs = super().validated_params(attrs=attrs)
+        return attrs
+
+
+class MysqlSingleOpsBaseDetailSerializer(MySQLBaseOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        super().validate(attrs)
         return attrs
 
 

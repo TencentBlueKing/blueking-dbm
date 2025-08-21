@@ -156,6 +156,7 @@ class TenDBClusterFullBackupFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
+                    job_timeout=LONG_JOB_TIMEOUT,
                     bk_cloud_id=cluster_obj.bk_cloud_id,
                     run_as_system_user=DBA_SYSTEM_USER,
                     exec_ip=ctl_primary_ip,
@@ -169,6 +170,7 @@ class TenDBClusterFullBackupFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
+                    job_timeout=LONG_JOB_TIMEOUT,
                     bk_cloud_id=cluster_obj.bk_cloud_id,
                     run_as_system_user=DBA_SYSTEM_USER,
                     exec_ip=ctl_primary_ip,

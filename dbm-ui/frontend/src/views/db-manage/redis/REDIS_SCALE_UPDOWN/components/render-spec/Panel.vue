@@ -64,7 +64,7 @@
                     {{ data.storage_spec[0]?.size || '--' }}
                   </div>
                   <div class="row-three">
-                    {{ data.storage_spec[0]?.type || '--' }}
+                    {{ deviceClassDisplayMap[data.storage_spec[0]?.type as DeviceClass] || '--' }}
                   </div>
                 </div>
               </div>
@@ -89,6 +89,8 @@
   import { Popover } from 'bkui-vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+
+  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
 
   export interface SpecInfo {
     count?: number;

@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Optional
+
 from backend import env
 from backend.components.constants import SSLEnum
 from backend.configuration.constants import DBType
@@ -240,7 +242,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
-    def redis_cluster_apply_proxy(self, cluster_type) -> list:
+    def redis_cluster_apply_proxy(self, cluster_type, proxy_name_prefix: Optional[str] = None) -> list:
         """
         部署redis,所有节点需要的proxy pkg包
         """
@@ -250,7 +252,9 @@ class GetFileList(object):
             version = PredixyVersion.PredixyLatest
             pkg_type = MediumEnum.Predixy
 
-        proxy_pkg = Package.get_latest_package(version=version, pkg_type=pkg_type, db_type=DBType.Redis)
+        proxy_pkg = Package.get_latest_package(
+            version=version, pkg_type=pkg_type, db_type=DBType.Redis, name_prefix=proxy_name_prefix
+        )
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )

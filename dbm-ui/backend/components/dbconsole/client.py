@@ -20,10 +20,18 @@ from ..proxy_api import ExternalProxyAPI
 class _DBConsoleApi(BaseApi):
     MODULE = _("DBConsole")
     BASE = EXTERNAL_PROXY_DOMAIN
+    # 外部请求超时固定5min
+    EXTERNAL_TIMEOUT = 5 * 60
 
     def generate_data_api(self, method, description, **kwargs):
         return ExternalProxyAPI(
-            method=method, base=self.BASE, url="", module=self.MODULE, description=description, **kwargs
+            method=method,
+            base=self.BASE,
+            url="",
+            module=self.MODULE,
+            description=description,
+            default_timeout=self.EXTERNAL_TIMEOUT,
+            **kwargs,
         )
 
     def __init__(self):

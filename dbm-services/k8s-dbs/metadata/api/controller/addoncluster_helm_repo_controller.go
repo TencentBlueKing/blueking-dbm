@@ -21,13 +21,14 @@ package controller
 
 import (
 	"fmt"
-	commconst "k8s-dbs/common/api/constant"
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/req"
-	"k8s-dbs/metadata/api/vo/resp"
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
+	commentity "k8s-dbs/common/entity"
+	"k8s-dbs/errors"
+	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -51,45 +52,48 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByID(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	repo, err := c.clusterHelmRepoProvider.FindHelmRepoByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data resp.AddonClusterHelmRepoRespVo
+	var data response.AddonClusterHelmRepoResponse
 	if err := copier.Copy(&data, repo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateClusterHelmRepo create cluster helm repo
 func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
-	var reqVo req.AddonClusterHelmRepoRespVo
+	var reqVo request.AddonClusterHelmRepoRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	var repoEntity entitys.AddonClusterHelmRepoEntity
+	var repoEntity metaentity.AddonClusterHelmRepoEntity
 	if err := copier.Copy(&repoEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&repoEntity)
+	dbsCtx := commentity.DbsContext{
+		BkAuth: &reqVo.BKAuth,
+	}
+	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&dbsCtx, &repoEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	var data resp.AddonClusterHelmRepoRespVo
+	var data response.AddonClusterHelmRepoResponse
 	if err := copier.Copy(&data, addedRepo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterHelmRepoByParam get addon cluster helm repo by its Param.
@@ -97,23 +101,25 @@ func (c *ClusterHelmRepoController) GetClusterHelmRepoByParam(ctx *gin.Context) 
 	chartName := ctx.Param("chartName")
 	chartVersion := ctx.Param("chartVersion")
 	if chartName == "" || chartVersion == "" {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr,
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError,
 			fmt.Errorf("chartName 或 chartVersion 参数不能为空")))
 		return
 	}
-	params := map[string]interface{}{
-		"chart_name":    chartName,
-		"chart_version": chartVersion,
+
+	params := &metaentity.HelmRepoQueryParams{
+		ChartName:    chartName,
+		ChartVersion: chartVersion,
 	}
+
 	repo, err := c.clusterHelmRepoProvider.FindByParams(params)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var respVo resp.AddonClusterHelmRepoRespVo
+	var respVo response.AddonClusterHelmRepoResponse
 	if err = copier.Copy(&respVo, repo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, respVo, commconst.Success)
+	api.SuccessResponse(ctx, respVo, commconst.Success)
 }

@@ -17,6 +17,11 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/patrickmn/go-cache"
+	"github.com/samber/lo"
+	"gorm.io/gorm"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
@@ -26,23 +31,20 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
-
-	"github.com/samber/lo"
-	"gorm.io/gorm"
 )
 
-// SearchContext TODO
+// SearchContext describe search context
 type SearchContext struct {
 	*ObjectDetail
 	RsType            string
-	IntetionBkBizId   int
+	IntentionBkBizId  int
 	IdcCitys          []string
 	SpecialSubZoneIds []string
 	SpecialHostIds    []int
 }
 
-// applyGroupsInSameLocaltion apply groups in same location
-func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObject, err error) {
+// applyGroupsInSameLocation apply groups in same location
+func applyGroupsInSameLocation(param RequestInputParam) (pickers []*PickerObject, err error) {
 	var picker *PickerObject
 	resourceReqList, err := param.SortDetails()
 	if err != nil {
@@ -53,7 +55,7 @@ func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObjec
 	v := resourceReqList[0]
 	idcCitys, err = getLogicIdcCitys(v)
 	if err != nil {
-		logger.Error("get logic citys failed %s", err.Error())
+		logger.Error("get logic cites failed %s", err.Error())
 		return pickers, err
 	}
 	var subzoneIds []string
@@ -86,7 +88,7 @@ func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObjec
 		pickers = []*PickerObject{}
 		for _, v := range resourceReqList {
 			s := &SearchContext{
-				IntetionBkBizId:   param.ForbizId,
+				IntentionBkBizId:  param.ForbizId,
 				RsType:            param.ResourceType,
 				ObjectDetail:      &v,
 				IdcCitys:          idcCitys,
@@ -104,7 +106,7 @@ func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObjec
 				goto RollBack
 			}
 			// Debug Print Log 挑选实例分区的情况
-			picker.DebugDistrubuteLog()
+			picker.DebugDistributeLog()
 			// 更新挑选到的资源的状态为Preselected
 			if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
 				goto RollBack
@@ -124,11 +126,11 @@ func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
 	groupcampusNice = make(map[string]map[string]*SubZoneSummary)
 	for _, v := range resourceReqList {
 		s := &SearchContext{
-			IntetionBkBizId: param.ForbizId,
-			RsType:          param.ResourceType,
-			ObjectDetail:    &v,
-			IdcCitys:        idcCitys,
-			SpecialHostIds:  v.Hosts.GetBkHostIds(),
+			IntentionBkBizId: param.ForbizId,
+			RsType:           param.ResourceType,
+			ObjectDetail:     &v,
+			IdcCitys:         idcCitys,
+			SpecialHostIds:   v.Hosts.GetBkHostIds(),
 		}
 		var items []model.TbRpDetail
 		db := model.DB.Self.Table(model.TbRpDetailName())
@@ -137,23 +139,23 @@ func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
 			logger.Error("query failed %s", err.Error())
 			return nil, errno.ErrDBQuery.AddErr(err)
 		}
-		campusSummarys := make(map[string]*SubZoneSummary)
+		campusSummary := make(map[string]*SubZoneSummary)
 		for _, item := range items {
-			if _, ok := campusSummarys[item.SubZoneID]; !ok {
-				campusSummarys[item.SubZoneID] = &SubZoneSummary{
+			if _, ok := campusSummary[item.SubZoneID]; !ok {
+				campusSummary[item.SubZoneID] = &SubZoneSummary{
 					Count:             1,
 					EquipmentIdList:   []string{item.RackID},
 					LinkNetdeviceList: strings.Split(item.NetDeviceID, ","),
 					RequestCount:      v.Count,
 				}
 			} else {
-				campusSummarys[item.SubZoneID].Count++
-				campusSummarys[item.SubZoneID].EquipmentIdList = append(campusSummarys[item.SubZoneID].EquipmentIdList, item.RackID)
-				campusSummarys[item.SubZoneID].LinkNetdeviceList = append(campusSummarys[item.SubZoneID].LinkNetdeviceList,
+				campusSummary[item.SubZoneID].Count++
+				campusSummary[item.SubZoneID].EquipmentIdList = append(campusSummary[item.SubZoneID].EquipmentIdList, item.RackID)
+				campusSummary[item.SubZoneID].LinkNetdeviceList = append(campusSummary[item.SubZoneID].LinkNetdeviceList,
 					strings.Split(item.NetDeviceID, ",")...)
 			}
 		}
-		groupcampusNice[v.GroupMark] = campusSummarys
+		groupcampusNice[v.GroupMark] = campusSummary
 	}
 	return groupcampusNice, nil
 }
@@ -162,12 +164,12 @@ func sortgroupcampusNice(gpms map[string]map[string]*SubZoneSummary) []string {
 	subzones := []string{}
 	gcnsMap := make(map[string]*CampusNice)
 	var cns []CampusNice
-	for _, campuseSummary := range gpms {
-		for campus := range campuseSummary {
-			equipmentIdList := lo.Uniq(campuseSummary[campus].EquipmentIdList)
-			linkNetdeviceList := lo.Uniq(campuseSummary[campus].LinkNetdeviceList)
-			count := campuseSummary[campus].Count
-			requestCount := campuseSummary[campus].RequestCount
+	for _, campusSummary := range gpms {
+		for campus := range campusSummary {
+			equipmentIdList := lo.Uniq(campusSummary[campus].EquipmentIdList)
+			linkNetdeviceList := lo.Uniq(campusSummary[campus].LinkNetdeviceList)
+			count := campusSummary[campus].Count
+			requestCount := campusSummary[campus].RequestCount
 			if count >= requestCount && len(equipmentIdList) >= requestCount &&
 				len(linkNetdeviceList) >= requestCount {
 				cns = append(cns, CampusNice{
@@ -221,7 +223,7 @@ func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
 		len(v.Hosts) > 0 {
 		idcCitys, err = dbmapi.GetIdcCityByLogicCity(v.LocationSpec.City)
 		if err != nil {
-			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
+			logger.Error("request real cites by logic city %s from bk-dbm api failed:%v", v.LocationSpec.City, err)
 			return []string{}, err
 		}
 	}
@@ -231,17 +233,19 @@ func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
 // CycleApply 循环匹配
 func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 	// 多个请求参数分组在同一个地方
-	affinitys := lo.Uniq(param.GetAllAffinitys())
-	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinitys) == 1 &&
-		slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, affinitys[0]) {
+	affinities := lo.Uniq(param.GetAllAffinities())
+	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinities) == 1 &&
+		slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, affinities[0]) {
 		logger.Info("apply all groups in same location")
-		return applyGroupsInSameLocaltion(param)
+		return applyGroupsInSameLocation(param)
 	}
 	resourceReqList, err := param.SortDetails()
 	if err != nil {
 		logger.Error("对请求参数排序失败%v", err)
 		return nil, err
 	}
+	cityMapCache := cache.New(2*time.Minute, 30*time.Second)
+	defer cityMapCache.Flush()
 	for _, v := range resourceReqList {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
@@ -249,20 +253,20 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		if v.Affinity == "" || v.Count <= 1 {
 			v.Affinity = NONE
 		}
-		idcCitys := []string{}
+		idcCites := []string{}
 		if lo.IsNotEmpty(&v.LocationSpec.City) {
-			idcCitys, err = getLogicIdcCitys(v)
+			idcCites, err = getLogicIdcCitys(v)
 			if err != nil {
-				logger.Error("get logic citys failed %s", err.Error())
+				logger.Error("get logic cites failed %s", err.Error())
 				return pickers, err
 			}
 		}
 		s := &SearchContext{
-			IntetionBkBizId: param.ForbizId,
-			RsType:          param.ResourceType,
-			ObjectDetail:    &v,
-			IdcCitys:        idcCitys,
-			SpecialHostIds:  v.Hosts.GetBkHostIds(),
+			IntentionBkBizId: param.ForbizId,
+			RsType:           param.ResourceType,
+			ObjectDetail:     &v,
+			IdcCitys:         idcCites,
+			SpecialHostIds:   v.Hosts.GetBkHostIds(),
 		}
 		if err = s.PickCheck(); err != nil {
 			return pickers, err
@@ -273,10 +277,10 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 			return pickers, err
 		}
 		// Debug Print Log 挑选实例分区的情况
-		picker.DebugDistrubuteLog()
+		picker.DebugDistributeLog()
 		// 更新挑选到的资源的状态为Preselected
 		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
-			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status In Selling Failed:%v", v.GroupMark,
+			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status to Preselected Failed:%v", v.GroupMark,
 				updateErr.Error())
 		}
 		// 追加到挑选好的分组
@@ -289,7 +293,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 func RollBackAllInstanceUnused(ms []*PickerObject) {
 	for _, m := range ms {
 		if err := m.RollbackUnusedInstance(); err != nil {
-			logger.Error(fmt.Sprintf("Rollback Satisfied Instance Status NotSelled Failed,Error %s", err.Error()))
+			logger.Error(fmt.Sprintf("Rollback Satisfied Instance Status to Unused Failed,Error %s", err.Error()))
 		}
 	}
 }
@@ -303,7 +307,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	}
 	db.Where("bk_cloud_id = ? and status = ? and gse_agent_status_code = ? ", o.BkCloudId, model.Unused, bk.GseAlive)
 
-	o.MatchIntetionBkBiz(db)
+	o.MatchIntentionBkBiz(db)
 	o.MatchRsType(db)
 	o.MatchOsType(db)
 	o.MatchOsName(db)
@@ -336,7 +340,7 @@ func (o *SearchContext) PickCheck() (err error) {
 
 	if int(count) < o.Count {
 		reason := o.predictResourceNoMatchReason()
-		err = fmt.Errorf("申请需求:%s\n\r资源池符合条件的资源总数:%d 小于申请的数量\n\r: 推测的原因可能是以下:%s", o.GetMessage(), count, reason)
+		err = fmt.Errorf("申请需求:\n%s 资源池符合条件的资源总数%d 小于申请的数量\n\n 推测的原因可能是以下:\n %s", o.GetMessage(), count, reason)
 		logger.Error("%s", err.Error())
 		return err
 	}
@@ -378,7 +382,7 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 		},
 		{
 			name: "biz",
-			fn:   o.MatchIntetionBkBiz,
+			fn:   o.MatchIntentionBkBiz,
 			desc: "在匹配专用业务和公共业务的时候没有匹配到资源",
 		},
 		{
@@ -404,13 +408,14 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 	}
 
 	// 根据亲和性添加额外检查
-	if o.Affinity == SAME_SUBZONE_CROSS_SWTICH {
+	switch o.Affinity {
+	case SAME_SUBZONE_CROSS_SWTICH:
 		checks = append(checks, checkFunc{
 			name: "netDevice",
 			fn:   o.UseNetDeviceIsNotEmpty,
 			desc: "亲和性是同园区跨交换机,在排除网卡id为空的时候没有匹配到资源",
 		})
-	} else if o.Affinity == CROSS_RACK {
+	case CROSS_RACK:
 		checks = append(checks, checkFunc{
 			name: "rackId",
 			fn:   o.RackIdIsNotEmpty,
@@ -435,7 +440,7 @@ func (o *SearchContext) predictResourceNoMatchReason() (reason string) {
 	return
 }
 
-// PickCheckSpecialBkhostIds 根据bkhostids取资源
+// PickCheckSpecialBkhostIds host Ids 根据bk host ids取资源
 func (o *SearchContext) PickCheckSpecialBkhostIds() (err error) {
 	var rs []int
 	err = model.DB.Self.Table(model.TbRpDetailName()).Select("bk_host_id").Where(
@@ -448,8 +453,8 @@ func (o *SearchContext) PickCheckSpecialBkhostIds() (err error) {
 	if len(rs) != len(o.SpecialHostIds) {
 		emptyIps := []string{}
 		hostIpMap := lo.SliceToMap(o.Hosts, func(item Host) (int, string) { return item.BkHostId, item.IP })
-		for hostid, ip := range hostIpMap {
-			if !lo.Contains(rs, hostid) {
+		for hostId, ip := range hostIpMap {
+			if !lo.Contains(rs, hostId) {
 				emptyIps = append(emptyIps, ip)
 			}
 		}
@@ -463,7 +468,7 @@ func (o *SearchContext) filterEmptyMountPointStorage(items []model.TbRpDetail,
 	diskSpecs []meta.DiskSpec) (ts []model.TbRpDetail, err error) {
 	for _, ins := range items {
 		if err = ins.UnmarshalDiskInfo(); err != nil {
-			logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
+			logger.Error("%s unmarshal disk failed %s", ins.IP, err.Error())
 			return nil, err
 		}
 		logger.Info("%v", ins.Storages)
@@ -474,7 +479,7 @@ func (o *SearchContext) filterEmptyMountPointStorage(items []model.TbRpDetail,
 				noUseStorages[mp] = v
 			}
 		}
-		logger.Info("nouse: %v", noUseStorages)
+		logger.Info("no-use: %v", noUseStorages)
 		if matchNoMountPointStorage(diskSpecs, noUseStorages) {
 			ts = append(ts, ins)
 		}
@@ -576,14 +581,18 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 	return
 }
 
-// MatchIntetionBkBiz match intetion biz
-func (o *SearchContext) MatchIntetionBkBiz(db *gorm.DB) {
+// MatchIntentionBkBiz match intention biz
+func (o *SearchContext) MatchIntentionBkBiz(db *gorm.DB) {
 	// 如果没有指定专属业务，就表示只能选用公共的资源
 	// 不能匹配打了业务标签的资源
-	if o.IntetionBkBizId <= 0 {
+	if o.IntentionBkBizId <= 0 {
 		db.Where("dedicated_biz = 0")
 	} else {
-		db.Where("dedicated_biz in (?)", []int{0, o.IntetionBkBizId})
+		if len(o.Labels) > 0 {
+			db.Where("dedicated_biz  = ?", o.IntentionBkBizId)
+		} else {
+			db.Where("dedicated_biz in (?)", []int{0, o.IntentionBkBizId})
+		}
 	}
 }
 
@@ -600,10 +609,10 @@ func (o *SearchContext) MatchRsType(db *gorm.DB) {
 
 // MatchOsType match os type
 func (o *SearchContext) MatchOsType(db *gorm.DB) {
-	// os type: Windows, Liunx
+	// os type: Windows, Linux
 	osType := o.ObjectDetail.OsType
 	if cmutil.IsEmpty(o.ObjectDetail.OsType) {
-		osType = model.LiunxOs
+		osType = model.LinuxOs
 	}
 	db.Where("os_type = ? ", osType)
 }
@@ -636,13 +645,12 @@ func (o *SearchContext) MatchOsName(db *gorm.DB) {
 
 // MatchLabels match labels
 func (o *SearchContext) MatchLabels(db *gorm.DB) {
-	// ignore labels tmp
-	// if len(o.Labels) > 0 {
-	// 	db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
-	// } else {
-	// 	// 如果请求没有标签, 只能匹配没有标签的资源
-	// 	db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
-	// }
+	if len(o.Labels) > 0 {
+		db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
+	} else {
+		// 如果请求没有标签, 只能匹配没有标签的资源
+		db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
+	}
 }
 
 // MatchLocationSpec match location parameter
@@ -666,6 +674,15 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 		db.Where("sub_zone_id not in (?)", o.LocationSpec.SubZoneIds)
 	} else {
 		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
+	}
+	if len(o.LocationSpec.ExcludeSubZoneIds) > 0 {
+		db.Where("sub_zone_id not in (?)", o.LocationSpec.ExcludeSubZoneIds)
+	}
+	if len(o.LocationSpec.ExcludeRackIds) > 0 {
+		db.Where("rack_id not in (?)", o.LocationSpec.ExcludeRackIds)
+	}
+	if len(o.LocationSpec.ExcludeNetDeviceIds) > 0 {
+		db.Where("net_device_id not in (?)", o.LocationSpec.ExcludeNetDeviceIds)
 	}
 }
 
@@ -715,12 +732,12 @@ func (o *SearchContext) MatchSpec(db *gorm.DB) {
 	o.Spec.Mem.MatchMem(db)
 }
 
-// UseNetDeviceIsNotEmpty filster net device id not empty
+// UseNetDeviceIsNotEmpty filter net device id not empty
 func (o *SearchContext) UseNetDeviceIsNotEmpty(db *gorm.DB) {
 	db.Where("(net_device_id  is not null and net_device_id != '') and (rack_id is not null and rack_id != '')")
 }
 
-// RackIdIsNotEmpty filter rackid is not empty
+// RackIdIsNotEmpty filter rack-id is not empty
 func (o *SearchContext) RackIdIsNotEmpty(db *gorm.DB) {
 	db.Where("rack_id is not null and rack_id != ''")
 }

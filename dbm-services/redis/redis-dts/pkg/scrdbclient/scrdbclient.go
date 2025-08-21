@@ -191,7 +191,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 			bodyBytes, _ := httputil.DumpResponse(resp, true)
 			err = fmt.Errorf("http response: %s, status code: %d,methods:%s,url: %s,params:%s,retry...",
 				string(bodyBytes), resp.StatusCode, method, req.URL.String(), string(body))
-			c.logger.Error(err.Error(), zap.String("Authorization", req.Header.Get("Authorization")))
+			c.logger.Error(err.Error())
 			resp.Body.Close()
 			time.Sleep(3 * time.Second)
 			continue
@@ -207,7 +207,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 	if err != nil {
 		err = fmt.Errorf("scrDbClient DoNew read resp.body error:%s,methods:%s,url: %s,params:%s",
 			err.Error(), method, req.URL.String(), string(body))
-		c.logger.Error(err.Error(), zap.String("Authorization", req.Header.Get("Authorization")))
+		c.logger.Error(err.Error())
 		return nil, err
 	}
 	result := &APIServerResponse{}
@@ -216,7 +216,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 		err = fmt.Errorf("scrDbClient DoNew unmarshal %s to %+v get an error:%s,methods:%s,url: %s,params:%s",
 			string(b), *result, err.Error(),
 			method, req.URL.String(), string(body))
-		c.logger.Error(err.Error(), zap.String("Authorization", req.Header.Get("Authorization")))
+		c.logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -224,7 +224,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 	if result.Code != statusSuccess {
 		err = fmt.Errorf("scrDbClient DoNew fail,code:%d,message:%s,methods:%s,url: %s,params:%s",
 			result.Code, result.Message, method, req.URL.String(), string(body))
-		c.logger.Error(err.Error(), zap.String("Authorization", req.Header.Get("Authorization")))
+		c.logger.Error(err.Error())
 		return nil, err
 	}
 	return result, nil

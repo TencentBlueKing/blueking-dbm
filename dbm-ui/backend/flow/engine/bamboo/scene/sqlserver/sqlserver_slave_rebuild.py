@@ -175,7 +175,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         act_component_code=TransFileInWindowsComponent.code,
                         kwargs=asdict(
                             DownloadMediaKwargs(
-                                target_hosts=[Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                                target_hosts=[Host(ip=rebuild_slave.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                                 file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
                             ),
                         ),

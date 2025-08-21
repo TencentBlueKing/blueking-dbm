@@ -102,6 +102,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
@@ -115,6 +116,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
             **kwargs,
         )
         cluster_info["domain"] = cluster_info["master_domain"]

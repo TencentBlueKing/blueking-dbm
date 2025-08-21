@@ -6,9 +6,8 @@
       class="result-item"
       @click="handleGo(item)">
       <div class="value-text">
-        <HightLightText
-          class="keyword-highlight"
-          :key-word="keyWord"
+        <TextHighlight
+          :keyword="keyWord"
           :text="item.name" />
         <span class="intro">（{{ item.immute_domain }}）</span>
       </div>
@@ -22,8 +21,7 @@
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
-
-  import HightLightText from './components/HightLightText.vue';
+  import TextHighlight from '@components/text-highlight/Index.vue';
 
   interface Props {
     bizIdNameMap: Record<number, string>;

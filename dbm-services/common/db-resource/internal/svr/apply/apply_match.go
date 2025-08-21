@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -57,7 +58,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 				subzone, pq.Len(), c.Count))
 			continue
 		}
-		logger.Info("dbeug %v", subzone)
+		logger.Info("debug %v", subzone)
 		c.SatisfiedHostIds = []int{}
 		c.ExistEquipmentIds = []string{}
 		c.ExistLinkNetdeviceIds = []string{}
@@ -72,7 +73,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 }
 
 // PickerCrossSubzone 跨园区匹配
-func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
+func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_switch bool) {
 	sortFuncs := []func(cross_subzone bool) []string{
 		c.sortSubZoneByPriority,
 		c.sortSubZoneNum,
@@ -82,7 +83,7 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 		if len(campKeys) == 0 {
 			return
 		}
-		subzoneChan := make(chan subzone, len(campKeys))
+		subzoneChan := make(chan subZone, len(campKeys))
 		for _, v := range campKeys {
 			subzoneChan <- v
 		}
@@ -108,7 +109,7 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_swicth bool) {
 			}
 			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
 			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-			if c.pickerOneByPriority(subzone, cross_swicth) {
+			if c.pickerOneByPriority(subzone, cross_switch) {
 				if cross_subzone {
 					delete(c.PriorityElements, subzone)
 				}
@@ -190,8 +191,8 @@ func (c *PickerObject) sortSubZoneNum(cross_subzone bool) []string {
 	sort.Sort(CampusWrapper{campusNice, func(p, q *CampusNice) bool {
 		return q.Count < p.Count
 	}})
-	for _, capmus := range campusNice {
-		keys = append(keys, capmus.Campus)
+	for _, campus := range campusNice {
+		keys = append(keys, campus.Campus)
 	}
 	return keys
 }
@@ -207,7 +208,7 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		item, _ := pq.Pop()
 		v, ok := item.Value.(InstanceObject)
 		if !ok {
-			logger.Warn("Type Assertion faild,hostId:%s", item.Key)
+			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
 			continue
 		}
 		if cross_switch {
@@ -221,7 +222,7 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
-		c.PickDistrbute[key]++
+		c.PickDistribute[key]++
 		return true
 	}
 	return len(c.PriorityElements) == 0
@@ -249,10 +250,10 @@ const (
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, deviceClass string) {
 	if err := ins.UnmarshalDiskInfo(); err != nil {
-		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
+		logger.Error("%s unmarshal disk failed %s", ins.IP, err.Error())
 	}
 	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
-	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
+	if o.IntentionBkBizId > 0 && ins.DedicatedBiz == o.IntentionBkBizId {
 		ele.Priority += PriorityP0
 	}
 	// 如果请求的磁盘为空，尽量匹配没有磁盘的机器
@@ -272,20 +273,34 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, dev
 		storageSpecMap := lo.SliceToMap(o.StorageSpecs, func(item meta.DiskSpec) (string, meta.DiskSpec) {
 			return item.MountPoint, item
 		})
+		var scores []int64
+		var weights []float64
 		for mp, disk := range ins.Storages {
 			if spec, ok := storageSpecMap[mp]; ok {
 				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
 				// 倾向匹配磁盘小的机器
-				ele.Priority += int64((1 - float32(disk.Size-spec.MinSize)/float32(disk.Size)) * PriorityP2)
+				scores = append(scores, int64((1-float32(disk.Size-spec.MinSize)/float32(disk.Size))*PriorityP2))
+				weights = append(weights, 1/float64(len(ins.Storages)))
 			}
 		}
+		if len(scores) > 0 {
+			ele.Priority += weightedScore(scores, weights)
+		}
 	} else {
-		// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
 		if len(ins.Storages) == 0 {
+			ele.Priority += PriorityP2
+		} else {
+			var scores []int64
+			var weights []float64
+			// 如果请求参数没有磁盘规格，尽量匹配没有磁盘的机器
 			for _, disk := range ins.Storages {
 				// 已经匹配到的资源，磁盘一定是大于等于请求的磁盘最小的值的
 				// 倾向匹配磁盘小的机器
-				ele.Priority += int64(100 - disk.Size/100)
+				scores = append(scores, 10000000-int64(disk.Size))
+				weights = append(weights, 1/float64(len(ins.Storages))*0.00001)
+			}
+			if len(scores) > 0 {
+				ele.Priority += weightedScore(scores, weights)
 			}
 		}
 	}
@@ -298,6 +313,30 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item, dev
 	if lo.Contains([]string{RsRedis}, o.RsType) {
 		ele.Priority += int64((1.0 - float32(ins.CPUNum-o.Spec.Cpu.Min)/float32(ins.CPUNum)) * PriorityP2)
 	}
+	// 根据资源的导入的时间create_time,导入时间越早，优先级越高
+	// create_time 字段类型是 timestamp
+	if !ins.CreateTime.IsZero() {
+		// 计算时间差（单位：小时），时间越早，hoursSinceCreation越大
+		hoursSinceCreation := time.Since(ins.CreateTime).Hours()
+		// 限制时间差不超过一年
+		if hoursSinceCreation > 365*24 {
+			hoursSinceCreation = 365 * 24
+		}
+		// 优先级与时间差成正比，时间越早，优先级越高
+		ele.Priority += int64((hoursSinceCreation / (365 * 24)) * 50)
+	}
+}
+
+// weightedScore 加权评分
+func weightedScore(scores []int64, weights []float64) int64 {
+	if len(scores) != len(weights) {
+		panic("评分与权重数量不匹配")
+	}
+	var total float64
+	for i := range scores {
+		total += float64(scores[i]) * weights[i]
+	}
+	return int64(total)
 }
 
 // AnalysisResourcePriority 分析资源的优先级
@@ -307,7 +346,11 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 	result := make(map[string]*PriorityQueue)
 	maxMumDeviceClass := getMaxNumDeviceClass(insList)
 	subZonePrioritySumMap := make(map[string]int64)
+	netDeviceIdPrioritySumMap := make(map[string]int64)
 	itemsMap := make(map[string][]Item)
+	for _, ins := range insList {
+		netDeviceIdPrioritySumMap[ins.NetDeviceID]++
+	}
 	for _, ins := range insList {
 		ele := Item{
 			Key:      strconv.Itoa(ins.BkHostID),
@@ -324,6 +367,13 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 		if israndom {
 			itemsMap[RANDOM] = append(itemsMap[RANDOM], ele)
 		} else {
+			if slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, o.Affinity) {
+				v, ok := netDeviceIdPrioritySumMap[ins.NetDeviceID]
+				if !ok {
+					v = 0
+				}
+				ele.Priority += v * PriorityP2
+			}
 			itemsMap[ins.SubZone] = append(itemsMap[ins.SubZone], ele)
 			subZonePrioritySumMap[ins.SubZone] += ele.Priority
 		}

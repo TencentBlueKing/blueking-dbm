@@ -69,7 +69,7 @@
       </template>
     </BkResizeLayout>
     <template #footer>
-      <span class="mr24">
+      <span class="mr-24">
         <slot
           v-if="slots.submitTips"
           :host-list="lastHostList"
@@ -85,7 +85,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml8 w-88"
+        class="ml-8 w-88"
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
@@ -212,6 +212,7 @@
   import _ from 'lodash';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
@@ -219,6 +220,7 @@
   import { getRedisClusterList, getRedisInstances, getRedisMachineList } from '@services/source/redis';
   import {
     getHaClusterWholeList as getSqlServerHaCluster,
+    getMachineList as getSqlserverhaMachineList,
     getSqlServerInstanceList,
   } from '@services/source/sqlserveHaCluster';
   import {
@@ -318,6 +320,7 @@
       | 'mongoCluster'
       | 'TendbSingleHost'
       | 'SpiderHost'
+      | 'SqlserverHaHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -538,11 +541,12 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },
         topoConfig: {
+          countFunc: (item: ServiceReturnType<typeof getTendbhaList>[number]) => item.masters.length,
           getTopoList: getTendbhaList,
         },
       },
@@ -560,7 +564,7 @@
           firsrColumn: {
             field: 'instance_address',
             label: 'master',
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaInstanceList,
         },
@@ -800,6 +804,52 @@
         },
       },
     ],
+    SqlserverHaHost: [
+      {
+        content: TendbHaHostContent,
+        id: 'SqlserverHaHost',
+        name: t('SQLServer 主从'),
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+          firsrColumn: {
+            field: 'ip',
+            label: 'IP',
+            role: 'backend_master',
+          },
+          getTableList: getSqlserverhaMachineList,
+        },
+        topoConfig: {
+          countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
+          getTopoList: getSqlServerHaCluster,
+        },
+      },
+      {
+        content: ManualInputHostContent,
+        id: 'manualInput',
+        manualConfig: {
+          activePanelId: 'SqlserverHaHost',
+          checkInstances: getSqlserverhaMachineList,
+          checkKey: 'ip',
+          checkType: 'ip',
+        },
+        name: t('手动输入'),
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        tableConfig: {
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+          firsrColumn: {
+            field: 'ip',
+            label: 'IP',
+            role: 'backend_master',
+          },
+          getTableList: getSqlserverhaMachineList,
+        },
+      },
+    ],
     TendbClusterHost: [
       {
         content: TendbClusterHostContent,
@@ -862,11 +912,14 @@
           firsrColumn: {
             field: 'ip',
             label: t('主库主机'),
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaMachineList,
         },
         topoConfig: {
+          countFunc: (cluster: TendbhaModel) => {
+            return cluster.masters.length;
+          },
           getTopoList: queryMysqlCluster,
         },
       },
@@ -888,7 +941,7 @@
           firsrColumn: {
             field: 'ip',
             label: t('主库主机'),
-            role: 'master',
+            role: 'backend_master',
           },
           getTableList: getTendbhaMachineList,
         },

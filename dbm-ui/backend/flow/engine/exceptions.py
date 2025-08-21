@@ -36,3 +36,8 @@ class MySQLBackupLocalException(AppBaseException):
 class IncompatibleBackupTypeAndLocal(AppBaseException):
     MESSAGE = _("MySQL备份方式和位置不兼容")
     MESSAGE_TPL = _("MySQL备份方式{backup_type}和位置{backup_local}不兼容")
+
+
+class MySQLFlowFailedException(AppBaseException):
+    MESSAGE = _("MySQL组件FLOW执行异常")
+    MESSAGE_TPL = _("{msg}")

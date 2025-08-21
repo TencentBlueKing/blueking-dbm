@@ -43,3 +43,79 @@ FLOW_TREE_DATA = {
     "created_at": "2022-07-28 07:09:46",
     "updated_at": "2022-07-29 07:09:46",
 }
+
+TICKET_DATA = {
+    "id": 585,
+    "create_at": "2025-06-28 09:05:48",
+    "update_at": "2025-06-28 10:05:48",
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "ticket_type": "TENDBCLUSTER_SPIDER_SWITCH_NODES",
+    "group": "tendbcluster",
+    "status": "TODO",
+    "remark": "",
+    "details": {},
+    "send_msg_config": "",
+}
+
+FLOW_DATA = [
+    {
+        "id": 844,
+        "flow_type": "BK_ITSM",
+        "flow_obj_id": "REQ20250703000001",
+        "details": {},
+        "status": "SUCCEEDED",
+        "context": {"ack": True},
+    },
+    {
+        "id": 845,
+        "flow_type": "PAUSE",
+        "flow_obj_id": "pause_03cbb99657d811f098cdba0400c0704d",
+        "details": {},
+        "status": "RUNNING",
+        "context": {"ack": True},
+    },
+    {
+        "id": 846,
+        "flow_type": "RESOURCE_BATCH_APPLY",
+        "flow_obj_id": "",
+        "details": {},
+        "status": "PENDING",
+        "context": {"ack": True},
+    },
+    {
+        "id": 847,
+        "flow_type": "INNER_FLOW",
+        "flow_obj_id": "",
+        "details": {},
+        "status": "PENDING",
+        "context": {"ack": True},
+    },
+]
+
+TODO_DATA = [
+    {
+        "id": 521,
+        "name": "【TenDB Cluster 替换接入层】单据等待审批",
+        "type": "ITSM",
+        "status": "DONE_SUCCESS",
+    },
+    {
+        "id": 522,
+        "name": "【TenDB Cluster 替换接入层】流程待确认，是否继续？",
+        "type": "APPROVE",
+        "status": "TODO",
+    },
+]
+
+TICKET_CONFIG_DATA = {
+    "need_itsm": True,
+    "expire_config": {
+        "pause": 1,
+        "timer": 1,
+        "itsm_expire": 1,
+        "flow_todo_expire": 1,
+        "inner_flow_expire": 1,
+        "resource_replenish": 1,
+    },
+    "need_manual_confirm": True,
+}

@@ -21,6 +21,9 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 class InstallNodemanPluginService(BaseService):
     """安装节点管理插件"""
 
+    RETRY_ERROR_CODES = [502, 504]  # 重试的错误码
+    HTTP_STATUS_OK = 200  # HTTP请求成功的状态码
+
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
 
@@ -58,17 +61,44 @@ class InstallNodemanPluginService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None):
         job_id = data.get_one_of_outputs("job_id")
-        job_details = BKNodeManApi.job_details({"job_id": job_id})
-        status = job_details["status"]
-        if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
-            self.log_info(f"installing plugin, job id is {job_id}")
-            return True
-        if status == BKNodeManApi.JobStatusType.SUCCESS:
-            self.log_info("install plugin successfully")
-            self.finish_schedule()
-            return True
+        max_retries = 3  # 最大重试次数
+        retry_count = data.get_one_of_outputs("retry_count", 0)
+        # 调用 API 并设置 raw=True, raise_exception=False，遇到特定错误码时重试
+        raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
+        # 检查网络状态
+        if raw_response.status_code == self.HTTP_STATUS_OK:
+            try:
+                # 网络请求成功，解析响应内容
+                response = raw_response.json()
+                status = response.get("data", {}).get("status")
+                if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
+                    self.log_info(f"installing plugin, job id is {job_id}")
+                    return True
+                if status == BKNodeManApi.JobStatusType.SUCCESS:
+                    self.log_info("install plugin successfully")
+                    self.finish_schedule()
+                    return True
+                else:
+                    self.log_error("install plugin failed")
+                    return False
+            except (KeyError, TypeError, ValueError) as e:
+                self.log_error(_("解析响应出错: {}，响应内容: {}").format(str(e), raw_response.text))
+                return False
+        elif raw_response.status_code in self.RETRY_ERROR_CODES:
+            retry_count += 1
+            if retry_count <= max_retries:
+                data.outputs.retry_count = retry_count
+                self.log_info(f"retrying job {job_id}, retry count: {retry_count}")
+                return True
+            else:
+                self.log_error(_("已经达到最大重试次数{}次").format(max_retries))
+                return False
         else:
-            self.log_error("install plugin failed")
+            self.log_error(
+                _("获取任务详情失败: {}").format(
+                    f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
+                )
+            )
             return False
 
 

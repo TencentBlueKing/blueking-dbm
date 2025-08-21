@@ -64,11 +64,11 @@ func (job *RedisShutdown) Init(m *jobruntime.JobGenericRuntime) error {
 			return err
 		}
 	}
-	// 6379<= start_port <= 55535
+	// 6379<= start_port <= 64534
 	ports := job.params.Ports
 	for _, p := range ports {
-		if p > 55535 || p < 6379 {
-			err = fmt.Errorf("RedisShutdown port[%d] must range [6379,5535]", p)
+		if p > 64534 || p < 6379 {
+			err = fmt.Errorf("RedisShutdown port[%d] must range [6379,64534]", p)
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}
@@ -163,8 +163,8 @@ func (job *RedisShutdown) Shutdown(port int) bool {
 		}
 
 		// 先通过stop脚本去停止，如果停止失败再尝试用redis-client的方式去shutdown
-		rst, err := util.RunLocalCmd("su", []string{
-			consts.MysqlAaccount, "-c", stopScript + "  " + strconv.Itoa(port) + " " + pwd}, "",
+		rst, err := util.RunLocalCmdReplacePkey("su", []string{
+			consts.MysqlAaccount, "-c", stopScript + "  " + strconv.Itoa(port) + " " + pwd}, pwd, "",
 			nil, 10*time.Second)
 		if err != nil || rst != "" {
 			job.runtime.Logger.Warn("shutdwon failed by call bash . %s:%+v", rst, err)
@@ -318,6 +318,7 @@ func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
+	// util.CleanRedisExporter()
 	return nil
 }
 

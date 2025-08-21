@@ -26,7 +26,7 @@ export interface InsApply extends DetailBase {
   }[];
   port?: number; // 追加就非必填
   // 如果是新部署，则一定从资源池部署
-  resource_spec: {
+  resource_spec?: {
     backend_group: SpecInfo;
   };
 }

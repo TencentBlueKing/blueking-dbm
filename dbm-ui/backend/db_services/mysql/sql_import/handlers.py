@@ -227,7 +227,7 @@ class SQLHandler(object):
         @param root_id: 语义检查的任务ID
         """
 
-        revoke_info = TaskFlowHandler(root_id=root_id).revoke_pipeline()
+        revoke_info = TaskFlowHandler(root_id=root_id).revoke_pipeline(operator=self.context["user"])
         return {"result": revoke_info.result, "message": revoke_info.message, "data": revoke_info.data}
 
     def query_semantic_data(self, root_id: str) -> Dict:

@@ -119,8 +119,16 @@ def mongod_autofix(
         kwargs=kwargs,
     )
 
+    # mognod替换 source已down机，在副本集其他节点机型操作
+    # 获取操作ip
+    exec_ip = sub_sub_get_kwargs.mongod_replace_get_exec_ip(
+        cluster_type=sub_sub_get_kwargs.cluster_type,
+        cluster_role=cluster_role,
+        source_ip=info["ip"],
+        instance=sub_sub_get_kwargs.db_instance,
+    )
     # mognod替换
-    kwargs = sub_sub_get_kwargs.get_instance_replace_kwargs(info=info, source_down=down)
+    kwargs = sub_sub_get_kwargs.get_instance_replace_kwargs(exec_ip=exec_ip, info=info, source_down=down)
     sub_sub_pipeline.add_act(
         act_name=_("MongoDB-mongod替换"),
         act_component_code=ExecuteDBActuatorJobComponent.code,

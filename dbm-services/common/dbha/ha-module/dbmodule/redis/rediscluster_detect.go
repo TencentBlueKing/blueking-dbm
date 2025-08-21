@@ -28,7 +28,7 @@ func (ins *RedisClusterDetectInstance) Detection() error {
 	}
 
 	if err != nil {
-		log.Logger.Errorf("redisC detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		log.Logger.Errorf("redisC detect failed. %s#%d|%s:*** %+v", ins.Ip, ins.Port, ins.GetDBType(), err)
 		if ins.Status == constvar.RedisAuthFailed {
 			return err
 		}

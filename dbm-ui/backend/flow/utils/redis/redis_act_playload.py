@@ -893,6 +893,7 @@ class RedisActPayload(object):
                 "is_keys_to_be_del": True,
                 "delete_rate": int(self.global_config["delete_rate"]),
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 
@@ -922,6 +923,7 @@ class RedisActPayload(object):
                 "proxy_password": proxy_config["password"],
                 "tendis_type": self.cluster["cluster_type"],
                 "tendisplus_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
+                "ssd_delete_rate": int(self.global_config["tendisplus_delete_rate"]),
             },
         }
 
@@ -2090,17 +2092,25 @@ class RedisActPayload(object):
         logger.info(_("更新集群:{} redis配置 为 目标集群的配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
 
-    # redis proxy 原地升级
+    # redis proxy 原地升级/降级
     def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
+        # target_version_file could be None
+        proxy_pkg_prefix = params.get("proxy_pkg_prefix", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=TwemproxyVersion.TwemproxyLatest, pkg_type=MediumEnum.Twemproxy, db_type=DBType.Redis
+                version=TwemproxyVersion.TwemproxyLatest,
+                pkg_type=MediumEnum.Twemproxy,
+                db_type=DBType.Redis,
+                name_prefix=proxy_pkg_prefix,
             )
         elif is_predixy_proxy_type(params["cluster_type"]):
             proxy_pkg = Package.get_latest_package(
-                version=PredixyVersion.PredixyLatest, pkg_type=MediumEnum.Predixy, db_type=DBType.Redis
+                version=PredixyVersion.PredixyLatest,
+                pkg_type=MediumEnum.Predixy,
+                db_type=DBType.Redis,
+                name_prefix=proxy_pkg_prefix,
             )
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,

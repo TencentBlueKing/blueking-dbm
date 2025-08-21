@@ -23,7 +23,7 @@
                   <template #header>
                     <div class="resource-header">
                       <span>{{ groupItem.groupName }}</span>
-                      <span>({{ groupItem.data.length }})</span>
+                      <span>({{ groupItem.count }})</span>
                       <BkButton
                         class="ml-4"
                         text
@@ -81,9 +81,14 @@
 
   const collapseExpandIndex = ref<number[]>([]);
 
-  const renderGroupData = shallowRef<{ data: IResouce[]; groupName: string; list: ({ tag: string } & IResouce)[][] }[]>(
-    [],
-  );
+  const renderGroupData = shallowRef<
+    {
+      count: number;
+      data: IResouce[];
+      groupName: string;
+      list: ({ tag: string } & IResouce)[][];
+    }[]
+  >([]);
 
   const isShow = computed(() => Object.keys(props.ticketDetail.details.nodes || {}).length > 0);
 
@@ -94,20 +99,23 @@
       const groupName = _.trim(nodeName.replace(/\d/g, '').split(/_+/).join('_'), '_');
       if (nodeDataList[0].ip) {
         return {
+          count: nodes[nodeName].length,
           data: nodes[nodeName] as IResouce[],
           groupName,
           list: [],
         };
       }
+      const multDataList = (nodeDataList as Record<string, IResouce>[]).map((item) => {
+        return Object.keys(item).map((nodeKey) => ({
+          tag: nodeKey,
+          ...item[nodeKey],
+        }));
+      });
       return {
+        count: _.flatten(multDataList).length,
         data: [],
         groupName,
-        list: (nodeDataList as Record<string, IResouce>[]).map((item) => {
-          return Object.keys(item).map((nodeKey) => ({
-            tag: nodeKey,
-            ...item[nodeKey],
-          }));
-        }),
+        list: multDataList,
       };
     });
     collapseExpandIndex.value = renderGroupData.value.map((item, index) => index);

@@ -107,6 +107,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
@@ -134,10 +135,7 @@
     emits('showBatchSelector');
   };
 
-  const disableDate = (date?: Date | number) => {
-    const now = Date.now();
-    return !!date && (date.valueOf() < now - 16 * 24 * 3600000 || date.valueOf() > now);
-  };
+  const disableDate = (date?: number | Date) => dayjs(date).isAfter(dayjs(), 'day');
 
   const handleBatchEditShow = (key: IDataRowBatchKey) => {
     batchEditShow[key] = !batchEditShow[key];

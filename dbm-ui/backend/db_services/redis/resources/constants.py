@@ -8,7 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_meta.enums import ClusterType
+
 RESOURCE_TAG = "db_services/resources/redis"
+
+REDIS_DELETE_RATE = {
+    ClusterType.TendisRedisInstance.value: {"default": 5000, "rate_list": [5000, 10000, 20000]},
+    ClusterType.TendisTendisSSDInstance.value: {"default": 1000, "rate_list": [1000, 2000, 3000]},
+    ClusterType.TendisTendisplusInsance.value: {"default": 1000, "rate_list": [1000, 2000, 3000]},
+}
 
 SQL_QUERY_STORAGE_INSTANCES = (
     "SELECT m.bk_host_id, m.bk_cloud_id, m.ip, m.spec_config, c.cluster_id, i.instance_role as role, "

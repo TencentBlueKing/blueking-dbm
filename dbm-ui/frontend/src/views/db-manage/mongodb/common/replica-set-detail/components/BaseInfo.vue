@@ -10,7 +10,9 @@
       {{ data.masterDomainDisplayName }}
     </InfoItem>
     <InfoItem :label="t('标签')">
-      <ClusterTag :data="data" />
+      <ClusterTag
+        :data="data"
+        @success="handleSuccess" />
     </InfoItem>
     <InfoItem :label="t('容量使用率')">
       <ClusterStatsCell
@@ -49,7 +51,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import MongodbModel from '@services/model/mongodb/mongodb';
+  import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 
   import { ClusterTypes } from '@common/const';
 
@@ -60,7 +62,7 @@
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   interface Props {
-    data: MongodbModel;
+    data: MongodbDetailModel;
   }
 
   export type Emits = (e: 'refresh') => void;

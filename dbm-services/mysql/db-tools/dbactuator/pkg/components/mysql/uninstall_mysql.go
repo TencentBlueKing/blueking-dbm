@@ -193,6 +193,7 @@ func (u *UnInstallMySQLComp) ClearMachine() (err error) {
 				cst.AlterNativeMysqlDataRootPath,
 				cst.DefaultBackupBasePath,
 			) //  "/data/dbbak/"
+			myFile     = util.GetMyCnfFileName(port)
 			suffix     = fmt.Sprintf("_bak_%s", time.Now().Format(cst.TIMELAYOUTSEQ))
 			dataLogBak = path.Join(
 				cst.DefaultMysqlLogRootPath,
@@ -202,7 +203,7 @@ func (u *UnInstallMySQLComp) ClearMachine() (err error) {
 				cst.AlterNativeMysqlLogRootPath,
 				fmt.Sprintf("%s_%d%s", cst.DefaultMysqlLogBasePath, port, suffix),
 			) // "/data/mysqllog_{port}_bak__xxxx"
-
+			myFileBak = fmt.Sprintf("%s_%s", myFile, suffix) // /etc/my.cnf.{port}_bak__xxx
 		)
 
 		if cmutil.FileExists(dataLog) {
@@ -254,6 +255,17 @@ func (u *UnInstallMySQLComp) ClearMachine() (err error) {
 				port,
 				suffix,
 			)
+			logger.Info("backup command [%s]", shellCMD)
+			output, err := osutil.ExecShellCommand(false, shellCMD)
+			if err != nil {
+				err = fmt.Errorf("execute [%s] get an error:%w,output:%s", shellCMD, err, output)
+				return err
+			}
+		}
+		// 备份实例的my.cnf文件
+		if cmutil.FileExists(myFile) {
+			var shellCMD string
+			shellCMD += fmt.Sprintf("mv %s %s;", myFile, myFileBak)
 			logger.Info("backup command [%s]", shellCMD)
 			output, err := osutil.ExecShellCommand(false, shellCMD)
 			if err != nil {

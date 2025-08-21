@@ -43,7 +43,7 @@
         </BkButton>
       </template>
       <BkButton
-        class="ml8"
+        class="ml-8"
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>

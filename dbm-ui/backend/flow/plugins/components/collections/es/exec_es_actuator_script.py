@@ -13,7 +13,7 @@ import logging
 from typing import List
 
 from django.utils.translation import ugettext as _
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 

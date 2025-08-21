@@ -60,6 +60,7 @@ class InstanceRole(str, StructuredEnum):
 
     # Doris
     DORIS_BACKEND_HOT = EnumField("doris_backend_hot", _("热节点"))
+    DORIS_BACKEND_WARM = EnumField("doris_backend_warm", _("温节点"))
     DORIS_BACKEND_COLD = EnumField("doris_backend_cold", _("冷节点"))
     DORIS_FOLLOWER = EnumField("doris_follower", _("Follower"))
     DORIS_OBSERVER = EnumField("doris_observer", _("Observer"))

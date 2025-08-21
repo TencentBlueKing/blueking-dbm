@@ -20,30 +20,89 @@ limitations under the License.
 package provider
 
 import (
+	"bufio"
 	"context"
 	"fmt"
-	coreclient "k8s-dbs/core/client"
-	coreconst "k8s-dbs/core/constant"
+	"io"
+	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
+	commtypes "k8s-dbs/common/types"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/helper"
-	pventity "k8s-dbs/core/provider/entity"
+	coreutil "k8s-dbs/core/util"
+	dbserrors "k8s-dbs/errors"
+	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
+	metautil "k8s-dbs/metadata/util"
 	"log/slog"
+	"strings"
+	"time"
+
+	kbtypes "github.com/apecloud/kbcli/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MaxPodLogLines pod log 返回最大行数
+const MaxPodLogLines = 2000
+
+// MaxPodLogSize pod log 返回最大字节数
+const MaxPodLogSize = 5 * 1024 * 1024
+
 // K8sProvider K8sProvider 结构体
 type K8sProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
+	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
+}
+
+// DeletePod 删除 pod
+func (k *K8sProvider) DeletePod(
+	ctx *commentity.DbsContext,
+	entity *coreentity.K8sPodDelete,
+) error {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	ctx.K8sClusterName = k8sClusterConfig.ClusterName
+	ctx.Namespace = entity.Namespace
+	ctx.ClusterName = entity.ClusterName
+	// 记录审计日志
+	_, err = metautil.SaveCommonAuditV2(k.reqRecordProvider, ctx)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+	deletePolicy := metav1.DeletePropagationForeground
+	err = k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).Delete(context.TODO(), entity.PodName, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteK8sPodError, err)
+	}
+
+	// 更新集群 cluster 记录
+	if err = metautil.UpdateClusterLastUpdatedV2(k.clusterMetaProvider, ctx); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	return nil
 }
 
 // CreateNamespace 创建命名空间
-func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pventity.K8sNamespaceEntity, error) {
-	_, err := helper.CreateRequestRecord(entity, coreconst.CreateK8sNs, k.reqRecordProvider)
+func (k *K8sProvider) CreateNamespace(
+	dbsCtx *commentity.DbsContext,
+	entity *coreentity.K8sNamespaceEntity,
+) (*coreentity.K8sNamespaceEntity, error) {
+	_, err := metautil.SaveCommonAuditV2(k.reqRecordProvider, dbsCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +111,7 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
 	}
 
-	k8sClient, err := coreclient.NewK8sClient(k8sClusterConfig)
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
 	}
@@ -62,16 +121,15 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 			slog.Error("failed to validate resource quota format", "err", err)
 			return nil, fmt.Errorf("failed to validate resource quota format: %w", err)
 		}
-
 	}
-
 	ns := k.buildNsFromEntity(entity)
-
+	// 创建命名空间资源
 	createdNs, err := k8sClient.ClientSet.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create namespace: %w", err)
 	}
 
+	// 创建命名空间配额
 	var resourceQuota *coreentity.ResourceQuota
 	if entity.ResourceQuota != nil {
 		quota, err := k.buildQuotaFromEntity(entity)
@@ -88,7 +146,7 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 		resourceQuota = k.buildQuotaFromCreated(createdQuota)
 	}
 
-	responseEntity := pventity.K8sNamespaceEntity{
+	responseEntity := coreentity.K8sNamespaceEntity{
 		K8sClusterName: entity.K8sClusterName,
 		Name:           createdNs.Name,
 		Annotations:    createdNs.Annotations,
@@ -99,6 +157,160 @@ func (k *K8sProvider) CreateNamespace(entity *pventity.K8sNamespaceEntity) (*pve
 	return &responseEntity, nil
 }
 
+// GetPodRawLogs 获取 pod 原始日志
+func (k *K8sProvider) GetPodRawLogs(entity *coreentity.K8sPodLogQueryParams) (string, error) {
+	stream, err := k.buildLogStream(entity)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			slog.Error("failed to close log stream",
+				"namespace", entity.Namespace,
+				"pod", entity.PodName,
+				"err", err,
+			)
+		}
+	}()
+
+	logs, err := io.ReadAll(stream)
+	return string(logs), err
+}
+
+// ListPodLogs 获取 pod 日志
+func (k *K8sProvider) ListPodLogs(
+	entity *coreentity.K8sPodLogQueryParams,
+	pagination *entity.Pagination,
+) ([]*coreentity.K8sLog, uint64, error) {
+	stream, err := k.buildLogStream(entity)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			slog.Error("failed to close log stream",
+				"namespace", entity.Namespace,
+				"pod", entity.PodName,
+				"err", err,
+			)
+		}
+	}()
+
+	logs, err := k.readK8sPodLog(stream)
+	if err != nil {
+		return nil, 0, err
+	}
+	count := uint64(len(logs))
+	if pagination == nil {
+		return logs, count, nil
+	}
+	logs, err = commutil.Paginate(pagination, logs)
+	if err != nil {
+		return nil, 0, err
+	}
+	return logs, count, nil
+}
+
+// buildLogStream 构建日志流
+func (k *K8sProvider) buildLogStream(entity *coreentity.K8sPodLogQueryParams) (io.ReadCloser, error) {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return nil, err
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构造日志选项
+	logOptions := &corev1.PodLogOptions{
+		Container:  entity.Container,
+		Follow:     false,
+		Timestamps: true,
+		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
+		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
+		Previous:   entity.Previous,
+	}
+
+	// 获取日志流
+	podLogReq := k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).GetLogs(entity.PodName, logOptions)
+	stream, err := podLogReq.Stream(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
+}
+
+// GetPodDetail 获取 pod 详情
+func (k *K8sProvider) GetPodDetail(
+	entity *coreentity.K8sPodDetailQueryParams,
+) (*coreentity.K8sPodDetail, error) {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return nil, err
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+	crd := &coreentity.CustomResourceDefinition{
+		ResourceName:         entity.PodName,
+		Namespace:            entity.Namespace,
+		GroupVersionResource: kbtypes.PodGVR(),
+	}
+	podCR, err := coreutil.GetCRD(k8sClient, crd)
+	if err != nil {
+		return nil, err
+	}
+	pod, err := coreutil.ConvertUnstructuredToPod(*podCR)
+	if err != nil {
+		return nil, err
+	}
+	var resourceQuota *coreentity.PodResourceQuota
+	var resourceUsage *coreentity.PodResourceUsage
+	if pod.Status.Phase == corev1.PodRunning {
+		// 获取资源配额
+		resourceQuota, err = coreutil.GetPodResourceQuota(k8sClient, pod)
+		if err != nil {
+			return nil, err
+		}
+		// 获取资源利用率
+		var clusterMetaParams = &metaentity.ClusterQueryParams{
+			K8sClusterConfigID: k8sClusterConfig.ID,
+			Namespace:          entity.Namespace,
+			ClusterName:        entity.ClusterName,
+		}
+		clusterMeta, err := k.clusterMetaProvider.FindByParams(clusterMetaParams)
+		if err != nil {
+			return nil, err
+		}
+
+		resourceUsage, err = coreutil.GetPodResourceUsage(clusterMeta.AddonInfo.AddonType,
+			k8sClusterConfig.ClusterName, k8sClient, pod, resourceQuota)
+		if err != nil {
+			slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
+		}
+	}
+	podDetail := &coreentity.K8sPodDetail{
+		K8sClusterName: entity.K8sClusterName,
+		ClusterName:    entity.ClusterName,
+		Namespace:      entity.Namespace,
+		ComponentName:  pod.Labels["apps.kubeblocks.io/component-name"],
+		Manifest:       commutil.MarshalToYAML(pod),
+		Pod: &coreentity.Pod{
+			PodName:       entity.PodName,
+			Node:          pod.Spec.NodeName,
+			Status:        pod.Status.Phase,
+			Role:          coreutil.GetPodRole(pod),
+			ResourceQuota: resourceQuota,
+			ResourceUsage: resourceUsage,
+			CreatedTime:   commtypes.JSONDatetime(pod.CreationTimestamp.Time),
+		},
+	}
+	return podDetail, nil
+}
+
+// buildQuotaFromCreated 从 k8s quota 构建 ResourceQuota
 func (k *K8sProvider) buildQuotaFromCreated(
 	createdQuota *corev1.ResourceQuota,
 ) *coreentity.ResourceQuota {
@@ -118,7 +330,8 @@ func (k *K8sProvider) buildQuotaFromCreated(
 	}
 }
 
-func (k *K8sProvider) buildQuotaFromEntity(entity *pventity.K8sNamespaceEntity) (*corev1.ResourceQuota, error) {
+// buildQuotaFromEntity 从 entity 构建资源配额
+func (k *K8sProvider) buildQuotaFromEntity(entity *coreentity.K8sNamespaceEntity) (*corev1.ResourceQuota, error) {
 	quota := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      entity.Name,
@@ -136,7 +349,8 @@ func (k *K8sProvider) buildQuotaFromEntity(entity *pventity.K8sNamespaceEntity) 
 	return &quota, nil
 }
 
-func (k *K8sProvider) validateResourceQuota(entity *pventity.K8sNamespaceEntity) error {
+// validateResourceQuota 验证资源配额信息
+func (k *K8sProvider) validateResourceQuota(entity *coreentity.K8sNamespaceEntity) error {
 	if entity.ResourceQuota.Limit.CPU.IsZero() {
 		slog.Error("invalid resource quota: CPU limit cannot be zero", "namespace", entity.Name)
 		return fmt.Errorf("invalid resource quota: CPU limit cannot be zero (namespace=%s)", entity.Name)
@@ -156,7 +370,8 @@ func (k *K8sProvider) validateResourceQuota(entity *pventity.K8sNamespaceEntity)
 	return nil
 }
 
-func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) corev1.Namespace {
+// buildNsFromEntity 从 entity 构建 namespace
+func (k *K8sProvider) buildNsFromEntity(entity *coreentity.K8sNamespaceEntity) corev1.Namespace {
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        entity.Name,
@@ -167,12 +382,44 @@ func (k *K8sProvider) buildNsFromEntity(entity *pventity.K8sNamespaceEntity) cor
 	return ns
 }
 
+// readK8sPodLog 读取 pod 日志信息
+func (k *K8sProvider) readK8sPodLog(stream io.ReadCloser) ([]*coreentity.K8sLog, error) {
+	var k8sLogEntries []*coreentity.K8sLog
+	scanner := bufio.NewScanner(stream)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		timestampStr, message := parts[0], parts[1]
+		timestamp, err := time.Parse(time.RFC3339Nano, timestampStr)
+		if err != nil {
+			continue
+		}
+		k8sLogEntries = append(k8sLogEntries, &coreentity.K8sLog{
+			Timestamp: commtypes.JSONDatetime(timestamp),
+			Message:   message,
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read log stream: %w", err)
+	}
+	return k8sLogEntries, nil
+}
+
 // NewK8sProvider 创建 K8sProvider 实例
-func NewK8sProvider(reqRecordProvider metaprovider.ClusterRequestRecordProvider,
+func NewK8sProvider(
+	reqRecordProvider metaprovider.ClusterRequestRecordProvider,
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider,
+	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 ) *K8sProvider {
 	return &K8sProvider{
 		reqRecordProvider,
 		clusterConfigProvider,
+		clusterMetaProvider,
 	}
 }

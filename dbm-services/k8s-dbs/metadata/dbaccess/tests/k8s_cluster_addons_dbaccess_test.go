@@ -23,7 +23,8 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,10 +81,11 @@ func TestFindClusterAddonsByParams(t *testing.T) {
 	_, err = dbAccess.Create(addon)
 	assert.NoError(t, err)
 
-	params := make(map[string]interface{})
-	params["k8s_cluster_name"] = "bcs-k8s-xxx"
+	clusterAddonParams := &metaentity.K8sClusterAddonQueryParams{
+		K8sClusterName: "bcs-k8s-xxx",
+	}
 
-	addons, err := dbAccess.FindByParams(params)
+	addons, err := dbAccess.FindByParams(clusterAddonParams)
 	assert.NoError(t, err)
 	assert.Len(t, addons, 1)
 	assert.Equal(t, uint64(0x1), addons[0].ID)

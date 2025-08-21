@@ -13,7 +13,9 @@
 
 <template>
   <div class="platform-db-configure-page">
-    <ClusterTab v-model="state.clusterType" />
+    <ClusterTab
+      v-model="state.clusterType"
+      :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
     <ApplyPermissionCatch :key="state.clusterType">
       <div class="configure-content">
         <BkTab
@@ -67,7 +69,7 @@
   const router = useRouter();
 
   const state = reactive({
-    clusterType: '',
+    clusterType: '' as ClusterTypes,
     confType: 'dbconf',
     data: [] as ConfigListItem,
     loading: false,
@@ -165,7 +167,9 @@
    * 获取平台配置列表
    */
   const fetchPlatformConfigList = (confType: string) => {
-    if (state.clusterType === '') return;
+    if (!state.clusterType) {
+      return;
+    }
 
     state.loading = true;
 

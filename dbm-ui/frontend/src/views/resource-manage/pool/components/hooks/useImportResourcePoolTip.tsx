@@ -15,16 +15,12 @@ import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
-import type { HostInfo } from '@services/types';
-
 import { useSystemEnviron } from '@stores';
 
 import { getBusinessHref } from '@utils';
 
 export const useImportResourcePoolTooltip = (
   params: {
-    hostList?: Ref<(FaultOrRecycleMachineModel | HostInfo)[]>;
     isCurrentBiz?: boolean;
   } = {},
 ) => {
@@ -32,72 +28,28 @@ export const useImportResourcePoolTooltip = (
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
 
-  const taskHistoryListRoute = router.resolve({
-    name: 'taskHistoryList',
-    query: {
-      ticket_type__in: 'RESOURCE_IMPORT',
-    },
-  });
-  const taskHistoryListHref = params.isCurrentBiz
-    ? taskHistoryListRoute.href
-    : getBusinessHref(taskHistoryListRoute.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
-
-  const tooltip = computed(() => {
-    const content = {
-      content: () => (
-        <div>
-          {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-          <a
-            href={taskHistoryListHref}
-            target='_blank'>
-            {t('任务历史')}
-          </a>
-          {t('”查看')}
-        </div>
-      ),
-      theme: 'light',
+  const successMessage = (ticketIds: number[]) => {
+    const ticketRoute = {
+      name: 'bizTicketManage',
     };
-
-    if (params.hostList?.value === undefined) {
-      return content;
-    }
-
-    return params.hostList.value.length
-      ? content
-      : {
-          content: t('请选择主机'),
-          disabled: !!params.hostList.value.length,
-        };
-  });
-
-  // 根据导入任务的数量决定跳转的页面
-  const getImportTaskHref = (taskIds: string[]) => {
-    const getRouteInfo = (taskIds: string[]) => {
-      if (taskIds.length === 1) {
-        return router.resolve({
-          name: 'taskHistoryDetail',
-          params: {
-            root_id: taskIds[0],
-          },
-        });
-      }
-      return router.resolve({
-        name: 'taskHistoryList',
-        query: {
-          root_ids: taskIds.join(','),
+    if (ticketIds.length === 1) {
+      Object.assign(ticketRoute, {
+        params: {
+          ticketId: ticketIds[0],
         },
       });
-    };
-
-    const routeInfo = getRouteInfo(taskIds);
-    if (params.isCurrentBiz) {
-      return routeInfo.href;
+    } else {
+      Object.assign(ticketRoute, {
+        query: {
+          ids: ticketIds.join(','),
+        },
+      });
     }
-    return getBusinessHref(routeInfo.href, systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
-  };
 
-  const successMessage = (taskIds: string[]) => {
-    const routeInfoHref = getImportTaskHref(taskIds);
+    const routeInfo = router.resolve(ticketRoute);
+    const routeInfoHref = params.isCurrentBiz
+      ? routeInfo.href
+      : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
 
     Message({
       delay: 6000,
@@ -110,7 +62,7 @@ export const useImportResourcePoolTooltip = (
             href: routeInfoHref,
             target: '_blank',
           },
-          ` "${t('任务')}" `,
+          ` "${t('单据')}" `,
         ),
         t('查看'),
       ]),
@@ -119,9 +71,6 @@ export const useImportResourcePoolTooltip = (
   };
 
   return {
-    getImportTaskHref,
     successMessage,
-    taskHistoryListHref,
-    tooltip,
   };
 };

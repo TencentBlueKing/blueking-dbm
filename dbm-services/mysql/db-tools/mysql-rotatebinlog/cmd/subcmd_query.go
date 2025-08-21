@@ -65,7 +65,7 @@ var queryCmd = &cobra.Command{
 		table.SetAutoFormatHeaders(false)
 		table.SetAutoMergeCellsByColumnIndex([]int{0, 1})
 		table.SetRowLine(true)
-		table.SetHeader([]string{"Port", "DBRole", "Filename", "Filesize", "FimeMtime", "StopTime",
+		table.SetHeader([]string{"Port", "DBRole", "Filename", "Filesize", "FileMtime", "StopTime",
 			"BackupTaskId", "BackupStatus", "StatusMsg", "ClusterId", "Host"})
 		for _, fi := range files {
 			if fi != nil {

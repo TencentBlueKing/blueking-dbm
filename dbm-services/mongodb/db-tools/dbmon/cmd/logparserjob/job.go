@@ -137,7 +137,7 @@ func (job *Job) getServers() []config.ConfServerItem {
 			zap.String("instance", svrItem.Addr()), zap.Error(err))
 		if parselogEnable == "false" {
 			job.Logger.Info(
-				fmt.Sprintf("cluster config parselog.enable is false, skip parselog"),
+				"cluster config parselog.enable is false, skip parselog",
 				zap.String("instance", svrItem.Addr()))
 			continue
 		}

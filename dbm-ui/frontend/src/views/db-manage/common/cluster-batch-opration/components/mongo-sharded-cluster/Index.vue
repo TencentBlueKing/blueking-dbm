@@ -31,9 +31,7 @@
       {{ t('移除标签') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem
-    v-db-console="'mongodb.sharedClusterList.disable'"
-    @click="handleDisableCluster(selected)">
+  <BkDropdownItem v-db-console="'mongodb.sharedClusterList.disable'">
     <BkButton
       v-bk-tooltips="{
         disabled: !batchDisabledDisabled,

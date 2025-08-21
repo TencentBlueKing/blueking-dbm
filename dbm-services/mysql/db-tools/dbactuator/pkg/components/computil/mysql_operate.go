@@ -12,6 +12,7 @@ package computil
 
 import (
 	"fmt"
+	"os/user"
 	"regexp"
 	"strings"
 	"time"
@@ -111,7 +112,17 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 	startCmd += " &"
 	logger.Info(fmt.Sprintf("execute mysqld_safe: [%s]", startCmd))
 	// use mysql start
-	pid, err = osutil.RunInBG(false, fmt.Sprintf("su - mysql -c \"%s\" ", startCmd))
+	currentUser, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	if currentUser.Username == "root" {
+		pid, err = osutil.RunInBG(false, fmt.Sprintf("su - mysql -c \"%s\" ", startCmd))
+	} else if currentUser.Username == "mysql" {
+		pid, err = osutil.RunInBG(false, startCmd)
+	} else {
+		return 0, errors.New("current user is not mysql or root")
+	}
 	if err != nil {
 		return
 	}

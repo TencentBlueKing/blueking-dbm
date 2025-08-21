@@ -46,9 +46,9 @@
                   text
                   theme="primary"
                   @click="() => handleToCluster(rowData)">
-                  <HightLightText
+                  <TextHighlight
                     high-light-color="#FF9C01"
-                    :key-word="formattedKeyword"
+                    :keyword="formattedKeyword"
                     :text="rowData.entry" />
                 </BkButton>
                 <template #append>
@@ -172,8 +172,8 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextHighlight from '@components/text-highlight/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, exportExcelFile } from '@utils';
@@ -249,7 +249,7 @@
       [t('架构类型')]: dataItem.cluster_type,
       [t('版本')]: dataItem.major_version,
       [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
-      [t('集群ID')]: String(dataItem.id),
+      [t('集群ID')]: String(dataItem.cluster_id),
     }));
     const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 

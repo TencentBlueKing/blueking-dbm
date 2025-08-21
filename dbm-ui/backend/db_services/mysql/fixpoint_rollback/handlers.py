@@ -32,18 +32,23 @@ class FixPointRollbackHandler:
     封装定点回档相关接口
     """
 
-    def __init__(self, cluster_id: int, check_full_backup=False):
+    def __init__(self, cluster_id: int, check_full_backup=False, check_instance_exist=False):
         """
         @param cluster_id: 集群ID
         @param check_full_backup: 是否过滤为全备的记录
+        @param check_instance_exist: 是否检查实例是否存在当前集群
         """
         self.cluster = Cluster.objects.get(id=cluster_id)
         self.check_full_backup = check_full_backup
+        self.check_instance_exist = check_instance_exist
 
     def _check_data_schema_grant(self, log) -> bool:
         # 全备记录看is_full_backup
         if self.check_full_backup:
             return log["is_full_backup"]
+        # 如果是单节点类型，这只需判断是否包含schema
+        if self.cluster.cluster_type == ClusterType.TenDBSingle and "schema" in str(log["data_schema_grant"]).lower():
+            return True
         # 有效的备份记录看data_schema_grant
         if str(log["data_schema_grant"]).lower() == "all" or (
             "schema" in str(log["data_schema_grant"]).lower() and "data" in str(log["data_schema_grant"]).lower()
@@ -51,6 +56,16 @@ class FixPointRollbackHandler:
             return True
 
         return False
+
+    def _check_instance_in_cluster(self, log) -> bool:
+        # 没有实例属性，则先获取集群关联的实例
+        if not hasattr(self, "instances"):
+            storages = list(self.cluster.storageinstance_set.values("machine__ip", "port"))
+            proxies = list(self.cluster.proxyinstance_set.values("machine__ip", "port"))
+            self.instances = [f"{inst['machine__ip']}:{inst['port']}" for inst in storages + proxies]
+        # check备份实例是集群关联
+        backup_instance = f"{log['backup_host']}:{log['backup_port']}"
+        return backup_instance in self.instances
 
     @staticmethod
     def _check_backup_log_task_id(log) -> bool:
@@ -78,6 +93,9 @@ class FixPointRollbackHandler:
             if not self._check_data_schema_grant(log):
                 continue
 
+            if self.check_instance_exist and not self._check_instance_in_cluster(log):
+                continue
+
             file_list_infos = log.pop("file_list")
             log["file_list"], log["file_list_details"] = [], []
             log["backup_time"] = log["backup_consistent_time"]
@@ -95,7 +113,9 @@ class FixPointRollbackHandler:
 
         return valid_backup_logs
 
-    def aggregate_tendbcluster_dbbackup_logs(self, backup_logs: List[Dict], shard_list: List = None) -> List[Dict]:
+    def aggregate_tendbcluster_dbbackup_logs(  # noqa: C901
+        self, backup_logs: List[Dict], shard_list: List = None
+    ) -> List[Dict]:
         """
         聚合tendbcluster的mysql_backup_result日志，按照backup_id聚合tendb备份记录
         :param backup_logs: 备份记录列表
@@ -118,6 +138,9 @@ class FixPointRollbackHandler:
                 return None
 
             if not self._check_backup_log_task_id(log):
+                return None
+
+            if self.check_instance_exist and not self._check_instance_in_cluster(log):
                 return None
 
             if not _backup_node or (
@@ -242,6 +265,26 @@ class FixPointRollbackHandler:
                 backup_id__valid_backup_logs[backup_id] = backup_log
 
         return list(backup_id__valid_backup_logs.values())
+
+    def query_recover_backup_logs(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
+        """
+        Query backup logs from log platform for recovery exercise
+        For TenDBCluster, only query backup logs of shard 0
+
+        Args:
+            start_time: Start time of query range
+            end_time: End time of query range
+        """
+        query_string = f'log: "cluster_id: \\"{self.cluster.id}\\""'
+        if self.cluster.cluster_type == ClusterType.TenDBCluster:
+            query_string = f'log: "cluster_id: \\"{self.cluster.id}\\"" and "shard_value: 0 "'
+        backup_logs = self._get_log_from_bklog(
+            collector="mysql_dbbackup_result",
+            start_time=start_time,
+            end_time=end_time,
+            query_string=query_string,
+        )
+        return self.aggregate_tendb_dbbackup_logs(backup_logs)
 
     def query_backup_log_from_bklog(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
         """

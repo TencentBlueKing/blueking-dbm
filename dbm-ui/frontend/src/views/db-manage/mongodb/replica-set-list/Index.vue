@@ -15,6 +15,7 @@
   <div class="mongodb-replica-set-list-page">
     <div class="header-action">
       <BkButton
+        v-db-console="'mongodb.replicaSetList.instanceApply'"
         class="mb-8"
         theme="primary"
         @click="handleApply">
@@ -30,6 +31,7 @@
           disabled: hasData,
           content: t('请先申请集群'),
         }"
+        v-db-console="'mongodb.replicaSetList.importAuthorize'"
         class="inline-block">
         <BkButton
           :disabled="!hasData"
@@ -38,10 +40,13 @@
         </BkButton>
       </span>
       <DropdownExportExcel
+        v-db-console="'mongodb.replicaSetList.export'"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'mongodb.replicaSetList.batchCopy'"
+        :selected="selected" />
       <TagSearch @search="handleTagSearch" />
       <DbSearchSelect
         class="header-action-search-select"
@@ -75,7 +80,23 @@
                 {{ t('获取访问方式') }}
               </BkButton>
             </div>
-            <div>
+            <div v-db-console="'mongodb.replicaSetList.queryAccessSource'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="mongodb_source_access_view"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.mongodb_source_access_view"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                  {{ t('查询访问来源') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'mongodb.replicaSetList.webconsole'">
               <AuthRouterLink
                 action-id="mongodb_webconsole"
                 :disabled="data.isOffline"
@@ -91,7 +112,7 @@
                 Webconsole
               </AuthRouterLink>
             </div>
-            <div v-db-console="'mongodb.replicaSetList.capacityChange'">
+            <div v-db-console="'mongodb.replicaSetList.scaleUpDown'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
                   :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
@@ -413,6 +434,16 @@
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: row.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleGoQueryAccessSourcePage = (masterDomain: string) => {
+    const routeInfo = router.resolve({
+      name: 'MongodbQueryAccessSource',
+      query: {
+        masterDomain,
       },
     });
     window.open(routeInfo.href, '_blank');

@@ -121,6 +121,8 @@ func (job *TendisPlusMigrateSlots) Run() error {
 	}
 	// tendisplus迁移前设置这个参数，避免发生slave漂移情况
 	job.TendisplusConfigSetParams("slave-reconf-enabled", "no")
+	// 迁移前统一处理这个参数为10M,控制搬迁速度，避免速度过快造成影响，
+	job.TendisplusConfigSetParams("cluster-migration-rate-limit", "10")
 	defer job.TendisplusConfigSetParams("slave-reconf-enabled", "yes")
 
 	// 缩容

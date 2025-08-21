@@ -46,12 +46,12 @@ type TS struct {
 	I   uint32 `bson:"I" json:"I,omitempty"`
 }
 
-// JsonV1 mongodump’s Extended JSON v1
+// JsonV1 mongodump's Extended JSON v1
 func (ts *TS) JsonV1() string {
 	return fmt.Sprintf(`Timestamp(%d,%d)`, ts.Sec, ts.I)
 }
 
-// JsonV2 mongodump’s Extended JSON v2
+// JsonV2 mongodump's Extended JSON v2
 func (ts *TS) JsonV2() string {
 	return fmt.Sprintf(`{"$timestamp":{"t":%d,"i":%d}}`, ts.Sec, ts.I)
 }
@@ -204,7 +204,7 @@ func GetVersion(conn *mymongo.MongoHost) (*mymongo.MongoVersion, error) {
 // DoBackup 执行备份
 func DoBackup(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	archive bool,
-	lastBackup *BackupFileName, maxTs *TS) (*BackupFileName, error) {
+	lastBackup *BackupFileName, maxTs *TS, numParallelCollections int) (*BackupFileName, error) {
 	dbConn, err := connInfo.Connect()
 	if err != nil {
 		return nil, errors.Wrap(err, "conn")
@@ -212,7 +212,8 @@ func DoBackup(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	defer dbConn.Disconnect(context.TODO())
 
 	//upsert一行数据到admin.gcs.backup表中，让备份中oplog至少有一条数据，允许Insert失败.
-	mymongo.InsertBackupHeartbeat(dbConn, *connInfo, backupType, dir)
+	// 没有权限。不写这条.
+	// mymongo.InsertBackupHeartbeat(dbConn, *connInfo, backupType, dir)
 
 	var isMasterOut mymongo.IsMasterResult
 	err = mymongo.RunCommand(dbConn, "admin", "isMaster", 10, &isMasterOut)
@@ -228,20 +229,21 @@ func DoBackup(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		zip = true // 使用zstd压缩
 	}
 
-	if backupType == BackupTypeFull {
-		return DoBackupFull(connInfo, backupType, dir, zip, archive, lastBackup)
-	} else if backupType == BackupTypeIncr {
+	switch backupType {
+	case BackupTypeFull:
+		return DoBackupFull(connInfo, backupType, dir, zip, archive, lastBackup, numParallelCollections)
+	case BackupTypeIncr:
 		return DoBackupIncr(connInfo, backupType, dir, zip, archive, lastBackup, maxTs)
-	} else {
+	default:
 		return nil, errors.Errorf("bad backupType: %s", backupType)
 	}
 }
 
 // DoBackupFull 执行全量备份
 func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool, archive bool,
-	lastBackup *BackupFileName) (*BackupFileName, error) {
+	lastBackup *BackupFileName, numParallelCollections int) (*BackupFileName, error) {
 	archiveFile := "dump.archive"
-	dumpCmd, err := buildDumpFullCmd(connInfo, zip, archive, archiveFile, lastBackup, nil)
+	dumpCmd, err := buildDumpFullCmd(connInfo, zip, archive, archiveFile, lastBackup, numParallelCollections)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +258,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 
 	dumpLogFilePath := "dump.log"
 	var cmdList []*mycmd.MyExec
-	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath)
+	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath, false)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +268,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if archive && zip {
 		exec2, err := mycmd.NewMyExec(
 			mycmd.New(MustFindBinPath("zstd", consts.GetDbTool("mongotools")), "-", "-o", archiveFile),
-			cmdMaxTimeout, nil, os.DevNull)
+			cmdMaxTimeout, nil, os.DevNull, false)
 		if err != nil {
 			return nil, err
 		}
@@ -423,7 +425,7 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	}
 	dumpLogFilePath := "dump.log"
 	var cmdList []*mycmd.MyExec
-	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath)
+	exec1, err := mycmd.NewMyExec(dumpCmd, cmdMaxTimeout, nil, dumpLogFilePath, false)
 	if err != nil {
 		return nil, err
 	}
@@ -632,13 +634,13 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, lastB
 }
 
 func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, archiveFile string,
-	lastBackup *BackupFileName, maxTs *TS) (*mycmd.CmdBuilder, error) {
+	lastBackup *BackupFileName, numParallelCollections int) (*mycmd.CmdBuilder, error) {
 	// ./mongotools/mongodump.2.4  mongodump.3.0  mongodump.3.2  mongodump.3.4
 	// mongodump.3.6  mongodump.4.0  mongodump.4.2
 
 	// unused lastBackup
 	_ = lastBackup
-	_ = maxTs
+	_ = numParallelCollections
 	_ = archiveFile
 
 	version, err := GetVersion(connInfo)
@@ -676,6 +678,10 @@ func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, archive bool, archi
 		if zip {
 			dumpCmd.Append("--gzip")
 		}
+	}
+
+	if numParallelCollections > 0 {
+		dumpCmd.Append("-j", strconv.Itoa(numParallelCollections))
 	}
 
 	return dumpCmd, nil

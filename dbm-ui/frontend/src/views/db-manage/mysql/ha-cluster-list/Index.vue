@@ -118,6 +118,46 @@
                 </AuthButton>
               </div>
               <div
+                v-if="!data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mysql_add_clb"
+                    :disabled="data.isOffline"
+                    :permission="data.permission.mysql_add_clb"
+                    :resource="data.id"
+                    text
+                    @click="() => handleAddClb({ details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } })">
+                    {{ t('启用接入层负载均衡（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
+                v-if="data.isOnlineCLB"
+                v-db-console="'common.clb'">
+                <OperationBtnStatusTips
+                  :data="data"
+                  :disabled="!data.isOffline">
+                  <AuthButton
+                    action-id="mysql_clb_bind_domain"
+                    :disabled="data.isOffline"
+                    :permission="data.permission.mysql_clb_bind_domain"
+                    :resource="data.id"
+                    text
+                    @click="
+                      () =>
+                        handleBindOrUnbindClb(
+                          { details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id } },
+                          data.dns_to_clb,
+                        )
+                    ">
+                    {{ data.dns_to_clb ? t('恢复主域名直连接入层') : t('配置主域名指向负载均衡器（CLB）') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </div>
+              <div
                 v-if="data.isOnline"
                 v-db-console="'mysql.haClusterList.disable'">
                 <OperationBtnStatusTips
@@ -187,7 +227,17 @@
             :label="t('主访问入口')"
             :selected-list="selected"
             @go-detail="handleToDetails"
-            @refresh="fetchData" />
+            @refresh="fetchData">
+            <template #append="{ data }">
+              <div
+                v-if="data.isOnlineCLB"
+                class="ml-4">
+                <ClusterEntryPanel
+                  :cluster-id="data.id"
+                  entry-type="clb" />
+              </div>
+            </template>
+          </MasterDomainColumn>
         </template>
         <template #slaveDomain>
           <SlaveDomainColumn
@@ -291,6 +341,7 @@
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
@@ -302,7 +353,7 @@
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/mysql/common/ha-cluster-detail/Index.vue';
@@ -320,6 +371,14 @@
       onSuccess: () => fetchData(),
     },
   );
+  const { handleAddClb } = useAddClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.TENDBHA);
+  const { handleBindOrUnbindClb } = useBindOrUnbindClb<{
+    bk_cloud_id: number;
+    cluster_id: number;
+  }>(ClusterTypes.TENDBHA);
 
   const {
     batchSearchIpInatanceList,

@@ -57,7 +57,7 @@
           <span>
             <AuthButton
               action-id="biz_notify_config"
-              class="ml8 w-88"
+              class="ml-8 w-88"
               :disabled="updateSettingLoading"
               :loading="resetSettingLoading"
               :resource="bizId">
@@ -253,7 +253,11 @@
             }
           });
         } else {
-          const statusBizSetting = bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status];
+          // 若有新增状态，且存量设置不包含此状态，设初始值
+          const statusBizSetting =
+            bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status] ||
+            Object.fromEntries(DefaultMessageTypeList.map((defaultItem) => [defaultItem, true]));
+
           Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
             initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
           });

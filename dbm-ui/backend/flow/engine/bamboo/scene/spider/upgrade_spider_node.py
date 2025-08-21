@@ -305,7 +305,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
                     spider_master_ins.append(f"{spider_ins.machine.ip}{IP_PORT_DIVIDER}{spider_ins.port}")
             # 切换前做预检测
-            if not self.upgrade_local:
+            if not self.force_upgrade:
                 sub_pipeline.add_act(
                     act_name=_("检查Master Spider端连接情况"),
                     act_component_code=CheckClientConnComponent.code,
@@ -344,7 +344,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                             domain=cluster.immute_domain,
                             spider_version=new_spider_version,
                             spider_port=spider_port,
-                            force_upgrade=self.force_upgrade,
+                            force_upgrade=True,
                             sub_flow_context=sub_flow_context,
                         )
                     )
@@ -357,7 +357,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                             domain=cluster.immute_domain,
                             spider_version=new_spider_version,
                             spider_port=spider_port,
-                            force_upgrade=self.force_upgrade,
+                            force_upgrade=True,
                             sub_flow_context=sub_flow_context,
                         )
                     )

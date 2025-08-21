@@ -3,7 +3,7 @@
     ref="root"
     class="cluster-list-column-operation-btn"
     :class="{
-      'is-active': isShowPopMenu,
+      'is-active': isActive,
     }">
     <DbIcon type="more" />
     <div
@@ -22,13 +22,16 @@
     default: () => void;
   }
 
+  type Emits = (e: 'show') => void;
+
+  const emits = defineEmits<Emits>();
   defineSlots<Slots>();
 
   let tippyIns: Instance;
 
   const rootRef = useTemplateRef('root');
   const popMenuRef = useTemplateRef('popMenu');
-
+  const isActive = ref(false);
   const isShowPopMenu = ref(false);
 
   onMounted(() => {
@@ -40,8 +43,13 @@
       interactive: true,
       maxWidth: 'none',
       offset: [0, 12],
+      onHidden() {
+        isActive.value = false;
+      },
       onShow() {
+        isActive.value = true;
         isShowPopMenu.value = true;
+        emits('show');
       },
       placement: 'bottom-start',
       popperOptions: {
@@ -72,7 +80,8 @@
 </script>
 <style lang="less">
   tr.vxe-body--row {
-    &:hover {
+    &.row--hover,
+    &.is-selected-row {
       .cluster-list-column-operation-btn {
         display: flex;
       }
@@ -80,11 +89,12 @@
   }
 
   .cluster-list-column-operation-btn {
-    display: none;
+    position: relative;
+    display: flex;
     font-size: 18px;
     cursor: pointer;
-    justify-content: center;
     border-radius: 2px;
+    justify-content: center;
     align-items: center;
 
     &:hover {
@@ -92,7 +102,6 @@
     }
 
     &.is-active {
-      display: flex;
       color: #3a84ff;
     }
   }
@@ -107,6 +116,12 @@
       flex-direction: column;
 
       & > * {
+        display: block !important;
+
+        & > * {
+          display: block !important;
+        }
+
         &:hover {
           background-color: #f5f7fa;
 

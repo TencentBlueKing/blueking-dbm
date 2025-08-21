@@ -79,6 +79,14 @@ func NewRiakDetectInstanceForGdm(ins *RiakDetectResponse, dbType string, conf *c
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),
 			Cluster:        ins.Cluster,
+			SshInfo: dbutil.Ssh{
+				Port:      conf.SSH.Port,
+				User:      conf.SSH.User,
+				Pass:      conf.SSH.Pass,
+				Dest:      conf.SSH.Dest,
+				Timeout:   conf.SSH.Timeout,
+				MaxUptime: conf.SSH.MaxUptime,
+			},
 		},
 		Timeout: conf.DBConf.Riak.Timeout,
 	}

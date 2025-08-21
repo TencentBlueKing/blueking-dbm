@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -139,7 +140,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	defer func() {
 		if l.initConnectOriginal != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnectOriginal)
-			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
+			if _, err := l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
 				//return err
 				logger.Log.Warn("fail set global init_connect back:", l.initConnectOriginal)
 			}
@@ -188,6 +189,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if l.cnf.Threads > 0 {
 		// cpus, err := cmutil.GetCPUInfo()
 		args = append(args, fmt.Sprintf("--threads=%d", l.cnf.Threads))
+		args = append(args, fmt.Sprintf("--max-threads-for-schema-creation=%d", l.cnf.Threads))
 	}
 	if l.cnf.EnableBinlog {
 		args = append(args, "--enable-binlog")
@@ -198,6 +200,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if l.cnf.CreateTableIfNotExists {
 		args = append(args, "--append-if-not-exist")
 	}
+
 	if tableFilter, err := l.cnf.BuildArgsTableFilterForMydumper(); err != nil {
 		return err
 	} else {
@@ -210,7 +213,8 @@ func (l *LogicalLoader) Execute() (err error) {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("load logical command:", binPath+" ", strings.Join(args, " "))
+	logger.Log.Info("load logical command:", binPath+" ",
+		mysqlcomm.RemoveMysqlCommandPassword(strings.Join(args, " ")))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)

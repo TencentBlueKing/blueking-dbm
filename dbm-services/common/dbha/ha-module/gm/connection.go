@@ -124,7 +124,7 @@ func (conn *AgentConnection) parse(readLen int) error {
 		case ParseType:
 			if conn.Buffer[i] == '\r' {
 				_, ok := dbmodule.DBCallbackMap[conn.netPackage.DetectType]
-				if !ok {
+				if !ok && conn.netPackage.DetectType != "HEARTBEAT" {
 					err = fmt.Errorf("parse failed, can't find dbtype:%s, status ParseType, index %d",
 						conn.netPackage.DetectType, i)
 					log.Logger.Errorf(err.Error())
@@ -215,6 +215,10 @@ func (conn *AgentConnection) resetPackage() {
 // processPackage 将一个完整的包处理并传给gdm
 func (conn *AgentConnection) processPackage() error {
 	var err error
+	if conn.netPackage.DetectType == "HEARTBEAT" {
+		return nil
+	}
+
 	cb, ok := dbmodule.DBCallbackMap[conn.netPackage.DetectType]
 	if !ok {
 		err = fmt.Errorf("can't find %s instance callback", conn.netPackage.DetectType)

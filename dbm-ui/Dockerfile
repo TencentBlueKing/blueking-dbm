@@ -6,7 +6,7 @@ WORKDIR /frontend
 COPY frontend/package.json ./
 RUN node -v && \
     yarn cache clean --all --force && \
-    rm -rf node_modules && \
+    rm -rf node_modules yarn.lock && \
     yarn install --force
 
 FROM frontend-installer AS frontend-builder

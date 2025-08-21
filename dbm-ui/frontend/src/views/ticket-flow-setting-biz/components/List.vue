@@ -191,13 +191,19 @@
             field="updater"
             :label="t('更新人')"
             show-overflow-tooltip
-            :width="120" />
+            :width="100" />
           <BkTableColumn
             field="updateAtDisplay"
             :label="t('更新时间')"
+            :min-width="200"
             show-overflow-tooltip
             sort
-            :width="240" />
+            :width="200" />
+            <BkTableColumn
+            field="remark"
+            :label="t('备注')"
+            show-overflow-tooltip
+            :width="200" />
           <BkTableColumn
             fixed="right"
             :label="t('操作')"

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
@@ -56,10 +56,7 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	if err := dumper.initConfig(versionStr, logBinDisabled); err != nil {
 		return nil, err
 	}
-	if cnf.BackupToRemote.EnableRemote && cnf.Public.BackupType != cst.BackupPhysical {
-		return nil, errors.Errorf("backup stream to remote only support physical but got %s for port=%d",
-			cnf.Public.BackupType, cnf.Public.MysqlPort)
-	}
+
 	// BuildDumper 里面会修正备份方式，所以 SetEnv 要放在后面执行
 	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
 		return nil, envErr
@@ -67,6 +64,9 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 
 	// needn't set timeout for slave
 	if err = dumper.Execute(ctx); err != nil {
+		// when backup failed, we try to get processlist for later analyze
+		processlist, _ := mysqlconn.GetProcesslist(ctx, db)
+		logger.Log.Infof("get processlist for backup failed: %+v", processlist)
 		return nil, err
 	}
 	if err = dumper.PrepareBackupMetaInfo(cnf, metaInfo); err != nil {
@@ -74,7 +74,7 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	}
 	// 如果是 slave 节点，提前获取他的 master_host, master_port
 	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
-		masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+		masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
 		if err != nil {
 			return nil, err
 		}
@@ -83,6 +83,14 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 		}
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+	}
+	// get datadir size
+	if metaInfo.IsFullBackup {
+		datadirSizeMB, err := mysqlconn.GetMysqlDataSize(db)
+		if err != nil {
+			return nil, err
+		}
+		metaInfo.DataDirSizeMB = uint64(datadirSizeMB)
 	}
 
 	if err = buildMetaInfo(cnf, metaInfo); err != nil {
@@ -137,5 +145,6 @@ func buildMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) e
 	metaInfo.BackupId = cnfPub.BackupId
 	metaInfo.EncryptEnable = cnfPub.EncryptOpt.EncryptEnable
 	metaInfo.FileRetentionTag = cnf.BackupClient.FileTag
+	metaInfo.OriginalBackupDir = cnf.Public.BackupDir
 	return nil
 }

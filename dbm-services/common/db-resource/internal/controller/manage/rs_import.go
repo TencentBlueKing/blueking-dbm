@@ -13,7 +13,6 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -92,14 +91,14 @@ func (p *ImportMachParam) existCheck() (err error) {
 func (c *MachineResourceHandler) Import(r *rf.Context) {
 	var input ImportMachParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	if err := input.existCheck(); err != nil {
 		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
 		return
 	}
-	resp, err := Doimport(input, c.RequestId)
+	resp, err := DoImport(input, c.RequestId)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ImportByIps failed %s", err.Error()))
 		c.SendResponse(r, err, err.Error())
@@ -119,21 +118,21 @@ type ImportHostResp struct {
 	NotFoundInCCHosts    []string          `json:"not_found_in_cc_hosts"`
 }
 
-func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
-	return marshalLables(p.Labels)
+func (p ImportMachParam) transParamToBytes() (labelJson json.RawMessage, err error) {
+	return marshalLabels(p.Labels)
 }
 
-// marshalLables TODO
-func marshalLables(labels []string) (json.RawMessage, error) {
+// marshalLabels TODO
+func marshalLabels(labels []string) (json.RawMessage, error) {
 	if len(labels) == 0 {
 		return []byte("[]"), nil
 	}
-	lableJson, err := json.Marshal(labels)
+	labelJson, err := json.Marshal(labels)
 	if err != nil {
-		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
+		logger.Error(fmt.Sprintf("Conversion LabelToJsonStr Failed,Error:%s", err.Error()))
 		return []byte("[]"), err
 	}
-	return lableJson, err
+	return labelJson, err
 }
 
 func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
@@ -145,8 +144,8 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 	})
 }
 
-// Doimport do import
-func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
+// DoImport do import
+func DoImport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var derr error
 	var diskResp bk.GetDiskResp
@@ -177,7 +176,7 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	}
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-	lableJson, err := param.transParamToBytes()
+	labelJson, err := param.transParamToBytes()
 	if err != nil {
 		return resp, err
 	}
@@ -189,19 +188,24 @@ func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	if config.AppConfig.Yunti.IsNotEmpty() {
 		logger.Info("try to get machine info from yunti")
 		var verr error
-		cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
+		cvmInfoMap, verr = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
 		if verr != nil {
 			logger.Warn("query cvm info failed %s", verr.Error())
 		}
 	}
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := param.transHostInfoToDbModule(h, h.BkCloudId, lableJson)
-		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
+		el := param.transHostInfoToDbModule(h, h.BkCloudId, labelJson)
 		bkHostIds = append(bkHostIds, h.BKHostId)
+		diskDetails := []yunti.CvmDataDisk{}
 		if v, ok := cvmInfoMap[h.InnerIP]; ok {
 			el.DramCap = v.Memory * 1000
+			for _, disk := range v.DatadiskList {
+				logger.Info("get disk info from yunti %v", disk.DiskId)
+			}
+			diskDetails = v.DatadiskList
 		}
+		el.SetMore(h.InnerIP, diskResp.IpLogContentMap, diskDetails)
 		elems = append(elems, el)
 	}
 	if err = model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
@@ -229,23 +233,11 @@ func getCvmMachDetailInfo(ipList []string) (cvmInfoMap map[string]yunti.Instance
 	}), nil
 }
 
-func regularExpressionMatching(regular, s string) bool {
-	m, err := regexp.MatchString(regular, s)
-	if err != nil {
-		logger.Error("matching error: %s", err.Error())
-		return false
-	}
-	return m
-}
-
-// getCvmMachList 判断主机是否是cvm
-func getCvmMachList(hosts []*cc.Host) []string {
+// buildCvmMachList 判断主机是否是cvm
+func buildCvmMachList(hosts []*cc.Host) []string {
 	var machIpList []string
 	for _, host := range hosts {
-		if regularExpressionMatching(`^TC(\d*)\d$`, host.AssetID) || strings.Contains(strings.ToUpper(host.SvrTypeName),
-			"QC_CVM") {
-			machIpList = append(machIpList, host.InnerIP)
-		}
+		machIpList = append(machIpList, host.InnerIP)
 	}
 	return machIpList
 }
@@ -288,7 +280,7 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 		AgentStatusUpdateTime: time.Now(),
 		OsType:                model.ConvertOsTypeToHuman(osType),
 		OsBit:                 h.BkOsBit,
-		OsVerion:              h.BkOsVersion,
+		OsVersion:             h.BkOsVersion,
 		OsName:                util.CleanOsName(h.OSName),
 		Operator:              operator,
 		UpdateTime:            time.Now(),
@@ -331,7 +323,7 @@ type HostInfo struct {
 func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 	var input ImportMachineWithDiffInfoParam
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	hostMap := make(map[int]HostInfo)
@@ -365,16 +357,15 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			return
 		}
 		hostsMap := lo.SliceToMap(targetHosts, func(item string) (string, struct{}) { return item, struct{}{} })
-		for _, emptyhost := range notFoundHosts {
-			delete(hostsMap, emptyhost)
+		for _, emptyHost := range notFoundHosts {
+			delete(hostsMap, emptyHost)
 		}
 		var cvmInfoMap map[string]yunti.InstanceDetail
 		if config.AppConfig.Yunti.IsNotEmpty() {
 			logger.Info("try to get machine info from yunti")
-			var verr error
-			cvmInfoMap, verr = getCvmMachDetailInfo(getCvmMachList(ccHostsInfo))
-			if verr != nil {
-				logger.Warn("query cvm info failed %s", verr.Error())
+			cvmInfoMap, err = getCvmMachDetailInfo(buildCvmMachList(ccHostsInfo))
+			if err != nil {
+				logger.Warn("query cvm info failed %s", err.Error())
 			}
 		}
 		for _, h := range ccHostsInfo {
@@ -384,7 +375,7 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 				logger.Error("host not found in input hosts %s", h.InnerIP)
 				continue
 			}
-			jsonRaw, err := marshalLables(hostInfo.Labels)
+			jsonRaw, err := marshalLabels(hostInfo.Labels)
 			if err != nil {
 				logger.Error("marshal labels failed %s", err.Error())
 				c.SendResponse(r, err, err)
@@ -392,11 +383,13 @@ func (c *MachineResourceHandler) ImportMachineWithDiffInfo(r *rf.Context) {
 			}
 			el := buildTbRpItem(h, hostInfo.ForBiz, hostInfo.BkBizId, hostInfo.BkCloudId, hostInfo.RsType, jsonRaw,
 				input.Operator)
-			el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 			bkHostIds = append(bkHostIds, h.BKHostId)
+			diskDetailInfo := []yunti.CvmDataDisk{}
 			if v, ok := cvmInfoMap[h.InnerIP]; ok {
 				el.DramCap = v.Memory * 1000
+				diskDetailInfo = v.DatadiskList
 			}
+			el.SetMore(h.InnerIP, diskResp.IpLogContentMap, diskDetailInfo)
 			elems = append(elems, el)
 		}
 	}
@@ -421,4 +414,180 @@ func buildJobIpList(ss []HostInfo) (ipList []bk.IPList) {
 		})
 	}
 	return
+}
+
+// RefreshDiskInfoParam 刷新磁盘信息参数
+type RefreshDiskInfoParam struct {
+	DeviceClass string `json:"device_class"`
+}
+
+// RefreshDiskInfo 刷新所有资源的磁盘信息
+func (c *MachineResourceHandler) RefreshDiskInfo(r *rf.Context) {
+	var input RefreshDiskInfoParam
+	if err := c.Prepare(r, &input); err != nil {
+		logger.Error("prepare failed %s", err.Error())
+		return
+	}
+
+	var rsList []model.TbRpDetail
+	var err error
+	if input.DeviceClass == "" {
+		err = model.DB.Self.Table(model.TbRpDetailName()).Find(&rsList).Error
+	} else {
+		err = model.DB.Self.Table(model.TbRpDetailName()).Where("device_class = ?", input.DeviceClass).Find(&rsList).Error
+	}
+	if err != nil {
+		logger.Error("查询资源记录失败: %s", err.Error())
+		c.SendResponse(r, err, err.Error())
+		return
+	}
+
+	if len(rsList) == 0 {
+		logger.Info("没有找到需要刷新的资源记录")
+		c.SendResponse(r, nil, "没有找到需要刷新的资源记录")
+		return
+	}
+
+	// 按业务ID分组处理资源
+	bizMap := lo.GroupBy(rsList, func(item model.TbRpDetail) int {
+		return item.BkBizId
+	})
+
+	successCount, failedCount, errorMessages := refreshDiskInfoByBiz(bizMap)
+
+	// 返回刷新结果
+	result := buildRefreshResult(successCount, failedCount, len(rsList), errorMessages)
+
+	logger.Info("磁盘信息刷新完成: 成功 %d 台, 失败 %d 台, 总计 %d 台", successCount, failedCount, len(rsList))
+
+	c.SendResponse(r, nil, result)
+}
+
+// refreshDiskInfoByBiz 按业务分组刷新磁盘信息
+func refreshDiskInfoByBiz(bizMap map[int][]model.TbRpDetail) (int, int, []string) {
+	var successCount, failedCount int
+	var errorMessages []string
+
+	for bizId, bizRsList := range bizMap {
+		logger.Info("开始刷新业务 %d 的磁盘信息, 共 %d 台主机", bizId, len(bizRsList))
+
+		// 构建主机列表和OS映射
+		ipList, hostOsMap := buildHostListAndOsMap(bizRsList)
+
+		// 获取磁盘信息
+		diskResp, err := bk.GetDiskInfo(ipList, bizId, hostOsMap)
+		if err != nil {
+			errMsg := fmt.Sprintf("业务 %d 获取磁盘信息失败: %s", bizId, err.Error())
+			logger.Error(errMsg)
+			errorMessages = append(errorMessages, errMsg)
+			failedCount += len(bizRsList)
+			continue
+		}
+
+		// 获取云主机详细信息
+		cvmInfoMap := getCvmInfoForBiz(bizRsList, bizId)
+
+		// 更新主机磁盘信息
+		bizSuccessCount, bizFailedCount, bizErrors := updateHostsDiskInfo(bizRsList, diskResp, cvmInfoMap)
+		successCount += bizSuccessCount
+		failedCount += bizFailedCount
+		errorMessages = append(errorMessages, bizErrors...)
+
+		// 记录失败的主机信息
+		for ip, errMsg := range diskResp.IpFailedLogMap {
+			logger.Warn("主机 %s 磁盘信息获取失败: %s", ip, errMsg)
+		}
+	}
+
+	return successCount, failedCount, errorMessages
+}
+
+// buildHostListAndOsMap 构建主机列表和操作系统映射
+func buildHostListAndOsMap(bizRsList []model.TbRpDetail) ([]bk.IPList, map[string]string) {
+	var ipList []bk.IPList
+	hostOsMap := make(map[string]string)
+
+	for _, rs := range bizRsList {
+		ipList = append(ipList, bk.IPList{
+			IP:        rs.IP,
+			BkCloudID: rs.BkCloudID,
+		})
+		hostOsMap[rs.IP] = rs.OsType
+	}
+
+	return ipList, hostOsMap
+}
+
+// getCvmInfoForBiz 获取业务的云主机信息
+func getCvmInfoForBiz(bizRsList []model.TbRpDetail, bizId int) map[string]yunti.InstanceDetail {
+	var cvmInfoMap map[string]yunti.InstanceDetail
+
+	if config.AppConfig.Yunti.IsNotEmpty() {
+		logger.Info("尝试从云平台获取业务 %d 的主机信息", bizId)
+		var ipStringList []string
+		for _, rs := range bizRsList {
+			ipStringList = append(ipStringList, rs.IP)
+		}
+
+		var err error
+		cvmInfoMap, err = getCvmMachDetailInfo(ipStringList)
+		if err != nil {
+			logger.Warn("查询业务 %d 云主机信息失败: %s", bizId, err.Error())
+		}
+	}
+
+	return cvmInfoMap
+}
+
+// updateHostsDiskInfo 更新主机磁盘信息
+func updateHostsDiskInfo(bizRsList []model.TbRpDetail, diskResp bk.GetDiskResp,
+	cvmInfoMap map[string]yunti.InstanceDetail) (int, int, []string) {
+	var successCount, failedCount int
+	var errorMessages []string
+
+	for _, rs := range bizRsList {
+		// 获取云主机磁盘详细信息
+		diskDetails := []yunti.CvmDataDisk{}
+		if v, ok := cvmInfoMap[rs.IP]; ok {
+			// 如果内存信息为空，使用云平台的内存信息
+			if rs.DramCap <= 0 {
+				rs.DramCap = v.Memory * 1000
+			}
+			diskDetails = v.DatadiskList
+			for _, disk := range v.DatadiskList {
+				logger.Info("从云平台获取 %s 的磁盘信息: %v", rs.IP, disk.DiskId)
+			}
+		}
+
+		// 设置磁盘和云主机信息
+		rs.SetMore(rs.IP, diskResp.IpLogContentMap, diskDetails)
+
+		// 更新数据库记录
+		if err := model.DB.Self.Table(model.TbRpDetailName()).Where("id = ?", rs.ID).Updates(&rs).Error; err != nil {
+			errMsg := fmt.Sprintf("更新主机 %s 磁盘信息失败: %s", rs.IP, err.Error())
+			logger.Error(errMsg)
+			errorMessages = append(errorMessages, errMsg)
+			failedCount++
+		} else {
+			logger.Info("成功更新主机 %s 的磁盘信息", rs.IP)
+			successCount++
+		}
+	}
+
+	return successCount, failedCount, errorMessages
+}
+
+// buildRefreshResult 构建刷新结果
+func buildRefreshResult(successCount, failedCount, totalCount int, errorMessages []string) map[string]interface{} {
+	result := map[string]interface{}{
+		"success_count": successCount,
+		"failed_count":  failedCount,
+		"total_count":   totalCount,
+	}
+
+	if len(errorMessages) > 0 {
+		result["errors"] = errorMessages
+	}
+
+	return result
 }

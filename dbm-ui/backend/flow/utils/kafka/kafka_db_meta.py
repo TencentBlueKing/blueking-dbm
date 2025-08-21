@@ -199,7 +199,9 @@ class KafkaMeta(object):
             "creator": self.ticket_data["created_by"],
             "bk_cloud_id": bk_cloud_id,
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
+
         with atomic():
             # 兼容旧集群broker及zk混部的情况
             uniq_machines = []

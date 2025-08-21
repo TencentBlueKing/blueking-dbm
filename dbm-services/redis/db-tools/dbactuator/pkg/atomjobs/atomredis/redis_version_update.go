@@ -458,8 +458,8 @@ func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 	// 先执行 stop-redis.sh 脚本,再检查端口是否还在使用
 	job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"",
 		consts.MysqlAaccount, stopScript+" "+strconv.Itoa(port)+" xxxx"))
-	_, err = util.RunLocalCmd("su",
-		[]string{consts.MysqlAaccount, "-c", fmt.Sprintf("%s %d %q", stopScript, port, password)},
+	_, err = util.RunLocalCmdReplacePkey("su",
+		[]string{consts.MysqlAaccount, "-c", fmt.Sprintf("%s %d %q", stopScript, port, password)}, password,
 		"", nil, 10*time.Minute)
 	if err != nil && !strings.Contains(err.Error(), "Warning: Using a password") {
 		return err

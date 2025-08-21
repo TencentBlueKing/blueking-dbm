@@ -94,3 +94,5 @@ data:
   DBM_STATSDB_URL: "{{ $dbmStatsDB.host }}:{{ $dbmStatsDB.port }}"
   DBM_STATSDB_USER: "{{ $dbmStatsDB.user }}"
   DBM_STATSDB_PASSWORD: "{{ $dbmStatsDB.password }}"
+  DBM_STATSDB_NAME: "{{ $dbmStatsDB.name }}"
+

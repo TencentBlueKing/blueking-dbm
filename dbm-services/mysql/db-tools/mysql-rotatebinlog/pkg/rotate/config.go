@@ -1,11 +1,12 @@
 package rotate
 
 import (
-	"dbm-services/common/reverseapi/pkg"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"dbm-services/common/reverseapi/pkg"
 
 	gyaml "github.com/ghodss/yaml"
 	"github.com/mitchellh/go-homedir"
@@ -91,6 +92,7 @@ func InitConfig(confFile string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	// we only report main config to remote
 
 	servers, err := readInstanceConfig(confFile)
 	if err != nil {
@@ -104,6 +106,7 @@ func InitConfig(confFile string) (*Config, error) {
 	if configObj.Public.MaxOldDaysToUpload == 0 {
 		configObj.Public.MaxOldDaysToUpload = 7
 	}
+
 	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil
 }

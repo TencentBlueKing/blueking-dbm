@@ -82,4 +82,6 @@ func InitConfig() {
 		Source:     viper.GetBool("log_source"),
 		Json:       viper.GetBool("log_json"),
 	}
+
+	InitGlobalLimiter()
 }

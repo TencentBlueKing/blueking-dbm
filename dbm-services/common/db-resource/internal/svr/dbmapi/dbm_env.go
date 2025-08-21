@@ -21,16 +21,16 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// DbmEnvData TODO
+// DbmEnvData dbm env data
 type DbmEnvData struct {
-	BK_DOMAIN         string `json:"BK_DOMAIN"`
-	DBA_APP_BK_BIZ_ID int    `json:"DBA_APP_BK_BIZ_ID"`
-	CC_IDLE_MODULE_ID int    `json:"CC_IDLE_MODULE_ID"`
+	BK_DOMAIN string `json:"BK_DOMAIN"`
+	// DBA_APP_BK_BIZ_ID int    `json:"DBA_APP_BK_BIZ_ID"`
+	CC_IDLE_MODULE_ID int `json:"CC_IDLE_MODULE_ID"`
 	CC_MANAGE_TOPO    struct {
 		SetId            int `json:"set_id"`
-		DirtyModuleId    int `json:"dirty_module_id"`
-		ResourceModuleId int `json:"resource_module_id"`
+		ResourceModuleId int `json:"resource.idle.module"`
 	} `json:"CC_MANAGE_TOPO"`
+	RESOURCE_INDEPENDENT_BIZ int `json:"RESOURCE_INDEPENDENT_BIZ"`
 }
 
 // GetDbmEnv get dbm env
@@ -56,25 +56,25 @@ func (c *DbmClient) getDbmEnv() (data DbmEnvData, err error) {
 	if resp.Body != nil {
 		content, err = io.ReadAll(resp.Body)
 		if err != nil {
-			logger.Error("read respone body failed %s", err.Error())
+			logger.Error("read response body failed %s", err.Error())
 			return data, err
 		}
 	}
 	if err != nil {
-		return DbmEnvData{}, fmt.Errorf("respone body %s,err:%v", string(content), err)
+		return DbmEnvData{}, fmt.Errorf("response body %s,err:%v", string(content), err)
 	}
 	defer resp.Body.Close()
-	logger.Info("get dbm env respone body %s", string(content))
+	logger.Info("get dbm env response body %s", string(content))
 
-	var rpdata DbmBaseResp
-	if err = json.Unmarshal(content, &rpdata); err != nil {
+	var respData DbmBaseResp
+	if err = json.Unmarshal(content, &respData); err != nil {
 		return DbmEnvData{}, err
 	}
-	if rpdata.Code != 0 {
-		return DbmEnvData{}, errors.New(rpdata.Message)
+	if respData.Code != 0 {
+		return DbmEnvData{}, errors.New(respData.Message)
 	}
 	var dbmEnvResp DbmEnvData
-	if err = json.Unmarshal(rpdata.Data, &dbmEnvResp); err != nil {
+	if err = json.Unmarshal(respData.Data, &dbmEnvResp); err != nil {
 		return DbmEnvData{}, err
 	}
 	return dbmEnvResp, nil

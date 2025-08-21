@@ -1,20 +1,20 @@
-import { onBeforeUnmount, reactive, ref } from 'vue';
+import { reactive, ref, useTemplateRef } from 'vue';
 import { useRequest } from 'vue-request';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTickets, getTicketStatus } from '@services/source/ticket';
 
-import { useEventBus, useUrlSearch } from '@hooks';
+import { useUrlSearch } from '@hooks';
 
 import { useStorage, useTimeoutFn } from '@vueuse/core';
 
 export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
-  const eventBus = useEventBus();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
   const searchParams = getSearchParams();
 
+  const tableRef = useTemplateRef<any>('table');
   const isLoading = ref(false);
   const dataList = ref<TicketModel[]>([]);
   const pagination = reactive({
@@ -60,8 +60,10 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     fetchTicketStatus();
   }, 3000);
 
+  let daymicTimer: NodeJS.Timeout;
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
+    clearTimeout(daymicTimer);
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
@@ -70,6 +72,18 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     })
       .then((data) => {
         dataList.value = data.results;
+
+        tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
+        if (data.results.length > 20) {
+          daymicTimer = setTimeout(() => {
+            tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
+            if (data.results.length > 50) {
+              daymicTimer = setTimeout(() => {
+                tableRef.value.getVxeTableInstance().loadData(data.results);
+              }, 3000);
+            }
+          }, 1500);
+        }
 
         pagination.count = data.count;
 
@@ -89,12 +103,6 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
         isLoading.value = false;
       });
   };
-
-  eventBus.on('refreshTicketStatus', fetchTicketStatus);
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', fetchTicketStatus);
-  });
 
   return {
     dataList,

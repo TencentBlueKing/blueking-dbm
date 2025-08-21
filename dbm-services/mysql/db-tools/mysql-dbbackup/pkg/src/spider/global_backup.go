@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS %s.global_backup (
   BackupId varchar(40) NOT NULL DEFAULT '',
   BackupStatus varchar(30) NOT NULL DEFAULT '',
   TaskPid int NOT NULL DEFAULT -1,
-  CreatedAt timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  CreatedAt timestamp NOT NULL DEFAULT '1970-01-02 00:00:00',
   UpdatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (BackupId,Host,Port,ShardValue)
 ) ENGINE=%s DEFAULT CHARSET=utf8mb4 COMMENT='shard_key "ShardValue"'
@@ -185,8 +185,9 @@ func migrateBackupSchema(mysqlErr cmutil.MySQLError, db *sqlx.DB) error {
 	} else {
 		logger.Log.Error("migrateBackupSchema with err code:", mysqlErr.Code, mysqlErr.Raw)
 	}
-	logger.Log.Infof("init global_backup: %v", sqlList)
+	logger.Log.Infof("init global_backup(isSpider:%v, isTdbctl:%v): %v", isSpider, isTdbctl, sqlList)
 	for _, sqlStr := range sqlList {
+		logger.Log.Info("run migrate sql: ", sqlStr)
 		if _, err := db.Exec(sqlStr); err != nil {
 			if strings.Contains(sqlStr, "ddl_execute_by_ctl") { // 忽略错误
 				continue

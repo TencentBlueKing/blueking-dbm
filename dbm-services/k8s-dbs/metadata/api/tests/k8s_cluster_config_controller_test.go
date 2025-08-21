@@ -24,15 +24,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"k8s-dbs/metadata/api/controller"
-	"k8s-dbs/metadata/api/vo/req"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/request"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -65,11 +64,6 @@ func AddSampleConfig() error {
 	}
 	dbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
 
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, _ := time.Parse(layout, addDateTime)
-
 	config := &model.K8sClusterConfigModel{
 		ClusterName:  "BCS-K8S-000",
 		APIServerURL: "https://127.0.0.1:60002",
@@ -81,8 +75,6 @@ func AddSampleConfig() error {
 		Password:     "test_password",
 		Description:  "just for test",
 		CreatedBy:    "admin",
-		CreatedAt:    parsedTime,
-		UpdatedAt:    parsedTime,
 		UpdatedBy:    "admin",
 	}
 	added, _ := dbAccess.Create(config)
@@ -110,13 +102,8 @@ func SetupConfigRouter() *gin.Engine {
 func TestCreateConfig(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := SetupConfigRouter()
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
 
-	reqVo := req.K8sClusterConfigReqVo{
+	reqVo := request.K8sClusterConfigRequest{
 		ClusterName:  "BCS-K8S-000",
 		APIServerURL: "https://127.0.0.1:60002",
 		CACert:       "test_ca_cert",
@@ -126,10 +113,6 @@ func TestCreateConfig(t *testing.T) {
 		Username:     "test_username",
 		Password:     "test_password",
 		Description:  "just for test",
-		CreatedBy:    "admin",
-		CreatedAt:    parsedTime,
-		UpdatedAt:    parsedTime,
-		UpdatedBy:    "admin",
 	}
 
 	requestBody, err := json.Marshal(&reqVo)
@@ -273,13 +256,7 @@ func TestUpdateConfig(t *testing.T) {
 	router := SetupConfigRouter()
 	err := AddSampleConfig()
 	assert.NoError(t, err)
-	// 解析时间字符串为 time.Time 对象
-	addDateTime := "2025-01-01 12:00:00"
-	layout := "2006-01-02 15:04:05"
-	parsedTime, err := time.Parse(layout, addDateTime)
-	assert.NoError(t, err)
-
-	configReq := req.K8sClusterConfigReqVo{
+	configReq := request.K8sClusterConfigRequest{
 		ClusterName:  "BCS-K8S-001",
 		APIServerURL: "https://127.0.0.1:60001",
 		CACert:       "test_ca_cert1",
@@ -289,10 +266,6 @@ func TestUpdateConfig(t *testing.T) {
 		Username:     "test_username1",
 		Password:     "test_password1",
 		Description:  "just for test2",
-		CreatedBy:    "admin2",
-		CreatedAt:    parsedTime,
-		UpdatedAt:    parsedTime,
-		UpdatedBy:    "admin2",
 	}
 
 	requestBody, err := json.Marshal(&configReq)

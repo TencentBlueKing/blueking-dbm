@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"log"
+	"math/big"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -94,10 +96,24 @@ func BytesToPublicKey(pub []byte) (*rsa.PublicKey, error) {
 	return key, nil
 }
 
+func generatePasswordGood() string {
+	s := make([]rune, 20)
+	var charset = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	for i := range s {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			// handle err
+		}
+		s[i] = charset[idx.Int64()]
+	}
+	return string(s)
+}
+
 // EncryptWithPublicKey encrypts data with public key
 func EncryptWithPublicKey(msg []byte, pub *rsa.PublicKey) ([]byte, error) {
 	//ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, msg, nil)
-	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, pub, msg)
+	randomReader := strings.NewReader(generatePasswordGood())
+	ciphertext, err := rsa.EncryptPKCS1v15(randomReader, pub, msg)
 	if err != nil {
 		return nil, err
 	}

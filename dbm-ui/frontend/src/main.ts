@@ -49,6 +49,7 @@ dayjs.extend(duration);
 window.changeConfirm = false;
 
 const app = createApp(subEnv ? SubApp : App);
+
 // 自定义全局组件
 setGlobalComps(app);
 const piniaInstance = createPinia();

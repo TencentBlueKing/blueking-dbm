@@ -51,12 +51,11 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-  const { updateDbType, updateUploadFilePath } = useSqlImport();
-
   const modelValue = defineModel<Array<IDataRow>>({
     default: () => [],
   });
+  const { t } = useI18n();
+  const { updateDbType, updateUploadFilePath } = useSqlImport();
 
   const formItemRef = ref();
   const rowRef = ref<InstanceType<typeof RenderDataRow>[]>();

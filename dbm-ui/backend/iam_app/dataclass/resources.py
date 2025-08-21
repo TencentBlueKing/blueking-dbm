@@ -427,6 +427,14 @@ class SQLServerResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class OracleResourceMeta(ClusterResourceMeta):
+    """oracle集群resource 属性定义"""
+
+    id: str = "oracle"
+    name: str = _("Oracle集群")
+
+
+@dataclass
 class InstanceResourceMeta(ClusterResourceMeta):
     """实例resource 属性定义"""
 
@@ -733,6 +741,7 @@ class ResourceEnum:
     RIAK = RiakResourceMeta()
     MONGODB = MongoDBResourceMeta()
     SQLSERVER = SQLServerResourceMeta()
+    ORACLE = OracleResourceMeta()
     DBTYPE = DBTypeResourceMeta()
     TICKET_GROUP = TicketGroupResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()

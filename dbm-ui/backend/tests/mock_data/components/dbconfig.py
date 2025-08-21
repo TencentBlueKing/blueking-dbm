@@ -86,6 +86,8 @@ CONF_ITEM_DATA = {
         **CONF_FILE_DATA["conf_names"],
         "db_version": {"version": MYSQL_CONF_VERSION1},
         "charset": {"charset": CHARSET},
+        "spider_version": {"version": MYSQL_CONF_VERSION1},
+        "mysqld": {"spider_auto_increment_mode_switch": 1024, "spider_auto_increment_step": 1024},
     },
 }
 

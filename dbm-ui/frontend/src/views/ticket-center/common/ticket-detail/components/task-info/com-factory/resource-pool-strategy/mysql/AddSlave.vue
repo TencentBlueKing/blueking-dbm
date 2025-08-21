@@ -14,8 +14,11 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow>
-    <BkTableColumn :label="t('目标集群')">
+    :show-overflow="false">
+    <BkTableColumn
+      fixed="left"
+      :label="t('目标集群')"
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -25,17 +28,19 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
+    <BkTableColumn
+      :label="t('新从库主机')"
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.new_slave.hosts[0].ip }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份源')">
-      <template #default>
-        {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+        {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份源')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -43,6 +48,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.AddSlave>;

@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -29,6 +30,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import SpiderSwitchContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
@@ -67,21 +69,21 @@ class RemoteMasterSlaveSwitchFlow(object):
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
         )
         sub_pipelines = []
-
+        # 相同集群的切换合并到一个流程
+        cluster_switch_map = defaultdict(list)
         for info in self.data["infos"]:
+            cluster_switch_map[info["cluster_id"]].extend(info["switch_tuples"])
+        batch_idx = 1000
+        for cluster_id, switch_tuples in cluster_switch_map.items():
             # 拼接子流程需要全局参数
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
-
-            # 拼接子流程的全局参数
-            sub_flow_context.update(info)
-
             # 获取对应集群相关对象
             try:
-                cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
+                cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
             except Cluster.DoesNotExist:
                 raise ClusterNotExistException(
-                    cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                    cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
                 )
 
             # 获取所有接入层正在running 状态的spider列表
@@ -101,7 +103,7 @@ class RemoteMasterSlaveSwitchFlow(object):
             if sub_flow_context["is_verify_checksum"]:
                 # 需要检测checksum结果，计算出需要做checksum结果的存储对
                 # 需要做客户端连接检测，计算出需要做检查的实例
-                for t in sub_flow_context["switch_tuples"]:
+                for t in switch_tuples:
                     objs = cluster.storageinstance_set.filter(machine__ip=t["master"]["ip"])
                     for master in objs:
                         slave = StorageInstanceTuple.objects.get(ejector=master).receiver
@@ -138,13 +140,28 @@ class RemoteMasterSlaveSwitchFlow(object):
             )
 
             sub_pipeline.add_act(
-                act_name=_("执行切换"),
+                act_name=_("执行切换主节点路由"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         bk_cloud_id=cluster.bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.tendb_cluster_remote_switch.__name__,
                         exec_ip=ctl_primary.split(":")[0],
+                        cluster={"cluster_id": cluster_id, "switch_tuples": switch_tuples, "batch_id": batch_idx},
+                    )
+                ),
+                write_payload_var=SpiderSwitchContext.get_new_masters_bin_pos_var_name(),
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("转换复制关系,并切换从分片的路由"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        get_mysql_payload_func=MysqlActPayload.tendb_cluster_slave_spt_switch.__name__,
+                        exec_ip=ctl_primary.split(":")[0],
+                        cluster={"cluster_id": cluster_id, "switch_tuples": switch_tuples, "batch_id": batch_idx},
                     )
                 ),
             )
@@ -155,6 +172,11 @@ class RemoteMasterSlaveSwitchFlow(object):
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=SpiderDBMeta.remote_switch.__name__,
+                        cluster={
+                            "cluster_id": cluster_id,
+                            "switch_tuples": switch_tuples,
+                            "force": self.data["force"],
+                        },
                     )
                 ),
             )
@@ -170,7 +192,7 @@ class RemoteMasterSlaveSwitchFlow(object):
                         data=copy.deepcopy(sub_flow_context),
                         bk_cloud_id=cluster.bk_cloud_id,
                         bk_biz_id=cluster.bk_biz_id,
-                        ips=[info["master"]["ip"] for info in info["switch_tuples"]],
+                        ips=[info["master"]["ip"] for info in switch_tuples],
                         with_actuator=True,
                         with_cc_standardize=False,
                         with_instance_standardize=False,
@@ -182,7 +204,7 @@ class RemoteMasterSlaveSwitchFlow(object):
                         data=copy.deepcopy(sub_flow_context),
                         bk_cloud_id=cluster.bk_cloud_id,
                         bk_biz_id=cluster.bk_biz_id,
-                        ips=[info["slave"]["ip"] for info in info["switch_tuples"]],
+                        ips=[info["slave"]["ip"] for info in switch_tuples],
                         with_actuator=True,
                         with_cc_standardize=False,
                         with_instance_standardize=False,
@@ -193,6 +215,7 @@ class RemoteMasterSlaveSwitchFlow(object):
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name))))
+            batch_idx += 1
 
         switch_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        switch_pipeline.run_pipeline(is_drop_random_user=True)
+        switch_pipeline.run_pipeline(is_drop_random_user=True, init_trans_data_class=SpiderSwitchContext())

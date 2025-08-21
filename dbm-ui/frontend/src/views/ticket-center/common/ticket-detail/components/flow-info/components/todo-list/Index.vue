@@ -40,7 +40,7 @@
 
   interface Props {
     data: FlowMode['todos'];
-    flowData: FlowMode<unknown, any>;
+    flowData: FlowMode<any, any, any>;
   }
 
   const props = defineProps<Props>();

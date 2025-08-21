@@ -18,6 +18,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
+	"dbm-services/common/db-resource/internal/svr/yunti"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -36,6 +37,8 @@ const (
 	Used = "Used"
 	// UsedByOther 已被其他业务使用
 	UsedByOther = "UsedByOther"
+	// FaultHazard 故障隐患
+	FaultHazard = "FaultHazard"
 )
 
 const (
@@ -48,28 +51,29 @@ const (
 // TbRpDetail  机器资源明细表
 // nolint
 type TbRpDetail struct {
-	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
-	BkCloudID       int                      `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
-	BkBizId         int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:机器当前所属业务" json:"bk_biz_id"`
-	DedicatedBiz    int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
-	RsType          string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
-	Bizs            map[string]string        `gorm:"-" json:"-"`
-	BkHostID        int                      `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
-	IP              string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
-	AssetID         string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
-	DeviceClass     string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"`
-	SvrTypeName     string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
-	CPUNum          int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
-	DramCap         int                      `gorm:"column:dram_cap;type:int(11);not null;comment:'内存大小'" json:"dram_cap"`
-	StorageDevice   json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
-	TotalStorageCap int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
-	Storages        map[string]bk.DiskDetail `gorm:"-" json:"-"`
-	//  操作系统类型 Liunx,Windows
+	ID                  int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
+	BkCloudID           int                      `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
+	BkBizId             int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:机器当前所属业务" json:"bk_biz_id"`
+	DedicatedBiz        int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType              string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
+	Bizs                map[string]string        `gorm:"-" json:"-"`
+	BkHostID            int                      `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
+	IP                  string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
+	AssetID             string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
+	DeviceClass         string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"`
+	SvrTypeName         string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
+	CPUNum              int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
+	DramCap             int                      `gorm:"column:dram_cap;type:int(11);not null;comment:'内存大小'" json:"dram_cap"`
+	StorageDevice       json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
+	TotalStorageCap     int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
+	TotalDataStorageCap int                      `gorm:"column:total_data_storage_cap;type:int(11);comment:'数据盘总容量'" json:"total_data_storage_cap"`
+	Storages            map[string]bk.DiskDetail `gorm:"-" json:"-"`
+	//  操作系统类型 Linux,Windows
 	/*Linux(1) Windows(2) AIX(3) Unix(4) Solaris(5) FreeBSD(7)*/
 	OsType string `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
 	OsBit  string `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
 	//  操作系统版本
-	OsVerion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
+	OsVersion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
 	//  操作系统名称
 	OsName string `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`
 	//  磁盘Raid
@@ -107,13 +111,13 @@ type TbRpDetail struct {
 	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
 	// 创建时间
 	CreateTime time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
-	// foreiginKey:关联表的结构字段 references:当前表的结构字段
+	// foreignKey:关联表的结构字段 references:当前表的结构字段
 	// SubStorages []TbRpStorageItem `gorm:"foreignKey:BkHostID;references:BkHostID"`
 }
 
 const (
-	// LiunxOs linux
-	LiunxOs = "Linux"
+	// LinuxOs linux
+	LinuxOs = "Linux"
 	// WindowsOs windows
 	WindowsOs = "Windows"
 	// UnixOs unix
@@ -126,7 +130,7 @@ const (
 func ConvertOsTypeToHuman(osType string) string {
 	switch osType {
 	case "1":
-		return LiunxOs
+		return LinuxOs
 	case "2":
 		return WindowsOs
 	case "4":
@@ -167,7 +171,7 @@ func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 	}
 	if len(spec.StorageSpecs) > 0 {
 		if err := t.UnmarshalDiskInfo(); err != nil {
-			logger.Error("unmarshal disk info failed, err:%s")
+			logger.Error("unmarshal disk info failed, err:%s", err.Error())
 			return false
 		}
 		for _, diskSpec := range spec.StorageSpecs {
@@ -228,8 +232,33 @@ func GetTbRpDetailAll(sqlstr string) ([]TbRpDetail, error) {
 	return m, nil
 }
 
+// GetSubzoneIdMap 获取subzone,subzone_id 对应的关系
+func GetSubzoneIdMap() (map[string]string, error) {
+	var m []TbRpDetail
+	err := DB.Self.Table(TbRpDetailName()).Select("sub_zone,sub_zone_id").Scan(&m).Error
+	if err != nil {
+		return nil, err
+	}
+	// 并合并 tbrpdetailarchive表的信息
+	var mArchive []TbRpDetail
+	errArchive := DB.Self.Table(TbRpDetailArchiveName()).Select("sub_zone,sub_zone_id").Scan(&mArchive).Error
+	if errArchive != nil {
+		return nil, errArchive
+	}
+	m = append(m, mArchive...)
+	subzoneIdMap := make(map[string]string)
+	for _, v := range m {
+		subzoneIdMap[v.SubZoneID] = v.SubZone
+	}
+	return subzoneIdMap, nil
+}
+
 // SetMore TODO
-func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollection) {
+func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollection, diskList []yunti.CvmDataDisk) {
+	diskDetailMap := lo.SliceToMap(diskList, func(d yunti.CvmDataDisk) (string, yunti.CvmDataDisk) {
+		return d.DiskId, d
+	})
+	logger.Info("diskDetailMap:%v", diskDetailMap)
 	if disk, ok := diskMap[ip]; ok {
 		if t.CPUNum <= 0 {
 			t.CPUNum = disk.Cpu
@@ -241,18 +270,60 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		if t.DeviceClassIsLocalSSD() {
 			dks = bk.SetDiskType(disk.Disk, bk.SSD)
 		}
+		// 判断是否存在相同的diskId
+		diskIdSet := make(map[string]struct{})
+		hasSameDiskId := false
+		for _, dk := range dks {
+			if _, exist := diskIdSet[dk.DiskId]; exist {
+				logger.Info("发现重复的diskId: %s,可能存在分盘", dk.DiskId)
+				hasSameDiskId = true
+			} else {
+				diskIdSet[dk.DiskId] = struct{}{}
+			}
+		}
+		if len(diskDetailMap) > 0 {
+			rebuildDks := make([]bk.DiskInfo, 0)
+			for _, dk := range dks {
+				dd := dk
+				if detail, exist := diskDetailMap[dk.DiskId]; exist {
+					if !hasSameDiskId {
+						dd.Size = detail.DiskSize
+						dd.DiskType = TransferCloudDiskType(detail.DiskType)
+					}
+				}
+				rebuildDks = append(rebuildDks, dd)
+			}
+			dks = rebuildDks
+		}
+		logger.Info("disk detail:%v", dks)
 		if r, err := bk.MarshalDisk(dks); err != nil {
 			logger.Warn("disk marshal failed %s", err.Error())
 		} else {
 			t.StorageDevice = []byte(r)
 		}
-		if t.TotalStorageCap <= 0 {
-			totalSize := 0
-			for _, dk := range disk.Disk {
-				totalSize += dk.Size
-			}
-			t.TotalStorageCap = totalSize
+		// reset total storage cap
+		totalSize := 0
+		for _, dk := range disk.Disk {
+			totalSize += dk.Size
 		}
+		t.TotalDataStorageCap = totalSize
+	}
+}
+
+// TransferCloudDiskType 云硬盘类型转换
+func TransferCloudDiskType(diskType string) string {
+	switch diskType {
+	case "CLOUD_PREMIUM":
+		return "HDD"
+	case "LOCAL_NVME":
+		return "SSD"
+	// nolint
+	case "CLOUD_SSD", "CLOUD_HSSD", "CLOUD_TSSD":
+		return "CLOUD_SSD"
+	case "LOCAL_PRO":
+		return "LOCAL_HDD"
+	default:
+		return diskType
 	}
 }
 
@@ -324,15 +395,15 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 	}
 	if len(bkhostIds) != len(result) {
 		logger.Error("Get TbRpDetail is %v", result)
-		return nil, fmt.Errorf("requried count is %d,But Only Get %d", len(bkhostIds), len(result))
+		return nil, fmt.Errorf("required count is %d,But Only Get %d", len(bkhostIds), len(result))
 	}
 	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
 	if rdb.Error != nil {
 		logger.Error("update status Failed,Error %v", rdb.Error)
-		return nil, err
+		return nil, rdb.Error
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {
-		return nil, fmt.Errorf("requried Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),
+		return nil, fmt.Errorf("required Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),
 			rdb.RowsAffected)
 	}
 	return result, nil

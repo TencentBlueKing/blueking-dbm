@@ -21,7 +21,7 @@
   </Teleport>
   <div class="ticket-flow-list-content">
     <BkAlert
-      class="mb16"
+      class="mb-16"
       closable>
       {{
         t(

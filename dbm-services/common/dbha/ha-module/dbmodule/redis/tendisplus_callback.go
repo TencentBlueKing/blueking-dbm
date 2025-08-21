@@ -169,7 +169,7 @@ func NewPredixySwitchIns(instance interface{},
 		log.Logger.Errorf("get predixy switch passwd failed,err:%s,info:%s",
 			err.Error(), pw.ShowSwitchInstanceInfo())
 	} else {
-		log.Logger.Infof("get predixy switch passwd[%s]", passwd)
+		log.Logger.Infof("get predixy switch passwd[***]")
 		pw.Pass = passwd
 	}
 	return &pw, nil

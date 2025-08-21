@@ -13,15 +13,26 @@ export const getSearchSelectValue = (
     if (_.has(urlPayload, item.id)) {
       const searchValue = urlPayload[item.id];
       const childNameMap = (item.children || []).reduce<Record<string, string>>(
-        (result, item) => Object.assign(result, { [item.id]: item.name }),
+        (result, item) =>
+          Object.assign(result, {
+            [item.id]: item.name,
+          }),
         {},
       );
 
       defaultValue.push({
         ...item,
         values: item.multiple
-          ? searchValue.split(',').map((item) => ({ id: item, name: childNameMap[item] ?? item }))
-          : [{ id: searchValue, name: childNameMap[searchValue] ?? searchValue }],
+          ? searchValue.split(',').map((item) => ({
+              id: item,
+              name: childNameMap[item] ?? item,
+            }))
+          : [
+              {
+                id: searchValue,
+                name: childNameMap[searchValue] ?? searchValue,
+              },
+            ],
       });
     }
   });

@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 
 from celery import shared_task
 from django.utils.translation import gettext as _
-from jinja2 import Environment
+from jinja2.sandbox import SandboxedEnvironment as Environment
 
 from backend import env
 from backend.components import CmsiApi

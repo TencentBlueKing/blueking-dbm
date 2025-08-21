@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/samber/lo"
@@ -32,10 +33,10 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 				return fmt.Errorf("min %d great thane min %d", d.MinSize, d.MaxSize)
 			}
 		}
-		if !a.Spec.Cpu.Iegal() {
+		if !a.Spec.Cpu.Legal() {
 			return fmt.Errorf("cpu参数不合法: min:%d,max:%d", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
-		if !a.Spec.Mem.Iegal() {
+		if !a.Spec.Mem.Legal() {
 			return fmt.Errorf("mem参数不合法: min:%d,max:%d", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 		// 如果只是申请一个机器，则没有亲和性的必要
@@ -52,7 +53,7 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
 			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 && len(a.LocationSpec.SubZoneIds) < 2) {
-				return fmt.Errorf("because need cros subzone,you special subzones need more than 2 subzones")
+				return fmt.Errorf("because need cross sub-zone,you special subzones need more than 2 subzones")
 			}
 		case NONE:
 			return nil
@@ -79,14 +80,14 @@ type RequestInputParam struct {
 	ActionInfo
 }
 
-// GetAllAffinitys 获取这批请求的所有亲和性的参数
-func (param RequestInputParam) GetAllAffinitys() (affinitys []string) {
+// GetAllAffinities 获取这批请求的所有亲和性的参数
+func (param RequestInputParam) GetAllAffinities() (affinities []string) {
 	for _, d := range param.Details {
-		if !lo.Contains(affinitys, d.Affinity) {
-			affinitys = append(affinitys, d.Affinity)
+		if !lo.Contains(affinities, d.Affinity) {
+			affinities = append(affinities, d.Affinity)
 		}
 	}
-	return affinitys
+	return affinities
 }
 
 // BuildMessage build apply message
@@ -99,9 +100,10 @@ func (param RequestInputParam) BuildMessage() (msg string) {
 		groupCountMap[d.Affinity] += d.Count
 		count += d.Count
 	}
-	msg = fmt.Sprintf("此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg = fmt.Sprintf("\n此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	msg += fmt.Sprintf("申请的资源类型: %s\n", param.ResourceType)
 	for affinity, count := range groupMap {
-		msg += fmt.Sprintf("按照亲和性%s申请的资源分组%d,总共包含机器数量%d\n", affinity, count, groupCountMap[affinity])
+		msg += fmt.Sprintf("按照亲和性 [%s] 申请: %d组机器,总共机器数量: %d\n", affinity, count, groupCountMap[affinity])
 	}
 	return msg
 }
@@ -126,7 +128,6 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 			Priority: 0,
 		}
 		if len(dtlp.StorageSpecs) > 0 {
-			// 多磁盘需求前置
 			item.Priority += int64(len(dtlp.StorageSpecs))
 		}
 		if !dtlp.LocationSpec.IsEmpty() {
@@ -138,22 +139,28 @@ func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 		if len(dtlp.DeviceClass) > 0 {
 			item.Priority++
 		}
-
 		if dtlp.Count > 1 {
 			item.Priority += int64(dtlp.Count)
 		}
-
 		if err := pq.Push(&item); err != nil {
 			return nil, err
 		}
-
 	}
+
+	// 预分配切片容量
+	dlts = make([]ObjectDetail, 0, len(param.Details))
 	for pq.Len() > 0 {
 		item, err := pq.Pop()
 		if err != nil {
 			return nil, err
 		}
-		dlts = append(dlts, item.Value.(ObjectDetail))
+		// 添加类型检查
+		// nolint
+		if objDetail, ok := item.Value.(ObjectDetail); ok {
+			dlts = append(dlts, objDetail)
+		} else {
+			return nil, fmt.Errorf("invalid type in PriorityQueue: expected ObjectDetail, got %T", item.Value)
+		}
 	}
 	return dlts, nil
 }
@@ -289,46 +296,60 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 				message += fmt.Sprintf(" size >= %d G ", d.MinSize)
 			}
 		}
-		message += "\n\r"
+		message += "\n"
 	}
 	return
 }
 
 // GetMessage return apply failed message
 func (a *ObjectDetail) GetMessage() (message string) {
-	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
+	message += fmt.Sprintf(" group: %s\n", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
-		message += fmt.Sprintf("device_class: %v\n\r", a.DeviceClass)
+		message += fmt.Sprintf("device_class: %v\n", a.DeviceClass)
 	}
 	if a.Spec.NotEmpty() {
 		if a.Spec.Cpu.IsNotEmpty() {
-			message += fmt.Sprintf("cpu: %d ~ %d 核\n\r", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
+			message += fmt.Sprintf("cpu: %d ~ %d 核\n", a.Spec.Cpu.Min, a.Spec.Cpu.Max)
 		}
 		if a.Spec.Mem.IsNotEmpty() {
-			message += fmt.Sprintf("mem: %d ~ %d M\n\r", a.Spec.Mem.Min, a.Spec.Mem.Max)
+			message += fmt.Sprintf("mem: %d ~ %d M\n", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 	}
 	message += a.GetDiskMatchInfo()
 	if !a.LocationSpec.IsEmpty() {
-		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
+		message += fmt.Sprintf("city: %s \n", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
 			if a.LocationSpec.IsExclude() {
-				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			} else {
-				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", a.LocationSpec.SubZoneIds)
+				message += fmt.Sprintf("subzoneId 必须存在一下这些园区中： %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))
 			}
 		}
 	}
 	switch a.Affinity {
 	case NONE:
-		message += "资源亲和性： NONE\n\r"
+		message += "资源亲和性： NONE\n"
 	case CROS_SUBZONE:
-		message += "资源亲和性： 同城跨园区\n\r"
+		message += "资源亲和性： 同城跨园区\n"
 	case SAME_SUBZONE:
-		message += "资源亲和性： 同城同园区\n\r"
+		message += "资源亲和性： 同城同园区\n"
 	case SAME_SUBZONE_CROSS_SWTICH:
-		message += "资源亲和性： 同城同园区 跨交换机跨机架\n\r"
+		message += "资源亲和性： 同城同园区 跨交换机跨机架\n"
 	}
-	message += fmt.Sprintf("申请总数: %d \n\r", a.Count)
+	message += fmt.Sprintf("申请总数: %d \n", a.Count)
 	return message
+}
+
+// translateSubzoneIdToName 将subzoneId 转换为subzoneName
+func translateSubzoneIdToName(subzoneIds []string) string {
+	subzoneNames := make([]string, 0, len(subzoneIds))
+	for _, subzoneId := range subzoneIds {
+		subzoneName, ok := model.SubzoneIdMap[subzoneId]
+		if !ok {
+			subzoneNames = append(subzoneNames, subzoneId)
+		} else {
+			subzoneNames = append(subzoneNames, subzoneName)
+		}
+	}
+	return strings.Join(subzoneNames, ",")
 }

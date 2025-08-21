@@ -1,9 +1,7 @@
 package dbbackup
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +19,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 
@@ -150,12 +149,16 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}
+	// 如果备份文件本身是未打包，这里不用解压。但要确保 targetDir 最终存在
+	if dirs := f.GetTarFileList(cst.FileDirectory); len(dirs) > 0 {
+		return os.Symlink(filepath.Join(f.backupDir, dirs[0]), f.targetDir)
+	}
 
 	if cmutil.FileExists(f.targetDir) {
 		return errors.Errorf("target untar path already exists %s", f.targetDir)
 	}
-
 	// 物理备份, merge parts
+
 	if len(f.splitParts) > 0 && len(f.splitParts) <= 10 {
 		// TODO 考虑使用 pv 限速
 		cmd := fmt.Sprintf(`cd %s && cat %s | tar -xf - -C %s/`,
@@ -277,49 +280,4 @@ func (f *BackupIndexFile) GetBackupFileBasename() string {
 
 func (f *BackupIndexFile) GetMetaFileBasename() string {
 	return f.backupIndexBasename
-}
-
-func ExtractTarGz(gzipStream io.Reader) error {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		return errors.New("ExtractTarGz: NewReader failed")
-	}
-
-	tarReader := tar.NewReader(uncompressedStream)
-
-	for true {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return errors.Wrap(err, "ExtractTarGz: Next() failed")
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.Mkdir(header.Name, 0755); err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Mkdir() failed")
-
-			}
-		case tar.TypeReg:
-			outFile, err := os.Create(header.Name)
-			if err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Create() failed")
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return errors.Wrap(err, "ExtractTarGz: Copy() failed")
-
-			}
-			outFile.Close()
-
-		default:
-			return errors.Errorf("ExtractTarGz: uknown type: %s in %s",
-				header.Typeflag,
-				header.Name)
-		}
-	}
-	return nil
 }

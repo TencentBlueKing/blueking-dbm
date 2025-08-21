@@ -15,8 +15,11 @@ from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountR
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_autofix_todo_register_flow import (
-    MySQLAutofixTodoRegisterFlow,
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_repair_replicate import (
+    MySQLDBHAAutofixRepairReplicateFlow,
+)
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_todo_register_flow import (
+    MySQLDBHAAutofixTodoRegisterFlow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
@@ -26,6 +29,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumF
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_db_table_backup import MySQLDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_failover_drill_flow import MysqlFailoverDrill
 from backend.flow.engine.bamboo.scene.mysql.mysql_fake_sql_semantic_check import MySQLFakeSemanticCheck
 from backend.flow.engine.bamboo.scene.mysql.mysql_flashback_flow import MysqlFlashbackFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_full_backup_flow import MySQLFullBackupFlow
@@ -33,8 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_apply_flow import MySQLHAAp
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHADestroyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
     DestroyNonStanbySlaveMySQLFlow,
     TendbClusterUpgradeFlow,
@@ -61,7 +63,11 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQ
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow, MySQMigrateUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
+    MySQLProxyClusterReduceFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class MySQLController(BaseController):
@@ -554,10 +560,6 @@ class MySQLController(BaseController):
         )
         flow.rename_database()
 
-    def mysql_ha_standardize_scene(self):
-        flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize()
-
     def mysql_randomize_password(self):
         flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_randomize_password()
@@ -565,10 +567,6 @@ class MySQLController(BaseController):
     def mysql_open_area_scene(self):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
-
-    def mysql_ha_metadata_import_scene(self):
-        flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.import_meta()
 
     def mysql_proxy_upgrade_scene(self):
         """
@@ -694,6 +692,7 @@ class MySQLController(BaseController):
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @validates_with(MySQLProxyClusterReduceFlowValidator)
     def mysql_proxy_reduce_scene(self):
         """
         清理mysql机器
@@ -710,15 +709,12 @@ class MySQLController(BaseController):
         mysql 自愈
         只是把自愈信息入库
         """
-        flow = MySQLAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLDBHAAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
 
-    def storage_auto_standardize_autofix_scene(self):
-        """
-        mysql 自愈
-        """
-        flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize_by_ip()
+    def dbha_autofix_repair_replicate_scene(self):
+        flow = MySQLDBHAAutofixRepairReplicateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.repair_slave_replicate()
 
     def mysql_rename_database_scene(self):
         """
@@ -728,3 +724,7 @@ class MySQLController(BaseController):
             root_id=self.root_id, data=self.ticket_data  # , cluster_type=ClusterType.TenDBSingle.value
         )
         flow.rename_database()
+
+    def mysql_failover_scene(self):
+        flow = MysqlFailoverDrill(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_failover_drill_flow()

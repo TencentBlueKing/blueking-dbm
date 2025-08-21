@@ -20,9 +20,8 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-const (
-	MemUsedPercent = 0.70 * 100
-)
+// 给个默认值
+var MemUsedPercent = 70
 
 // Task 任务内容
 type Task struct {
@@ -169,8 +168,10 @@ func (t *Task) hotKeyWithMonitor(server Instance) (string, error) {
 	mylog.Logger.Info(fmt.Sprintf("do hot key analyse : %s", server.Addr))
 	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
 		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain, t.logFile, hkfile)
+	hkCmdLog := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
+		consts.TendisKeyLifecycleBin, server.App, server.Addr, "xxxxx", server.Domain, t.logFile, hkfile)
 
-	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmd))
+	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmdLog))
 	r1, r2 := util.RunBashCmd(hkCmd, "", nil, time.Second*(time.Duration(t.conf.HotKeyConf.Duration+10)))
 	mylog.Logger.Info(fmt.Sprintf("tools executed with result %s:%s:%s", server.Addr, r1, r2))
 
@@ -193,7 +194,10 @@ func (t *Task) bigKeySmartStat(server Instance) (string, string, int64, int64, e
 	} else {
 		var useFastRdbStat bool
 		osMem, _ := mem.VirtualMemory()
-		if t.conf.BigKeyConf.UseRdb && osMem.UsedPercent < MemUsedPercent {
+		if t.conf.BigKeyConf.MemMaxUsage != 0 {
+			MemUsedPercent = t.conf.BigKeyConf.MemMaxUsage
+		}
+		if t.conf.BigKeyConf.UseRdb && osMem.UsedPercent < float64(MemUsedPercent) {
 			useFastRdbStat = true
 		}
 		mylog.Logger.Info(fmt.Sprintf("do stats keys %s: use Rdb: (config_rdb:%+v,mem_current:%+v) Mem:%+v",
@@ -248,11 +252,17 @@ func (t *Task) bigKeyWithAof4Cache(server Instance, bkfile, kmfile string) (int6
 	step, slptime, sample, confidence, adjfactor := getStatToolParams(dbsize)
 	cmdExec := fmt.Sprintf(
 		"cat %s | %s keystat --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
-			"--step %d --keymodetop 100 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
 		allkeys, consts.TendisKeyLifecycleBin, bkfile, kmfile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,
 		step, sample, confidence, adjfactor, slptime, t.errFile)
-	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExec))
+	cmdExecLog := fmt.Sprintf(
+		"cat %s | %s keystat --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+		allkeys, consts.TendisKeyLifecycleBin, bkfile, kmfile, t.logFile,
+		server.Addr, "xxxx", server.App, server.Domain,
+		step, sample, confidence, adjfactor, slptime, t.errFile)
+	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExecLog))
 	_, err = util.RunBashCmd(cmdExec, "", nil, time.Second*time.Duration(t.conf.BigKeyConf.Duration))
 	if er1 := os.Remove(allkeys); er1 != nil {
 		mylog.Logger.Warn(fmt.Sprintf("remove keys file err %s:+%v", allkeys, er1))
@@ -304,11 +314,17 @@ func (t *Task) statRawKeysFileDetail(keysFile string, bkFile string, kmFile stri
 
 	cmdExec := fmt.Sprintf(
 		"cat %s | %s keystat --ssd --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
-			"--step %d --keymodetop 100 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
 		keysFile, consts.TendisKeyLifecycleBin, bkFile, kmFile, t.logFile,
 		server.Addr, server.Password, server.App, server.Domain,
 		step, sample, confidence, adjfactor, slptime, t.errFile)
-	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExec))
+	cmdExecLog := fmt.Sprintf(
+		"cat %s | %s keystat --ssd --stdin --raw -B %s -M %s -o %s -S %s -a '%s' -A %s -D %s "+
+			"--step %d --keymodetop 30 --samples %d --confidence %d --adjfactor %d --duration %d > %s 2>&1",
+		keysFile, consts.TendisKeyLifecycleBin, bkFile, kmFile, t.logFile,
+		server.Addr, "xxxx", server.App, server.Domain,
+		step, sample, confidence, adjfactor, slptime, t.errFile)
+	mylog.Logger.Info(fmt.Sprintf("do stats keys %s:%s", server.Addr, cmdExecLog))
 	_, err = util.RunBashCmd(cmdExec, "", nil, time.Second*time.Duration(t.conf.BigKeyConf.Duration))
 	if er1 := os.Remove(keysFile); er1 != nil {
 		mylog.Logger.Warn(fmt.Sprintf("remove keys file err %s:+%v", keysFile, er1))
@@ -350,7 +366,7 @@ func (t *Task) waitOrIgnore(server Instance) bool {
 	for i := 0; i < len(lines); i++ {
 		if i == 0 {
 			if !strings.Contains(lines[i], "MAGIC_") {
-				ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s", time.Now().Format("20060102"))), 0644)
+				ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s\n", time.Now().Format("20060102"))), 0644)
 				mylog.Logger.Warn(fmt.Sprintf("bad magic file format first line not magic :%s", lines[i]))
 				return false
 			}

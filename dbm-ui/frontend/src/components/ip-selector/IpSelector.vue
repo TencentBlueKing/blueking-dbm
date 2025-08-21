@@ -89,7 +89,7 @@
       :value="selectorState.selected"
       @change="handleChange" />
     <template #footer>
-      <span class="mr24">
+      <span class="mr-24">
         <slot
           :host-list="selectorState.cacheSelected.host_list"
           name="submitTips" />
@@ -103,7 +103,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml8"
+        class="ml-8"
         @click="handleCancelChange">
         {{ $t('取消') }}
       </BkButton>

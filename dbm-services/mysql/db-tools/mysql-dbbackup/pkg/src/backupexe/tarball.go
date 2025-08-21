@@ -237,6 +237,13 @@ func (p *PackageFile) PhysicalTarSplit(cnfPublic *config.Public) (string, error)
 	// tar -rf - /xxx | openssl... | split
 }
 
+// SkipTarball we record backupdir
+func (p *PackageFile) SkipTarball(cnfPublic *config.Public) error {
+	tarFile := &dbareport.TarFileItem{FileName: filepath.Base(p.srcDir), FileType: cst.FileDirectory, FileSize: 0}
+	p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
+	return nil
+}
+
 // tarAndSplit 物理备份打包，切分
 // 只 tar，不 zip
 func (p *PackageFile) tarAndSplit(cnfPublic *config.Public) (string, error) {
@@ -391,14 +398,10 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
 	}
-	if cnf.Public.IfBackupGrantOnly() {
-		metaInfo.AddPrivFileItem(packageFile.dstDir)
-		return metaInfo.SaveIndexContent(indexFilePath)
-	}
-	//backupType := cnf.Public.BackupType
 	backupType := metaInfo.BackupType
-	// package files, and produce the index file at the same time
-	if strings.EqualFold(backupType, cst.BackupLogical) {
+	if cnf.Public.SkipTarball {
+		packageFile.SkipTarball(&cnf.Public)
+	} else if strings.EqualFold(backupType, cst.BackupLogical) {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
 			if indexFilePath, err = packageFile.LogicalTarSplit(); err != nil {
 				return "", err
@@ -416,7 +419,10 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		return "", errors.New("backup type not support")
 	}
 	metaInfo.AddPrivFileItem(packageFile.dstDir)
-	return metaInfo.SaveIndexContent(indexFilePath)
+	if err = metaInfo.SaveIndexContent(indexFilePath); err != nil {
+		return "", err
+	}
+	return indexFilePath, nil
 }
 
 // readUncompressSizeForZstd godoc

@@ -23,11 +23,10 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	entitys "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -140,7 +139,6 @@ func TestUpdateOps(t *testing.T) {
 		Spec:           "{\"clusterName\":\"gt-cluster\", \"type\":\"Start\"}",
 		Status:         "Finished",
 		Description:    "start finished",
-		UpdatedAt:      time.Now(),
 	}
 	rows, err := opsProvider.UpdateOpsRequest(newOps)
 	assert.NoError(t, err)

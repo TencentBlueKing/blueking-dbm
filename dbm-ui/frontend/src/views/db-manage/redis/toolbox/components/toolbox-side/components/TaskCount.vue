@@ -53,7 +53,7 @@
           </BkPopover>
           <BkPopover>
             <DbIcon
-              class="ml8"
+              class="ml-8"
               type="link"
               @click="handleGoTaskLog(item)" />
             <template #content>

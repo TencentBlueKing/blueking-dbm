@@ -25,18 +25,25 @@ type InsObject struct {
 
 // DbWorker TODO
 type DbWorker struct {
-	Dsn     string
-	Db      *sqlx.DB
-	instObj *InsObject
+	Dsn  string
+	Db   *sqlx.DB
+	Inst *InsObject
 }
 
 // Conn Connect Tcp/Ip
-func (o InsObject) Conn() (*DbWorker, error) {
+// DbWorker 里面记录 ip:port信息
+func (o InsObject) Conn() (dbw *DbWorker, err error) {
 	if o.Socket != "" {
-		return NewDbWorker(DsnBySocket(o.Socket, o.User, o.Pwd))
+		if dbw, err = NewDbWorker(DsnBySocket(o.Socket, o.User, o.Pwd)); err != nil {
+			return nil, err
+		}
 	} else {
-		return NewDbWorker(DsnByTcp(fmt.Sprintf("%s:%d", o.Host, o.Port), o.User, o.Pwd))
+		if dbw, err = NewDbWorker(DsnByTcp(fmt.Sprintf("%s:%d", o.Host, o.Port), o.User, o.Pwd)); err != nil {
+			return nil, err
+		}
 	}
+	dbw.Inst = &o
+	return dbw, nil
 }
 
 // DsnByTcp TODO

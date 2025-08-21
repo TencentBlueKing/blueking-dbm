@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 
 from django.http import HttpResponse
@@ -21,10 +22,11 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
-    BatchRetryNodesSerializer,
+    BatchNodesSerializer,
     CallbackNodeSerializer,
     DownloadExcelSerializer,
     FlowTaskSerializer,
+    NodeRecordSerializer,
     NodeSerializer,
     VersionSerializer,
 )
@@ -129,7 +131,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True)
     def revoke_pipeline(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
-        return Response(TaskFlowHandler(root_id=root_id).revoke_pipeline().result)
+        user = requests.user.username
+        # TODO: 如果存在flow，则利用flow的revoke
+        return Response(TaskFlowHandler(root_id=root_id).revoke_pipeline(user).result)
 
     @common_swagger_auto_schema(
         operation_summary=_("重试节点"),
@@ -140,20 +144,10 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         # 非超级用户，暂不允许调用此接口
         # if not requests.user.is_superuser:
         #     raise RetryNodeException(_("非超级用户，暂不允许调用此接口"))
-
+        user = requests.user.username
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).retry_node(node=validated_data["node_id"]).result)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("批量重试"),
-        request_body=BatchRetryNodesSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=True, serializer_class=BatchRetryNodesSerializer)
-    def batch_retry_nodes(self, requests, *args, **kwargs):
-        root_id = kwargs["root_id"]
-        return Response(TaskFlowHandler(root_id=root_id).batch_retry_nodes())
+        return Response(TaskFlowHandler(root_id=root_id).retry_node(validated_data["node_id"], operator=user).result)
 
     @common_swagger_auto_schema(
         operation_summary=_("跳过节点"),
@@ -161,9 +155,10 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=True, serializer_class=NodeSerializer)
     def skip_node(self, requests, *args, **kwargs):
+        user = requests.user.username
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).skip_node(node_id=validated_data["node_id"]).result)
+        return Response(TaskFlowHandler(root_id=root_id).skip_node(validated_data["node_id"], operator=user).result)
 
     @common_swagger_auto_schema(
         operation_summary=_("强制失败节点"),
@@ -171,9 +166,48 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=True, serializer_class=NodeSerializer)
     def force_fail_node(self, requests, *args, **kwargs):
+        user = requests.user.username
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).force_fail_node(node_id=validated_data["node_id"]).result)
+        return Response(
+            TaskFlowHandler(root_id=root_id).force_fail_node(validated_data["node_id"], operator=user).result
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量重试"),
+        request_body=BatchNodesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=BatchNodesSerializer)
+    def batch_retry_nodes(self, requests, *args, **kwargs):
+        user = requests.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+        root_id, nodes = kwargs["root_id"], validated_data["nodes"]
+        return Response(TaskFlowHandler(root_id=root_id).batch_retry_nodes(user, nodes))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量强制失败节点"),
+        request_body=BatchNodesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=BatchNodesSerializer)
+    def batch_force_fail_nodes(self, requests, *args, **kwargs):
+        user = requests.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+        root_id, nodes = kwargs["root_id"], validated_data["nodes"]
+        return Response(TaskFlowHandler(root_id=root_id).batch_force_fail_nodes(user, nodes))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量跳过节点"),
+        request_body=BatchNodesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=BatchNodesSerializer)
+    def batch_skip_nodes(self, requests, *args, **kwargs):
+        user = requests.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+        root_id, nodes = kwargs["root_id"], validated_data["nodes"]
+        return Response(TaskFlowHandler(root_id=root_id).batch_skip_nodes(user, nodes))
 
     @common_swagger_auto_schema(
         operation_summary=_("节点版本列表"),
@@ -185,6 +219,34 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(TaskFlowHandler(root_id=root_id).get_node_histories(node_id=validated_data["node_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取节点运行时数据"),
+        query_serializer=NodeSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=True, serializer_class=NodeSerializer)
+    def node_execution_data(self, requests, *args, **kwargs):
+        root_id = kwargs["root_id"]
+        validated_data = self.params_validate(self.get_serializer_class())
+        execution_data = TaskFlowHandler(root_id=root_id).get_node_execution_data(node_id=validated_data["node_id"])
+        # 兼容：execution_data如果无法json序列化，则直接str输出
+        try:
+            json.dumps(execution_data)
+        except (TypeError, Exception):
+            execution_data = {"inputs": str(execution_data["inputs"]), "outputs": str(execution_data["outputs"])}
+        return Response(execution_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取节点操作记录"),
+        query_serializer=NodeRecordSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=True, serializer_class=NodeRecordSerializer)
+    def node_operate_records(self, requests, *args, **kwargs):
+        root_id = kwargs["root_id"]
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(TaskFlowHandler(root_id=root_id).get_node_operate_records(node_id=validated_data["node_id"]))
 
     @common_swagger_auto_schema(
         operation_summary=_("节点日志"),

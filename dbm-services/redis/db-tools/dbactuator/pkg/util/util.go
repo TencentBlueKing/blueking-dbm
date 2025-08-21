@@ -17,6 +17,7 @@ import (
 
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/util"
 
 	"github.com/dustin/go-humanize"
 	"golang.org/x/sys/unix"
@@ -332,4 +333,81 @@ func RemoveInvalidSoftLink(softLink string) (err error) {
 	mylog.Logger.Info(execCmd)
 	_, err = RunBashCmd(execCmd, "", nil, 2*time.Minute)
 	return
+}
+
+/*
+1. 检查进程是否存在
+2. 进行相关目录清理
+
+兼容 部分实例下架情况
+1. 如果没有进程 ， 直接暴力清理
+2. 如果存进程 ， shuo mshuom
+*/
+
+// redis-server; tendisplus
+func CleanRedisExporter() {
+	// 判断是否还有不必要的进程存在
+	psCmd := `ps aux|grep -iwE "tendisplus|redis-server"|grep -vE "grep|IEDBACKUP" |wc -l`
+	psCnt, err := util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		mylog.Logger.Error("exec ps cmd error[%s] , ignore clean exporter.", err.Error())
+		return
+	}
+	if psCnt == "0" {
+		// do clean all
+		mylog.Logger.Info("do clean all gse exporter confies. process wc[%s]", psCnt)
+		rm1 := `cd /usr/local/gse2_bkte/plugins/etc/bkmonitorbeat/ && rm -f bkmonitorbeat_prometheus_sub*`
+		if _, err := util.RunBashCmd(rm1, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec rm[%s]  error[%s]", rm1, err)
+		}
+		rm2 := `cd /usr/local/gse2_bkte/external_plugins/ && rm -rf sub_*`
+		if _, err := util.RunBashCmd(rm2, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec rm[%s]  error[%s]", rm2, err)
+		}
+		kill := `killall dbm_redis_exporter`
+		if _, err := util.RunBashCmd(kill, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec kill[%s]  error[%s]", kill, err)
+		}
+		reload := `/usr/local/gse2_bkte/plugins/bin/reload.sh bkmonitorbeat`
+		if _, err := util.RunBashCmd(reload, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec reload[%s]  error[%s]", reload, err)
+		}
+		return
+	}
+	// partly shutdown, pass. waiting dbm-node-manage do this
+	mylog.Logger.Info("ignore clean all gse exporter confies. process wc[%s]", psCnt)
+}
+
+// twemproxy; predixy
+func CleanProxyExporter() {
+	// // 判断是否还有不必要的进程存在
+	psCmd := `ps aux|grep -iwE "nutcracker|predixy"|grep -vE "grep" |wc -l`
+	psCnt, err := util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		mylog.Logger.Error("exec ps cmd error[%s] , ignore clean exporter.", err.Error())
+		return
+	}
+
+	if psCnt == "0" {
+		// do clean all
+		mylog.Logger.Info("do clean all gse exporter confies. process wc[%s]", "psCnt")
+		rm1 := `cd /usr/local/gse2_bkte/plugins/etc/bkmonitorbeat/ && rm -f bkmonitorbeat_prometheus_sub*`
+		if _, err := util.RunBashCmd(rm1, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec rm[%s]  error[%s]", rm1, err)
+		}
+		rm2 := `cd /usr/local/gse2_bkte/external_plugins/ && rm -rf sub_*`
+		if _, err := util.RunBashCmd(rm2, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec rm[%s]  error[%s]", rm2, err)
+		}
+		kill := `killall dbm_predixy_exporter dbm_twemproxy_exporter`
+		if _, err := util.RunBashCmd(kill, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec kill[%s]  error[%s]", kill, err)
+		}
+		reload := `/usr/local/gse2_bkte/plugins/bin/reload.sh bkmonitorbeat`
+		if _, err := util.RunBashCmd(reload, "", nil, 10*time.Second); err != nil {
+			mylog.Logger.Warn("exec reload[%s]  error[%s]", reload, err)
+		}
+		return
+	}
+	mylog.Logger.Info("ignore clean all gse exporter confies. process wc[%s]", "psCnt")
 }

@@ -25,8 +25,8 @@ from backend.configuration.models import BizSettings
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import Machine
-from backend.db_services.cmdb.biz import get_or_create_resource_module
-from backend.db_services.ipchooser.constants import BkOsType
+from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
+from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
@@ -43,7 +43,8 @@ from backend.ticket.models import Ticket
 def insert_host_event(params, data, kwargs, global_data):
     """导入资源池成功后，记录主机事件"""
     hosts, operator = params["hosts"], params["operator"]
-    ticket = Ticket.objects.filter(id=params.get("ticket_id", 0)).first()
+    ticket_id = params.get("ticket_id") or params.get("uid") or 0
+    ticket = Ticket.objects.filter(id=ticket_id).first()
     event_bk_biz_id = ticket.bk_biz_id if ticket else global_data["bk_biz_id"]
     event = MachineEventType.ReturnResource if params.get("return_resource") else MachineEventType.ImportResource
     hosts = [{"bk_host_id": host["host_id"], **host} for host in hosts]
@@ -84,13 +85,14 @@ class ImportResourceInitStepFlow(object):
     def __init__(self, root_id: str, data: Optional[Dict]) -> None:
         self.root_id = root_id
         self.data = data
+        self.data["task_id"] = self.root_id
 
-    @staticmethod
-    def __build_machine_import_pipeline(p, data):
+    def __build_machine_import_pipeline(self, p, data):
         ip_list = data["hosts"]
         bk_biz_id = data["bk_biz_id"]
 
-        if data.get("os_type", BkOsType.LINUX.value) == BkOsType.WINDOWS.value:
+        os_type = BK_OS_CODE__TYPE[data.get("os_type", BkOsType.LINUX.value)]
+        if os_type == BkOsType.WINDOWS.value:
             # 如果是window类型机器，用administrator账号
             account_name = WINDOW_ADMIN_USER_FOR_CHECK
         else:
@@ -134,6 +136,9 @@ class ImportResourceInitStepFlow(object):
                 },
             )
         else:
+            # 资源导入记录
+            import_record = {"task_id": self.root_id, "operator": data["operator"], "hosts": data["hosts"]}
+            DBResourceApi.import_operation_create(params=import_record)
             p.add_act(
                 act_name=_("资源池导入"),
                 act_component_code=ExternalServiceComponent.code,
@@ -151,7 +156,7 @@ class ImportResourceInitStepFlow(object):
             act_name=_("主机转移至资源池空闲模块"),
             act_component_code=TransferHostServiceComponent.code,
             kwargs={
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "bk_biz_id": get_resource_biz(),
                 "bk_module_ids": [get_or_create_resource_module()],
                 "bk_host_ids": [host["host_id"] for host in ip_list],
                 "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
@@ -176,6 +181,12 @@ class ImportResourceInitStepFlow(object):
 
         hosts = self.data["recycle_hosts"]
         revoke_ticket = Ticket.objects.get(id=self.data["uid"])
+
+        # 检查主机不应该存在于主机池
+        host_ids = [host["bk_host_id"] for host in self.data["recycle_hosts"]]
+        exist_hosts = Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True)
+        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and exist_hosts:
+            raise InvalidOperationException(_("流程校验不通过，存在元数据主机: {}").format(exist_hosts))
 
         # 故障池
         fault_hosts: List = []
@@ -268,8 +279,8 @@ class ImportResourceInitStepFlow(object):
             resource_kwargs.update(
                 # 固定回收到公共资源池
                 for_biz=0,
-                # 导入资源池业务ID为主机所属业务
-                bk_biz_id=resource_hosts[0]["bk_biz_id"],
+                # 导入业务是资源池业务
+                bk_biz_id=get_resource_biz(),
                 resource_type=common_kwargs.db_type,
                 os_type=resource_hosts[0]["os_type"],
                 hosts=resource_hosts,
@@ -303,7 +314,8 @@ class ImportResourceInitStepFlow(object):
 
         kwargs = InitCheckForResourceKwargs(
             ips=self.data["sa_check_ips"],
-            bk_biz_id=self.data["bk_biz_id"],
+            # 主机目前已回收到资源池业务的pending模块
+            bk_biz_id=get_resource_biz(),
             account_name=WINDOW_ADMIN_USER_FOR_CHECK
             if self.data["db_type"] == DBType.Sqlserver
             else LINUX_ADMIN_USER_FOR_CHECK,

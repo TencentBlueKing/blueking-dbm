@@ -1,7 +1,8 @@
 <template>
   <Component
     :is="renderCom"
-    :data="data">
+    :data="data"
+    :ticket-detail="ticketDetail">
     <template #title>
       <I18nT
         keypath="确认是否执行 n"
@@ -13,6 +14,7 @@
 </template>
 <script setup lang="ts">
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import FlowTypeCommon from '../flow-type-common/index';
 
@@ -23,6 +25,7 @@
 
   interface Props {
     data: FlowMode<unknown>;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineOptions({

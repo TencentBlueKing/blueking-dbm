@@ -27,7 +27,7 @@ type LogicalLoad struct {
 	// Threads logical loader concurrency for myloader
 	Threads int `ini:"Threads"`
 	// SchemaOnly import schema,trigger,func,proc (--no-data), for myloader
-	//  if you want only table schema, use ExtraOpt = -skip-triggers --skip-post
+	//  if you want only table schema, use ExtraOpt = --skip-triggers --skip-post
 	//  mydumper doest not support data only currently, you should backup only data for your purpose
 	SchemaOnly bool   `ini:"SchemaOnly"`
 	ExtraOpt   string `ini:"ExtraOpt"` // other myloader options string to be appended

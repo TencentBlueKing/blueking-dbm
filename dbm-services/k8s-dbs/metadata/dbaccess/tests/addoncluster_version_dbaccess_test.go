@@ -20,11 +20,10 @@ limitations under the License.
 package tests
 
 import (
-	"k8s-dbs/metadata/dbaccess/model"
+	"k8s-dbs/metadata/model"
 	"testing"
-	"time"
 
-	testhelper "k8s-dbs/metadata/helper"
+	testutil "k8s-dbs/metadata/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,7 +36,7 @@ var sampleVersion = &model.AddonClusterVersionModel{
 }
 
 func TestCreateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	added, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 	assert.Equal(t, sampleVersion.AddonID, added.AddonID)
@@ -47,7 +46,7 @@ func TestCreateAcVersion(t *testing.T) {
 }
 
 func TestDeleteAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 
@@ -57,7 +56,7 @@ func TestDeleteAcVersion(t *testing.T) {
 }
 
 func TestUpdateAcVersion(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 
@@ -67,7 +66,6 @@ func TestUpdateAcVersion(t *testing.T) {
 		AddonClusterName: "victoriametrics-2.0.0",
 		Version:          "2.0.0",
 		Description:      "desc",
-		UpdatedAt:        time.Now(),
 	}
 	rows, err := dbAccess.Update(newVersion)
 	assert.NoError(t, err)
@@ -75,7 +73,7 @@ func TestUpdateAcVersion(t *testing.T) {
 }
 
 func TestGetAcVersionByParams(t *testing.T) {
-	dbAccess := testhelper.GetAcVersionTestDbAccess()
+	dbAccess := testutil.GetAcVersionTestDbAccess()
 	_, err := dbAccess.Create(sampleVersion)
 	assert.NoError(t, err)
 

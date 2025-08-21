@@ -25,7 +25,7 @@
       v-if="isViewResultLog"
       class="sql-execute-more-action-box">
       <BkButton
-        class="ml8"
+        class="ml-8"
         @click="handleLastStep">
         {{ t('返回继续提单') }}
       </BkButton>
@@ -92,6 +92,7 @@
       border-radius: 20px;
     }
   }
+
   .sql-execute-more-action-box {
     display: flex;
     margin-top: 12px;

@@ -16,7 +16,7 @@ export function createToolboxRoute(dbType: DBTypes) {
       ...meta,
     },
     name: ticketType,
-    path: `${ticketType}/:page?`,
+    path: `${ticketType}`,
   });
 
   return {

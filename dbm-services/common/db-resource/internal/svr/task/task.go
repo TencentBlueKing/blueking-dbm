@@ -26,17 +26,17 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// ApplyResponeLogItem TODO
-type ApplyResponeLogItem struct {
+// ApplyResponseLogItem apply response log item
+type ApplyResponseLogItem struct {
 	RequestId string
 	Data      []model.BatchGetTbDetailResult
 }
 
-// ApplyResponeLogChan TODO
-var ApplyResponeLogChan chan ApplyResponeLogItem
+// ApplyResponseLogChan apply response log channel
+var ApplyResponseLogChan chan ApplyResponseLogItem
 
-// ArchiverResourceChan TODO
-var ArchiverResourceChan chan int
+// ArchivedResourceChan archived resource channel
+var ArchivedResourceChan chan int
 
 // RecordRsOperatorInfoChan TODO
 var RecordRsOperatorInfoChan chan model.TbRpOperationInfo
@@ -44,14 +44,14 @@ var RecordRsOperatorInfoChan chan model.TbRpOperationInfo
 // SyncRsGseAgentStatusChan TODO
 var SyncRsGseAgentStatusChan chan []int
 
-// RuningTask TODO
-var RuningTask chan struct{}
+// RunningTask running task
+var RunningTask chan struct{}
 
 func init() {
-	ApplyResponeLogChan = make(chan ApplyResponeLogItem, 100)
-	ArchiverResourceChan = make(chan int, 200)
+	ApplyResponseLogChan = make(chan ApplyResponseLogItem, 100)
+	ArchivedResourceChan = make(chan int, 200)
 	RecordRsOperatorInfoChan = make(chan model.TbRpOperationInfo, 20)
-	RuningTask = make(chan struct{}, 100)
+	RunningTask = make(chan struct{}, 100)
 	SyncRsGseAgentStatusChan = make(chan []int, 10)
 }
 
@@ -70,25 +70,25 @@ func init() {
 		defer ticker.Stop()
 		for {
 			select {
-			case d := <-ApplyResponeLogChan:
+			case d := <-ApplyResponseLogChan:
 				err := recordTask(d)
 				if err != nil {
 					logger.Error("record log failed, %s", err.Error())
 				}
-			case id := <-ArchiverResourceChan:
-				if len(RuningTask) > 0 {
+			case id := <-ArchivedResourceChan:
+				if len(RunningTask) > 0 {
 					archIds = append(archIds, id)
 				} else {
 					archIds = append(archIds, id)
-					if err := archiverResource(archIds); err != nil {
-						logger.Warn("archiver resouce failed %s", err.Error())
+					if err := archiveResource(archIds); err != nil {
+						logger.Warn("archive resource failed %s", err.Error())
 					}
 					archIds = []int{}
 				}
 			case <-ticker.C:
-				if len(RuningTask) == 0 && len(archIds) > 0 {
-					if err := archiverResource(archIds); err != nil {
-						logger.Warn("archiver resouce failed %s", err.Error())
+				if len(RunningTask) == 0 && len(archIds) > 0 {
+					if err := archiveResource(archIds); err != nil {
+						logger.Warn("archive resource failed %s", err.Error())
 					}
 					archIds = []int{}
 				}
@@ -105,12 +105,12 @@ func init() {
 	}()
 }
 
-// archiverResource 异步归档资源
-func archiverResource(ids []int) (err error) {
+// archiveResource 异步归档资源
+func archiveResource(ids []int) (err error) {
 	return model.ArchiverResouce(ids)
 }
 
-func recordTask(data ApplyResponeLogItem) error {
+func recordTask(data ApplyResponseLogItem) error {
 	if data.Data == nil {
 		return fmt.Errorf("data is nill")
 	}
@@ -145,7 +145,7 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 		db.Where("bk_host_id in (?)", bkHostIds)
 	}
 	if err = db.Scan(&unUsedRsList).Error; err != nil {
-		logger.Error("query resoure list failed %s", err.Error())
+		logger.Error("query resource list failed %s", err.Error())
 		return err
 	}
 	pl := make(map[int][]cc.IpchooserHost)

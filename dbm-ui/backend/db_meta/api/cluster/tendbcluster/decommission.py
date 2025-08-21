@@ -27,7 +27,8 @@ def decommission(cluster: Cluster):
     cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
     for spider in cluster.proxyinstance_set.all():
         # 先删除额外的spider关联信息，否则直接删除实例，会报ProtectedError 异常
-        spider.tendbclusterspiderext.delete()
+        if hasattr(spider, "tendbclusterspiderext"):
+            spider.tendbclusterspiderext.delete()
         spider.delete(keep_parents=True)
         if not spider.machine.proxyinstance_set.exists():
 
@@ -40,11 +41,13 @@ def decommission(cluster: Cluster):
 
         for info in StorageInstanceTuple.objects.filter(ejector=remote):
             # 先删除额外关联信息，否则会报ProtectedError 异常
-            info.tendbclusterstorageset.delete()
+            if hasattr(info, "tendbclusterstorageset"):
+                info.tendbclusterstorageset.delete()
             info.delete()
         for info in StorageInstanceTuple.objects.filter(receiver=remote):
             # 先删除额外关联信息，否则会报ProtectedError 异常
-            info.tendbclusterstorageset.delete()
+            if hasattr(info, "tendbclusterstorageset"):
+                info.tendbclusterstorageset.delete()
             info.delete()
 
         remote.delete(keep_parents=True)

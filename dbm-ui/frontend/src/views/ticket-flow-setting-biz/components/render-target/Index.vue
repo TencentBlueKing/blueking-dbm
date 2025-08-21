@@ -47,11 +47,7 @@
     clusterIds: number[];
     dbType: DBTypes;
   }>({
-    default: () => ({
-      bizId: 0,
-      clusterIds: [],
-      dbType: DBTypes.MYSQL,
-    }),
+    required: true
   });
 
   const selectBizRef = ref<InstanceType<typeof SelectBiz>>();

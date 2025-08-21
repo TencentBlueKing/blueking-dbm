@@ -53,6 +53,13 @@
         </template>
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      :label="t('每秒删除 Key 个数')"
+      :width="200">
+      <template #default="{ data }: { data: IRowData }">
+        {{ data.delete_rate || '--' }}
+      </template>
+    </BkTableColumn>
   </BkTable>
 </template>
 <script setup lang="ts">

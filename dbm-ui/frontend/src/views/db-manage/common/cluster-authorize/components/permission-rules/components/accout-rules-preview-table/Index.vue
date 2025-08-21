@@ -17,7 +17,8 @@
       class="mongo-permission-table"
       :columns="columns"
       :data="tableList"
-      row-hover="auto" />
+      row-hover="auto"
+      :show-overflow="false" />
   </div>
 </template>
 
@@ -38,14 +39,14 @@
 
   import { AccountTypes } from '@common/const';
 
-  interface Props {
+  export interface Props<T> {
     accountType: AccountTypes;
     selectedList?: T[];
   }
 
   type Emits = (e: 'delete', value: T[]) => void;
 
-  const props = withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props<T>>(), {
     selectedList: () => [],
   });
   const emits = defineEmits<Emits>();
@@ -190,9 +191,11 @@
 
     :deep(.mongo-permission-cell) {
       position: relative;
+      height: 42px;
       padding: 0 15px;
       overflow: hidden;
       line-height: calc(var(--row-height) - 1px);
+      line-height: 42px;
       text-overflow: ellipsis;
       white-space: nowrap;
       border-bottom: 1px solid @border-disable;
@@ -201,7 +204,6 @@
     :deep(.access-db) {
       display: flex;
       align-items: center;
-      height: 42px;
     }
 
     :deep(.mongo-permission-cell:last-child) {

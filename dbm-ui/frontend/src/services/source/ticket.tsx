@@ -26,6 +26,7 @@ import { messageError } from '@utils';
 import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
+import type { DetailClusters } from '../model/ticket/details/common';
 
 const path = '/apis/tickets';
 
@@ -69,6 +70,27 @@ export function createTicketNew<T>(params: {
 }
 
 /**
+ * 批量创建单据
+ */
+export function createTicketBatch<T>(params: {
+  tickets: {
+    bk_biz_id: number;
+    details: T;
+    ignore_duplication?: boolean;
+    remark: string;
+    ticket_type: TicketTypes;
+  }[];
+}) {
+  return http.post<{ bk_biz_id: number; clusters: DetailClusters; id: number }[]>(
+    `${path}/batch_create_ticket/`,
+    params,
+    {
+      catchError: true,
+    },
+  );
+}
+
+/**
  * 创建单据、过后摒弃
  */
 export function createTicket(formData: Record<string, any>) {
@@ -98,7 +120,7 @@ export function createTicket(formData: Record<string, any>) {
               if (locale.value === 'en') {
                 return (
                   <span>
-                    You have already submitted a
+                    The system has detected that a similar ticket has already been submitted
                     <a
                       href={route.href}
                       target='_blank'>
@@ -112,7 +134,7 @@ export function createTicket(formData: Record<string, any>) {
 
               return (
                 <span>
-                  你已提交过包含相同目标集群的
+                  系统检测到已提交过包含相同集群的同类
                   <a
                     href={route.href}
                     target='_blank'>
@@ -294,6 +316,7 @@ export function createTicketFlowConfig(params: {
   bk_biz_id: number;
   cluster_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{
@@ -305,10 +328,11 @@ export function createTicketFlowConfig(params: {
  * 修改可编辑的单据流程规则
  */
 export function updateTicketFlowConfig(params: {
-  bk_biz_id?: number;
+  bk_biz_id: number;
   cluster_ids?: number[];
   config_ids?: number[];
   configs: Record<string, boolean>;
+  remark?: string;
   ticket_types: string[];
 }) {
   return http.post<{

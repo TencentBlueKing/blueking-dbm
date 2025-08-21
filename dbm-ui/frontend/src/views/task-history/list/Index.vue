@@ -67,7 +67,7 @@
         }"
         :label="t('任务类型')">
         <template #default="{data}: {data: TaskFlowModel}">
-          {{ data.ticket_type_display || '--' }}
+          {{ data.ticketTypeDisplay || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -350,8 +350,7 @@
         from: route.name as string,
       },
     });
-
-    window.open(getBusinessHref(href), '_blank');
+    window.open(href, '_blank');
   };
 
   const handleGoTicketDetail = (data: TaskFlowModel) => {

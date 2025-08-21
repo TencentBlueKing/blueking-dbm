@@ -28,7 +28,7 @@ type BaseHandler struct {
 	RequestId string
 }
 
-// Response http respone
+// Response http response
 type Response struct {
 	Code      int         `json:"code"`
 	Message   string      `json:"message"`
@@ -54,7 +54,7 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 	return nil
 }
 
-// SendResponse retrnurns a response
+// SendResponse return a response
 func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) {
 	code, message := errno.DecodeErr(err)
 	r.JSON(http.StatusOK, Response{
@@ -78,6 +78,7 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/cc/async", c.RunAsyncCmdb)
 		r.POST("/cc/sync/os/info", c.SyncOsInfo)
 		r.POST("/cc/sync/netdevice", c.FlushNetDeviceInfo)
+		// r.POST("/cc/sync/disk", manage.RefreshDiskInfo)
 	}
 }
 

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -16,13 +15,15 @@ from rest_framework import serializers
 from backend import env
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
 from backend.db_meta.models.machine import DeviceClass, Machine
+from backend.db_meta.models.tag import Tag
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
 from backend.db_services.dbresource.mock import (
@@ -43,7 +44,14 @@ class ResourceImportSerializer(serializers.Serializer):
         ip = serializers.CharField()
         host_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
-        os_type = serializers.CharField(required=False, default=BkOsTypeCode.LINUX)
+        # 前端展示字段
+        status = serializers.CharField(help_text=_("Agent状态"), required=False, default="")
+        city_name = serializers.CharField(help_text=_("城市"), required=False, default="")
+        sub_zone = serializers.CharField(help_text=_("园区"), required=False, default="")
+        rack_id = serializers.CharField(help_text=_("机架"), required=False, default="")
+        bk_os_name = serializers.CharField(help_text=_("操作系统"), required=False, default="")
+        svr_device_class = serializers.CharField(help_text=_("机型"), required=False, default="")
+        bk_cloud_name = serializers.CharField(help_text=_("云区域"), required=False, default="")
 
     for_biz = serializers.IntegerField(help_text=_("专属业务"))
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True)
@@ -51,6 +59,9 @@ class ResourceImportSerializer(serializers.Serializer):
     hosts = serializers.ListSerializer(help_text=_("资源主机"), child=ResourceHostSerializer())
     labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
     return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
+    os_type = serializers.CharField(required=False, default=BkOsTypeCode.LINUX)
+    # 前端展示参数
+    label_names = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
         host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
@@ -126,6 +137,7 @@ class ResourceListSerializer(serializers.Serializer):
 
     agent_status = serializers.BooleanField(help_text=_("agent状态"), required=False)
     labels = serializers.CharField(help_text=_("标签列表id"), required=False)
+    label_names = serializers.CharField(help_text=_("标签名称"), required=False)
 
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
@@ -143,10 +155,26 @@ class ResourceListSerializer(serializers.Serializer):
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["mem"]:
-                    attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
+                    attrs[field] = {
+                        "min": int(attrs[field][0] or 0) * 1024,
+                        "max": int(attrs[field][1] or INT_MAX) * 1024,
+                    }
                 elif field in ["cpu", "disk"]:
                     attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
+        # 根据标签名称拿到标签id去查询资源
+        if attrs.get("label_names"):
+            tag_ids = Tag.objects.filter(value__in=attrs["label_names"]).values_list("id", flat=True)
+            tag_str_ids = [str(tag_id) for tag_id in tag_ids]
+            attrs["labels"] = tag_str_ids
+
+        # 城市如果是default, 则不需要传default
+        if "default" in attrs.get("city", []):
+            attrs["city"].remove("default")
+            if not attrs["city"]:
+                attrs.pop("city")
+
+        spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         # 转换规格查询参数
         if attrs.get("spec_id"):
             spec = Spec.objects.get(spec_id=attrs["spec_id"])
@@ -154,7 +182,7 @@ class ResourceListSerializer(serializers.Serializer):
                 {
                     "mount_point": storage_spec["mount_point"],
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"],
+                    "min": storage_spec["size"] - spec_offset["disk"],
                     "max": INT_MAX,
                 }
                 for storage_spec in spec.storage_spec
@@ -162,11 +190,11 @@ class ResourceListSerializer(serializers.Serializer):
             if spec.device_class:
                 attrs["device_class"] = spec.device_class
             else:
-                attrs["cpu"], attrs["mem"] = spec.cpu, spec.mem
-
-        # 转换内存查询单位, GB --> MB
-        if attrs.get("mem"):
-            attrs["mem"] = {"min": int(attrs["mem"]["min"] * 1024), "max": int(attrs["mem"]["max"] * 1024)}
+                attrs["cpu"] = spec.cpu
+                attrs["mem"] = {
+                    "min": max(int(spec.mem["min"] * 1024 - spec_offset["mem"]), 0),
+                    "max": int(spec.mem["max"] * 1024),
+                }
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
@@ -185,6 +213,7 @@ class ResourceListSerializer(serializers.Serializer):
                 "disk",
                 "bk_cloud_ids",
                 "labels",
+                "label_names",
             ],
         )
         return attrs

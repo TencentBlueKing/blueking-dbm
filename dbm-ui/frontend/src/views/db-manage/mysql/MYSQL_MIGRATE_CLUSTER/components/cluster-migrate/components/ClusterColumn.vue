@@ -47,7 +47,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { batchSplitRegex, domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -72,14 +72,13 @@
       {
         id: number;
         master_domain: string;
+        region: string;
       }
     >;
     renderText: string;
+    spec_id_list: number[];
   }>({
-    default: () => ({
-      clusters: {},
-      renderText: '',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -93,8 +92,8 @@
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
-      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
+      trigger: 'blur',
+      validator: (value: string) => !value || value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
     },
     {
       message: '',
@@ -133,21 +132,25 @@
     },
   ];
 
-  const { loading, run: queryCluster } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         let clusters = {};
+        const spedIdList: number[] = [];
         data.forEach((item) => {
+          spedIdList.push(item.cluster_spec?.spec_id);
           clusters = {
             ...clusters,
             [item.master_domain]: {
               id: item.id,
               master_domain: item.master_domain,
+              region: item.region,
             },
           };
         });
         modelValue.value.clusters = clusters;
+        modelValue.value.spec_id_list = spedIdList;
       }
     },
   });
@@ -157,18 +160,33 @@
   };
 
   const handleInputChange = (value: string) => {
-    modelValue.value.clusters = {};
-    if (value) {
-      queryCluster({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: value.split(batchSplitRegex).join(','),
-      });
-    }
+    modelValue.value = {
+      clusters: {},
+      renderText: value,
+      spec_id_list: [],
+    };
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value.renderText && _.isEmpty(modelValue.value.clusters)) {
+        queryCluster({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: ClusterTypes.TENDBHA,
+          db_type: DBTypes.MYSQL,
+          exact_domain: modelValue.value.renderText.split(batchSplitRegex).join(','),
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-host-select {

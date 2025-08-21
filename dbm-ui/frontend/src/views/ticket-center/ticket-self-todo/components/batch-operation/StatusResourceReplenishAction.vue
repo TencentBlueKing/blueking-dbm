@@ -11,7 +11,7 @@
         type="stroke">
         {{ t('重试') }}
       </BkTag>
-      <span>{{ t('重试后，单据将再次尝试申请资源') }}</span>
+      <span class="ml-4">{{ t('重试后，单据将再次尝试申请资源') }}</span>
     </BkRadio>
     <BkRadio
       label="TERMINATE"
@@ -22,7 +22,7 @@
         type="stroke">
         {{ t('终止单据') }}
       </BkTag>
-      <span>{{ t('终止后，单据将作废处理') }}</span>
+      <span class="ml-4">{{ t('终止后，单据将作废处理') }}</span>
     </BkRadio>
   </BkRadioGroup>
 </template>

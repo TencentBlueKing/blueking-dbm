@@ -58,7 +58,7 @@ def list_cities() -> List[LCityModel]:
     for city in LogicalCity.objects.all().order_by("-name"):
         city_code = city.name
         # 如果是default，则前端展示为无地域
-        city_name = _("无限制") if city.name == "default" else city.name
+        city_name = _("随机") if city.name == "default" else city.name
         cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
     return cities
 

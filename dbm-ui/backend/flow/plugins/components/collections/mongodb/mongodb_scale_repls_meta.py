@@ -180,6 +180,7 @@ class MongoScaleReplsMetaService(BaseService):
         """
         增加副本数
         """
+        mongo_objs, is_increment = [], False
         for scale_item in scale_list:
             m1_obj, role = self.get_cluster_master_and_role(cluster, scale_item)
 
@@ -229,7 +230,6 @@ class MongoScaleReplsMetaService(BaseService):
                 tmp_entries = m1_obj.bind_entry.all()
                 mongo_obj.bind_entry.add(*tmp_entries)
 
-            is_increment = False
             if m1_obj.cluster_type == ClusterType.MongoReplicaSet.value:
                 is_increment = True
                 # 给复制集增加域名
@@ -251,15 +251,16 @@ class MongoScaleReplsMetaService(BaseService):
                     "add domain {}:{} 2 add_node:info::: {} done".format(mongo_obj, cluster.immute_domain, scale_item)
                 )
                 cluster_entry.save()
-            # 转移模块
-            MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
-                instances=[mongo_obj], is_increment=is_increment
-            )
+            mongo_objs.append(mongo_obj)
             logger.info(
                 "add instance {}:{} 2 cluster {}:{} done".format(
                     mongo_obj, role, cluster.immute_domain, scale_item["shard"]
                 )
             )
+        # 转移模块
+        MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+            instances=mongo_objs, is_increment=is_increment
+        )
 
     # 获取到集群的master 节点， repSet 和 shardCluster 获取方式不一样
     def get_cluster_master_and_role(self, cluster: Cluster, scale_item: Dict):

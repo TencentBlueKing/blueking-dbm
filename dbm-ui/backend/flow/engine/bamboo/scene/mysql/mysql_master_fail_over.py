@@ -183,7 +183,7 @@ class MySQLMasterFailOverFlow(object):
                         cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
                         acts_list.append(
                             {
-                                "act_name": _("salve节点同步新master数据"),
+                                "act_name": _("slave节点同步新master数据"),
                                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                                 "kwargs": asdict(cluster_sw_kwargs),
                             }

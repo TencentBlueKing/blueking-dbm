@@ -12,13 +12,13 @@ from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
+from backend.flow.consts import MongoDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb import mongodb_password
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, ReplicaSet
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNode
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 
 # BackupSubTask 处理某个Cluster的备份任务.
@@ -31,33 +31,23 @@ class RemoveNsSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path: str) -> dict:
-        print("get_backup_node", sub_payload)
-        nodes = rs.get_not_backup_nodes()
-        if len(nodes) == 0:
-            raise Exception("no backup node. rs:{}".format(rs.set_name))
-
+    def make_kwargs(cls, sub_payload: Dict, exec_node: MongoNode, file_path: str) -> dict:
         ns_filter = sub_payload.get("ns_filter")
         is_partial = MongoDBNsFilter.is_partial(ns_filter)
-        node = nodes[0]
-        dba_user = MongoDBManagerUser.DbaUser.value
-        dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
-            node.ip, int(node.port), node.bk_cloud_id, dba_user
-        )["password"]
-
+        dba_user, dba_pwd = MongoUtil.get_dba_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
-            "bk_cloud_id": node.bk_cloud_id,
-            "exec_ip": node.ip,
+            "bk_cloud_id": exec_node.bk_cloud_id,
+            "exec_ip": exec_node.ip,
             "db_act_template": {
                 "action": MongoDBActuatorActionEnum.RemoveNs,
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "mysql",
                 "payload": {
-                    "ip": node.ip,
-                    "port": int(node.port),
+                    "ip": exec_node.ip,
+                    "port": int(exec_node.port),
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
                     "args": {
@@ -71,7 +61,7 @@ class RemoveNsSubTask(BaseSubTask):
         }
 
     @classmethod
-    def process_cluster(
+    def remove_ns(
         cls,
         root_id: str,
         ticket_data: Optional[Dict],
@@ -82,19 +72,22 @@ class RemoveNsSubTask(BaseSubTask):
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
         """
-
         # 创建子流程
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         acts_list = []
-        for rs in cluster.get_shards():
-            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path)
-            acts_list.append(
-                {
-                    "act_name": _("清档 {} {}".format(rs.set_name, kwargs["exec_ip"])),
-                    "act_component_code": ExecJobComponent2.code,
-                    "kwargs": kwargs,
-                }
-            )
+
+        connect_node = cluster.get_connect_node()
+        if not connect_node:
+            raise Exception("no connect node. cluster:{}".format(cluster.name))
+        kwargs = cls.make_kwargs(sub_ticket_data, connect_node, file_path)
+        acts_list.append(
+            {
+                "act_name": _("清档-{}:{}".format(connect_node.ip, connect_node.port)),
+                "act_component_code": ExecJobComponent2.code,
+                "kwargs": kwargs,
+            }
+        )
+        sub_pipeline.add_act(**acts_list)
 
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
         sub_bk_host_list = []
@@ -102,3 +95,19 @@ class RemoveNsSubTask(BaseSubTask):
             sub_bk_host_list.append({"ip": v["kwargs"]["exec_ip"], "bk_cloud_id": v["kwargs"]["bk_cloud_id"]})
 
         return sub_pipeline, sub_bk_host_list
+
+    @classmethod
+    def remove_ns_act(cls, sub_ticket_data: Optional[Dict], cluster: MongoDBCluster, file_path: str) -> Dict:
+        """
+        cluster can be  a ReplicaSet or  a ShardedCluster
+        """
+
+        connect_node = cluster.get_connect_node()
+        if not connect_node:
+            raise Exception("no connect node. cluster:{}".format(cluster.name))
+        kwargs = cls.make_kwargs(sub_ticket_data, connect_node, file_path)
+        return {
+            "act_name": _("exec {}:{}".format(connect_node.ip, connect_node.port)),
+            "act_component_code": ExecJobComponent2.code,
+            "kwargs": kwargs,
+        }

@@ -125,6 +125,12 @@ type ExtraFields struct {
 	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
 	// BackupTool command name xtrabackup / mydumper / mysqldump
 	BackupTool string `json:"backup_tool" db:"backup_tool"`
+	// DataDirSizeMB 所备份实例的原始数据目录大小
+	DataDirSizeMB uint64 `json:"data_dir_size_mb" db:"data_dir_size_mb"`
+	//OriginalBackupDir 原始机器的备份目录
+	// 正常不关注这个备份目录，因为文件上传的到远程之后，都是用相对目录
+	// 但如果从本地获取备份文件，需要这个目录来定位
+	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
@@ -196,16 +202,16 @@ func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 
 // SaveIndexContent record some server info and fileIndex info,
 // and then write these content to [targetName].index
-func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
+func (i *IndexContent) SaveIndexContent(indexFilePath string) error {
 	contentJson, err := json.Marshal(i)
 	if err != nil {
 		logger.Log.Error("Failed to marshal json encoding data from IndexContent, err: ", err)
-		return "", err
+		return err
 	}
 	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)
-		return "", err
+		return err
 	}
 	defer func() {
 		_ = indexFile.Close()
@@ -214,9 +220,9 @@ func (i *IndexContent) SaveIndexContent(indexFilePath string) (string, error) {
 	_, err = indexFile.Write(contentJson)
 	if err != nil {
 		logger.Log.Error("Failed to write json encoding data into Index file :", indexFilePath, ", err: ", err)
-		return "", err
+		return err
 	}
-	return indexFilePath, nil
+	return nil
 }
 
 // AddPrivFileItem add .priv to index file

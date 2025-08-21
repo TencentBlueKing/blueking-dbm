@@ -42,6 +42,7 @@ export default class TaskFlow {
   cost_time: number;
   created_at: string;
   created_by: string;
+  flow_alias: string;
   permission: {
     flow_detail: boolean;
     ticket_view: boolean;
@@ -57,6 +58,7 @@ export default class TaskFlow {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.cost_time = payload.cost_time;
+    this.flow_alias = payload.flow_alias || '';
     this.created_at = payload.created_at;
     this.created_by = payload.created_by;
     this.permission = payload.permission;
@@ -78,5 +80,9 @@ export default class TaskFlow {
 
   get statusTheme() {
     return TaskFlow.STATUS_THEME_MAP[this.status] || 'danger';
+  }
+
+  get ticketTypeDisplay() {
+    return this.flow_alias || this.ticket_type_display;
   }
 }

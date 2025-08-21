@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import operator
 import traceback
 from abc import ABC, abstractmethod
 from functools import reduce
@@ -156,12 +155,14 @@ class BaseTicketFlow(ABC):
         self.flow_obj.context["ack"] = False
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at", "context"])
 
-    def flush_revoke_status_handler(self, operator):
+    def flush_revoke_status_handler(self, operator, remark=""):
         """终止节点，更新相关状态和错误信息"""
         self.flow_obj.status = TicketFlowStatus.TERMINATED
+        self.flow_obj.context.update(remark=remark)
+        # 系统终止认为是超时
         if operator == DEFAULT_SYSTEM_USER:
             self.flow_obj.err_code = FlowErrCode.SYSTEM_TERMINATED_ERROR
-            self.flow_obj.context = {FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()}
+            self.flow_obj.context.update({FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()})
         else:
             self.flow_obj.err_code = FlowErrCode.GENERAL_ERROR
         self.flow_obj.save(update_fields=["status", "err_code", "context", "update_at"])
@@ -183,6 +184,8 @@ class BaseTicketFlow(ABC):
         写入操作记录的通用方法
         每一轮flow在running时，需要更新当前集群的record.flow为当前flow，为新出现的集群增加record(如定点回档包含了新出现的集群)
         """
+        import operator
+
         if not object_ids:
             return
 
@@ -237,9 +240,9 @@ class BaseTicketFlow(ABC):
         """重试当前的flow节点（默认只能重新执行错误节点）"""
         return self._retry()
 
-    def revoke(self, operator):
+    def revoke(self, operator, remark=""):
         """终止当前flow节点，终止后不允许重试"""
-        return self._revoke(operator)
+        return self._revoke(operator, remark)
 
     @property
     @abstractmethod
@@ -277,12 +280,13 @@ class BaseTicketFlow(ABC):
         self.flush_error_status_handler()
         self.run()
 
-    def _revoke(self, operator) -> Any:
+    def _revoke(self, operator, remark="") -> Any:
         from backend.ticket.todos import TodoActionType, TodoActorFactory
 
         # 刷新flow和单据状态 --> 终止
-        self.flush_revoke_status_handler(operator)
+        self.flush_revoke_status_handler(operator, remark)
+
         # 停止相关联的todo
         todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj, status=TodoStatus.TODO)
         for todo in todos:
-            TodoActorFactory.actor(todo).process(operator, TodoActionType.TERMINATE, params={})
+            TodoActorFactory.actor(todo).process(operator, TodoActionType.TERMINATE, params={"remark": remark})

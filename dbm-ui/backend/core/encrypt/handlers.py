@@ -162,7 +162,6 @@ class AsymmetricHandler:
         cross_salt_content = list(itertools.chain.from_iterable(zip(content, salt)))
         cross_salt_content = "".join(cross_salt_content)
         encrypt_content = SymmetricHandler.encrypt(content=cross_salt_content)
-        logger.info(f"[AsymmetricHandler-Salt] content: {content}, salt: {salt}, salted_content: {encrypt_content}")
         return encrypt_content
 
     @classmethod
@@ -186,7 +185,6 @@ class AsymmetricHandler:
         @param content: 待加密内容
         @param need_salt: 是否加盐
         """
-        logger.info(f"[AsymmetricHandler-Encrypt] key: {name}, content: {content}")
         content = cls.add_salt(content) if need_salt else content
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
         encrypt_content = asymmetric_cipher.encrypt(content)
@@ -200,7 +198,6 @@ class AsymmetricHandler:
         @param content: 待解密内容
         @param salted: 是否存在加盐
         """
-        logger.info(f"[AsymmetricHandler-Decrypt] name: {name}, content: {content}")
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
         plain_content = asymmetric_cipher.decrypt(content)
         plain_content = cls.remove_salt(plain_content) if salted else plain_content

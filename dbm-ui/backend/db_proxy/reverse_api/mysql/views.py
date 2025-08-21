@@ -147,7 +147,6 @@ class MySQLReverseApiView(BaseReverseApiView):
     def exporter_config(self, bk_cloud_id: int, ip: str, port_list: List[int]):
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
         res = exporter_config(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
-        logger.info(f"exporter config: {res}")
         return JsonResponse(
             {
                 "result": True,

@@ -17,6 +17,8 @@ from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class MysqlCCTopoOperator(CCTopoOperator):
+    # mysql和tendbcluster的在cc的拓扑都是mysql
+    # 如果后面要派生TendbClusterCCTopoOperator，则db_type也得指定mysql
     db_type = DBType.MySQL.value
 
     def generate_custom_labels(self, inst: Union[StorageInstance, ProxyInstance], cluster: Cluster) -> dict:

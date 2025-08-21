@@ -461,21 +461,21 @@ func (m *MongoDBInstall) mkdir() error {
 	// 修改目录属主
 	m.runtime.Logger.Info("start to execute chown command for dbPath, logPath and backupPath")
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, filepath.Join(logPathDir, "../")),
+		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, filepath.Join(logPathDir, "../")),
 		"", nil,
 		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown log directory fail, error:%s", err))
 		return fmt.Errorf("chown log directory fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, filepath.Join(m.DbpathDir, "../../")),
+		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, filepath.Join(m.DbpathDir, "../../")),
 		"", nil,
 		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown data directory fail, error:%s", err))
 		return fmt.Errorf("chown data directory fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
-		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, m.BackupDir),
+		fmt.Sprintf("chown -R %s:%s %s", m.OsUser, m.OsGroup, m.BackupDir),
 		"", nil,
 		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown backup directory fail, error:%s", err))

@@ -65,6 +65,8 @@ const (
 	WrapperTdbctl = "TDBCTL"
 	// ServerNamePrefix TODO
 	ServerNamePrefix       = "SPT"
+	BackupRoleSpiderSlave  = cst.BackupRoleSpiderSlave
+	BackupRoleSpiderMnt    = cst.BackupRoleSpiderMnt
 	BackupRoleTdbctl       = cst.BackupRoleTdbctl
 	BackupRoleSpiderMaster = cst.BackupRoleSpiderMaster
 )
@@ -112,9 +114,11 @@ const (
 	// FilePriv TODO
 	FilePriv = "priv"
 	// FilePart tar part
-	FilePart  = "part"
-	FileTar   = "tar"
-	FileIndex = "index"
+	FilePart = "part"
+	FileTar  = "tar"
+	// FileDirectory 未打包的目录
+	FileDirectory = "dir"
+	FileIndex     = "index"
 )
 
 const DBAReportBase = "/home/mysql/dbareport"

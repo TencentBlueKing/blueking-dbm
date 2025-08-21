@@ -32,7 +32,7 @@ def scale_up(
     """
 
     cluster = Cluster.objects.get(id=cluster_id)
-    cluster_entry = ClusterEntry.objects.get(cluster=cluster)
+    cluster_entries = ClusterEntry.objects.filter(cluster=cluster)
 
     storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
     storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
@@ -48,32 +48,36 @@ def scale_up(
     all_cold_datanodes = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_DATANODE_COLD)
     all_master_nodes = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_MASTER)
 
-    if all_client_nodes.exists():
-        for instance in all_client_nodes:
-            if not instance.bind_entry.exists():
-                cluster_entry.storageinstance_set.add(instance)
-        for instance in cluster_entry.storageinstance_set.all():
-            if instance not in all_client_nodes:
-                instance.bind_entry.remove(cluster_entry)
-    elif all_hot_datanodes.exists():
-        for instance in all_hot_datanodes:
-            if not instance.bind_entry.exists():
-                cluster_entry.storageinstance_set.add(instance)
-        for instance in cluster_entry.storageinstance_set.all():
-            if instance not in all_hot_datanodes:
-                instance.bind_entry.remove(cluster_entry)
-    elif all_cold_datanodes.exists():
-        for instance in all_cold_datanodes:
-            if not instance.bind_entry.exists():
-                cluster_entry.storageinstance_set.add(instance)
-        for instance in cluster_entry.storageinstance_set.all():
-            if instance not in all_cold_datanodes:
-                instance.bind_entry.remove(cluster_entry)
-    else:
-        for instance in all_master_nodes:
-            if not instance.bind_entry.exists():
-                cluster_entry.storageinstance_set.add(instance)
-    cluster_entry.save()
+    for cluster_entry in cluster_entries:
+        if cluster_entry.forward_to_id is None:
+            if all_client_nodes.exists():
+                for instance in all_client_nodes:
+                    if not instance.bind_entry.filter(cluster_entry_type=cluster_entry.cluster_entry_type).exists():
+                        cluster_entry.storageinstance_set.add(instance)
+                for instance in cluster_entry.storageinstance_set.all():
+                    if instance not in all_client_nodes:
+                        instance.bind_entry.remove(cluster_entry)
+            elif all_hot_datanodes.exists():
+                for instance in all_hot_datanodes:
+                    if not instance.bind_entry.filter(cluster_entry_type=cluster_entry.cluster_entry_type).exists():
+                        cluster_entry.storageinstance_set.add(instance)
+                for instance in cluster_entry.storageinstance_set.all():
+                    if instance not in all_hot_datanodes:
+                        instance.bind_entry.remove(cluster_entry)
+            elif all_cold_datanodes.exists():
+                for instance in all_cold_datanodes:
+                    if not instance.bind_entry.filter(cluster_entry_type=cluster_entry.cluster_entry_type).exists():
+                        cluster_entry.storageinstance_set.add(instance)
+                for instance in cluster_entry.storageinstance_set.all():
+                    if instance not in all_cold_datanodes:
+                        instance.bind_entry.remove(cluster_entry)
+            else:
+                for instance in all_master_nodes:
+                    if not instance.bind_entry.filter(cluster_entry_type=cluster_entry.cluster_entry_type).exists():
+                        cluster_entry.storageinstance_set.add(instance)
+            cluster_entry.save()
+        else:
+            cluster_entry.storageinstance_set.clear()
 
     for ins in common.filter_out_instance_obj(storages, StorageInstance.objects.all()):
         m = ins.machine

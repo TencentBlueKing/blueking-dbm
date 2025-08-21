@@ -36,17 +36,19 @@
       style="flex: 1">
       <EditableInput
         v-model="modelValue.master_domain"
-        :placeholder="t('请输入集群域名')" />
-      <div
+        :placeholder="t('请输入集群域名')"
+        @change="handleChange" />
+      <BkLoading
         v-if="modelValue.related_clusters.length > 0"
-        class="related-clusters">
+        class="related-clusters"
+        :loading="relatedLoading">
         {{ t('含n个同机关联集群', { n: modelValue.related_clusters.length }) }}
         <p
           v-for="item in modelValue.related_clusters"
           :key="item.id">
           -- {{ item.master_domain }}
         </p>
-      </div>
+      </BkLoading>
     </div>
   </EditableColumn>
   <ClusterSelector
@@ -63,12 +65,16 @@
   import { filterClusters } from '@services/source/dbbase';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    /**
+     * 是否允许重复
+     */
+    allowRepeat?: boolean;
     /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
@@ -93,19 +99,16 @@
 
   const modelValue = defineModel<{
     cluster_type: ClusterTypes;
-    id?: number;
+    id: number;
     master_domain: string;
+    region: string;
     related_clusters: {
       id: number;
       master_domain: string;
     }[];
+    spec_id_list: number[];
   }>({
-    default: () => ({
-      cluster_type: ClusterTypes.TENDBHA,
-      id: undefined,
-      master_domain: '',
-      related_clusters: [],
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -129,27 +132,23 @@
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'blur',
+      trigger: 'change',
       validator: (value: string) => !value || domainRegex.test(value),
     },
     {
       message: t('目标集群重复'),
-      trigger: 'blur',
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      trigger: 'change',
+      validator: (value: string) =>
+        props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
-  const { loading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
+  const { loading: relatedLoading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
       const [currentCluster] = data;
@@ -162,12 +161,17 @@
     },
   });
 
-  const { run: queryCluster } = useRequest(filterClusters, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbhaModel>, {
     manual: true,
     onSuccess: (data) => {
       const [currentCluster] = data;
       if (currentCluster?.id) {
         modelValue.value.id = currentCluster.id;
+        modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
+        const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
+        modelValue.value.spec_id_list =
+          (currentCluster[roleListKey] as TendbhaModel['masters'])?.map((item) => item.spec_config.id) || [];
+        modelValue.value.region = currentCluster.region || '';
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],
@@ -177,13 +181,26 @@
     },
   });
 
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      cluster_type: props.clusterTypes?.[0] || ClusterTypes.TENDBHA,
+      id: 0, // 重置ID，表示需要重新查询集群
+      master_domain: value,
+      region: '',
+      related_clusters: [],
+      spec_id_list: [],
+    };
+  };
+
   watch(
-    () => modelValue.value.master_domain,
-    (value) => {
-      if (value) {
+    modelValue,
+    () => {
+      if (modelValue.value.master_domain && !modelValue.value.id) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: value,
+          cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+          db_type: DBTypes.MYSQL,
+          exact_domain: modelValue.value.master_domain,
         });
       }
     },

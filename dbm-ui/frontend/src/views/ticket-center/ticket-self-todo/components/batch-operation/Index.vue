@@ -62,7 +62,9 @@
   import { messageSuccess } from '@utils';
 
   import StatusApproveAction from './StatusApproveAction.vue';
+  import StatusFailed from './StatusFailedAction.vue';
   import StatusResourceReplenishAction from './StatusResourceReplenishAction.vue';
+  import StatusTimerAction from './StatusTimerAction.vue';
   import StatusTodoAction from './StatusTodoAction.vue';
 
   interface Props {
@@ -77,18 +79,22 @@
 
   const titleMap = {
     [TicketModel.STATUS_APPROVE]: t('批量审批'),
+    [TicketModel.STATUS_FAILED]: t('批量终止'),
     [TicketModel.STATUS_RESOURCE_REPLENISH]: t('批量处理'),
+    [TicketModel.STATUS_TIMER]: t('批量处理'),
     [TicketModel.STATUS_TODO]: t('批量处理'),
   };
 
   const actionComMap = {
     [TicketModel.STATUS_APPROVE]: StatusApproveAction,
+    [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenishAction,
+    [TicketModel.STATUS_TIMER]: StatusTimerAction,
     [TicketModel.STATUS_TODO]: StatusTodoAction,
   };
 
   const genDefaultValue = () => ({
-    action: 'APPROVE' as 'APPROVE' | 'TERMINATE',
+    action: 'APPROVE' as 'APPROVE' | 'TERMINATE' | 'SKIP',
     remark: '',
   });
   const isShow = ref(false);

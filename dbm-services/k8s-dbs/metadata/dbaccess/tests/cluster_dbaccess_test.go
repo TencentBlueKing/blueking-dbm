@@ -22,11 +22,12 @@ package tests
 import (
 	"fmt"
 	"k8s-dbs/common/entity"
+	commtypes "k8s-dbs/common/types"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -116,7 +117,7 @@ func TestUpdateCluster(t *testing.T) {
 		Namespace:   "default2",
 		Status:      "Disable",
 		Description: "desc desc",
-		UpdatedAt:   time.Now(),
+		UpdatedAt:   commtypes.JSONDatetime{},
 	}
 	rows, err := dbAccess.Update(newCluster)
 	assert.NoError(t, err)
@@ -163,12 +164,13 @@ func TestGetClusterByParams(t *testing.T) {
 	_, err = dbAccess.Create(cluster)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"k8s_cluster_config_id": 1,
-		"cluster_name":          "mycluster",
-		"namespace":             "default",
+	params := metaentity.ClusterQueryParams{
+		K8sClusterConfigID: 1,
+		ClusterName:        "mycluster",
+		Namespace:          "default",
 	}
-	findCluster, err := dbAccess.FindByParams(params)
+
+	findCluster, err := dbAccess.FindByParams(&params)
 	assert.NoError(t, err)
 	assert.Equal(t, cluster.ClusterName, findCluster.ClusterName)
 	assert.Equal(t, cluster.Namespace, findCluster.Namespace)
@@ -204,9 +206,9 @@ func TestListCluster(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	params := map[string]interface{}{
-		"namespace": "default",
-		"status":    "Running",
+	params := &metaentity.ClusterQueryParams{
+		Namespace: "default",
+		Status:    "Running",
 	}
 
 	pagination := entity.Pagination{

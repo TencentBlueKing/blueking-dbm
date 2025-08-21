@@ -44,6 +44,9 @@ class _DBResourceApi(BaseApi):
             method="POST",
             url="resource/apply",
             description=_("资源池资源申请"),
+            # 调整超时时长，关闭重试
+            default_timeout=60,
+            max_retry_times=1,
         )
         self.get_mountpoints = self.generate_data_api(
             method="POST",

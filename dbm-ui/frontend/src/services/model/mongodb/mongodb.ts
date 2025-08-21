@@ -81,6 +81,7 @@ export default class Mongodb extends ClusterBase {
     mongodb_edit: boolean;
     mongodb_enable_disable: boolean;
     mongodb_plugin_create_clb: boolean;
+    mongodb_source_access_view: boolean;
     mongodb_view: boolean;
     mongodb_webconsole: boolean;
   };
@@ -174,36 +175,6 @@ export default class Mongodb extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return affinityMap[this.disaster_tolerance_level];
-  }
-
-  get entryAccess() {
-    if (this.isMongoReplicaSet) {
-      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
-    }
-    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
-  }
-
-  get entryAccessClb() {
-    if (!this.isMongoReplicaSet) {
-      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
-      if (clbItem) {
-        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
-      }
-    }
-    return '';
-  }
-
-  get entryDomain() {
-    if (this.isMongoReplicaSet) {
-      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (!entryItem.entry.includes('backup')) {
-          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
-        }
-        return prevDomainList;
-      }, []);
-      return domainList.join(',');
-    }
-    return `${this.master_domain}:${this.cluster_access_port}`;
   }
 
   get instanceCount() {

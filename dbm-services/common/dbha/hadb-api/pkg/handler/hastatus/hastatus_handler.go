@@ -100,8 +100,10 @@ func Handler(ctx *fasthttp.RequestCtx) {
 func GetHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	var (
 		result    = []model.HaStatus{}
-		whereCond = &model.HaStatus{}
-		response  = api.ResponseInfo{
+		whereCond = struct {
+			query model.HaStatus
+		}{}
+		response = api.ResponseInfo{
 			Data:    &result,
 			Code:    api.RespOK,
 			Message: "",
@@ -124,7 +126,7 @@ func GetHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 		response.Message = err.Error()
 		return
 	} else {
-		if err = json.Unmarshal(bytes, whereCond); err != nil {
+		if err = json.Unmarshal(bytes, whereCond.query); err != nil {
 			response.Code = api.RespErr
 			response.Message = err.Error()
 			return
@@ -132,7 +134,7 @@ func GetHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	}
 	log.Logger.Debugf("%+v", whereCond)
 
-	if err := model.HADB.Self.Table(whereCond.TableName()).Where(whereCond).Find(&result).Error; err != nil {
+	if err := model.HADB.Self.Table(whereCond.query.TableName()).Where(whereCond.query).Find(&result).Error; err != nil {
 		response.Code = api.RespErr
 		response.Message = err.Error()
 		response.Data = nil

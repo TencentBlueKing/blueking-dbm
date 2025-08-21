@@ -1311,7 +1311,7 @@ func (task *RedisInsRecoverTask) getNeWTempIPClusterNodes() error {
 	logCmd := fmt.Sprintf("cd %s && redis-cli -h %s -p %d -a xxxx cluster nodes > cluster_nodes.txt",
 		task.RecoverDir, task.NeWTempIP, task.NewTmpPort)
 	task.runtime.Logger.Info("获取cluster nodes信息:%s", logCmd)
-	ret01, err := util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 600*time.Second)
+	ret01, err := util.RunLocalCmdReplacePkey("bash", []string{"-c", cmd}, password, "", nil, 600*time.Second)
 	if err != nil {
 		task.runtime.Logger.Error(fmt.Sprintf("获取cluster nodes信息失败,详情:%v", err))
 		return err

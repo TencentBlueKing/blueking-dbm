@@ -352,7 +352,8 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
 	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
-	if mysqlOpt.BinaryMode && mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
+	// mysqlOpt.BinaryMode &&
+	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
 	}
 	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
@@ -664,7 +665,12 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			return 0, err
+			if strings.Contains(err.Error(), "No such file or directory") {
+				// 文件可能在处理的时候被删除了，但有可能是正在过滤旧的文件，旧文件被删除无所谓
+				continue
+			} else {
+				return 0, err
+			}
 		}
 		startTime := events[0].EventTime
 		stopTime := events[1].EventTime
@@ -770,7 +776,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 // Start godoc
 // 一定会解析 binlog
 func (r *RecoverBinlog) Start() error {
-	binlogFiles := strings.Join(r.BinlogFiles, " ")
+	fileCount := r.BinlogFiles
 	if r.ParseOnly {
 		if err := r.buildScript(); err != nil {
 			return err
@@ -786,36 +792,29 @@ func (r *RecoverBinlog) Start() error {
 			}
 			if originValue != newValue {
 				defer func() {
-					if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+					if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 						logger.Error("fail to set back slave_exec_mode=%s", originValue)
 					}
 				}()
 			}
 		}
-
-		// 这里要考虑命令行的长度
-		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
-		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
-		cmd := fmt.Sprintf(
-			`cd %s; %s %s | %s >>%s 2>%s`,
-			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
-		)
-		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
-		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
-		if err != nil {
-			if strings.TrimSpace(stdoutStr) == "" {
-				if errContent, err := osutil.ExecShellCommand(
-					false,
-					fmt.Sprintf("head -2 %s", errFile),
-				); err == nil {
-					if strings.TrimSpace(errContent) != "" {
-						logger.Error(errContent)
-					}
-				}
-			} else {
-				return errors.WithMessagef(err, "errFile: %s", errFile)
+		// 这里要考虑命令行的长度，挨个遍历 binlog file，而不是全部传入命令行
+		// 但要注意导入用的密码，不能在期间发生改变. (ADMIN密码可能会被随机化，临时密码会在单据存续期间保持不变)
+		for i, oneFile := range r.BinlogFiles {
+			outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
+			errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
+			cmd := fmt.Sprintf(
+				`cd %s; %s %s | %s >>%s 2>%s`,
+				r.BinlogDir, r.binlogCli, oneFile, r.mysqlCli, outFile, errFile,
+			)
+			logger.Info("[%d/%d] command:", i+1, fileCount,
+				mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
+			stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
+			if err != nil {
+				errStr, _ := cmutil.NewGrepLines(errFile, true, false).MatchWords(nil, 2)
+				return errors.WithMessagef(err, "errFile: %s\nstdoutStr:%s\nerrContent:%s\n",
+					errFile, stdoutStr, errStr)
 			}
-			return err
 		}
 	} else {
 		return errors.New("flashback=true must have parse_only=true")
@@ -834,7 +833,7 @@ func (r *RecoverBinlog) Import() error {
 		}
 		if originValue != newValue {
 			defer func() {
-				if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+				if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 					logger.Error("fail to set back slave_exec_mode=%s", originValue)
 				}
 			}()

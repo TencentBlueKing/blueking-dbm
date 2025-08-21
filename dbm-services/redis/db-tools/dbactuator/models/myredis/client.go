@@ -1492,7 +1492,7 @@ func (db *RedisClient) Shutdown() (err error) {
 		logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
 			redisCliBin, ip, port, opt)
 		mylog.Logger.Info(logcmd)
-		util.RunBashCmd(cmd, "", nil, 1*time.Minute)
+		util.RunBashCmdReplacePkey(cmd, db.Password, "", nil, 1*time.Minute)
 	}
 	// 再次检查端口是否关闭,如果关闭了,则认为shutdown成功;如果没有关闭,则认为shutdown失败
 	isUsing, _ = util.CheckPortIsInUse(ip, port)
@@ -1812,11 +1812,19 @@ func (db *RedisClient) GetTendisHeartbeat(dbSizeKey, srcHearbeatKey string) (dbS
 	}
 
 	cmd := []interface{}{"mget", dbSizeKey, srcHearbeatKey}
-	mgetRet, err := db.InstanceClient.Do(context.TODO(), cmd...).Result()
-	if err != nil {
-		err = fmt.Errorf("redis:%s 'mget %s %s' fail, err: %v", db.Addr, dbSizeKey, srcHearbeatKey, err)
-		mylog.Logger.Error(err.Error())
-		return 0, time.Time{}, err
+	var mgetRet interface{}
+	for i := 0; i < 10; i++ {
+		mgetRet, err = db.InstanceClient.Do(context.TODO(), cmd...).Result()
+		if err != nil {
+			// 如果是Load data，等待下一次遍历
+			if strings.Contains(err.Error(), consts.REDISLOADDATAINFO) {
+				time.Sleep(1 * time.Minute)
+				continue
+			}
+			err = fmt.Errorf("redis:%s 'mget %s %s' fail, err: %v", db.Addr, dbSizeKey, srcHearbeatKey, err)
+			mylog.Logger.Error(err.Error())
+			return 0, time.Time{}, err
+		}
 	}
 	mylog.Logger.Info("心跳mget执行结果：%v", mgetRet)
 

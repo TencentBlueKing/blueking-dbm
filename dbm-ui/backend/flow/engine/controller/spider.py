@@ -14,11 +14,8 @@ from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import Appen
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
-from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
-from backend.flow.engine.bamboo.scene.spider.remote_master_slave_migrate import TendbClusterMigrateRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
-from backend.flow.engine.bamboo.scene.spider.remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -27,14 +24,15 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_destroy import TenDB
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_disable import SpiderClusterDisableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable import SpiderClusterEnableFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
-from backend.flow.engine.bamboo.scene.spider.spider_cluster_metadata_import_flow import SpiderClusterMetadataImportFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
-from backend.flow.engine.bamboo.scene.spider.spider_cluster_standardize_flow import SpiderClusterStandardizeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_master_slave_migrate import TendbClusterMigrateRemoteFlow
+from backend.flow.engine.bamboo.scene.spider.spider_remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
@@ -42,7 +40,11 @@ from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade_remote import UpgradeRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade_spider_node import UpgradeSpiderFlow
+from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
+    TenDBClusterSwitchNodesFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class SpiderController(BaseController):
@@ -238,14 +240,6 @@ class SpiderController(BaseController):
         flow = AppendDeployCTLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()
 
-    def tendbcluster_standardize_scene(self):
-        flow = SpiderClusterStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.standardize()
-
-    def metadata_import_scene(self):
-        flow = SpiderClusterMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.import_meta()
-
     def tendbcluster_machine_clear_scene(self):
         """
         清理mysql机器
@@ -267,6 +261,7 @@ class SpiderController(BaseController):
         flow = UpgradeRemoteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.migrate_upgrade()
 
+    @validates_with(TenDBClusterSwitchNodesFlowValidator)
     def tendbcluster_switch_nodes_scene(self):
         """
         tendbcluster spider节点替换

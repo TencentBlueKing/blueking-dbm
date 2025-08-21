@@ -180,6 +180,12 @@ func (t *TdbctlDbWork) SelectServers() (servers []Server, err error) {
 	return
 }
 
+// GetBlockingCheckNode 获取需要阻塞检查的节点
+func (t *TdbctlDbWork) GetBlockingCheckNode() (servers []Server, err error) {
+	err = t.Queryx(&servers, "select * from  mysql.servers where Wrapper in ('SPIDER','SPIDER_SLAVE','mysql')")
+	return
+}
+
 // GetMasterSpiderNodes 获取所有spider节点
 func (t *TdbctlDbWork) GetMasterSpiderNodes() (servers []Server, err error) {
 	err = t.Queryx(&servers, "select  * from  mysql.servers  where Wrapper in ('SPIDER');")

@@ -1,18 +1,6 @@
 package cmd
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/mysqlcomm"
-	"dbm-services/common/reverseapi"
-	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
-	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -21,6 +9,19 @@ import (
 	"slices"
 	"strings"
 	"text/template"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/dbbackup"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -37,7 +38,12 @@ var subCmdGenConfig = &cobra.Command{
 		bkCloudId := viper.GetInt("bk-cloud-id")
 		ports := viper.GetIntSlice("port")
 
-		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		apiCore, err := core.NewCoreWithAddr(int64(bkCloudId), nginxAddrs, core.DefaultRetryOpts...)
+		if err != nil {
+			return err
+		}
+		apiCore.SetTimeout(20)
+
 		data, err := reversemysqlapi.DBBackupConfig(apiCore, ports...)
 		if err != nil {
 			return err
@@ -164,6 +170,7 @@ func generateOneIniConfig(cfg *reversemysqldef.DBBackupConfig, opt *dbbackup.Bac
 		PhysicalBackup: config.PhysicalBackup{
 			DefaultsFile: util.GetMyCnfFileName(cfg.Port),
 		},
+		Schedule: config.Schedule{},
 	}
 
 	err := writeIniFile(cfg, &iniData)

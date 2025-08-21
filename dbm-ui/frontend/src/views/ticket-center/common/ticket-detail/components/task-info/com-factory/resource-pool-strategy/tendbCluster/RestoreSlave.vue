@@ -53,7 +53,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前资源规格')"
+      :label="t('规格')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{
@@ -64,16 +64,27 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('新从库主机')"
-      :min-width="150">
-      <template #default>
-        {{ t('资源池自动匹配') }}
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <template v-if="data.resource_spec.new_slave?.label_names?.length">
+          <BkTag
+            v-for="item in data.resource_spec.new_slave.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </template>
     </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
-      {{ backupSourceMap[ticketDetails.details.backup_source] }}
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
 </template>
@@ -101,9 +112,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const backupSourceMap = {
-    local: t('本地备份'),
-    remote: t('远程备份'),
-  };
 </script>

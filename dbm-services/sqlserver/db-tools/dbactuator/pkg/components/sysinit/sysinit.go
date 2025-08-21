@@ -13,6 +13,7 @@ package sysinit
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -263,9 +264,12 @@ func (s *SysInitComp) CheckSSHForLocal() error {
 	}
 	checkStr := fmt.Sprintf("echo 1 > %s", fmt.Sprintf("%s\\\\%s\\\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME, "test"))
 	conf := &ssh.ClientConfig{
-		Timeout:         time.Second * time.Duration(10), // ssh 连接time out 时间10秒钟, 如果ssh验证错误 会在一秒内返回
-		User:            s.GeneralParam.RuntimeAccountParam.OSMssqlUser,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
+		Timeout: time.Second * time.Duration(10), // ssh 连接time out 时间10秒钟, 如果ssh验证错误 会在一秒内返回
+		User:    s.GeneralParam.RuntimeAccountParam.OSMssqlUser,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			logger.Info("connection to host %s, accepting temporary key (%s)", hostname, ssh.FingerprintSHA256(key))
+			return nil
+		},
 		Config: ssh.Config{
 			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},

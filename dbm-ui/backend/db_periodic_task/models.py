@@ -11,15 +11,19 @@ specific language governing permissions and limitations under the License.
 
 import json
 import logging
+from datetime import timedelta
 
 from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django_celery_beat.models import PeriodicTask
 from django_celery_beat.schedulers import ModelEntry
 
 from backend.bk_web import constants
 from backend.bk_web.models import AuditedModel
+from backend.db_meta.enums import ClusterType
 from backend.db_periodic_task.constants import PeriodicTaskType
+from backend.db_report.report_basemodel import BaseReportABS
 
 logger = logging.getLogger("root")
 
@@ -80,3 +84,104 @@ class DBPeriodicTask(AuditedModel):
                 celery_task.args = _args
                 celery_task.kwargs = _kwargs
                 celery_task.save(update_fields=[model_field, "args", "kwargs"])
+
+
+class TaskStatus:
+    # 已生成任务
+    GENERATED = "generated"
+    # 已申请资源
+    RESOURCE_APPLIED = "resource_applied"
+    # 资源申请失败
+    RESOURCE_APPLIED_FAILED = "resource_applied_failed"
+    # 提交任务成功
+    COMMIT_SUCCESS = "commit_success"
+    # 提交任务失败
+    COMMIT_FAILED = "commit_failed"
+    # 部署mysql成功
+    DEPLOY_SUCCESS = "deploy_success"
+    # 演练恢复成功
+    RECOVER_SUCCESS = "recover_success"
+    # 资源归还成功
+    RESOURCE_RETURN_SUCCESS = "resource_return_success"
+
+
+class MySQLBackupRecoverTask(BaseReportABS):
+    """
+    MySQL备份定期回档演练
+    """
+
+    bk_biz_id = models.IntegerField(_("演练业务ID"), default=0)
+    cluster_id = models.IntegerField(_("备份来源集群ID"), default=0)
+    cluster_domain = models.CharField(_("备份来源域名"), max_length=constants.LEN_LONG, default="")
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    charset = models.CharField(_("字符集"), max_length=constants.LEN_SHORT, default="")
+    mysql_version = models.CharField(_("MySQL版本"), max_length=constants.LEN_SHORT, default="")
+    sql_mode = models.CharField(_("SQL模式"), max_length=constants.LEN_LONG, default="")
+    backup_id = models.CharField(_("备份ID"), max_length=constants.LEN_LONG, default="")
+    backup_begin_time = models.DateTimeField(_("备份开始时间"), default=None)
+    backup_end_time = models.DateTimeField(_("备份结束时间"), default=None)
+    backup_total_size = models.IntegerField(_("备份总大小G"), default=0)
+    backup_host = models.CharField(_("备份主机"), max_length=constants.LEN_LONG, default="")
+    backup_host_role = models.CharField(_("备份主机角色"), max_length=constants.LEN_SHORT, default="")
+    backup_type = models.CharField(_("备份类型"), max_length=constants.LEN_SHORT, default="")
+    backup_tool = models.CharField(_("备份工具"), max_length=constants.LEN_SHORT, default="")
+    time_zone = models.CharField(_("时区"), max_length=constants.LEN_SHORT, default="")
+    # 关联单据id
+    recover_start_time = models.DateTimeField(_("备份恢复开始时间"), default=timezone.now)
+    recover_end_time = models.DateTimeField(_("备份恢复结束时间"), default=timezone.now)
+    task_id = models.CharField(_("关联的任务ID"), max_length=constants.LEN_LONG, default="")
+    task_status = models.CharField(_("任务状态"), max_length=constants.LEN_SHORT, default="")
+    task_info = models.TextField(_("任务信息"), default="")
+    status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
+
+    @classmethod
+    def get_all_practiced_biz_ids(cls):
+        """
+        获取已经回档过的所有业务ID
+        """
+        return list(
+            MySQLBackupRecoverTask.objects.filter(
+                task_status__in=[TaskStatus.RECOVER_SUCCESS, TaskStatus.RESOURCE_RETURN_SUCCESS]
+            )
+            .values_list("bk_biz_id", flat=True)
+            .distinct()
+        )
+
+    @classmethod
+    def get_all_practiced_cluster_ids(cls):
+        """
+        获取已经成功回档过的所有集群ID
+        """
+        return list(
+            MySQLBackupRecoverTask.objects.filter(
+                task_status__in=[TaskStatus.RECOVER_SUCCESS, TaskStatus.RESOURCE_RETURN_SUCCESS]
+            )
+            .values_list("cluster_id", flat=True)
+            .distinct()
+        )
+
+    @classmethod
+    def get_recent_24h_task_cluster_ids(cls):
+        """
+        获取最近24小时内发起任务集群ID列表
+        """
+        recent_time = timezone.now() - timedelta(hours=24)
+        return list(
+            MySQLBackupRecoverTask.objects.filter(
+                create_at__gte=recent_time,
+            )
+            .values_list("cluster_id", flat=True)
+            .distinct()
+        )
+
+
+class FailoverDrillConfig(AuditedModel):
+    bk_biz_id = models.IntegerField(default=0, help_text=_("业务的 cmdb id"))
+    bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 id"))
+    db_module_id = models.IntegerField(default=0, help_text=_("db模块 id"))
+    labels = models.JSONField(help_text=_("资源标签"))
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    city_map = models.JSONField(help_text=_("城市缩写映射表"), default=dict)
+    switch_flag = models.BooleanField(help_text=_("是否启用任务"), default=False)
+    max_retry = models.IntegerField(default=6, help_text=_("最大重试次数"))
+    interval = models.IntegerField(default=10, help_text=_("重试间隔 分钟"))

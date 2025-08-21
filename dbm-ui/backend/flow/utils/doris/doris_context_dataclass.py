@@ -26,6 +26,7 @@ class DorisActKwargs:
     instance_name: str = "all"  # 实例名称
     file_list: list = field(default_factory=list)  # 传入文件传输节点的文件名称列表，默认空字典
     cluster: dict = field(default_factory=dict)  # 集群信息
+    res_op_type: str = None
 
 
 @dataclass()
@@ -35,10 +36,16 @@ class DorisApplyContext:
     """
 
     doris_act_payload: Optional[Any] = None  # 代表获取Doris的payload参数的类
+    """
+    目前 未使用到new_{role}_ips的参数
+    """
     new_hot_ips: list = None  # 代表在资源池分配到hot的ip列表
+    new_warm_ips: list = None  # 代表在资源池分配到warm的ip列表
     new_cold_ips: list = None  # 代表在资源池分配到cold的ip列表
     new_follower_ips: list = None  # 代表在资源池分配到follower的ip列表
     new_observer_ips: list = None  # 代表在资源池分配到observer的ip列表
+
+    created_bucket_name: str = field(default_factory=str)
 
     @staticmethod
     def get_new_hot_ips_var_name() -> str:
@@ -49,12 +56,20 @@ class DorisApplyContext:
         return "new_cold_ips"
 
     @staticmethod
+    def get_new_warm_ips_var_name() -> str:
+        return "new_warm_ips"
+
+    @staticmethod
     def get_new_follower_ips_var_name() -> str:
         return "new_follower_ips"
 
     @staticmethod
     def get_new_observer_ips_var_name() -> str:
         return "new_observer_ips"
+
+    @staticmethod
+    def get_bucket_var_name() -> str:
+        return "created_bucket_name"
 
 
 @dataclass()
@@ -68,3 +83,18 @@ class DnsKwargs:
     delete_cluster_id: int = None  # 操作的集群，回收集群时需要
     domain_name: str = None  # 如果添加域名时,添加域名名称
     dns_op_exec_port: int = None  # 如果做添加或者更新域名管理，执行实例的port
+
+
+@dataclass()
+class DorisResourceContext:
+    """
+    定义申请DORIS资源的上下文dataclass类
+    """
+
+    doris_act_payload: Optional[Any] = None  # 代表获取Doris的payload参数的类
+
+    created_bucket_name: str = field(default_factory=str)
+
+    @staticmethod
+    def get_bucket_var_name() -> str:
+        return "created_bucket_name"

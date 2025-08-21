@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -35,7 +35,7 @@
           <ClusterColumn
             ref="clusterRef"
             v-model="item.cluster"
-            allows-duplicates
+            allow-repeat
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <DbNameColumn
@@ -45,6 +45,7 @@
             :cluster-id="item.cluster.id"
             field="fromDatabase"
             :label="t('源 DB 名')"
+            required
             :rules="rules.fromDatabase"
             single
             @batch-edit="handleBatchEdit" />
@@ -54,6 +55,7 @@
             :cluster-id="item.cluster.id"
             field="toDatabase"
             :label="t('新 DB 名')"
+            required
             :rules="rules.toDatabase"
             single
             @batch-edit="handleBatchEdit" />
@@ -62,9 +64,16 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <IgnoreBiz
-        v-model="formData.force"
-        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
+      <BkFormItem
+        v-bk-tooltips="t('存在业务连接时需要人工确认')"
+        class="fit-content">
+        <BkCheckbox
+          v-model="formData.force"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -80,7 +89,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -98,18 +107,19 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/db-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   interface RowData {
     cluster: TendbClusterModel;
@@ -120,7 +130,7 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
   const clusterRef = ref<InstanceType<typeof ClusterColumn>[]>();
-  const tableKey = ref(Date.now());
+  const tableKey = ref(random());
 
   const batchInputConfig = [
     {
@@ -141,26 +151,27 @@
   ];
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster:
-      data.cluster ||
-      ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
         id: 0,
         master_domain: '',
-      } as TendbClusterModel),
+      } as unknown as TendbClusterModel,
+      data.cluster,
+    ),
     fromDatabase: data.fromDatabase || [],
     toDatabase: data.toDatabase || [],
   });
 
   const defaultData = () => ({
-    force: false,
+    force: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
   const formData = reactive(defaultData());
-  const selected = computed(() => ({
-    [ClusterTypes.TENDBCLUSTER]: formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster),
-  }));
+
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
   );
@@ -222,8 +233,9 @@
   useTicketDetail<TendbCluster.RenameDataBase>(TicketTypes.TENDBCLUSTER_RENAME_DATABASE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters } = details;
+      const { clusters, force } = details;
       Object.assign(formData, {
+        force,
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) => ({
           cluster: {
@@ -301,21 +313,10 @@
       }),
     );
     if (isClear) {
-      tableKey.value = Date.now();
-      formData.tableData = [...dataList]; // 覆盖
+      tableKey.value = random();
+      formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      formData.tableData.forEach((item, index) => {
-        clusterRef.value?.[index]
-          ?.fetch?.({
-            exact_domain: item.cluster.master_domain,
-          })
-          .then(() => {
-            tableRef.value?.validateByRowIndex(index);
-          });
-      });
-    });
   };
 </script>

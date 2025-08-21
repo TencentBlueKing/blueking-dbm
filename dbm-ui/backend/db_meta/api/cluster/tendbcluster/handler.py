@@ -175,7 +175,6 @@ class TenDBClusterClusterHandler(ClusterHandler):
         creator: str,
         add_spiders: list,
         spider_role: Optional[TenDBClusterSpiderRole],
-        resource_spec: dict,
         is_slave_cluster_create: bool,
         new_slave_domain: str = None,
         new_db_module_id: int = 0,
@@ -187,7 +186,6 @@ class TenDBClusterClusterHandler(ClusterHandler):
         @param creator: 提单的用户名称
         @param add_spiders: 待加入的spider机器信息
         @param spider_role: 待加入spider的角色
-        @param resource_spec: 待加入spider的规格
         @param is_slave_cluster_create: 代表这次是否是添加从集群
         @param new_slave_domain: 如果是添加从集群场景，这里代表新的从域名信息
         @param new_db_module_id: new_db_module_id代表新的模块ID，默认为0，代表延用cluster信息的模块ID做依据
@@ -201,13 +199,14 @@ class TenDBClusterClusterHandler(ClusterHandler):
         # 录入机器
         machines = []
         for ip_info in add_spiders:
+            # todo 是否过滤spider_mnt的角色处理？
             machines.append(
                 {
                     "ip": ip_info["ip"],
                     "bk_biz_id": cluster.bk_biz_id,
                     "machine_type": MachineType.SPIDER.value,
-                    "spec_id": resource_spec[MachineType.SPIDER.value]["id"],
-                    "spec_config": resource_spec[MachineType.SPIDER.value],
+                    "spec_id": ip_info["spec"]["id"],
+                    "spec_config": ip_info["spec"],
                 },
             )
         # 录入机器信息
@@ -354,9 +353,11 @@ class TenDBClusterClusterHandler(ClusterHandler):
             else TenDBClusterSpiderRole.SPIDER_MNT
         )
 
-        inst = ProxyInstance.objects.filter(cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role)
+        inst = ProxyInstance.objects.filter(
+            cluster=self.cluster, tendbclusterspiderext__spider_role=proxy_role, status=InstanceStatus.RUNNING
+        )
         if not inst:
-            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的实例").format(self.cluster.name, proxy_role))
+            raise InstanceNotExistException(_("集群{}不具有该角色「{}」的正常实例").format(self.cluster.name, proxy_role))
 
         return inst.first().ip_port
 

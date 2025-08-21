@@ -26,6 +26,11 @@ export default function getRoutes() {
       component: () => import('@views/db-manage/mysql/dba-manage/Index.vue'),
       children: [
         {
+          path: 'toolbox-result/:ticketType?/:ticketIds?',
+          name: 'DbaManageMysqlToolboxResult',
+          component: () => import('@views/db-manage/common/dba-toolbox-result/Index.vue'),
+        },
+        {
           path: 'web-query',
           name: 'DbaManageMysqlWebQuery',
           meta: {

@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	mysql_version varchar(60) DEFAULT NULL,
 	data_schema_grant varchar(30) DEFAULT NULL,
 	is_full_backup tinyint(4) DEFAULT NULL,
-	backup_begin_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	backup_begin_time timestamp NOT NULL '1970-01-02 00:00:00',
 	backup_end_time timestamp NOT NULL DEFAULT '1970-01-02 00:00:00',
 	backup_consistent_time timestamp NOT NULL DEFAULT '1970-01-02 00:00:00',
 	backup_status varchar(60) DEFAULT NULL,

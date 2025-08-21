@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -216,11 +217,12 @@ func TestGetRepoByParams(t *testing.T) {
 	_, err = dbAccess.Create(repo)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"chart_name":    "test-chartname",
-		"chart_version": "test-chartversion",
-		"repo_name":     "test-reponame",
+	params := &metaentity.HelmRepoQueryParams{
+		ChartName:    "test-chartname",
+		ChartVersion: "test-chartversion",
+		RepoName:     "test-reponame",
 	}
+
 	foundRepo, err := dbAccess.FindByParams(params)
 	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)

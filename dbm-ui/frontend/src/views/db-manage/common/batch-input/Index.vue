@@ -15,13 +15,13 @@
   <BkButton
     class="checksum-batch"
     @click="() => (isShow = true)">
-    <i class="db-icon-add" />
+    <i class="bk-dbm-icon db-icon-add" />
     {{ t('批量录入') }}
   </BkButton>
   <BkDialog
     :is-show="isShow"
     :quick-close="false"
-    :title="t('xx_批量录入', { title: route.meta.navName })"
+    :title="t('xx_批量录入', { title: route.meta.tabName || route.meta.navName })"
     :width="1200"
     @closed="handleClose">
     <div class="batch-input">

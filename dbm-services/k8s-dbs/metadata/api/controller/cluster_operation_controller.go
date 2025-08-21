@@ -20,15 +20,14 @@ limitations under the License.
 package controller
 
 import (
-	commconst "k8s-dbs/common/api/constant"
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/req"
-	"k8s-dbs/metadata/api/vo/resp"
-	metaconst "k8s-dbs/metadata/constant"
+	"k8s-dbs/errors"
+	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -47,47 +46,47 @@ func NewClusterOperationController(provider provider.ClusterOperationProvider) *
 
 // ListClusterOperations list cluster operations
 func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
-	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
+	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
+		fetchSize = commconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
-	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
+	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	clusterOps, err := c.provider.ListClusterOperations(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data []resp.ClusterOperationRespVo
+	var data []response.ClusterOperationResponse
 	if err := copier.Copy(&data, clusterOps); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateClusterOperation creates a new cluster operation.
 func (c *ClusterOperationController) CreateClusterOperation(ctx *gin.Context) {
-	var reqVo req.ClusterOperationReqVo
+	var reqVo request.ClusterOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var opEntity entitys.ClusterOperationEntity
 	if err := copier.Copy(&opEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	added, err := c.provider.CreateClusterOperation(&opEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	var data resp.ClusterOperationRespVo
+	var data response.ClusterOperationResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

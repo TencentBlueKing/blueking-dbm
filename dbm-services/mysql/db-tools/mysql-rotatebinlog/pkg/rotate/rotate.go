@@ -7,6 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
+	reapi "dbm-services/common/reverseapi/apis/common"
+	recore "dbm-services/common/reverseapi/pkg/core"
+
+	"github.com/spf13/viper"
 	"modernc.org/mathutil"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -111,22 +115,22 @@ const (
 // FlushLogs 根据时间间隔需要，决定是否 flush logs
 func (i *ServerObj) FlushLogs() error {
 	var err error
-	_, binlogFilesObj, err := i.getBinlogFilesLocal() // todo 精简参数，是否需要改成 SHOW BINARY LOGS?
+	_, i.binlogFiles, err = i.getBinlogFilesLocal() // todo 精简参数，是否需要改成 SHOW BINARY LOGS?
 	if err != nil {
 		return err
 	}
-	i.binlogFiles = binlogFilesObj
 	_ = i.RemoveMaxKeepDuration() // ignore error
 
-	// 最后一个文件是当前正在写入的，获取倒数第二个文件的结束时间，在 5m 内，说明 mysqld 自己已经做了切换
-	if len(binlogFilesObj) >= 1 {
-		fileName := filepath.Join(i.binlogDir, binlogFilesObj[len(binlogFilesObj)-1].Filename)
+	// 最后一个文件是当前正在写入的，获取倒数第二个文件的结束时间，在 5m 内，说明 mysqld 自己已经做了切换，rotatebinlog 不需要再处理
+	if len(i.binlogFiles) >= 1 {
+		fileName := filepath.Join(i.binlogDir, i.binlogFiles[len(i.binlogFiles)-1].Filename)
 		bp, _ := binlog_parser.NewBinlogParse("", 0, time.RFC3339)
 		events, err := bp.GetTime(fileName, true, false) // 只获取start_time
 		if err != nil {
 			logger.Warn("FlushLogs GetTime %s", fileName, err.Error())
-			_ = i.flushLogs()
-		} else {
+			//_ = i.flushLogs()
+		}
+		if len(events) > 0 {
 			lastRotateTime, _ := time.ParseInLocation(reportlog.ReportTimeLayout1, events[0].EventTime, time.Local)
 			lastRotateSince := time.Now().Sub(lastRotateTime).Seconds() - i.rotate.rotateInterval.Seconds()
 			if lastRotateSince > -5 {
@@ -199,13 +203,6 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 // lastFileBefore 是上一次处理的最后一个文件
 // 实例最后一个 binlog 正在使用，不登记
 func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error {
-	if i.publicCfg.BackupEnable == cst.BackupEnableAuto || i.publicCfg.BackupEnable == "" {
-		if i.Tags.DBRole == cst.RoleMaster {
-			i.backupEnable = true
-		}
-	} else {
-		i.backupEnable = cmutil.ToBoolExt(i.publicCfg.BackupEnable)
-	}
 	var roleSwitched bool
 	if i.Tags.DBRole == cst.RoleMaster && lastFileBefore.DBRole == cst.RoleSlave {
 		// 刚刚发生过切换，上报过去 24h 的 binlog
@@ -290,7 +287,6 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			Host:             i.Host,
 			Port:             i.Port,
 			BackupEnable:     i.backupEnable,
-			FileRetentionTag: i.backupClient.StorageTag(),
 			Filename:         fileObj.Filename,
 			Filesize:         fileObj.Size,
 			FileMtime:        fileObj.Mtime.Format(time.RFC3339),
@@ -298,6 +294,9 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			BackupStatusInfo: backupStatusInfo,
 			StartTime:        startTime,
 			StopTime:         stopTime,
+		}
+		if i.backupEnable {
+			ff.FileRetentionTag = i.backupClient.StorageTag()
 		}
 		filesModel = append(filesModel, ff)
 	}
@@ -314,16 +313,35 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 // Backup binlog 提交到备份系统
 // 下一轮运行时判断上一次以及之前的提交任务状态
 func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
+	reportCore, err := recore.NewCore(0, recore.DefaultRetryOpts...)
+	if err != nil {
+		return err
+	}
 	if backupClient == nil {
 		logger.Warn("no backup_client found. ignoring backup")
 		return nil
 	}
+
 	files, err := r.binlogInst.QueryUnfinished(models.DB.Conn)
 	if err != nil {
 		return errors.Wrap(err, "query unfinished")
 	}
+	maxOldDaysToUpload := viper.GetInt("public.max_old_days_to_upload")
+	if maxOldDaysToUpload == 0 {
+		maxOldDaysToUpload = 7
+	}
 	logger.Info("%d binlog files unfinished: %d", r.binlogInst.Port, len(files))
 	for _, f := range files {
+		// 超过 maxOldDaysToUpload 天的，全部标记为异常
+		if fMtime, err := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local); err == nil {
+			if time.Now().Sub(fMtime).Hours() > float64(24*maxOldDaysToUpload) {
+				f.BackupStatus = models.IBStatusUploadAbnormal
+				if err = f.Update(models.DB.Conn); err != nil {
+					return err
+				}
+				continue
+			}
+		}
 		// 需要上传的，提交上传任务
 		if f.BackupStatus == models.IBStatusNew || f.BackupStatus == models.IBStatusClientFail {
 			filename := filepath.Join(r.binlogDir, f.Filename)
@@ -369,18 +387,35 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				if taskStatus == models.IBStatusSuccess {
 					f.BackupStatus = taskStatus
 					log.Reporter().Result.Println(f)
+					ev := log.MysqlBinlogResultEvent(*f)
+					if resp, err := reapi.SyncReport(reportCore, &ev); err != nil {
+						logger.Warn("report binlog status failed:%s, resp=%s", err.Error(), string(resp))
+						//return reportErr
+					}
 				} else if taskStatus == f.BackupStatus { // 上传状态没有进展
+					if fMtime, err := time.ParseInLocation(time.RFC3339, f.FileMtime, time.Local); err == nil {
+						if time.Now().Sub(fMtime).Hours() > float64(24*maxOldDaysToUpload) {
+							f.BackupStatus = models.IBStatusUploadAbnormal
+							if err = f.Update(models.DB.Conn); err != nil {
+								return err
+							}
+							continue
+						}
+					}
 					continue
 				} else if taskStatus < models.IBStatusSuccess { // 未成功，且在上传中或者等待备份系统内部重试
 					f.BackupStatus = taskStatus
-				} else { // 状态有变化，但不是 success，下一轮再看
-					f.BackupStatus = taskStatus
-					//log.Reporter().Status.Println(f)
-					logger.Info("backup_client query file: %s, taskid:%s, status: %d",
-						f.Filename, f.BackupTaskid, f.BackupStatus)
-					if taskStatus == 12 || taskStatus == 2 || taskStatus == 0 {
-						f.BackupStatus = models.IBStatusWaiting
-						f.BackupStatusInfo = fmt.Sprintf("status=%d need check again", taskStatus)
+				} else { // 状态有变化，但不是 success，保持之前的状态，下一轮再看
+					logger.Info("backup_client query file: %s, taskid:%s, status: %d. local status:%d",
+						f.Filename, f.BackupTaskid, taskStatus, f.BackupStatus)
+					if taskStatus == models.IBStatusCanceledByRemote {
+						f.BackupStatus = taskStatus
+					} else {
+						// 只更新 info 信息。保持之前的状态吗，下一轮再看
+						f.BackupStatusInfo = fmt.Sprintf("remote status: %d", taskStatus)
+					}
+					if err = f.Update(models.DB.Conn); err != nil {
+						return err
 					}
 					continue
 				}
@@ -430,24 +465,24 @@ func (r *BinlogRotate) Remove(sizeBytesToFree, sizeBytesBurstToFree int64, succe
 			}
 			if err = os.Remove(fileFullPath); err != nil {
 				logger.Error("remove file failed: %s", err.Error())
+			} else { // remove success
+				if success {
+					f.BackupStatus = models.FileStatusRemoved
+				} else {
+					f.BackupStatus = models.FileStatusForceRemoved
+				}
+				sizeDeleted += f.Filesize
+				fileDeleted += 1
 			}
 		} else {
-			logger.Info("file not exists: %s", fileFullPath)
+			logger.Info("remove but file not exists: %s", fileFullPath)
 			// 也要更新状态
+			f.BackupStatus = models.FileStatusRemoved
 		}
-
-		if !cmutil.FileExists(fileFullPath) { // remove success
-			if success {
-				f.BackupStatus = models.FileStatusRemoved
-			} else {
-				f.BackupStatus = models.FileStatusForceRemoved
-			}
+		if !cmutil.FileExists(fileFullPath) {
 			if err = f.Update(models.DB.Conn); err != nil {
 				logger.Error(err.Error())
-				// return err
 			}
-			sizeDeleted += f.Filesize
-			fileDeleted += 1
 			stopFile = f.Filename
 			if sizeDeleted >= sizeBytesToFree {
 				break

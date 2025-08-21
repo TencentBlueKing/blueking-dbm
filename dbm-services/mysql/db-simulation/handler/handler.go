@@ -35,7 +35,7 @@ type BaseHandler struct {
 	RequestId string
 }
 
-// SendResponse retrnurns a response
+// SendResponse returns a response
 func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) {
 	code, message := errno.DecodeErr(err)
 	r.JSON(http.StatusOK, Response{

@@ -112,7 +112,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         tmp_clusters = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, tags__key=SystemTagEnum.TEMPORARY)
         tmp_clusters_count = tmp_clusters.count()
         # 查询定点回档记录
-        temp_clusters = tmp_clusters[offset : limit + offset]
+        temp_clusters = tmp_clusters[offset:] if limit == -1 else tmp_clusters[offset : limit + offset]
         temp_cluster_ids = [cluster.id for cluster in temp_clusters]
         records = ClusterOperateRecord.objects.select_related("ticket").filter(
             cluster_id__in=temp_cluster_ids, ticket__ticket_type=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER

@@ -3,7 +3,6 @@ package kafka
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -157,7 +156,7 @@ export PATH=/usr/local/mysql/bin/:$PATH'>> /etc/profile
 source /etc/profile`)
 
 	scriptFile := "/data/kafkaenv/init.sh"
-	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := os.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
 	}
 
@@ -340,7 +339,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 		ZookeeperBaseDir = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
 	)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err == nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, "2181")); err == nil {
 		logger.Error("zookeeper process exist")
 		return errors.New("zookeeper process exist")
 	}
@@ -380,7 +379,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := os.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
@@ -403,7 +402,7 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 	// sleep 30
 	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, 2181)); err != nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, "2181")); err != nil {
 		logger.Error("zookeeper start failed %v", err)
 		return err
 	}
@@ -485,6 +484,20 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 		username)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("copy basedir failed, %s, %s", output, err.Error())
+		return err
+	}
+
+	extraCmd = fmt.Sprintf(
+		"%s/bin/kafka-acls.sh --authorizer-properties zookeeper.connect=%s:2181 "+
+			" --add --allow-principal User:%s --operation All "+
+			" --topic '*' --group '*' --cluster",
+		kafkaBaseDir,
+		zookeeperIPList[0],
+		username,
+	)
+	logger.Info(extraCmd)
+	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("kafka-acls.sh failed, %s, %s", output, err.Error())
 		return err
 	}
 
@@ -624,7 +637,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 	// sleep 60s for wating kafka up
 	time.Sleep(30 * time.Second)
 
-	if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err != nil {
+	if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, fmt.Sprintf("%d", port))); err != nil {
 		logger.Error("broker start failed %v", err)
 		return err
 	}
@@ -728,7 +741,7 @@ func startKafka(kafkaEnvDir string, noSecurity int) (err error) {
 	logger.Info("生成kafka.ini文件")
 	kafkaini := esutil.GenKafkaini()
 	kafkainiFile := fmt.Sprintf("%s/kafka.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(kafkainiFile, kafkaini, 0); err != nil {
+	if err = os.WriteFile(kafkainiFile, kafkaini, 0); err != nil {
 		logger.Error("write %s failed, %v", kafkainiFile, err)
 	}
 
@@ -869,7 +882,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 
 	for i := 0; i < 30; i++ {
 		time.Sleep(10 * time.Second)
-		if _, err := net.Dial("tcp", fmt.Sprintf("%s:%d", nodeIP, port)); err == nil {
+		if _, err := net.Dial("tcp", net.JoinHostPort(nodeIP, fmt.Sprintf("%d", port))); err == nil {
 			break
 		}
 	}
@@ -928,7 +941,7 @@ func installZookeeper(zookeeperBaseDir string, kafkaEnvDir string) error {
 	logger.Info("生成zookeeper.ini文件")
 	zookeeperini := esutil.GenZookeeperini()
 	zookeeperiniFile := fmt.Sprintf("%s/zookeeper.ini", cst.DefaultKafkaSupervisorConf)
-	if err := ioutil.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
+	if err := os.WriteFile(zookeeperiniFile, zookeeperini, 0); err != nil {
 		logger.Error("write %s failed, %v", zookeeperiniFile, err)
 	}
 
@@ -955,7 +968,7 @@ func startManager(kafkaEnvDir string) (err error) {
 	logger.Info("生成manager.ini文件")
 	managerini := esutil.GenManagerini()
 	manageriniFile := fmt.Sprintf("%s/manager.ini", cst.DefaultKafkaSupervisorConf)
-	if err = ioutil.WriteFile(manageriniFile, managerini, 0); err != nil {
+	if err = os.WriteFile(manageriniFile, managerini, 0); err != nil {
 		logger.Error("write %s failed, %v", manageriniFile, err)
 	}
 

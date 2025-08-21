@@ -269,14 +269,10 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
         ClusterType.TendisPredixyTendisplusCluster.value,
         ClusterType.TendisRedisInstance.value,
     ]:
-        msgs, title = {}, _("{}-忽略自愈".format(switched_host.immute_domain))
+        msgs, title = {}, _("{}-😢忽略自愈😓".format(switched_host.immute_domain))
         msgs[_("BKID")] = switched_host.bk_biz_id
-        msgs[_("故障IP")] = switched_host.ip
+        msgs[_("故障机器")] = switched_host.ip
         msgs[_("实例类型")] = switched_host.instance_type
-        msgs[_("待DBHA切换")] = _(
-            "TODO:{};失败:{}".format(
-                list(set(switched_host.cluster_ports) - set((switched_host.sw_result.get("success", [])))),
-                (switched_host.sw_result.get("failed", [])),
-            )
-        )
+        msgs[_("切换成功")] = _("{}".format((switched_host.sw_result.get("success", []))))
+        msgs[_("切换失败")] = _("😩{}😭".format((switched_host.sw_result.get("failed", []))))
         send_msg_2_qywx(title, msgs)

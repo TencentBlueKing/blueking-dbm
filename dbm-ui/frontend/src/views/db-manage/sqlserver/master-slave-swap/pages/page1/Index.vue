@@ -19,7 +19,7 @@
         theme="info"
         :title="t('主从互换：主机级别操作，即同机所有集群均会完成主从关系互切')" />
       <RenderData
-        class="mt16"
+        class="mt-16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -50,7 +50,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>

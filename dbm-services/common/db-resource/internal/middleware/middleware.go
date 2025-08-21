@@ -34,6 +34,8 @@ func init() {
 	RequestLoggerFilter = &ApiLoggerFilter{}
 	RequestLoggerFilter.Add("/ping")
 	RequestLoggerFilter.Add("/metrics")
+	RequestLoggerFilter.Add("/resource/list")
+	RequestLoggerFilter.Add("/resource/list/all")
 }
 
 // ApiLoggerFilter TODO
@@ -80,13 +82,13 @@ func BodyLogMiddleware(c *gin.Context) {
 		rp = controller.Response{}
 	} else {
 		if err := json.Unmarshal(blw.body.Bytes(), &rp); err != nil {
-			logger.Error("unmarshal respone body failed %s", err.Error())
+			logger.Error("unmarshal response body failed %s", err.Error())
 			return
 		}
 	}
 	if err := model.UpdateTbRequestLog(rp.RequestId, map[string]interface{}{"respone_body": blw.body.String(),
 		"respone_code": statusCode, "update_time": time.Now()}); err != nil {
-		logger.Warn("update request respone failed %s", err.Error())
+		logger.Warn("update request response failed %s", err.Error())
 	}
 }
 

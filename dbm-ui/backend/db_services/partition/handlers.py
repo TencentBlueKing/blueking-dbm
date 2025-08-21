@@ -82,6 +82,9 @@ class PartitionHandler(object):
             partition_column_type=create_data["partition_column_type"],
         )
         # 创建分区策略
+        cluster = Cluster.objects.get(id=create_data["cluster_id"])
+        create_data["bk_cloud_id"] = cluster.bk_cloud_id
+
         try:
             partition = DBPartitionApi.create_conf(params=create_data)
         except (ApiRequestError, ApiResultError) as e:

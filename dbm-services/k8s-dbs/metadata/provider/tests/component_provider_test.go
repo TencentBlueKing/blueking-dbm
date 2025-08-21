@@ -23,11 +23,10 @@ import (
 	"fmt"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	entitys "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/mysql"
@@ -120,7 +119,6 @@ func TestUpdateComponent(t *testing.T) {
 		CrdClusterID:  1,
 		Status:        "Disable",
 		Description:   "update component",
-		UpdatedAt:     time.Now(),
 	}
 	rows, err := componentProvider.UpdateComponent(newComponent)
 	assert.NoError(t, err)

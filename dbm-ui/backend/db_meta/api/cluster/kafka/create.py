@@ -57,6 +57,7 @@ def create(
     storages: Optional[List] = None,
     creator: str = "",
     region: str = "",
+    disaster_tolerance_level: str = "",
 ) -> Cluster:
     """
     注册 Kafka 集群
@@ -83,6 +84,7 @@ def create(
         status=ClusterStatus.NORMAL.value,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        disaster_tolerance_level=disaster_tolerance_level,
     )
     cluster.storageinstance_set.add(*storage_objs)
     cluster.save()

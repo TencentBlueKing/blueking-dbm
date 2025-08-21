@@ -21,12 +21,11 @@
     </BkButton>
     <BkDialog
       class="cluster-domain-dns-relation"
-      draggable
       :is-show="isShow"
-      :quick-close="false"
-      :show-mask="false"
+      quick-close
+      show-mask
       :title="t('手动配置域名 DNS 记录')"
-      :width="548"
+      :width="560"
       @closed="() => (isShow = false)">
       <BkLoading :loading="loading">
         <BkTable
@@ -41,6 +40,7 @@
             :label="t('访问入口')"
             :width="300">
             <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
+              {{ rowData.cluster_entry_type }}
               <template v-if="['master_entry', 'proxy_entry'].includes(rowData.role)">
                 <BkTag
                   v-if="rowData.cluster_entry_type === 'polaris'"
@@ -50,7 +50,7 @@
                   {{ t('北极星') }}
                 </BkTag>
                 <BkTag
-                  v-else-if="rowData.cluster_entry_type === 'clb'"
+                  v-else-if="['clb', 'clbDns'].includes(rowData.cluster_entry_type)"
                   class="entry-clb-tag"
                   size="small"
                   theme="success">
@@ -81,8 +81,8 @@
           <BkTableColumn
             field="ips"
             label="Bind IP"
-            :show-overflow="false"
-            :width="200">
+            :min-width="200"
+            :show-overflow="false">
             <template #default="{ data: rowData }: { data: ClusterEntryInfo }">
               <RenderBindIps
                 v-if="rowData.ips"
@@ -103,11 +103,13 @@
     [ClusterTypes.ES]: 'es.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.HDFS]: 'hdfs.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.replicaSetList.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.sharedClusterList.modifyEntryConfiguration',
+    // [ClusterTypes.ORACLE_PRIMARY_STANDBY]: 'oracle.singleClusterList.modifyEntryConfiguration',
+    // [ClusterTypes.ORACLE_SINGLE_NONE]: 'oracle.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.PULSAR]: 'pulsar.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS]: 'redis.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.REDIS_INSTANCE]: 'redis.haClusterManage.modifyEntryConfiguration',
     [ClusterTypes.RIAK]: 'riak.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_HA]: 'sqlserver.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver.singleClusterList.modifyEntryConfiguration',
@@ -176,6 +178,16 @@
   const tableData = ref<ClusterEntryInfo[]>([]);
 
   const accessEntryDbConsole = computed(() => {
+    if (
+      [
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(props.data.cluster_type)
+    ) {
+      return dbConsoleMap[ClusterTypes.REDIS];
+    }
     return dbConsoleMap[props.data.cluster_type as keyof typeof dbConsoleMap] || false;
   });
 
@@ -183,12 +195,11 @@
     manual: true,
     onSuccess: (data) => {
       tableData.value = data
+        .filter((item) => item.cluster_entry_type === 'dns')
         .map((item) => ({
           cluster_entry_type: item.cluster_entry_type,
           entry: item.entry,
-          ips: item.isDns
-            ? (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n')
-            : '',
+          ips: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n'),
           port: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0]?.port,
           role: item.role,
         }))
@@ -213,10 +224,6 @@
   .cluster-domain-dns-relation {
     .bk-modal-footer {
       display: none;
-    }
-
-    .entry-config-table-box {
-      max-height: fit-content;
     }
 
     .entry-clb-tag {

@@ -15,7 +15,7 @@ from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, Query
 from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
@@ -124,6 +124,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
@@ -215,6 +216,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
             **kwargs,
         )
         cluster_info.update(cluster_extra_info)
@@ -247,6 +249,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "status",
             "create_at",
             "shard",
+            "bk_biz_id",
             "cluster__id",
             "version",
             "cluster__cluster_type",
@@ -292,7 +295,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             ProxyInstance.objects.annotate(role=F("access_layer"), shard=Value(""))
             .select_related("machine")
             .prefetch_related("cluster")
-            .filter(query_filters)
+            .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
         return storage_instance.union(proxy_instance)

@@ -94,15 +94,16 @@ def callback_ticket(ticket_id, root_id):
     # 初始化结束后，流转为当前流程
     current_flow = ticket.current_flow()
     inner_flow_obj = InnerFlow(flow_obj=current_flow)
+    inner_flow_status = inner_flow_obj.status
 
     # 在inner flow执行成功的情况下，获取flow的缓存数据
-    if inner_flow_obj.status == TicketFlowStatus.SUCCEEDED:
+    if inner_flow_status == TicketFlowStatus.SUCCEEDED:
         from backend.flow.plugins.components.collections.common.base_service import BaseService
 
         BaseService.get_flow_output(flow=current_flow)
 
     # 在认为inner flow执行结束情况下，执行inner flow的后继动作
-    if inner_flow_obj.status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
+    if inner_flow_status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
         inner_flow_obj.callback(callback_type=FlowCallbackType.POST_CALLBACK.value)
 
     # 如果flow type的类型为快速任务，则跳过callback

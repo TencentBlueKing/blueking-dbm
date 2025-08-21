@@ -257,45 +257,70 @@ func getConcurrency() int {
 // RunMigratorClustershardNodes do sql on every remote node
 func RunMigratorClustershardNodes(masterRemoteSvrs []native.Server, billId uint, dbName, tbName, statement string,
 	flag UserGhostFlag) (err error) {
+	// 使用无缓冲的 channel，配合专门的错误收集 goroutine
 	errChan := make(chan error)
 	wg := sync.WaitGroup{}
 	ctrlChan := make(chan struct{}, getConcurrency())
+
+	// 收集所有有效的迁移上下文
+	var validMigrations []struct {
+		context *base.MigrationContext
+		server  native.Server
+	}
+
+	// 先验证所有的 MigrationContext，如果有错误立即返回
 	for idx, svr := range masterRemoteSvrs {
 		shardNum := native.GetShardNumberFromMasterServerName(svr.ServerName)
-		var mgc *base.MigrationContext
 		// noop == false is execute
 		mgc, err := NewMigrationContext(buildDs(svr), flag, billId, idx, BuildShardDbName(dbName, shardNum), tbName, []string{
 			statement}, false)
 		if err != nil {
 			logger.Error("Failed to create migration context for %s: %v", svr.ServerName, err)
-			errChan <- err
-			continue
+			return err // 立即返回错误，避免部分失败的复杂情况
 		}
+		validMigrations = append(validMigrations, struct {
+			context *base.MigrationContext
+			server  native.Server
+		}{mgc, svr})
+	}
 
+	// 错误收集 goroutine
+	var errs []error
+	errDone := make(chan struct{})
+	go func() {
+		for errx := range errChan {
+			errs = append(errs, errx)
+		}
+		close(errDone)
+	}()
+
+	// 启动所有迁移任务
+	for _, migration := range validMigrations {
 		wg.Add(1)
-		ctrlChan <- struct{}{}
 		go func(migrationContext *base.MigrationContext, svr native.Server) {
-			defer func() {
-				wg.Done()
-				<-ctrlChan
-			}()
-			defer func() { wg.Done(); <-ctrlChan }()
+			defer wg.Done()
+
+			// 获取并发许可
+			ctrlChan <- struct{}{}
+			defer func() { <-ctrlChan }() // 释放并发许可
+
 			logger.Info("will execute sql:%s on %s", statement, svr.ServerName)
 			migrator := logic.NewMigrator(migrationContext, "dbm")
-			err = migrator.Migrate()
-			if err != nil {
+			if err := migrator.Migrate(); err != nil {
 				errChan <- err
 			}
-		}(mgc, svr)
+		}(migration.context, migration.server)
 	}
+
+	// 等待所有任务完成，然后关闭错误 channel
 	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
-	var errs []error
-	for errx := range errChan {
-		errs = append(errs, errx)
-	}
+
+	// 等待错误收集完成
+	<-errDone
+
 	return errors.Join(errs...)
 }
 
@@ -336,9 +361,9 @@ func buildGhostCmd(ds DataSource, flag UserGhostFlag, taskId uint, dbName, tbNam
 	ghostCmd += fmt.Sprintf(" --database=\"%s\"", dbName)
 	ghostCmd += fmt.Sprintf(" --table=\"%s\"", tbName)
 	ghostCmd += fmt.Sprintf(" --alter=\"%s\"", strings.Join(statments, " "))
-	ghostCmd += fmt.Sprintf(" --chunck-size=%d", defaultGhostConfig.chunkSize)
+	ghostCmd += fmt.Sprintf(" --chunk-size=%d", defaultGhostConfig.chunkSize)
 	if flag.ChunkSize != nil {
-		ghostCmd += fmt.Sprintf(" --chunck-size=%d", *flag.ChunkSize)
+		ghostCmd += fmt.Sprintf(" --chunk-size=%d", *flag.ChunkSize)
 	}
 	if flag.StorageEngine != nil {
 		ghostCmd += fmt.Sprintf(" --storage-engine=%s", *flag.StorageEngine)
@@ -346,7 +371,7 @@ func buildGhostCmd(ds DataSource, flag UserGhostFlag, taskId uint, dbName, tbNam
 	if flag.AllowOnMaster != nil {
 		ghostCmd += " --allow-on-master "
 	}
-	if noop {
+	if !noop {
 		ghostCmd += " --execute "
 	}
 	return

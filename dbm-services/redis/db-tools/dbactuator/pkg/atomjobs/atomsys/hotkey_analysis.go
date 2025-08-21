@@ -79,11 +79,11 @@ func (job *HotkeyAnalysis) Init(m *jobruntime.JobGenericRuntime) error {
 			return err
 		}
 	}
-	// 6379<= start_port <= 55535
+	// 6379<= start_port <= 64534
 	ins := job.params.InsList
 	for _, i := range ins {
-		if i.Port > 55535 || i.Port < 6379 {
-			err = fmt.Errorf("RedisCapturer port[%d] must range [6379,5535]", i.Port)
+		if i.Port > 64534 || i.Port < 6379 {
+			err = fmt.Errorf("RedisCapturer port[%d] must range [6379,64534]", i.Port)
 			job.runtime.Logger.Error(err.Error())
 			return err
 		}

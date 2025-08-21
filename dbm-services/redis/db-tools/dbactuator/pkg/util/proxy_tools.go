@@ -4,6 +4,7 @@ package util
 import (
 	"bufio"
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,8 +47,11 @@ func GetTwemProxyBackendsMd5Sum(addr string) (string, error) {
 		return segList[i] > segList[j]
 	})
 
-	x, _ := json.Marshal(segList)
-	return fmt.Sprintf("%s||%x", addr, md5.Sum(x)), nil
+	data, _ := json.Marshal(segList)
+	md5er := md5.New()
+	md5er.Write(data)
+	hash2 := md5er.Sum(nil)
+	return fmt.Sprintf("%s||%x", addr, hex.EncodeToString(hash2)), nil
 }
 
 // DoSwitchTwemproxyBackends "change nosqlproxy $mt:$mp $st:$sp"

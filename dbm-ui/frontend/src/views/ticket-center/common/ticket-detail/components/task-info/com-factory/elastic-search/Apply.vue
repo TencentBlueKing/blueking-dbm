@@ -31,7 +31,7 @@
   <div class="info-title mt-20">{{ t('部署需求') }}</div>
   <InfoList>
     <InfoItem :label="t('版本')">
-      {{ ticketDetails.details.cluster_alias || '--' }}
+      {{ ticketDetails.details.db_version || '--' }}
     </InfoItem>
     <template v-if="isFromResourcePool">
       <InfoItem :label="t('Master节点规格')">
@@ -183,7 +183,7 @@
 
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
 
-  const { resource_spec: resourceSpec } = props.ticketDetails?.details;
+  const { resource_spec: resourceSpec } = props.ticketDetails.details;
   const { client: clientSpec, cold: coldSpec, hot: hotSpec, master: masterSpec } = resourceSpec;
 
   /**

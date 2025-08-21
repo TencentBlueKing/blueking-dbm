@@ -91,6 +91,8 @@ class DBHAViewSet(viewsets.ResourceViewSet):
 
     list_perm_actions = [
         ActionEnum.MYSQL_ENABLE_DISABLE,
+        ActionEnum.MYSQL_ADD_CLB,
+        ActionEnum.MYSQL_CLB_BIND_DOMAIN,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,
         ActionEnum.MYSQL_EDIT,

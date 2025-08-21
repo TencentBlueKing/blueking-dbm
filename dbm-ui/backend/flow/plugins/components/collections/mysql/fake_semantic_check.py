@@ -31,10 +31,10 @@ class FakeSemanticCheck(BaseService):
             return False
 
         # 模拟语义执行
-        time.sleep(5)
+        time.sleep(60)
 
         # 打印日志
-        log_num = 10
+        log_num = 300
         for i in range(log_num):
             self.log_info(f"test log {i}")
             time.sleep(0.1)
@@ -54,7 +54,7 @@ class FakeSemanticCheck(BaseService):
         }
 
         # 测试加入缓存数据
-        self.set_flow_output(root_id, key="ticket", value=kwargs, is_sensitive=True)
+        # self.set_flow_output(root_id, key="ticket", value=kwargs, is_sensitive=True)
 
         data.outputs["trans_data"] = trans_data
         self.log_info(_("语义检查执行成功"))

@@ -21,6 +21,7 @@ from backend.db_services.bigdata.es.query import ESListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -85,6 +86,12 @@ class EsClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = ESListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
     db_type = DBType.Es
+
+    list_perm_actions = [
+        ActionEnum.ES_CREATE_CLB,
+        ActionEnum.ES_DNS_BIND_CLB,
+        ActionEnum.ES_CREATE_POLARIS,
+    ]
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):

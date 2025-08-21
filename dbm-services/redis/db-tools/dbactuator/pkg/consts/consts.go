@@ -245,6 +245,11 @@ const (
 	ModuleRedisJson  = "redisjson"
 )
 
+// redis status
+const (
+	REDISLOADDATAINFO = "LOADING Redis is loading the dataset in memory"
+)
+
 // IsKnownModule 是否是认识的module
 func IsKnownModule(module string) bool {
 	return module == ModuleRedisCell ||

@@ -14,7 +14,8 @@ from backend.db_meta.models import RedisHotKeyInfo
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.flow.consts import StateType
 from backend.ticket import todos
-from backend.ticket.constants import TicketFlowStatus, TicketType, TodoStatus, TodoType
+from backend.ticket.constants import TicketFlowStatus, TicketType, TodoType
+from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import BaseTodoContext, TodoActionType
 
@@ -90,9 +91,10 @@ class FailedTodo(todos.TodoActor):
     """来自主流程-失败后待确认"""
 
     def _process(self, username, action, params):
-        # 终止-仅将todo进行终止(任务流程的终止)，确认-关联flow进行重试
+        # 终止-仅将todo和单据进行终止，确认-关联flow进行重试
         if action == TodoActionType.TERMINATE:
-            self.todo.set_status(username, TodoStatus.DONE_FAILED)
+            InnerFlow(self.todo.flow).revoke(username, params.get("remark"))
+            self.todo.set_terminated(username, action)
         else:
             manager = TicketFlowManager(ticket=self.todo.ticket)
             fail_inner_flow = manager.get_ticket_flow_cls(self.todo.flow.flow_type)(self.todo.flow)

@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -114,7 +115,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	defer func() {
 		if l.initConnect != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnect)
-			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnect)); err != nil {
+			if _, err := l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnect)); err != nil {
 				//return err
 				logger.Log.Warn("fail set global init_connect back:", l.initConnect)
 			}
@@ -183,7 +184,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("load logical command:", strings.Join(args, " "))
+	logger.Log.Info("load logical command:", mysqlcomm.RemoveMysqlCommandPassword(strings.Join(args, " ")))
 
 	outStr, errStr, err := cmutil.ExecCommand(true, "", args[0], args[1:]...)
 	if err != nil {

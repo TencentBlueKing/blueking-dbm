@@ -27,6 +27,8 @@ import (
 func init() {
 	uploadCmd.Flags().String("backup-index-file", "", "read backup info from this index file")
 	uploadCmd.Flags().String("backup-target-dir", "", "backup target dir that has exported before")
+	uploadCmd.Flags().Bool("with-remote-enabled", false, "if this tar-upload is remote or not")
+
 	uploadCmd.Flags().StringSliceP("config", "c",
 		[]string{}, "config files to backup, comma separated. (required)")
 	_ = uploadCmd.MarkFlagRequired("config")
@@ -72,6 +74,9 @@ func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
 		logger.Log.Error("Create Dbbackup: fail to parse ", f)
 	}
 	indexFilePath, _ := cmd.Flags().GetString("backup-index-file")
+	remoteEnabled, _ := cmd.Flags().GetBool("with-remote-enabled")
+	cnf.BackupToRemote.EnableRemote = remoteEnabled
+
 	return tarBackupData(indexFilePath, &cnf)
 }
 
@@ -106,6 +111,6 @@ func tarBackupData(indexFilePath string, cnf *config.BackupConfig) (err error) {
 	if err = backupTarAndUpload(cnf, indexFilePath, logReport); err != nil {
 		return err
 	}
-	logger.Log.Infof("Dbbackup tar-upload for %d", cnf.Public.MysqlPort)
+	logger.Log.Infof("Dbbackup tar-upload sucess for %d", cnf.Public.MysqlPort)
 	return nil
 }

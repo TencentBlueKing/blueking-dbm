@@ -20,15 +20,14 @@ limitations under the License.
 package controller
 
 import (
-	commconst "k8s-dbs/common/api/constant"
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/req"
-	"k8s-dbs/metadata/api/vo/resp"
-	metaconst "k8s-dbs/metadata/constant"
+	"k8s-dbs/errors"
+	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -47,47 +46,47 @@ func NewOperationDefinitionController(provider provider.OperationDefinitionProvi
 
 // ListOperationDefinitions list operation definitions
 func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Context) {
-	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
+	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
+		fetchSize = commconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
-	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
+	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	opDefs, err := o.provider.ListOperationDefinitions(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data []resp.OperationDefinitionRespVo
+	var data []response.OperationDefinitionResponse
 	if err := copier.Copy(&data, opDefs); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateOperationDefinition creates a new operation definition.
 func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Context) {
-	var reqVo req.OperationDefinitionReqVo
+	var reqVo request.OperationDefinitionRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var definitionEntity entitys.OperationDefinitionEntity
 	if err := copier.Copy(&definitionEntity, &reqVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	added, err := o.provider.CreateOperationDefinition(&definitionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	var data resp.OperationDefinitionRespVo
+	var data response.OperationDefinitionResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

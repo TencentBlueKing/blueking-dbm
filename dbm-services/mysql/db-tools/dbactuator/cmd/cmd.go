@@ -154,7 +154,7 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 	}
 	groups.Add(cmds)
 	// 标志可以是 "persistent" 的，这意味着该标志将可用于分配给它的命令以及该命令下的每个命令。对于全局标志，将标志分配为根上的持久标志。
-	// 默认每个subcomand 都默认带这些参数
+	// 默认每个subcommand 都默认带这些参数
 	cmds.PersistentFlags().StringVarP(
 		&subcmd.GBaseOptions.Payload, "payload", "p", subcmd.GBaseOptions.Payload,
 		"command payload <base64>",
@@ -204,13 +204,10 @@ func startHeartbeat(period time.Duration) {
 	go func() {
 		ticker := time.NewTicker(period)
 		defer ticker.Stop()
-		var hearbeatTime string
-		for {
-			select {
-			case <-ticker.C:
-				hearbeatTime = time.Now().Local().Format(cst.TIMELAYOUT)
-				fmt.Fprintf(os.Stdin, "["+hearbeatTime+"]hearbeating ...\n")
-			}
+		var heartbeatTime string
+		for range ticker.C {
+			heartbeatTime = time.Now().Local().Format(cst.TIMELAYOUT)
+			fmt.Fprintf(os.Stdin, "["+heartbeatTime+"] heart beating ...\n")
 		}
 	}()
 }

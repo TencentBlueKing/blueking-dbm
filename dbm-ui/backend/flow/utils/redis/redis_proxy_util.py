@@ -822,11 +822,11 @@ def get_cluster_capacity_update_required_info(
                 return capacity_update_type, require_spec_id, require_machine_group_num, err_msg, empty_info
         elif new_shards_num < len(master_insts):
             # tendislus集群,分片数变少
-            if new_machine_group_num > len(master_machines):
+            if new_machine_group_num >= len(master_machines):
                 # 机器数 变多，报错
-                err_msg = _("tendisplus集群 分片数变少,不允许机器数 变多。如果有需要,请使用 集群分片数变更 单据")
+                err_msg = _("tendisplus集群 分片数变少,不允许机器数不变 or 变多。如果有需要,请使用 集群分片数变更 单据")
             else:
-                # 机器数不变 or 变少,不需要申请机器
+                # 机器变少,不需要申请机器
                 capacity_update_type = RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value
             return capacity_update_type, 0, 0, err_msg, empty_info
 

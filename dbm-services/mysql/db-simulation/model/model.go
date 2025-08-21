@@ -44,7 +44,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
-	log.Println("make dbeug dbname", dbName)
 	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbName)
 	if err != nil {
 		log.Fatalf("init migrate from embed failed:%s", err.Error())

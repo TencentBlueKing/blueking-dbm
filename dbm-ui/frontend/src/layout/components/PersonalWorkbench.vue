@@ -124,6 +124,7 @@
       ticketCount.value.pending.FAILED +
       ticketCount.value.pending.RESOURCE_REPLENISH +
       ticketCount.value.pending.INNER_TODO +
+      ticketCount.value.pending.TIMER +
       ticketCount.value.pending.TODO
     );
   });

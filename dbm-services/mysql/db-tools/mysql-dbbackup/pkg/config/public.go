@@ -91,6 +91,10 @@ type Public struct {
 	// 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 	// 某些情况只需要表结构，可以设置此选项强制上报为全备
 	IsFullBackup int `ini:"IsFullBackup"`
+	// SkipTarball 跳过打包步骤
+	// 跳过打包意味着保持备份完后的目录，会自动禁用 backup_client(目前 backup_client不支持上传目录)
+	// 一般用于测试用途，可以将目录手动拷贝到远程进行恢复
+	SkipTarball bool `ini:"SkipTarball"`
 
 	cnfFilename string
 	targetName  string

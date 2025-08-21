@@ -20,6 +20,7 @@ export default class MachineEvent {
   ip: string;
   remark: string;
   ticket?: number;
+  ticket_type: string;
   ticket_type_display: string;
   to: string;
   update_at: string;
@@ -33,6 +34,7 @@ export default class MachineEvent {
     this.creator = payload.creator;
     this.create_at = payload.create_at;
     this.db_app_abbr = payload.db_app_abbr;
+    this.ticket_type = payload.ticket_type;
     this.event = payload.event;
     this.id = payload.id;
     this.ip = payload.ip;

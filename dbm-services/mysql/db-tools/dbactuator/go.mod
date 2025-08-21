@@ -13,7 +13,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/github/gh-ost v1.1.6
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/gofrs/flock v0.12.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -26,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/xdg-go/scram v1.1.2
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
-	golang.org/x/sync v0.10.0
+	golang.org/x/sync v0.15.0
 	gopkg.in/ini.v1 v1.67.0
 	vitess.io/vitess v0.21.3
 )
@@ -90,9 +89,9 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	github.com/zclconf/go-cty v1.14.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.66.2 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
@@ -104,15 +103,15 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/dlclark/regexp2 v1.10.0
-	github.com/ghodss/yaml v1.0.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
 	github.com/jinzhu/copier v0.4.0
-	github.com/pkg/sftp v1.13.6
+	github.com/pkg/sftp v1.13.9
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cast v1.7.0
-	golang.org/x/crypto v0.31.0
-	golang.org/x/net v0.33.0
+	golang.org/x/crypto v0.39.0
+	golang.org/x/net v0.41.0
 	gopkg.in/yaml.v2 v2.4.0
 )

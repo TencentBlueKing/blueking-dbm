@@ -1084,7 +1084,7 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 		logger.Error("查询slave delay sec: %s", err.Error())
 		return err
 	}
-	if beatSec > 600 { // 10分钟没有 master_slave_heartbeat 心跳
+	if beatSec > 3600 { // 360分钟没有 master_slave_heartbeat 心跳
 		return fmt.Errorf("超过 %ds 没有延迟检测信号", beatSec)
 	}
 	if delaySec > allowDelaySec {

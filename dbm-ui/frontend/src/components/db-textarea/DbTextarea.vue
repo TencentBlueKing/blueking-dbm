@@ -64,6 +64,10 @@
     (e: 'clear'): void;
   }
 
+  defineOptions({
+    name: 'DbTextarea',
+    inheritAttrs: false,
+  });
   const props = withDefaults(defineProps<Props>(), {
     displayHeight: 'auto',
     maxHeight: 70,
@@ -71,11 +75,6 @@
     teleportToBody: true,
   });
   const emits = defineEmits<Emits>();
-
-  defineOptions({
-    name: 'DbTextarea',
-    inheritAttrs: false,
-  });
 
   const modelValue = defineModel<string>({
     default: '',

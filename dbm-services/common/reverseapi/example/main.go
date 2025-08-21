@@ -1,15 +1,17 @@
 package main
 
 import (
-	reversecommonapi "dbm-services/common/reverseapi/apis/common"
-	reversecommondef "dbm-services/common/reverseapi/define/common"
-	"dbm-services/common/reverseapi/internal/core"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"dbm-services/common/reverseapi/pkg/core"
+
+	reversecommonapi "dbm-services/common/reverseapi/apis/common"
+	reversecommondef "dbm-services/common/reverseapi/define/common"
 )
 
 type demoEvent struct {
@@ -25,11 +27,11 @@ func (c *demoEvent) EventType() string {
 	return "mysql-backup"
 }
 
-func (c *demoEvent) EventCreateTimeStamp() time.Time {
-	return time.Now()
+func (c *demoEvent) EventCreateTimeStamp() int64 {
+	return time.Now().UnixMicro()
 }
 
-func (c *demoEvent) BkBizId() int64 {
+func (c *demoEvent) EventBkBizId() int64 {
 	return c.bkBizId
 }
 
@@ -41,7 +43,7 @@ func (c *demoEvent) String() string {
 
 func main() {
 	flag.Parse()
-	apiCore := core.NewDebugCore(0, flag.Arg(0), flag.Arg(1))
+	apiCore := core.NewDebugCore(0, flag.Arg(0), []string{flag.Arg(1)})
 
 	event := &demoEvent{
 		bkBizId:  21,
@@ -61,7 +63,6 @@ func main() {
 		}
 		panic(err)
 	}
-
 }
 
 func ReportEvent(ac *core.Core, event *demoEvent) error {

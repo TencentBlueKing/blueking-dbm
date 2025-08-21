@@ -20,7 +20,7 @@
         :title="title" />
       <BkLoading :loading="isLoading">
         <RenderData
-          class="mt16"
+          class="mt-16"
           @batch-edit-backup-local="handleBatchEditBackupLocal"
           @show-master-batch-selector="handleShowMasterBatchSelector">
           <RenderDataRow

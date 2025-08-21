@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
-import time
 from collections import defaultdict
 from typing import Dict, List
 
@@ -29,11 +28,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
-from backend.db_services.dbresource.constants import (
-    RESOURCE_IMPORT_EXPIRE_TIME,
-    RESOURCE_IMPORT_TASK_FIELD,
-    SWAGGER_TAG,
-)
+from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -61,13 +56,12 @@ from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSeria
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
 )
-from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType, ModeType
+from backend.db_services.ipchooser.constants import BkOsType, ModeType
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
-from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
 from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass import ResourceEnum
@@ -76,7 +70,6 @@ from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
 from backend.ticket.models import Ticket
-from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
 
@@ -172,53 +165,41 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="import", serializer_class=ResourceImportSerializer)
     def resource_import(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        host_ids = [host["host_id"] for host in validated_data.pop("hosts")]
+        data = self.params_validate(self.get_serializer_class())
+        host_ids = [host["host_id"] for host in data.pop("hosts")]
 
         # 查询主机信息，并按照集群类型聚合
         host_infos = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
         os_hosts = defaultdict(list)
         for host in host_infos:
-            host.update(ip=host["bk_host_innerip"], host_id=host["bk_host_id"])
+            host.update(ip=host["bk_host_innerip"], host_id=host["bk_host_id"], city_name=host.get("idc_city_name"))
             os_hosts[host["bk_os_type"]].append(host)
 
         # 按照集群类型分别导入
-        task_ids = []
+        ticket_ids = []
         for os_type, hosts in os_hosts.items():
-            root_id = generate_root_id()
-            task_ids.append(root_id)
-
             # 补充必要的单据参数
-            validated_data.update(
+            data.update(
                 ticket_type=TicketType.RESOURCE_IMPORT,
                 created_by=request.user.username,
                 uid=None,
                 hosts=hosts,
-                # 额外补充资源池导入的参数，用于记录操作日志
-                bill_id=None,
-                bill_type=None,
-                task_id=root_id,
                 operator=request.user.username,
-                os_type=BK_OS_CODE__TYPE[os_type],
+                os_type=os_type,
             )
+            # 目前产品上重导入只允许从故障池转入资源池
+            remark = _("故障池主机转回资源池") if data.get("return_resource") else ""
+            # 创建资源导入单据
+            ticket = Ticket.create_ticket(
+                ticket_type=TicketType.RESOURCE_IMPORT,
+                creator=request.user.username,
+                bk_biz_id=data["bk_biz_id"],
+                remark=remark,
+                details=data,
+            )
+            ticket_ids.append(ticket.id)
 
-            # 资源导入记录
-            import_record = {"task_id": root_id, "operator": request.user.username, "hosts": hosts}
-            DBResourceApi.import_operation_create(params=import_record)
-
-            # 执行资源导入的后台flow
-            validated_data.update(hosts=list(hosts), os_type=BK_OS_CODE__TYPE[os_type])
-            BaseController(root_id=root_id, ticket_data=validated_data).import_resource_init_step()
-
-            # 缓存当前任务，并删除过期导入任务
-            now = int(time.time())
-            cache_key = RESOURCE_IMPORT_TASK_FIELD.format(user=request.user.username)
-            RedisConn.zadd(cache_key, {root_id: now})
-            expired_tasks = RedisConn.zrangebyscore(cache_key, "-inf", now - RESOURCE_IMPORT_EXPIRE_TIME)
-            if expired_tasks:
-                RedisConn.zrem(cache_key, *expired_tasks)
-
-        return Response({"task_ids": task_ids})
+        return Response({"ticket_ids": ticket_ids})
 
     @common_swagger_auto_schema(
         operation_summary=_("查询资源导入任务"),

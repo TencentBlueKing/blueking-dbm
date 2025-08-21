@@ -1180,7 +1180,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1192,7 +1192,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1204,7 +1204,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1252,7 +1252,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1264,7 +1264,7 @@ class ActionEnum:
         type="execute",
         related_actions=[ES_VIEW.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1585,6 +1585,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_SOURCE_ACCESS_VIEW = ActionMeta(
+        id="mongodb_source_access_view",
+        name=_("Mongodb 访问来源查询"),
+        name_en="mongodb_source_access_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_APPLY = ActionMeta(
         id="mongodb_apply",
         name=_("MongoDB 部署"),
@@ -1818,6 +1830,52 @@ class ActionEnum:
         related_actions=[SQLSERVER_VIEW.id],
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_VIEW = ActionMeta(
+        id="oracle_view",
+        name=_("Oracle 集群详情查看"),
+        name_en="oracle_view",
+        type="view",
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_EDIT = ActionMeta(
+        id="oracle_edit",
+        name=_("Oracle 集群编辑"),
+        name_en="oracle_edit",
+        type="edit",
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_ENABLE_DISABLE = ActionMeta(
+        id="oracle_enable_disable",
+        name=_("ORACLE 集群禁用和启用"),
+        name_en="ORACLE Enable Disable",
+        type="execute",
+        related_actions=[ORACLE_VIEW.id],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_DESTROY = ActionMeta(
+        id="oracle_destroy",
+        name=_("Oracle 集群删除"),
+        name_en="Oracle Destroy",
+        type="execute",
+        related_actions=[ORACLE_VIEW.id],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )

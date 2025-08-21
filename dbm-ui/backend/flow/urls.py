@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import url
 
-from backend.flow.views.append_deploy_ctl import AppendDeployCTLView
 from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
@@ -37,6 +36,14 @@ from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
 from backend.flow.views.es_machine_clear import EsMachineClearApiView
+from backend.flow.views.es_name_service import (
+    EsClbCreateSceneApiView,
+    EsClbDeleteSceneApiView,
+    EsDomainBindClbIpSceneApiView,
+    EsDomainUnBindClbIpSceneApiView,
+    EsPolarisCreateSceneApiView,
+    EsPolarisDeleteSceneApiView,
+)
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -106,6 +113,7 @@ from backend.flow.views.mongodb_scene import (
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
+from backend.flow.views.mysql_backup_data_recovery_exercise import MySQLBackupDataRecoveryExerciseSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
 from backend.flow.views.mysql_clb_operation import (
     MysqlClbCreateSceneApiView,
@@ -115,6 +123,7 @@ from backend.flow.views.mysql_clb_operation import (
 )
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
+from backend.flow.views.mysql_failover_drill import MysqlFailoverDrillSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
 from backend.flow.views.mysql_ha_apply import InstallMySQLHASceneApiView
 from backend.flow.views.mysql_ha_db_table_backup import MySQLHADBTableBackup
@@ -274,7 +283,6 @@ from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSce
 from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
-from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
 from backend.flow.views.tendbcluster_upgrade import (
     UpgradeTendbClusterRemoteSceneApiView,
     UpgradeTendbClusterSpiderSceneApiView,
@@ -336,9 +344,15 @@ urlpatterns = [
     url(r"^scene/nameservice_clb_delete$", ClbDeleteSceneApiView.as_view()),
     url(r"^scene/nameservice_domain_bind_clb_ip$", DomainBindClbIpSceneApiView.as_view()),
     url(r"^scene/nameservice_domain_unbind_clb_ip$", DomainUnBindClbIpSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_clb_create$", EsClbCreateSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_clb_delete$", EsClbDeleteSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_domain_bind_clb_ip$", EsDomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_domain_unbind_clb_ip$", EsDomainUnBindClbIpSceneApiView.as_view()),
     # name_service polaris
     url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
     url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_polaris_create$", EsPolarisCreateSceneApiView.as_view()),
+    url(r"^scene/es/nameservice_polaris_delete$", EsPolarisDeleteSceneApiView.as_view()),
     # name_service end
     # mongodb start
     url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),
@@ -383,6 +397,8 @@ urlpatterns = [
     url(r"^scene/mysql/clb_delete$", MysqlClbDeleteSceneApiView.as_view()),
     url(r"^scene/mysql/domain_bind_clb_ip$", MysqlDomainBindClbIpSceneApiView.as_view()),
     url(r"^scene/mysql/domain_unbind_clb_ip$", MysqlDomainUnBindClbIpSceneApiView.as_view()),
+    # mysql backup file recovery exercise
+    url(r"^scene/mysql/backup/recovery/exercise$", MySQLBackupDataRecoveryExerciseSceneApiView.as_view()),
     # mysql
     url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
@@ -435,10 +451,10 @@ urlpatterns = [
     url(r"^scene/redis_backup$", RedisClusterBackupSceneApiView.as_view()),
     url(r"^scene/tendbha_db_table_backup", MySQLHADBTableBackup.as_view()),
     url(r"^scene/install_hdfs$", InstallHdfsSceneApiView.as_view()),
-    url(r"^scene/tendbha_truncate_data$", MySQLHATruncateDataView),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
+    url(r"^scene/mysql_failover_drill$", MysqlFailoverDrillSceneApiView.as_view()),
     # 从节点数据恢复(接入备份系统)
     url(r"^scene/restore_slave_remote$", RestoreMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),
@@ -537,10 +553,7 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/enable_tbinlogumper$", EnableTBinlogDumperSceneApiView.as_view()),
     url("^scene/disable_tbinlogumper$", DisableTBinlogDumperSceneApiView.as_view()),
-    url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
-    # migrate
-    url("^scene/append_deploy_ctl$", AppendDeployCTLView.as_view()),
     # sqlserver
     url("^scene/sqlserver_single_apply$", SqlserverSingleApplySceneApiView.as_view()),
     url("^scene/sqlserver_ha_apply$", SqlserverHAApplySceneApiView.as_view()),

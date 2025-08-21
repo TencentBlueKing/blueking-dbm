@@ -15,30 +15,24 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import (
-    ES_DEFAULT_INSTANCE_NUM,
-    DnsOpType,
-    ManagerDefaultPort,
-    ManagerOpType,
-    ManagerServiceType,
-)
+from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, ManagerDefaultPort, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.es.atom_jobs.access_manager import get_access_manager_atom_job
 from backend.flow.engine.bamboo.scene.es.es_flow import EsFlow, get_all_node_ips_in_ticket
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import (
     BigdataManagerComponent,
     get_manager_ip,
 )
 from backend.flow.plugins.components.collections.es.es_db_meta import EsMetaComponent
-from backend.flow.plugins.components.collections.es.es_dns_manage import EsDnsManageComponent
 from backend.flow.plugins.components.collections.es.exec_es_actuator_script import ExecuteEsActuatorScriptComponent
 from backend.flow.plugins.components.collections.es.get_es_payload import GetEsActPayloadComponent
 from backend.flow.plugins.components.collections.es.get_es_resource import GetEsResourceComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
 from backend.flow.utils.es.es_act_payload import EsActPayload
-from backend.flow.utils.es.es_context_dataclass import DnsKwargs, EsActKwargs, EsApplyContext
+from backend.flow.utils.es.es_context_dataclass import EsActKwargs, EsApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import P2PFileKwargs
 from backend.ticket.constants import TicketType
@@ -202,7 +196,8 @@ class EsReplaceFlow(EsFlow):
             act_name=_("添加到DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(scale_up_act_kwargs)
         )
 
-        # 添加域名
+        # 修改接入层信息
+        """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=scale_up_data["bk_cloud_id"],
             dns_op_type=DnsOpType.UPDATE,
@@ -214,6 +209,10 @@ class EsReplaceFlow(EsFlow):
             act_component_code=EsDnsManageComponent.code,
             kwargs={**asdict(scale_up_act_kwargs), **asdict(dns_kwargs)},
         )
+        """
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=scale_up_data)
+        if sub_pipeline_access:
+            scale_up_sub_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 校验扩容是否成功
         scale_up_act_kwargs.get_es_payload_func = EsActPayload.get_check_nodes_payload.__name__
@@ -254,7 +253,8 @@ class EsReplaceFlow(EsFlow):
             kwargs=asdict(shrink_act_kwargs),
         )
 
-        # 移除域名映射
+        # 修改接入层信息
+        """
         dns_kwargs = DnsKwargs(
             bk_cloud_id=shrink_data["bk_cloud_id"],
             dns_op_type=DnsOpType.RECYCLE_RECORD,
@@ -266,6 +266,10 @@ class EsReplaceFlow(EsFlow):
             act_component_code=EsDnsManageComponent.code,
             kwargs={**asdict(shrink_act_kwargs), **asdict(dns_kwargs)},
         )
+        """
+        sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=shrink_data)
+        if sub_pipeline_access:
+            shrink_sub_pipeline.add_sub_pipeline(sub_pipeline_access)
 
         # 检查下架节点上是否安装kibana
         manager_ip = get_manager_ip(

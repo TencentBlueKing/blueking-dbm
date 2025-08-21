@@ -23,8 +23,8 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/samber/lo"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetOperationInfoParam TODO
@@ -46,7 +46,7 @@ type GetOperationInfoParam struct {
 func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	var input GetOperationInfoParam
 	if err := o.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	db := model.DB.Self.Table(model.TbRpOperationInfoTableName())
@@ -96,14 +96,42 @@ func (p GetOperationInfoParam) query(db *gorm.DB) {
 	if cmutil.IsNotEmpty(p.BeginTime) {
 		db.Where("create_time >= ? ", p.BeginTime)
 	}
-	orderby := p.Orderby
-	if !slices.Contains(model.TbRpOperationInfoColumns, orderby) {
-		orderby = ""
-	}
-	if lo.IsEmpty(strings.TrimSpace(orderby)) {
+	// Enhanced SQL injection protection for orderby parameter
+	orderby := strings.TrimSpace(p.Orderby)
+	if orderby == "" {
+		// Use default ordering if empty
 		db.Order("create_time desc")
+		return
+	}
+
+	// Split into max 2 parts (column and direction)
+	parts := strings.SplitN(orderby, " ", 2)
+	column := strings.TrimSpace(parts[0])
+
+	// Strict column name validation
+	if !slices.Contains(model.TbRpOperationInfoColumns, column) {
+		db.Order("create_time desc")
+		return
+	}
+
+	// Default to ASC if no direction specified
+	// nolint
+	direction := "ASC"
+	if len(parts) > 1 {
+		dir := strings.ToUpper(strings.TrimSpace(parts[1]))
+		if dir == "DESC" {
+			direction = dir
+		} else if dir != "ASC" {
+			// Invalid direction, use default
+			db.Order("create_time desc")
+			return
+		}
+	}
+	// Use parameterized ordering with validated values
+	if direction == "ASC" {
+		db.Order(clause.OrderByColumn{Column: clause.Column{Name: column}, Desc: false})
 	} else {
-		db.Order(orderby)
+		db.Order(clause.OrderByColumn{Column: clause.Column{Name: column}, Desc: true})
 	}
 }
 
@@ -118,7 +146,7 @@ type CreateOperationParam struct {
 func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 	var input CreateOperationParam
 	if err := o.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
 		return
 	}
 	var ipList []string
@@ -138,7 +166,7 @@ func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 	}
 	bkHostIdJsStr, err := json.Marshal(hostIdList)
 	if err != nil {
-		o.SendResponse(r, errno.ErrJSONMarshal.Add("input hostids"), "failed")
+		o.SendResponse(r, errno.ErrJSONMarshal.Add("input host ids"), "failed")
 	}
 	m := model.TbRpOperationInfo{
 		TotalCount:    len(ipList),

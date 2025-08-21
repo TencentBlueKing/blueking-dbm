@@ -29,6 +29,7 @@ export type * as Influxdb from './details/influxdb';
 export type * as Kafka from './details/kafka';
 export type * as Mongodb from './details/mongodb';
 export type * as Mysql from './details/mysql/index';
+export type * as Oracle from './details/oracle';
 export type * as Pulsar from './details/pulsar';
 export type * as Redis from './details/redis/index';
 export type * as Riak from './details/riak';
@@ -44,11 +45,13 @@ const STATUS_TERMINATED = 'TERMINATED';
 const STATUS_TIMER = 'TIMER';
 const STATUS_TODO = 'TODO';
 const STATUS_INNER_TODO = 'INNER_TODO';
+const STATUS_PENDING = 'PENDING';
 
 export default class Ticket<T extends unknown | DetailBase = unknown> {
   static STATUS_APPROVE = STATUS_APPROVE;
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_INNER_TODO = STATUS_INNER_TODO;
+  static STATUS_PENDING = STATUS_PENDING;
   static STATUS_RESOURCE_REPLENISH = STATUS_RESOURCE_REPLENISH;
   static STATUS_RUNNING = STATUS_RUNNING;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
@@ -60,6 +63,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     [STATUS_APPROVE]: t('待审批'),
     [STATUS_FAILED]: t('已失败'),
     [STATUS_INNER_TODO]: t('待继续'),
+    [STATUS_PENDING]: t('等待中'),
     [STATUS_RESOURCE_REPLENISH]: t('待补货'),
     [STATUS_RUNNING]: t('执行中'),
     [STATUS_SUCCEEDED]: t('已完成'),

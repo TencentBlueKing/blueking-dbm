@@ -12,13 +12,13 @@
 -->
 
 <template>
-  <DbTab v-model="activeTab" />
+  <DbTabForBiz v-model="activeTab" />
   <List :db-type="activeTab" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';
 
-  import DbTab from '@components/db-tab/Index.vue';
+  import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
 
   import List from './components/List.vue';
 

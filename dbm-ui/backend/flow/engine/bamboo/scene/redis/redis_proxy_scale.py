@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -205,6 +206,16 @@ class RedisProxyScaleFlow(object):
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+
+            # 更新集群 proxy 版本
+            act_kwargs.cluster["update_all"] = True
+            act_kwargs.cluster["cluster_id"] = info["cluster_id"]
+            act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+            sub_pipeline.add_act(
+                act_name=_("{}-更新版本").format(cluster_info["immute_domain"]),
+                act_component_code=RedisUpdateVersionComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}新增proxy实例").format(cluster_info["cluster_name"]))

@@ -10,6 +10,7 @@
   import StatusFailed from './StatusFailed.vue';
   import StatusInnerTodo from './StatusInnerTodo.vue';
   import StatusResourceReplenish from './StatusResourceReplenish.vue';
+  import StatusTimer from './StatusTimer.vue';
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
@@ -24,6 +25,7 @@
     [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_INNER_TODO]: StatusInnerTodo,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,
+    [TicketModel.STATUS_TIMER]: StatusTimer,
     [TicketModel.STATUS_TODO]: StatusTodo,
   };
 

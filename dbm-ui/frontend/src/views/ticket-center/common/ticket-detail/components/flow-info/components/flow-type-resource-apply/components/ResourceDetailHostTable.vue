@@ -40,8 +40,16 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="os_type"
+      field="os_name"
       :label="t('操作系统名称')"
+      :min-width="180">
+      <template #default="{ data: rowData }: { data: IResouce }">
+        {{ rowData.os_name || '--' }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="os_type"
+      :label="t('操作系统')"
       :min-width="180">
       <template #default="{ data: rowData }: { data: IResouce }">
         {{ rowData.os_type || '--' }}
@@ -61,8 +69,12 @@
       :min-width="100" />
     <BkTableColumn
       field="bk_mem"
-      :label="t('内存M')"
-      :min-width="100" />
+      :label="t('内存G')"
+      :min-width="100">
+      <template #default="{ data: rowData }: { data: IResouce }">
+        {{ transformMToG(rowData.bk_mem) }}
+      </template>
+    </BkTableColumn>
     <BkTableColumn
       field="bk_disk"
       :label="t('磁盘G')"
@@ -93,4 +105,8 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const transformMToG = (value: number) => {
+    return value ? (value / 1024).toFixed(2) : '--';
+  };
 </script>

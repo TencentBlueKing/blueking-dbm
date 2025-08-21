@@ -18,16 +18,21 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/patrickmn/go-cache"
+
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// GetIdcCityByLogicCityParam TODO
+// CityCache city cache
+var cityCache = cache.New(5*time.Minute, 10*time.Minute)
+
+// GetIdcCityByLogicCityParam get idc city by logic city param
 type GetIdcCityByLogicCityParam struct {
 	LogicCityName string `json:"logic_city_name"`
 }
 
-// IdcCitysResp idc citys respone
-type IdcCitysResp struct {
+// IdcCitiesResp idc cities response
+type IdcCitiesResp struct {
 	Code      int      `json:"code"`
 	Message   string   `json:"message"`
 	Data      []string `json:"data"`
@@ -35,7 +40,14 @@ type IdcCitysResp struct {
 }
 
 // GetIdcCityByLogicCity 根据逻辑城市获取实际对应城市列表
-func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
+func GetIdcCityByLogicCity(logicCity string) (idcCites []string, err error) {
+	if idcCacheCites, ok := cityCache.Get(logicCity); ok {
+		idcCites, ok = idcCacheCites.([]string)
+		if ok {
+			logger.Info("get idc cities from cache %s,idcCites:%v ", logicCity, idcCites)
+			return idcCites, nil
+		}
+	}
 	var content []byte
 	cli := NewDbmClient()
 	u, err := url.JoinPath(cli.EndPoint, DBMLogicCityApi)
@@ -65,7 +77,7 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 		defer resp.Body.Close()
 		content, err = io.ReadAll(resp.Body)
 		if err != nil {
-			logger.Error("read respone body failed %s", err.Error())
+			logger.Error("read response body failed %s", err.Error())
 			return nil, err
 		}
 		return
@@ -76,20 +88,21 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 		if err == nil {
 			break
 		}
-		logger.Error("read respone body failed %s", err.Error())
+		logger.Error("read response body failed %s", err.Error())
 		time.Sleep(1 * time.Second)
 	}
 
 	if err != nil {
-		logger.Error("try 3 time get real citys  from dbm failed %s", err.Error())
+		logger.Error("try 3 time get real cites  from dbm failed %s", err.Error())
 		return nil, err
 	}
 
-	logger.Info("respone %v", string(content))
-	var d IdcCitysResp
+	logger.Info("response %v", string(content))
+	var d IdcCitiesResp
 	if err = json.Unmarshal(content, &d); err != nil {
 		return nil, err
 	}
+	cityCache.Set(logicCity, d.Data, 5*time.Minute)
 	return d.Data, nil
 }
 
@@ -102,7 +115,7 @@ type LogicCityInfo struct {
 }
 
 // GetAllLogicCityInfo 获取所有逻辑城市信息
-func GetAllLogicCityInfo() (idcCitys []LogicCityInfo, err error) {
+func GetAllLogicCityInfo() (idcCites []LogicCityInfo, err error) {
 	var content []byte
 	cli := NewDbmClient()
 	u, err := url.JoinPath(cli.EndPoint, DBMListAllLogicCityInfoApi)
@@ -124,7 +137,7 @@ func GetAllLogicCityInfo() (idcCitys []LogicCityInfo, err error) {
 		defer resp.Body.Close()
 		content, err = io.ReadAll(resp.Body)
 		if err != nil {
-			logger.Error("read respone body failed %s", err.Error())
+			logger.Error("read response body failed %s", err.Error())
 			return nil, err
 		}
 		return
@@ -134,15 +147,15 @@ func GetAllLogicCityInfo() (idcCitys []LogicCityInfo, err error) {
 		if err == nil {
 			break
 		}
-		logger.Error("read respone body failed %s", err.Error())
+		logger.Error("read response body failed %s", err.Error())
 		time.Sleep(1 * time.Second)
 	}
 
 	if err != nil {
-		logger.Error("try 3 time get real citys  from dbm failed %s", err.Error())
+		logger.Error("try 3 time get real cities  from dbm failed %s", err.Error())
 		return nil, err
 	}
-	logger.Info("respone %v", string(content))
+	logger.Info("response %v", string(content))
 	var d DbmBaseResp
 	if err = json.Unmarshal(content, &d); err != nil {
 		return nil, err

@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import gettext_lazy as _
 
-from ... import env
+from ...db_services.cmdb.biz import get_resource_biz
 from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
@@ -47,11 +47,20 @@ class _HCMApi(BaseApi):
         if not HCM_APIGW_DOMAIN or not bk_host_ids:
             return []
 
+        dissolved_hosts = []
         # 查询主机的业务信息，这里查询的主机要求为统一业务(暂不做校验)
         biz = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids[:1]}, use_admin=True)[0]["bk_biz_id"]
-        # 查询裁撤主机列表
-        resp = self.dissolve_check(params={"bk_biz_id": biz, "bk_host_ids": bk_host_ids}, use_admin=True)
-        dissolved_hosts = [d["bk_host_id"] for d in resp["info"] if d["status"]]
+
+        def __check_dissolve(check_host_ids):
+            # 查询裁撤主机列表
+            resp = self.dissolve_check(params={"bk_biz_id": biz, "bk_host_ids": check_host_ids}, use_admin=True)
+            dissolved_hosts.extend([d["bk_host_id"] for d in resp["info"] if d["status"]])
+
+        # hcm 一次校验不能超过100，这里分批次校验，考虑下架大量机器的情况较少，这里直接串行提交
+        batch = 90
+        for index in range(0, len(bk_host_ids), batch):
+            __check_dissolve(bk_host_ids[index : index + batch])
+
         return dissolved_hosts
 
     def check_host_has_uwork(self, bk_host_ids: list):
@@ -76,7 +85,8 @@ class _HCMApi(BaseApi):
 
     def create_recycle(self, bk_host_ids: list):
         params = {
-            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            # 所有待回收的机器一定在资源池管控业务
+            "bk_biz_id": get_resource_biz(),
             "bk_host_ids": bk_host_ids,
             "remark": "dbm auto create",
             # 回收策略固定是：立刻销毁

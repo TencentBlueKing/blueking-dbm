@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -60,10 +61,12 @@ func GetSecurityRule(securityName string) (SecurityRule, error) {
 func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 	var locked []*Address
 	var clusters []OneCluster
-	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null ", m.UserName, m.Component)
-	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port,bk_cloud_id").Scan(&locked).Error
+	err := DB.Self.Model(&TbPasswords{}).
+		Where("username = ? AND component = ? AND lock_until IS NOT NULL", m.UserName, m.Component).
+		Select("ip, port, bk_cloud_id").
+		Scan(&locked).Error
 	if err != nil {
-		slog.Error("msg", "get locked instances error", err)
+		slog.Error("get locked instances error", "error", err)
 		return err
 	}
 	if len(locked) == 0 {
@@ -102,8 +105,11 @@ func (m *ModifyAdminUserPasswordPara) RemoveLockedInstances() error {
 func (m *ModifyAdminUserPasswordPara) NeedToBeRandomized() error {
 	var needs []*Address
 	var clusters []OneCluster
-	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until <= now()", m.UserName, m.Component)
-	err := DB.Self.Model(&TbPasswords{}).Where(where).Select("ip,port,bk_cloud_id").Scan(&needs).Error
+	where := "username = ? AND component = ? AND lock_until <= now()"
+	err := DB.Self.Model(&TbPasswords{}).
+		Where(where, m.UserName, m.Component).
+		Select("ip, port, bk_cloud_id").
+		Scan(&needs).Error
 	if err != nil {
 		slog.Error("msg", "get locked instances error", err)
 		return err
@@ -256,4 +262,87 @@ func UniquePassword(slice []*TbPasswords) []string {
 		}
 	}
 	return res
+}
+
+// buildUserWhere safely build user WHERE clause and arguments
+func buildUserWhere(users []UserInComponent, mysqlAdminCheck bool) (string, []interface{}, error) {
+	var (
+		parts []string
+		args  []interface{}
+	)
+	for _, user := range users {
+		if user.UserName == "" {
+			return "", nil, errno.NameNull
+		}
+		if user.Component == "" {
+			return "", nil, errno.ComponentNull
+		}
+		if mysqlAdminCheck && user.UserName == "ADMIN" && user.Component == "mysql" {
+			return "", nil, errno.UseApiForMysqlAdmin
+		}
+		parts = append(parts, "(username=? AND component=?)")
+		args = append(args, user.UserName, user.Component)
+	}
+	return strings.Join(parts, " OR "), args, nil
+}
+
+// buildInstanceWhere safely build instance WHERE clause and arguments
+func buildInstanceWhere(instances []Address) (string, []interface{}) {
+	var (
+		parts []string
+		args  []interface{}
+	)
+	for _, item := range instances {
+		if item.Port != nil && item.BkCloudId != nil {
+			parts = append(parts, "(ip=? AND port=? AND bk_cloud_id=?)")
+			args = append(args, item.Ip, *item.Port, *item.BkCloudId)
+		} else if item.Port != nil && item.BkCloudId == nil {
+			parts = append(parts, "(ip=? AND port=?)")
+			args = append(args, item.Ip, *item.Port)
+		} else {
+			parts = append(parts, "(ip=?)")
+			args = append(args, item.Ip)
+		}
+	}
+	return strings.Join(parts, " OR "), args
+}
+
+// addTimeRange add time filter to where clause
+func addTimeRange(where string, begin, end string, args []interface{}) (string, []interface{}) {
+	if begin != "" && end != "" {
+		where += " AND update_time>=? AND update_time<=?"
+		args = append(args, begin, end)
+	}
+	return where, args
+}
+
+// addBkBizId add bk_biz_id filter
+func addBkBizId(where string, bkBizId *int64, args []interface{}) (string, []interface{}) {
+	if bkBizId != nil {
+		where += " AND bk_biz_id=?"
+		args = append(args, *bkBizId)
+	}
+	return where, args
+}
+
+// buildInstanceDeleteWhere safely build instance WHERE clause and arguments
+func buildInstanceDeleteWhere(instances []Address) (string, []interface{}, error) {
+	var (
+		parts []string
+		args  []interface{}
+	)
+	for _, item := range instances {
+		if item.Ip == "0.0.0.0" && item.Port != nil && *item.Port == 0 {
+			return "", nil, errno.PlatformPasswordNotAllowedModified
+		}
+		if item.BkCloudId == nil {
+			return "", nil, errno.CloudIdRequired
+		}
+		if item.Port == nil {
+			return "", nil, errno.PortRequired
+		}
+		parts = append(parts, "(ip=? AND port=? AND bk_cloud_id=?)")
+		args = append(args, item.Ip, *item.Port, *item.BkCloudId)
+	}
+	return strings.Join(parts, " OR "), args, nil
 }

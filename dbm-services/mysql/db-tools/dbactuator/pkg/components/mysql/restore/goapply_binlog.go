@@ -58,7 +58,7 @@ func (c *GoApplyBinlogComp) Example() interface{} {
 				BinaryMode:       true,
 			},
 			QuickMode:       true,
-			BinlogDir:       "/data/dbbak/20000/binlog",
+			BinlogDir:       "/data/dbbak/xxxx/20000/binlog_20000",
 			BinlogFiles:     []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
 			BinlogStartFile: "binlog20000.00001",
 			WorkDir:         "/data/dbbak/",
@@ -78,7 +78,7 @@ type GoApplyBinlog struct {
 	TgtInstance native.InsObject   `json:"tgt_instance" validate:"required"`
 	BinlogOpt   *GoMySQLBinlogUtil `json:"binlog_opt" validate:"required"`
 	// 恢复时 binlog 存放目录，一般是下载目录
-	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/123456/binlog"`
+	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/xxxxx/20000/binlog_20000"`
 	// binlog列表
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
 	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
@@ -91,7 +91,7 @@ type GoApplyBinlog struct {
 	StartTime string `json:"start_time"`
 	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
 	StopTime string `json:"stop_time"`
-	// binlog 解析所在目录，存放运行日志
+	// binlog 解析所在目录，存放运行日志，应该要包含端口
 	WorkDir string `json:"work_dir" validate:"required" example:"/data/dbbak/"`
 	WorkID  string `json:"work_id" example:"123456"`
 	// 仅解析 binlog，不做导入
@@ -387,7 +387,8 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
 	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
-	if mysqlOpt.BinaryMode && mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
+	// mysqlOpt.BinaryMode &&
+	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
 	}
 	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
@@ -395,7 +396,6 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 }
 
 func (r *GoApplyBinlog) buildBinlogOptions() error {
-
 	binlogTool := r.ToolSet.MustGet(tools.ToolGoMysqlbinlog)
 	r.BinlogOpt.SetCmdPath(binlogTool)
 	r.BinlogOpt.SetWorkDir(r.taskDir)
@@ -406,7 +406,7 @@ func (r *GoApplyBinlog) initDirs() error {
 	if r.WorkID == "" {
 		r.WorkID = cmutil.NewTimestampString()
 	}
-	r.taskDir = fmt.Sprintf("%s/apply_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
+	r.taskDir = fmt.Sprintf("%s/apply_binlog_%d_%s", r.WorkDir, r.TgtInstance.Port, r.WorkID)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {
 		return err
 	}
@@ -588,21 +588,37 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			return 0, err
+			if strings.Contains(err.Error(), "No such file or directory") {
+				// 文件可能在处理的时候被删除了，但有可能是正在过滤旧的文件，旧文件被删除无所谓
+				continue
+			} else {
+				return 0, err
+			}
 		}
 		startTime, _ := time.ParseInLocation(time.RFC3339, events[0].EventTime, time.Local)
 		stopTime, _ := time.ParseInLocation(time.RFC3339, events[1].EventTime, time.Local)
 		fileSize := cmutil.GetFileSize(fileName)
 		// **** get binlog time
 
+		// stopTime, startTime 都要 > 结束时间，才算终止
 		if r.BinlogOpt.StopTime != "" && stopTime.Compare(stopTimeFilter) > 0 {
-			break
+			if (r.BinlogOpt.StartTime != "" && startTime.Compare(stopTimeFilter) > 0) || r.BinlogOpt.StartTime == "" {
+				break
+			}
 		}
+		// TODO 需要优化
+		// startTime,stopTime 都 < 开始时间，不算起始 binlog
+		if r.BinlogOpt.StartTime != "" && stopTime.Compare(startTimeFilter) < 0 && startTime.Compare(startTimeFilter) < 0 {
+			continue
+		}
+
 		if r.BinlogStartFile != "" {
 			binlogFiles = append(binlogFiles, f)
 			totalSize += fileSize
 		} else if r.BinlogOpt.StartTime != "" {
-			if startTime.Compare(startTimeFilter) > 0 { // time.RFC3339
+			// start_time,stop_time 任意一个 > 开始时间，都算有用 binlog
+			if startTime.Compare(startTimeFilter) >= 0 ||
+				(r.BinlogOpt.StopTime != "" && stopTime.Compare(startTimeFilter) >= 0) { // time.RFC3339
 				if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
 					firstBinlogFound = true
 					firstBinlogFile = lastBinlogFile
@@ -703,7 +719,7 @@ func (r *GoApplyBinlog) Start() error {
 			}
 			if originValue != newValue {
 				defer func() {
-					if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+					if err := r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 						logger.Error("fail to set back slave_exec_mode=%s", originValue)
 					}
 				}()
@@ -727,7 +743,7 @@ func (r *GoApplyBinlog) Start() error {
 				return errors.WithMessage(err, retContent)
 			}
 			// 因为错误日志都重定向到文件了，所以真实错误判断要从 errFile 中读取
-			errContent, _ := cmutil.NewGrepLines(errFile, true, true).
+			errContent, _ := cmutil.NewGrepLines(errFile, true, false).
 				MatchWordsExclude([]string{"Using a password"}, 2)
 			if errContent != "" || err != nil {
 				logger.Error(errContent)
@@ -759,7 +775,7 @@ func BinlogImport(taskDir, scriptName string, dbWorker *native.DbWorker) error {
 	}
 	if originValue != newValue {
 		defer func() {
-			if err = dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+			if err := dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
 				logger.Error("fail to set back slave_exec_mode=%s", originValue)
 			}
 		}()

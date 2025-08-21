@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"dbm-services/common/dbha/ha-module/agent"
 	"dbm-services/common/dbha/ha-module/config"
@@ -20,6 +21,7 @@ var configFile string
 var showVersion bool
 var version = "1.0.0"
 var githash = "unknown"
+var buildStamp = time.Now().Format("2006-01-02 15:04:05")
 
 // Init TODO
 func Init() {
@@ -35,6 +37,7 @@ func main() {
 	if showVersion {
 		fmt.Println("Version:", version)
 		fmt.Println("Git hash info:", githash)
+		fmt.Println("BuildTime:", buildStamp)
 		os.Exit(0)
 	}
 

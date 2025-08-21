@@ -20,20 +20,18 @@ limitations under the License.
 package controller
 
 import (
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/req"
-	"k8s-dbs/metadata/api/vo/resp"
-	metaconst "k8s-dbs/metadata/constant"
+	"k8s-dbs/errors"
+	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
+	"k8s-dbs/metadata/vo/request"
+	"k8s-dbs/metadata/vo/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-
-	commconst "k8s-dbs/common/api/constant"
 )
 
 // AddonClusterVersionController manages metadata for addons.
@@ -50,24 +48,24 @@ func NewAddonClusterVersionController(
 
 // ListAcVersions 获取 addon cluster version 列表
 func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
-	sizeStr := ctx.DefaultQuery("size", metaconst.DefaultFetchSizeStr)
+	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
-		fetchSize = metaconst.DefaultFetchSize // 如果转换失败，使用默认值
+		fetchSize = commconst.DefaultFetchSize // 如果转换失败，使用默认值
 	}
-	fetchSize = min(fetchSize, metaconst.MaxFetchSize)
+	fetchSize = min(fetchSize, commconst.MaxFetchSize)
 	pagination := commentity.Pagination{Limit: fetchSize}
 	acVersions, err := a.acVersionProvider.ListAcVersion(pagination)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data []resp.AddonClusterVersionRespVo
+	var data []response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, acVersions); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetAcVersion 根据 ID 查找 addon cluster version
@@ -75,45 +73,45 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
 	addon, err := a.acVersionProvider.FindAcVersionByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	var data resp.AddonClusterVersionRespVo
+	var data response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, addon); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // CreateAcVersion 创建 addon cluster version
 func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
-	var acVersionVo req.AddonClusterVersionReqVo
+	var acVersionVo request.AddonClusterVersionRequest
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	var acVersionEntity entitys.AddonClusterVersionEntity
 	if err := copier.Copy(&acVersionEntity, &acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
 	added, err := a.acVersionProvider.CreateAcVersion(&acVersionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	var data resp.AddonClusterVersionRespVo
+	var data response.AddonClusterVersionResponse
 	if err := copier.Copy(&data, added); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.CreateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // UpdateAcVersion 更新 addon cluster version.
@@ -121,26 +119,26 @@ func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	var acVersionVo req.AddonClusterVersionReqVo
+	var acVersionVo request.AddonClusterVersionRequest
 	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	var acVersionEntity entitys.AddonClusterVersionEntity
 	if err := copier.Copy(&acVersionEntity, acVersionVo); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	acVersionEntity.ID = id
 	rows, err := a.acVersionProvider.UpdateAcVersion(&acVersionEntity)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.UpdateMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }
 
 // DeleteAcVersion 删除 addon cluster version.
@@ -148,13 +146,13 @@ func (a *AddonClusterVersionController) DeleteAcVersion(ctx *gin.Context) {
 	idParam := ctx.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
 	rows, err := a.acVersionProvider.DeleteAcVersionByID(id)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.DeleteMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DeleteMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
+	api.SuccessResponse(ctx, map[string]uint64{"rows": rows}, commconst.Success)
 }

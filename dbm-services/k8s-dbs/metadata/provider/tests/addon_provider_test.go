@@ -21,12 +21,12 @@ package tests
 
 import (
 	"fmt"
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	entitys "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
 	"time"
 
@@ -67,8 +67,15 @@ func TestCreateStorageAddon(t *testing.T) {
 		AddonVersion:  "1.0.0",
 		Description:   "desc",
 	}
+	dbsCtx := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
 
-	addedStorageAddon, err := addonProvider.CreateStorageAddon(storageAddon)
+	addedStorageAddon, err := addonProvider.CreateStorageAddon(dbsCtx, storageAddon)
 	assert.NoError(t, err)
 	assert.Equal(t, storageAddon.AddonName, addedStorageAddon.AddonName)
 	assert.Equal(t, storageAddon.AddonCategory, addedStorageAddon.AddonCategory)
@@ -92,8 +99,14 @@ func TestDeleteStorageAddon(t *testing.T) {
 		Active:        true,
 		Description:   "desc",
 	}
-
-	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	dbsCtx := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = addonProvider.CreateStorageAddon(dbsCtx, storageAddon)
 	assert.NoError(t, err)
 
 	rows, err := addonProvider.DeleteStorageAddonByID(1)
@@ -118,9 +131,16 @@ func TestUpdateStorageAddon(t *testing.T) {
 		Description:   "desc",
 	}
 
-	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	dbsCtx := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = addonProvider.CreateStorageAddon(dbsCtx, storageAddon)
 	assert.NoError(t, err)
-
+	time.Sleep(60 * time.Second)
 	updateStorageAddon := &entitys.K8sCrdStorageAddonEntity{
 		ID:            1,
 		AddonName:     "myaddon2",
@@ -129,9 +149,16 @@ func TestUpdateStorageAddon(t *testing.T) {
 		AddonVersion:  "1.0.0",
 		Active:        false,
 		Description:   "desc",
-		UpdatedAt:     time.Now(),
 	}
-	rows, err := addonProvider.UpdateStorageAddon(updateStorageAddon)
+	dbsCtx = &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser2",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+
+	rows, err := addonProvider.UpdateStorageAddon(dbsCtx, updateStorageAddon)
 	assert.NoError(t, err, "Failed to update storageAddon")
 	assert.Equal(t, uint64(1), rows)
 }
@@ -153,7 +180,14 @@ func TestGetStorageAddon(t *testing.T) {
 		Description:   "desc",
 	}
 
-	_, err = addonProvider.CreateStorageAddon(storageAddon)
+	dbsCtx := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
+	_, err = addonProvider.CreateStorageAddon(dbsCtx, storageAddon)
 	assert.NoError(t, err)
 
 	foundStorageAddon, err := addonProvider.FindStorageAddonByID(1)
@@ -191,15 +225,22 @@ func TestListStorageAddons(t *testing.T) {
 			Description:   "desc",
 		},
 	}
+	dbsCtx := &commentity.DbsContext{
+		BkAuth: &commentity.BKAuth{
+			BkUserName:  "bkuser",
+			BkAppCode:   "bkappcode",
+			BkAppSecret: "bkappsecret",
+		},
+	}
 
 	for _, addon := range testAddons {
-		createdAddon, err := addonProvider.CreateStorageAddon(&addon)
+		createdAddon, err := addonProvider.CreateStorageAddon(dbsCtx, &addon)
 		assert.NoError(t, err, "Failed to create storage addon: %v", addon.AddonName)
 		assert.NotNil(t, createdAddon, "Created addon should not be nil")
 		assert.Equal(t, addon.AddonName, createdAddon.AddonName, "Addon name mismatch")
 	}
 
-	pagination := entity.Pagination{
+	pagination := commentity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}

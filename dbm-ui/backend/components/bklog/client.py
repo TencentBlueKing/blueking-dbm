@@ -55,6 +55,11 @@ class _BKLogApi(BaseApi):
             url="databus_collectors/{collector_config_id}/run/",
             description=_("日志平台-订阅IP下发"),
         )
+        self.retrieve_databus_collector = self.generate_data_api(
+            method="GET",
+            url="databus_collectors/{collector_config_id}/",
+            description=_("获取采集项详情"),
+        )
 
 
 BKLogApi = _BKLogApi()

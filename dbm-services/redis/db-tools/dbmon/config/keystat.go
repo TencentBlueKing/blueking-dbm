@@ -14,6 +14,8 @@ type ConfBigKeyStat struct {
 	RunOnMaster bool `json:"on_master" mapstructure:"on_master"`
 	// 是否使用RDB 来分析
 	UseRdb bool `json:"use_rdb" mapstructure:"use_rdb"`
+	// 内存最大使用率，大于这个值将不用RDB分析
+	MemMaxUsage int `json:"mem_max_usage" mapstructure:"mem_max_usage"`
 	// 磁盘最大使用率，大于这个值将不执行分析
 	DiskMaxUsage int `json:"disk_max_usage" mapstructure:"disk_max_usage"`
 	// 业务可以执行key模式， 如果有，会优先按照这里匹配

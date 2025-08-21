@@ -22,7 +22,6 @@
         :key="tableKey"
         ref="bkTableRef"
         :columns="localColumns"
-        :data="tableData.results"
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :remote-pagination="remotePagination"
@@ -152,6 +151,8 @@
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     disableSelectMethod?: (data: any) => boolean | string;
     fixedPagination?: boolean;
+    // 跨业务
+    ignoreBiz?: boolean;
     paginationExtra?: {
       small?: boolean;
     };
@@ -163,6 +164,8 @@
     remoteSort?: boolean;
     // 是否开启远程分页
     selectable?: boolean;
+    // 默认选中
+    selected?: any[];
     settings?: {
       checked?: string[];
       disabled?: string[];
@@ -179,7 +182,6 @@
     (e: 'requestFinished', value: any[]): void;
     (e: 'clearSearch'): void;
     (e: 'selection', key: string[], list: any[]): void;
-    (e: 'selection', key: number[], list: any[]): void;
   }
 
   export interface Slots {
@@ -207,12 +209,14 @@
     containerHeight: undefined,
     disableSelectMethod: () => false,
     fixedPagination: false,
+    ignoreBiz: false,
     paginationExtra: () => ({}),
     primaryKey: 'id',
     releateUrlQuery: false,
     remotePagination: true,
     remoteSort: false,
     selectable: false,
+    selected: () => [],
     settings: undefined,
     showSelectAllPage: true,
     showSettings: false,
@@ -406,11 +410,13 @@
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
   };
 
+  let daymicTimer: NodeJS.Timeout;
   const fetchListData = (loading = true) => {
+    clearTimeout(daymicTimer);
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_biz_id: props.ignoreBiz ? undefined : window.PROJECT_CONFIG.BIZ_ID,
         limit: pagination.limit,
         offset: (pagination.current - 1) * pagination.limit,
         ...paramsMemo,
@@ -429,6 +435,18 @@
       props
         .dataSource(params, payload)
         .then((data) => {
+          bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
+          if (data.results.length > 20) {
+            daymicTimer = setTimeout(() => {
+              bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
+              if (data.results.length > 50) {
+                daymicTimer = setTimeout(() => {
+                  bkTableRef.value.getVxeTableInstance().loadData(data.results);
+                }, 3000);
+              }
+            }, 1500);
+          }
+
           tableData.value = data;
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
@@ -445,9 +463,8 @@
             });
           }
           if (!isPaginationChangeFetch) {
-            isPaginationChangeFetch = false;
-            rowSelectMemo.value = {};
             isWholeChecked.value = false;
+            isPaginationChangeFetch = false;
             triggerSelection();
           }
 
@@ -461,22 +478,48 @@
         })
         .finally(() => {
           isLoading.value = false;
-          emits('requestFinished', tableData.value.results);
         });
     });
   };
 
   // 拉取全量数据
   const fetchAllData = async () => {
-    const { results } = await props.dataSource({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    const params = {
       limit: -1,
       offset: (pagination.current - 1) * pagination.limit,
       ...paramsMemo,
       ...sortParams,
-    });
+    };
+    if (!props.ignoreBiz) {
+      Object.assign(params, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
+    }
+    const { results } = await props.dataSource(params);
     return results;
   };
+
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
+        Object.assign(acc, {
+          [item[props.primaryKey]]: item,
+        });
+        return acc;
+      }, {});
+      rowSelectMemo.value = {
+        ...selectMap,
+      };
+    },
+  );
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
@@ -546,26 +589,18 @@
       return;
     }
 
-    props
-      .dataSource({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        limit: -1,
-        offset: (pagination.current - 1) * pagination.limit,
-        ...paramsMemo,
-        ...sortParams,
-      })
-      .then((data) => {
-        const selectMap = { ...rowSelectMemo.value };
-        data.results.forEach((dataItem: any) => {
-          if (props.disableSelectMethod(dataItem)) {
-            return;
-          }
-          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-        });
-        rowSelectMemo.value = selectMap;
-        isWholeChecked.value = true;
-        triggerSelection();
+    fetchAllData().then((results) => {
+      const selectMap = { ...rowSelectMemo.value };
+      results.forEach((dataItem: any) => {
+        if (props.disableSelectMethod(dataItem)) {
+          return;
+        }
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
       });
+      rowSelectMemo.value = selectMap;
+      isWholeChecked.value = true;
+      triggerSelection();
+    });
   };
 
   // 选中单行

@@ -271,6 +271,7 @@ func (c ConfigNameDefModel) TableName() string {
 
 // UniqueWhere TODO
 // 定义该表唯一键的查询条件
+// 都是内部传入的字段，不来自用户输入，所以不需要考虑注入问题
 func (c ConfigNameDefModel) UniqueWhere() map[string]interface{} {
 	uniqueWhere := map[string]interface{}{
 		"namespace": c.Namespace,

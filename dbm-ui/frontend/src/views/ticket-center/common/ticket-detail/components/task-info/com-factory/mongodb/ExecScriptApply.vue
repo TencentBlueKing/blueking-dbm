@@ -63,6 +63,7 @@
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
+          :db-types="DBTypes.MONGODB"
           :model-value="currentFileContent"
           readonly
           :title="selectFileName" />
@@ -70,6 +71,7 @@
     </div>
     <template v-else>
       <RenderFileContent
+        :db-types="DBTypes.MONGODB"
         :model-value="currentFileContent"
         readonly
         :title="uploadFileList.toString()" />
@@ -82,7 +84,7 @@
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';

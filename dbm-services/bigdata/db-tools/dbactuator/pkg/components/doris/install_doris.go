@@ -21,19 +21,18 @@ import (
 
 // InstallDorisService TODO
 type InstallDorisService struct {
-	GeneralParam *components.GeneralParam
-	Params       *InstallDorisParams
-	InstallParams
+	GeneralParam    *components.GeneralParam
+	Params          *InstallDorisParams
 	RollBackContext rollback.RollBackObjects
+	InstallParams
 }
 
 // InstallParams Doris安装配置 now by default
 type InstallParams struct {
-	InstallDir  string `json:"install_dir"`
-	PkgDir      string `json:"pkg_dir"`
-	DorisEnvDir string `json:"doris_env_dir"`
-	MetaDataDir string `json:"meta_data_dir"`
-	// DorisHomeDir      string `json:"doris_home_dir"`
+	InstallDir        string `json:"install_dir"`
+	PkgDir            string `json:"pkg_dir"`
+	DorisEnvDir       string `json:"doris_env_dir"`
+	MetaDataDir       string `json:"meta_data_dir"`
 	DorisConfDir      string `json:"doris_conf_dir"`
 	SupervisorConfDir string `json:"supervisor_conf_dir"`
 	ExecuteUser       string `json:"exec_user"`
@@ -175,7 +174,17 @@ func (i *InstallDorisService) RenderConfig() (err error) {
 			return fmt.Errorf("获取实例内存失败, err: %w", err)
 		}
 		heapSize := int(math.Floor(0.8 * float64(instMem)))
-		feConfMap[JavaOpts] = fmt.Sprintf(JavaOptsDefault, heapSize)
+		if confVal, ok := feConfMap[JavaOpts17]; ok {
+			feConfMap[JavaOpts17] = fmt.Sprintf(confVal, heapSize)
+		} else {
+			feConfMap[JavaOpts17] = fmt.Sprintf(JavaOpts17Default, heapSize)
+		}
+		if confVal, ok := feConfMap[JavaOpts]; ok {
+			feConfMap[JavaOpts] = fmt.Sprintf(confVal, heapSize)
+		} else {
+			feConfMap[JavaOpts] = fmt.Sprintf(JavaOptsDefault, heapSize)
+		}
+
 		feConfBytes, err := dorisutil.DefaultTransMap2Bytes(feConfMap)
 		if err != nil {
 			logger.Error("buffer concat fe config bytes failed %s", err.Error())
@@ -187,7 +196,7 @@ func (i *InstallDorisService) RenderConfig() (err error) {
 		}
 	} else if group == Backend {
 		// 获取数据目录配置
-		dataDirs := dorisutil.GetDataMountDir()
+		dataDirs := dorisutil.GetDorisDataMountDir()
 		dataDirConf := GenDorisDataDirConf(i.Params.Role, dataDirs)
 		beConfMap := i.Params.BeConf
 		beConfMap[PriorityNetworks] = cidr

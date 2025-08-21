@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 
 import { createTicketNew } from '@services/source/ticket';
 
+import { useTicketMessage } from '@hooks';
+
 import { type TicketTypes } from '@common/const';
 
 import { messageError } from '@utils';
@@ -13,6 +15,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
   const router = useRouter();
   const route = useRoute();
   const { locale, t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   const run = async (formData: { details: T; ignore_duplication?: boolean; remark?: string }) => {
     const params = {
@@ -25,13 +28,18 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
     try {
       loading.value = true;
       const { id: ticketId } = await createTicketNew<T>(params);
-      if (options?.onSuccess) {
-        options.onSuccess(ticketId);
+      // 如果当前路由非工具箱路由
+      if (ticketType !== route.meta.routeName) {
+        ticketMessage(ticketId);
+        if (options?.onSuccess) {
+          options.onSuccess(ticketId);
+        }
         return;
       }
       const toolboxResultMap = {
         MONGODB: 'MongodbToolboxResult',
         MYSQL: 'MysqlToolboxResult',
+        ORACLE: 'OracleToolboxResult',
         REDIS: 'RedisToolboxResult',
         SQLSERVER: 'SqlserverToolboxResult',
         TENDBCLUSTER: 'TendbclusterToolboxResult',
@@ -47,6 +55,9 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
             ticketType: targetTicketType,
           },
         });
+        if (options?.onSuccess) {
+          options.onSuccess(ticketId);
+        }
       }
     } catch (e: any) {
       const { code, data, message } = e;
@@ -68,7 +79,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
             if (locale.value === 'en') {
               return (
                 <span>
-                  You have already submitted a
+                  The system has detected that a similar ticket has already been submitted
                   <a
                     href={route.href}
                     target='_blank'>
@@ -82,7 +93,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
 
             return (
               <span>
-                你已提交过包含相同目标集群的
+                系统检测到已提交过包含相同集群的同类
                 <a
                   href={route.href}
                   target='_blank'>

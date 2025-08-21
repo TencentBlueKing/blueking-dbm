@@ -35,12 +35,23 @@ SPACE_DIVIDER = " "
 # 主机去向枚举
 IpDest = PoolType
 
+# TCP【建立连接】状态码，【监听】状态码;
+TCP_ESTABLISHED_CODE = 1
+TCP_LISTEN_CODE = 10
+
 
 class IpSource(str, StructuredEnum):
     """主机来源枚举"""
 
     MANUAL_INPUT = EnumField("manual_input", _("手动录入"))
     RESOURCE_POOL = EnumField("resource_pool", _("资源池"))
+
+
+class SourceType(str, StructuredEnum):
+    """资源来源类型"""
+
+    RESOURCE_AUTO = EnumField("resource_auto", _("资源池自动匹配"))
+    RESOURCE_MANUAL = EnumField("resource_manual", _("资源池手动选择"))
 
 
 class ResourceType(str, StructuredEnum):

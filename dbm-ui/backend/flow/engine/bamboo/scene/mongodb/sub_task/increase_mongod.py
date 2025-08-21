@@ -51,11 +51,6 @@ def increase_mongod(
         # 获取集群信息并计算对应关系
         sub_get_kwargs.get_cluster_info_deinstall(cluster_id=info["cluster_id"])
 
-        # 获取密码
-        get_password = {}
-        get_password["usernames"] = sub_get_kwargs.manager_users
-        sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
-
         # 获取key_file
         sub_get_kwargs.cluster_type = sub_get_kwargs.payload["cluster_type"]
         sub_get_kwargs.replicaset_info["key_file"] = sub_get_kwargs.get_conf(
@@ -72,8 +67,15 @@ def increase_mongod(
         for shard in sub_get_kwargs.payload["shards_nodes"]:
             if shard["shard"] == shard_name:
                 sub_get_kwargs.payload["operation_node"] = shard["nodes"][0]
+                # 获得相同分片的主机信息，为获取密码做准备
+                sub_get_kwargs.payload["nodes"] = shard["nodes"]
                 break
         operation_node = sub_get_kwargs.payload["operation_node"]
+
+    # 获取密码
+    get_password = {}
+    get_password["usernames"] = sub_get_kwargs.manager_users
+    sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
 
     sub_get_kwargs.replicaset_info["port"] = node["port"]
     # 新节点作为执行操作节点

@@ -15,6 +15,7 @@ from typing import List
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
+from rest_framework import serializers
 
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
@@ -24,8 +25,16 @@ from backend.db_services.dbpermission.constants import RuleActionType
 from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
 
 logger = logging.getLogger("flow")
+
+
+class AuthResultSerializer(BaseFlowOutputSerializer):
+    hidden = True
+    table_name = "authorize_results"
+
+    message = serializers.CharField(label=_("授权结果"))
 
 
 class AuthorizeRulesV2(BaseService):
@@ -113,7 +122,10 @@ class AuthorizeRulesV2(BaseService):
         resp = self._authorize(authorize_data)
         result = resp["code"] == 0
         self.log_info(resp["message"])
-        self.set_flow_output(root_id=root_id, key="authorize_results", value=resp["message"])
+
+        # 仅针对错误，记录授权结果
+        if not result:
+            FlowOutputHandler(slz=AuthResultSerializer).insert_data(root_id=root_id, data={"message": resp["message"]})
 
         # 打印授权结果详情链接下载
         # 下载excel的url中，mysql和tendbcluster同用一个路由

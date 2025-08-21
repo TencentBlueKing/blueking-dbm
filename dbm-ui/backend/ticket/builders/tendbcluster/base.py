@@ -9,13 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import MAX_SPIDER_MASTER_COUNT, MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
+from backend.flow.utils.spider.spider_bk_config import calc_spider_max_count, get_spider_version_and_charset
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
@@ -99,6 +101,16 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 continue
 
             # 获取当前存在的spider master/spider mnt 节点数量 以及 新加入的节点数量
+            # 获取集群当前spider_master部署数量上限
+            # 获取Spider版本号
+            __, spider_version = get_spider_version_and_charset(cluster.bk_biz_id, cluster.db_module_id)
+            upper_limit_count = calc_spider_max_count(
+                bk_biz_id=cluster.bk_biz_id,
+                db_module_id=cluster.db_module_id,
+                db_version=spider_version,
+                immute_domain=cluster.immute_domain,
+            )
+
             spider_master_mnt_count = cluster.proxyinstance_set.filter(
                 Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
                 | Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT)
@@ -112,8 +124,11 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                     spider_ip_list["count"] = len(spider_ip_list["hosts"])
                 new_add_count = spider_ip_list["count"]
 
-            if spider_master_mnt_count + new_add_count > MAX_SPIDER_MASTER_COUNT:
-                raise serializers.ValidationError(_("【{}】请保证集群部署的接入层主节点和运维节点的总和小于37").format(cluster.name))
+            if (spider_master_mnt_count + new_add_count) * 2 > upper_limit_count:
+
+                raise serializers.ValidationError(
+                    _("【{}】请确保集群扩容接入层后主节点和运维节点的总和小于等于集群【{}】上限的一半").format(cluster.immute_domain, upper_limit_count)
+                )
 
     def validate_min_spider_count(self, attrs):
         """校验缩容后，spider节点能满足最小限度"""
@@ -125,7 +140,7 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 tendbclusterspiderext__spider_role=info["reduce_spider_role"]
             ).count()
 
-            if not info.get("spider_reduced_to_count"):
+            if info.get("spider_reduced_to_count") is None:
                 info["spider_reduced_to_count"] = spider_node_count - len(info["old_nodes"]["spider_reduced_hosts"])
 
             spider_reduced_to_count = info["spider_reduced_to_count"]
@@ -161,8 +176,40 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 )
             )
 
+    @classmethod
+    def validate_spider_count_for_apply(cls, bk_biz_id, attrs):
+        """
+        针对集群部署单据，校验spider_master初始化部署数量是否符合要求
+        这里的数量要求是：不能操作集群上限的一半
+        """
+        result, upper_limit_count = MysqlBaseValidator.pre_check_spider_master_count(
+            bk_biz_id=int(bk_biz_id),
+            db_module_id=int(attrs["db_module_id"]),
+            ready_to_add_count=int(attrs["resource_spec"]["spider"]["count"]) * 2,
+            existing_count=0,
+        )
+        if not result:
+            raise serializers.ValidationError(
+                _("部署的spider_master节点数量[{}]，禁止超过集群上限[{}]的一半").format(
+                    attrs["resource_spec"]["spider"]["count"], upper_limit_count
+                )
+            )
+
     def validate_cluster_can_access(self, attrs):
         return super().validate_cluster_can_access(attrs=attrs)
+
+
+class TendbSingleOpsBaseDetailSerializer(TendbBaseOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    spider_role = serializers.CharField(help_text=_("接入层角色"), required=False)
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        super().validate(attrs)
+        return attrs
 
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):

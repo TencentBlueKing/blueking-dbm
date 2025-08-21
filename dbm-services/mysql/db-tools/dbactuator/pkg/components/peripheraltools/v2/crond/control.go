@@ -1,12 +1,13 @@
 package crond
 
 import (
-	"dbm-services/common/go-pubpkg/cmutil"
 	"fmt"
 	"os/exec"
 	"os/user"
 	"path"
 	"path/filepath"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/pkg/errors"
 
@@ -14,10 +15,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
-
-func (c *MySQLCrondComp) Stop() (err error) {
-	return Stop()
-}
 
 func Stop() (err error) {
 	var cmd *exec.Cmd
@@ -48,11 +45,6 @@ func Stop() (err error) {
 	return nil
 }
 
-// Start 启动进程
-func (c *MySQLCrondComp) Start() (err error) {
-	return Start()
-}
-
 func Start() (err error) {
 	chownCmd := fmt.Sprintf(`chown -R mysql %s`, cst.MySQLCrondInstallPath)
 	_, err = osutil.ExecShellCommand(false, chownCmd)
@@ -77,7 +69,7 @@ func Start() (err error) {
 
 		startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
 		errStrPrefix := fmt.Sprintf("grep error from %s", startErrFilePath)
-		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, true).MatchWords(
+		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, false).MatchWords(
 			[]string{"ERROR", "panic"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Info(errStrPrefix)

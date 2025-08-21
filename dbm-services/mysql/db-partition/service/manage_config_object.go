@@ -70,7 +70,7 @@ type CreatePartitionsInput struct {
 	ClusterType           string   `json:"cluster_type"` // 集群类型
 	ImmuteDomain          string   `json:"immute_domain"`
 	Port                  int      `gorm:"column:port"`
-	BkCloudId             int      `gorm:"column:bk_cloud_id"`
+	BkCloudId             int      `gorm:"column:bk_cloud_id" json:"bk_cloud_id"`
 	ClusterId             int      `json:"cluster_id"` // 集群id 上架集群后，会有唯一id对应
 	DbLikes               []string `json:"dblikes"`
 	TbLikes               []string `json:"tblikes"`

@@ -31,10 +31,13 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_remote_sub_flow import (
+    priv_recover_sub_flow,
+    remote_instance_migrate_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import priv_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     ALLDEPARTS,
@@ -43,7 +46,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
-from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
@@ -211,6 +213,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                 "new_master_ip": self.data["new_master_ip"],
                 "new_slave_ip": self.data["new_slave_ip"],
                 "bk_cloud_id": cluster_class.bk_cloud_id,
+                # "master_spec_config": self.data["resource_spec"]["master"],
+                # "slave_spec_config": self.data["resource_spec"]["slave"],
             }
             install_sub_pipeline.add_act(
                 act_name=_("安装完毕,写入初始化实例的db_meta元信息"),

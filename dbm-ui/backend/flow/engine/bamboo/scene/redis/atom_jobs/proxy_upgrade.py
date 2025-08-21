@@ -35,7 +35,8 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
     ### SubBuilder: 集群所有proxy升级版本
     Args:
         param (Dict): {
-            "cluster_domain": "cache.test.testapp.db"
+            "cluster_domain": "cache.test.testapp.db",
+            "target_version" (optional): "twemproxy-0.4.1-v29"
         }
     """
     cluster_ips_set = set()
@@ -48,7 +49,21 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
     act_kwargs = deepcopy(sub_kwargs)
     act_kwargs.cluster = {}
     trans_files = GetFileList(db_type=DBType.Redis)
-    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type)
+
+    proxy_pkg_prefix = param.get("target_version", None)
+    if proxy_pkg_prefix:
+        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, proxy_pkg_prefix)
+    else:
+        # If not specified, we upgrade proxy to the latest.
+        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type)
+
+        # This in fact extract the whole file name instead of prefix only, but it also works.
+        def extract_file_name(path: str):
+            parts = path.split("/")
+            return parts[-1] if parts else ""
+
+        # The second file is the proxy pkg.
+        proxy_pkg_prefix = extract_file_name(act_kwargs.file_list[1])
 
     sub_pipeline.add_act(
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
@@ -76,6 +91,7 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
             "port": cluster_info["cluster_port"],
             "password": cluster_info["cluster_password"],
             "cluster_type": cluster.cluster_type,
+            "proxy_pkg_prefix": proxy_pkg_prefix,
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_proxy_upgrade_online_payload.__name__
         acts_list.append(

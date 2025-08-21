@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"dbm-services/common/reverseapi"
 	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
 	reversemysqldef "dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/common/reverseapi/pkg/core"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
@@ -11,6 +11,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -29,7 +30,12 @@ var subCmdGenConfig = &cobra.Command{
 		bkCloudId := viper.GetInt("bk-cloud-id")
 		ports := viper.GetIntSlice("port")
 
-		apiCore := reverseapi.NewCoreWithAddr(int64(bkCloudId), nginxAddrs...)
+		apiCore, err := core.NewCoreWithAddr(int64(bkCloudId), nginxAddrs, core.DefaultRetryOpts...)
+		if err != nil {
+			return err
+		}
+		apiCore.SetTimeout(60)
+
 		data, err := reversemysqlapi.ChecksumConfig(apiCore, ports...)
 		if err != nil {
 			return err
@@ -93,12 +99,6 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 		ptChecksumPath = tl.MustGet(tools.ToolPtTableChecksum)
 	}
 
-	var ignoreDbs []string
-	ignoreDbs = append(ignoreDbs, cfg.SystemDbs...)
-	ignoreDbs = append(ignoreDbs, fmt.Sprintf(`%s%%`, cfg.StageDBHeader))
-	ignoreDbs = append(ignoreDbs, `bak_%`) // gcs/scr truncate header
-	ignoreDbs = append(ignoreDbs, fmt.Sprintf(`%%%s`, cfg.RollbackDBTail))
-
 	rcfg := config.Config{
 		BkBizId: cfg.BkBizId,
 		Cluster: config.Cluster{
@@ -121,7 +121,7 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 			Args: []map[string]interface{}{
 				{
 					"name":  "run-time",
-					"value": fmt.Sprintf("%dh", 2),
+					"value": cfg.Runtime,
 				},
 			},
 			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),
@@ -135,14 +135,24 @@ func generateOneRuntimeConfig(cfg *reversemysqldef.ChecksumConfig) error {
 		},
 		Schedule: cfg.Schedule,
 		ApiUrl:   cfg.ApiUrl,
-		Enable:   true, //cfg.Enable,
+		Enable:   true,
 	}
 
 	if cfg.Enable != nil && *cfg.Enable == false {
 		rcfg.Enable = false
 	}
 
-	rcfg.SetFilter(nil, ignoreDbs, nil, nil)
+	var ignoreDbs []string
+	ignoreDbs = append(ignoreDbs, cfg.Filter.IgnoreDatabases...)
+	ignoreDbs = append(ignoreDbs, cfg.Filter.IgnoreDatabasesRegex...)
+	ignoreDbs = append(ignoreDbs, `bak_%`)
+	slog.Info("generate one runtime config", slog.Any("ignoreDbs", ignoreDbs))
+	rcfg.SetFilter(
+		append(cfg.Filter.Databases, cfg.Filter.DatabasesRegex...),
+		ignoreDbs,
+		append(cfg.Filter.Tables, cfg.Filter.TablesRegex...),
+		append(cfg.Filter.IgnoreTables, cfg.Filter.IgnoreTablesRegex...),
+	)
 
 	b, err := yaml.Marshal(rcfg)
 	if err != nil {

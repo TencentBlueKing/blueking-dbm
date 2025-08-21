@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.ip"
-      :placeholder="t('请输入IP')" />
+      :placeholder="t('请输入IP')"
+      @change="handleChange" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
@@ -47,7 +48,7 @@
   import { checkInstance } from '@services/source/dbbase';
   import { getRedisClusterList } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -76,21 +77,13 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
     cluster_id: number;
     ip: string;
     master_domain: string;
     role: string;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_id: 0,
-      ip: '',
-      master_domain: '',
-      role: 'proxy',
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -147,34 +140,24 @@
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机重复'),
       trigger: 'change',
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      validator: (value: string) => !value || props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
     },
     {
-      message: t('非接入层 IP'),
+      message: t('主机不包含任何 Proxy 实例'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return modelValue.value.role === 'proxy';
-      },
+      validator: (value: string) => !value || modelValue.value.role === 'proxy',
     },
   ];
 
@@ -187,9 +170,9 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: item.bk_cloud_id,
           bk_host_id: item.bk_host_id,
-          cluster_id: item.related_clusters[0].id,
+          cluster_id: item.cluster_id,
           ip: item.ip,
-          master_domain: item.related_clusters[0].immute_domain,
+          master_domain: item.master_domain,
           role: item.role,
         };
       }
@@ -200,22 +183,36 @@
     showSelector.value = true;
   };
 
+  const handleChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      cluster_id: 0,
+      ip: value,
+      master_domain: '',
+      role: '',
+    };
+  };
+
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
     emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
 
   watch(
-    () => modelValue.value.ip,
-    (value) => {
-      modelValue.value = {
-        ...modelValue.value,
-        bk_host_id: undefined,
-        ip: value,
-      };
-      if (value) {
+    modelValue,
+    () => {
+      if (!modelValue.value.bk_host_id && modelValue.value.ip) {
         queryHost({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          instance_addresses: [value],
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ],
+          db_type: DBTypes.REDIS,
+          instance_addresses: [modelValue.value.ip],
         });
       }
     },

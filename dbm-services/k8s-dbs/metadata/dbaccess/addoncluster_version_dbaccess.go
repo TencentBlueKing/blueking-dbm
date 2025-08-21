@@ -22,9 +22,9 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
+	mconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
-	mconst "k8s-dbs/metadata/constant"
-	models "k8s-dbs/metadata/dbaccess/model"
+	models "k8s-dbs/metadata/model"
 
 	"gorm.io/gorm"
 )

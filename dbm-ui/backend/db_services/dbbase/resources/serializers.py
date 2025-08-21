@@ -80,8 +80,13 @@ class SearchResourceTreeSLZ(serializers.Serializer):
 
 class InstanceAddressSerializer(serializers.Serializer):
     instance = serializers.CharField(help_text=_("实例地址(ip:port)"), required=False)
+    instance_address = serializers.CharField(help_text=_("实例地址(ip:port-兼容字段)"), required=False)
     ip = serializers.CharField(help_text=_("IP"), required=False)
     port = serializers.CharField(help_text=_("端口"), required=False)
+
+    def to_internal_value(self, data):
+        data["instance"] = data.get("instance") or data.get("instance_address", "")
+        return super().to_internal_value(data)
 
 
 class ListInstancesSerializer(InstanceAddressSerializer):
@@ -95,6 +100,8 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     name = serializers.CharField(help_text=_("名称"), required=False)
     version = serializers.CharField(help_text=_("版本"), required=False)
     extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
+    # spider额外参数
+    spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):

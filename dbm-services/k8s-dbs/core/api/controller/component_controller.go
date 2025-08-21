@@ -20,10 +20,14 @@ limitations under the License.
 package controller
 
 import (
-	coreconst "k8s-dbs/common/api/constant"
+	"k8s-dbs/common/api"
+	coreconst "k8s-dbs/common/constant"
+	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
 	"k8s-dbs/core/provider"
+	coreresp "k8s-dbs/core/vo/response"
+	"k8s-dbs/errors"
+	metaresp "k8s-dbs/metadata/vo/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,15 +47,66 @@ func NewComponentController(componentProvider *provider.ComponentProvider) *Comp
 // DescribeComponent 查看组件详情
 func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 	request := &coreentity.Request{}
-	err := ctx.BindJSON(&request)
-	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
 	responseData, err := c.componentProvider.DescribeComponent(request)
 	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewGlobalError(errors.DescribeComponentError, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
-	coreentity.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, coreconst.Success)
+}
+
+// ListPods 获取实例列表
+func (c *ComponentController) ListPods(ctx *gin.Context) {
+	pagination, err := commutil.BuildPagination(ctx)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		return
+	}
+	var componentParams coreentity.ComponentQueryParams
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &componentParams, nil); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		return
+	}
+	pods, count, err := c.componentProvider.ListPods(&componentParams, pagination)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		return
+	}
+	var responseData = metaresp.PageResult{
+		Count:  count,
+		Result: pods,
+	}
+	api.SuccessResponse(ctx, responseData, coreconst.Success)
+}
+
+// GetComponentService 获取组件连接信息
+func (c *ComponentController) GetComponentService(ctx *gin.Context) {
+	var svcEntity coreentity.K8sSvcEntity
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
+		return
+	}
+	internalServices, err := c.componentProvider.GetComponentInternalSvc(&svcEntity)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
+		return
+	}
+	externalServices, err := c.componentProvider.GetComponentExternalSvc(&svcEntity)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetComponentSvcError, err))
+		return
+	}
+	data := coreresp.K8sComponentSvcResponse{
+		K8sClusterName:      svcEntity.K8sClusterName,
+		ClusterName:         svcEntity.ClusterName,
+		Namespace:           svcEntity.Namespace,
+		ComponentName:       svcEntity.ComponentName,
+		InternalServiceInfo: internalServices,
+		ExternalServiceInfo: externalServices,
+	}
+	api.SuccessResponse(ctx, data, coreconst.Success)
 }

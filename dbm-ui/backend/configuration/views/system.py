@@ -31,6 +31,7 @@ from backend.configuration.serializers import (
     UpdateDutyNoticeSerializer,
 )
 from backend.db_meta.models import AppCache
+from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -116,6 +117,8 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "BK_DBM_URL": env.BK_SAAS_HOST,
             "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
             "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
+            "RESOURCE_INDEPENDENT_BIZ": get_resource_biz(),
+            "RESOURCE_INDEPENDENT_BIZ_NAME": AppCache.get_biz_name(get_resource_biz()),
             "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO),
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,

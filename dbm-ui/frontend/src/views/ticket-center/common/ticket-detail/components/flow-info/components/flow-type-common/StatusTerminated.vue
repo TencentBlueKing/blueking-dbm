@@ -7,33 +7,28 @@
       <slot name="title"> {{ data.flow_type_display }} </slot>
     </template>
     <template #content>
-      <!-- 如果有 err_code 为 3 忽略 flow 和 todo 的信息 -->
+      <!-- 人工终止 -->
       <slot
         v-if="data.err_code !== 3"
         name="content">
-        <TodoList
-          v-if="renderTodoList.length > 0"
-          :data="renderTodoList"
-          :flow-data="data" />
-        <div v-else>
-          <I18nT
-            keypath="m_耗时_t"
-            scope="global">
-            <span style="color: #ea3636">{{ t('任务终止') }}</span>
-            <CostTimer
-              :is-timing="false"
-              :start-time="utcTimeToSeconds(data.start_time)"
-              :value="data.cost_time" />
-          </I18nT>
-          <template v-if="data.url">
-            <span> ，</span>
-            <a
-              :href="data.url"
-              target="_blank">
-              {{ t('查看详情') }}
-            </a>
-          </template>
-        </div>
+        <I18nT
+          keypath="n 已处理_c_耗时 t"
+          scope="global">
+          <span>{{ ticketDetail.updater }}</span>
+          <span style="color: #ea3636">{{ t('人工终止') }}</span>
+          <CostTimer
+            :is-timing="false"
+            :start-time="utcTimeToSeconds(data.start_time)"
+            :value="data.cost_time" />
+        </I18nT>
+        <template v-if="data.url">
+          <span> ，</span>
+          <a
+            :href="data.url"
+            target="_blank">
+            {{ t('查看详情') }}
+          </a>
+        </template>
       </slot>
       <!-- 系统自动终止 -->
       <template v-if="data.err_code === 3">
@@ -51,11 +46,26 @@
           </template>
         </div>
       </template>
+      <div
+        v-if="data.context.remark"
+        style="margin-top: 12px; line-height: 16px; color: #63656e">
+        <I18nT
+          keypath="备注：c"
+          scope="global">
+          <span>{{ data.context.remark }}</span>
+        </I18nT>
+      </div>
       <FlowCollapse
         v-if="data.err_msg"
         danger
         :title="t('失败原因')">
-        <div style="padding-left: 16px">
+        <div
+          class="pl-16"
+          :style="{
+            'white-space': 'pre-wrap',
+            'max-height': `${errMessageMaxHeight}px`,
+            overflow: 'auto',
+          }">
           {{ data.err_msg }}
         </div>
       </FlowCollapse>
@@ -74,19 +84,20 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import { utcTimeToSeconds } from '@utils';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
-  import TodoList from '../todo-list/Index.vue';
 
   import Abstract from './components/abstract/Index.vue';
   import FlowCollapse from './components/FlowCollapse.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
+    ticketDetail: TicketModel;
   }
 
   defineOptions({
@@ -105,4 +116,6 @@
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
   );
+
+  const errMessageMaxHeight = window.innerHeight * 0.4;
 </script>

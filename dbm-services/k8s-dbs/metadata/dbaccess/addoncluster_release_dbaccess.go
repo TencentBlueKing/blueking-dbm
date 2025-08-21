@@ -22,9 +22,9 @@ package dbaccess
 import (
 	"errors"
 	"fmt"
-	"k8s-dbs/common/entity"
-	models "k8s-dbs/metadata/dbaccess/model"
-	"log"
+	commentity "k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
+	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -32,12 +32,12 @@ import (
 
 // AddonClusterReleaseDbAccess 定义 AddonClusterRelease 元数据的数据库访问接口
 type AddonClusterReleaseDbAccess interface {
-	Create(model *models.AddonClusterReleaseModel) (*models.AddonClusterReleaseModel, error)
+	Create(model *metamodel.AddonClusterReleaseModel) (*metamodel.AddonClusterReleaseModel, error)
 	DeleteByID(id uint64) (uint64, error)
-	FindByID(id uint64) (*models.AddonClusterReleaseModel, error)
-	FindByParams(params map[string]interface{}) (*models.AddonClusterReleaseModel, error)
-	Update(model *models.AddonClusterReleaseModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.AddonClusterReleaseModel, int64, error)
+	FindByID(id uint64) (*metamodel.AddonClusterReleaseModel, error)
+	FindByParams(params *metaentity.ClusterReleaseQueryParams) (*metamodel.AddonClusterReleaseModel, error)
+	Update(model *metamodel.AddonClusterReleaseModel) (uint64, error)
+	ListByPage(pagination commentity.Pagination) ([]metamodel.AddonClusterReleaseModel, int64, error)
 }
 
 // AddonClusterReleaseDbAccessImpl AddonClusterReleaseDbAccess 的具体实现
@@ -46,8 +46,8 @@ type AddonClusterReleaseDbAccessImpl struct {
 }
 
 // Create 创建 AddonCluster Release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) Create(model *models.AddonClusterReleaseModel) (
-	*models.AddonClusterReleaseModel, error,
+func (a *AddonClusterReleaseDbAccessImpl) Create(model *metamodel.AddonClusterReleaseModel) (
+	*metamodel.AddonClusterReleaseModel, error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
 		slog.Error("Create model error", "error", err)
@@ -58,7 +58,7 @@ func (a *AddonClusterReleaseDbAccessImpl) Create(model *models.AddonClusterRelea
 
 // DeleteByID 删除 AddonCluster Release 元数据接口实现
 func (a *AddonClusterReleaseDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
-	result := a.db.Delete(&models.AddonClusterReleaseModel{}, id)
+	result := a.db.Delete(&metamodel.AddonClusterReleaseModel{}, id)
 	if result.Error != nil {
 		slog.Error("Delete model error", "error", result.Error.Error())
 		return 0, result.Error
@@ -67,8 +67,8 @@ func (a *AddonClusterReleaseDbAccessImpl) DeleteByID(id uint64) (uint64, error) 
 }
 
 // FindByID 查找 AddonCluster Release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) FindByID(id uint64) (*models.AddonClusterReleaseModel, error) {
-	var model models.AddonClusterReleaseModel
+func (a *AddonClusterReleaseDbAccessImpl) FindByID(id uint64) (*metamodel.AddonClusterReleaseModel, error) {
+	var model metamodel.AddonClusterReleaseModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
 		slog.Error("Find model error", "error", result.Error.Error())
@@ -78,28 +78,23 @@ func (a *AddonClusterReleaseDbAccessImpl) FindByID(id uint64) (*models.AddonClus
 }
 
 // FindByParams 根据参数查找 addon cluster release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) FindByParams(params map[string]interface{}) (
-	*models.AddonClusterReleaseModel,
+func (a *AddonClusterReleaseDbAccessImpl) FindByParams(params *metaentity.ClusterReleaseQueryParams) (
+	*metamodel.AddonClusterReleaseModel,
 	error,
 ) {
-	var clusterRelease models.AddonClusterReleaseModel
-
-	// 动态条件查询
+	var clusterRelease metamodel.AddonClusterReleaseModel
 	result := a.db.Where(params).First(&clusterRelease)
-
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("cluster release not found")
 	}
 	if result.Error != nil {
-		log.Printf("Query cluster release error: %v", result.Error)
 		return nil, result.Error
 	}
-
 	return &clusterRelease, nil
 }
 
 // Update 更新 AddonCluster Release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) Update(model *models.AddonClusterReleaseModel) (uint64, error) {
+func (a *AddonClusterReleaseDbAccessImpl) Update(model *metamodel.AddonClusterReleaseModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
 		slog.Error("Update model error", "error", result.Error.Error())
@@ -109,12 +104,12 @@ func (a *AddonClusterReleaseDbAccessImpl) Update(model *models.AddonClusterRelea
 }
 
 // ListByPage 分页查询 AddonCluster Release 元数据接口实现
-func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.AddonClusterReleaseModel,
+func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination commentity.Pagination) (
+	[]metamodel.AddonClusterReleaseModel,
 	int64,
 	error,
 ) {
-	var releaseModels []models.AddonClusterReleaseModel
+	var releaseModels []metamodel.AddonClusterReleaseModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
 		slog.Error("List release error", "error", err.Error())
 		return nil, 0, err

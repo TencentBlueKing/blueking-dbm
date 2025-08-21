@@ -292,7 +292,7 @@ func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 			MasterPort: l.cnf.Public.MysqlPort,
 		}
 	}
-	masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+	masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
 	if err != nil {
 		logger.Log.Warnf("can not get show slave status, host:%s, port:%d, errmsg:%s",
 			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)

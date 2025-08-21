@@ -58,8 +58,10 @@ func (task *BackupTask) Do(option *BackupTaskOption) error {
 	if option.RemoveOldFileFirst {
 		cb.Append("--remove-old-file-first")
 	}
+	// 打印不隐藏密码的命令. Debug级别. 用于调试
+	mylog.Logger.Debug(fmt.Sprintf("cmdLine: %s", cb.GetCmdLine("", false)))
 
-	cmdLine := cb.GetCmdLine("", false)
+	cmdLine := cb.GetCmdLine("", true)
 	mylog.Logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
 	cmd := cb.GetCmd()

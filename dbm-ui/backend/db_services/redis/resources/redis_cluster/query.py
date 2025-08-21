@@ -15,12 +15,14 @@ from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import ClusterEntryType, InstanceRole
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
@@ -28,7 +30,8 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.resources.constants import SQL_QUERY_MASTER_SLAVE_STATUS
+from backend.db_services.redis.redis_dts.util import get_redis_type_by_cluster_type
+from backend.db_services.redis.resources.constants import REDIS_DELETE_RATE, SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.utils.basic import dictfetchall
 
 
@@ -116,6 +119,12 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             .order_by("-create_at")
             .values_list("ejector", "receiver")
         )
+
+        delete_rate_configs = SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.REDIS_DELETE_RATE.value,
+            default=REDIS_DELETE_RATE,
+        )
+        kwargs["delete_rate_configs"] = delete_rate_configs
         # 获取实例id对应的分片信息
         for t in instance_tuple:
             if t[0] in seg_range_map:
@@ -143,11 +152,13 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
+        dns_to_clb: bool = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
         seg_range_map = kwargs["seg_range_map"]
         instance_tuple = kwargs["instance_tuple"]
+        delete_rate_configs = kwargs["delete_rate_configs"]
         # 填充分片信息
         remote_infos = {InstanceRole.REDIS_MASTER.value: [], InstanceRole.REDIS_SLAVE.value: []}
         for inst in cluster.storages:
@@ -185,26 +196,17 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             cluster_spec = model_to_dict(spec) if spec else {}
             cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
-        # dns是否指向clb
-        dns_to_clb = any(
-            entry.cluster_entry_type == ClusterEntryType.DNS.value
-            and entry.entry == cluster.immute_domain
-            and entry.forward_to is not None
-            and entry.forward_to.cluster_entry_type == ClusterEntryType.CLB.value
-            for entry in cluster.entries
-        )
-
         # 集群额外信息
         cluster_extra_info = {
             "cluster_spec": cluster_spec,
             "cluster_capacity": cluster_capacity,
-            "dns_to_clb": dns_to_clb,
             "proxy": [m.simple_desc for m in cluster.proxies],
             "redis_master": remote_infos[InstanceRole.REDIS_MASTER.value],
             "redis_slave": remote_infos[InstanceRole.REDIS_SLAVE.value],
             "cluster_shard_num": len(remote_infos[InstanceRole.REDIS_MASTER.value]),
             "machine_pair_cnt": machine_pair_cnt,
             "module_names": kwargs.get("redis_cluster_module_map", {}).get(cluster.id, []),
+            "delete_rate": delete_rate_configs[get_redis_type_by_cluster_type(cluster.cluster_type)],
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
@@ -215,6 +217,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
             cloud_info,
             biz_info,
             cluster_stats_map,
+            dns_to_clb,
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info

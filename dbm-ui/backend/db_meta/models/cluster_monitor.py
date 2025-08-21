@@ -187,6 +187,8 @@ class AppMonitorTopo(AuditedModel):
     @classmethod
     def get_set_by_dbtype(cls, db_type):
         """获取指定db_type的拓扑配置"""
+        # tendbcluster主机都放在mysql模块
+        db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
         topos = cls.objects.filter(db_type=db_type)
         # tbinlogdumper 归属于 MySQL，比较特殊，此处做一个转换
         if db_type == DBType.TBinlogDumper.value:

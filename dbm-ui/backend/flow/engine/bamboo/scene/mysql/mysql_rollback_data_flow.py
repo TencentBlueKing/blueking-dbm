@@ -211,7 +211,7 @@ class MySQLRollbackDataFlow(object):
 
             # 远程备份+时间
             elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-                rollback_handler = FixPointRollbackHandler(cluster_class.id)
+                rollback_handler = FixPointRollbackHandler(cluster_class.id, check_full_backup=True)
                 backupinfo = rollback_handler.query_latest_backup_log(str2datetime(mycluster["rollback_time"]))
                 if backupinfo is None:
                     logger.error("cluster {} backup info not exists".format(cluster_class.id))
@@ -314,7 +314,7 @@ class MySQLRollbackDataFlow(object):
                     raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
 
             elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-                rollback_handler = FixPointRollbackHandler(cluster_class.id)
+                rollback_handler = FixPointRollbackHandler(cluster_class.id, check_full_backup=True)
                 backupinfo = rollback_handler.query_latest_backup_log(str2datetime(self.data["rollback_time"]))
                 if backupinfo is None:
                     logger.error("cluster {} backup info not exists".format(cluster_class.id))

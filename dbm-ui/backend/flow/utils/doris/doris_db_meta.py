@@ -44,18 +44,21 @@ class DorisDBMeta(object):
         self.role_machine_dict = {
             DorisRoleEnum.HOT.value: MachineType.DORIS_BACKEND.value,
             DorisRoleEnum.COLD.value: MachineType.DORIS_BACKEND.value,
+            DorisRoleEnum.WARM.value: MachineType.DORIS_BACKEND.value,
             DorisRoleEnum.FOLLOWER.value: MachineType.DORIS_FOLLOWER.value,
             DorisRoleEnum.OBSERVER.value: MachineType.DORIS_OBSERVER.value,
         }
         self.role_instance_dict = {
             DorisRoleEnum.HOT.value: InstanceRole.DORIS_BACKEND_HOT.value,
             DorisRoleEnum.COLD.value: InstanceRole.DORIS_BACKEND_COLD.value,
+            DorisRoleEnum.WARM.value: InstanceRole.DORIS_BACKEND_WARM.value,
             DorisRoleEnum.FOLLOWER.value: InstanceRole.DORIS_FOLLOWER.value,
             DorisRoleEnum.OBSERVER.value: InstanceRole.DORIS_OBSERVER.value,
         }
         self.role_port_dict = {
             DorisRoleEnum.HOT.value: DEFAULT_BE_WEB_PORT,
             DorisRoleEnum.COLD.value: DEFAULT_BE_WEB_PORT,
+            DorisRoleEnum.WARM.value: DEFAULT_BE_WEB_PORT,
             DorisRoleEnum.FOLLOWER.value: ticket_data.get("query_port", 0),
             DorisRoleEnum.OBSERVER.value: ticket_data.get("query_port", 0),
         }
@@ -120,6 +123,7 @@ class DorisDBMeta(object):
             "storages": storage_instances,
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
+            "region": self.ticket_data["city_code"],
         }
 
         with atomic():

@@ -141,9 +141,9 @@ func registerCrontab(localcron *cron.Cron) {
 			Name: "同步主机硬件信息",
 			Spec: "20 */12 * * *",
 			Func: func() {
-				logger.Info("Start sync machine hardinfo .....")
+				logger.Info("Start sync machine hardware information .....")
 				if err := task.AsyncResourceHardInfo(); err != nil {
-					logger.Error("async machine hardinfo failed:%s", err.Error())
+					logger.Error("async machine hardware information failed:%s", err.Error())
 				}
 			},
 		},
@@ -152,7 +152,16 @@ func registerCrontab(localcron *cron.Cron) {
 			Spec: " 0 3 * * *",
 			Func: func() {
 				if err := model.SyncDbRpDailySnapShot(); err != nil {
-					logger.Error("async machine softinfo failed:%s", err.Error())
+					logger.Error("async machine snapshot failed:%s", err.Error())
+				}
+			},
+		},
+		{
+			Name: "检查故障主机",
+			Spec: "@every 12h",
+			Func: func() {
+				if err := task.FaultHostCheck(); err != nil {
+					logger.Error("check fault hosts failed %s", err.Error())
 				}
 			},
 		},
@@ -172,10 +181,7 @@ func initLogger() (err error) {
 	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
-	defer func() {
-		if errx := l.Sync(); errx != nil {
-			logger.Warn("sync log failed %v", errx)
-		}
-	}()
+	// nolint
+	defer l.Sync()
 	return
 }

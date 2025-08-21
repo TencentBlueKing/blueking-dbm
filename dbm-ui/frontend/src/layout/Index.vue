@@ -113,6 +113,7 @@
       value: menuEnum.globalConfigManage,
     },
     userProfile.platformManage && {
+      dbConsoleValue: 'platformManage',
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
@@ -142,9 +143,11 @@
       'TicketNoticeSetting',
     ],
     [menuEnum.databaseManage]: [
+      'DbManage',
       'MysqlManage',
       'EsManage',
       'HdfsManage',
+      'OracleManage',
       'InfluxDBManage',
       'KafkaManage',
       'PulsarManage',
@@ -154,10 +157,12 @@
       'MongoDBManage',
       'SqlServerManage',
       'DorisManage',
+      'OracleManage',
       'taskHistory',
       'DatabaseWhitelist',
       'bizTicketManage',
       'DBPasswordTemporaryModify',
+      'BussinessServiceApply',
     ],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
@@ -244,7 +249,6 @@
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
-    console.log('handleCollapse');
   };
 
   const handleMenuChange = (type: string) => {
@@ -331,6 +335,10 @@
     color: #979ba5;
     align-items: center;
     justify-content: flex-end;
+  }
+
+  .db-navigation-side-menu {
+    height: 100%;
   }
 
   .db-navigation-content-header {

@@ -48,6 +48,7 @@ class ErrorCode(object):
     DB_DIRTY_POOL_CODE = "21"
     PROXY_PASS_CODE = "31"
     PROXY_PASS_REVERSE_API_CODE = "32"
+    MYSQL_AUTOFIX_CODE = "77"
 
 
 class AppBaseException(Exception):

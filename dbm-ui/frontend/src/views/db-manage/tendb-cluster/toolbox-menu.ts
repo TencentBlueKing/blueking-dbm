@@ -16,6 +16,7 @@ import { TicketTypes } from '@common/const';
 import { t } from '@locales/index';
 
 export interface MenuChild {
+  bind?: string[];
   dbConsoleValue: string;
   id: string;
   name: string;
@@ -46,13 +47,14 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
-        id: 'spiderMasterSlaveSwap',
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         name: t('主从互切'),
         parentId: 'spider_cluster_maintain',
       },
       {
-        dbConsoleValue: 'tendbCluster.toolbox.masterFailover',
-        id: 'spiderMasterFailover',
+        bind: [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER],
+        dbConsoleValue: 'tendbCluster.toolbox.instanceFailover',
+        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
         name: t('主库故障切换'),
         parentId: 'spider_cluster_maintain',
       },
@@ -64,7 +66,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
-        id: 'SpiderProxyScaleUp',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
         name: t('扩容接入层'),
         parentId: 'spider_cluster_maintain',
       },
@@ -75,14 +77,26 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
+        dbConsoleValue: 'tendbCluster.toolbox.switchNodes',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+        name: t('替换接入层'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
         id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         name: t('迁移主从'),
         parentId: 'spider_cluster_maintain',
       },
       {
+        bind: [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE],
         id: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
         name: t('重建从库'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
+        id: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE,
+        name: t('集群标准化'),
         parentId: 'spider_cluster_maintain',
       },
     ],
@@ -94,7 +108,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
-        id: 'SpiderProxySlaveApply',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
         name: t('部署只读接入层'),
         parentId: 'spider_entry',
       },
@@ -150,6 +164,7 @@ export default [
         parentId: 'spider_fileback',
       },
       {
+        bind: ['spiderFlashback', TicketTypes.TENDBCLUSTER_FLASHBACK],
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
         id: 'spiderFlashback',
         name: t('闪回'),

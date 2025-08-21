@@ -12,7 +12,7 @@ from typing import Any, Dict
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 
 
@@ -70,5 +70,12 @@ def get_ports(cluster_ids: list) -> list:
     cluster_ports = []
     clusters = Cluster.objects.filter(id__in=cluster_ids).all()
     for cluster in clusters:
-        cluster_ports.append(cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port)
+        if cluster.cluster_type == ClusterType.TenDBSingle.value:
+            cluster_ports.append(
+                cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value).port
+            )
+        else:
+            cluster_ports.append(
+                cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port
+            )
     return cluster_ports

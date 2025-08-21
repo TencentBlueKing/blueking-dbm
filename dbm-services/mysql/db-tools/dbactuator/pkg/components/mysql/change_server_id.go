@@ -19,7 +19,7 @@ type ChangeServerIdComp struct {
 	GeneralParam *components.GeneralParam `json:"general"`
 	Params       []ChangeServerId         `json:"extend"`
 
-	//mycnfChange  MycnfChangeParam
+	// mycnfChange  MycnfChangeParam
 	mycnfChange map[int]*MycnfChangeComp
 	// autoCnfFilePath auto.cnf in datadir
 	autoCnfFilePath map[int]string

@@ -71,17 +71,6 @@ def cluster_increase_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs:
     # 获取集群信息并以IP为维度计算对应关系
     sub_get_kwargs.calc_increase_node(info=info)
 
-    # 获取mongos信息
-    mongos_host = sub_get_kwargs.payload["mongos_nodes"][0]
-    sub_get_kwargs.payload["nodes"] = [
-        {"ip": mongos_host["ip"], "port": mongos_host["port"], "bk_cloud_id": mongos_host["bk_cloud_id"]}
-    ]
-
-    # 获取密码
-    get_password = {}
-    get_password["usernames"] = sub_get_kwargs.manager_users
-    sub_get_kwargs.payload["passwords"] = sub_get_kwargs.get_password_from_db(info=get_password)["passwords"]
-
     # 获取key_file
     sub_get_kwargs.cluster_type = sub_get_kwargs.payload["cluster_type"]
     sub_get_kwargs.payload["key_file"] = sub_get_kwargs.get_conf(cluster_name=sub_get_kwargs.payload["cluster_name"])[

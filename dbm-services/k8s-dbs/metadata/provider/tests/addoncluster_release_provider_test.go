@@ -24,9 +24,9 @@ import (
 	"k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"k8s-dbs/metadata/provider"
-	entitys "k8s-dbs/metadata/provider/entity"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +56,7 @@ func TestCreateRelease(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
 	releaseProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
-	release := &entitys.AddonClusterReleaseEntity{
+	release := &metaentity.AddonClusterReleaseEntity{
 		RepoName:           "test-reponame",
 		RepoRepository:     "test-repository",
 		ChartVersion:       "test-chartversion",
@@ -80,7 +80,7 @@ func TestDeleteClusterRelease(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
 	releaseProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
-	release := &entitys.AddonClusterReleaseEntity{
+	release := &metaentity.AddonClusterReleaseEntity{
 		RepoName:           "test-reponame",
 		RepoRepository:     "test-repository",
 		ChartVersion:       "test-chartversion",
@@ -105,7 +105,7 @@ func TestUpdateClusterRelease(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
 	releaseProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
-	release := &entitys.AddonClusterReleaseEntity{
+	release := &metaentity.AddonClusterReleaseEntity{
 		ID:                 1,
 		RepoName:           "test-reponame",
 		RepoRepository:     "test-repository",
@@ -121,7 +121,7 @@ func TestUpdateClusterRelease(t *testing.T) {
 	_, err = releaseProvider.CreateClusterRelease(release)
 	assert.NoError(t, err)
 
-	updateRelease := &entitys.AddonClusterReleaseEntity{
+	updateRelease := &metaentity.AddonClusterReleaseEntity{
 		ID:                 1,
 		RepoName:           "test-reponame2",
 		RepoRepository:     "test-repository2",
@@ -143,7 +143,7 @@ func TestListClusterRelease(t *testing.T) {
 	assert.NoError(t, err)
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
 	releaseProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
-	releases := []entitys.AddonClusterReleaseEntity{
+	releases := []metaentity.AddonClusterReleaseEntity{
 		{
 			RepoName:           "test-reponame",
 			RepoRepository:     "test-repository",
@@ -199,7 +199,7 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 	dbAccess := dbaccess.NewAddonClusterReleaseDbAccess(db)
 	releaseProvider := provider.NewAddonClusterReleaseProvider(dbAccess)
 
-	release := &entitys.AddonClusterReleaseEntity{
+	release := &metaentity.AddonClusterReleaseEntity{
 		RepoName:           "test-reponame",
 		RepoRepository:     "test-repository",
 		ChartVersion:       "test-chartversion",
@@ -214,11 +214,12 @@ func TestGetClusterReleaseByParams(t *testing.T) {
 	_, err = releaseProvider.CreateClusterRelease(release)
 	assert.NoError(t, err)
 
-	params := map[string]interface{}{
-		"k8s_cluster_config_id": 1,
-		"release_name":          "test-release",
-		"namespace":             "test-namespace",
+	params := &metaentity.ClusterReleaseQueryParams{
+		K8sClusterConfigID: 1,
+		ReleaseName:        "test-release",
+		Namespace:          "test-namespace",
 	}
+
 	foundClusterRelease, err := releaseProvider.FindByParams(params)
 	assert.NoError(t, err)
 	assert.Equal(t, release.RepoName, foundClusterRelease.RepoName)

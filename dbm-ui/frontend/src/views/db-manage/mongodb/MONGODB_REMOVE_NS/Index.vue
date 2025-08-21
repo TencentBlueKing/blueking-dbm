@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="mongo-db-clear-page">
+    <div class="mongo-db-clear-page db-toolbox">
       <BkAlert
         closable
         theme="info"
@@ -28,7 +28,7 @@
         style="margin-top: 16px">
         <EditableTable
           ref="editableTable"
-          class="mt16 mb16"
+          class="mt-16 mb-16"
           :model="formData.tableData">
           <EditableRow
             v-for="(item, index) in formData.tableData"
@@ -82,9 +82,16 @@
               :table-data="formData.tableData" />
           </EditableRow>
         </EditableTable>
-        <IgnoreBiz
-          v-model="formData.ignore_business_access"
-          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
+        <BkFormItem
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
+          class="fit-content">
+          <BkCheckbox
+            v-model="formData.ignore_business_access"
+            :false-label="false"
+            true-label>
+            <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
+          </BkCheckbox>
+        </BkFormItem>
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -101,7 +108,7 @@
         :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -120,7 +127,6 @@
   import { TicketTypes } from '@common/const';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

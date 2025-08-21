@@ -14,8 +14,24 @@
         :cluster-type="ClusterTypes.TENDBCLUSTER"
         :data="data.slaveEntryList" />
     </InfoItem>
+    <InfoItem
+      v-if="clbMasterEntry && clbMasterEntry.target_details[0]"
+      label="CLB（Master）">
+      {{ clbMasterEntry.target_details[0]?.clb_ip }}
+      <span>,</span>
+      {{ clbMasterEntry.target_details[0]?.clb_domain }}
+    </InfoItem>
+    <InfoItem
+      v-if="clbSlaveEntry && clbSlaveEntry.target_details[0]"
+      label="CLB（Slave）">
+      {{ clbSlaveEntry.target_details[0]?.clb_ip }}
+      <span>,</span>
+      {{ clbSlaveEntry.target_details[0]?.clb_domain }}
+    </InfoItem>
     <InfoItem :label="t('标签')">
-      <ClusterTag :data="data" />
+      <ClusterTag
+        :data="data"
+        @success="handleSuccess" />
     </InfoItem>
     <InfoItem :label="t('容量使用率')">
       <ClusterStatsCell
@@ -57,7 +73,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import ClusterEntryDetailModel, { type ClbTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
+  import TendbClusterDetailModel from '@services/model/tendbcluster/tendbcluster-detail';
 
   import { ClusterTypes } from '@common/const';
 
@@ -69,15 +86,27 @@
   import UpdateClusterAliasName from '@views/db-manage/common/UpdateClusterAliasName.vue';
 
   interface Props {
-    data: TendbClusterModel;
+    data: TendbClusterDetailModel;
   }
 
   export type Emits = (e: 'refresh') => void;
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const clbMasterEntry = computed(() =>
+    (props.data.cluster_entry_details as ClusterEntryDetailModel<ClbTargetDetails>[]).find(
+      (item) => item.cluster_entry_type === 'clb' && item.role === 'master_entry',
+    ),
+  );
+
+  const clbSlaveEntry = computed(() =>
+    (props.data.cluster_entry_details as ClusterEntryDetailModel<ClbTargetDetails>[]).find(
+      (item) => item.cluster_entry_type === 'clb' && item.role === 'slave_entry',
+    ),
+  );
 
   const handleSuccess = () => {
     emits('refresh');

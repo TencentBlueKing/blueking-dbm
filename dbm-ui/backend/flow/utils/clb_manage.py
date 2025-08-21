@@ -105,3 +105,20 @@ class CLBManage(object):
             logger.error(res)
             return False
         return True
+
+    def get_clb_rs(self) -> list:
+        """
+        获取clb后端的rs记录
+        """
+        res = NameServiceApi.clb_get_target_private_ips(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+            },
+            raw=True,
+        )
+        if res["code"] != 0:
+            return []
+        else:
+            return res["data"]["ips"]

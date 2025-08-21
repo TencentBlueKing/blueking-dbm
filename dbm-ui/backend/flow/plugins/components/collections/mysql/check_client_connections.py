@@ -12,6 +12,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 from backend.flow.utils.mysql.check_client_connections import check_client_connection
 
 
@@ -38,12 +39,17 @@ class CheckClientConnService(BaseService):
                 self.log_error(f"select processlist failed: {res['error_msg']}")
                 return False
 
-            if res["cmd_results"][0]["table_data"]:
-                self.log_error(
-                    f"[{res['address']}] There are also {len(res['cmd_results'][0]['table_data'])} not-system threads"
-                )
+            infos = res["cmd_results"][0]["table_data"]
+            if kwargs.get("is_proxy", False):
+                # 这里做对proxy连接做优化，如果出现dbha账号的链接过滤
+                dbha_user = MySQLAccountMixed.mysql_dbha_account(kwargs["bk_cloud_id"])["user"]
+                self.log_info(f"filter dbha accounts:[{dbha_user}]")
+                infos[:] = [d for d in infos if d.get("User") != dbha_user]
+
+            if infos:
+                self.log_error(f"[{res['address']}] There are also {len(infos)} not-system threads")
                 temp = {"check_address": res["address"]}
-                for i in res["cmd_results"][0]["table_data"]:
+                for i in infos:
                     process_infos.append({**temp, **i})
             else:
                 self.log_info(f"This node [{res['address']}]  passed the checkpoint [check-client-conn]!")

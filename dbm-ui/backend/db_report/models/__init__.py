@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .dbmon_heartbeat_report import DbmonHeartbeatReport
+from .failover_drill_report import FailoverDrillReport
 from .meta_check_report import MetaCheckReport
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redisbackup_check_report import RedisBackupCheckReport

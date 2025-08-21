@@ -15,6 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.configuration.handlers.password import DBPasswordHandler, DBPrivSecurityType
 from backend.flow.consts import DnsOpType, DorisRoleEnum, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -24,8 +25,10 @@ from backend.flow.engine.bamboo.scene.doris.doris_base_flow import (
     get_node_ips_in_ticket_by_role,
     make_meta_host_map,
 )
+from backend.flow.engine.bamboo.scene.doris.doris_resource_flow import DorisResourceFlow, check_doris_resource_env
 from backend.flow.engine.bamboo.scene.doris.exceptions import (
     BeMachineCountException,
+    ResourceUnsupportException,
     RoleMachineCountException,
     RoleMachineCountMustException,
 )
@@ -69,6 +72,12 @@ class DorisApplyFlow(DorisBaseFlow):
         flow_data["cluster_alias"] = self.cluster_alias
         flow_data["nodes"] = self.nodes
 
+        # 重置root admin 密码，与界面默认用户 密码不同
+        admin_password = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.DORIS_PASSWORD)
+        root_password = DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.DORIS_PASSWORD)
+        flow_data["admin_password"] = admin_password
+        flow_data["root_password"] = root_password
+
         master_ip = self.nodes[DorisRoleEnum.FOLLOWER][0]["ip"]
         flow_data["master_fe_ip"] = master_ip
         host_map = make_meta_host_map(flow_data)
@@ -102,7 +111,6 @@ class DorisApplyFlow(DorisBaseFlow):
         doris_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetDorisResourceComponent.code, kwargs=asdict(act_kwargs)
         )
-
         act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=doris_deploy_data)
         doris_pipeline.add_act(
             act_name=_("下发DORIS介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
@@ -115,7 +123,6 @@ class DorisApplyFlow(DorisBaseFlow):
         )
         # 并发执行所有子流程
         doris_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_common_pipelines)
-
         # 启动master follower 初始化元数据
         act_kwargs.exec_ip = doris_deploy_data["master_fe_ip"]
         act_kwargs.doris_role = DorisRoleEnum.FOLLOWER
@@ -125,7 +132,6 @@ class DorisApplyFlow(DorisBaseFlow):
             act_component_code=ExecuteDorisActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
-
         act_kwargs.get_doris_payload_func = DorisActPayload.get_check_start_payload.__name__
         doris_pipeline.add_act(
             act_name=_("检查Master FE {}是否正常启动".format(doris_deploy_data["master_fe_ip"])),
@@ -190,6 +196,29 @@ class DorisApplyFlow(DorisBaseFlow):
         doris_pipeline.add_act(
             act_name=_("添加到DBMeta"), act_component_code=DorisMetaComponent.code, kwargs=asdict(act_kwargs)
         )
+        # 增加创建远程存储资源流程
+        resource_flow = DorisResourceFlow(root_id=self.root_id, data=doris_deploy_data)
+
+        # 无论是否启用冷存储，都会走绑定公共存储资源流程
+        if resource_flow.data_exist_public_resource():
+            bind_only_pipeline = resource_flow.bind_exist_resource_sub_flow(
+                data=doris_deploy_data, res_info=resource_flow.data["public_res"]
+            )
+            doris_pipeline.add_sub_pipeline(bind_only_pipeline.build_sub_process(sub_name=_("关联公共存储资源")))
+
+        if self.data.get("enable_cold_storage"):
+
+            if resource_flow.data_exist_private_resource():
+                # 若单据data里包含独立集群资源信息
+                bind_private_pipeline = resource_flow.bind_exist_resource_sub_flow(
+                    data=doris_deploy_data, res_info=resource_flow.data["private_res"]
+                )
+                doris_pipeline.add_sub_pipeline(bind_private_pipeline.build_sub_process(sub_name=_("关联独立集群存储资源")))
+            else:
+                if not check_doris_resource_env():
+                    raise ResourceUnsupportException()
+                create_res_pipeline = resource_flow.create_resource_sub_flow(data=doris_deploy_data)
+                doris_pipeline.add_sub_pipeline(create_res_pipeline.build_sub_process(sub_name=_("创建Doris冷存储资源")))
 
         doris_pipeline.run_pipeline()
 
@@ -209,9 +238,13 @@ class DorisApplyFlow(DorisBaseFlow):
             logger.error(_("DorisObserver主机数不能为{}".format(DORIS_OBSERVER_NOT_COUNT)))
             raise RoleMachineCountException(doris_role=DorisRoleEnum.OBSERVER, machine_count=DORIS_OBSERVER_NOT_COUNT)
 
-        # 检查数据节点的数量(hot + cold > 1)
+        # 检查数据节点的数量(hot + warm > 1)
         hot_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.HOT))
+        warm_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.WARM))
+        # TODO 兼容保留cold 角色, 后续去掉
         cold_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.COLD))
-        if hot_count + cold_count == DORIS_BACKEND_NOT_COUNT:
-            logger.error(_("Doris数据节点(hot+cold)数量不能为{}".format(DORIS_BACKEND_NOT_COUNT)))
+
+        # if hot_count + warm_count == DORIS_BACKEND_NOT_COUNT:
+        if hot_count + warm_count + cold_count == DORIS_BACKEND_NOT_COUNT:
+            logger.error(_("Doris数据节点(热 + 温)数量不能为{}".format(DORIS_BACKEND_NOT_COUNT)))
             raise BeMachineCountException(must_count=DORIS_BACKEND_NOT_COUNT)

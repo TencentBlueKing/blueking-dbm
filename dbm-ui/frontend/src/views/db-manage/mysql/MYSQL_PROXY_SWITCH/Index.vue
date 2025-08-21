@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction>
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -22,31 +22,53 @@
       <div class="mt-8 mb-20">
         <CardCheckbox
           v-model="operaObjectType"
-          :desc="t('只替换目标实例')"
-          icon="rebuild"
-          :title="t('实例替换')"
-          :true-value="OperaObejctType.INSTANCE" />
-        <CardCheckbox
-          v-model="operaObjectType"
-          class="ml-8"
           :desc="t('主机关联的所有实例一并替换')"
           icon="host"
           :title="t('整机替换')"
           :true-value="OperaObejctType.MACHINE" />
+        <CardCheckbox
+          v-model="operaObjectType"
+          class="ml-8"
+          :desc="t('只替换目标实例')"
+          icon="rebuild"
+          :title="t('实例替换')"
+          :true-value="OperaObejctType.INSTANCE" />
       </div>
     </div>
     <BkForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
+      <!-- <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
+      <BkRadioGroup
+        v-model="sourceType"
+        class="mb-16"
+        style="width: 450px"
+        type="card"
+        @change="handleChangeMode">
+        <BkRadioButton :label="SourceType.RESOURCE_AUTO">
+          {{ t('资源池自动匹配') }}
+        </BkRadioButton>
+        <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
+          {{ t('资源池手动选择') }}
+        </BkRadioButton>
+      </BkRadioGroup> -->
       <Component
         :is="comMap[operaObjectType]"
-        :key="operaObjectType"
+        :key="comKey"
         ref="table"
+        :source-type="sourceType"
         :ticket-details="ticketDetails" />
-      <IgnoreBiz
-        v-model="formData.force"
-        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')" />
+      <BkFormItem
+        v-bk-tooltips="t('存在业务连接时需要人工确认')"
+        class="fit-content">
+        <BkCheckbox
+          v-model="formData.force"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
     <template #action>
@@ -62,7 +84,7 @@
         :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
         :title="t('确认重置页面')">
         <BkButton
-          class="ml8 w-88"
+          class="ml-8 w-88"
           :disabled="isSubmitting">
           {{ t('重置') }}
         </BkButton>
@@ -75,7 +97,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType } from '@services/types';
+  import { OperaObejctType, SourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -83,10 +105,11 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+
+  import { random } from '@utils';
 
   import InstanceReplace from './components/instance-replace/Index.vue';
   import MachineReplace from './components/machine-replace/Index.vue';
@@ -95,7 +118,7 @@
   const tableRef = useTemplateRef('table');
 
   const defaultData = () => ({
-    force: false,
+    force: true,
     payload: createTickePayload(),
   });
 
@@ -104,7 +127,9 @@
     [OperaObejctType.MACHINE]: MachineReplace,
   };
 
-  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.INSTANCE);
+  const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.MACHINE);
+  const sourceType = ref(SourceType.RESOURCE_AUTO);
+  const comKey = ref(random());
   const formData = reactive(defaultData());
   const ticketDetails = ref<Mysql.ResourcePool.ProxySwitch>();
 
@@ -116,7 +141,9 @@
         force,
         payload: createTickePayload(ticketDetail),
       });
+      comKey.value = random();
       operaObjectType.value = operaObject;
+      sourceType.value = details.source_type;
       nextTick(() => {
         ticketDetails.value = details;
       });
@@ -139,18 +166,27 @@
       };
       resource_spec: {
         target_proxy: {
-          hosts: {
+          count: number;
+          hosts?: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
             ip: string;
           }[];
+          label_names?: string[]; // 标签名称列表，单据详情回显用
+          labels?: string[]; // 标签id列表
+          spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
     opera_object: OperaObejctType;
+    source_type: SourceType;
   }>(TicketTypes.MYSQL_PROXY_SWITCH);
+
+  // const handleChangeMode = () => {
+  //   comKey.value = random();
+  // };
 
   const handleSubmit = async () => {
     const infos = await tableRef.value!.getValue();
@@ -161,6 +197,7 @@
           infos,
           ip_source: 'resource_pool',
           opera_object: operaObjectType.value,
+          source_type: sourceType.value,
         },
         ...formData.payload,
       });

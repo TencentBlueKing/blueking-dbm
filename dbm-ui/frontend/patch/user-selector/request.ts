@@ -7,10 +7,8 @@ import instanceStore from './instance-store';
 let callbackSeed = 0;
 function JSONP(api: string, params = {}, options: any = {}) {
   return new Promise((resolve, reject) => {
-    let timer: number;
     const callbackName = `USER_LIST_CALLBACK_${callbackSeed += 1}`;
     window[callbackName] = (response: any) => {
-      timer && clearTimeout(timer);
       document.body.removeChild(script);
       delete window[callbackName];
       resolve(response);

@@ -37,35 +37,30 @@
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="150">
-    <EditableBlock v-if="modelValue.related_clusters.length">
+    <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbhaHost']"
+    hide-manual-input
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -76,7 +71,7 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import InstanceSelector, {
@@ -102,23 +97,18 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
-    bk_host_id?: number;
+    bk_host_id: number;
+    bk_idc_city_name: string;
+    bk_sub_zone: string;
     cluster_ids: number[];
     ip: string;
     port: number;
     related_clusters: string[];
     related_instances: string[];
+    role: string;
+    spec_id: number;
   }>({
-    default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: undefined,
-      cluster_ids: [],
-      ip: '',
-      port: 0,
-      related_clusters: [],
-      related_instances: [],
-    }),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -149,22 +139,24 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
+  let illegalInstances = '';
 
   const rules = [
     {
-      message: t('IP 格式不符合IPv4标准'),
+      message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: string) => ipv4.test(value),
+      validator: (value: string) => !value || ipv4.test(value),
     },
     {
       message: t('目标主机不存在'),
       trigger: 'blur',
-      validator: (value: string) => {
-        if (!value) {
-          return true;
-        }
-        return Boolean(modelValue.value.bk_host_id);
-      },
+      validator: (value: string) => !value || Boolean(modelValue.value.bk_host_id),
+    },
+    {
+      message: '',
+      trigger: 'blur',
+      validator: (value: string) =>
+        !value || illegalInstances ? t('主机包含非 Master 实例 (instances)', [illegalInstances]) : true,
     },
   ];
 
@@ -178,11 +170,15 @@
     ),
   }));
 
-  const { loading, run: queryInstance } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      if (data.length) {
-        const [hostInfo] = data;
+      illegalInstances = data
+        .filter((item) => item.role !== 'backend_master')
+        .map((item) => item.instance_address)
+        .join('、');
+      const [currentHost] = data;
+      if (currentHost) {
         const clusterIds: number[] = [];
         const relatedInstances: string[] = [];
         const relatedClusters: string[] = [];
@@ -193,13 +189,17 @@
         });
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: hostInfo.bk_cloud_id,
-          bk_host_id: hostInfo.bk_host_id,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
+          bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
           cluster_ids: clusterIds,
-          ip: hostInfo.ip,
-          port: hostInfo.port,
+          ip: currentHost.ip,
+          port: currentHost.port,
           related_clusters: relatedClusters,
           related_instances: relatedInstances,
+          role: currentHost.role,
+          spec_id: currentHost.spec_config.id,
         };
       }
     },
@@ -210,22 +210,21 @@
   };
 
   const handleInputChange = (value: string) => {
+    illegalInstances = '';
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
-      bk_host_id: undefined,
+      bk_host_id: 0,
+      bk_idc_city_name: '',
+      bk_sub_zone: '',
       cluster_ids: [],
       ip: value,
       port: 0,
       related_clusters: [],
       related_instances: [],
+      role: '',
+      spec_id: 0,
     };
-    if (value) {
-      queryInstance({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [value],
-      });
-    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
@@ -233,9 +232,16 @@
   };
 
   watch(
-    () => modelValue.value.ip,
+    modelValue,
     () => {
-      handleInputChange(modelValue.value.ip);
+      if (modelValue.value.ip && !modelValue.value.bk_host_id) {
+        queryHost({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_type: [ClusterTypes.TENDBHA],
+          db_type: DBTypes.MYSQL,
+          instance_addresses: [modelValue.value.ip],
+        });
+      }
     },
     {
       immediate: true,

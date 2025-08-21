@@ -1,0 +1,1 @@
+go test -v -run TestComponentControllerTestSuite ./k8s-dbs/metadata/api/controller/testsuite/

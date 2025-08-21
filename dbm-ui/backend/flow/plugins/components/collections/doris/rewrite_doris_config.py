@@ -61,6 +61,7 @@ class WriteBackDorisConfigService(BaseService):
             }
         )
         self.log_info("successfully write back doris config to dbconfig")
+        # 理论上应该判断单据类型再执行回写权限配置
         self.write_auth_to_prv_manager(global_data)
         return True
 
@@ -86,7 +87,7 @@ class WriteBackDorisConfigService(BaseService):
             "operator": "admin",
         }
         DBPrivManagerApi.modify_password(params=query_params)
-        # 存储真正的账号密码
+        # 存储custom用户 真正的账号密码
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
@@ -96,6 +97,25 @@ class WriteBackDorisConfigService(BaseService):
         }
         DBPrivManagerApi.modify_password(params=query_params)
 
+        # 存储admin用户 密码
+        query_params = {
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
+            "password": base64.b64encode(str(global_data["admin_password"]).encode("utf-8")).decode("utf-8"),
+            "username": "admin",
+            "component": NameSpaceEnum.Doris,
+            "operator": "admin",
+        }
+        DBPrivManagerApi.modify_password(params=query_params)
+
+        # 存储root用户 密码
+        query_params = {
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
+            "password": base64.b64encode(str(global_data["root_password"]).encode("utf-8")).decode("utf-8"),
+            "username": "root",
+            "component": NameSpaceEnum.Doris,
+            "operator": "admin",
+        }
+        DBPrivManagerApi.modify_password(params=query_params)
         self.log_info("successfully write back doris config to privilege manager")
 
 

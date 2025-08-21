@@ -79,6 +79,7 @@
       </BkDropdown>
       <DbSearchSelect
         :data="searchSelectData"
+        :get-menu-list="getSearchMenuList"
         :model-value="searchSelectValue"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
@@ -174,6 +175,10 @@
 
   const searchSelectData = [
     {
+      id: 'instance',
+      name: t('实例'),
+    },
+    {
       id: 'ip',
       name: 'IP',
     },
@@ -201,7 +206,7 @@
       name: t('状态'),
     },
     {
-      id: 'instance_role',
+      id: 'role',
       name: t('部署角色'),
     },
     {
@@ -209,6 +214,21 @@
       name: t('版本'),
     },
   ];
+
+  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
+    return Promise.resolve().then(() => {
+      if (payload.id === 'role') {
+        return _.uniqBy(
+          dbTable.value?.getData<IInstanceDetail>().map((item) => ({
+            id: item.role,
+            name: item.role,
+          })),
+          'id',
+        );
+      }
+      return payload.children || [];
+    });
+  };
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({

@@ -65,6 +65,7 @@ class MysqlDataMigrateFlow(object):
 
         return {
             "cluster_id": cluster.id,
+            "immute_domain": cluster.immute_domain,
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_type": cluster.cluster_type,
             "ip": ip_port.split(":")[0],
@@ -136,7 +137,6 @@ class MysqlDataMigrateFlow(object):
             source_cluster = self.__get_source_cluster(info)
             target_clusters = self.__get_target_cluster(info)
             exec_ip_list = self.__get_exec_ip_list(source_cluster, target_clusters)
-
             dump_dir_name = "{}_{}_migrate".format(self.root_id, n)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)

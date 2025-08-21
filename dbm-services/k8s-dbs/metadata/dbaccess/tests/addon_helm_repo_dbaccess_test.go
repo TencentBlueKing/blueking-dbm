@@ -21,10 +21,11 @@ package tests
 
 import (
 	"fmt"
-	"k8s-dbs/common/entity"
+	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
-	"k8s-dbs/metadata/dbaccess/model"
+	metaentity "k8s-dbs/metadata/entity"
+	"k8s-dbs/metadata/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -181,7 +182,7 @@ func TestListAddonRepo(t *testing.T) {
 		assert.NotNil(t, createdRepo, err)
 	}
 
-	pagination := entity.Pagination{
+	pagination := commentity.Pagination{
 		Page:  0,
 		Limit: 10,
 	}
@@ -216,11 +217,12 @@ func TestGetAddonRepoByParams(t *testing.T) {
 	_, err = dbAccess.Create(repo)
 	assert.NoError(t, err, "Failed to create")
 
-	params := map[string]interface{}{
-		"chart_name":    "test-chartname",
-		"chart_version": "test-chartversion",
-		"repo_name":     "test-reponame",
+	params := &metaentity.HelmRepoQueryParams{
+		ChartName:    "test-chartname",
+		RepoName:     "test-reponame",
+		ChartVersion: "test-chartversion",
 	}
+
 	foundRepo, err := dbAccess.FindByParams(params)
 	assert.NoError(t, err)
 	assert.Equal(t, repo.RepoName, foundRepo.RepoName)

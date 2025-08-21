@@ -59,6 +59,24 @@
         </p>
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <template v-if="data.resource_spec.backend_group?.label_names?.length">
+          <BkTag
+            v-for="item in data.resource_spec.backend_group.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
   </BkTable>
   <InfoList>
     <InfoItem :label="t('数据校验')">

@@ -2,6 +2,7 @@ package atomproxy
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -143,9 +144,12 @@ func (job *TwemproxyCheckBackends) getTwemproxyMd5(addr string) string {
 	sort.Strings(segs)
 
 	data, _ := json.Marshal(segs)
+
 	// 计算MD5
 	md5er := md5.New()
-	has := md5er.Sum(data)
+	md5er.Write(data)
+	hash2 := md5er.Sum(nil)
+	has := hex.EncodeToString(hash2)
 	job.runtime.Logger.Info(fmt.Sprintf("proxy {%s} has backends servers md5:%s:%s", addr, has, data))
 	return fmt.Sprintf("%x", has) // 将[]byte转成16进制
 }

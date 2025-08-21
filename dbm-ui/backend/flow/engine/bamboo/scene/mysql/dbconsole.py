@@ -12,6 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.components.db_remote_service.client import DRSApi
@@ -20,12 +21,21 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.flow.consts import LONG_JOB_TIMEOUT
+from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.models import DBExtension
+from backend.flow.consts import ACCOUNT_PREFIX, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.mysql.create_user import AddUserComponent
+from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import (
+    AddTempUserKwargs,
+    DownloadMediaKwargs,
+    DropUserKwargs,
+    ExecActuatorKwargs,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 logger = logging.getLogger("flow")
@@ -46,15 +56,53 @@ class DbConsoleDumpSqlFlow(object):
         self.dbconsole_dump_file_name = self.data["dump_file_name"]
 
     def dump_flow(self):
-        p = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[self.cluster_id])
         ro_instance_info = self.__get_read_instance(self.cluster)
         bk_cloud_id = ro_instance_info["bk_cloud_id"]
         exec_ip = ro_instance_info["ip"]
+        # 判断是否配置中转机
+        dump_center = DBExtension.get_latest_extension(
+            bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.CONSOLE_DUMP_CENTER
+        )
+        if dump_center:
+            p = Builder(root_id=self.root_id, data=self.data)
+        else:
+            p = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[self.cluster_id])
         # 此处可以根据延迟来考虑是否需要抛出错误
         if ro_instance_info["instance_role"] == InstanceRole.BACKEND_SLAVE:
             behind_master_sec = self.get_slave_delay_second(exec_ip, ro_instance_info["port"], bk_cloud_id)
             logger.info(f"slave delay sec: {behind_master_sec}")
 
+        flow_context = ro_instance_info
+        # 定义切换流程中用的账号密码，密码是随机生成16位字符串，并利用公钥进行加密
+        ran_str = get_random_string(length=16)
+        random_account = f"{ACCOUNT_PREFIX}{get_random_string(length=8)}"
+        if dump_center:
+            exec_ip = dump_center.details["ip"]
+            add_temp_user_kwargs = AddTempUserKwargs(
+                bk_cloud_id=bk_cloud_id,
+                hosts=[exec_ip],
+                user=random_account,
+                psw=ran_str,
+                address="{}{}{}".format(ro_instance_info["ip"], IP_PORT_DIVIDER, ro_instance_info["port"]),
+                dbname="%",
+                dml_ddl_priv="SELECT,SHOW VIEW,TRIGGER, EVENT",
+                global_priv="",
+            )
+            drop_user_kwargs = DropUserKwargs(
+                bk_cloud_id=bk_cloud_id,
+                host=exec_ip,
+                user=random_account,
+                address="{}{}{}".format(ro_instance_info["ip"], IP_PORT_DIVIDER, ro_instance_info["port"]),
+            )
+            p.add_act(
+                act_name=_("创建临时用户"),
+                act_component_code=AddUserComponent.code,
+                kwargs=asdict(add_temp_user_kwargs),
+            )
+            flow_context["dump_center"] = True
+            flow_context["random_account"] = random_account
+            flow_context["random_password"] = ran_str
+        # 下发db-actuator介质
         p.add_act(
             act_name=_("下发db-actuator介质"),
             act_component_code=TransFileComponent.code,
@@ -75,11 +123,13 @@ class DbConsoleDumpSqlFlow(object):
                     job_timeout=LONG_JOB_TIMEOUT,
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=exec_ip,
-                    cluster=ro_instance_info,
+                    cluster=flow_context,
                     get_mysql_payload_func=MysqlActPayload.get_dbconsole_schema_payload.__name__,
                 )
             ),
         )
+        if dump_center:
+            p.add_act(act_name=_("删除临时用户"), act_component_code=DropUserComponent.code, kwargs=asdict(drop_user_kwargs))
         # 运行pipeine
         p.run_pipeline(is_drop_random_user=True)
 

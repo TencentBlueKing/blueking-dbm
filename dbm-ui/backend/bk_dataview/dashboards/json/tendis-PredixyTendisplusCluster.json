@@ -88,8 +88,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -170,7 +169,7 @@
               ],
               "refId": "A",
               "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -226,8 +225,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -308,7 +306,7 @@
               ],
               "refId": "A",
               "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -364,8 +362,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -454,7 +451,7 @@
               ],
               "refId": "A",
               "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -524,8 +521,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -551,7 +547,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -614,7 +610,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -670,8 +666,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -760,7 +755,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -816,8 +811,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -843,7 +837,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -906,7 +900,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -962,8 +956,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1052,7 +1045,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1108,8 +1101,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1135,7 +1127,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -1403,7 +1395,7 @@
               ],
               "refId": "A",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / (96 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / (48 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) > 2)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -1663,7 +1655,7 @@
               ],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) > 2)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -1719,8 +1711,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1746,7 +1737,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -2014,7 +2005,7 @@
               ],
               "refId": "A",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / (96 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / (48 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -2274,7 +2265,7 @@
               ],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -2356,7 +2347,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -2419,7 +2410,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -2475,7 +2466,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -2557,7 +2548,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -2620,7 +2611,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -2676,7 +2667,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -2758,7 +2749,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -2821,7 +2812,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -2877,7 +2868,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -2959,7 +2950,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -3022,7 +3013,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -3078,7 +3069,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -3160,7 +3151,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -3235,7 +3226,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -3302,7 +3293,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -3369,7 +3360,7 @@
               ],
               "refId": "C",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -3451,7 +3442,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -3526,7 +3517,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -3593,7 +3584,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -3660,7 +3651,7 @@
               ],
               "refId": "C",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -3742,7 +3733,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -3806,7 +3797,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -3888,7 +3879,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -3952,7 +3943,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -4034,7 +4025,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -4098,7 +4089,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -4154,7 +4145,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -4236,7 +4227,7 @@
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Max",
               "sortDesc": true,
               "width": 300
             },
@@ -4300,7 +4291,7 @@
               ],
               "refId": "A",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             },
             {
@@ -4356,7 +4347,7 @@
               ],
               "refId": "B",
               "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
-              "step": "",
+              "step": "1m",
               "type": "range"
             }
           ],
@@ -4490,7 +4481,7 @@
           ],
           "refId": "A",
           "source": "max(max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -4592,7 +4583,7 @@
           ],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_connections_curr{cluster_domain=\"$cluster_domain\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -4697,7 +4688,7 @@
           ],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_up{cluster_domain=\"$cluster_name\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -4809,7 +4800,7 @@
           ],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -4924,7 +4915,7 @@
           ],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5039,7 +5030,7 @@
           ],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5163,7 +5154,7 @@
           ],
           "refId": "A",
           "source": "sum(avg by (bk_target_ip) (bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) )",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5271,7 +5262,7 @@
           ],
           "refId": "A",
           "source": "max by (version) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_info{cluster_domain=\"$cluster_domain\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5400,7 +5391,7 @@
           ],
           "refId": "A",
           "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5531,7 +5522,7 @@
           ],
           "refId": "A",
           "source": "max  (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5643,7 +5634,7 @@
           ],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_up{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5762,7 +5753,7 @@
           ],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5883,7 +5874,7 @@
           ],
           "refId": "A",
           "source": "max by (bk_target_cloud_id) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -5996,7 +5987,7 @@
           ],
           "refId": "A",
           "source": "sum(avg by (bk_target_ip) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -6122,7 +6113,7 @@
           ],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -6233,7 +6224,7 @@
           ],
           "refId": "A",
           "source": "max by(redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "",
+          "step": "1m",
           "type": "instant"
         }
       ],
@@ -6810,7 +6801,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{cluster_domain=\"$cluster_domain\"}[2m])) / sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{cluster_domain=\"$cluster_domain\"}[$__interval])) / sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -6823,7 +6814,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "Redis   cmd 平均访问延迟  (待验证数据)\n",
+      "description": "举例2分片的集群，hmset 延迟分别为1ms, 10ms, get延迟分别为10ms, 1ms。 \n则总是显示最大的那个值，即hmset 10ms, get 10ms。 ",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -6922,9 +6913,9 @@
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
+          "promqlAlias": "$tag_cmd",
           "query_configs": [
             {
               "alias": "",
@@ -7014,12 +7005,403 @@
             }
           ],
           "refId": "B",
-          "source": "max(10000000*(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\"}[2m])/irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\"}[2m]) ) > 10 ) by (cmd)",
+          "source": "max by (cmd) (1e+06 * (max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) / max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))) )",
           "step": "",
           "type": "range"
         }
       ],
-      "title": "Redis  cmd 平均访问延迟",
+      "title": "Redis cmd 最大访问延迟",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "proxy host 平均访问延迟",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 22,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_instance_host",
+              "expression": "a / b",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_host",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_predixy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance_host"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "predixy_cmdstat_response_latency_sum",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_predixy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_predixy_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance_host"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "predixy_cmdstat_response_latency_count",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_predixy_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_response_latency_sum{cluster_domain=\"$cluster_domain\"}[$__interval])) / sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_response_latency_count{cluster_domain=\"$cluster_domain\"}[$__interval]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "proxy host 平均访问延迟",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "Redis host 平均访问延迟",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "µs"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 54,
+      "interval": "1m",
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "enableDownSampling": false,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "$tag_instance",
+              "expression": "max(1000000*(a/b ) > 10 ) by (cmd)",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "redis_commands_duration_seconds_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_redis_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "max_without_time",
+              "metric_field": "redis_commands_total",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "1e+06 * (avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) / avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))) ",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Redis host 平均访问延迟",
       "type": "timeseries"
     },
     {
@@ -7085,7 +7467,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 33
       },
       "id": 96,
       "interval": "1m",
@@ -7683,7 +8065,7 @@
           ],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[2m])) by (le)",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -7755,7 +8137,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 33
       },
       "id": 5,
       "interval": "1m",
@@ -7768,6 +8150,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "timezones": [
@@ -7836,399 +8220,11 @@
           ],
           "refId": "B",
           "source": "sum by (cluster_domain, instance) (bkmonitor:exporter_dbm_redis_exporter:redis_rocksdb_datadir_size_kb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "1m",
           "type": "range"
         }
       ],
       "title": "磁盘用量",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "description": "proxy host 平均访问延迟",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 33
-      },
-      "id": 22,
-      "interval": "1m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "sortBy": "Max",
-          "sortDesc": true,
-          "width": 300
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "enableDownSampling": true,
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "$tag_instance_host",
-              "expression": "a / b",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "b/a",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_predixy_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance_host"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "predixy_cmdstat_response_latency_sum",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_predixy_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_predixy_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance_host"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "predixy_cmdstat_response_latency_count",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_predixy_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_sum{cluster_domain=\"$cluster_domain\"}[2m])) / sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_count{cluster_domain=\"$cluster_domain\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "proxy host 平均访问延迟",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "description": "Redis host 平均访问延迟",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "µs"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 33
-      },
-      "id": 54,
-      "interval": "1m",
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "sortBy": "Last *",
-          "sortDesc": true,
-          "width": 300
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "$tag_instance",
-              "expression": "max(1000000*(a/b ) > 10 ) by (cmd)",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "$tag_instance",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_commands_duration_seconds_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "instance"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "max_without_time",
-              "metric_field": "redis_commands_total",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "1e+06 * (avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) / avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))) ",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Redis host 平均访问延迟",
       "type": "timeseries"
     },
     {
@@ -8280,8 +8276,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -8332,9 +8327,9 @@
           "format": "time_series",
           "hide": false,
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "",
+          "promqlAlias": "$tag_instance_host",
           "query_configs": [
             {
               "alias": "$tag_instance_host",
@@ -8377,7 +8372,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_accept{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -8434,8 +8429,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8460,6 +8454,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -8530,7 +8526,7 @@
           ],
           "refId": "B",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         },
         {
@@ -8594,7 +8590,7 @@
           ],
           "refId": "A",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -8650,8 +8646,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8739,7 +8734,7 @@
           ],
           "refId": "B",
           "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -8751,7 +8746,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "predixy Qps. predixy没有单个指令的统计",
+      "description": "predixy Qps",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -8795,8 +8790,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8838,7 +8832,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
-          "enableDownSampling": true,
+          "enableDownSampling": false,
           "expressionList": [
             {
               "active": true,
@@ -8849,9 +8843,9 @@
           ],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
-          "promqlAlias": "total",
+          "promqlAlias": "$tag_instance_host",
           "query_configs": [
             {
               "alias": "$tag_instance_host",
@@ -8895,7 +8889,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum by (cluster_domain, instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_total_requests{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -8913,7 +8907,7 @@
       },
       "id": 43,
       "panels": [],
-      "title": "Shard",
+      "title": "Shards",
       "type": "row"
     },
     {
@@ -8965,8 +8959,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8991,7 +8984,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Name",
+          "sortBy": "Max",
           "sortDesc": true,
           "width": 300
         },
@@ -9066,7 +9059,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_processed_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_processed_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -9124,8 +9117,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9216,7 +9208,7 @@
           ],
           "refId": "B",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -9272,8 +9264,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9298,6 +9289,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -9423,7 +9416,7 @@
           ],
           "refId": "A",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -9480,8 +9473,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9506,6 +9498,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -9570,7 +9564,7 @@
           ],
           "refId": "B",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -9626,8 +9620,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9651,6 +9644,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -9725,7 +9720,7 @@
           ],
           "refId": "B",
           "source": "min(bkmonitor:exporter_dbm_redis_exporter:redis_connected_slave_binlog_lag{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (slave_ip,slave_port,slave_state)",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -9781,8 +9776,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9806,6 +9800,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -9880,7 +9876,7 @@
           ],
           "refId": "B",
           "source": "min(bkmonitor:exporter_dbm_redis_exporter:redis_connected_slave_lag_seconds{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (slave_ip,slave_port,slave_state)",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -9961,6 +9957,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -10033,7 +10031,7 @@
           ],
           "refId": "B",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         },
         {
@@ -10099,7 +10097,7 @@
           ],
           "refId": "A",
           "source": "",
-          "step": "",
+          "step": "1m",
           "type": "range"
         }
       ],
@@ -10257,7 +10255,7 @@
   "timezone": "",
   "title": "tendis-PredixyTendisplusCluster",
   "uid": "BBo1yt0Vk",
-  "version": 46,
+  "version": 55,
   "weekStart": "",
   "__inputs": [
     {

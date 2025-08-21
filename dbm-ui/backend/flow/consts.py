@@ -77,11 +77,14 @@ DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 # 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
 MAX_SPIDER_MASTER_COUNT = 64
 # 定义每个TenDB-Cluster集群最小spider-master/slave角色的节点数量（暂定）
-MIN_SPIDER_MASTER_COUNT = 2
+MIN_SPIDER_MASTER_COUNT = 1
 MIN_SPIDER_SLAVE_COUNT = 1
 
 # 定义TenDB-HA的最少proxy实例数量
-MIN_TENDB_PROXY_COUNT = 2
+MIN_TENDB_PROXY_COUNT = 1
+
+# 定义TenDB-HA的最少proxy实例数量, 在单据提单场景
+MIN_TENDB_PROXY_COUNT_IN_TICKET = 2
 
 TDBCTL_USER = "spider"
 
@@ -204,6 +207,14 @@ DEFAULT_INSTANCE = {"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}
 class OperateCollectorActionEnum(str, StructuredEnum):
     INSTALL = EnumField("INSTALL", _("安装"))
     UNINSTALL = EnumField("UNINSTALL", _("卸载"))
+
+
+class FlowNodeOperateType(str, StructuredEnum):
+    RETRY = EnumField("retry", _("重试"))
+    SKIP = EnumField("skip", _("跳过"))
+    FORCE_FAIL = EnumField("force_fail", _("强制失败"))
+    CONFIRM = EnumField("confirm", _("确认继续"))
+    PIPELINE_TERMINATE = EnumField("pipeline_terminate", _("流程终止"))
 
 
 class NameSpaceEnum(str, StructuredEnum):
@@ -412,7 +423,6 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SemanticCheck = EnumField("semantic-check", _("semantic-check"))
     SemanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     MysqlDumpData = EnumField("dump", _("dump"))
-    # TruncateDataBackupNaTable = EnumField("backup-truncate-database", _("backup-truncate-database"))
     RestartProxy = EnumField("restart", _("restart"))
     CleanMysql = EnumField("clean-mysql", _("clean-mysql"))
     DataBaseTableBackup = EnumField("backup-database-table", _("backup-database-table"))
@@ -432,6 +442,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
     TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
+    TenDBClusterBackendSlaveSptSwitch = EnumField("switch-slave-router", _("spider集群 切换slave路由"))
     TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
     DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
     OsCmd = EnumField("oscmd-run", _("执行os命令"))
@@ -458,23 +469,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     # 实例标准化
     StandardizeMySQLInstance = EnumField("standardize-mysql", _("标准化MySQL实例"))
     StandardizeTenDBHAProxy = EnumField("standardize-proxy", _("标准化Proxy实例"))
-    # 未分类
-    DeployDBAToolkit = EnumField("install-dbatoolkit", _("安装dba-toolkit程序"))
-    # mysql surrounding v1
+    # get_install_tmp_db_backup_payload 在用
     DeployDbbackup = EnumField("deploy-dbbackup", _("deploy-dbbackup"))
-    InstallMonitor = EnumField("install-monitor", _("install-monitor"))
-    DeployMysqlBinlogRotate = EnumField("deploy-mysql-rotatebinlog", _("安装mysql-rotatebinlog程序"))
-    DeployMySQLCrond = EnumField("deploy-mysql-crond", _("deploy-mysql-crond"))
-    DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
-    # mysql peripheral tools v2
-    PreparePeripheraltoolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
-    PushMySQLCrondConfig = EnumField("push-mysql-crond-config", _("推送mysql-crond配置"))
-    PushMySQLMonitorConfig = EnumField("push-mysql-monitor-config", _("推送mysql-monitor配置"))
-    PushNewDbBackupConfig = EnumField("push-new-db-backup-config", _("推送备份配置"))
-    PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
-    PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
-    PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
-    ProxyInplaceAutofix = EnumField("proxy-inplace-autofix", _("原地启动 proxy"))
     # use reverse api
     GenPeripheralToolsConfig = EnumField("gen-peripheraltools-config", _("生成周边配置"))
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
@@ -553,6 +549,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     MongoHello = EnumField("mongodb_hello", _("mongodb_hello"))
     MongoPitrRebuild = EnumField("mongodb_pitr_rebuild", _("mongodb_pitr_rebuild"))
     MongoInstanceOp = EnumField("mongodb_instance_op", _("mongodb_instance_op"))
+    ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -706,6 +703,8 @@ class DorisActuatorActionEnum(str, StructuredEnum):
     UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
     CheckDecommission = EnumField("check_decommission", _("check_decommission"))
     CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
+    CreateResource = EnumField("create_resource", _("create_resource"))
+    DropResource = EnumField("drop_resource", _("drop_resource"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -1182,6 +1181,7 @@ class TBinlogDumperAddType(str, StructuredEnum):
 
 class DorisRoleEnum(str, StructuredEnum):
     HOT = EnumField("hot", _("hot"))
+    WARM = EnumField("warm", _("warm"))
     COLD = EnumField("cold", _("cold"))
     FOLLOWER = EnumField("follower", _("follower"))
     OBSERVER = EnumField("observer", _("observer"))
@@ -1232,6 +1232,7 @@ class MySQLPrivComponent(str, StructuredEnum):
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
     DORIS_FAKE_USER = EnumField("doris_user", _("doris_user"))
     VM_FAKE_USER = EnumField("vm_user", _("vm_user"))
+    DORIS_CLOUD_APP_ID = EnumField("doris_cloud_app_id", _("doris_cloud_app_id"))
 
 
 class RequestResultCode(int, StructuredEnum):
@@ -1613,3 +1614,9 @@ class ExecuteShellScriptUser(str, StructuredEnum):
 class OracleDBActuatorActionEnum(str, StructuredEnum):
     OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
     OracleExecuteScript = EnumField("execute_script", _("execute_script"))
+
+
+class TendbSingleRestoreEnum(str, StructuredEnum):
+    RemoteBackupAndNewest = EnumField("remote_backup_newest", _("remote_backup_newest"))
+    LocalBackupAndSchema = EnumField("local_backup_and_schema", _("local_backup_and_schema"))
+    LocalBackupAndData = EnumField("local_backup_and_data", _("local_backup_and_data"))

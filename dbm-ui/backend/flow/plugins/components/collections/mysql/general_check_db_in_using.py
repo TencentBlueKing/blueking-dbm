@@ -63,9 +63,10 @@ class GeneralCheckDBInUsingService(BaseService):
             flush_table_res = DRSApi.rpc(
                 {
                     "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
-                    "cmds": ["flush tables"],
+                    "cmds": ["set lock_wait_timeout=5", "flush tables with read lock"],
                     "force": False,
                     "bk_cloud_id": kwargs["bk_cloud_id"],
+                    "query_timeout": 5,
                 }
             )
             self.log_info("[{}] flush tables response: {}".format(kwargs["node_name"], flush_table_res))

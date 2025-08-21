@@ -118,6 +118,7 @@ class PulsarDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
             "region": self.ticket_data["city_code"],
+            "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
         with atomic():
             # 绑定事务更新cmdb

@@ -20,15 +20,17 @@ limitations under the License.
 package controller
 
 import (
-	"k8s-dbs/core/entity"
-	"k8s-dbs/core/errors"
-	"k8s-dbs/metadata/api/vo/resp"
+	"k8s-dbs/common/api"
+	commconst "k8s-dbs/common/constant"
+	commutil "k8s-dbs/common/util"
+	"k8s-dbs/errors"
+	metaentity "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
+	corevo "k8s-dbs/metadata/vo/response"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
-
-	commconst "k8s-dbs/common/api/constant"
 )
 
 // ClusterRequestRecordController manages metadata for addons.
@@ -43,25 +45,58 @@ func NewClusterRequestRecordController(
 	return &ClusterRequestRecordController{clusterRequestProvider}
 }
 
-// GetRecordsByCluster 根据集群名称来获取对应的集群操作记录.
-func (k *ClusterRequestRecordController) GetRecordsByCluster(ctx *gin.Context) {
-	k8sClusterName := ctx.Query("k8sClusterName")
-	clusterName := ctx.Query("clusterName")
-	namespace := ctx.Query("namespace")
-	params := map[string]interface{}{
-		"k8s_cluster_name": k8sClusterName,
-		"cluster_name":     clusterName,
-		"namespace":        namespace,
-	}
-	records, err := k.clusterRequestProvider.FindRecordsByParams(params)
+// ListClusterRecords 根据 k8s_cluster_name, cluster_name, namespace 分页检索集群操作记录.
+func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
+	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	var data []resp.ClusterRequestRecordRespVo
+	requestParams, err := k.buildListParams(ctx)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+	records, count, err := k.clusterRequestProvider.ListRecords(requestParams, pagination)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	var data []corevo.ClusterOperationLogResponse
 	if err := copier.Copy(&data, records); err != nil {
-		entity.ErrorResponse(ctx, errors.NewGlobalError(errors.GetMetaDataErr, err))
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	entity.SuccessResponse(ctx, data, commconst.Success)
+	var responseData = corevo.PageResult{
+		Count:  count,
+		Result: data,
+	}
+	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
+	*metaentity.ClusterRequestQueryParams,
+	error,
+) {
+	startTimeStr := ctx.Query("startTime")
+	startTime, err := time.Parse(time.DateTime, startTimeStr)
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	}
+	endTimeStr := ctx.Query("endTime")
+	endTime, err := time.Parse(time.DateTime, endTimeStr)
+	if err != nil {
+		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	}
+	requestPrams := metaentity.ClusterRequestQueryParams{
+		ClusterNames:   ctx.QueryArray("clusterName"),
+		Creators:       ctx.QueryArray("creator"),
+		RequestTypes:   ctx.QueryArray("requestType"),
+		RequestParams:  ctx.Query("requestParams"),
+		K8sClusterName: ctx.Query("k8sClusterName"),
+		NameSpace:      ctx.Query("nameSpace"),
+		StartTime:      startTime,
+		EndTime:        endTime,
+	}
+	return &requestPrams, nil
 }

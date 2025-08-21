@@ -179,3 +179,17 @@ def trans_time_zone(o_datetime: datetime, time_zone_str: str) -> datetime:
     """
     offset_hours = int(time_zone_str[:3])
     return o_datetime.astimezone(datetime.timezone(datetime.timedelta(hours=offset_hours)))
+
+
+def get_local_charset():
+
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+    # 提取时区偏移并格式化
+    offset = now.utcoffset()
+    total_seconds = offset.total_seconds()
+    hours = int(total_seconds // 3600)
+    minutes = int(abs(total_seconds) % 3600 // 60)
+
+    # 格式化为"+HH:MM"（确保小时和分钟都是两位数）
+    formatted_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{minutes:02d}"
+    return formatted_offset

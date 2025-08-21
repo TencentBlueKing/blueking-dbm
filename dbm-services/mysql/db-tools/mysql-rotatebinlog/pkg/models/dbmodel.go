@@ -292,7 +292,9 @@ const (
 	// IBStatusFileNotFound 源上找不到文件
 	IBStatusFileNotFound = 5
 	// IBStatusFail TODO
-	IBStatusFail = 6 // >= 6 fail
+	IBStatusFail             = 6 // >= 6 fail
+	IBStatusCanceledByRemote = 26
+	IBStatusUploadAbnormal   = 32
 	// IBStatusExpired TODO
 	IBStatusExpired = 44 // 文件已过期
 	// FileStatusRemoved TODO
@@ -320,15 +322,17 @@ const (
 
 // IBStatusMap TODO
 var IBStatusMap = map[int]string{
-	IBStatusClientFail:   "submit failed",
-	0:                    "todo, submitted",       // 等待确认主机信息
-	IBStatusWaiting:      "todo, waiting",         // 等待备份
-	2:                    "todo, locking",         // Locking
-	IBStatusUploading:    "doing",                 // 正在备份中
-	IBStatusSuccess:      "done, success",         // 备份完成
-	IBStatusFileNotFound: "Fail:  file not found", // 源上找不到文件
-	IBStatusFail:         "Fail: unknown",         // 其它错误
-	IBStatusExpired:      "done, expired",         // 备份系统文件已过期
+	IBStatusClientFail:       "submit failed",
+	0:                        "todo, submitted",       // 等待确认主机信息
+	IBStatusWaiting:          "todo, waiting",         // 等待备份
+	2:                        "todo, locking",         // Locking
+	IBStatusUploading:        "doing",                 // 正在备份中
+	IBStatusSuccess:          "done, success",         // 备份完成
+	IBStatusFileNotFound:     "Fail:  file not found", // 源上找不到文件
+	IBStatusFail:             "Fail: unknown",         // 其它错误
+	IBStatusExpired:          "done, expired",         // 备份系统文件已过期
+	IBStatusCanceledByRemote: "failed, canceled by remote",
+	IBStatusUploadAbnormal:   "failed, upload abnormal",
 
 	FileStatusRemoved:          "local removed",
 	FileStatusForceRemoved:     "local force removed",

@@ -236,7 +236,7 @@ func (r ResourDistributionParam) dbFilter(db *gorm.DB) (err error) {
 	if strings.Contains(strings.ToLower(*r.SpecParam.DbType), "sqlserver") {
 		db.Where("os_type = ? ", model.WindowsOs)
 	} else {
-		db.Where("os_type = ? ", model.LiunxOs)
+		db.Where("os_type = ? ", model.LinuxOs)
 	}
 	return nil
 }

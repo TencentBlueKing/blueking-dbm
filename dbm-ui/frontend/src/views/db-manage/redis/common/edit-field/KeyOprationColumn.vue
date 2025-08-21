@@ -19,17 +19,9 @@
     :width="300">
     <template #headAppend>
       <BatchEditColumn
-        v-model="isShowBatchEdit"
-        :placeholder="t('请输入正则表达式_多个换行分割')"
-        :title="label"
-        type="textarea"
-        @change="handleBatchEditChange">
-        <span
-          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
-          class="batch-select-button"
-          @click="handleBatchEditShow">
-          <DbIcon type="bulk-edit" />
-        </span>
+        :confirm-handler="handleBatchEditConfirm"
+        :label="label">
+        <BatchEditTextarea v-model="batchEditValue" />
       </BatchEditColumn>
     </template>
     <EditableTextarea
@@ -42,7 +34,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+  import BatchEditColumn, { BatchEditTextarea } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
   interface Props {
     field: string;
@@ -61,14 +53,10 @@
 
   const { t } = useI18n();
 
-  const isShowBatchEdit = ref(false);
+  const batchEditValue = ref<string>('');
 
-  const handleBatchEditShow = () => {
-    isShowBatchEdit.value = true;
-  };
-
-  const handleBatchEditChange = (value: string | string[]) => {
-    emits('batch-edit', value as string, props.field);
+  const handleBatchEditConfirm = () => {
+    emits('batch-edit', batchEditValue.value, props.field);
   };
 </script>
 

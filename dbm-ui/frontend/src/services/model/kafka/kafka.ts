@@ -87,6 +87,7 @@ export default class Kafka extends ClusterBase {
     kafka_destroy: boolean;
     kafka_edit: boolean;
     kafka_enable_disable: boolean;
+    kafka_rebalance: boolean;
     kafka_reboot: boolean;
     kafka_replace: boolean;
     kafka_scale_up: boolean;

@@ -76,7 +76,7 @@ func (d *ImportSchemaFromLocalSpiderAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("import schema to empty tdbctl succcess ~")
+	logger.Info("import schema to empty tdbctl success ~")
 	return nil
 }
 
@@ -105,23 +105,30 @@ func (d *ImportSchemaFromBackendAct) Run() (err error) {
 			Func:    d.Service.Init,
 		},
 		{
+			FunName: "set tc_admin=0",
+			Func:    d.Service.DisableTcAdmin,
+		},
+		{
 			FunName: "从backend节点导出表结构至tdbctl",
 			Func:    d.Service.Migrate,
 		},
 		{
 			FunName: "从本地spider导出存储过程、触发器至tdbctl",
-			Func:    d.Service.MigrateRoutinesAndTriger,
+			Func:    d.Service.MigrateRoutinesAndTrigger,
 		},
 		{
 			FunName: "从本地spider视图到tdbctl",
 			Func:    d.Service.MigrateViewsFromSpider,
 		},
 	}
+	defer func() {
+		_ = d.Service.EnableTcAdmin()
+	}()
 
 	if err = steps.Run(); err != nil {
 		return err
 	}
 
-	logger.Info("migrate schema to tdbctl succcess ~")
+	logger.Info("migrate schema to tdbctl success ~")
 	return nil
 }
