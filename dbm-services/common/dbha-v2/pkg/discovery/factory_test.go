@@ -73,7 +73,10 @@ func setup() {
 	}
 
 	client = cli
-	etcdClient = cli.OriginClient()
+	etcdClient, err = cli.OriginClient()
+	if err != nil {
+		log.Fatalf("failed to create etcd client, errmsg: %v", err)
+	}
 
 	r, err := cli.CreateRegistry()
 	if err != nil {

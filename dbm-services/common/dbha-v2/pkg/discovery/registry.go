@@ -27,10 +27,8 @@ package discovery
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
-	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -38,42 +36,45 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type RegistryEventType int
-
-const (
-	RegistryEventRecover RegistryEventType = iota
-)
-
-// RegistryEvent registry event
-type RegistryEvent struct {
-	EventType RegistryEventType
-	Key       string
-}
-
 // Registry  service registry
 type Registry struct {
-	serviceId     string
-	rootKey       string
-	ttl           int64
-	quit          chan struct{}
-	eventChan     chan *RegistryEvent
-	wg            sync.WaitGroup
-	mutex         sync.Mutex
-	client        *clientv3.Client
-	leaseId       clientv3.LeaseID
-	keepAliveChan <-chan *clientv3.LeaseKeepAliveResponse
+	serviceID        string
+	rootKey          string
+	ttl              int64
+	quit             chan struct{}
+	wg               sync.WaitGroup
+	cliMu            sync.RWMutex
+	client           *clientv3.Client
+	leaseID          clientv3.LeaseID
+	keepAliveChan    <-chan *clientv3.LeaseKeepAliveResponse
+	createEtcdClient func() (*clientv3.Client, error)
 }
 
 func (r *Registry) grant(ctx context.Context) error {
+	cli, err := r.createEtcdClient()
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("registry grant close the etcd client: %p", r.client)
+
+	r.cliMu.Lock()
+	r.client = cli
+	r.cliMu.Unlock()
+
+	logger.Debug("registry grant, ttl: %d", r.ttl)
 
 	leaseResp, err := r.client.Grant(ctx, r.ttl)
 	if err != nil {
 		return gerrors.New(gerrors.OperationFailure, err.Error())
 	}
-	r.leaseId = leaseResp.ID
+	r.leaseID = leaseResp.ID
 
-	keepAliveResp, err := r.client.KeepAlive(ctx, r.leaseId)
+	logger.Debug("registry start keepalive, leaseID: %d", r.leaseID)
+
+	keepAliveResp, err := r.client.KeepAlive(ctx, r.leaseID)
 	if err != nil {
+		r.client.Close()
 		return gerrors.New(gerrors.OperationFailure, err.Error())
 	}
 	r.keepAliveChan = keepAliveResp
@@ -82,102 +83,71 @@ func (r *Registry) grant(ctx context.Context) error {
 		r.quit = make(chan struct{})
 	}
 
-	r.wg.Add(2)
-	go func() {
-		defer r.wg.Done()
-		r.monitorKeepalive(ctx)
-	}()
+	logger.Debug("registry start keepalive monitor, leaseID: %d", r.leaseID)
 
-	go func() {
-		defer r.wg.Done()
-		r.checkLeaseTTL(ctx)
-	}()
+	r.monitorKeepalive(ctx)
 
 	return nil
 }
 
 func (r *Registry) monitorKeepalive(ctx context.Context) {
-	for {
-		select {
-		case <-r.quit:
-			return
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
 
-		case <-ctx.Done():
-			return
+		for {
+			select {
+			case <-r.quit:
+				return
 
-		case _, ok := <-r.keepAliveChan:
-			if !ok {
-				r.wg.Add(1)
-				go func(ctx context.Context) {
-					defer r.wg.Done()
-					r.recoverLease(ctx)
-				}(ctx)
+			case <-ctx.Done():
+				return
+
+			case respd := <-r.keepAliveChan:
+				if respd != nil {
+					r.client.TimeToLive(ctx, r.leaseID)
+					continue
+				}
+
+				logger.Debug("keepalive respond:%v", respd)
+				r.client.Close()
+
+				if err := r.grant(context.Background()); err != nil {
+					logger.Error("failed to recover lease, ermsg: %v", err)
+				}
+
+				logger.Warn("registry keepalive response failure, recovered")
 				return
 			}
 		}
-	}
-}
-
-func (r *Registry) checkLeaseTTL(ctx context.Context) {
-	ttl := time.Duration(math.Floor(float64(r.ttl) / 2))
-	ticker := time.NewTicker(ttl * time.Second)
-
-	defer func() {
-		ticker.Stop()
-		logger.Info("exit registry check lease ttl")
 	}()
-
-	for {
-		select {
-		case <-r.quit:
-			return
-
-		case <-ctx.Done():
-			return
-
-		case <-ticker.C:
-			ttlResp, err := r.client.Lease.TimeToLive(ctx, r.leaseId)
-			if err != nil || ttlResp.TTL <= 0 {
-				r.wg.Add(1)
-				go func(ctx context.Context) {
-					r.wg.Done()
-					r.recoverLease(ctx)
-				}(ctx)
-				return
-			}
-		}
-	}
-}
-
-func (r *Registry) recoverLease(ctx context.Context) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	ttlResp, err := r.client.Lease.TimeToLive(ctx, r.leaseId)
-	if err == nil && ttlResp.TTL > 0 {
-		return r.grant(ctx)
-	}
-
-	return r.grant(ctx)
-}
-
-// Events Return the channel which will be triggered when a registry event occurs.
-func (r *Registry) Events() chan *RegistryEvent {
-	return r.eventChan
 }
 
 // SetService Create or set the registry root key.
 func (r *Registry) SetService(ctx context.Context, value string) error {
 	value = strings.TrimSpace(value)
 
-	if r.leaseId == 0 {
-		if err := r.grant(ctx); err != nil {
+	r.cliMu.RLock()
+	if r.client == nil || r.leaseID == 0 {
+		r.cliMu.RUnlock()
+		logger.Debug("registry set service trigger to recover.")
+		if err := r.grant(context.Background()); err != nil {
 			return err
 		}
+
+		r.cliMu.RLock()
 	}
 
-	_, err := r.client.Put(ctx, r.rootKey, value, clientv3.WithLease(r.leaseId))
+	logger.Debug("registry set service entrance")
+
+	defer func() {
+		logger.Debug("registry set service exited")
+		r.cliMu.RUnlock()
+	}()
+
+	_, err := r.client.Put(ctx, r.rootKey, value, clientv3.WithLease(r.leaseID))
 	if err != nil {
+		logger.Warn("registry set service put failed, lease-id: %v errmsg: %v", r.leaseID, err)
 		return gerrors.New(gerrors.ComponentFailure, err.Error())
 	}
 
@@ -197,11 +167,22 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 		key = fmt.Sprintf("%s/%s", r.rootKey, key)
 	}
 
-	if r.leaseId == 0 {
+	r.cliMu.RLock()
+	if r.leaseID == 0 || r.client == nil {
+		r.cliMu.RUnlock()
+		logger.Debug("registry set trigger to recover.")
 		if err := r.grant(ctx); err != nil {
 			return err
 		}
+		r.cliMu.RLock()
 	}
+
+	logger.Debug("registry set entrance")
+
+	defer func() {
+		logger.Debug("registry set exited")
+		r.cliMu.RUnlock()
+	}()
 
 	_, err := r.client.Put(ctx, key, value)
 	if err != nil {
@@ -213,6 +194,7 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 
 // Close Registry instance
 func (r *Registry) Close() {
+	logger.Debug("registry closed")
 	close(r.quit)
 	r.wg.Wait()
 	r.quit = nil

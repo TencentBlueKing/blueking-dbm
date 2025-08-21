@@ -24,18 +24,24 @@
 
 package logger
 
-import "log"
+import (
+	"log"
+
+	"go.uber.org/zap"
+)
 
 // Logger is a universal logging interface that can be
 // flexibly replaced with other logging libraies
 // without interfering with the operational logic
 // of business code.
 type Logger interface {
-	Debug(format string, args ...interface{})
-	Info(format string, args ...interface{})
-	Warn(format string, args ...interface{})
-	Error(format string, args ...interface{})
-	Fatal(format string, args ...interface{})
+	OriginLogger() *zap.Logger
+
+	Debug(format string, args ...any)
+	Info(format string, args ...any)
+	Warn(format string, args ...any)
+	Error(format string, args ...any)
+	Fatal(format string, args ...any)
 }
 
 type Level string
@@ -67,7 +73,7 @@ func Log() Logger {
 	return dblog
 }
 
-func Debug(format string, args ...interface{}) {
+func Debug(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
 		return
@@ -76,7 +82,7 @@ func Debug(format string, args ...interface{}) {
 	dblog.Debug(format, args...)
 }
 
-func Info(format string, args ...interface{}) {
+func Info(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
 		return
@@ -85,7 +91,7 @@ func Info(format string, args ...interface{}) {
 	dblog.Info(format, args...)
 }
 
-func Warn(format string, args ...interface{}) {
+func Warn(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
 		return
@@ -94,7 +100,7 @@ func Warn(format string, args ...interface{}) {
 	dblog.Warn(format, args...)
 }
 
-func Error(format string, args ...interface{}) {
+func Error(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
 		return
@@ -103,7 +109,7 @@ func Error(format string, args ...interface{}) {
 	dblog.Error(format, args...)
 }
 
-func Fatal(format string, args ...interface{}) {
+func Fatal(format string, args ...any) {
 	if dblog == nil {
 		log.Fatalf(format, args...)
 		return
