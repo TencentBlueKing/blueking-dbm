@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 from typing import Dict, List, Optional, Set
 
 from django.utils.translation import ugettext as _
@@ -19,11 +20,15 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.clone_priv_rules_to_other_biz import (
     ClonePrivRulesToOtherComponent,
 )
+from backend.flow.plugins.components.collections.common.generate_config_version import GenerateConfigVersionComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.transfer_cluster_meta_to_other_biz import (
     TransferClusterMetaToOtherBizComponent,
     UpdateClusterDnsBelongAppComponent,
 )
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
+
+logger = logging.getLogger("flow")
 
 
 def find_other_relation_domains(immute_domains: List[str]) -> List[str]:
@@ -106,6 +111,35 @@ class TransferMySQLClusterToOtherBizFlow(object):
                 "db_module_id": self.dest_db_module_id,
             },
         )
+
+        # 为每个集群生成配置版本
+        for cluster in clusters:
+            # 根据目标模块ID获取数据库版本
+            try:
+                charset, db_version = get_version_and_charset(
+                    bk_biz_id=self.target_biz_id,
+                    db_module_id=self.dest_db_module_id,
+                    cluster_type=cluster.cluster_type,
+                )
+                logger.info(_("获取模块 {} 的数据库版本: {}, {}").format(self.dest_db_module_id, charset, db_version))
+            except Exception as e:
+                raise Exception(_("获取模块 {} 的数据库版本失败: {}").format(self.dest_db_module_id, str(e)))
+
+            p.add_act(
+                act_name=_("生成集群 {} 配置版本").format(cluster.immute_domain),
+                act_component_code=GenerateConfigVersionComponent.code,
+                kwargs={
+                    "bk_biz_id": self.target_biz_id,  # 使用目标业务ID
+                    "level_name": "cluster",
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(self.dest_db_module_id)},
+                    "conf_file": db_version,  # 使用从模块获取的数据库版本
+                    "conf_type": "dbconf",
+                    "namespace": "tendbha",
+                    "format": "map.",
+                    "method": "GenerateAndPublish",
+                },
+            )
 
         p.add_act(act_name=_("请先跑一下集群标准化，完成之后确认"), act_component_code=PauseComponent.code, kwargs={})
 
