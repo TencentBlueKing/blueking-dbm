@@ -100,8 +100,6 @@
 
   import SqlFileModel from '@views/db-manage/common/mysql-sql-execute/model/SqlFile';
 
-  import { addJsonToFormData } from '@utils';
-
   import Editor from '../editor/Index.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
   import RenderFileList from '../RenderFileList.vue';
@@ -215,17 +213,17 @@
       params.append(`versions[${index}]`, version);
     });
     params.append('cluster_type', currentDbType);
-
-    addJsonToFormData(params, {
-      execute_objects: [
+    params.append(
+      'execute_objects',
+      JSON.stringify([
         {
           dbnames: props.dbNames,
           ignore_dbnames: props.ignoreDbnames,
           line_id: 1,
-          sql_files: '/',
+          sql_files: ['/'],
         },
-      ],
-    });
+      ]),
+    );
 
     currentFileData.grammarCheckStart();
     grammarCheckHandle(params)

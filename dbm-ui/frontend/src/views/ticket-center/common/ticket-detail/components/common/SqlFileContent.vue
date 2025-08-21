@@ -68,7 +68,7 @@
 
   import { DBTypes } from '@common/const';
 
-  import { addJsonToFormData, getSQLFilename } from '@utils';
+  import { getSQLFilename } from '@utils';
 
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
@@ -119,16 +119,17 @@
       });
     }
     if (props.executeObject) {
-      addJsonToFormData(params, {
-        execute_objects: [
+      params.append(
+        'execute_objects',
+        JSON.stringify([
           {
             dbnames: props.executeObject.dbnames,
             ignore_dbnames: props.executeObject.ignore_dbnames,
             line_id: 1,
-            sql_files: '/',
+            sql_files: ['/'],
           },
-        ],
-      });
+        ]),
+      );
     }
     grammarCheckApi(params)
       .then((data) => {
