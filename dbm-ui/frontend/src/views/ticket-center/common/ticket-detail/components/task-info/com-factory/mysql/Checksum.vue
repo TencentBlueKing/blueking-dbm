@@ -26,8 +26,9 @@
     </InfoItem>
   </InfoList>
   <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :data="tableData"
+    :show-overflow="false"
+    :merge-cells="mergeCells">
     <BkTableColumn
       :label="t('目标集群')"
       :min-width="220">
@@ -35,33 +36,35 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('校验主库')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.master.ip }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验从库')">
+    <BkTableColumn
+      :label="t('校验从库')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="(item, index) in data.slaves"
           :key="index">
-          <p class="pt-2 pb-2">{{ item.ip }}: {{ item.port }}</p>
+          <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('校验DB')">
+    <BkTableColumn
+      :label="t('校验主库')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }"> {{ data.master.ip }}:{{ data.master.port }} </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('校验 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.db_patterns" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('忽略 DB 名')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('校验表名')">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.table_patterns" />
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略表名')">
@@ -95,7 +98,45 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const tableData = shallowRef<RowData[]>([]);
+
+  const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
+
+  watch(
+    () => props.ticketDetails.details.infos,
+    () => {
+      const clusterMap: Record<string, RowData[]> = {};
+      props.ticketDetails.details.infos.forEach((item) => {
+        const clusterId = item.cluster_id;
+        if (!clusterMap[clusterId]) {
+          clusterMap[clusterId] = [item];
+        } else {
+          clusterMap[clusterId].push(item);
+        }
+      });
+
+      Object.values(clusterMap).forEach((list) => {
+        const preRow = mergeCells.value[mergeCells.value.length - 1] || {
+          col: 0,
+          colspan: 1,
+          row: 0,
+          rowspan: 1,
+        };
+        mergeCells.value.push({
+          col: 0,
+          colspan: 1,
+          row: preRow.row + preRow.rowspan - 1,
+          rowspan: list.length,
+        });
+        tableData.value.push(...list);
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

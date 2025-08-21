@@ -80,14 +80,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
-  {
-    path: 'checksum/:page?',
-    name: 'MySQLChecksum',
-    meta: {
-      navName: t('数据校验修复'),
-    },
-    component: () => import('@views/db-manage/mysql/checksum/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',

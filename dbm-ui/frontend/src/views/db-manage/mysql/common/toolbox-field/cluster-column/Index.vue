@@ -19,6 +19,7 @@
     :label="t(label)"
     :loading="loading"
     :min-width="minWidth"
+    :rowspan="rowspan"
     required>
     <template #headAppend>
       <span
@@ -61,7 +62,7 @@
      */
     allowRepeat?: boolean;
     /**
-     * 选择器tab集群类型，不传默认 TENDBHA
+     * 选择器tab集群类型
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
     label?: string;
@@ -82,6 +83,7 @@
      */
     supportOfflineData?: boolean;
     tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
+    rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
@@ -93,6 +95,7 @@
     minWidth: 200,
     onlyOneType: false,
     supportOfflineData: false,
+    rowspan: 1,
     tabListConfig: () =>
       ({
         [ClusterTypes.TENDBHA]: {
