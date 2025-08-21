@@ -25,6 +25,7 @@ import (
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	"k8s-dbs/errors"
+	metaentity "k8s-dbs/metadata/entity"
 	"reflect"
 	"strconv"
 
@@ -105,6 +106,27 @@ func DecodeParams(ctx *gin.Context,
 	return nil
 }
 
+// BuildListParams 构建ListParams
+func BuildListParams(ctx *gin.Context) (*metaentity.ClusterQueryParams, error) {
+	var bkBizIDs []uint64
+	for _, bkBizIDStr := range ctx.QueryArray("bkBizId") {
+		bkBizID, err := strconv.ParseUint(bkBizIDStr, 10, 64)
+		if err != nil {
+			return nil, errors.NewK8sDbsError(errors.ParameterTypeError, err)
+		}
+		bkBizIDs = append(bkBizIDs, bkBizID)
+	}
+	requestParams := metaentity.ClusterQueryParams{
+		Creators:     ctx.QueryArray("creator"),
+		Updaters:     ctx.QueryArray("updater"),
+		AddonTypes:   ctx.QueryArray("addonType"),
+		ClusterName:  ctx.Query("clusterName"),
+		ClusterAlias: ctx.Query("clusterAlias"),
+		BkBizIDs:     bkBizIDs,
+	}
+	return &requestParams, nil
+}
+
 // convertValue 根据目标类型尝试转换值
 func convertValue(val interface{}, targetType reflect.Type) (interface{}, error) {
 	valStr, ok := val.(string)
@@ -161,4 +183,79 @@ func convertValue(val interface{}, targetType reflect.Type) (interface{}, error)
 	default:
 		return nil, fmt.Errorf("不支持的类型转换: %v", targetType)
 	}
+}
+
+// GetClusterOpsStatus 获取集群操作状态
+func GetClusterOpsStatus(opsRequestType string, opsRequestStatus string, clusterStatus string) string {
+	if innerMap, ok := clusterOpsStatusMapping[opsRequestType]; ok {
+		if status, ok := innerMap[opsRequestStatus]; ok {
+			return status
+		}
+	}
+	return clusterStatus
+}
+
+const (
+	// 操作类型
+	Start             = "Start"
+	Stop              = "Stop"
+	Restart           = "Restart"
+	VerticalScaling   = "VerticalScaling"
+	HorizontalScaling = "HorizontalScaling"
+	VolumeExpansion   = "VolumeExpansion"
+	Upgrade           = "Upgrade"
+	Expose            = "Expose"
+
+	// 操作状态
+	Pending   = "Pending"
+	Createing = "Creating"
+	Running   = "Running"
+
+	// 集群操作状态
+	Updating = "Updating"
+	Stopping = "Stopping"
+)
+
+// clusterOpsStatusMapping 集群操作状态映射
+var clusterOpsStatusMapping = map[string]map[string]string{
+	Start: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
+	Stop: {
+		Pending:   Stopping,
+		Createing: Stopping,
+		Running:   Stopping,
+	},
+	Restart: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
+	VerticalScaling: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
+	HorizontalScaling: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
+	VolumeExpansion: {
+		Pending:   Stopping,
+		Createing: Stopping,
+		Running:   Stopping,
+	},
+	Upgrade: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
+	Expose: {
+		Pending:   Updating,
+		Createing: Updating,
+		Running:   Updating,
+	},
 }

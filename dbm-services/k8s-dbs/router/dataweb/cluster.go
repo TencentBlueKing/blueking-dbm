@@ -21,6 +21,7 @@ package dataweb
 
 import (
 	"k8s-dbs/dataweb/api/controller"
+	"k8s-dbs/router/core"
 	routerutil "k8s-dbs/router/util"
 
 	"github.com/gin-gonic/gin"
@@ -34,13 +35,24 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	clusterController := initClusterController(db)
 	{
 		clusterGroup.POST("/create", clusterController.CreateCluster)
+		clusterGroup.GET("/search", clusterController.GetClusterList)
+		clusterGroup.GET("/:id", clusterController.GetClusterInfo)
 	}
 }
 
 // initClusterController 初始化 ClusterController
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := routerutil.BuildClusterProvider(db)
-	return controller.NewClusterController(clusterProvider)
+	k8sCrdClusterProvider := routerutil.BuildClusterMetaProvider(db)
+	opsRequestProvider := routerutil.BuildK8sCrdOpsRequestProvider(db)
+	clusterOpsProvider := core.BuildOpsRequestProvider(db, clusterProvider)
+
+	return controller.NewClusterController(
+		clusterProvider,
+		k8sCrdClusterProvider,
+		opsRequestProvider,
+		clusterOpsProvider,
+	)
 }
 
 func init() {
