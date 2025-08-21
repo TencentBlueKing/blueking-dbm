@@ -91,7 +91,7 @@ class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         hot_node_count = len(exist_hot_hosts - shrink_hot_hosts)
         cold_node_count = len(exist_cold_hosts - shrink_cold_hosts)
         total_nodes = hot_node_count + cold_node_count
-        if not (hot_node_count >= constants.DORIS_HOT_COLD_LIMIT or cold_node_count >= constants.DORIS_HOT_COLD_LIMIT):
+        if hot_node_count < constants.DORIS_HOT_COLD_LIMIT or cold_node_count < constants.DORIS_HOT_COLD_LIMIT:
             raise serializers.ValidationError(_("请保证部署的冷/热节点的角色为2以上"))
         if not total_nodes:
             raise serializers.ValidationError(_("请保证冷/热节点必选1种以上"))
