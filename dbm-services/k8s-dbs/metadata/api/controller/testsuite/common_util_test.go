@@ -39,21 +39,26 @@ var baseBKAuth = entity.BKAuth{
 func deleteTimeColumn(body []byte) string {
 	var resp map[string]interface{}
 	_ = json.Unmarshal(body, &resp)
-	if data, ok := resp["data"].(map[string]interface{}); ok {
-		delete(data, "createdAt")
-		delete(data, "updatedAt")
-		resp["data"] = data
-		result, _ := json.Marshal(resp)
-		return string(result)
-	}
-	if list, ok := resp["data"].([]interface{}); ok {
-		for _, item := range list {
-			if m, ok := item.(map[string]interface{}); ok {
-				delete(m, "createdAt")
-				delete(m, "updatedAt")
+
+	var removeTimeFields func(obj interface{})
+	removeTimeFields = func(obj interface{}) {
+		switch v := obj.(type) {
+		case map[string]interface{}:
+			delete(v, "createdAt")
+			delete(v, "updatedAt")
+			for _, value := range v {
+				removeTimeFields(value)
+			}
+		case []interface{}:
+			for _, item := range v {
+				removeTimeFields(item)
 			}
 		}
-		resp["data"] = list
+	}
+
+	if data, ok := resp["data"]; ok {
+		removeTimeFields(data)
+		resp["data"] = data
 		result, _ := json.Marshal(resp)
 		return string(result)
 	}
@@ -265,5 +270,345 @@ func createMoreAddonClusterVersion(mySQLContainer *testhelper.MySQLContainerWrap
 			log.Fatal(err)
 		}
 		log.Println("Add Sample addon cluster version ", addedVersion)
+	}
+}
+
+func createMoreComponent(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
+		component := &model.K8sCrdComponentModel{
+			ComponentName: "test1",
+			CrdClusterID:  1,
+			Status:        "CREATED",
+			Description:   "just for test",
+			CreatedBy:     "admin",
+			CreatedAt:     types.JSONDatetime(opsTime),
+			UpdatedBy:     "admin",
+			UpdatedAt:     types.JSONDatetime(opsTime),
+		}
+		addedComponent, err := dbAccess.Create(component)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample component %v\n", addedComponent)
+	}
+}
+
+func createMoreOpsRequest(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
+		opsRequest := &model.K8sCrdOpsRequestModel{
+			CrdClusterID:       1,
+			K8sClusterConfigID: 1,
+			RequestID:          "test-request-001",
+			OpsRequestName:     "test-opsrequest",
+			OpsRequestType:     "backup",
+			Metadata:           `{"labels":{"app":"test"}}`,
+			Spec:               `{"backup":{"schedule":"0 2 * * *"}}`,
+			Status:             "pending",
+			Description:        "Test opsrequest",
+			CreatedBy:          "admin",
+			CreatedAt:          types.JSONDatetime(opsTime),
+			UpdatedBy:          "admin",
+			UpdatedAt:          types.JSONDatetime(opsTime),
+		}
+		addedOpsRequest, err := dbAccess.Create(opsRequest)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample opsrequest %v\n", addedOpsRequest)
+	}
+}
+
+func createMoreClusterOperation(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		clusterOpDbAccess := dbaccess.NewClusterOperationDbAccess(db)
+		opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+
+		operationDefinition := &model.OperationDefinitionModel{
+			OperationName:   "test-operation",
+			OperationTarget: "cluster",
+			Active:          true,
+			Description:     "测试操作定义",
+			CreatedBy:       "admin",
+			UpdatedBy:       "admin",
+			CreatedAt:       types.JSONDatetime(opTime),
+			UpdatedAt:       types.JSONDatetime(opTime),
+		}
+		addedOperationDefinition, err := opDefDbAccess.Create(operationDefinition)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		clusterOperation := &model.ClusterOperationModel{
+			AddonType:    "mysql",
+			AddonVersion: "8.0",
+			OperationID:  addedOperationDefinition.ID,
+			Description:  "创建测试集群",
+			CreatedBy:    "admin",
+			CreatedAt:    types.JSONDatetime(opTime),
+			UpdatedBy:    "admin",
+			UpdatedAt:    types.JSONDatetime(opTime),
+		}
+		addedClusterOperation, err := clusterOpDbAccess.Create(clusterOperation)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample cluster operation %v\n", addedClusterOperation)
+	}
+}
+
+func createMoreClusterRequest(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		dbAccess := dbaccess.NewClusterRequestRecordDbAccess(db)
+		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+
+		clusterRequest := &model.ClusterRequestRecordModel{
+			RequestID:      "req-123456",
+			K8sClusterName: "test-k8s-cluster",
+			ClusterName:    "test-cluster",
+			NameSpace:      "default",
+			RequestType:    "CREATE",
+			RequestParams:  "{\"param1\":\"value1\",\"param2\":\"value2\"}",
+			Status:         "SUCCESS",
+			Description:    "创建测试集群",
+			CreatedBy:      "admin",
+			CreatedAt:      types.JSONDatetime(opTime),
+			UpdatedBy:      "admin",
+			UpdatedAt:      types.JSONDatetime(opTime),
+		}
+		addedClusterRequest, err := dbAccess.Create(clusterRequest)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample cluster request %v\n", addedClusterRequest)
+	}
+}
+
+func createMoreCluster(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
+		addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+		k8sClusterConfigDbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
+		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+
+		k8sClusterConfig := &model.K8sClusterConfigModel{
+			ClusterName:  "test-k8s-cluster",
+			APIServerURL: "https://www.example.com",
+			CACert:       "test-ca-cert",
+			ClientCert:   "test-client-cert",
+			ClientKey:    "test-client-key",
+			Token:        "test-token",
+			Username:     "test-user",
+			Password:     "test-password",
+			IsPublic:     true,
+			RegionName:   "test-region",
+			RegionCode:   "test-region-code",
+			Provider:     "test-provider",
+			Active:       true,
+			Description:  "测试K8s集群配置",
+			CreatedBy:    "admin",
+			CreatedAt:    types.JSONDatetime(opTime),
+			UpdatedBy:    "admin",
+			UpdatedAt:    types.JSONDatetime(opTime),
+		}
+		addedK8sConfig, err := k8sClusterConfigDbAccess.Create(k8sClusterConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample k8s cluster config %v\n", addedK8sConfig)
+
+		storageAddon := &model.K8sCrdStorageAddonModel{
+			AddonName:          "test-storage-addon",
+			AddonVersion:       "1.0.0",
+			AddonType:          "storage",
+			AddonCategory:      "storage",
+			RecommendedVersion: "1.0.0",
+			SupportedVersions:  "1.0.0",
+			Topologies:         `[{"name":"cluster","isDefault":true,"description":"集群拓扑","components":[]}]`,
+			Active:             true,
+			Description:        "测试存储插件",
+			CreatedBy:          "admin",
+			CreatedAt:          types.JSONDatetime(opTime),
+			UpdatedBy:          "admin",
+			UpdatedAt:          types.JSONDatetime(opTime),
+		}
+		addedAddon, err := addonDbAccess.Create(storageAddon)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample storage addon %v\n", addedAddon)
+
+		cluster := &model.K8sCrdClusterModel{
+			ClusterName:        "test-cluster",
+			ClusterAlias:       "Test Cluster",
+			BkBizID:            1,
+			BkBizName:          "测试业务",
+			AddonID:            addedAddon.ID,
+			K8sClusterConfigID: addedK8sConfig.ID,
+			Namespace:          "default",
+			TopoName:           "cluster",
+			Status:             "CREATED",
+			Description:        "just for test",
+			CreatedBy:          "admin",
+			CreatedAt:          types.JSONDatetime(opTime),
+			UpdatedBy:          "admin",
+			UpdatedAt:          types.JSONDatetime(opTime),
+		}
+		addedCluster, err := clusterDbAccess.Create(cluster)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample cluster %v\n", addedCluster)
+	}
+}
+
+func createMoreComponentOperation(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		componentOpDbAccess := dbaccess.NewComponentOperationDbAccess(db)
+		opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+
+		operationDefinition := &model.OperationDefinitionModel{
+			OperationName:   "test-component-operation",
+			OperationTarget: "component",
+			Active:          true,
+			Description:     "测试组件操作定义",
+			CreatedBy:       "admin",
+			UpdatedBy:       "admin",
+			CreatedAt:       types.JSONDatetime(opTime),
+			UpdatedAt:       types.JSONDatetime(opTime),
+		}
+		addedOpDef, err := opDefDbAccess.Create(operationDefinition)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample operation definition %v\n", addedOpDef)
+
+		componentOperation := &model.ComponentOperationModel{
+			AddonType:        "mysql",
+			AddonVersion:     "8.0",
+			ComponentName:    "mysql-server",
+			ComponentVersion: "8.0",
+			OperationID:      addedOpDef.ID,
+			Active:           true,
+			Description:      "创建测试组件",
+			CreatedBy:        "admin",
+			CreatedAt:        types.JSONDatetime(opTime),
+			UpdatedBy:        "admin",
+			UpdatedAt:        types.JSONDatetime(opTime),
+		}
+		addedComponentOperation, err := componentOpDbAccess.Create(componentOperation)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample component operation %v\n", addedComponentOperation)
+	}
+}
+
+func createMoreOperationDefinition(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		opTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
+
+		operationDefinition := &model.OperationDefinitionModel{
+			OperationName:   "test-operation",
+			OperationTarget: "cluster",
+			Active:          true,
+			Description:     "测试操作定义",
+			CreatedBy:       "admin",
+			UpdatedBy:       "admin",
+			CreatedAt:       types.JSONDatetime(opTime),
+			UpdatedAt:       types.JSONDatetime(opTime),
+		}
+		addedOpDef, err := dbAccess.Create(operationDefinition)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample operation definition %v\n", addedOpDef)
+	}
+}
+
+func createMoreK8sClusterAddons(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	for i := 0; i < count; i++ {
+		opsTime, _ := time.Parse(time.DateTime, "2025-01-01 12:00:00")
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		saDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
+		storageAddon := &model.K8sCrdStorageAddonModel{
+			AddonName:            "test-addon",
+			AddonVersion:         "1.0.0",
+			AddonType:            "mysql",
+			AddonCategory:        "storage",
+			RecommendedVersion:   "1.0.0",
+			SupportedVersions:    `["1.0.0"]`,
+			RecommendedAcVersion: "1.0.0",
+			SupportedAcVersions:  `["1.0.0"]`,
+			Topologies:           `[{"name":"cluster","isDefault":true}]`,
+			Releases:             `[{"version":"1.0.0"}]`,
+			Active:               true,
+			Description:          "Test addon",
+			CreatedBy:            "admin",
+			CreatedAt:            types.JSONDatetime(opsTime),
+			UpdatedBy:            "admin",
+			UpdatedAt:            types.JSONDatetime(opsTime),
+		}
+		addedAddon, err := saDbAccess.Create(storageAddon)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		kcaDbAccess := dbaccess.NewK8sClusterAddonsDbAccess(db)
+		clusterAddon := &model.K8sClusterAddonsModel{
+			AddonID:        addedAddon.ID,
+			K8sClusterName: "test-cluster",
+			CreatedBy:      "admin",
+			CreatedAt:      types.JSONDatetime(opsTime),
+			UpdatedBy:      "admin",
+			UpdatedAt:      types.JSONDatetime(opsTime),
+		}
+		_, err = kcaDbAccess.Create(clusterAddon)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func createMoreK8sClusterConfig(container *testhelper.MySQLContainerWrapper, count int) {
+	db, _ := testhelper.InitDBConnection(container.ConnStr)
+	dbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
+
+	for i := 1; i <= count; i++ {
+		config := &model.K8sClusterConfigModel{
+			ClusterName:  "test-k8s-cluster",
+			APIServerURL: "https://www.example.com",
+			CACert:       "test-ca-cert",
+			ClientCert:   "test-client-cert",
+			ClientKey:    "test-client-key",
+			Token:        "test-token",
+			Username:     "test-user",
+			Password:     "test-password",
+			IsPublic:     true,
+			RegionName:   "test-region",
+			RegionCode:   "test-region-code",
+			Provider:     "test-provider",
+			Active:       true,
+			Description:  "测试K8s集群配置",
+			CreatedBy:    "admin",
+			UpdatedBy:    "admin",
+		}
+		_, err := dbAccess.Create(config)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

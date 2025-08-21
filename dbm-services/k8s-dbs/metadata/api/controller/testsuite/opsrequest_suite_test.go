@@ -37,15 +37,15 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type ComponentControllerTestSuite struct {
+type OpsRequestControllerTestSuite struct {
 	suite.Suite
-	mySQLContainer      *testhelper.MySQLContainerWrapper
-	componentController *controller.ComponentController
-	ctx                 context.Context
-	router              *gin.Engine
+	mySQLContainer       *testhelper.MySQLContainerWrapper
+	opsRequestController *controller.OpsController
+	ctx                  context.Context
+	router               *gin.Engine
 }
 
-func (suite *ComponentControllerTestSuite) SetupSuite() {
+func (suite *OpsRequestControllerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	mySQLContainer, err := testhelper.NewMySQLContainerWrapper(suite.ctx)
 	if err != nil {
@@ -56,55 +56,60 @@ func (suite *ComponentControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
-	componentProvider := provider.NewK8sCrdComponentProvider(dbAccess)
-	componentController := controller.NewComponentController(componentProvider)
-	suite.componentController = componentController
+	dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
+	opsRequestProvider := provider.NewK8sCrdOpsRequestProvider(dbAccess)
+	opsRequestController := controller.NewOpsController(opsRequestProvider)
+	suite.opsRequestController = opsRequestController
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	routerGroup := r.Group("/metadata/component")
+	routerGroup := r.Group("/metadata/ops")
 	{
-		routerGroup.GET("/:id", suite.componentController.GetComponent)
+		routerGroup.GET("/:id", suite.opsRequestController.GetOps)
 	}
 	suite.router = r
 }
 
-func (suite *ComponentControllerTestSuite) TearDownSuite() {
+func (suite *OpsRequestControllerTestSuite) TearDownSuite() {
 	if err := suite.mySQLContainer.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating mysql container: %s", err)
 	}
 }
 
-func (suite *ComponentControllerTestSuite) SetupTest() {
-	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdComponent, &model.K8sCrdComponentModel{})
+func (suite *OpsRequestControllerTestSuite) SetupTest() {
+	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdOpsRequest, &model.K8sCrdOpsRequestModel{})
 }
 
-func TestComponentController(t *testing.T) {
-	suite.Run(t, new(ComponentControllerTestSuite))
+func TestOpsRequestController(t *testing.T) {
+	suite.Run(t, new(OpsRequestControllerTestSuite))
 }
 
-func (suite *ComponentControllerTestSuite) TestGetComponent() {
+func (suite *OpsRequestControllerTestSuite) TestGetOpsRequest() {
 	t := suite.T()
-	createMoreComponent(suite.mySQLContainer, 1)
-	request, _ := http.NewRequest("GET", "/metadata/component/1", nil)
+	createMoreOpsRequest(suite.mySQLContainer, 1)
+	request, _ := http.NewRequest("GET", "/metadata/ops/1", nil)
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, request)
 	assert.Equal(t, http.StatusOK, w.Code)
 	expected := `
 	{
-		"result": true,
-		"code": 200,
-		"data": {
-			"id": 1,
-			"crdClusterId": 1,
-			"componentName": "test1",
-			"status": "CREATED",
-			"description": "just for test",
-			"createdBy": "admin",
-			"updatedBy": "admin"
-		},
-		"message": "success",
-		"error": null
+	  "code": 200,
+	  "data": {
+		"crdClusterId": 1,
+		"createdBy": "admin",
+		"description": "Test opsrequest",
+		"id": 1,
+		"k8sClusterConfigId": 1,
+		"metadata": "{\"labels\":{\"app\":\"test\"}}",
+		"opsrequestName": "test-opsrequest",
+		"opsrequestType": "backup",
+		"requestId": "test-request-001",
+		"spec": "{\"backup\":{\"schedule\":\"0 2 * * *\"}}",
+		"status": "pending",
+		"updatedBy": "admin"
+	  },
+	  "error": null,
+	  "message": "success",
+	  "result": true
 	}
 	`
 	assert.JSONEq(t, expected, deleteTimeColumn(w.Body.Bytes()))

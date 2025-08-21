@@ -1,4 +1,4 @@
-go test -v -run TestComponentControllerTestSuite ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestComponentController ./k8s-dbs/metadata/api/controller/testsuite/
 go test -v -run TestAddonCategoryController ./k8s-dbs/metadata/api/controller/testsuite/
 go test -v -run TestAddonController ./k8s-dbs/metadata/api/controller/testsuite/
 go test -v -run TestAddonHelmRepoController ./k8s-dbs/metadata/api/controller/testsuite/
@@ -7,3 +7,11 @@ go test -v -run TestAddonTypeController ./k8s-dbs/metadata/api/controller/testsu
 go test -v -run TestAddonClusterHelmRepoController ./k8s-dbs/metadata/api/controller/testsuite/
 go test -v -run TestAddonClusterReleaseController ./k8s-dbs/metadata/api/controller/testsuite/
 go test -v -run TestAddonClusterVersionController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestClusterOperationController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestClusterRequestController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestClusterController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestComponentOperationController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestK8sClusterAddonsController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestK8sClusterConfigController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestOperationDefinitionController ./k8s-dbs/metadata/api/controller/testsuite/
+go test -v -run TestOpsRequestController ./k8s-dbs/metadata/api/controller/testsuite/
