@@ -42,6 +42,7 @@ type RedisBackupParams struct {
 	Ports                    []int                `json:"ports"`      // 如果端口不连续,可直接指定端口
 	StartPort                int                  `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
 	InstNum                  int                  `json:"inst_num"`
+	BackupIdentify           string               `json:"backup_identify"` // TOOD validate:"required"
 	BackupType               string               `json:"backup_type" validate:"required"`
 	WithoutToBackupSys       bool                 `json:"without_to_backup_sys"` // 结果不传输到备份系统,默认需传到备份系统
 	SSDLogCount              TendisSSDSetLogCount `json:"ssd_log_count"`         // 该参数在tendissd 重做dr时,备份master需设置
@@ -151,6 +152,10 @@ func (job *RedisBackup) Run() (err error) {
 		toBackSys = "no"
 	}
 	bakTasks := make([]*BackupTask, 0, len(job.params.Ports))
+	if job.params.BackupIdentify == "" {
+		job.params.BackupIdentify = fmt.Sprintf("BILL%s-%s",
+			job.runtime.UID, time.Now().Format("2006010203"))
+	}
 	for _, port := range job.params.Ports {
 		password, err = myredis.GetRedisPasswdFromConfFile(port)
 		if err != nil {
@@ -158,7 +163,7 @@ func (job *RedisBackup) Run() (err error) {
 		}
 		task := NewFullBackupTask(job.params.BkBizID, job.params.BkCloudID,
 			job.params.Domain, job.params.IP, port, password,
-			toBackSys, job.params.BackupType, bakDir,
+			toBackSys, job.params.BackupType, job.params.BackupIdentify, bakDir,
 			true, consts.BackupTarSplitSize, job.params.SSDLogCount,
 			job.Reporter, job.backupClient, job.sqdb)
 
@@ -317,6 +322,8 @@ type RedisFullbackupHistorySchema struct {
 	BackupTaskID   string `json:"backup_taskid" gorm:"column:backup_taskid;not null;default:''"`
 	// 目前为空
 	BackupMD5 string `json:"backup_md5" gorm:"column:backup_md5;not null;default:''"`
+	// BackupIdentify 集群上一批备份的标识， 用于备份恢复时候选择
+	BackupIdentify string `json:"backup_identify" gorm:"type:varchar(128);column:backup_identify;not null;default:''"`
 	// REDIS_FULL
 	BackupTag string `json:"backup_tag" gorm:"column:backup_tag;not null;default:''"`
 	// shard值
@@ -378,7 +385,7 @@ type BackupTask struct {
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID string, bkCloudID int64,
 	domain, ip string, port int, password,
-	toBackupSys, backupType, backupDir string, tarSplit bool, tarSplitSize string,
+	toBackupSys, backupType, backupIdentify, backupDir string, tarSplit bool, tarSplitSize string,
 	ssdLogCount TendisSSDSetLogCount, reporter report.Reporter,
 	bakCli backupsys.BackupClient,
 	sqDB *gorm.DB) *BackupTask {
@@ -399,17 +406,18 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64,
 		sqdb:             sqDB,
 	}
 	ret.RedisFullbackupHistorySchema = RedisFullbackupHistorySchema{
-		ReportType:   consts.RedisFullBackupReportType,
-		BkBizID:      bkBizID,
-		BkCloudID:    bkCloudID,
-		Domain:       domain,
-		ServerIP:     ip,
-		ServerPort:   port,
-		BackupDir:    backupDir,
-		BackupTaskID: "",
-		BackupMD5:    "",
-		BackupTag:    backupTag,
-		TimeZone:     timeZone,
+		ReportType:     consts.RedisFullBackupReportType,
+		BkBizID:        bkBizID,
+		BkCloudID:      bkCloudID,
+		Domain:         domain,
+		ServerIP:       ip,
+		ServerPort:     port,
+		BackupDir:      backupDir,
+		BackupTaskID:   "",
+		BackupMD5:      "",
+		BackupIdentify: backupIdentify,
+		BackupTag:      backupTag,
+		TimeZone:       timeZone,
 	}
 	return ret
 }

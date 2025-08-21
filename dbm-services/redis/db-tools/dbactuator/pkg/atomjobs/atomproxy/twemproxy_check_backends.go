@@ -28,6 +28,7 @@ import (
 type ProxyInstances struct {
 	IP        string `json:"ip" validate:"required"`
 	Port      int    `json:"port" validate:"required"`
+	Status    string `json:"status" validate:"required"`
 	AdminPort int    `json:"admin_port"`
 }
 
@@ -82,22 +83,39 @@ func (job *TwemproxyCheckBackends) Name() string {
 
 // Run 执行
 func (job *TwemproxyCheckBackends) Run() (err error) {
-	md5s := map[string][]string{}
-	for idx, p := range job.params.Instances {
-		md5Val := job.getTwemproxyMd5(fmt.Sprintf("%s:%d", p.IP, p.Port+1000))
-		if _, ok := md5s[md5Val]; !ok {
-			md5s[md5Val] = []string{}
+	md5s := map[string]map[string][]string{}
+	for _, p := range job.params.Instances {
+		if _, ok := md5s[p.Status]; !ok {
+			md5s[p.Status] = map[string][]string{}
 		}
-		md5s[md5Val] = append(md5s[md5Val], p.IP)
-		job.runtime.Logger.Info(fmt.Sprintf("get {%s} nosqlproxy servers md5 %d:%s", p.IP, idx, md5Val))
+		md5Val := job.getTwemproxyMd5(fmt.Sprintf("%s:%d", p.IP, p.Port+1000))
+		if _, ok := md5s[p.Status][md5Val]; !ok {
+			md5s[p.Status][md5Val] = []string{}
+		}
+		md5s[p.Status][md5Val] = append(md5s[p.Status][md5Val], p.IP)
 	}
 
-	if len(md5s) > 1 {
+	if len(md5s["running"]) > 1 {
 		x, _ := json.Marshal(md5s)
 		return fmt.Errorf("some proxy failed for servers:{%s}", x)
 	}
 
-	job.runtime.Logger.Info(fmt.Sprintf("all twemproxy %+v got same nosqlproxy servers md5 %+v", job.params, md5s))
+	// 元数据存在多种状态的 proxy 要再瞅瞅
+	if len(md5s) > 1 {
+		statusMd5 := map[string][]string{}
+		for s, md := range md5s {
+			if _, ok := statusMd5[s]; !ok {
+				statusMd5[s] = []string{}
+			}
+			for k, _ := range md {
+				statusMd5[s] = append(statusMd5[s], k)
+			}
+		}
+		xx, _ := json.Marshal(statusMd5)
+		job.runtime.Logger.Warn(fmt.Sprintf("twemproxy got servers md5 with status: %s", xx))
+	}
+	x, _ := json.Marshal(md5s)
+	job.runtime.Logger.Info(fmt.Sprintf("all twemproxy got same nosqlproxy servers md5: %s", x))
 	return nil
 }
 
@@ -113,13 +131,14 @@ func (job *TwemproxyCheckBackends) Rollback() error {
 
 func (job *TwemproxyCheckBackends) getTwemproxyMd5(addr string) string {
 	// 建立一个链接（Dial拨号）
-	conn, err := net.DialTimeout("tcp", addr, time.Second*10)
+	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
 		job.runtime.Logger.Error(fmt.Sprintf("dial failed, {%s} err:%v\n", addr, err))
 		return fmt.Sprintf("Dail{%s}Failed:%+v", addr, err)
 	}
 
 	// 写入数据
+	conn.SetDeadline(time.Now().Add(5 * time.Second))
 	_, err = io.WriteString(conn, "get nosqlproxy servers")
 	if err != nil {
 		job.runtime.Logger.Error(fmt.Sprintf("wirte string failed, err:%v\n", err))
@@ -151,5 +170,5 @@ func (job *TwemproxyCheckBackends) getTwemproxyMd5(addr string) string {
 	hash2 := md5er.Sum(nil)
 	has := hex.EncodeToString(hash2)
 	job.runtime.Logger.Info(fmt.Sprintf("proxy {%s} has backends servers md5:%s:%s", addr, has, data))
-	return fmt.Sprintf("%x", has) // 将[]byte转成16进制
+	return has
 }

@@ -35,12 +35,14 @@ def tendis_cluster(clusters: QuerySet) -> List[Dict]:
 
     cluster_results = []
     for cluster in cluster_list:
-        proxyinstance_set = []
+        proxyinstance_set, proxy_status_set = [], {}
         proxy_ports = defaultdict(int)
         proxy_ips = defaultdict(int)
 
         for proxy_obj in cluster.proxyinstance_set.all():
-            proxyinstance_set.append("{}{}{}".format(proxy_obj.machine.ip, IP_PORT_DIVIDER, proxy_obj.port))
+            proxy_addr = "{}{}{}".format(proxy_obj.machine.ip, IP_PORT_DIVIDER, proxy_obj.port)
+            proxyinstance_set.append(proxy_addr)
+            proxy_status_set[proxy_addr] = proxy_obj.status
             proxy_ips[proxy_obj.machine.ip] += 1
             proxy_ports[proxy_obj.port] += 1
 
@@ -94,6 +96,7 @@ def tendis_cluster(clusters: QuerySet) -> List[Dict]:
                 "cluster_type": cluster.cluster_type,
                 "major_version": cluster.major_version,
                 "region": cluster.region,
+                "{}_status_set".format(MachineType.TWEMPROXY): proxy_status_set,
                 "{}_set".format(MachineType.TWEMPROXY): proxyinstance_set,
                 "{}_set".format(InstanceRole.REDIS_MASTER): master_instance_set,
                 "{}_set".format(InstanceRole.REDIS_SLAVE): slave_instance_set,

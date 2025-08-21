@@ -1581,6 +1581,38 @@ class RedisActPayload(object):
         }
 
     # Tendis 单实例/集群 架构-实例切换;
+    def redis__switch_precheck_4_scene(self, **kwargs) -> dict:
+        """same as redis__switch_4_scene"""
+        params, proxy_pass, storage_pass = kwargs["params"], "<", ">"
+        self.namespace = params["cluster_type"]
+        cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
+        if self.namespace == ClusterType.RedisInstance.value:
+            storage_pass = passwd_ret.get("redis_password")
+        else:
+            proxy_pass, storage_pass = passwd_ret.get("redis_proxy_password"), passwd_ret.get("redis_password")
+
+        logger.info("switch cluster {}, switch infos : {}".format(params["immute_domain"], params["switch_info"]))
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SwitchPrecheck.value,
+            "payload": {
+                "cluster_meta": {
+                    "bk_biz_id": cluster_meta["bk_biz_id"],
+                    "immute_domain": cluster_meta["immute_domain"],
+                    "cluster_type": cluster_meta["cluster_type"],
+                    "major_version": cluster_meta["major_version"],
+                    "twemproxy_status_set": cluster_meta["twemproxy_status_set"],
+                    "redis_master_set": cluster_meta["redis_master_set"],
+                    "proxy_pass": proxy_pass,
+                    "storage_pass": storage_pass,
+                },
+                "switch_info": params["switch_info"],  # list
+                "switch_condition": params["switch_condition"],  # dict
+            },
+        }
+
+    # Tendis 单实例/集群 架构-实例切换;
     def redis__switch_4_scene(self, **kwargs) -> dict:
         """{
             "cluster_id":0,
@@ -1609,9 +1641,10 @@ class RedisActPayload(object):
                     "immute_domain": cluster_meta["immute_domain"],
                     "cluster_type": cluster_meta["cluster_type"],
                     "major_version": cluster_meta["major_version"],
-                    "twemproxy_set": cluster_meta["twemproxy_set"],
+                    # "twemproxy_set": cluster_meta["twemproxy_set"],
+                    "twemproxy_status_set": cluster_meta["twemproxy_status_set"],
                     "redis_master_set": cluster_meta["redis_master_set"],
-                    "redis_slave_set": cluster_meta["redis_slave_set"],
+                    # "redis_slave_set": cluster_meta["redis_slave_set"], # 似乎没有用.
                     "proxy_pass": proxy_pass,
                     "storage_pass": storage_pass,
                 },

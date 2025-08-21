@@ -192,6 +192,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomsys.NewRedisCapturer().Name()] = atomsys.NewRedisCapturer
 		m.atomJobMapper[atomsys.NewHotkeyAnalysis().Name()] = atomsys.NewHotkeyAnalysis
 		m.atomJobMapper[atomredis.NewRedisSwitch().Name()] = atomredis.NewRedisSwitch
+		m.atomJobMapper[atomredis.NewRedisSwitchPreCheck().Name()] = atomredis.NewRedisSwitchPreCheck
 		m.atomJobMapper[atomredis.NewBkDbmonInstall().Name()] = atomredis.NewBkDbmonInstall
 		m.atomJobMapper[atomredis.NewTendisPlusMigrateSlots().Name()] = atomredis.NewTendisPlusMigrateSlots
 		m.atomJobMapper[atomredis.NewRedisDtsDataCheck().Name()] = atomredis.NewRedisDtsDataCheck

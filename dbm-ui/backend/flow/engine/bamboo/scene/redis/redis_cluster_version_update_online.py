@@ -314,6 +314,16 @@ class RedisClusterVersionUpdateOnline(object):
                     "can_write_before_switch": True,
                     "sync_type": SyncType.SYNC_MS.value,
                 }
+
+                # 先将 old_slave 切换成 new_master -- 检查
+                act_kwargs.cluster["switch_info"] = cluster_meta_data["master_slave_ins_pairs"]
+                act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_precheck_4_scene.__name__
+                sub_pipeline.add_act(
+                    act_name=_("集群:{} 切换检查").format(cluster_meta_data["cluster_name"]),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
                 # 先将 old_slave 切换成 new_master
                 act_kwargs.cluster["switch_info"] = cluster_meta_data["master_slave_ins_pairs"]
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
@@ -673,7 +683,7 @@ class RedisClusterVersionUpdateOnline(object):
         # 执行切换
         # slave执行 slaveof no one
         # 关闭master
-        acts_list = []
+        precheck_list, acts_list = [], []
         act_kwargs.cluster = {
             "db_version": "",  # 每个redisinstance主从架构immute_domain等不一样
             "immute_domain": "",
@@ -688,6 +698,7 @@ class RedisClusterVersionUpdateOnline(object):
             },
             "switch_info": [],
         }
+
         act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
         for cluster in master_meta["clusters"]:
             tmp_cluster_meta = get_cluster_info_by_cluster_id(cluster["cluster_id"])
@@ -696,13 +707,25 @@ class RedisClusterVersionUpdateOnline(object):
             act_kwargs.cluster["immute_domain"] = tmp_cluster_meta["immute_domain"]
             act_kwargs.cluster["cluster_type"] = tmp_cluster_meta["cluster_type"]
             act_kwargs.cluster["switch_info"] = tmp_cluster_meta["master_slave_ins_pairs"]
+
+            prechk_args = deepcopy(act_kwargs)
+            prechk_args.get_redis_payload_func = RedisActPayload.redis__switch_precheck_4_scene.__name__
+            precheck_list.append(
+                {
+                    "act_name": _("{}-slave提升-检查".format(tmp_cluster_meta["immute_domain"])),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(prechk_args),
+                }
+            )
+            sub_args = deepcopy(act_kwargs)
             acts_list.append(
                 {
                     "act_name": _("{}-slave提升为master".format(tmp_cluster_meta["immute_domain"])),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
+                    "kwargs": asdict(sub_args),
                 }
             )
+        sub_pipeline.add_parallel_acts(acts_list=precheck_list)
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
         # 这个地方需要增加一个人工确认节点。并且尽量慢点执行。否则client可能还会访问到old master

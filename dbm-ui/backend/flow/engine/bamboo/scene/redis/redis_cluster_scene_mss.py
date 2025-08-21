@@ -223,17 +223,6 @@ class RedisClusterMSSSceneFlow(object):
                 )
             sync_relations.append(sync_params)
 
-        # 重新下发介质 ###################################################################################
-        trans_files = GetFileList(db_type=DBType.Redis)
-        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
-        act_kwargs.exec_ip = slave_ips  # 去掉 master下发 ，故障场景，master可能已经挂了
-        redis_pipeline.add_act(
-            act_name=_("{}-下发介质包").format(slave_ips),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-        # 重新下发介质 ###################################################################################
-
         # 执行切换 #####################################################################################
         act_kwargs.cluster["switch_condition"] = {
             "sync_type": SyncType.SYNC_MS.value,
@@ -263,6 +252,17 @@ class RedisClusterMSSSceneFlow(object):
             )
         redis_pipeline.add_parallel_acts(acts_list=sub_acts)
         # 元数据修改 ###########################################################################完成######
+
+        # 重新下发介质 ###################################################################################
+        trans_files = GetFileList(db_type=DBType.Redis)
+        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
+        act_kwargs.exec_ip = slave_ips  # 去掉 master下发 ，故障场景，master可能已经挂了
+        redis_pipeline.add_act(
+            act_name=_("{}-下发介质包").format(slave_ips),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 重新下发介质 ###################################################################################
 
         # 刷新监控 #####################################################################################
         app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")

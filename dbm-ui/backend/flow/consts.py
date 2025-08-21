@@ -500,6 +500,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     SyncParam = EnumField("param_sync", _("param_sync"))
     CheckSync = EnumField("sync_check", _("sync_check"))
     SwitchBackends = EnumField("switch", _("switch"))
+    SwitchPrecheck = EnumField("switch_precheck", _("switch_precheck"))
     ClusterForget = EnumField("cluster_forget", _("cluster_forget"))
     DR_RESTORE = EnumField("dr_restore", _("dr_restore"))
     CheckProxysMd5 = EnumField("check_backends", _("check_backends"))
