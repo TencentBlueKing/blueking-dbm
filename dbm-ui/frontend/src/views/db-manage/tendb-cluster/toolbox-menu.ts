@@ -191,7 +191,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.checksum',
-        id: 'spiderChecksum',
+        id: TicketTypes.TENDBCLUSTER_CHECKSUM,
         name: t('数据校验修复'),
         parentId: 'spider_data',
       },

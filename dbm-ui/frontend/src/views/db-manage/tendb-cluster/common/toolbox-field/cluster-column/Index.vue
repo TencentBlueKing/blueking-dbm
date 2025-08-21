@@ -19,6 +19,7 @@
     :label="t('目标集群')"
     :loading="loading"
     :min-width="200"
+    :rowspan="rowspan"
     required>
     <template #headAppend>
       <span
@@ -66,6 +67,7 @@
      */
     supportOfflineData?: boolean;
     tabListConfig?: Record<ClusterTypes.TENDBCLUSTER, TabConfig>;
+    rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
@@ -73,6 +75,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     supportOfflineData: false,
+    rowspan: 1,
     tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
   });
 
@@ -104,7 +107,7 @@
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
-      validator: () => Boolean(modelValue.value.id),
+      validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
   ];
 
