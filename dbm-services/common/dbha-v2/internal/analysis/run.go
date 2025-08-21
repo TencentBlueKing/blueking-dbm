@@ -81,7 +81,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	logger.Debug("analysis configuration:%v", config.Cfg)
 
 	ctx := context.Background()
-	svr := &Service{}
+	svr := &Service{logger: log.OriginLogger()}
 
 	setupGracefulShutdown(svr)
 

@@ -40,6 +40,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
+	"go.uber.org/zap"
 )
 
 const (
@@ -53,6 +54,7 @@ type Service struct {
 	regCli       *discovery.Registry
 	inputters    []source.Inputter
 	outputters   []sink.Outputter
+	logger       *zap.Logger
 }
 
 func (s *Service) createDiscovery() error {
@@ -62,6 +64,7 @@ func (s *Service) createDiscovery() error {
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
+		discovery.OptionLogger(s.logger),
 	)
 
 	if err != nil {
