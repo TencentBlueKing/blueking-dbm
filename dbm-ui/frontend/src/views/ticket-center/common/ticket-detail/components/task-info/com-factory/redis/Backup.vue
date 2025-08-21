@@ -12,23 +12,37 @@
 -->
 
 <template>
-  <!-- <PrimaryTable
-    :columns="columns"
-    :data="ticketDetails.details.rules"
-    row-key="cluster_id" /> -->
   <PrimaryTable
-    :columns="columns"
     :data="ticketDetails.details.rules"
     row-key="cluster_id">
-    <template #immute-domain="{ row }: { row: IRowData }">
-      {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
-    </template>
-    <template #cluster-type-name="{ row }: { row: IRowData }">
-      {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
-    </template>
-    <template #backup-type="{ row }: { row: IRowData }">
-      {{ backupTypeMap[row.backup_type as keyof typeof backupTypeMap] }}
-    </template>
+    <TableColumn
+      col-key="cluster_id"
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
+      :width="200">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="target"
+      :min-width="130"
+      :title="t('备份目标')" />
+    <TableColumn
+      col-key="backup_type"
+      :min-width="130"
+      :title="t('备份保存时间')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ backupTypeMap[row.backup_type as keyof typeof backupTypeMap] }}
+      </template>
+    </TableColumn>
   </PrimaryTable>
 </template>
 
@@ -58,27 +72,4 @@
     forever_backup: t('3年'),
     normal_backup: t('1个月'),
   };
-
-  const columns = [
-    {
-      cell: 'immute-domain',
-      minWidth: 220,
-      title: t('集群'),
-    },
-    {
-      cell: 'cluster-type-name',
-      title: t('架构版本'),
-      width: 200,
-    },
-    {
-      colKey: 'target',
-      minWidth: 130,
-      title: t('备份目标'),
-    },
-    {
-      cell: 'backup-type',
-      minWidth: 130,
-      title: t('备份保存时间'),
-    },
-  ];
 </script>

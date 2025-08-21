@@ -61,26 +61,28 @@
     <InfoItem
       :label="t('域名设置')"
       style="flex: 1 0 100%">
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="databases"
-          label="Databases">
-        </BkTableColumn>
+      <PrimaryTable
+        :data="tableData"
+        row-key="index">
+        <TableColumn
+          col-key="mainDomain"
+          :title="t('主域名')">
+        </TableColumn>
+        <TableColumn
+          key="databases"
+          title="Databases">
+        </TableColumn>
         <template v-if="isAppend">
-          <BkTableColumn
-            field="masterIp"
-            :label="t('待部署主库主机')">
-          </BkTableColumn>
-          <BkTableColumn
-            field="slaveIp"
-            :label="t('待部署从库主机')">
-          </BkTableColumn>
+          <TableColumn
+            key="masterIp"
+            :title="t('待部署主库主机')">
+          </TableColumn>
+          <TableColumn
+            key="slaveIp"
+            :title="t('待部署从库主机')">
+          </TableColumn>
         </template>
-      </BkTable>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -150,6 +152,7 @@
     const { cluster_name: clusterName } = infoItem;
     return {
       databases: infoItem.databases,
+      index,
       // mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port + index}`}`,
       mainDomain: getMasterDomain(index, clusterName),
       masterIp: infoItem.backend_group?.master.ip,

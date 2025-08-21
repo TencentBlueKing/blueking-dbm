@@ -12,44 +12,46 @@
 -->
 
 <template>
-  <BkTable :data="dataList">
-    <BkTableColumn
+  <PrimaryTable
+    :data="dataList"
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('源集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      :min-width="250"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      :title="t('架构版本')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="node_type"
-      :label="t('节点类型')"
+    </TableColumn>
+    <TableColumn
+      col-key="node_type"
+      :title="t('节点类型')"
       :width="150">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前使用的版本')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="250"
+      :title="t('当前使用的版本')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="item in data.current_versions"
+          v-for="item in row.current_versions"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_version"
-      :label="t('目标版本')"
-      :min-width="250">
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+    <TableColumn
+      col-key="target_version"
+      :min-width="250"
+      :title="t('目标版本')">
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

@@ -12,42 +12,44 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="display_info.instance"
-      :label="t('目标 Master 实例')"
-      :min-width="200">
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_id"
-      :label="t('所属集群')"
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      col-key="display_info.instance"
+      :min-width="200"
+      :title="t('目标 Master 实例')">
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_id"
       :min-width="300"
-      :rowspan="3">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      :rowspan="3"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="resource_spec"
-      :label="t('规格')"
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec"
+      :title="t('规格')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.backend_group.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="display_info.db_version"
-      :label="t('版本')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="display_info.db_version"
+      :title="t('版本')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="version in data.display_info.db_version"
+          v-for="version in row.display_info.db_version"
           :key="version"
           style="line-height: 20px">
           {{ version }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   // import type { UnwrapRef } from 'vue';

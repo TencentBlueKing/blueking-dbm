@@ -12,34 +12,34 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.rules"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      :title="t('架构版本')"
       :width="200">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('清档前备份')">
-      <template #default="{ data }: { data: IRowData }">
-        <span>{{ data.backup ? t('是') : t('否') }}</span>
+    </TableColumn>
+    <TableColumn :title="t('清档前备份')">
+      <template #default="{ row }: { row: IRowData }">
+        <span>{{ row.backup ? t('是') : t('否') }}</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('强制清档')">
-      <template #default="{ data }: { data: IRowData }">
-        <span>{{ data.force ? t('是') : t('否') }}</span>
+    </TableColumn>
+    <TableColumn :title="t('强制清档')">
+      <template #default="{ row }: { row: IRowData }">
+        <span>{{ row.force ? t('是') : t('否') }}</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

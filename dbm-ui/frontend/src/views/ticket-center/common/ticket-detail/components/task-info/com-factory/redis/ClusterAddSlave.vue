@@ -13,9 +13,24 @@
 
 <template>
   <PrimaryTable
-    :columns="columns"
     :data="tableData"
-    row-key="slaveIp" />
+    row-key="slaveIp">
+    <TableColumn
+      col-key="slaveIp"
+      :title="t('待重建从库主机')" />
+    <TableColumn
+      col-key="hostIp"
+      :title="t('关联主库主机')" />
+    <TableColumn
+      col-key="clusterName"
+      :title="t('所属集群')" />
+    <TableColumn
+      col-key="sepcName"
+      :title="t('规格需求')" />
+    <TableColumn
+      col-key="targetNum"
+      :title="t('新增从库主机数量')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -66,27 +81,4 @@
     });
     return results;
   }, [] as RowData[]);
-
-  const columns = [
-    {
-      colKey: 'slaveIp',
-      title: t('待重建从库主机'),
-    },
-    {
-      colKey: 'hostIp',
-      title: t('关联主库主机'),
-    },
-    {
-      colKey: 'clusterName',
-      title: t('所属集群'),
-    },
-    {
-      colKey: 'sepcName',
-      title: t('规格需求'),
-    },
-    {
-      colKey: 'targetNum',
-      title: t('新增从库主机数量'),
-    },
-  ];
 </script>
