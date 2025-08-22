@@ -403,9 +403,8 @@
     const infos = keys.map((domain) => {
       const sameArr = clusterMap[domain];
       const clusterIds = sameArr[0].host.related_clusters.map((item) => item.id);
-      const { bk_cloud_id: bkCloudId, bk_host_id: bkHostId, ip: masterIp } = slaveMasterMap.value[sameArr[0].host.ip];
       const infoItem = {
-        bk_cloud_id: bkCloudId,
+        bk_cloud_id: slaveMasterMap.value[sameArr[0].host.ip].bk_cloud_id,
         cluster_ids: clusterIds,
         pairs: [] as {
           redis_master: {
@@ -421,11 +420,12 @@
         }[],
       };
       sameArr.forEach((item) => {
+        const master = slaveMasterMap.value[item.host.ip];
         const pair = {
           redis_master: {
-            bk_cloud_id: bkCloudId,
-            bk_host_id: bkHostId,
-            ip: masterIp,
+            bk_cloud_id: master.bk_cloud_id,
+            bk_host_id: master.bk_host_id,
+            ip: master.ip,
           },
           redis_slave: {
             count: 1,
