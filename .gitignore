@@ -20,3 +20,5 @@ package-lock.json
 .cursorignore
 .cursorrules
 .cursor/
+# Claude
+.claude/

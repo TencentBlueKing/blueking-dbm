@@ -24,6 +24,7 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterTyp
 from backend.db_meta.models import Cluster, ClusterEntry, DBModule
 from backend.db_services.mysql.toolbox.handlers import ToolboxHandler
 from backend.db_services.mysql.toolbox.serializers import (
+    ChangeClusterSpecSerializer,
     QueryPkgListByCompareVersionSerializer,
     QuerySpiderPkgListByCompareVersionSerializer,
     TendbhaAddSlaveDomainSerializer,
@@ -88,6 +89,22 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         return Response(
             ToolboxHandler().query_higher_spider_ver_pkgs(cluster_id, higher_major_version, higher_sub_version)
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更改集群规格"),
+        request_body=ChangeClusterSpecSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ChangeClusterSpecSerializer)
+    def change_cluster_spec(self, request, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id = data["cluster_id"]
+        cluster_type = data["cluster_type"]
+        spec_id = data["spec_id"]
+        machine_type = data["machine_type"]
+
+        result = ToolboxHandler().change_cluster_spec(cluster_id, cluster_type, spec_id, machine_type)
+        return Response(result)
 
 
 class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):

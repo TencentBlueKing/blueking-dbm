@@ -183,6 +183,32 @@ class MySQLBackupRecoverTask(BaseReportABS):
             .distinct()
         )
 
+    @classmethod
+    def get_recent_2h_exercise_cluster_type_stats(cls):
+        """
+        获取最近2小时内演练的集群类型统计
+
+        Returns:
+            dict: {
+                'tendbcluster_count': int,  # TenDBCluster演练次数
+                'tendbha_count': int,       # TenDBHA演练次数
+                'total_count': int          # 总演练次数
+            }
+        """
+        recent_time = timezone.now() - timedelta(hours=2)
+        recent_tasks = MySQLBackupRecoverTask.objects.filter(
+            create_at__gte=recent_time,
+        ).values_list("cluster_type", flat=True)
+
+        tendbcluster_count = sum(1 for ct in recent_tasks if ct == "tendbcluster")
+        tendbha_count = sum(1 for ct in recent_tasks if ct == "tendbha")
+
+        return {
+            "tendbcluster_count": tendbcluster_count,
+            "tendbha_count": tendbha_count,
+            "total_count": tendbcluster_count + tendbha_count,
+        }
+
 
 class FailoverDrillConfig(AuditedModel):
     bk_biz_id = models.IntegerField(default=0, help_text=_("业务的 cmdb id"))

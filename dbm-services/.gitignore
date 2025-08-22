@@ -7,3 +7,6 @@
 .cursorignore
 .cursorrules
 .cursorrules.md
+.cursor/
+# Claude
+.claude/

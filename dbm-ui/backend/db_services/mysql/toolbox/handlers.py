@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
+from django.utils.translation import ugettext as _
+
 from backend.configuration.constants import MYSQL8_VER_PARSE_NUM, DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, Spec, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.utils.mysql.mysql_version_parse import (
@@ -237,6 +239,64 @@ class ToolboxHandler:
             ):
                 self.available_pkg_list.append(pkg)
                 return
+
+    def change_cluster_spec(self, cluster_id: int, cluster_type: str, spec_id: int, machine_type: str):
+        """
+        更改集群规格
+
+        Args:
+            cluster_id: 集群ID
+            cluster_type: 集群类型 (tendbha/tendbcluster)
+            spec_id: 规格ID
+            machine_type: 机器类型
+
+        Returns:
+            dict: 包含操作结果的信息
+        """
+        # 验证集群存在
+        try:
+            Cluster.objects.get(id=cluster_id, cluster_type=cluster_type)
+        except Cluster.DoesNotExist:
+            return {"result": False, "message": _("集群不存在或集群类型不匹配")}
+
+        # 验证规格存在且机器类型匹配
+        try:
+            spec = Spec.objects.get(spec_id=spec_id, spec_machine_type=machine_type)
+        except Spec.DoesNotExist:
+            return {"result": False, "message": _("规格ID不存在或规格机器类型不匹配")}
+
+        # 获取集群关联的机器
+        machines = Cluster.get_cluster_related_machines([cluster_id])
+
+        # 过滤指定机器类型的机器
+        target_machines = machines.filter(machine_type=machine_type)
+
+        if not target_machines.exists():
+            return {"result": False, "message": _("集群中没有找到指定类型的机器: {}").format(machine_type)}
+
+        # 准备规格配置信息
+        spec_config = {
+            "spec_id": spec.spec_id,
+            "spec_name": spec.spec_name,
+            "cpu": spec.cpu,
+            "mem": spec.mem,
+            "device_class": spec.device_class,
+            "storage_spec": spec.storage_spec,
+            "qps": spec.qps,
+        }
+
+        # 更新机器规格
+        updated_count = target_machines.update(spec_id=spec_id, spec_config=spec_config)
+
+        return {
+            "result": True,
+            "message": _("成功更新了 {} 台机器的规格配置").format(updated_count),
+            "cluster_id": cluster_id,
+            "cluster_type": cluster_type,
+            "spec_id": spec_id,
+            "machine_type": machine_type,
+            "updated_machines": updated_count,
+        }
 
 
 def convert_mysql8_version_num(major_version: int) -> int:

@@ -77,3 +77,20 @@ class TendbhaAddSlaveDomainSerializer(serializers.Serializer):
             "slave_port": 3306,
             "domain_name": "",
         }
+
+
+class ChangeClusterSpecSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    cluster_type = serializers.ChoiceField(
+        choices=["tendbha", "tendbcluster"], help_text=_("集群类型: tendbha 或 tendbcluster")
+    )
+    spec_id = serializers.IntegerField(help_text=_("规格ID"))
+    machine_type = serializers.CharField(help_text=_("机器类型"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "cluster_id": 123,
+            "cluster_type": "tendbha",
+            "spec_id": 456,
+            "machine_type": "storage",
+        }
