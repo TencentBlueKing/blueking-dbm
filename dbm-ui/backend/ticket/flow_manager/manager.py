@@ -59,7 +59,6 @@ class TicketFlowManager(object):
     def run_next_flow(self):
         next_flow = self.ticket.next_flow()
         current_flow = self.ticket.current_flow()
-        is_init_flow = next_flow.id == self.ticket.flows.first().id
 
         # 没有下一个节点，说明流程已结束
         if not next_flow:
@@ -68,6 +67,8 @@ class TicketFlowManager(object):
 
         # 先取下一个流程，再取当前流程，可以根据流程的顺序保证并发的一致性
         # 如果current_flow晚于next_flow，说明流程已经发起
+        is_init_flow = next_flow.id == self.ticket.flows.first().id
+
         if current_flow.id >= next_flow.id and not is_init_flow:
             logger.error(_("流程非预期：当前流程晚于下一个流程"))
             return

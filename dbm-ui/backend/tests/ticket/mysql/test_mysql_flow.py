@@ -56,6 +56,7 @@ from backend.tests.mock_data.ticket.mysql_flow import (
     SQL_IMPORT_TICKET_DATA,
 )
 from backend.tests.mock_data.ticket.ticket_flow import FLOW_TREE_DATA
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketType
 from backend.utils.excel import ExcelHandler
@@ -138,48 +139,62 @@ class TestMySQLTicket(BaseTicketTest):
         self.flow_test(authorize_data)
         cache.delete(authorize_uid)
 
+    @use_pipeline_mock
     def test_mysql_master_slave_switch_flow(self):
         self.flow_test(MYSQL_MASTER_SLAVE_SWITCH_DATA)
 
+    @use_pipeline_mock
     def test_mysql_proxy_add_flow(self):
         self.flow_test(MYSQL_PROXY_ADD_DATA)
 
+    @use_pipeline_mock
     def test_mysql_proxy_switch_flow(self):
         self.flow_test(MYSQL_PROXY_SWITCH_DATA)
 
+    @use_pipeline_mock
     def test_mysql_ha_db_table_backup_flow(self):
         self.flow_test(MYSQL_HA_DB_TABLE_BACKUP_DATA)
 
+    @use_pipeline_mock
     def test_mysql_delete_clear_db_flow(self):
         self.flow_test(MYSQL_DELETE_CLEAR_DB_DATA)
 
+    @use_pipeline_mock
     def test_mysql_rollback_cluster_data_flow(self):
         self.flow_test(MYSQL_ROLLBACK_CLUSTER_DATA)
 
+    @use_pipeline_mock
     def test_mysql_flashback_data_flow(self):
         self.flow_test(MYSQL_FLASHBACK_DATA)
 
+    @use_pipeline_mock
     def test_mysql_add_slave_flow(self):
         self.flow_test(MYSQL_ADD_SLAVE_DATA)
 
+    @use_pipeline_mock
     def test_mysql_checksum_flow(self):
         self.flow_test(MYSQL_CHECKSUM_DATA)
 
+    @use_pipeline_mock
     def test_mysql_full_backup_flow(self):
         self.flow_test(MYSQL_HA_FULL_BACKUP_DATA)
 
+    @use_pipeline_mock
     def test_mysql_data_migrate_flow(self):
         self.flow_test(MYSQL_DATA_MIGRATE_DATA)
 
+    @use_pipeline_mock
     def test_mysql_single_apply_flow(self):
         self.flow_test(MYSQL_SINGLE_APPLY_TICKET_DATA)
 
     def test_mysql_sql_import_flow(self):
         self.flow_test(SQL_IMPORT_TICKET_DATA)
 
+    @use_pipeline_mock
     def test_mysql_ha_apply_flow(self):
         self.flow_test(MYSQL_TENDBHA_TICKET_DATA)
 
+    @use_pipeline_mock
     def test_mysql_dump_data_flow(self, init_mysql_cluster):
         cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
         MYSQL_DUMP_DATA["details"]["cluster_id"] = cluster.id

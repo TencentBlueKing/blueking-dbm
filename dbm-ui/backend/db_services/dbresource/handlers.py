@@ -510,6 +510,7 @@ class ResourceHandler(object):
         for host in hosts:
             host.update(
                 bk_biz_id=host_biz_map.get(host["bk_host_id"]),
+                status=int(host.get("status", 0)),
                 ip=host.get("bk_host_innerip"),
                 city=host.get("idc_city_name"),
                 host_id=host.get("bk_host_id"),

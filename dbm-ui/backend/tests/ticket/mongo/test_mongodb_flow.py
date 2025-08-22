@@ -25,7 +25,7 @@ from backend.tests.mock_data.ticket.mongodb_flow import (
     MONGODB_REDUCE_MONGOS_DATA,
     MONGODB_REMOVE_NS_TICKET_DATA,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -58,28 +58,28 @@ class TestMangodbFlow(BaseTicketTest):
     def apply_patches(cls):
         super().apply_patches()
 
-    @use_simple_mock
+    @use_pipeline_mock
     # mongos 扩容接入层
     def test_add_mongos_flow(self):
         # MONGODB 扩容接入层: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
         self.flow_test(MONGODB_ADD_MONGOS_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_reduce_mongos_flow(self):
         # MONGOS 缩容接入层: start --> itsm --> PAUSE --> INNER_FLOW --> end
         self.flow_test(MONGODB_REDUCE_MONGOS_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_mongodb_destroy_flow(self):
         # MONGODB 集群下架: start --> itsm --> PAUSE --> INNER_FLOW --> end
         self.flow_test(MONGODB_DESTROY_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_mongo_cutoff_flow(self):
         # MONGODB 整机替换: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
         self.flow_test(MONGODB_CUTOFF_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_mongo_remove_ns(self):
         # start --> itsm --> PAUSE --> INNER_FLOW --> end
         self.flow_test(MONGODB_REMOVE_NS_TICKET_DATA)

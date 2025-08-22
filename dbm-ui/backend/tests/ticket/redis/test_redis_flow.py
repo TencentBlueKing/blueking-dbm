@@ -39,7 +39,7 @@ from backend.tests.mock_data.ticket.redis_flow import (
     REDIS_TENDIS_ROLLBACK_TASK_DATA,
     REDIS_VERSION_UPDATE_DATA,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -81,67 +81,72 @@ class TestRedisFlow(BaseTicketTest):
     def apply_patches(cls):
         super().apply_patches()
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_master_apply_test(self):
         # redis构建集群
         self.flow_test(REDIS_CLUSTER_APPLY_DATA)
 
+    @use_pipeline_mock
     def test_redis_ins_apply_test(self):
         # redis构建主从集群
         self.flow_test(REDIS_INS_APPLY_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_data_copy_test(self):
         # redis数据复制
         self.flow_test(REDIS_CLUSTER_DATA_COPY_DATA)
 
+    @use_pipeline_mock
     def test_redis_task_delete_test(self):
         # redis销毁构造实例
         self.flow_test(REDIS_STRUCTURE_TASK_DELETE_DATA)
 
+    @use_pipeline_mock
     def test_redis_rebuild_slave_flow(self):
         # redis从库重建
         self.flow_test(REDIS_REBUILD_SLAVE_DATA)
 
+    @use_pipeline_mock
     def test_redis_cut_off_flow(self):
         # redis整机替换
         self.flow_test(REDIS_CLUSTER_CUTOFF_DATA)
 
+    @use_pipeline_mock
     def test_redis_master_slave_switch_flow(self):
         # redis主从切换
         self.flow_test(REDIS_MASTER_SLAVE_SWITCH_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_migrate_flow(self):
         # redis迁移
         self.flow_test(REDIS_MIGRATE_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_version_update(self):
         # redis版本升级
         self.flow_test(REDIS_VERSION_UPDATE_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_cluster_rollback_flow(self):
         # redis构造实例恢复
         self.flow_test(REDIS_CLUSTER_ROLLBACK_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_structure_flow(self):
         # redis集群数据构造
         self.flow_test(REDIS_DATA_STRUCTURE_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_proxy_scale_up_flow(self):
         # redis集群扩容
         self.flow_test(REDIS_PROXY_SCALE_UP_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_shard_num_update_flow(self):
         # redis集群分片变更
         self.flow_test(REDIS_CLUSTER_SHARD_NUM_UPDATE_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_redis_cluster_type_update(self):
         # redis集群类型变更
         self.flow_test(REDIS_CLUSTER_TYPE_UPDATE_DATA)
