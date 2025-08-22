@@ -22,7 +22,7 @@ from backend.tests.mock_data.ticket.kafka_flow import (
     KAFKA_SCALE_UP_DATA,
     KAFKA_SPEC_DATA,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -51,15 +51,17 @@ class TestKafkaFlow(BaseTicketTest):
     def apply_patches(cls):
         super().apply_patches()
 
+    @use_pipeline_mock
     def test_kafka_apply_flow(self):
         # kafka集群部署
         self.flow_test(KAFKA_APPLY_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_kafka_scale_up_flow(self):
         # kafka扩容
         self.flow_test(KAFKA_SCALE_UP_DATA)
 
+    @use_pipeline_mock
     def test_kafka_disable(self):
         # kafka禁用
         self.flow_test(KAFKA_DISABLE_DATA)

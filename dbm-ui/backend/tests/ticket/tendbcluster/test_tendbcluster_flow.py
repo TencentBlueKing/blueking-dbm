@@ -33,7 +33,7 @@ from backend.tests.mock_data.ticket.tendbcluster_flow import (
     TENDBCLUSTER_SPIDEREXT_DATA,
     TENDBCLUSTER_STORAGE_INSTANCE,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -87,29 +87,31 @@ class TestTenDBClusterFlow(BaseTicketTest):
         )
         super().apply_patches()
 
+    @use_pipeline_mock
     def test_tendbcluster_apply_flow(self):
         self.flow_test(TENDBCLUSTER_APPLY_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_tendbcluster_full_backup_flow(self):
         # tendbcluster全库备份
         self.flow_test(TENDBCLUSTER_FULL_BACKUP_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_tendbcluster_back_up_flow(self):
         self.flow_test(TENDBCLUSTER_DB_TABLE_BACKUP_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_tendbcluster_checksum_flow(self):
         self.flow_test(TENDBCLUSTER_CHECKSUM_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_tendbcluster_rollback_cluster_flow(self):
         self.flow_test(TENDBCLUSTER_ROLLBACK_CLUSTER_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_tendbcluster_spider_slave_apply_flow(self):
         self.flow_test(TENDBCLUSTER_SPIDER_SLAVE_APPLY_DATA)
 
+    @use_pipeline_mock
     def test_tendbcluster_spider_switch_nodes_flow(self):
         self.flow_test(TENDBCLUSTER_SPIDER_SWITCH_NODES_DATA)

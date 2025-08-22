@@ -153,6 +153,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     RESOURCE_INDEPENDENT_BIZ = EnumField("RESOURCE_INDEPENDENT_BIZ", _("资源池独立业务"))
     # redie删除key限速配置
     REDIS_DELETE_RATE = EnumField("REDIS_DELETE_RATE", _("redie删除key限速配置"))
+    # 集群负载判定配置
+    CLUSTER_LOAD_RULE = EnumField("CLUSTER_LOAD_RULE", _("集群负载判定配置"))
 
 
 class BizSettingsEnum(str, StructuredEnum):

@@ -41,7 +41,7 @@ from backend.tests.mock_data.ticket.sqlserver_flow import (
     SQLSERVER_SINGLE_MANUAL_DATA,
     SQLSERVER_STORAGE_INSTANCE_DATA,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -77,23 +77,27 @@ class TestSqlServerApplyFlow(BaseTicketTest):
     """
 
     # SQLSERVER single部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_single_apply_flow(self):
         self.flow_test(SQLSERVER_SINGLE_APPLY_TICKET_DATA)
 
-    @use_simple_mock
     # SQLSERVER single手动输入部署: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_single_manual_apply_flow(self):
         self.flow_test(SQLSERVER_SINGLE_MANUAL_DATA)
 
     # SQLSERVER ha部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_ha_apply_flow(self):
         self.flow_test(SQLSERVER_HA_APPLY_TICKET_DATA)
 
     # SQLSERVER ha手动部署: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_ha_manual_apply_flow(self):
         self.flow_test(SQLSERVER_HA_MANUAL_DATA)
 
     # SQLSERVER disable: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_disable_flow(self):
         self.flow_test(SQLSERVER_DISABLE_TICKET_DATA)
 
@@ -102,59 +106,66 @@ class TestSqlServerApplyFlow(BaseTicketTest):
         self.flow_test(SQLSERVER_ENABLE_TICKET_DATA)
 
     # SQLSERVER destroy: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_destroy_flow(self):
         self.flow_test(SQLSERVER_DESTROY_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER dbrename: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_sqlserver_dbrename_flow(self):
         self.flow_test(SQLSERVER_DBRENAME_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER backup: start --> itsm --> PAUSE --> INNER_FLOW --> end
     def test_sqlserver_backup_flow(self):
         self.flow_test(SQLSERVER_BACKUP_TICKET_DATA)
 
     # SQLSERVER data_migrate: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_data_migrate_flow(self):
         self.flow_test(SQLSERVER_DATA_MIGRATE_TICKET_DATA)
 
     # SQLSERVER clear: start --> itsm --> PAUSE --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_clear_flow(self):
         self.flow_test(SQLSERVER_CLEAR_DBS_TICKET_DATA)
 
     # SQLSERVER import_sqlfile: start --> itsm --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_sqlserver_import_sqlfile_flow(self):
         self.flow_test(SQLSERVER_IMPORT_SQLFILE_TICKET_DATA)
 
     # SQLSERVER master_slave_switch: start --> itsm --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_master_slave_switch_flow(self):
         self.flow_test(SQLSERVER_MASTER_SLAVE_SWITCH_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER master_fail_over: start --> itsm --> INNER_FLOW --> end
     def test_master_fail_over_flow(self):
         self.flow_test(SQLSERVER_MASTER_FAIL_OVER_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER reset: start --> itsm --> INNER_FLOW --> end
     def test_sqlserver_reset_flow(self):
         self.flow_test(SQLSERVER_RESET_TICKET_DATA)
 
     # SQLSERVER restore_local_slave: start --> itsm --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_restore_local_slave_flow(self):
         self.flow_test(SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA)
 
     # SQLSERVER restore_slave: start --> itsm --> INNER_FLOW --> end
+    @use_pipeline_mock
     def test_restore_slave_flow(self):
         self.flow_test(SQLSERVER_RESTORE_SLAVE_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER restore_slave_source: start --> itsm --> INNER_FLOW --> end
     def test_restore_slave_source_flow(self):
         self.flow_test(SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     # SQLSERVER restore_rollback: start --> itsm --> INNER_FLOW --> end
     def test_sqlserver_rollback_flow(self):
         self.flow_test(SQLSERVER_ROLLBACK_TICKET_DATA)

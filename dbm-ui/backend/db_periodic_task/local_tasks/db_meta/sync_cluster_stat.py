@@ -23,15 +23,20 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.constants import CACHE_CLUSTER_STATS
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
 from backend.db_periodic_task.local_tasks.db_meta.constants import (
+    CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE,
+    CLUSTER_TYPE_LOAD_RULES,
     EXPORTER_UP_QUERY_TEMPLATE,
     QUERY_TEMPLATE,
     SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP,
     UNIFY_QUERY_PARAMS,
+    RedisLoadStatus,
 )
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 
@@ -150,6 +155,90 @@ def query_capacity_for_clusters(bk_biz_id, cluster_type, clusters) -> dict:
     if no_stats:
         raise Exception(_("没有[{}]集群的统计信息").format(no_stats))
     return cluster_cap_bytes
+
+
+def query_cluster_load(cluster_type, clusters) -> (dict, dict):
+    """查询集群负载"""
+
+    if cluster_type not in CLUSTER_TYPE_LOAD_RULES:
+        raise Exception(_("暂不支持该集群类型的查询: {}").format(cluster_type))
+
+    if not clusters:
+        return {}, {}
+
+    common_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
+    common_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
+    # 默认查询前后1h的数据
+    now = datetime.datetime.now(timezone.utc)
+    common_params["end_time"] = int(now.timestamp())
+    common_params["start_time"] = int((now - datetime.timedelta(minutes=60)).timestamp())
+
+    # 初始化cluster负载数据结构
+    load_tpl_map = defaultdict(dict)
+    for machine in CLUSTER_TYPE_LOAD_RULES[cluster_type]:
+        load_tpl_map[machine].update({index: {} for index in CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE[machine]})
+    cluster_load_map = defaultdict(lambda: load_tpl_map)
+
+    cluster_load_rule = SystemSettings.get_setting_value(SystemSettingsEnum.CLUSTER_LOAD_RULE, default={})
+    # 批量查询集群负载指标
+    for machine in CLUSTER_TYPE_LOAD_RULES[cluster_type]:
+        machine_threshold = cluster_load_rule.get(machine, {})
+        for target, check in CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE[machine].items():
+            target_threshold = machine_threshold.get(target, {})
+
+            params = copy.deepcopy(common_params)
+            params["query_configs"][0]["promql"] = check["promql"].replace("{cluster_domains}", "|".join(clusters))
+            series = BKMonitorV3Api.unify_query(params)["series"]
+            # 解析时序数据，默认取第一个数据节点
+            for data in series:
+                cluster_domain = data["dimensions"].pop("cluster_domain")
+                target_value = list(data["dimensions"].values())[0]
+
+                data_point = data["datapoints"][0][0] if data["datapoints"] else None
+                if not data_point:
+                    continue
+
+                # 更新负载数据
+                cluster_load_map[cluster_domain][machine][target].update({target_value: data_point})
+                # 更新负载状态
+                if data_point > target_threshold.get("max", check["max"]):
+                    cluster_load_map[cluster_domain][machine][target].update(status=RedisLoadStatus.HIGH.value)
+                elif data_point < target_threshold.get("min", check["min"]):
+                    cluster_load_map[cluster_domain][machine][target].update(status=RedisLoadStatus.LOW.value)
+                else:
+                    cluster_load_map[cluster_domain][machine][target].update(status="")
+
+    def __update_cluster_load(data_map, loads):
+        status_list = list(set([load["status"] for load in loads.values() if "status" in load]))
+        # 任意一个组件有高负载则定义为高负载，所有组件都处于低负载则定义为低负载
+        if RedisLoadStatus.HIGH.value in status_list:
+            data_map.update(status=RedisLoadStatus.HIGH.value)
+        elif len(status_list) == 1 and status_list[0] == RedisLoadStatus.LOW.value:
+            data_map.update(status=RedisLoadStatus.LOW.value)
+        else:
+            data_map.update(status="")
+
+    # 汇总 machine 维度负载状态
+    load_status_map = defaultdict(lambda: {m: {} for m in CLUSTER_TYPE_LOAD_RULES[cluster_type]})
+    for cluster_domain, machine_loads in cluster_load_map.items():
+        for machine, loads in machine_loads.items():
+            __update_cluster_load(load_status_map[cluster_domain][machine], loads)
+        __update_cluster_load(load_status_map[cluster_domain], load_status_map[cluster_domain])
+
+    return load_status_map, cluster_load_map
+
+
+def sync_cluster_load_by_cluster_type(bk_biz_id, cluster_type):
+    """
+    按集群类型同步各集群负载状态
+    """
+    cluster_domains = list(
+        Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
+        .values_list("immute_domain", flat=True)
+        .distinct()
+    )
+    # TODO: 是否需要cache?
+    return query_cluster_load(cluster_type, cluster_domains)
 
 
 @current_app.task

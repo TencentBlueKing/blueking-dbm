@@ -8,8 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from django.utils.translation import gettext as _
+
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, MachineType
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 UNIFY_QUERY_PARAMS = {
     "bk_biz_id": 3,
@@ -208,7 +212,7 @@ QUERY_TEMPLATE = {
     },
 }
 
-# 使用相同查询模板的集群类型映射
+# 使用相同容量查询模板的集群类型映射
 SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP = {
     # Redis 内存型
     ClusterType.TendisPredixyRedisCluster.value: ClusterType.TendisTwemproxyRedisInstance.value,
@@ -222,3 +226,85 @@ SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP = {
     ClusterType.TendisTendisplusInsance.value: ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTendisplusCluster.value: ClusterType.TwemproxyTendisSSDInstance.value,
 }
+
+# Redis组件负载表达式模板
+REDIS_LOAD_QUERY_TEMPLATE = {
+    # predixy 主机cpu
+    "predixy_host_cpu": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{"
+    'cluster_domain=~"{cluster_domains}",instance_role="proxy"}[1m]))',
+    # twemproxy实例cpu
+    "twemproxy_instance_cpu": "sum by(cluster_domain,instance_host) (irate("
+    'bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_process_cpu{cluster_domain=~"{'
+    'cluster_domains}"}[1m]))/100',
+    # 主机cpu使用率
+    "redis_host_cpu": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{"
+    'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
+    # 主机磁盘使用率
+    "redis_host_disk": "max by (cluster_domain,bk_target_cloud_id) ("
+    'bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_usage{cluster_domain="{'
+    'cluster_domain}",instance_role="redis_master"})',
+    # "主机io"
+    "redis_host_io": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:io:util{"
+    'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
+    # redis主机内存使用率
+    "redis_host_mem": "max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{"
+    'cluster_domain=~"{cluster_domains}",instance_role="redis_master"}[1m]))',
+    # redis proxy主机内存使用率
+    "proxy_host_mem": 'max by (cluster_domain,ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain="{'
+    'cluster_domain}",instance_role="proxy"}[1m]))',
+    # redis连接数
+    "redis_connections": "sum by (cluster_domain,instance) ("
+    'bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain="{'
+    'cluster_domain}",instance_role="redis_master"})',
+    # predixy连接数
+    "predixy_connections": "sum by (cluster_domain,instance_host) (bkmonitor:exporter_dbm_predixy_exporter"
+    ':predixy_cluster_connections{cluster_domain=~"{cluster_domains}"})',
+    # twemproxy连接数
+    "twemproxy_connections": "sum by (cluster_domain,instance_host) (bkmonitor:exporter_dbm_twemproxy_exporter"
+    ':twemproxy_connections_curr{cluster_domain=~"{cluster_domains}"})',
+}
+
+# 集群机器负载查询组合字典
+CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE = {
+    MachineType.REDIS: {
+        "cpu": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_cpu"], "max": 60, "min": 20},
+        "mem": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_mem"], "max": 70, "min": 20},
+        "connections": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_connections"], "max": 20000, "min": 2000},
+    },
+    MachineType.TWEMPROXY: {
+        "cpu": {"promql": REDIS_LOAD_QUERY_TEMPLATE["twemproxy_instance_cpu"], "max": 60, "min": 20},
+        "mem": {"promql": REDIS_LOAD_QUERY_TEMPLATE["proxy_host_mem"], "max": 70, "min": 20},
+        "connections": {"promql": REDIS_LOAD_QUERY_TEMPLATE["twemproxy_connections"], "max": 20000, "min": 2000},
+    },
+    MachineType.PREDIXY: {
+        "cpu": {"promql": REDIS_LOAD_QUERY_TEMPLATE["predixy_host_cpu"], "max": 60, "min": 20},
+        "mem": {"promql": REDIS_LOAD_QUERY_TEMPLATE["proxy_host_mem"], "max": 70, "min": 20},
+        "connections": {"promql": REDIS_LOAD_QUERY_TEMPLATE["predixy_connections"], "max": 20000, "min": 2000},
+    },
+    MachineType.TENDISSSD: {
+        "cpu": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_cpu"], "max": 60, "min": 20},
+        "mem": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_mem"], "max": 70, "min": 20},
+        "disk": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_disk"], "max": 20000, "min": 2000},
+        "io": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_io"], "max": 20000, "min": 2000},
+    },
+    MachineType.TENDISPLUS: {
+        "cpu": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_cpu"], "max": 60, "min": 20},
+        "mem": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_mem"], "max": 85, "min": 20},
+        "disk": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_disk"], "max": 20000, "min": 2000},
+        "io": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_host_io"], "max": 20000, "min": 2000},
+        "connections": {"promql": REDIS_LOAD_QUERY_TEMPLATE["redis_connections"], "max": 20000, "min": 2000},
+    },
+}
+
+CLUSTER_TYPE_LOAD_RULES = {
+    ClusterType.RedisInstance: [MachineType.REDIS],
+    ClusterType.TendisTwemproxyRedisInstance: [MachineType.REDIS, MachineType.TWEMPROXY],
+    ClusterType.TendisPredixyRedisCluster: [MachineType.REDIS, MachineType.PREDIXY],
+    ClusterType.TendisPredixyTendisplusCluster: [MachineType.TENDISPLUS, MachineType.PREDIXY],
+    ClusterType.TwemproxyTendisSSDInstance: [MachineType.TENDISSSD, MachineType.TWEMPROXY],
+}
+
+
+class RedisLoadStatus(str, StructuredEnum):
+    LOW = EnumField("low", _("低负载"))
+    HIGH = EnumField("high", _("高负载"))

@@ -121,3 +121,4 @@ class BaseTicketTest:
 
             resp = self.client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
             assert status.is_success(resp.status_code), f"response 请求错误: {resp.status_code}"
+            assert ticket.current_flow().status != TicketFlowStatus.FAILED

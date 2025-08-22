@@ -96,6 +96,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "simple_query_cluster",
             "common_query_cluster",
             "filter_clusters",
+            "query_cluster_stat",
+            "query_cluster_load",
         ): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
         ("dbconsole",): [ClusterDBConsolePermission()],
@@ -506,6 +508,27 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         }
 
         return Response(cluster_stat_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群负载"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryClusterCapSerializer(),
+        responses={status.HTTP_200_OK: QueryClusterCapResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
+    def query_cluster_load(self, request, *args, **kwargs):
+        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_load_by_cluster_type
+
+        data = self.params_validate(self.get_serializer_class())
+        cluster_load_data_map, cluster_load_status_map = {}, {}
+        for cluster_type in data["cluster_type"].split(","):
+            load_status, load_data = sync_cluster_load_by_cluster_type(data["bk_biz_id"], cluster_type)
+            cluster_load_data_map.update(load_data)
+            cluster_load_status_map.update(load_status)
+
+        data = {"cluster_load_data_map": cluster_load_data_map, "cluster_load_status_map": cluster_load_status_map}
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("更新集群别名"),

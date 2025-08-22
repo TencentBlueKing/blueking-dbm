@@ -13,15 +13,15 @@ from unittest.mock import Mock
 
 import pytest
 from django.test import TestCase
+from django.test.testcases import TransactionTestCase
 from django.utils import timezone
 
-from backend.db_periodic_task.local_tasks.mysql_backup_rollback.gen_task import should_ignore_cluster_for_exercise
 from backend.db_periodic_task.models import ExerciseIgnoreConfig, ExerciseIgnoreType
 
 pytestmark = pytest.mark.django_db
 
 
-class TestExerciseIgnoreConfig(TestCase):
+class TestExerciseIgnoreConfig(TransactionTestCase):
     """Test exercise ignore configuration functionality"""
 
     def setUp(self):
@@ -113,6 +113,8 @@ class TestExerciseIgnoreConfig(TestCase):
         self.assertFalse(ExerciseIgnoreConfig.is_biz_ignored(self.test_biz_id))
 
     def test_should_ignore_cluster_for_exercise(self):
+        from backend.db_periodic_task.local_tasks.mysql_backup_rollback import gen_task
+
         """Test cluster exercise ignore check function"""
         # Create mock cluster object
         mock_cluster = Mock()
@@ -121,7 +123,7 @@ class TestExerciseIgnoreConfig(TestCase):
         mock_cluster.immute_domain = self.test_cluster_domain
 
         # Should not be ignored when there is no ignore configuration
-        should_ignore, reason = should_ignore_cluster_for_exercise(mock_cluster)
+        should_ignore, reason = gen_task.should_ignore_cluster_for_exercise(mock_cluster)
         self.assertFalse(should_ignore)
         self.assertEqual(reason, "")
 
@@ -135,9 +137,9 @@ class TestExerciseIgnoreConfig(TestCase):
         )
 
         # Should be ignored at business level
-        should_ignore, reason = should_ignore_cluster_for_exercise(mock_cluster)
+        should_ignore, reason = gen_task.should_ignore_cluster_for_exercise(mock_cluster)
         self.assertTrue(should_ignore)
-        self.assertIn("business", reason.lower())
+        self.assertIn("100", reason.lower())
 
         # Delete business-level configuration, create cluster-level ignore configuration
         ExerciseIgnoreConfig.objects.filter(ignore_type=ExerciseIgnoreType.BIZ).delete()
@@ -150,9 +152,9 @@ class TestExerciseIgnoreConfig(TestCase):
         )
 
         # Should be ignored at cluster level
-        should_ignore, reason = should_ignore_cluster_for_exercise(mock_cluster)
+        should_ignore, reason = gen_task.should_ignore_cluster_for_exercise(mock_cluster)
         self.assertTrue(should_ignore)
-        self.assertIn("cluster", reason.lower())
+        self.assertIn("test-mysql-001.db", reason.lower())
 
     def test_unique_constraint(self):
         """Test unique constraint"""

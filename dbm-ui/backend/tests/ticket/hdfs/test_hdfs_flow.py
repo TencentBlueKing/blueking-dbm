@@ -21,7 +21,7 @@ from backend.tests.mock_data.ticket.hdfs_flow import (
     HDFS_SCALE_UP_DATA,
     HDFS_SPEC_DATA,
 )
-from backend.tests.ticket.decorator import use_simple_mock
+from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -50,11 +50,12 @@ class TestHdfsFlow(BaseTicketTest):
     def apply_patches(cls):
         super().apply_patches()
 
+    @use_pipeline_mock
     def test_hdfs_apply_flow(self):
         # hdfs集群部署
         self.flow_test(HDFS_APPLY_DATA)
 
-    @use_simple_mock
+    @use_pipeline_mock
     def test_hdfs_scale_up_flow(self):
         # hdfs扩容
         self.flow_test(HDFS_SCALE_UP_DATA)

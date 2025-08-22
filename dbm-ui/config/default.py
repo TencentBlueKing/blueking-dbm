@@ -203,7 +203,7 @@ MAX_DBCONN_RETRY_TIMES = 3
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": os.environ.get("DB_NAME", APP_CODE),
         "USER": os.environ.get("DB_USER", "root"),
         "PASSWORD": os.environ.get("DB_PASSWORD", ""),
@@ -214,9 +214,14 @@ DATABASES = {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",
         },
+        "POOL_OPTIONS": {
+            "POOL_SIZE": os.environ.get("DB_POOL_SIZE", 5),
+            "MAX_OVERFLOW": os.environ.get("DB_POOL_MAX_OVERFLOW", 10),
+            "RECYCLE": 60 * 60
+        },
     },
     "report_db": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
         "NAME": os.environ.get("REPORT_DB_NAME", APP_CODE),
         "USER": os.environ.get("REPORT_DB_USER", "root"),
         "PASSWORD": os.environ.get("REPORT_DB_PASSWORD", ""),
@@ -226,6 +231,11 @@ DATABASES = {
         "TEST": {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",
+        },
+        "POOL_OPTIONS": {
+            "POOL_SIZE": os.environ.get("DB_POOL_SIZE", 5),
+            "MAX_OVERFLOW": os.environ.get("DB_POOL_MAX_OVERFLOW", 10),
+            "RECYCLE": 60 * 60
         },
     },
 }
