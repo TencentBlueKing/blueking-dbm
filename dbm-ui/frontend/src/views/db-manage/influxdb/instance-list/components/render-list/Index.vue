@@ -40,15 +40,6 @@
           {{ t('重启') }}
         </BkButton>
       </span>
-      <span
-        v-bk-tooltips="{ content: t('请选择实例'), disabled: hasSelectedInstances }"
-        class="ml-8">
-        <BkButton
-          :disabled="!hasSelectedInstances"
-          @click="handleShowReplace()">
-          {{ t('替换') }}
-        </BkButton>
-      </span>
       <BkDropdown
         :disabled="!hasSelectedInstances"
         @hide="() => (isShowGroupMove = false)"
@@ -135,16 +126,6 @@
       @select-all="handleSelectAll"
       @setting-change="updateTableSettings" />
   </div>
-  <DbSideslider
-    v-model:is-show="isShowReplace"
-    :disabled-confirm="operationNodeList.length === 0"
-    :title="t('InfluxDB实例替换')"
-    :width="960">
-    <ClusterReplace
-      :node-list="operationNodeList"
-      @remove-node="handleRemoveNodeSelect"
-      @succeeded="handleReplaceSucceeded" />
-  </DbSideslider>
 </template>
 
 <script setup lang="tsx">
@@ -184,8 +165,6 @@
   } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
-
-  import ClusterReplace from './components/Replace.vue';
 
   type InfluxDBGroupItem = ServiceReturnType<typeof getGroupList>['results'][number];
 
@@ -268,8 +247,6 @@
   const isInit = ref(true);
   const isShowGroupMove = ref(false);
   const isCopyDropdown = ref(false);
-  const isShowReplace = ref(false);
-  const operationNodeList = shallowRef<Array<InfluxDBInstanceModel>>([]);
   const groupList = shallowRef<InfluxDBGroupItem[]>([]);
   const batchSelectInstances = shallowRef<Record<number, InfluxDBInstanceModel>>({});
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -415,20 +392,6 @@
           if (data.isOnline) {
             return (
               <>
-                <OperationBtnStatusTips data={data}>
-                  <auth-button
-                    action-id='influxdb_replace'
-                    class='mr-8'
-                    disabled={data.operationDisabled}
-                    loading={tableDataActionLoadingMap.value[data?.id]}
-                    permission={data.permission.influxdb_replace}
-                    resource={data.id}
-                    theme='primary'
-                    text
-                    onClick={() => handleShowReplace(data)}>
-                    {t('替换')}
-                  </auth-button>
-                </OperationBtnStatusTips>
                 <OperationBtnStatusTips data={data}>
                   <auth-button
                     action-id='influxdb_reboot'
@@ -652,22 +615,6 @@
     execCopy(list.join(','), t('复制成功，共n条', { n: list.length }));
   };
 
-  // 取消节点的选中状态
-  const handleRemoveNodeSelect = (instanceId: number) => {
-    const checkedMap = { ...batchSelectInstances.value };
-    delete checkedMap[instanceId];
-    batchSelectInstances.value = checkedMap;
-
-    const index = operationNodeList.value.findIndex((item) => item.id === instanceId);
-    if (index >= 0) {
-      operationNodeList.value.splice(index, 1);
-    }
-
-    if (Object.values(checkedMap).length === 0) {
-      tableRef.value!.clearSelected();
-    }
-  };
-
   // 选择单台
   const handleSelect = (data: { checked: boolean; row: InfluxDBInstanceModel }) => {
     const selectedMap = { ...batchSelectInstances.value };
@@ -723,15 +670,6 @@
       eventBus.emit('fetch-group-list');
       tableRef.value!.clearSelected();
     });
-  };
-
-  const handleShowReplace = (data?: InfluxDBInstanceModel) => {
-    operationNodeList.value = data ? [data] : Object.values(batchSelectInstances.value);
-    isShowReplace.value = true;
-  };
-
-  const handleReplaceSucceeded = () => {
-    tableRef.value!.clearSelected();
   };
 
   const handleBatchRestart = () => {

@@ -203,19 +203,19 @@ export default class Kafka extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Kafka.operationIconMap[this.operationRunningStatus];
+    return Kafka.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Kafka.operationTextMap[this.operationRunningStatus];
+    return Kafka.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Kafka.operationIconMap[item.ticket_type],
+      icon: Kafka.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Kafka.operationTextMap[item.ticket_type],
+      tip: Kafka.operationTextMap[item.ticket_type]!,
     }));
   }
 

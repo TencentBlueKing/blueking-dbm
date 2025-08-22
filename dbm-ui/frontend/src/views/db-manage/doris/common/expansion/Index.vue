@@ -71,7 +71,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TDorisExpansionNode>>({
+  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer', TDorisExpansionNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       mutexNodeTypes: ['hot', 'observer'],

@@ -47,7 +47,7 @@
   });
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
+  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot', TShrinkNode>>({
     client: {
       hostList: [],
       label: 'Client',

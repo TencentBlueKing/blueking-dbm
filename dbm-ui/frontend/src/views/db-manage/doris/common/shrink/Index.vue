@@ -57,7 +57,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
+  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer', TShrinkNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       minHost: 0,

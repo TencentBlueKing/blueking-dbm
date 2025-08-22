@@ -49,7 +49,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TShrinkNode>>({
+  const nodeInfoMap = reactive<Record<'datanode', TShrinkNode>>({
     datanode: {
       hostList: [],
       label: 'DataNode',

@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
+  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot' | 'master', TReplaceNode>>({
     client: {
       clusterId: props.clusterData.id,
       hostList: [],

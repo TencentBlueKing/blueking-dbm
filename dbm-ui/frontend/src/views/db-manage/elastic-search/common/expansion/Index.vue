@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
+  const nodeInfoMap = reactive<Record<'client' | 'cold' | 'hot', TExpansionNode>>({
     client: {
       clusterId: props.clusterData.id,
       expansionDisk: 0,
