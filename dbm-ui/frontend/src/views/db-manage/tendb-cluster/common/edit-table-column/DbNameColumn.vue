@@ -77,7 +77,7 @@
     checkExist: false,
     checkNotExist: false,
     clusterId: undefined,
-    required: true,
+    required: false,
     single: false,
   });
 

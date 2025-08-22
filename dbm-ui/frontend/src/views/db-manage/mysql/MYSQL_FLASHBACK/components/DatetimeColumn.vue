@@ -92,10 +92,16 @@
     },
   ];
 
-  watch(modelValue, () => {
-    isNowTime.value = modelValue.value === 'now';
-    emits('change');
-  });
+  watch(
+    modelValue,
+    () => {
+      isNowTime.value = modelValue.value === 'now';
+      emits('change');
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleNowTime = () => {
     modelValue.value = 'now';

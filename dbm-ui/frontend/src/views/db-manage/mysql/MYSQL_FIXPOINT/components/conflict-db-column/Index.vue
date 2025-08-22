@@ -19,11 +19,16 @@
     :loading="loading"
     :min-width="200">
     <template #head>
+      <div style="display: none">
+        <div ref="popRef">
+          <p>{{ t('逻辑备份：仅影响目标集群中存在的同名Database') }}</p>
+          <p>{{ t('物理备份：将清空目标集群的所有Database') }}</p>
+        </div>
+      </div>
       <div
-        v-bk-tooltips="{
-          content: t('构造的目标已经存在了同名的 DB'),
-        }"
-        class="conflict-db-head">
+        ref="rootRef"
+        class="conflict-db-head"
+        @mouseenter="handleShowTips">
         {{ t('受影响的 DB') }}
       </div>
       <span class="required-icon" />
@@ -44,18 +49,21 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import TendbhaModel from '@services/model/mysql/tendbha';
 
   import { showDatabasesWithPatterns } from '@/services/source/remoteService';
 
   import PriviewConflictDbs from './PriviewConflictDbs.vue';
+  import { type BackupLogRecord } from '@services/source/fixpointRollback';
 
   interface Props {
     rowData: {
       cluster: TendbhaModel;
       databases: string[];
       tables: string[];
+      targetCluster?: TendbhaModel;
+      backupRecord: BackupLogRecord;
     };
   }
 
@@ -65,6 +73,10 @@
 
   const conflictDbNum = ref(0);
   const isShowSlider = ref(false);
+  const rootRef = ref();
+  const popRef = ref();
+
+  let tippyIns: Instance | undefined;
 
   const { loading, run: fetchData } = useRequest(showDatabasesWithPatterns, {
     manual: true,
@@ -74,11 +86,12 @@
   });
 
   const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'conflictDb' && !rowData.cluster.id) {
-      return t('请先选择待回档集群');
-    }
     if (field === 'conflictDb' && rowData.databases?.length <= 0) {
       return t('请先选择源 DB');
+    }
+    const targetCluster = rowData?.targetCluster || rowData?.cluster;
+    if (field === 'conflictDb' && !targetCluster?.id) {
+      return t('请先选择目标集群');
     }
     return '';
   };
@@ -87,15 +100,49 @@
     isShowSlider.value = true;
   };
 
+  const handleShowTips = () => {
+    tippyIns?.show();
+  };
+
+  onMounted(() => {
+    setTimeout(() => {
+      tippyIns = tippy(rootRef.value as SingleTarget, {
+        allowHTML: true,
+        appendTo: () => document.body,
+        arrow: true,
+        content: popRef.value,
+        hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 8],
+        placement: 'top',
+        theme: 'black',
+        trigger: 'mouseenter click',
+        zIndex: 999999,
+      });
+    }, 60);
+  });
+
+  onBeforeUnmount(() => {
+    if (tippyIns) {
+      tippyIns?.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+      tippyIns = undefined;
+    }
+  });
+
   watch(
-    () => [props.rowData.cluster.id, props.rowData.databases],
+    () => [props.rowData.cluster.id, props.rowData.targetCluster?.id, props.rowData.databases],
     () => {
-      if (props.rowData.cluster.id && props.rowData.databases?.length > 0) {
+      const clusterId = props.rowData.targetCluster?.id || props.rowData.cluster.id;
+      const dbs = props.rowData.databases || [];
+      if (clusterId) {
         fetchData({
           infos: [
             {
-              cluster_id: props.rowData.cluster.id,
-              dbs: props.rowData.databases,
+              cluster_id: clusterId,
+              dbs,
               ignore_dbs: [],
             },
           ],

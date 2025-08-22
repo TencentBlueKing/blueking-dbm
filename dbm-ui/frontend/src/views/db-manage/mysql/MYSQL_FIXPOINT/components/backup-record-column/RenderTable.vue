@@ -37,6 +37,7 @@
     <BkTable
       ref="tableRef"
       :data="renderData"
+      :height="500"
       :max-height="tableMaxHeight"
       :pagination="pagination.count > 0 ? pagination : false"
       @column-filter="handleFilter"
@@ -47,7 +48,7 @@
         :min-width="300"
         :width="300">
         <template #header>
-          <div class="ml-35">{{ t('文件名') }}</div>
+          <div class="ml-35">{{ t('备份记录') }}</div>
         </template>
         <template #default="{ row }: { row: BackupLogRecord }">
           <BkRadio
@@ -61,27 +62,27 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="is_full_backup"
-        :filter="filterOption.is_full_backup"
+        field="backup_id"
+        :width="260"
+        :label="t('备份 ID')">
+        <template #default="{ row }: { row: BackupLogRecord }">
+          {{ row.backup_id }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="backup_method"
+        :filter="filterOption.backup_method"
         :label="t('备份范围')">
-        <template #default="{ row }: { row: BackupLogRecord }">
-          {{ row.is_full_backup === '1' ? t('全库备份') : t('库表备份') }}
+        <template #default="{ row }: { row: BackupLogRecord & { backup_method_label: string } }">
+          {{ row?.backup_method_label || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="backup_type"
-        :filter="filterOption.backup_type"
+        field="backup_type_filter"
+        :filter="filterOption.backup_type_filter"
         :label="t('备份类型')">
-        <template #default="{ row }: { row: BackupLogRecord }">
-          {{ row.backup_type === 'logical' ? t('逻辑备份') : t('物理备份') }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="bill_id"
-        :filter="filterOption.bill_id"
-        :label="t('触发方式')">
-        <template #default="{ row }: { row: BackupLogRecord }">
-          {{ row.bill_id ? t('单据备份') : t('例行备份') }}
+        <template #default="{ row }: { row: BackupLogRecord & { backup_type_label: string } }">
+          {{ row?.backup_type_label || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -165,10 +166,14 @@
     },
   ];
   const tableRef = ref();
+  // 存储原始数据（请求到的所有备份记录）
+  const originalData = shallowRef<BackupLogRecord[]>([]);
+  // 全量结果
   const tableData = shallowRef<BackupLogRecord[]>([]);
   const pagination = ref(useDefaultPagination());
   const loading = ref(false);
   const checkedBackupId = ref<string>();
+  // 过滤后的结果
   const filteredData = shallowRef<BackupLogRecord[]>([]);
   const filterOption = ref<
     Record<
@@ -185,9 +190,9 @@
       key: 'backup_tool',
       list: [],
     },
-    backup_type: {
+    backup_type_filter: {
       checked: [],
-      key: 'backup_type',
+      key: 'backup_type_filter',
       list: [
         {
           text: t('物理备份'),
@@ -199,43 +204,27 @@
         },
       ],
     },
-    bill_id: {
+    backup_method: {
       checked: [],
-      key: 'bill_id',
+      key: 'backup_method',
       list: [
         {
-          text: t('单据备份'),
-          value: '1',
+          text: t('单据全库备份'),
+          value: 'full_by_ticket',
         },
         {
-          text: t('例行备份'),
-          value: '0',
-        },
-      ],
-    },
-    is_full_backup: {
-      checked: [],
-      key: 'is_full_backup',
-      list: [
-        {
-          text: t('库表备份'),
-          value: '0',
+          text: t('单据库表备份'),
+          value: 'partial_by_ticket',
         },
         {
-          text: t('全库备份'),
-          value: '1',
+          text: t('例行全库备份'),
+          value: 'full_by_regular',
         },
       ],
     },
   });
-  const isChecked = (row: any, field: 'is_full_backup' | 'bill_id' | 'backup_type' | 'extra_fields.backup_tool') => {
-    const cloneData = _.cloneDeep(row);
-    if (field === 'bill_id') {
-      cloneData.bill_id = row.bill_id ? '1' : '0';
-    }
-    return filterOption.value[field]?.checked?.length
-      ? filterOption.value[field].checked.includes(cloneData[field])
-      : true;
+  const isChecked = (row: any, field: 'backup_method' | 'backup_type_filter' | 'extra_fields.backup_tool') => {
+    return filterOption.value[field]?.checked?.length ? filterOption.value[field].checked.includes(row[field]) : true;
   };
   const renderData = computed(() => {
     const [start, end] = comfirmDaterange.value;
@@ -263,9 +252,8 @@
         ? true
         : `${row.mysql_role} ${utcDisplayTime(row.backup_time)}`.indexOf(searchParams.display) > -1;
       const isFilterChecked =
-        isChecked(row, 'backup_type') &&
-        isChecked(row, 'bill_id') &&
-        isChecked(row, 'is_full_backup') &&
+        isChecked(row, 'backup_type_filter') &&
+        isChecked(row, 'backup_method') &&
         isChecked(row, 'extra_fields.backup_tool');
       if (isTimeMatch && isSearchMatch && isFilterChecked) {
         filteredData.value.push(row);
@@ -282,6 +270,49 @@
     pagination.value.count = filteredData.value.length || tableData.value.length;
   });
 
+  const generateRowData = (row: BackupLogRecord) => {
+    let backup_type_filter;
+    let backup_type_label = '--';
+    /**
+     * backup_method
+      - full_by_ticket: 单据全库备份
+        可能为物理备份，或者逻辑备份
+      - partial_by_ticket: 单据库表备份
+        逻辑备份，bill_id 不为空
+      - full_by_regular: 例行全备: 可能为物理备份
+        或者逻辑备份, bill_id 为空
+      - non_full_by_regular: 例行非全备
+        构造，回档，这个应该要过滤掉，备份只有库表结构，权限，不能用户恢复
+     */
+    if (row.backup_method === 'partial_by_ticket') {
+      // 必然是逻辑备份
+      backup_type_filter = 'logical';
+      backup_type_label = t('逻辑备份');
+    }
+
+    if (row.backup_type === 'logical') {
+      backup_type_filter = 'logical';
+      backup_type_label = t('逻辑备份');
+    } else if (row.backup_type === 'physical') {
+      backup_type_filter = 'physical';
+      backup_type_label = t('物理备份');
+    }
+
+    const backupMethodMap = {
+      full_by_ticket: t('单据全库备份'),
+      partial_by_ticket: t('单据库表备份'),
+      full_by_regular: t('例行全库备份'),
+      non_full_by_regular: t('例行非全库备份'), // 过滤掉，不展示
+    } as Record<string, string>;
+
+    return {
+      ...row,
+      backup_type_filter,
+      backup_type_label,
+      backup_method_label: backupMethodMap[row.backup_method] || '--',
+    };
+  };
+
   const fetchData = async () => {
     try {
       loading.value = true;
@@ -297,7 +328,12 @@
           limit: -1,
         });
       }
-      tableData.value = results;
+
+      originalData.value = results;
+      tableData.value = results
+        .filter((item) => item.backup_method !== 'non_full_by_regular') // 过滤掉例行非全备
+        .map((item) => generateRowData(item));
+
       filterOption.value.backup_tool.list = _.uniqBy(
         results.map((item) => ({
           text: item.extra_fields?.backup_tool,
@@ -318,7 +354,7 @@
 
   const handleChecked = (row: BackupLogRecord) => {
     checkedBackupId.value = row.backup_id;
-    modelValue.value = row;
+    modelValue.value = originalData.value.find((item) => item.backup_id === row.backup_id);
   };
 
   const handleChangePage = (value: number) => {

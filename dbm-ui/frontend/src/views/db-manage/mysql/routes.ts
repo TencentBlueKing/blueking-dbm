@@ -78,17 +78,6 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
-  // 库表闪回回档
-  {
-    path: 'flashback/:page?',
-    name: 'MySQLDBFlashback',
-    meta: {
-      navName: t('回档'),
-    },
-    component: () => import('@views/db-manage/mysql/flashback/Index.vue'),
-  },
-  // 记录级闪回回档
-  // 两个闪回两个路由，这里没问题
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
   {

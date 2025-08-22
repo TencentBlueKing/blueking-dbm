@@ -70,7 +70,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
-    required: true,
+    required: false,
     showBatchEdit: true,
     single: false,
   });

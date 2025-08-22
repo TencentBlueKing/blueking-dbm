@@ -53,7 +53,6 @@
       Object.values(resourcePoolModule),
       (moduleItem) => moduleItem.default.name === props.data.ticket_type,
     );
-    console.log(isResourcePool, 'isResourcePool 1');
 
     if (isResourcePool && renderResourcePoolModule) {
       return renderResourcePoolModule.default;

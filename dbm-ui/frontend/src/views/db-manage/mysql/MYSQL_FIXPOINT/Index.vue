@@ -1,5 +1,5 @@
 <template>
-  <SmartAction class="mysql-toolbox-fixpoint-page">
+  <SmartAction class="db-toolbox">
     <BkAlert
       class="mb-20"
       closable
@@ -10,7 +10,7 @@
       " />
     <BkForm
       ref="formRef"
-      class="mb-24"
+      class="mb-24 toolbox-form"
       form-type="vertical"
       :model="formData">
       <BkFormItem
@@ -65,10 +65,13 @@
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="editableTableRef"
-        class="mb-20"
+        class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
@@ -85,6 +88,7 @@
             v-model="item.backupRecord"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
+            @change="() => handleChangeRowData(item)"
             @batch-edit="handleBatchEdit" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
@@ -92,21 +96,22 @@
             v-model:backup-time="item.backupTime"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
+            @change="() => handleChangeRowData(item)"
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.databases"
-            :clearable="item.backupRecord.backup_type === 'logical'"
+            :clearable="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
             :cluster-id="item.cluster?.id"
             field="databases"
-            :has-delete-icon="item.backupRecord.backup_type === 'logical'"
+            :has-delete-icon="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
             :label="t('源 DB')"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
-            :clearable="item.backupRecord.backup_type === 'logical'"
+            :clearable="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
             :cluster-id="item.cluster?.id"
             field="tables"
-            :has-delete-icon="item.backupRecord.backup_type === 'logical'"
+            :has-delete-icon="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
@@ -124,7 +129,9 @@
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             }" />
-          <ConflictDbColumn :row-data="item" />
+          <ConflictDbColumn
+            v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
+            :row-data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -166,7 +173,7 @@
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
-
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
@@ -201,6 +208,53 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  const batchInputConfig = computed(() => {
+    const base = [
+      {
+        case: 'tendbha.test.dba.db',
+        key: 'master_domain',
+        label: t('目标集群'),
+      },
+      {
+        case: 'NULL',
+        key: 'backupRecord',
+        label: t('备份记录'),
+      },
+      {
+        case: 'db1',
+        key: 'databases',
+        label: t('源 DB'),
+      },
+      {
+        case: 'table1',
+        key: 'tables',
+        label: t('源表'),
+      },
+    ];
+    if (formData.rollbackMethod === 'TIME') {
+      base.splice(1, 0, {
+        case: '2025-08-24T23:59:59',
+        key: 'backupTime',
+        label: t('回档时间'),
+      });
+    }
+    if (formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER') {
+      base.push({
+        case: 'tendbha.test2.dba.db',
+        key: 'targetCluster',
+        label: t('目标集群'),
+      });
+    }
+    if (formData.rollbackType === 'BUILD_INTO_NEW_CLUSTER') {
+      base.push({
+        case: '192.168.10.2',
+        key: 'newHost',
+        label: t('新集群主机'),
+      });
+    }
+    return base;
+  });
+
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     backupRecord: Object.assign({} as RowData['backupRecord'], data.backupRecord),
     backupTime: data.backupTime || '',
@@ -211,7 +265,7 @@
       } as TendbhaModel,
       data.cluster,
     ),
-    databases: (data.databases || ['*']) as string[],
+    databases: (data.databases || []) as string[],
     newHost: Object.assign(
       {
         bk_biz_id: currentBizId,
@@ -221,7 +275,7 @@
       } as RowData['newHost'],
       data.newHost,
     ),
-    tables: (data.tables || ['*']) as string[],
+    tables: (data.tables || []) as string[],
     targetCluster: Object.assign(
       {
         id: 0,
@@ -235,7 +289,7 @@
   const editableTableRef = useTemplateRef('editableTableRef');
 
   const defaultData = () => ({
-    backupSource: BackupSourceType.LOCAL,
+    backupSource: BackupSourceType.REMOTE,
     payload: createTickePayload(),
     rollbackMethod: 'BACKUPID',
     rollbackType: 'BUILD_INTO_EXIST_CLUSTER',
@@ -243,6 +297,7 @@
   });
   const formData = reactive(defaultData());
   const tableKey = ref(random());
+  let isTicketLoaded = false;
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -254,6 +309,7 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
+      isTicketLoaded = true;
       Object.assign(formData, {
         backupSource: infos[0].backup_source,
         payload: createTickePayload(ticketDetail),
@@ -323,6 +379,26 @@
     },
   );
 
+  const handleChangeRowData = (row: RowData) => {
+    if (isTicketLoaded) {
+      isTicketLoaded = false;
+      return;
+    }
+    // 备份方式选择的是物理备份，则库，表字段默认填充*，且不可编辑
+    // 逻辑备份时，源 DB，源表 默认改成空，需要且需要必填
+    // 指定时间构造数据，库，表字段默认填充*，且不可编辑
+    if (formData.rollbackMethod === 'TIME') {
+      row.databases = ['*'];
+      row.tables = ['*'];
+    } else if (row.backupRecord.backup_type === 'physical') {
+      row.databases = ['*'];
+      row.tables = ['*'];
+    } else if (row.backupRecord.backup_type === 'logical') {
+      row.databases = [];
+      row.tables = [];
+    }
+  };
+
   const handleClusterBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
@@ -345,6 +421,35 @@
         [field as keyof RowData]: _.cloneDeep(value),
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        cluster: {
+          master_domain: item.master_domain,
+        } as TendbhaModel,
+        tables: item.tables ? [item.tables] : [],
+        databases: item.databases ? [item.databases] : [],
+        backupRecord: item.backupRecord || ({} as RowData['backupRecord']),
+        backupTime: item.backupTime || '',
+        targetCluster: {
+          master_domain: item.targetCluster || '',
+        } as TendbhaModel,
+        newHost: {
+          ip: item.newHost || '',
+        } as RowData['newHost'],
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+    setTimeout(() => {
+      editableTableRef.value?.validate();
+    }, 200);
   };
 
   const handleSubmit = () => {
@@ -374,7 +479,8 @@
                 }
               : undefined,
             // 指定时间构造需要传
-            rollback_time: item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
+            rollback_time:
+              formData.rollbackMethod === 'TIME' && item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
             rollback_type: `${formData.backupSource.toLocaleUpperCase()}_AND_${formData.rollbackMethod}`,
             tables: item.tables,
             tables_ignore: [],
@@ -393,11 +499,3 @@
     Object.assign(formData, defaultData());
   };
 </script>
-<style lang="less">
-  .mysql-toolbox-fixpoint-page {
-    .bk-form-label {
-      font-weight: bold;
-      color: #313238;
-    }
-  }
-</style>
