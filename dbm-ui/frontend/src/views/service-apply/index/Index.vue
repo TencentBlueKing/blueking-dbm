@@ -369,6 +369,7 @@
     router.push({
       name: item.routeName,
       query: {
+        bizId: route.name === 'BussinessServiceApplyIndex' ? window.PROJECT_CONFIG.BIZ_ID : undefined,
         from: route.name as string,
       },
     });
