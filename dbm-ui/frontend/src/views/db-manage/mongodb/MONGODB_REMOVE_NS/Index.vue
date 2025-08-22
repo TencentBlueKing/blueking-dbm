@@ -15,11 +15,15 @@
   <SmartAction>
     <div class="mongo-db-clear-page db-toolbox">
       <BkAlert
+        class="mb-16"
         closable
         theme="info"
         :title="
           t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')
         " />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="toolbox-form"
@@ -126,6 +130,7 @@
 
   import { TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -177,6 +182,34 @@
   });
 
   const { t } = useI18n();
+
+  const batchInputConfig = [
+    {
+      case: 'mongodb.test.dba.db',
+      key: 'domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'db1',
+      key: 'db_patterns',
+      label: t('指定 DB 名'),
+    },
+    {
+      case: 'db2',
+      key: 'ignore_dbs',
+      label: t('忽略 DB 名'),
+    },
+    {
+      case: 'table1',
+      key: 'table_patterns',
+      label: t('指定表名'),
+    },
+    {
+      case: 'table2',
+      key: 'ignore_tables',
+      label: t('忽略表名'),
+    },
+  ];
 
   useTicketDetail<Mongodb.RemoveNs>(TicketTypes.MONGODB_REMOVE_NS, {
     onSuccess(ticketDetail) {
@@ -244,6 +277,26 @@
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
     window.changeConfirm = true;
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        db_patterns: item.db_patterns ? [item.db_patterns] : [],
+        ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
+        ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
+        table_patterns: item.table_patterns ? [item.table_patterns] : [],
+      }),
+    );
+
+    if (isClear) {
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleBatchEdit = (value: string[] | string, field: string) => {
