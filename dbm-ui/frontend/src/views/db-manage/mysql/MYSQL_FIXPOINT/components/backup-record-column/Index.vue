@@ -139,7 +139,10 @@
     cluster: TendbhaModel;
   }
 
-  type Emits = (e: 'batch-edit', data: typeof modelValue.value, field: string) => void;
+  interface Emits {
+    (e: 'batch-edit', data: typeof modelValue.value, field: string): void;
+    (e: 'change'): void;
+  }
 
   const props = defineProps<Props>();
 
@@ -185,6 +188,10 @@
     });
     emits('batch-edit', data, 'backupRecord');
   };
+
+  watch(modelValue, () => {
+    emits('change');
+  });
 </script>
 <style lang="less" scoped>
   .batch-select {

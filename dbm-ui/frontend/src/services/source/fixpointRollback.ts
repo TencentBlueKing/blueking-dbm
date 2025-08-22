@@ -29,6 +29,14 @@ export interface BackupLogRecord {
   backup_meta_file: string;
   backup_port: string;
   backup_status: string;
+  /**
+   * backup_method
+    - full_by_ticket: 单据全库备份
+    - partial_by_ticket: 单据库表备份
+    - full_by_regular: 例行全备
+    - non_full_by_regular: 例行非全备
+   */
+  backup_method: string;
   backup_time: string;
   backup_type: string;
   bill_id: string;

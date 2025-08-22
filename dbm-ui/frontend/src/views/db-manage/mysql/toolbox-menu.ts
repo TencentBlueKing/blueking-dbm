@@ -77,7 +77,7 @@ export default [
         parentId: 'fileback',
       },
       {
-        bind: ['MySQLDBFlashback', TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
+        bind: [TicketTypes.MYSQL_FLASHBACK, TicketTypes.MYSQL_ROLLBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
         id: TicketTypes.MYSQL_ROLLBACK,
         name: t('回档'),

@@ -36,7 +36,11 @@
         class="mb-16"
         theme="warning"
         closable>
-        {{ t('当前的备份类型为物理备份，受影响的DB 在执行时将强制清空，请谨慎操作') }}
+        {{
+          t('当前的备份类型为backup_type，受影响的DB 在执行时将强制清空，请谨慎操作', {
+            backup_type: rowData.backupRecord.backup_type === 'logical' ? t('逻辑备份') : t('物理备份'),
+          })
+        }}
       </BkAlert>
       <BkLoading :loading="loading">
         <BkTable :data="tableData">
@@ -60,6 +64,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { type BackupLogRecord } from '@services/source/fixpointRollback';
 
   interface RowData {
     dbname: string;
@@ -70,6 +75,8 @@
       cluster: TendbhaModel;
       databases: string[];
       tables: string[];
+      targetCluster?: TendbhaModel;
+      backupRecord: BackupLogRecord;
     };
   }
 
@@ -94,10 +101,11 @@
 
   watch(isShow, () => {
     if (isShow.value) {
+      const clusterId = props.rowData.targetCluster?.id || props.rowData.cluster.id;
       fetchData({
         infos: [
           {
-            cluster_id: props.rowData.cluster.id,
+            cluster_id: clusterId,
             dbs: props.rowData.databases,
             ignore_dbs: [],
           },

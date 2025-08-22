@@ -122,7 +122,10 @@
     cluster: TendbhaModel;
   }
 
-  type Emits = (e: 'batch-edit', data: typeof backupTime.value | typeof backupRecord.value, field: string) => void;
+  interface Emits {
+    (e: 'batch-edit', data: typeof backupTime.value | typeof backupRecord.value, field: string): void;
+    (e: 'change'): void;
+  }
 
   const props = defineProps<Props>();
 
@@ -182,6 +185,24 @@
     emits('batch-edit', formData.value.backup_time, 'backupTime');
     emits('batch-edit', data, 'backupRecord');
   };
+
+  watch(backupRecord, () => {
+    emits('change');
+  });
+
+  watch(
+    () => [backupTime.value, props.cluster.id],
+    () => {
+      if (backupTime.value && props.cluster.id) {
+        fetchData({
+          backup_source: props.backupSource,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.cluster.id,
+          rollback_time: backupTime.value,
+        });
+      }
+    },
+  );
 </script>
 <style lang="less" scoped>
   .batch-select {
