@@ -18,10 +18,10 @@ from django.utils.translation import ugettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.components.mysql_backup.client import SQLServerBackupApi
-from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_report.models.sqlserver_check_report import SqlserverFullBackupInfoReport, SqlserverLogBackupInfoReport
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_routine_backup_dbs
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_app_setting_data, get_routine_backup_dbs
 
 logger = logging.getLogger("root")
 
@@ -70,16 +70,82 @@ class CheckBackupInfo(object):
 
     def check_task(self):
         for cluster in self.clusters:
+            common_data = {
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "bk_biz_id": cluster.bk_biz_id,
+                "cluster": cluster.immute_domain,
+                "cluster_type": cluster.cluster_type,
+                "status": True,
+                "msg": "",
+            }
             # 如果集群的创建时间大于起始时间，则跳过这次巡检
             if cluster.create_at > self.full_backup_start_time or cluster.create_at > self.log_backup_start_time:
+                common_data["status"] = True
+                common_data["msg"] = _(
+                    "集出创建时间[{}]比检查时间[{}]晚，跳过这次的检查".format(cluster.create_at, self.full_backup_start_time)
+                )
+                SqlserverFullBackupInfoReport.objects.create(**common_data)
+
+                common_data["msg"] = _(
+                    "集出创建时间[{}]比检查时间[{}]晚，跳过这次的检查".format(cluster.create_at, self.log_backup_end_time)
+                )
+                SqlserverLogBackupInfoReport.objects.create(**common_data)
                 continue
 
-            # 如果集群是空集群，则跳过这次的巡检
-            if len(get_routine_backup_dbs(cluster_id=cluster.id)) == 0:
+            # 如果单节点，且备份类型不是all，那么记录成功
+            try:
+                if cluster.cluster_type == ClusterType.SqlserverSingle:
+                    instance = cluster.storageinstance_set.get(instance_role=InstanceRole.ORPHAN)
+                    data, err = get_app_setting_data(instance=instance, bk_cloud_id=cluster.bk_cloud_id)
+                    if err:
+                        common_data["status"] = False
+                        common_data["msg"] = err
+                        SqlserverFullBackupInfoReport.objects.create(**common_data)
+                        SqlserverLogBackupInfoReport.objects.create(**common_data)
+                        continue
+                    if data["DATA_SCHEMA_GRANT"] != "all":
+                        # 目前表示集群不做备份
+                        common_data["status"] = True
+                        common_data["msg"] = "DATA_SCHEMA_GRANT != all, skip"
+                        SqlserverFullBackupInfoReport.objects.create(**common_data)
+                        SqlserverLogBackupInfoReport.objects.create(**common_data)
+                        continue
+
+                if len(get_routine_backup_dbs(cluster_id=cluster.id)) == 0:
+                    common_data["status"] = True
+                    common_data["msg"] = _("检查到集群没有需要备份的数据库列表")
+                    SqlserverFullBackupInfoReport.objects.create(**common_data)
+                    SqlserverLogBackupInfoReport.objects.create(**common_data)
+                    continue
+
+            except Exception as err:
+                # 如果校验发现失败了，记录当时的错误，不退出
+                common_data["status"] = False
+                common_data["msg"] = err
+                SqlserverFullBackupInfoReport.objects.create(**common_data)
+                SqlserverLogBackupInfoReport.objects.create(**common_data)
                 continue
 
-            self.check_full_backup_info_cluster(cluster)
-            self.check_log_backup_info_cluster(cluster)
+            try:
+                # 完整备份校验
+                self.check_full_backup_info_cluster(cluster)
+            except Exception as err:
+                # 如果校验发现失败了，记录当时的错误，不退出
+                common_data["status"] = False
+                common_data["msg"] = err
+                SqlserverFullBackupInfoReport.objects.create(**common_data)
+                continue
+
+            try:
+                # 日志备份校验
+                self.check_log_backup_info_cluster(cluster)
+
+            except Exception as err:
+                # 如果校验发现失败了，记录当时的错误，不退出
+                common_data["status"] = False
+                common_data["msg"] = err
+                SqlserverLogBackupInfoReport.objects.create(**common_data)
+                continue
 
     def check_full_backup_info_cluster(self, cluster: Cluster):
         """
