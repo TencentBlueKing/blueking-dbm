@@ -133,7 +133,7 @@
       )
     ) {
       const specItem = resourceSpec.storage_spec.find((storageSpecItem) => storageSpecItem.mount_point === '/data1');
-      return specItem?.size || 0;
+      return specItem?.min || 0;
     }
     return resourceSpec.mem.min;
   };
