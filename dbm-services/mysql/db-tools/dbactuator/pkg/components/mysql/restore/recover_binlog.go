@@ -124,17 +124,20 @@ type MySQLClientOpt struct {
 	BinaryMode bool `json:"binary_mode"`
 }
 
-func (r *RecoverBinlog) parse(f string) error {
+func (r *RecoverBinlog) parse(f string, idx int) error {
 	parsedName := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, f)
 	cmd := fmt.Sprintf("cd %s && %s %s/%s  >%s", r.taskDir, r.binlogCli, r.BinlogDir, f, parsedName)
-	//logger.Info("run: %s", cmd)
+	if idx == 0 {
+		cmd = fmt.Sprintf("cd %s && %s %s  %s/%s >%s", r.taskDir, r.binlogCli, r.RecoverOpt.optStartPos,
+			r.BinlogDir, f, parsedName)
+	}
 	if outStr, err := osutil.ExecShellCommand(false, cmd); err != nil {
 		return errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", f, outStr, cmd)
 	}
 	return nil
 }
 
-// ParseBinlogFiles TODO
+// ParseBinlogFiles for parse only
 func (r *RecoverBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
@@ -146,11 +149,11 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 		wg.Add(len(r.BinlogFiles))
 		logger.Info("need parse %d binlog files: %s", len(r.BinlogFiles), r.BinlogFiles)
 
-		for _, f := range r.BinlogFiles {
+		for i, f := range r.BinlogFiles {
 			tokenBulkChan <- struct{}{}
-			go func(binlogFilePath string) {
+			go func(binlogFilePath string, idx int) {
 				logger.Info("parse %s", binlogFilePath)
-				err := r.parse(binlogFilePath)
+				err := r.parse(binlogFilePath, idx)
 
 				<-tokenBulkChan
 
@@ -159,7 +162,7 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 				}
 				errChan <- err
 				wg.Done()
-			}(f)
+			}(f, i)
 		}
 		wg.Wait()
 		logger.Info("all binlog finish")
@@ -178,12 +181,16 @@ func (r *RecoverBinlog) buildScript() error {
 	// 创建解析 binlog 的脚本，只是为了查看或者后面手动跑
 	// 因为要并行解析，所以真正跑的是 ParseBinlogFiles
 	parseCmds := []string{fmt.Sprintf("cd %s", r.taskDir)}
-	for _, f := range r.BinlogFiles {
+	for i, f := range r.BinlogFiles {
 		if f == "" {
 			continue
 		}
 		parsedName := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, f)
 		cmd := fmt.Sprintf("%s %s/%s  >%s 2>logs/parse_%s.err", r.binlogCli, r.BinlogDir, f, parsedName, f)
+		if i == 0 {
+			cmd = fmt.Sprintf("%s %s  %s/%s >%s 2>logs/parse_%s.err", r.binlogCli, r.RecoverOpt.optStartPos,
+				r.BinlogDir, f, parsedName, f)
+		}
 		parseCmds = append(parseCmds, cmd)
 	}
 	r.parseScript = fmt.Sprintf(filepath.Join(r.taskDir, parseScript))
@@ -370,7 +377,8 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 		if r.BinlogStartFile == "" {
 			return errors.Errorf("start_pos must has binlog_start_file")
 		} else {
-			b.options += fmt.Sprintf(" --start-position=%d", b.StartPos)
+			//b.options += fmt.Sprintf(" --start-position=%d", b.StartPos)
+			b.optStartPos = fmt.Sprintf(" --start-position=%d", b.StartPos)
 			// 输入的 binlog 列表的第一个文件，就是 start_file
 			// 同时要把 BinlogFiles 列表里面，binlog_start_file 之前的文件去掉
 		}
@@ -776,7 +784,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 // Start godoc
 // 一定会解析 binlog
 func (r *RecoverBinlog) Start() error {
-	fileCount := r.BinlogFiles
+	fileCount := len(r.BinlogFiles)
 	if r.ParseOnly {
 		if err := r.buildScript(); err != nil {
 			return err
@@ -807,7 +815,13 @@ func (r *RecoverBinlog) Start() error {
 				`cd %s; %s %s | %s >>%s 2>%s`,
 				r.BinlogDir, r.binlogCli, oneFile, r.mysqlCli, outFile, errFile,
 			)
-			logger.Info("[%d/%d] command:", i+1, fileCount,
+			if i == 0 {
+				cmd = fmt.Sprintf(
+					`cd %s; %s %s %s | %s >>%s 2>%s`,
+					r.BinlogDir, r.binlogCli, r.RecoverOpt.optStartPos, oneFile, r.mysqlCli, outFile, errFile,
+				)
+			}
+			logger.Info("[%d/%d] command: %s", i+1, fileCount,
 				mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 			stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
 			if err != nil {

@@ -4,7 +4,7 @@ package dbareport
 type BackupStatus struct {
 	Status string `json:"status" gorm:"type:varchar(32);NOT NULL"`
 	// StatusDetail 如果失败，记录失败详情
-	StatusDetail string `json:"status_detail" gorm:"type:varchar(255);NOT NULL"`
+	StatusDetail string `json:"status_detail" gorm:"type:text"`
 
 	BackupId      string `json:"backup_id" gorm:"type:varchar(60);NOT NULL"`
 	BackupType    string `json:"backup_type"  gorm:"type:varchar(32);NOT NULL"`

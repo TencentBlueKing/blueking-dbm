@@ -65,6 +65,7 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 	if sessionVars == nil {
 		sessionVars = map[string]interface{}{}
 	}
+	slog.Info("session variables", slog.String("local", time.Local.String()), slog.Any("utc", time.UTC.String()))
 	if time.Local == time.UTC {
 		sessionVars["loc"] = "UTC"
 		sessionVars["time_zone"] = "'+00:00'"

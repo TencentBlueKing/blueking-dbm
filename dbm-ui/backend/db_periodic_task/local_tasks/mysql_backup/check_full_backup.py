@@ -186,6 +186,16 @@ def _check_tendbha_full_backup(date_str: str):
                     msg="no success full backup found",
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                 )
+            else:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBHA,
+                    status=True,
+                    msg="success",
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                )
         except json.decoder.JSONDecodeError as e:
             logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))
         except Exception as e:
@@ -243,6 +253,16 @@ def _check_tendbcluster_full_backup(date_str: str):
                     cluster_type=ClusterType.TenDBCluster,
                     status=False,
                     msg="no success full backup found:{}".format(message),
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                )
+            else:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBCluster,
+                    status=True,
+                    msg="success",
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
                 )
         except json.decoder.JSONDecodeError as e:
