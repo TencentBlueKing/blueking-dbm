@@ -18,16 +18,10 @@
     property="biz_scope"
     required
     :rules="rules">
-    <div
-      v-bk-tooltips="{
-        content: t('该规格已被使用，不允许修改'),
-        disabled: editable,
-      }"
-      class="biz-scope-container">
+    <div class="biz-scope-container">
       <BkRadioGroup
         v-model="bizScope"
         class="biz-scope-option"
-        :disabled="!editable"
         @change="handleBizScopeChange">
         <BkRadio
           class="biz-scope-item"
@@ -50,7 +44,6 @@
         v-if="bizScope === BizScopes.BIZ"
         v-model="selectedBiz"
         class="ml-44 mt-34"
-        :disabled="!editable"
         style="flex: 1"
         @change="handleSelectedBizChange" />
     </div>
@@ -65,7 +58,6 @@
 
   interface Props {
     data: number[];
-    editable: boolean;
   }
 
   type Emits = (e: 'change') => void;

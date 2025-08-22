@@ -67,7 +67,6 @@
       <BizScopeItem
         ref="bizScopeItemRef"
         :data="formdata.biz_scope"
-        :editable="editable"
         @change="bizScopeChange" />
       <BkFormItem :label="t('描述')">
         <BkInput
