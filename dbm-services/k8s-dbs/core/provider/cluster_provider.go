@@ -356,12 +356,17 @@ func (c *ClusterProvider) UpdateClusterRelease(
 		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	ctx.K8sClusterConfigID = k8sClusterConfig.ID
-
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
+	err = c.fillClusterMetaInfo(k8sClusterConfig.ID, request)
+	if err != nil {
+		return err
+	}
+
+	// 更新 cluster release
 	values, err := c.updateClusterRelease(request, k8sClient, isPartial)
 	if err != nil {
 		slog.Error("failed to update cluster", "error", err)
@@ -376,6 +381,28 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	if err = metautil.UpdateClusterMeta(c.clusterMetaProvider, ctx, request); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateMetaDataError, err)
 	}
+	return nil
+}
+
+// fillClusterMetaInfo 补全 cluster 元信息
+func (c *ClusterProvider) fillClusterMetaInfo(k8sClusterConfigID uint64, request *coreentity.Request) error {
+	// check cluster
+	clusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		K8sClusterConfigID: k8sClusterConfigID,
+		ClusterName:        request.ClusterName,
+		Namespace:          request.Namespace,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	if clusterEntity == nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("集群 %s 元数据不存在，操作失败", request.ClusterName))
+	}
+	if request.AddonClusterVersion == "" {
+		request.AddonClusterVersion = clusterEntity.AddonClusterVersion
+	}
+	request.StorageAddonType = clusterEntity.AddonInfo.AddonType
 	return nil
 }
 
