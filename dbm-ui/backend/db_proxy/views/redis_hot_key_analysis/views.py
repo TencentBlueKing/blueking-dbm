@@ -13,13 +13,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.models import RedisHotKeyDetail
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.redis_hot_key_analysis.serializers import (
     CreateHotKeyDetailSerializer,
     RedisHotKeyDetailSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecordDetail
 
 
 class HotKeyAnalysisViewSet(BaseProxyPassViewSet):
@@ -41,6 +41,6 @@ class HotKeyAnalysisViewSet(BaseProxyPassViewSet):
         hot_key_infos = request.data.get("hot_key_infos", [])
         serializer = self.get_serializer(data=hot_key_infos, many=True)
         serializer.is_valid(raise_exception=True)
-        analyses = [RedisHotKeyDetail(**validated_data) for validated_data in serializer.validated_data]
-        RedisHotKeyDetail.objects.bulk_create(analyses)
+        analyses = [RedisHotKeyRecordDetail(**validated_data) for validated_data in serializer.validated_data]
+        RedisHotKeyRecordDetail.objects.bulk_create(analyses)
         return Response({})

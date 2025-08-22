@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass
 
-from backend.db_meta.models import RedisHotKeyInfo
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 from backend.flow.consts import StateType
 from backend.ticket import todos
 from backend.ticket.constants import TicketFlowStatus, TicketType, TodoType
@@ -53,7 +53,7 @@ class PauseTodo(todos.TodoActor):
 
             # 处理redis专属热key分析记录状态
             if self.todo.ticket.ticket_type == TicketType.REDIS_HOT_KEY_ANALYSIS:
-                RedisHotKeyInfo.objects.filter(ticket_id=self.todo.ticket.id).update(status=StateType.REVOKED)
+                RedisHotKeyRecord.objects.filter(ticket_id=self.todo.ticket.id).update(status=StateType.REVOKED)
             return
 
         self.todo.set_success(username, action)

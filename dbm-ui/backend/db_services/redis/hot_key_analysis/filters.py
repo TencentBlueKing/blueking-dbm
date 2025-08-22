@@ -12,8 +12,8 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
-from backend.db_meta.models import RedisHotKeyDetail, RedisHotKeyInfo
 from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord, RedisHotKeyRecordDetail
 
 
 class RedisHotKeyAnalysisFilter(filters.FilterSet):
@@ -43,7 +43,7 @@ class RedisHotKeyAnalysisFilter(filters.FilterSet):
         return queryset.filter(build_q_for_domain_by_cluster(domains=value.split(",")))
 
     class Meta:
-        model = RedisHotKeyInfo
+        model = RedisHotKeyRecord
         fields = ["operator", "cluster_ids", "create_at__lte", "create_at__gte", "immute_domain", "instance_addresses"]
 
 
@@ -62,5 +62,5 @@ class RedisHotKeyDetailsFilter(filters.FilterSet):
         return queryset.filter(query_filters)
 
     class Meta:
-        model = RedisHotKeyDetail
+        model = RedisHotKeyRecordDetail
         fields = ["instance_addresses", "key"]

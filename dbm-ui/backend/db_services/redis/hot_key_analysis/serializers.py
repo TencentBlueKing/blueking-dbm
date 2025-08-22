@@ -12,12 +12,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import RedisHotKeyInfo
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 
 
 class AnalysisRecordsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = RedisHotKeyInfo
+        model = RedisHotKeyRecord
         fields = "__all__"
 
 

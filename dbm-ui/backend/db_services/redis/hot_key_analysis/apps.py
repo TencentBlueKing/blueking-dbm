@@ -8,20 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework import serializers
-
-from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
-from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecordDetail
+from django.apps import AppConfig
 
 
-class CreateHotKeyDetailSerializer(serializers.ModelSerializer):
-    creator = serializers.CharField(read_only=True)
-    updater = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = RedisHotKeyRecordDetail
-        fields = "__all__"
-
-
-class RedisHotKeyDetailSerializer(BaseProxyPassSerializer):
-    hot_key_infos = CreateHotKeyDetailSerializer(many=True)
+class HotKeyConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "backend.db_services.redis.hot_key_analysis"

@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import RedisHotKeyInfo
+from backend.db_services.redis.hot_key_analysis.models import RedisHotKeyRecord
 from backend.flow.consts import StateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -46,11 +46,11 @@ class RedisHotKeyAnalysisParamBuilder(builders.FlowParamBuilder):
         # 更新记录表状态
         record_ids = [info["record_id"] for info in self.ticket_data["infos"]]
         if flow.status == TicketFlowStatus.SUCCEEDED.value:
-            RedisHotKeyInfo.objects.filter(id__in=record_ids, status=StateType.RUNNING).update(
+            RedisHotKeyRecord.objects.filter(id__in=record_ids, status=StateType.RUNNING).update(
                 status=StateType.FINISHED
             )
         else:
-            RedisHotKeyInfo.objects.filter(id__in=record_ids, status=StateType.RUNNING).update(status=flow.status)
+            RedisHotKeyRecord.objects.filter(id__in=record_ids, status=StateType.RUNNING).update(status=flow.status)
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_HOT_KEY_ANALYSIS)
@@ -61,9 +61,9 @@ class RedisHotKeyAnalysisFlowBuilder(RedisALLInstanceTicketFlowBuilder):
 
     def create_hot_key_infos(self):
         # 创建热key记录
-        record_infos: List[RedisHotKeyInfo] = []
+        record_infos: List[RedisHotKeyRecord] = []
         for index, info in enumerate(self.ticket.details["infos"]):
-            record_info = RedisHotKeyInfo(
+            record_info = RedisHotKeyRecord(
                 bk_biz_id=self.ticket.bk_biz_id,
                 ins_list=info["ins"],
                 cluster_id=info["cluster_id"],
@@ -76,8 +76,8 @@ class RedisHotKeyAnalysisFlowBuilder(RedisALLInstanceTicketFlowBuilder):
             )
             record_infos.append(record_info)
 
-        RedisHotKeyInfo.objects.bulk_create(record_infos)
-        record_infos = RedisHotKeyInfo.objects.filter(ticket_id=self.ticket.id)
+        RedisHotKeyRecord.objects.bulk_create(record_infos)
+        record_infos = RedisHotKeyRecord.objects.filter(ticket_id=self.ticket.id)
 
         record_info_map = defaultdict(dict)
         for record_info in record_infos:
