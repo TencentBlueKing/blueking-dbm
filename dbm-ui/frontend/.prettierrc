@@ -13,5 +13,5 @@
   "vueIndentScriptAndStyle": true,
   "singleAttributePerLine": true,
   "proseWrap": "always",
-  "plugins": ["@prettier/plugin-oxc"],
+  "plugins": ["@prettier/plugin-oxc"]
 }

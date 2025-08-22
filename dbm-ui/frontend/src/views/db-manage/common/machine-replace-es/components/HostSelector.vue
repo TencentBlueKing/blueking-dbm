@@ -78,7 +78,7 @@
 
   import EditHostInstance from '@views/db-manage/common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
 
-  import type { TReplaceNode } from '../ResourcePanel.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
     data: TReplaceNode;

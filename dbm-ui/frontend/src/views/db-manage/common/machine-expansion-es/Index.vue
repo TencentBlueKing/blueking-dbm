@@ -47,14 +47,14 @@
           <MachinePanel
             v-if="!isLoading"
             :key="nodeType"
-            v-model:expansion-disk="modelValue[nodeType].expansionDisk"
-            v-model:host-list="modelValue[nodeType].hostList"
-            v-model:resource-spec="modelValue[nodeType].resourceSpec"
+            v-model:expansion-disk="modelValue[nodeType]!.expansionDisk"
+            v-model:host-list="modelValue[nodeType]!.hostList"
+            v-model:resource-spec="modelValue[nodeType]!.resourceSpec"
             :cloud-info="{
               id: clusterData.bk_cloud_id,
               name: clusterData.bk_cloud_name,
             }"
-            :data="modelValue[nodeType]"
+            :data="modelValue[nodeType]!"
             :ip-source="ipSource" />
         </div>
       </div>
@@ -88,7 +88,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
+  import NodeStatusList from '@views/db-manage/common/machine-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
@@ -216,12 +216,12 @@
   const nodeStatusList = computed(() =>
     Object.keys(modelValue.value).map((key) => ({
       key,
-      label: modelValue.value[key].label,
+      label: modelValue.value[key]!.label,
     })),
   );
 
   const nodeStatusListRef = ref();
-  const nodeType = ref(Object.keys(modelValue.value)[0]);
+  const nodeType = ref<string>(Object.keys(modelValue.value)[0]!);
   const isLoading = ref(false);
   const ipSource = ref('resource_pool');
 

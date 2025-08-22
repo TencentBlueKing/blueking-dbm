@@ -55,7 +55,7 @@
 
   import SpecDetail from '@views/db-manage/common/SpecDetailForPopover.vue';
 
-  import type { TReplaceNode } from '../ResourcePanel.vue';
+  import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
     cloudInfo: {
@@ -112,8 +112,8 @@
         const [currentSpec] = recommendSpecList;
         modelValue.value = {
           count: props.data.oldHostList.length,
-          instance_num: currentSpec.instance_num,
-          spec_id: currentSpec.spec_id,
+          instance_num: currentSpec!.instance_num,
+          spec_id: currentSpec!.spec_id,
         };
       }
     },

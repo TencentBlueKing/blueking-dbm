@@ -185,14 +185,14 @@ export default class Tendbsingle extends ClusterBase {
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Tendbsingle.operationTextMap[this.operationRunningStatus];
+    return Tendbsingle.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Tendbsingle.operationIconMap[item.ticket_type],
+      icon: Tendbsingle.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Tendbsingle.operationTextMap[item.ticket_type],
+      tip: Tendbsingle.operationTextMap[item.ticket_type]!,
     }));
   }
 

@@ -426,7 +426,7 @@
   .tag-manage-batch-delete-wrapper {
     .tag-wrapper {
       display: flex;
-      align-items: top;
+      align-items: flex-start;
       font-size: 14px;
 
       .tag {

@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
+  const nodeInfoMap = reactive<Record<'broker', TExpansionNode>>({
     broker: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,

@@ -111,7 +111,7 @@ export default class DorisInstance {
     if (this.operations.length < 1) {
       return '';
     }
-    const operation = this.operations[0];
+    const operation = this.operations[0]!;
     if (operation.status !== 'RUNNING') {
       return '';
     }
@@ -139,7 +139,7 @@ export default class DorisInstance {
     if (this.operations.length < 1) {
       return 0;
     }
-    const operation = this.operations[0];
+    const operation = this.operations[0]!;
     if (operation.status !== 'RUNNING') {
       return 0;
     }

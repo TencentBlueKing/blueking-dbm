@@ -62,7 +62,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
+  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       role: 'doris_backend_cold',

@@ -29,7 +29,7 @@
         <div class="machine-panel">
           <MachinePanel
             :key="nodeType"
-            :data="modelValue[nodeType]"
+            :data="modelValue[nodeType]!"
             @change="handleNodeHostChange" />
         </div>
       </div>
@@ -173,12 +173,12 @@
   });
 
   const nodeStatusListRef = useTemplateRef('nodeStatusListRef');
-  const nodeType = ref(Object.keys(modelValue.value)[0]);
+  const nodeType = ref(Object.keys(modelValue.value)[0] || '');
 
   const nodeStatusList = computed(() =>
     Object.keys(modelValue.value).map((key) => ({
       key,
-      label: modelValue.value[key].label,
+      label: modelValue.value[key]!.label,
     })),
   );
 
@@ -190,9 +190,9 @@
       }
       const firstNotEmptyNodeType = _.find(
         Object.keys(modelValue.value),
-        (nodeType) => modelValue.value[nodeType].hostList.length > 0,
+        (nodeType) => modelValue.value[nodeType]!.hostList.length > 0,
       );
-      nodeType.value = firstNotEmptyNodeType ? firstNotEmptyNodeType : Object.keys(modelValue.value)[0];
+      nodeType.value = firstNotEmptyNodeType ? firstNotEmptyNodeType : Object.keys(modelValue.value)[0]!;
     },
     {
       immediate: true,
@@ -202,8 +202,8 @@
   // 缩容节点主机修改
   const handleNodeHostChange = (hostList: TShrinkNode['hostList']) => {
     const shrinkDisk = hostList.reduce((result, hostItem) => result + (hostItem.bk_disk || 0), 0);
-    modelValue.value[nodeType.value].hostList = hostList;
-    modelValue.value[nodeType.value].shrinkDisk = shrinkDisk;
+    modelValue.value[nodeType.value]!.hostList = hostList;
+    modelValue.value[nodeType.value]!.shrinkDisk = shrinkDisk;
   };
 
   const handleSubmit = () => {

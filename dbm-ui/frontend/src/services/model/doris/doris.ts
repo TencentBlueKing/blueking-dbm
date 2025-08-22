@@ -206,19 +206,19 @@ export default class Doris extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Doris.operationIconMap[this.operationRunningStatus];
+    return Doris.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Doris.operationTextMap[this.operationRunningStatus];
+    return Doris.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Doris.operationIconMap[item.ticket_type],
+      icon: Doris.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Doris.operationTextMap[item.ticket_type],
+      tip: Doris.operationTextMap[item.ticket_type]!,
     }));
   }
 

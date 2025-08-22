@@ -200,16 +200,16 @@ export default class Tendbha extends ClusterBase {
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Tendbha.operationTextMap[this.operationRunningStatus];
+    return Tendbha.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.reduce<{ icon: string; ticketId: number; tip: string }[]>((result, item) => {
       if (Tendbha.operationIconMap[item.ticket_type]) {
         result.push({
-          icon: Tendbha.operationIconMap[item.ticket_type],
+          icon: Tendbha.operationIconMap[item.ticket_type]!,
           ticketId: item.ticket_id,
-          tip: Tendbha.operationTextMap[item.ticket_type],
+          tip: Tendbha.operationTextMap[item.ticket_type]!,
         });
       }
       return result;

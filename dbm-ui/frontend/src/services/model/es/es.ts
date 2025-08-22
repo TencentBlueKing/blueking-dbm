@@ -183,7 +183,11 @@ export default class Es extends ClusterBase {
     return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
   }
   get masterDomainDisplayName() {
-    const { port } = this.es_master[0];
+    if (this.es_master.length < 1) {
+      return '';
+    }
+
+    const { port } = this.es_master[0]!;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
   }
@@ -216,19 +220,19 @@ export default class Es extends ClusterBase {
 
   // 操作中的状态 icon
   get operationStatusIcon() {
-    return Es.operationIconMap[this.operationRunningStatus];
+    return Es.operationIconMap[this.operationRunningStatus]!;
   }
 
   // 操作中的状态描述文本
   get operationStatusText() {
-    return Es.operationTextMap[this.operationRunningStatus];
+    return Es.operationTextMap[this.operationRunningStatus]!;
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
-      icon: Es.operationIconMap[item.ticket_type],
+      icon: Es.operationIconMap[item.ticket_type]!,
       ticketId: item.ticket_id,
-      tip: Es.operationTextMap[item.ticket_type],
+      tip: Es.operationTextMap[item.ticket_type]!,
     }));
   }
 

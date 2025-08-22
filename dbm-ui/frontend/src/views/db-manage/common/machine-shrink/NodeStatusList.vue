@@ -24,15 +24,15 @@
       </div>
       <template v-if="validateStatusMemo[nodeItem.key]">
         <div
-          v-if="nodeItem.key === 'observer' && nodeInfo[nodeItem.key].hostList.length > 0"
+          v-if="nodeItem.key === 'observer' && nodeInfo[nodeItem.key]!.hostList.length > 0"
           class="disk-tips">
-          <span class="number">{{ nodeInfo[nodeItem.key].hostList.length }}</span>
+          <span class="number">{{ nodeInfo[nodeItem.key]!.hostList.length }}</span>
           <span>{{ t('台') }}</span>
         </div>
         <div
-          v-else-if="nodeInfo[nodeItem.key].shrinkDisk"
+          v-else-if="nodeInfo[nodeItem.key]!.shrinkDisk"
           class="disk-tips">
-          <span class="number">{{ nodeInfo[nodeItem.key].shrinkDisk }}</span>
+          <span class="number">{{ nodeInfo[nodeItem.key]!.shrinkDisk }}</span>
           <span>G</span>
         </div>
         <div
