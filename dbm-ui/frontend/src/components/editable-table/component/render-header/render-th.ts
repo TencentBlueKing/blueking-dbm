@@ -78,8 +78,8 @@ export default defineComponent({
             class: 'bk-editable-table-label-cell',
             style: {
               width:
-                props.columnSizeConfig[props.column.key].renderWidth > 0
-                  ? `${props.columnSizeConfig[props.column.key].renderWidth - 20}px`
+                props.columnSizeConfig[props.column.key]!.renderWidth > 0
+                  ? `${props.columnSizeConfig[props.column.key]!.renderWidth - 20}px`
                   : '',
             },
           },
