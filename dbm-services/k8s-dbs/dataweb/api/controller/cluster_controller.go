@@ -49,6 +49,7 @@ type ClusterController struct {
 	opsRequestProvider  *provider.OpsRequestProvider
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider
 	opsProvider         metaprovider.K8sCrdOpsRequestProvider
+	componentProvider   *provider.ComponentProvider
 }
 
 // NewClusterController 创建 ClusterController 实例
@@ -57,12 +58,14 @@ func NewClusterController(
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 	opsProvider metaprovider.K8sCrdOpsRequestProvider,
 	opsRequestProvider *provider.OpsRequestProvider,
+	componentProvider *provider.ComponentProvider,
 ) *ClusterController {
 	return &ClusterController{
 		clusterProvider:     clusterProvider,
 		clusterMetaProvider: clusterMetaProvider,
 		opsProvider:         opsProvider,
 		opsRequestProvider:  opsRequestProvider,
+		componentProvider:   componentProvider,
 	}
 }
 
@@ -276,4 +279,76 @@ func (c *ClusterController) checkOpsStatusEnded(
 		return true
 	}
 	return false
+}
+
+// UpdateClusterConfig 更新集群组件环境变量
+func (c *ClusterController) UpdateClusterConfig(ctx *gin.Context) {
+	request := &webreq.ClusterUpdatedRequest{}
+	err := ctx.ShouldBindJSON(request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+
+	dbsCtx := &commentity.DbsContext{
+		BkAuth:      &request.BKAuth,
+		RequestType: coreconst.PartialUpdateCluster,
+	}
+
+	// 获取集群元数据
+	clusterMetaEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
+		Namespace:   request.Namespace,
+		ClusterName: request.ClusterName,
+	})
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterSvcError, err))
+		return
+	}
+
+	clusterConfig, err := ClusterConfBuilderFactory.
+		GetBuilder(clusterMetaEntity.AddonInfo.AddonType).
+		BuildEnvConfig(request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateClusterError, err))
+		return
+	}
+
+	err = c.clusterProvider.UpdateClusterRelease(dbsCtx, clusterConfig, true)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.PartialUpdateClusterError, err))
+		return
+	}
+	coreentity.SuccessResponse(ctx, nil, commconst.Success)
+}
+
+// GetClusterConfig 获取cluster config详情
+func (c *ClusterController) GetClusterConfig(ctx *gin.Context) {
+	var svcEntity entity.K8sSvcEntity
+	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+	componentData, err := c.componentProvider.DescribeComponent(&entity.Request{
+		K8sClusterName: svcEntity.K8sClusterName,
+		Metadata: entity.Metadata{
+			ClusterName:   svcEntity.ClusterName,
+			Namespace:     svcEntity.Namespace,
+			ComponentName: svcEntity.ComponentName,
+		},
+	})
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		return
+	}
+
+	responseData, err := ClusterConfBuilderFactory.
+		GetBuilder(componentData.StorageAddonType).
+		ParseEnvConfig(componentData)
+
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
+		return
+	}
+
+	coreentity.SuccessResponse(ctx, responseData, commconst.Success)
 }

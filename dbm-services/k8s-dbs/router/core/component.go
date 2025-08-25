@@ -21,11 +21,7 @@ package core
 
 import (
 	"k8s-dbs/core/api/controller"
-	coreprovider "k8s-dbs/core/provider"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
 	routerutil "k8s-dbs/router/util"
-	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -44,27 +40,7 @@ func BuildComponentRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 
 // initComponentController 初始化 ComponentController
 func initComponentController(db *gorm.DB) *controller.ComponentController {
-	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
-	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
-
-	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
-	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
-	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
-	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
-	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
-		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
-		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
-		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
-		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
-		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
-	)
-	if err != nil {
-		slog.Error("failed to create cluster meta provider", "clusterProvider", clusterProviderBuilder)
-		panic(err)
-	}
-
-	componentProvider := coreprovider.NewComponentProvider(k8sClusterConfigProvider, clusterMetaProvider)
+	componentProvider := routerutil.BuildComponentProvider(db)
 	return controller.NewComponentController(componentProvider)
 }
 

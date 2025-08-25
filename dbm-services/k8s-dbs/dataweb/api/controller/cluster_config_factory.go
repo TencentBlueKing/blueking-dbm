@@ -28,6 +28,9 @@ import (
 	"log/slog"
 	"regexp"
 	"strconv"
+	"strings"
+
+	"github.com/jinzhu/copier"
 )
 
 // validateClusterName 检查 clusterName 是否合法
@@ -48,6 +51,8 @@ type ClusterConfigBuilder interface {
 	BuildConfig(*webreq.ClusterInstallRequest) (*coreentity.Request, error)
 	BuildBasicConfig(*webreq.ClusterInstallRequest, string) (*coreentity.Request, error)
 	BuildComponentList(*webreq.ClusterInstallRequest, string) ([]coreentity.ComponentResource, error)
+	BuildEnvConfig(request *webreq.ClusterUpdatedRequest) (*coreentity.Request, error)
+	ParseEnvConfig(request *coreentity.ComponentDetail) (*webreq.ComponentDetail, error)
 }
 
 // BaseClusterConfigBuilder 基础构建器
@@ -109,6 +114,41 @@ func (b *BaseClusterConfigBuilder) BuildComponentList(
 	return componentList, nil
 }
 
+// BuildEnvConfig 构建env
+func (b *BaseClusterConfigBuilder) BuildEnvConfig(request *webreq.ClusterUpdatedRequest) (*coreentity.Request, error) {
+	for i, resource := range request.ComponentList {
+		if resource.Config == nil {
+			continue
+		}
+		request.ComponentList[i].Env = resource.Config
+	}
+	var result = &coreentity.Request{}
+	err := copier.Copy(result, request)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ParseEnvConfig 解析Env
+func (b *BaseClusterConfigBuilder) ParseEnvConfig(
+	request *coreentity.ComponentDetail,
+) (*webreq.ComponentDetail, error) {
+	var result = &webreq.ComponentDetail{}
+	err := copier.Copy(result, request)
+	if err != nil {
+		return nil, err
+	}
+	envMap := make(map[string]interface{})
+	result.Config = envMap
+	if request.Env != nil {
+		for _, envVar := range request.Env {
+			result.Config[envVar.Name] = envVar.Value
+		}
+	}
+	return result, nil
+}
+
 // VMClusterConfigBuilder vm 集群配置构建器
 type VMClusterConfigBuilder struct {
 }
@@ -167,6 +207,44 @@ func (v *VMClusterConfigBuilder) BuildComponentList(
 	default:
 		return nil, fmt.Errorf("unknown topo name %v", installRequest.ResourceConfig.TopoName)
 	}
+}
+
+// BuildEnvConfig 构建vm env
+func (v *VMClusterConfigBuilder) BuildEnvConfig(request *webreq.ClusterUpdatedRequest) (*coreentity.Request, error) {
+	for i, resource := range request.ComponentList {
+		if resource.Config == nil {
+			continue
+		}
+		// 初始化
+		envMap := make(map[string]interface{})
+		request.ComponentList[i].Env = envMap
+		request.ComponentList[i].Env["EXTRA_ARGS"] = resource.Config
+	}
+	var result = &coreentity.Request{}
+	err := copier.Copy(result, request)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ParseEnvConfig 解析Env
+func (v *VMClusterConfigBuilder) ParseEnvConfig(request *coreentity.ComponentDetail) (*webreq.ComponentDetail, error) {
+	var result = &webreq.ComponentDetail{}
+	err := copier.Copy(result, request)
+	if err != nil {
+		return nil, err
+	}
+	// EXTRA_ARGS才处理
+	if request.Env != nil {
+		for _, envVar := range request.Env {
+			if envVar.Name == "EXTRA_ARGS" {
+				argsMap := parseCommandLineArgs(envVar.Value)
+				result.Config = argsMap
+			}
+		}
+	}
+	return result, nil
 }
 
 // buildComponentsInSelect VM 查询模式构建组件列表
@@ -230,6 +308,31 @@ func buildComponentResource(component webreq.Component, serviceVersion string) c
 		},
 	}
 	return componentResource
+}
+
+// parseCommandLineArgs 将命令行参数字符串解析为map
+func parseCommandLineArgs(input string) map[string]interface{} {
+	// 创建一个map用于存储结果
+	result := make(map[string]interface{})
+
+	// 按空格分割字符串，得到各个参数
+	params := strings.Fields(input)
+
+	// 遍历每个参数
+	for _, param := range params {
+		// 去除开头的"--"
+		keyValue := strings.TrimPrefix(param, "--")
+
+		// 按"="分割为键和值
+		parts := strings.SplitN(keyValue, "=", 2)
+		if len(parts) == 2 {
+			key := parts[0]
+			value := parts[1]
+			result[key] = value
+		}
+	}
+
+	return result
 }
 
 var ClusterConfBuilderFactory = &ClusterConfigBuilderFactory{}
