@@ -15,6 +15,7 @@ from typing import Any, Dict, List
 
 from blueapps.core.celery.celery import app
 from django.db import transaction
+from django.db.models import Q
 
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi
@@ -605,22 +606,26 @@ def parser_operate_collector_cache_key(cache_key: str):
 
 
 @app.task
-def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instance_ids: list, action: str):
+def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_id_to_host_id: list, action: str):
     """
     操作采集器
     调用监控 API，针对本次变更的范围进行下发
     """
-    if not bk_instance_ids:
+    if not instance_id_to_host_id:
         return
 
     logger.info(
         "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
-            db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
+            db_type=db_type, machine_type=machine_type, bk_instance_ids=instance_id_to_host_id, action=action
         )
     )
 
     # 获取下发的实例和采集范围
-    nodes = [{"id": bk_instance_id, "bk_biz_id": bk_biz_id} for bk_instance_id in bk_instance_ids]
+    nodes = [
+        {"id": int(parts[0]), "bk_biz_id": bk_biz_id, "bk_host_id": int(parts[1]) if len(parts) > 1 else None}
+        for id_str in instance_id_to_host_id
+        for parts in [id_str.split("-", maxsplit=1)]
+    ]
     scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
 
     # --- 下发监控采集器 ---
@@ -681,12 +686,23 @@ def trigger_operate_collector(
     if not bk_instance_ids:
         return
 
-    # 获取实例信息，同一批下发实例的采集：组件、类型、管控业务都相同，任取一个即可
-    ins = (
-        StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
-        or ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+    query = Q(bk_instance_id__in=bk_instance_ids)
+    storage_queryset = StorageInstance.objects.filter(query).select_related("machine")
+    proxy_queryset = ProxyInstance.objects.filter(query).select_related("machine")
+
+    # 合并两个查询集并生成映射关系
+    instance_id_to_host_id = [
+        f"{instance.bk_instance_id}-{instance.machine.bk_host_id}"
+        for instance in list(storage_queryset) + list(proxy_queryset)
+    ]
+
+    # 优化实例信息获取：优先从已查询的结果中获取
+    ins = next(
+        (instance for instance in storage_queryset if instance.bk_instance_id in bk_instance_ids),
+        next((instance for instance in proxy_queryset if instance.bk_instance_id in bk_instance_ids), None),
     )
-    if ins is None:
+
+    if not ins:
         return
 
     # 监控某些场景下，不传入 db_type 和 machine_type 的情况，例如 dbha 切换后，仅更新标签
@@ -701,5 +717,5 @@ def trigger_operate_collector(
     cache_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
 
     # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
-    RedisConn.sadd(cache_key, *bk_instance_ids)
+    RedisConn.sadd(cache_key, *instance_id_to_host_id)
     RedisConn.sadd("operate_collector", cache_key)

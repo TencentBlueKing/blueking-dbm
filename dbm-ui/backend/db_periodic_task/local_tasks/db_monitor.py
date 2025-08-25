@@ -202,5 +202,5 @@ def cycle_trigger_operator_collector():
         # 获取采集下发相关信息
         bk_biz_id, db_type, machine_type, action = parser_operate_collector_cache_key(cache_key)
         # 获取当前任务缓存的实例ID，下发采集任务
-        bk_instance_ids = script(keys=[cache_key])
-        operate_collector(bk_biz_id, db_type, machine_type, bk_instance_ids, action)
+        instance_id_to_host_id = script(keys=[cache_key])
+        operate_collector(bk_biz_id, db_type, machine_type, instance_id_to_host_id, action)
