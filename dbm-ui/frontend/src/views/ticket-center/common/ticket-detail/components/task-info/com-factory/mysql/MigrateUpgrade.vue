@@ -12,24 +12,24 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="pkg_id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row:data }: { row: RowData }">
         <p
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('主从主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('主从主机')">
+      <template #default="{ row:data }: { row: RowData }">
         <div>
           <BkTag
             size="small"
@@ -47,11 +47,11 @@
           {{ data.display_info.old_master_slave[1] }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('只读主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('只读主机')">
+      <template #default="{ row:data }: { row: RowData }">
         <div
           v-for="host in data.read_only_slaves"
           :key="host.old_slave.bk_host_id">
@@ -59,11 +59,11 @@
         </div>
         <span v-if="data.read_only_slaves.length < 1"> -- </span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('当前版本')">
+      <template #default="{ row:data }: { row: RowData }">
         <VersionContent
           :data="{
             version: data.display_info.current_version,
@@ -72,11 +72,11 @@
             moduleName: data.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标版本')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('目标版本')">
+      <template #default="{ row:data }: { row: RowData }">
         <VersionContent
           :data="{
             version: data.display_info.target_version,
@@ -85,11 +85,11 @@
             moduleName: data.display_info.target_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新主从主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('新主从主机')">
+      <template #default="{ row:data }: { row: RowData }">
         <div>
           <BkTag
             size="small"
@@ -107,15 +107,15 @@
           {{ data.new_slave.ip }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新只读主机')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('新只读主机')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ data.read_only_slaves.length ? data.read_only_slaves.map((item) => item.new_slave.ip).join(',') : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

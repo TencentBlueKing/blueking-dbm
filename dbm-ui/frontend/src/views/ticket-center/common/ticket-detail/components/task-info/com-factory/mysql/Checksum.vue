@@ -25,51 +25,52 @@
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验主库')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.master.ip }}
+    </TableColumn>
+    <TableColumn :title="t('校验主库')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.master.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验从库')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('校验从库')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="(item, index) in data.slaves"
+          v-for="(item, index) in row.slaves"
           :key="index">
           <p class="pt-2 pb-2">{{ item.ip }}: {{ item.port }}</p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验DB')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.db_patterns" />
+    </TableColumn>
+    <TableColumn :title="t('校验DB')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.table_patterns" />
+    </TableColumn>
+    <TableColumn :title="t('校验表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
+    </TableColumn>
+    <TableColumn :title="t('忽略DB')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_tables" />
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

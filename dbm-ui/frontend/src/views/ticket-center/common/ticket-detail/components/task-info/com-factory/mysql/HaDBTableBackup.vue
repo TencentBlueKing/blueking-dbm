@@ -11,33 +11,35 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('备份DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('备份表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

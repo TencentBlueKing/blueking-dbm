@@ -12,58 +12,58 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="source_cluster">
+    <TableColumn
       fixed="left"
-      :label="t('源集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.source_cluster].immute_domain }}
+      :min-width="220"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.source_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="clusterId in data.target_clusters"
+          v-for="clusterId in row.target_clusters"
           :key="clusterId">
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('克隆类型')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.data_schema_grant === 'schema' ? t('克隆表结构') : t('克隆表结构和数据') }}
+    </TableColumn>
+    <TableColumn
+      :min-width="180"
+      :title="t('克隆类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.data_schema_grant === 'schema' ? t('克隆表结构') : t('克隆表结构和数据') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('迁移DB名')"
-      :min-width="180">
+    </TableColumn>
+    <TableColumn
+      :min-width="180"
+      :title="t('迁移DB名')">
       <template #default> -- </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
-      :min-width="180">
+    </TableColumn>
+    <TableColumn
+      :min-width="180"
+      :title="t('忽略DB名')">
       <template #default> -- </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('最终DB名')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="180"
+      :title="t('最终DB名')">
+      <template #default="{ row }: { row: RowData }">
         <BkTag
-          v-for="item in data.db_list"
+          v-for="item in row.db_list"
           :key="item">
           {{ item }}
         </BkTag>
-        <span v-if="data.db_list.length < 1">--</span>
+        <span v-if="row.db_list.length < 1">--</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

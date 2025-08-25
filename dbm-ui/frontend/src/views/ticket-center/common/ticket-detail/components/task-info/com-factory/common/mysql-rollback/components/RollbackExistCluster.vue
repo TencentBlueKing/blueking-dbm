@@ -13,11 +13,11 @@
 
 <template>
   <RenderTableBase :ticket-details="ticketDetails">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.target_cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </RenderTableBase>
 </template>
 

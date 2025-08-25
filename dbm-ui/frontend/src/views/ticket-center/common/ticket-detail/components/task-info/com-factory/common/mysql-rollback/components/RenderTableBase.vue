@@ -12,24 +12,26 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
+    </TableColumn>
     <slot />
-    <BkTableColumn
-      :label="t('备份源')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    <TableColumn
+      :min-width="150"
+      :title="t('备份源')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('回档类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('回档类型')">
+      <template #default="{ row:data }: { row: RowData }">
         <span v-if="data.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(data.rollback_time) }}</span>
         <span v-else-if="data.backupinfo.backup_time && data.backupinfo.mysql_role">
           {{ t('备份记录') }} - {{ data.backupinfo?.mysql_role }}
@@ -37,30 +39,30 @@
         </span>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
+    </TableColumn>
     <template v-if="showDbName">
-      <BkTableColumn :label="t('回档DB名')">
-        <template #default="{ data }: { data: RowData }">
+      <TableColumn :title="t('回档DB名')">
+        <template #default="{ row:data }: { row: RowData }">
           <TagBlock :data="data.databases" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('忽略DB名')">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn :title="t('忽略DB名')">
+        <template #default="{ row:data }: { row: RowData }">
           <TagBlock :data="data.databases_ignore" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('回档表名')">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn :title="t('回档表名')">
+        <template #default="{ row:data }: { row: RowData }">
           <TagBlock :data="data.tables" />
         </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('忽略表名')">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn :title="t('忽略表名')">
+        <template #default="{ row:data }: { row: RowData }">
           <TagBlock :data="data.tables_ignore" />
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </template>
-  </BkTable>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

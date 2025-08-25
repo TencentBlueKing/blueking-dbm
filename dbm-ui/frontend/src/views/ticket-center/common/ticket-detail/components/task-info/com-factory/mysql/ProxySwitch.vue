@@ -17,40 +17,40 @@
       {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标Proxy')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="origin_proxy.ip">
+    <TableColumn :title="t('目标Proxy')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.origin_proxy.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="isHostReplace"
-      :label="t('关联实例')">
-      <template #default="{ data }: { data: RowData }">
+      :title="t('关联实例')">
+      <template #default="{ row: data }: { row: RowData }">
         <p
           v-for="item in data.display_info.related_instances"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('关联集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <p
           v-for="item in data.display_info.related_clusters"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新Proxy主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.target_proxy.ip }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

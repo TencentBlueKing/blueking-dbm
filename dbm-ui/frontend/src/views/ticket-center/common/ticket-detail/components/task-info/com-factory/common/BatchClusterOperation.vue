@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData" row-key="id">
+  <PrimaryTable
+    :data="tableData"
+    row-key="id">
     <TableColumn :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.id].immute_domain }}

@@ -12,29 +12,31 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('源DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('源DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.from_database">
           {{ data.from_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag v-if="data.to_database">
           {{ data.to_database }}
         </BkTag>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

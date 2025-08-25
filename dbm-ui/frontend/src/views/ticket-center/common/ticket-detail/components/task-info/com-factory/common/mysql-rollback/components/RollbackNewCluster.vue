@@ -13,16 +13,16 @@
 
 <template>
   <RenderTableBase :ticket-details="ticketDetails">
-    <BkTableColumn :label="t('主机来源')">
+    <TableColumn :title="t('主机来源')">
       <template #default>
         {{ t('业务空闲机') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('回档新主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('回档新主机')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ data.rollback_host.ip }}
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </RenderTableBase>
 </template>
 

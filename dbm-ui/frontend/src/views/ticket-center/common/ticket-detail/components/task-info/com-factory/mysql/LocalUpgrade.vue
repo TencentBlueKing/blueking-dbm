@@ -12,24 +12,24 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="pkg_id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row:data }: { row: RowData }">
         <p
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="300"
+      :title="t('当前版本')">
+      <template #default="{ row:data }: { row: RowData }">
         <VersionContent
           :data="{
             version: data.display_info.current_version,
@@ -38,11 +38,11 @@
             moduleName: data.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="300"
+      :title="t('目标版本')">
+      <template #default="{ row:data }: { row: RowData }">
         <VersionContent
           :data="{
             version: data.display_info.target_version
@@ -55,8 +55,8 @@
               : data.display_info.current_module_name,
           }" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

@@ -12,21 +12,23 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源客户端IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.source }}
+  <PrimaryTable
+    :data="ticketDetails.details.clone_data"
+    row-key="bk_cloud_id">
+    <TableColumn :title="t('源客户端IP')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.source }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.module }}
+    </TableColumn>
+    <TableColumn :title="t('所属模块')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.module }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新客户端IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新客户端IP')">
+      <template #default="{ row }: { row: RowData }">
         <template
-          v-for="(item, index) in data.target"
+          v-for="(item, index) in row.target"
           :key="index">
           <p class="pt-2 pb-2">
             {{ item }}
@@ -34,12 +36,12 @@
               v-if="index === 0"
               class="db-icon-copy"
               :v-bk-tooltips="t('复制IP')"
-              @click="copyIp(data.target)" />
+              @click="copyIp(row.target)" />
           </p>
         </template>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
