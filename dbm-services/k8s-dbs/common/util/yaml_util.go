@@ -19,7 +19,9 @@ limitations under the License.
 
 package util
 
-import "sigs.k8s.io/yaml"
+import (
+	"sigs.k8s.io/yaml"
+)
 
 // MarshalToYAML 将对象序列化为 YAML 字符串
 func MarshalToYAML(obj interface{}) string {

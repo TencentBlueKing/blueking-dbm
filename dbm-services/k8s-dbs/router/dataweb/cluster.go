@@ -38,6 +38,8 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		clusterGroup.GET("/search", clusterController.GetClusterList)
 		clusterGroup.GET("/:id", clusterController.GetClusterInfo)
 		clusterGroup.POST("/expose", clusterController.ExposeCluster)
+		clusterGroup.PATCH("/config", clusterController.UpdateClusterConfig)
+		clusterGroup.GET("/config", clusterController.GetClusterConfig)
 	}
 }
 
@@ -47,12 +49,13 @@ func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
 	opsRequestProvider := routerutil.BuildK8sCrdOpsRequestProvider(db)
 	clusterOpsProvider := core.BuildOpsRequestProvider(db, clusterProvider)
-
+	componentProvider := routerutil.BuildComponentProvider(db)
 	return controller.NewClusterController(
 		clusterProvider,
 		clusterMetaProvider,
 		opsRequestProvider,
 		clusterOpsProvider,
+		componentProvider,
 	)
 }
 

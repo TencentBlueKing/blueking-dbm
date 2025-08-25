@@ -54,6 +54,31 @@ func BuildClusterMetaProvider(db *gorm.DB) *metaprovider.K8sCrdClusterProviderIm
 	return clusterMetaProvider
 }
 
+// BuildComponentProvider 构建 ComponentController
+func BuildComponentProvider(db *gorm.DB) *coreprovider.ComponentProvider {
+	k8sClusterConfigDbAccess := metadbaccess.NewK8sClusterConfigDbAccess(db)
+	k8sClusterConfigProvider := metaprovider.NewK8sClusterConfigProvider(k8sClusterConfigDbAccess)
+
+	clusterMetaDbAccess := metadbaccess.NewCrdClusterDbAccess(db)
+	addonMetaDbAccess := metadbaccess.NewK8sCrdStorageAddonDbAccess(db)
+	clusterTagDbAccess := metadbaccess.NewK8sCrdClusterTagDbAccess(db)
+	clusterTopologyDbAccess := metadbaccess.NewAddonTopologyDbAccess(db)
+	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
+	clusterMetaProvider, err := metaprovider.NewK8sCrdClusterProvider(
+		clusterProviderBuilder.WithClusterDbAccess(clusterMetaDbAccess),
+		clusterProviderBuilder.WithAddonDbAccess(addonMetaDbAccess),
+		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
+		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
+		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+	)
+	if err != nil {
+		slog.Error("failed to create cluster meta provider", "clusterProvider", clusterProviderBuilder)
+		panic(err)
+	}
+
+	return coreprovider.NewComponentProvider(k8sClusterConfigProvider, clusterMetaProvider)
+}
+
 // BuildClusterProvider 构建 ClusterProvider
 func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 	coreAPIProviders, err := BuildCoreAPIProviders(db)

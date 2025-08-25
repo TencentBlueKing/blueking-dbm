@@ -98,9 +98,10 @@ func (c *ComponentProvider) DescribeComponent(request *coreentity.Request) (*cor
 	envVars = filterOutKbEnvVars(envVars)
 	componentDetail := &coreentity.ComponentDetail{
 		Metadata: coreentity.Metadata{
-			ClusterName:   crd.Labels[coreconst.InstanceName],
-			Namespace:     crd.Namespace,
-			ComponentName: crd.Labels[coreconst.ComponentName],
+			ClusterName:      crd.Labels[coreconst.InstanceName],
+			Namespace:        crd.Namespace,
+			ComponentName:    crd.Labels[coreconst.ComponentName],
+			StorageAddonType: clusterMeta.AddonInfo.AddonType,
 		},
 		Pods: pods,
 		Env:  envVars,
