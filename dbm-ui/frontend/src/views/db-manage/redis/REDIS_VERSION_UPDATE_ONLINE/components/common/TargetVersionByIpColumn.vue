@@ -13,24 +13,24 @@
 
 <template>
   <EditableColumn
-    :append-rules="rules"
     field="target_version"
     :label="t('目标版本')"
+    :loading="loading"
     required
     :width="200">
     <EditableSelect
       v-model="modelValue"
       :clearable="false">
       <BkOption
-        v-for="(item, index) in selectList"
+        v-for="(item, index) in versions"
         :key="index"
-        :label="item.label"
-        :value="item.value">
+        :label="item"
+        :value="item">
         <TextOverflowLayout>
-          {{ item.label }}
+          {{ item }}
           <template #append>
             <BkTag
-              v-if="isCurrentVersion(item.label)"
+              v-if="isCurrentVersion(item)"
               class="ml-4"
               size="small"
               theme="info">
@@ -51,14 +51,16 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import { getClusterVersionsByIp } from '@services/source/redisToolbox';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface Props {
     clusterId: number;
     currentVersions?: string[];
+    ip: string;
     nodeType: string;
   }
 
@@ -68,45 +70,24 @@
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      message: t('目标版本不能和当前使用的版本一致'),
-      trigger: 'change',
-      validator: (value: string) => !isCurrentVersion(value),
-    },
-  ];
-
-  const selectList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
+  const {
+    data: versions,
+    loading,
+    run: runGetClusterVersionsByIp,
+  } = useRequest(getClusterVersionsByIp, {
+    manual: true,
+  });
 
   watch(
-    () => [props.clusterId, props.nodeType],
-    (newVal, oldVal) => {
-      if (props.clusterId && props.nodeType) {
-        getClusterVersions({
+    () => [props.ip, props.clusterId],
+    () => {
+      if (props.ip && props.clusterId) {
+        runGetClusterVersionsByIp({
           cluster_id: props.clusterId,
+          ip: props.ip,
           node_type: props.nodeType,
           type: 'update',
-        }).then((versions) => {
-          if (oldVal && newVal[1] !== oldVal[1]) {
-            modelValue.value = '';
-          }
-          nextTick(() => {
-            if (versions.length && !modelValue.value) {
-              [modelValue.value] = versions;
-            }
-            selectList.value = versions.map((item) => ({
-              label: item,
-              value: item,
-            }));
-          });
         });
-      } else {
-        selectList.value = [];
       }
     },
     {

@@ -21,6 +21,7 @@ interface MachineInstancePairItem {
   bk_cloud_id: number;
   bk_host_id: number;
   bk_instance_id: number;
+  cluster_type: string;
   instance: string;
   ip: string;
   is_stand_by: boolean;
@@ -66,6 +67,13 @@ export function getClusterVersions(params: {
   type: string;
 }) {
   return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}
+
+/**
+ * 查询主机版本信息
+ */
+export function getClusterVersionsByIp(params: { cluster_id?: number; ip: string; node_type: string; type: string }) {
+  return http.get<string[]>(`${getRootPath()}/get_cluster_version_by_ip/`, params);
 }
 
 /**
