@@ -68,7 +68,12 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 	slog.Info("execute one addr get conn", slog.Any("stat", db.Stats()))
 
 	var connId int64 = 0
-	_ = conn.GetContext(context.Background(), &connId, `SELECT CONNECTION_ID()`)
+	slog.Info("get db_driver", slog.String("driverName", db.DriverName()))
+	if db.DriverName() == "mysql" {
+		// 判断DB访问类型，如果是mysql类型，则执行以下内容，获取connId
+		_ = conn.GetContext(context.Background(), &connId, `SELECT CONNECTION_ID()`)
+	}
+
 	//if err != nil {
 	//	c.logger.Error("get conn id", slog.String("error", err.Error()))
 	//	return nil, err
