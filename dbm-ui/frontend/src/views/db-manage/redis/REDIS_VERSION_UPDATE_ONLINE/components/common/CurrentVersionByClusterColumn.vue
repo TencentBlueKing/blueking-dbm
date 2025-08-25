@@ -14,16 +14,16 @@
 <template>
   <EditableColumn
     ref="editableTableColumn"
-    :label="t('当前使用的版本')"
+    :label="t('当前版本')"
     readonly
     :width="240">
     <EditableBlock :placeholder="t('输入集群后自动生成')">
       <BkLoading :loading="loading">
-        <P
+        <div
           v-for="name in modelValue"
           :key="name">
           {{ name }}
-        </P>
+        </div>
       </BkLoading>
     </EditableBlock>
   </EditableColumn>
@@ -53,7 +53,7 @@
   });
 
   watch(
-    () => [props.clusterId, props.nodeType],
+    () => props.clusterId,
     () => {
       if (props.clusterId && props.nodeType) {
         fetchCurrentClusterVersions({
@@ -62,6 +62,9 @@
           type: 'online',
         });
       }
+    },
+    {
+      immediate: true,
     },
   );
 </script>
