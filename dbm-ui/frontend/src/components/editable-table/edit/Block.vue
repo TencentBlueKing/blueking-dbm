@@ -51,9 +51,9 @@
     prepend?: () => VNode;
   }>();
 
-  const columnContext = useColumn();
-
   const modelValue = defineModel<string>();
+
+  const columnContext = useColumn();
 
   const contentRef = useTemplateRef('content');
   const isShowPlacehoder = ref(true);

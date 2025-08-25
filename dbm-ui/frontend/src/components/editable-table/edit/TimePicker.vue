@@ -29,11 +29,11 @@
     (e: 'change', value: T): void;
   }>();
 
+  const modelValue = defineModel<T>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<T>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
