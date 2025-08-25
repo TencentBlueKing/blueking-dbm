@@ -26,6 +26,7 @@ export interface MachineInfos {
   bk_sub_zone: string;
   bk_svr_device_cls_name: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   db_module_id: number;
   host_info: HostInfo;
