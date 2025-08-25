@@ -109,25 +109,28 @@
 </script>
 <style lang="less">
   .bk-editable-select {
-    width: 100%;
+    &.bk-select {
+      width: 100%;
 
-    .bk-input {
-      height: 40px;
-      border: none;
-      box-shadow: none !important;
-    }
-
-    .bk-input--text {
-      background: transparent;
-    }
-
-    .bk-select-trigger {
-      height: 40px !important;
-
-      .bk-select-tag {
-        height: 40px !important;
-        border: none !important;
+      .bk-input {
+        height: 40px;
+        border: none;
         box-shadow: none !important;
+      }
+
+      .bk-input--text {
+        background: transparent;
+      }
+
+      .bk-select-trigger {
+        height: 40px !important;
+
+        .bk-select-tag {
+          height: 40px !important;
+          background: transparent;
+          border: none !important;
+          box-shadow: none !important;
+        }
       }
     }
   }

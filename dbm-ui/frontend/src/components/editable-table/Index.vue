@@ -57,7 +57,6 @@
   import {
     type ComponentInternalInstance,
     type InjectionKey,
-    onBeforeUnmount,
     provide,
     type Ref,
     ref,
@@ -122,9 +121,6 @@
 
   export const getColumnCount = (() => {
     let count = 0;
-    onBeforeUnmount(() => {
-      count = 0;
-    });
     return () => count++;
   })();
 </script>
@@ -182,7 +178,7 @@
   };
 
   const updateRow = _.throttle(() => {
-    columnList.value = rowList.value.length > 0 ? [...rowList.value[0]] : [];
+    columnList.value = rowList.value.length > 0 ? [...rowList.value[0]!] : [];
   }, 60);
 
   const unregisterRow = (rowColumnList: IColumnContext[]) => {
@@ -209,7 +205,7 @@
     const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
 
     const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
-      result.push(...rowList.value[index]);
+      result.push(...rowList.value[index]!);
       return result;
     }, []);
 
@@ -221,7 +217,7 @@
 
     const columnList = rowList.value.reduce((result, rowItem) => {
       columnIndexList.forEach((index) => {
-        result.push(rowItem[index]);
+        result.push(rowItem[index]!);
       });
       return result;
     }, []);

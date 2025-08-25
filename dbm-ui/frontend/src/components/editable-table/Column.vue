@@ -39,17 +39,6 @@
         class="bk-editable-table-column-disabled-mask" />
     </div>
     <div
-      v-if="validateState.isError"
-      class="bk-editable-table-column-error">
-      <slot
-        name="error"
-        v-bind="{ message: validateState.errorMessage }">
-        <i
-          v-bk-tooltips="validateState.errorMessage"
-          class="bk-dbm db-icon-exclamation-fill" />
-      </slot>
-    </div>
-    <div
       v-if="slots.tips"
       ref="tipsRef"
       class="bk-editable-table-body-column-tips">
@@ -465,7 +454,7 @@
     let rules: IRule[] = [];
     // 继承 table 的验证规则
     if (tableContext?.props.rules && _.has(tableContext.props.rules, props.field)) {
-      rules = tableContext.props.rules[props.field];
+      rules = tableContext.props.rules[props.field]!;
     }
     // column 自己的 rules 规则优先级更高
     if (props.rules) {
@@ -498,10 +487,10 @@
           tableContext.emits('validate', props.field || '', true, '');
           return Promise.resolve(true);
         }
-        const rule = finalRuleList[stepIndex];
+        const rule = finalRuleList[stepIndex]!;
 
         return Promise.resolve().then(() => {
-          const result = rule.validator(value, rowDataValue);
+          const result = rule!.validator(value, rowDataValue);
           // 同步验证通过下一步
           if (result === true) {
             return doValidate(finalRuleList, value, rowDataValue);
@@ -575,7 +564,7 @@
 
         const rowIndex = rowContext!.getRowIndex();
         const rowDataValue = {
-          rowData: tableContext.props.model[rowIndex],
+          rowData: tableContext.props.model[rowIndex]!,
           rowIndex,
         };
         const value = _.get(rowDataValue.rowData, props.field || '_');
@@ -752,9 +741,10 @@
     display: flex;
     height: 40px;
     padding-right: 8px;
+    font-size: 14px;
     color: #ea3636;
-    align-items: center;
     transform: translateY(-50%);
+    align-items: center;
   }
 
   .bk-editable-table-column-loading {
