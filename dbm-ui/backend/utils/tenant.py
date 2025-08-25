@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
@@ -13,9 +24,12 @@ class TenantHandler:
         from backend.db_periodic_task.local_tasks.db_meta.update_app_cache import bulk_update_app_cache
         from backend.ticket.handler import TicketHandler
 
+        tenant = TenantCache.objects.get(tenant_id=tenant_id)
+
         # 初始化租户和cc数据
         bulk_update_app_cache(tenant_id)
-
+        # 初始化云区域信息
+        tenant.update_tenant_cloud()
         # 初始化租户的流程配置
         TicketHandler.ticket_flow_config_init(tenant_id)
 
@@ -25,7 +39,6 @@ class TenantHandler:
         tenant_list = UserManagerApi.list_tenant(params={"tenant_id": settings.DEFAULT_TENANT_ID}, raw=True)["data"]
         exists = list(TenantCache.objects.all().values_list("tenant_id", flat=True))
 
-        # todo，补充新增加的租户信息
         new_tenants = [
             TenantCache(tenant_id=tenant["id"], tenant_name=tenant["name"], status=tenant["status"])
             for tenant in tenant_list

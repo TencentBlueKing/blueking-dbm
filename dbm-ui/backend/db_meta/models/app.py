@@ -18,7 +18,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.bk_web.models import AuditedModel
-from backend.components import CCApi
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("root")
@@ -66,6 +65,15 @@ class TenantCache(AuditedModel):
         if not settings.ENABLE_MULTI_TENANT_MODE:
             return settings.DEFAULT_TENANT_ID
         return cls.get_cloud_tenant_cache().get(bk_cloud_id, "")
+
+    def update_tenant_cloud(self):
+        """更新租户的云区域信息"""
+        from backend.components.bknodeman.client import BKNodeManApi
+
+        cloud_ids = [c["bk_cloud_id"] for c in BKNodeManApi.list_cloud(params={"tenant_id": self.tenant_id})]
+        if cloud_ids != self.clouds:
+            self.clouds = cloud_ids
+            self.save()
 
     @classmethod
     def get_tenant_with_app(cls, bk_biz_id=str):
@@ -131,6 +139,8 @@ class AppCache(AuditedModel):
     @classmethod
     def get_app_attr_from_cc(cls, bk_biz_id, attr_name, default=""):
         """实时从cc查询业务属性"""
+        from backend.components import CCApi
+
         info = CCApi.search_business(
             params={
                 "fields": ["bk_biz_id", CC_APP_ABBR_ATTR, attr_name],
@@ -156,6 +166,8 @@ class AppCache(AuditedModel):
 
     @classmethod
     def batch_get_app_attr(cls, bk_biz_ids, attr_name="db_app_abbr"):
+        from backend.components import CCApi
+
         bk_biz_ids = list(set(bk_biz_ids))
         apps = cls.objects.filter(bk_biz_id__in=bk_biz_ids)
         infos = apps.values("bk_biz_id", attr_name)

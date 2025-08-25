@@ -17,6 +17,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import states
+from django.conf import settings
 from django.utils import translation
 from django.utils.translation import ugettext as _
 from pipeline.core.data.base import DataObject
@@ -28,8 +29,10 @@ from backend.components.sops.client import BkSopsApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
-from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
+from backend.flow.consts import JobOperationCode
 from backend.flow.engine.bamboo.engine import BambooEngine
+from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
+from backend.flow.models import FlowTree
 from backend.ticket.models import Flow
 from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
@@ -178,35 +181,37 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 返回响应
         return ExcelHandler.response(wb, excel_name)
 
-    def _get_tenant_id(self, global_data):
+    def _inject_tenant_id(self, global_data):
         """
-        获取租户ID
+        注入租户ID
         1.pipeline 输入参数中有租户id
-        2.pipeline 输入参数中有业务id，则从业务id获取租户id
+        2.pipeline root id 推断业务id从而推断租户id
         3.当前local线程中有租户id
         """
         from backend.db_meta.models.app import TenantCache
         from backend.utils.local import local
 
-        # Step 1: 尝试从输入数据获取 tenant_id
+        # 如果线程包含租户ID，直接返回
+        if local.tenant_id:
+            return local.tenant_id
+        # 尝试从输入数据获取 tenant_id
         if "tenant_id" in global_data:
             local.inject_tenant_id(global_data["tenant_id"])
             return global_data["tenant_id"]
-
-        if "bk_biz_id" in global_data:
-            tenant_id = TenantCache.get_tenant_with_app(str(global_data["bk_biz_id"]))
-            local.inject_tenant_id(tenant_id)
-            return tenant_id
-        if local.tenant_id:
-            return local.tenant_id
-        self.log_warning(_("无法获取当前请求的租户ID"))
+        # 通过 root_id 推断业务 ID，从而推断租户 ID
+        bk_biz_id = FlowTree.objects.get(root_id=self.runtime_attrs["root_pipeline_id"]).bk_biz_id
+        tenant_id = TenantCache.get_tenant_with_app(str(bk_biz_id))
+        local.inject_tenant_id(tenant_id)
+        return tenant_id
 
     def active_tenant(self, data: DataObject):
-        tenant_id = self._get_tenant_id(data.get_one_of_inputs("global_data"))
-        # 获取输入参数
+        if not settings.ENABLE_MULTI_TENANT_MODE:
+            return
+
+        tenant_id = self._inject_tenant_id(data.get_one_of_inputs("global_data"))
+        # 更新到输入参数中
         inputs_data = data.get_inputs()
         inputs_data["global_data"]["tenant_id"] = tenant_id
-        # 更新到data对象中
         data.override_inputs(inputs_data)
 
     def execute(self, data, parent_data):

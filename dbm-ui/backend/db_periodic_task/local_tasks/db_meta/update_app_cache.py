@@ -18,7 +18,6 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import CCApi
-from backend.components.bknodeman.client import BKNodeManApi
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.app import TenantCache
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
@@ -55,7 +54,7 @@ def bulk_update_app_cache(tenant_id):
             if not db_app_abbr and db_app_abbr != bk_app_abbr and REGEX_APP_ABBR.match(bk_app_abbr):
                 logger.warning("bulk_update_app_cache: set [%s]'s bk_app_abbr to [%s]", biz["bk_biz_id"], bk_app_abbr)
                 CCApi.update_business(
-                    {"bk_biz_id": biz["bk_biz_id"], "db_app_abbr": bk_app_abbr, "tenant_id": tenant_id}
+                    {"bk_biz_id": biz["bk_biz_id"], "db_app_abbr": bk_app_abbr, "tenant_id": tenant_id}, use_admin=True
                 )
                 db_app_abbr = bk_app_abbr
 
@@ -64,7 +63,8 @@ def bulk_update_app_cache(tenant_id):
     # 批量同步准备
     LIMIT = 1000
     start = 0
-    total = CCApi.search_business({"page": {"start": 0, "limit": 1}, "tenant_id": tenant_id}).get("count", 0)
+    cc_info = CCApi.search_business({"page": {"start": 0, "limit": 1}, "tenant_id": tenant_id}, use_admin=True)
+    total = cc_info.get("count", 0)
 
     begin_at = datetime.datetime.now(timezone.utc)
     logger.warning("bulk_update_app_cache: start update app cache total: %s", total)
@@ -73,9 +73,9 @@ def bulk_update_app_cache(tenant_id):
     create_cnt, update_cnt = 0, 0
     update_fields = [CC_APP_ABBR_ATTR, "bk_biz_name", "time_zone", "bk_biz_maintainer", "tenant_id"]
     while start < total:
-        info = CCApi.search_business({"page": {"start": start, "limit": LIMIT}, "tenant_id": tenant_id}).get(
-            "info", []
-        )
+        cc_params = {"page": {"start": start, "limit": LIMIT}, "tenant_id": tenant_id}
+        info = CCApi.search_business(cc_params, use_admin=True).get("info", [])
+
         biz_map = {i["bk_biz_id"]: {**i, "tenant_id": tenant_id} for i in info}
 
         bk_biz_ids = list(biz_map.keys())
@@ -143,22 +143,12 @@ def bulk_update_app_cache(tenant_id):
 @register_periodic_task(run_every=crontab(hour="*/1", minute=0))
 def bulk_update_tenant_cache():
     """缓存租户信息"""
-    # --- 更新租户信息 ---
 
+    # --- 更新租户信息 ---
     TenantHandler.update_tenant_data()
 
-    # --- 更新租户的云区域信息 ---
+    # --- 更新租户的配置信息 ---
     tenant_list = TenantCache.objects.all()
-    update_tenants = []
-    for tenant in tenant_list:
-        logger.info("bulk_update_tenant_cache[%s]: update clouds", tenant.tenant_id)
-        cloud_ids = [c["bk_cloud_id"] for c in BKNodeManApi.list_cloud(params={"tenant_id": tenant.tenant_id})]
-        if cloud_ids != tenant.clouds:
-            tenant.clouds = cloud_ids
-            update_tenants.append(tenant)
-    # 批量更新
-    TenantCache.objects.bulk_update(update_tenants, fields=["clouds"])
-    # --- 更新租户的业务信息 ---
     for tenant in tenant_list:
         logger.info("bulk_update_tenant_cache[%s]: update apps", tenant.tenant_id)
         try:
