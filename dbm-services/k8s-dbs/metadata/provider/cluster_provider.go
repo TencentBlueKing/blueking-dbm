@@ -141,12 +141,13 @@ func (k *K8sCrdClusterProviderImpl) FindClusterTopology(id uint64) (*metaentity.
 	}
 	addonTopoArray, err := k.addonTopologyDbAccess.FindByParams(topoParams)
 	if err != nil {
+		slog.Error("find cluster topo error", "err", err)
 		return nil, err
 	}
 	if len(addonTopoArray) > 0 {
-		topologyEntity, err := k.setClusterTopology(addonTopoArray, clusterTopology)
+		err = k.setClusterTopology(addonTopoArray, &clusterTopology)
 		if err != nil {
-			return topologyEntity, err
+			return nil, err
 		}
 	}
 	return &clusterTopology, nil
@@ -155,31 +156,34 @@ func (k *K8sCrdClusterProviderImpl) FindClusterTopology(id uint64) (*metaentity.
 // SetClusterTopology 渲染 cluster 的 topology
 func (k *K8sCrdClusterProviderImpl) setClusterTopology(
 	addonTopoArray []*models.AddonTopologyModel,
-	clusterTopology metaentity.ClusterTopologyEntity,
-) (*metaentity.ClusterTopologyEntity, error) {
+	clusterTopology *metaentity.ClusterTopologyEntity,
+) error {
 	addonTopo := addonTopoArray[0]
 	relationsStr := addonTopo.Relations
 	componentsStr := addonTopo.Components
 	clusterTopology.Description = addonTopo.Description
 	err := json.Unmarshal([]byte(relationsStr), &clusterTopology.Relations)
 	if err != nil {
-		return nil, err
+		slog.Error("unmarshal relations error", "err", err)
+		return err
 	}
 	err = json.Unmarshal([]byte(componentsStr), &clusterTopology.Components)
 	if err != nil {
-		return nil, err
+		slog.Error("unmarshal components error", "err", err)
+		return err
 	}
 	k8sClusterConfig, err := k.k8sClusterConfigDbAccess.FindByClusterName(clusterTopology.K8sClusterName)
 	if err != nil {
-		return nil, err
+		slog.Error("find cluster to k8s cluster error", "err", err)
+		return err
 	}
 	var k8sClusterConfigEntity metaentity.K8sClusterConfigEntity
-	if err := copier.Copy(&k8sClusterConfigEntity, k8sClusterConfig); err != nil {
-		return nil, err
+	if err = copier.Copy(&k8sClusterConfigEntity, k8sClusterConfig); err != nil {
+		return err
 	}
 	k8sClient, err := commutil.NewK8sClient(&k8sClusterConfigEntity)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// 获取 component instances
 	for i, component := range clusterTopology.Components {
@@ -189,17 +193,17 @@ func (k *K8sCrdClusterProviderImpl) setClusterTopology(
 		}
 		pods, err := coreutil.GetComponentPods(addonTopo.AddonType, componentQueryParams, k8sClient)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if len(pods) > 0 {
 			var componentPodEntities []*metaentity.ComponentPodEntity
 			if err := copier.Copy(&componentPodEntities, pods); err != nil {
-				return nil, err
+				return err
 			}
 			clusterTopology.Components[i].Instances = componentPodEntities
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // CreateCluster 创建 cluster

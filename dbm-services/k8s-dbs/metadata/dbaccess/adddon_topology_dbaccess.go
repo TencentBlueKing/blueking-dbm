@@ -48,7 +48,7 @@ func (a *AddonTopologyDbAccessImpl) FindByParams(params *metaentity.AddonTopolog
 	error,
 ) {
 	var topoModels []*metamodel.AddonTopologyModel
-	err := a.db.Where(params).Limit(commconst.MaxFetchSize).Find(&topoModels).Error
+	err := a.db.Debug().Where(params).Limit(commconst.MaxFetchSize).Find(&topoModels).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		slog.Error("Not found model", "params", params)
 		return topoModels, nil
