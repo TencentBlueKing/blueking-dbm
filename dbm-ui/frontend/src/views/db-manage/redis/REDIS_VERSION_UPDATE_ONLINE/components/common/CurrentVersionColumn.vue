@@ -14,27 +14,28 @@
 <template>
   <EditableColumn
     ref="editableTableColumn"
-    :label="t('当前使用的版本')"
+    :label="t('当前版本')"
     :width="240">
     <EditableBlock :placeholder="t('输入集群后自动生成')">
       <BkLoading :loading="loading">
-        <P
+        <div
           v-for="name in modelValue"
           :key="name">
           {{ name }}
-        </P>
+        </div>
       </BkLoading>
     </EditableBlock>
   </EditableColumn>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getClusterVersions } from '@services/source/redisToolbox';
 
   interface Props {
-    clusterId: number;
+    clusterIds: number[];
     nodeType: string;
   }
 
@@ -47,20 +48,30 @@
   const { loading, run: fetchCurrentClusterVersions } = useRequest(getClusterVersions, {
     manual: true,
     onSuccess(versions) {
-      modelValue.value = versions;
+      modelValue.value = _.uniq(
+        Object.values(versions).flatMap((item) => {
+          return item;
+        }),
+      );
     },
   });
 
   watch(
-    () => [props.clusterId, props.nodeType],
-    () => {
-      if (props.clusterId && props.nodeType) {
+    () => props.clusterIds,
+    (newClusterIds, oldClusterIds) => {
+      if (_.isEqual(newClusterIds, oldClusterIds)) {
+        return;
+      }
+      if (props.clusterIds.length > 0 && props.nodeType) {
         fetchCurrentClusterVersions({
-          cluster_id: props.clusterId,
+          cluster_ids: props.clusterIds.join(','),
           node_type: props.nodeType,
           type: 'online',
         });
       }
+    },
+    {
+      immediate: true,
     },
   );
 </script>

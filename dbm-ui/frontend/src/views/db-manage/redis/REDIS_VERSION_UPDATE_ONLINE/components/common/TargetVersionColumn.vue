@@ -13,9 +13,9 @@
 
 <template>
   <EditableColumn
-    :append-rules="rules"
     field="target_version"
     :label="t('目标版本')"
+    :loading="loading"
     required
     :width="200">
     <EditableSelect
@@ -24,6 +24,7 @@
       <BkOption
         v-for="(item, index) in selectList"
         :key="index"
+        :disabled="item.disabled"
         :label="item.label"
         :value="item.value">
         <TextOverflowLayout>
@@ -50,14 +51,19 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getClusterVersions } from '@services/source/redisToolbox';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import { compareVersions } from '@utils';
+
+  import { versionRegex } from '@/common/regex';
+
   interface Props {
-    clusterId: number;
+    clusterIds: number[];
     currentVersions?: string[];
     nodeType: string;
   }
@@ -68,45 +74,54 @@
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      message: t('目标版本不能和当前使用的版本一致'),
-      trigger: 'change',
-      validator: (value: string) => !isCurrentVersion(value),
-    },
-  ];
+  const loading = ref(false);
+  const targetVersionList = shallowRef<string[]>([]);
 
-  const selectList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
+  const selectList = computed(() => {
+    const currentVersionSorted = (props.currentVersions || [])
+      .map((item) => (item.match(versionRegex) ? item.match(versionRegex)![0] : ''))
+      .sort((a, b) => compareVersions(b, a));
+    return targetVersionList.value.map((item) => ({
+      disabled:
+        currentVersionSorted.length === 0
+          ? false
+          : compareVersions(item.match(versionRegex) ? item.match(versionRegex)![0] : '', currentVersionSorted[0]) !==
+            1,
+      label: item,
+      value: item,
+    }));
+  });
 
   watch(
-    () => [props.clusterId, props.nodeType],
+    () => props.clusterIds,
     (newVal, oldVal) => {
-      if (props.clusterId && props.nodeType) {
+      if (_.isEqual(newVal[0], oldVal?.[0])) {
+        return;
+      }
+      if (props.clusterIds.length > 0 && props.nodeType) {
+        loading.value = true;
         getClusterVersions({
-          cluster_id: props.clusterId,
+          cluster_ids: props.clusterIds.join(','),
           node_type: props.nodeType,
           type: 'update',
-        }).then((versions) => {
-          if (oldVal && newVal[1] !== oldVal[1]) {
-            modelValue.value = '';
-          }
-          nextTick(() => {
-            if (versions.length && !modelValue.value) {
-              [modelValue.value] = versions;
+        })
+          .then((versions) => {
+            if (oldVal && newVal[1] !== oldVal[1]) {
+              modelValue.value = '';
             }
-            selectList.value = versions.map((item) => ({
-              label: item,
-              value: item,
-            }));
+            nextTick(() => {
+              const targetVersions = _.uniq(Object.values(versions).flatMap((item) => item));
+              if (targetVersions.length && !modelValue.value) {
+                [modelValue.value] = targetVersions;
+              }
+              targetVersionList.value = targetVersions;
+            });
+          })
+          .finally(() => {
+            loading.value = false;
           });
-        });
       } else {
-        selectList.value = [];
+        targetVersionList.value = [];
       }
     },
     {
