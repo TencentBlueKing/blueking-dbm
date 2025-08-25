@@ -63,7 +63,12 @@ from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill imp
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.tendisplus_lightning_data import TendisPlusLightningData
+from backend.flow.engine.bamboo.scene.redis.validate.redis_migrate_validator import (
+    RedisClusterInsMigrateFlowValidator,
+    RedisSingleInsMigrateFlowValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class RedisController(BaseController):
@@ -169,6 +174,7 @@ class RedisController(BaseController):
         flow = RedisBackendScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_backend_scale_flow()
 
+    @validates_with(RedisClusterInsMigrateFlowValidator)
     def redis_cluster_ins_migrate(self):
         """
         redis集群指定实例迁移
@@ -176,6 +182,7 @@ class RedisController(BaseController):
         flow = RedisClusterInsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_ins_migrate_flow()
 
+    @validates_with(RedisSingleInsMigrateFlowValidator)
     def redis_single_ins_migrate(self):
         """
         redis主从指定实例迁移

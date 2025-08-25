@@ -35,7 +35,19 @@ class CheckDisasterToleranceException(FlowValidateBaseException):
     MESSAGE_TPL = _("{message}")
 
 
-class DuplicateIPException(FlowValidateBaseException):
+class DuplicateClusterException(FlowValidateBaseException):
     ERROR_CODE = "004"
+    MESSAGE = _("存在重复集群")
+    MESSAGE_TPL = _("{message}")
+
+
+class DuplicateIPException(FlowValidateBaseException):
+    ERROR_CODE = "005"
     MESSAGE = _("存在重复IP")
+    MESSAGE_TPL = _("{message}")
+
+
+class DuplicateInsException(FlowValidateBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("存在重复实例")
     MESSAGE_TPL = _("{message}")

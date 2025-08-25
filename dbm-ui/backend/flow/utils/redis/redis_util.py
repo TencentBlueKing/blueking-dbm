@@ -252,6 +252,7 @@ def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
     ips = set()
     migrate_ports = defaultdict(set)
     shutdown_hosts = []
+    shutdown_hosts_info = []
     for ins in src_ins_list:
         ip = ins.split(IP_PORT_DIVIDER)[0]
         port = int(ins.split(IP_PORT_DIVIDER)[1])
@@ -278,4 +279,8 @@ def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
         if len(exist_ports[ip] - migrate_ports[ip]) == 0:
             shutdown_hosts.append(ip)
 
-    return shutdown_hosts
+    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_hosts)).filter(bk_biz_id=bk_biz_id)
+    for s in storages:
+        m_desc = s.machine.simple_desc
+        shutdown_hosts_info.append({"bk_host_id": m_desc["bk_host_id"], "ip": m_desc["ip"]})
+    return shutdown_hosts_info

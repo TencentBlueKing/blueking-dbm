@@ -55,6 +55,7 @@ class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serialize
 
 class RedisSingleInsMigrateBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_single_ins_migrate
+    # validator = RedisController.redis_single_ins_migrate.validator
 
     def format_ticket_data(self):
         # 任取一个集群，补充云区域ID

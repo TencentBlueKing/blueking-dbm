@@ -91,7 +91,7 @@ logger = logging.getLogger("flow")
 
 class RedisSingleInsMigrateFlow(object):
     """
-    redis集群选定实例迁移
+    redis单实例选定实例迁移
 
     """
 
