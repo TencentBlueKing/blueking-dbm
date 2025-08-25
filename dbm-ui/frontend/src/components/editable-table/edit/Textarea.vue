@@ -49,11 +49,11 @@
     prepend?: () => VNode;
   }>();
 
+  const modelValue = defineModel<string>();
+
   const attrs = useAttrs();
 
   const columnContext = useColumn();
-
-  const modelValue = defineModel<string>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
