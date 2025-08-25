@@ -20,8 +20,8 @@ from ..proxy_api import ProxyAPI
 class _DRSApi(object):
     MODULE = _("DB 远程服务")
     BASE_DOMAIN = DRS_APIGW_DOMAIN
-    # DRS长耗时超时时间为1h TODO: 后续长耗时，改造到下发dbactuator执行更合理
-    DRS_TIMEOUT = 60 * 60
+    # DRS长耗时超时时间为6h TODO: 后续长耗时，改造到下发dbactuator执行更合理
+    DRS_TIMEOUT = 6 * 60 * 60
     DRS_SHORT_TIMEOUT = 10
 
     def __init__(self):
