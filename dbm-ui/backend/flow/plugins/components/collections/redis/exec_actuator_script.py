@@ -129,7 +129,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             common_kwargs["account_alias"] = kwargs["cluster"]["run_as_system_user"]
 
         self.log_info("[{}] ready start task with body {} {}".format(node_name, common_kwargs, body))
-        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, use_admin=True, raw=True)
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp

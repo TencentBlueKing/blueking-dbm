@@ -30,6 +30,7 @@ from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
 from backend.components.domains import ESB_PREFIX
 from backend.components.exception import DataAPIException
 from backend.configuration.models.system import SystemSettings
+from backend.db_meta.models.app import TenantCache
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException
 from backend.utils.local import local
 
@@ -430,9 +431,13 @@ class DataAPI(object):
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
             "bk_username": params.pop("bk_username", "Anonymous"),
         }
+        # 获取租户信息
+        tenant_id = self._get_tenant_id(params)
+        tenant_admin = TenantCache.get_tenant_attr(tenant_id, "admin", env.DEFAULT_USERNAME)
+
         if use_admin or self.is_backend_request(local_request):
             # 使用管理员/平台身份调用接口
-            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
+            bkapi_auth_headers["bk_username"] = tenant_admin
         elif local_request and local_request.COOKIES:
             # 根据不同环境，传递认证信息
             bkapi_auth_headers["bk_username"] = local_request.user.username
@@ -441,7 +446,7 @@ class DataAPI(object):
                 if value in local_request.COOKIES:
                     bkapi_auth_headers.update({key: local_request.COOKIES[value]})
         session.headers.update({"X-Bkapi-Authorization": json.dumps(bkapi_auth_headers)})
-        session.headers.update({"X-Bk-Tenant-Id": self._get_tenant_id(params)})
+        session.headers.update({"X-Bk-Tenant-Id": tenant_id})
         # headers 申明重载请求方法
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
