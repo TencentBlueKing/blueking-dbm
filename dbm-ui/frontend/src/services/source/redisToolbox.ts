@@ -21,6 +21,7 @@ interface MachineInstancePairItem {
   bk_cloud_id: number;
   bk_host_id: number;
   bk_instance_id: number;
+  cluster_type: string;
   instance: string;
   ip: string;
   is_stand_by: boolean;
@@ -34,7 +35,7 @@ interface MachineInstancePairItem {
 /**
  * 根据cluster_id查询主从关系对
  */
-export function queryMasterSlavePairs(params: { bk_biz_id?: number; cluster_id: number; }) {
+export function queryMasterSlavePairs(params: { bk_biz_id?: number; cluster_id: number }) {
   return http.post<
     {
       master_ip: string;
@@ -59,12 +60,12 @@ export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }
  * 查询集群版本信息
  */
 export function getClusterVersions(params: {
-  cluster_id?: number;
+  cluster_ids?: string;
   cluster_type?: string;
   node_type: string;
   type: string;
 }) {
-  return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+  return http.get<Record<number, string[]>>(`${getRootPath()}/get_cluster_versions/`, params);
 }
 
 /**

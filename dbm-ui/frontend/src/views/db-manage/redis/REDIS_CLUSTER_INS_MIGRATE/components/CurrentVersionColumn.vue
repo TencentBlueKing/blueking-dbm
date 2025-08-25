@@ -27,6 +27,7 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -44,7 +45,7 @@
   const { run: fetchCurrentClusterVersions } = useRequest(getClusterVersions, {
     manual: true,
     onSuccess(versions) {
-      modelValue.value = versions;
+      modelValue.value = _.uniq(Object.values(versions).flatMap((item) => item));
     },
   });
 
@@ -53,7 +54,7 @@
     () => {
       if (props.clusterId) {
         fetchCurrentClusterVersions({
-          cluster_id: props.clusterId,
+          cluster_ids: `${props.clusterId}`,
           node_type: 'Backend',
           type: 'online',
         });

@@ -12,13 +12,24 @@
 -->
 
 <template>
-  <BkTable :data="dataList">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       fixed="left"
-      :label="t('源集群')"
+      :label="t('目标集群')"
       :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        <template v-if="data.cluster_ids">
+          <div
+            v-for="clusterId in data.cluster_ids"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </div>
+        </template>
+        <span v-else>
+          {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        </span>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -29,12 +40,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="node_type"
-      :label="t('节点类型')"
-      :width="150">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前使用的版本')"
+      :label="t('当前版本')"
       :min-width="250">
       <template #default="{ data }: { data: RowData }">
         <div
@@ -45,9 +51,12 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="target_version"
+      field="target_versions"
       :label="t('目标版本')"
       :min-width="250">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.target_version ? data.target_version : data.target_versions[0].version }}
+      </template>
     </BkTableColumn>
   </BkTable>
 </template>
@@ -57,27 +66,13 @@
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
-
-  type RowData = { cluster_id: number } & Omit<Props['ticketDetails']['details']['infos'][number], 'cluster_ids'>;
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
     ticketDetails: TicketModel<Redis.VersionUpdateOnline>;
   }
 
-  defineOptions({
-    name: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
-    inheritAttrs: false,
-  });
-
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const dataList: RowData[] = props.ticketDetails.details.infos.flatMap((infoItem) =>
-    infoItem.cluster_ids.map((clusterId) => ({
-      ...infoItem,
-      cluster_id: clusterId,
-    })),
-  );
 </script>

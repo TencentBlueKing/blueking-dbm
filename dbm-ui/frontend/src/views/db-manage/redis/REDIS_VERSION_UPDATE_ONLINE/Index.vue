@@ -23,43 +23,55 @@
         class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData">
-        <EditableTable
-          ref="editableTable"
-          class="mt-16 mb-16"
-          :model="formData.tableData">
-          <EditableRow
-            v-for="(item, index) in formData.tableData"
-            :key="index">
-            <ClusterWithRelatedClustersColumn
-              v-model="item.cluster"
-              :selected="selected"
-              @batch-edit="handleClusterBatchEdit" />
-            <EditableColumn
-              :label="t('架构版本')"
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ item.cluster.cluster_type_name }}
-              </EditableBlock>
-            </EditableColumn>
-            <NodeTypeColumn
-              v-model="item.node_type"
-              :cluster="item.cluster"
-              :cluster-type="item.cluster.cluster_type"
-              @batch-edit="handleNodeTypeBatchEdit" />
-            <CurrentVersionColumn
-              v-model="item.current_versions"
-              :cluster-id="item.cluster.id"
-              :node-type="item.node_type" />
-            <TargetVersionColumn
-              v-model="item.target_version"
-              :cluster-id="item.cluster.id"
-              :current-versions="item.current_versions"
-              :node-type="item.node_type" />
-            <OperationColumn
-              :create-row-method="createRowData"
-              :table-data="formData.tableData" />
-          </EditableRow>
-        </EditableTable>
+        <BkFormItem
+          :label="t('角色类型')"
+          property="nodeType"
+          required>
+          <BkRadioGroup v-model="formData.nodeType">
+            <BkRadioButton
+              :label="NodeType.PROXY"
+              style="width: 180px">
+              {{ t('接入层') }}
+            </BkRadioButton>
+            <BkRadioButton
+              :label="NodeType.BACKEND"
+              style="width: 180px">
+              {{ t('存储层') }}
+            </BkRadioButton>
+          </BkRadioGroup>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('升级类型')"
+          property="updateType"
+          required>
+          <CardCheckbox
+            v-model="formData.updateType"
+            :desc="
+              formData.nodeType === NodeType.PROXY
+                ? t('选择目标集群后，该集群内所有接入层主机将同步升级')
+                : t('选择目标集群，该集群内所有存储层主机（含主从）将同步升级')
+            "
+            icon="cluster"
+            style="width: 450px"
+            :title="t('指定集群升级')"
+            :true-value="UpdateType.CLUSTER" />
+          <CardCheckbox
+            v-model="formData.updateType"
+            class="ml-8"
+            :desc="
+              formData.nodeType === NodeType.PROXY
+                ? t('直接选择单台或多台接入层主机，仅选中的主机独立升级')
+                : t('选主节点时强制关联从节点升级；单选从节点则单独升级')
+            "
+            icon="host"
+            style="width: 450px"
+            :title="t('指定主机升级')"
+            :true-value="UpdateType.MACHINE" />
+        </BkFormItem>
+        <component
+          :is="currentTable"
+          ref="currentTable"
+          :node-type="formData.nodeType" />
         <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
@@ -88,166 +100,92 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
   import { type Redis } from '@services/model/ticket/ticket';
-  import { findRelatedClustersByClusterIds } from '@services/source/redisToolbox';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
+
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import ClusterWithRelatedClustersColumn from '@views/db-manage/redis/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
 
-  import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
-  import NodeTypeColumn from './components/NodeTypeColumn.vue';
-  import TargetVersionColumn from './components/TargetVersionColumn.vue';
+  import BackendCluster from './components/backend-cluster/Index.vue';
+  import BackendMachine from './components/backend-machine/Index.vue';
+  import ProxyCluster from './components/proxy-cluster/Index.vue';
+  import ProxyMachine from './components/proxy-machine/Index.vue';
 
-  interface IDataRow {
-    cluster: {
-      cluster_type: string;
-      cluster_type_name: string;
-      id: number;
-      master_domain: string;
-      related_clusters: {
-        cluster_type: string;
-        id: number;
-        master_domain: string;
-      }[];
-    };
-    current_versions: string[];
-    node_type: string;
-    target_version: string;
-  }
+  const NodeType = {
+    BACKEND: 'Backend',
+    PROXY: 'Proxy',
+  };
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
-    cluster: Object.assign(
-      {
-        cluster_type: '',
-        cluster_type_name: '',
-        id: 0,
-        master_domain: '',
-        related_clusters: [] as IDataRow['cluster']['related_clusters'],
-      },
-      values.cluster,
-    ),
-    current_versions: values?.current_versions || ([] as string[]),
-    node_type: values?.node_type || 'Backend',
-    target_version: values?.target_version || '',
-  });
+  const UpdateType = {
+    CLUSTER: 'cluster',
+    MACHINE: 'machine',
+  };
 
   const createDefaultFormData = () => ({
+    nodeType: NodeType.PROXY,
     payload: createTickePayload(),
-    tableData: [createRowData()],
+    updateType: UpdateType.CLUSTER,
   });
 
   const { t } = useI18n();
 
+  const currentTableRef = useTemplateRef('currentTable');
+
   useTicketDetail<Redis.VersionUpdateOnline>(TicketTypes.REDIS_VERSION_UPDATE_ONLINE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
-      const { clusters, infos } = details;
-      Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
-        tableData: infos.map((infoItem) =>
-          createRowData({
-            cluster: {
-              master_domain: clusters[infoItem.cluster_ids[0]].immute_domain,
-            } as IDataRow['cluster'],
-            // current_versions: infoItem.current_versions,
-            node_type: infoItem.node_type,
-            target_version: infoItem.target_version,
-          }),
-        ),
-      });
+      const { infos, update_type: updateType } = details;
+
+      formData.nodeType = infos[0].node_type;
+      formData.updateType = updateType;
+      formData.payload = createTickePayload(ticketDetail);
+      window.changeConfirm = true;
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      cluster_ids: number[];
+      cluster_id: number;
       current_versions: string[];
       node_type: string;
-      target_version: string;
+      slave_current_versions: string[]; // 回显
+      target_versions: {
+        instance_role: string; // 回显
+        ip: string;
+        related_clusters: string[]; // 回显
+        slave_ip: string; // 回显
+        version: string;
+      }[];
     }[];
+    update_type: string;
   }>(TicketTypes.REDIS_VERSION_UPDATE_ONLINE);
-
-  const editableTableRef = useTemplateRef('editableTable');
 
   const formData = reactive(createDefaultFormData());
 
-  const selected = computed(() =>
-    formData.tableData
-      .filter((item) => item.cluster.id)
-      .flatMap((item) => [item.cluster, ...(item.cluster.related_clusters || [])]),
-  );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
-
-  const handleClusterBatchEdit = async (clusterList: RedisModel[]) => {
-    const newList: IDataRow[] = [];
-    const clusterIdList = clusterList.reduce<number[]>((prevList, listItem) => {
-      prevList.push(listItem.id);
-      return prevList;
-    }, []);
-    const relatedClusterResult = await findRelatedClustersByClusterIds({
-      cluster_ids: clusterIdList,
-    });
-    const relatedClusterMap = relatedClusterResult.reduce<Record<string, string[]>>(
-      (prev, item) =>
-        Object.assign(prev, {
-          [item.cluster_info.master_domain]: item.related_clusters.map((item) => item.master_domain),
-        }),
-      {},
-    );
-    const relatedClusterSet = new Set<string>();
-    clusterList.forEach((item) => {
-      if (!selectedMap.value[item.master_domain]) {
-        const domain = item.master_domain;
-        if (!selectedMap.value[domain] && !relatedClusterSet.has(domain)) {
-          newList.push(
-            createRowData({
-              cluster: {
-                cluster_type: item.cluster_type,
-                cluster_type_name: item.cluster_type_name,
-                id: item.id,
-                master_domain: item.master_domain,
-              } as IDataRow['cluster'],
-            }),
-          );
-          relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
-        }
-        if (selectedMap.value[domain]) {
-          relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
-        }
-      }
-    });
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
-  };
-
-  const handleNodeTypeBatchEdit = (value: string, field: string) => {
-    formData.tableData.forEach((item) => {
-      Object.assign(item, { [field]: item.cluster.cluster_type === ClusterTypes.REDIS_INSTANCE ? 'Backend' : value });
-    });
-    window.changeConfirm = true;
-  };
+  const currentTable = computed(() => {
+    const key = `${formData.nodeType}_${formData.updateType}`;
+    const componentMap = {
+      [`${NodeType.BACKEND}_${UpdateType.CLUSTER}`]: BackendCluster,
+      [`${NodeType.BACKEND}_${UpdateType.MACHINE}`]: BackendMachine,
+      [`${NodeType.PROXY}_${UpdateType.CLUSTER}`]: ProxyCluster,
+      [`${NodeType.PROXY}_${UpdateType.MACHINE}`]: ProxyMachine,
+    };
+    return componentMap[key];
+  });
 
   const handleSubmit = async () => {
-    const validateResult = await editableTableRef.value!.validate();
-    if (validateResult) {
+    const infos = await currentTableRef.value!.getValue();
+    if (infos.length > 0) {
       createTicketRun({
         details: {
-          infos: formData.tableData.map((tableItem) => ({
-            cluster_ids: [
-              tableItem.cluster.id,
-              ...tableItem.cluster.related_clusters.map((relatedClusterItem) => relatedClusterItem.id),
-            ],
-            current_versions: tableItem.current_versions,
-            node_type: tableItem.node_type,
-            target_version: tableItem.target_version,
-          })),
+          infos,
+          update_type: formData.updateType,
         },
         ...formData.payload,
       });
@@ -256,6 +194,7 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
+    currentTableRef.value!.resetTable();
     window.changeConfirm = false;
   };
 </script>
