@@ -97,5 +97,14 @@ func (d *CleanDataComp) CleanData() (err error) {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 		return err
 	}
+
+	// 删除kafkaui配置
+	extraCmd = `rm -rf -- /etc/kafkaui`
+	logger.Info("删除kafkaui, [%s]", extraCmd)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("[%s] execute failed, %v", extraCmd, err)
+		return err
+	}
+
 	return nil
 }
