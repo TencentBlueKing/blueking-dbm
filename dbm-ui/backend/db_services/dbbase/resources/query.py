@@ -18,9 +18,7 @@ from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
-from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
@@ -41,8 +39,6 @@ from backend.db_services.dbbase.resources.query_base import (
 )
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYPE
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.excel import ExcelHandler
@@ -142,8 +138,47 @@ class CommonQueryResourceMixin(abc.ABC):
             )
         return entry_details
 
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        """
+        更新表头信息
+        """
+        return headers, []
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新集群信息
+        """
+        return cluster_info
+
     @staticmethod
-    def common_query_cluster(bk_biz_id: int, cluster_types: list, cluster_ids: list) -> Tuple[List[Dict], List[Dict]]:
+    def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet, role_header_ids):
+        """
+        将实例信息填充到集群信息中
+        """
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        for ins in instances:
+            # 暂时过滤掉 repeater 角色实例
+            if "repeater" in ins.instance_role:
+                continue
+
+            role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+    @classmethod
+    def common_query_cluster(
+        cls, bk_biz_id: int, cluster_types: list, cluster_ids: list
+    ) -> Tuple[List[Dict], List[Dict]]:
         """集群的通用属性查询"""
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
@@ -167,8 +202,6 @@ class CommonQueryResourceMixin(abc.ABC):
             {"id": "cluster_type", "name": _("集群类型")},
             {"id": "master_domain", "name": _("主域名")},
             {"id": "slave_domain", "name": _("从域名")},
-            {"id": "clb", "name": _("clb")},
-            {"id": "polaris", "name": _("北极星")},
             {"id": "tags", "name": _("标签")},
             {"id": "status", "name": _("状态")},
             {"id": "cluster_stats", "name": _("容量使用率")},
@@ -182,75 +215,8 @@ class CommonQueryResourceMixin(abc.ABC):
             {"id": "create_at", "name": _("部署时间")},
             {"id": "cluster_time_zone", "name": _("时区")},
         ]
+        headers, extra_headers = cls.update_headers(headers, cluster_type=cluster_types[0])
         role_header_ids = set()
-
-        def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet):
-            """
-            将实例信息填充到集群信息中
-            """
-            from backend.db_services.redis.toolbox.handlers import ToolboxHandler
-
-            instances = instance_queryset.all()
-            if not instances.exists():
-                return
-
-            # 获取第一个实例的集群类型即可
-            cluster_type = instances[0].cluster_type
-            for ins in instances:
-                # 暂时过滤掉 repeater 角色实例
-                if "repeater" in ins.instance_role:
-                    continue
-
-                # 确定实例的角色 tendbcluster需要用到TenDBClusterSpiderRole枚举类角色  mongodb分片集用到MachineType下的角色
-                if ins.cluster_type == ClusterType.TenDBCluster.value and isinstance(ins, ProxyInstance):
-                    role = ins.tendbclusterspiderext.spider_role
-                elif ins.machine.machine_type in [MachineType.MONOG_CONFIG, MachineType.MONGOS, MachineType.MONGODB]:
-                    role = ins.machine.machine_type
-                else:
-                    role = ins.instance_role
-
-                # 添加实例信息
-                if role in cluster_info:
-                    cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
-                else:
-                    role_header_ids.add(role)
-                    cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
-
-                # 将需要分片信息的角色重新赋予初始值
-                if ins.cluster_type == ClusterType.TenDBCluster.value and role in [
-                    InstanceRole.REMOTE_MASTER,
-                    InstanceRole.REMOTE_SLAVE,
-                ]:
-                    cluster_info[role] = ""
-
-            # 补充tendbcluster、redis集群的分片信息
-            is_tendbcluster = cluster_type == ClusterType.TenDBCluster.value
-            is_storage_instance = isinstance(instances[0], StorageInstance)
-            if is_tendbcluster and is_storage_instance:
-                remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(instances)
-                for instance in remote_db + remote_dr:
-                    role = instance.instance_role
-                    cluster_info[role] += f"\n{instance.machine.ip}:{instance.port}(%_{instance.shard_id})"
-
-            elif cluster_type in REDIS_LIST_CLUSTER_TYPE and is_storage_instance:
-                seg_range_map, instance_tuple = ToolboxHandler(instances[0].bk_biz_id).seg_instance_info(
-                    instance_queryset
-                )
-                _, remote_infos = ToolboxHandler.remote_tuple_info(
-                    seg_range_map, instance_tuple, cluster_type, instances
-                )
-
-                for role in (InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value):
-                    cluster_info[role] = ""
-                    for ins in remote_infos[role]:
-                        if cluster_type in [
-                            ClusterType.TendisPredixyRedisCluster,
-                            ClusterType.TendisPredixyTendisplusCluster,
-                        ]:
-                            cluster_info[role] += f"\n{ins['instance']}"
-                        else:
-                            cluster_info[role] += f"\n{ins['instance']}({ins['seg_range']})"
-
         # 获取集群容量使用率的映射信息
         cluster_stats_map = Cluster.get_cluster_stats(bk_biz_id, cluster_types)
         # 获取DB模块的映射信息
@@ -268,9 +234,6 @@ class CommonQueryResourceMixin(abc.ABC):
         # 遍历所有的集群对象
         data_list = []
         for cluster in clusters:
-            # 补充集群非DNS访问入口信息
-            clb_entry, polaris_entry = CommonQueryResourceMixin.get_cluster_entries(cluster)
-
             # 补充集群规格信息
             storage = next((inst for inst in cluster.storageinstance_set.all()), None)
             cluster_spec_id = storage.machine.spec_id if storage else 0
@@ -285,6 +248,10 @@ class CommonQueryResourceMixin(abc.ABC):
                 f"{in_use}% ({format_size(used)}/{format_size(total)})" if used > 0 and total > 0 else ""
             )
 
+            # 补充标签字段信息
+            tag_list = [f"{tag.key}:{tag.value}" for tag in cluster.tags.all() if tag.key]
+            tags = "\n".join(tag_list)
+
             # 创建一个空字典来保存当前集群的信息
             cluster_info = {
                 "cluster_id": cluster.id,
@@ -294,15 +261,13 @@ class CommonQueryResourceMixin(abc.ABC):
                 "cluster_type": cluster.cluster_type,
                 "master_domain": cluster.immute_domain,
                 "slave_domain": cluster_entry_map[cluster.id].get("slave_domain", ""),
-                "clb": clb_entry,
-                "polaris": polaris_entry,
-                "tags": [tag.desc for tag in cluster.tags.all()] or "",
+                "tags": tags,
                 "status": CLUSTER_TYPE_MAP[cluster.status.lower()],
                 "cluster_stats": cluster_stats_display,
                 "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
                 "major_version": cluster.major_version,
                 "disaster_tolerance_level": cluster.disaster_tolerance_level,
-                "region": cluster.region,
+                "region": f"{cluster.region}\n--",
                 "cluster_spec": cluster_spec.spec_name if cluster_spec else "",
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "creator": cluster.creator,
@@ -310,14 +275,11 @@ class CommonQueryResourceMixin(abc.ABC):
                 "cluster_time_zone": cluster.time_zone,
             }
 
-            # 补充特殊db所需要的字段
-            if cluster.cluster_type in ADDITIONAL_HEADERS:
-                for additional_header in ADDITIONAL_HEADERS[cluster.cluster_type]:
-                    role_header_ids.add(additional_header)
-                    cluster_info[additional_header] = ""
+            # 补充额外字段信息
+            cluster_info = cls.update_cluster_info(cluster, cluster_info)
 
-            fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set)
-            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set)
+            cls.fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set, role_header_ids)
+            cls.fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set, role_header_ids)
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
@@ -328,15 +290,10 @@ class CommonQueryResourceMixin(abc.ABC):
         dynamic_headers = [
             {"id": ins_role, "name": InstanceRole.get_choice_label(ins_role).capitalize()}
             for ins_role in InstanceRole.get_values()
-            + [
-                TenDBClusterSpiderRole.SPIDER_MASTER.value,
-                TenDBClusterSpiderRole.SPIDER_SLAVE.value,
-                TenDBClusterSpiderRole.SPIDER_MNT.value,
-            ]
-            + [MachineType.MONOG_CONFIG.value, MachineType.MONGOS.value, MachineType.MONGODB.value]
             if ins_role in role_header_ids
         ]
-        headers[insert_position:insert_position] = dynamic_headers
+        merge_headers = {item["id"]: item for item in extra_headers + dynamic_headers}
+        headers[insert_position:insert_position] = list(merge_headers.values())
         return headers, data_list
 
     @staticmethod
@@ -392,12 +349,13 @@ class CommonQueryResourceMixin(abc.ABC):
         return headers, data_list
 
     @classmethod
-    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list, cluster_types: list) -> HttpResponse:
         """集群通用属性导出"""
-        headers, data_list = cls.common_query_cluster(bk_biz_id, cls.cluster_types, cluster_ids)
+        cluster_types = cluster_types or cls.cluster_types
+        headers, data_list = cls.common_query_cluster(bk_biz_id, cluster_types, cluster_ids)
 
         biz_abbr = AppCache.get_app_attr(bk_biz_id)
-        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
+        db_type = ClusterType.cluster_type_to_db_type(cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
         return ExcelHandler.response(wb, f"{biz_abbr}({bk_biz_id}){db_type}_cluster.xlsx")
@@ -718,17 +676,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
             module["db_module_id"]: module["db_module_name"]
             for module in db_module_queryset.values("db_module_id", "db_module_name")
         }
-
-        # 获取redis集群DB模块的映射信息
-        if set(cls.cluster_types).intersection([*ClusterType.db_type_to_cluster_types(DBType.Redis)]):
-            # 获取redis模块的映射信息
-            kwargs["redis_cluster_module_map"] = {
-                module["cluster_id"]: module["module_names"]
-                for module in ClusterRedisModuleAssociate.objects.filter(cluster_id__in=cluster_ids)
-                .distinct()
-                .values("cluster_id", "module_names")
-            }
-
         # 获取集群操作记录的映射关系
         cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
 
