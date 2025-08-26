@@ -19,6 +19,11 @@
       <DisplayBox
         cluster-detail-router-name="redisClusterDetail"
         :data="data">
+        <template #load>
+          <ClusterLoad
+            :cluster-type="ClusterTypes.REDIS"
+            :domain="data.master_domain" />
+        </template>
         <OperationBtnStatusTips
           v-db-console="'redis.clusterManage.extractKey'"
           :data="data"
@@ -283,6 +288,12 @@
                 :cluster-type="ClusterTypes.REDIS"
                 :data="data" />
             </template>
+            <template #load>
+              <ClusterLoad
+                :cluster-type="ClusterTypes.REDIS"
+                :domain="data.master_domain"
+                type="text" />
+            </template>
             <template #clusterTypeName>
               {{ data.cluster_type_name || '--' }}
             </template>
@@ -313,6 +324,7 @@
 
   import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
+  import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
   import {
     useAddClb,
     useAddPolaris,
