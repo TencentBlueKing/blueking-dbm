@@ -107,7 +107,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController, useGlobalBizs, useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import {
     bigDataType,
@@ -148,7 +148,6 @@
   const router = useRouter();
   const { t } = useI18n();
   const userProfile = useUserProfile();
-  const { currentBizId } = useGlobalBizs();
   const funControllerStore = useFunController();
 
   const localHistroyKey = 'SERVICE_APPLY_HISTORY';
@@ -370,7 +369,7 @@
     router.push({
       name: item.routeName,
       query: {
-        bizId: currentBizId,
+        bizId: route.name === 'BussinessServiceApplyIndex' ? window.PROJECT_CONFIG.BIZ_ID : undefined,
         from: route.name as string,
       },
     });
