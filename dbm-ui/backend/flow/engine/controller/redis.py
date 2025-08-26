@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.cloud.redis_machine_clear_flow import ClearRedisMachineFlow
+from backend.flow.engine.bamboo.scene.common.failover_drill_flow import FailoverDrillFlow
 from backend.flow.engine.bamboo.scene.redis.dirty_machine_clear import DirtyMachineClearFlow
 from backend.flow.engine.bamboo.scene.redis.ins_hotkey_analysis import HotkeyAnalysisFlow
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
@@ -441,3 +442,10 @@ class RedisController(BaseController):
         """
         flow = HotkeyAnalysisFlow(root_id=self.root_id, data=self.ticket_data)
         flow.ins_hotkey_analysis_flow()
+
+    def redis_failover_drill(self):
+        """
+        redis 容灾演练
+        """
+        flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.failover_drill()

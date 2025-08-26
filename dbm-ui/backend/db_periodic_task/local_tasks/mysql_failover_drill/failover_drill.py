@@ -7,13 +7,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
-from backend.components.hadb.client import HADBApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
@@ -30,8 +28,10 @@ from backend.ticket.constants import ResourceApplyErrCode, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.basic import generate_root_id
 
+from ..common.failover_drill_base import BaseFailoverDrill
 
-class MysqlFailoverDrill:
+
+class MysqlFailoverDrill(BaseFailoverDrill):
     """
     1、资源申请
     2、集群上架
@@ -64,31 +64,9 @@ class MysqlFailoverDrill:
         self.reimport_resource_info = {}
         self.init_report()
 
-    def init_report(self):
-        # 默认任务是失败的，只有跑到最后才确认状态为True
-        FailoverDrillReport.objects.create(
-            bk_biz_id=self.bk_biz_id,
-            bk_cloud_id=self.bk_cloud_id,
-            status=False,
-            main_task_id=self.main_task_id,
-            cluster_domain=self.get_immute_domain(),
-            cluster_type=ClusterType.TenDBHA.value,
-            city=self.city,
-            dhha_status=DBHASwitchResult.FAIL.value,
-        )
-
-    def get_city_abbr(self):
-        """
-        @return: 城市缩写
-        """
-        return self.city_map.get(self.city, "default")
-
-    def get_cluster_name(self):
-        """
-        @return:集群名称
-        """
-        city_abbr = self.get_city_abbr()
-        return "failover-drill-{}".format(city_abbr)
+    @staticmethod
+    def cluster_type() -> str:
+        return ClusterType.TenDBHA.value
 
     def get_immute_domain(self):
         """
@@ -446,17 +424,9 @@ class MysqlFailoverDrill:
         drill_ip = self.get_drill_ip()
         dbha_info = ""
         dbha_status = DBHASwitchResult.FAIL.value
-        finished_time = datetime.now().astimezone(timezone.utc)
-        start_time = finished_time - timedelta(hours=8)
-        kwargs = {
-            "cloud_id": self.bk_cloud_id,
-            "app": str(self.bk_biz_id),
-            "switch_start_time": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "switch_finished_time": finished_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
         flag = 0
         try:
-            resp = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": kwargs}, raw=True)
+            resp = self.get_dbha_switch_data()
             code = resp["code"]
             msg = resp["msg"]
 

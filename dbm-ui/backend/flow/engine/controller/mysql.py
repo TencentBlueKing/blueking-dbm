@@ -14,6 +14,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountRulesFlows
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
+from backend.flow.engine.bamboo.scene.common.failover_drill_flow import FailoverDrillFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
 from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_repair_replicate import (
     MySQLDBHAAutofixRepairReplicateFlow,
@@ -29,7 +30,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumF
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_db_table_backup import MySQLDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_failover_drill_flow import MysqlFailoverDrill
 from backend.flow.engine.bamboo.scene.mysql.mysql_fake_sql_semantic_check import MySQLFakeSemanticCheck
 from backend.flow.engine.bamboo.scene.mysql.mysql_flashback_flow import MysqlFlashbackFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_full_backup_flow import MySQLFullBackupFlow
@@ -726,5 +726,5 @@ class MySQLController(BaseController):
         flow.rename_database()
 
     def mysql_failover_scene(self):
-        flow = MysqlFailoverDrill(root_id=self.root_id, data=self.ticket_data)
-        flow.mysql_failover_drill_flow()
+        flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.failover_drill()

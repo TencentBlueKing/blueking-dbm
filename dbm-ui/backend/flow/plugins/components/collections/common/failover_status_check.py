@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -7,27 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import List
 
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
-import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
+import backend.flow.utils.common_act_dataclass as flow_context
 from backend.components.hadb.client import HADBApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
-# 设置30秒轮询一次
-SCHEDULE_INTERVAL = 6
-# dbha状态检查为10分钟，超时必然有问题
-CHECK_TIMEOUT = 10 * 60
-# MAX_SCHEDULE_COUNT = math.ceil(CHECK_TIMEOUT / SCHEDULE_INTERVAL)
+logger = logging.getLogger("flow")
+
+# Timeout = 30 min
+SCHEDULE_INTERVAL = 6  # sec
 MAX_SCHEDULE_COUNT = 30
 
 
 class FailoverStatusCheckService(BaseService):
     """
-    用于轮询检查dbha切换状态
+    容灾演练 DBHA 监测
+    一旦发生切换或超时就结束任务
     """
 
     __need_schedule__ = True
@@ -60,26 +62,22 @@ class FailoverStatusCheckService(BaseService):
 
             if code == 0:
                 self.log_info("HADB service query success!")
-                self.log_info("query_args:{}".format(kwargs))
+                self.log_info("query_args: {}".format(kwargs))
                 resp_data = resp["data"]
                 self.log_info("dbha switch info: {}".format(resp_data))
                 for d in resp_data:
                     if d["ip"] == kwargs["ip"]:
                         self.finish_schedule()
                         return True
-                self.log_info("waiting for the status change!")
+                self.log_info("Status has not changed yet!")
             else:
                 self.log_error("HADB service query failed. code:{} msg:{}".format(code, msg))
 
         except Exception as e:
-            self.log_exception("HADB service query error:{}".format(e))
-            # 异常不做处理，跳过进行下一次请求
-            # self.finish_schedule()
-            # return False
+            self.log_exception("HADB service query error: {}".format(e))
 
         if loop_count >= MAX_SCHEDULE_COUNT:
-            self.log_info("HADB service query timeout!Exit polling state.")
-            # 超时只结束当前节点，不去报错，继续下一步
+            self.log_info("HADB service query timeout! Exiting polling state...")
             self.finish_schedule()
         else:
             loop_count += 1

@@ -113,3 +113,34 @@ class RedisClusterMSSwitchSceneApiView(FlowTestView):
         root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_failover_scene()
         return Response({"root_id": root_id})
+
+
+class RedisFailoverDrillApiView(FlowTestView):
+    """
+    /apis/v1/flow/scene/redis_failover_drill
+    params:
+    {
+    "bk_biz_id": 3,
+    "ticket_type": "REDIS_FAILOVER_DRILL",
+    "created_by": "dba",
+    "drill_infos": [{
+        "cluster_id": 7,
+        "bk_cloud_id": 1,
+        "types": ["backend"],
+        #"proxy": {
+        #    "ip": "1.1.1.1",
+        #    "logical_city_id": "17"
+        #},
+        "backend": {
+            "ip": "2.2.2.2",
+            "logical_city_id": "17"
+        }
+    }]}
+    Note: Do not target "proxy" and "backend" at the same time.
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_failover_drill()
+        return Response({"root_id": root_id})
