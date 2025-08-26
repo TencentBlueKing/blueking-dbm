@@ -22,6 +22,11 @@
         :data="data"
         @success="handleSuccess" />
     </InfoItem>
+    <InfoItem
+      v-if="slots.load"
+      :label="t('负载')">
+      <slot name="load" />
+    </InfoItem>
     <InfoItem :label="t('容量使用率')">
       <ClusterStatsCell
         :cluster-id="data.id"
@@ -77,6 +82,7 @@
     clbMaster: () => VNode;
     clbSlave: () => VNode;
     clusterTypeName: () => VNode;
+    load: () => VNode;
     moduleName: () => VNode;
     moduleNames: () => VNode;
     polaris: () => VNode;

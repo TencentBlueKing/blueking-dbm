@@ -26,8 +26,8 @@
         :selected="selected"
         @success="fetchData" />
       <DropdownExportExcel
-        :ids="selectedIds"
         :cluster-types="[ClusterTypes.REDIS_INSTANCE]"
+        :ids="selectedIds"
         type="redis" />
       <ClusterIpCopy
         v-db-console="'redis.haClusterManage.batchCopy'"
@@ -243,7 +243,14 @@
           :label="t('主访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
-          @refresh="fetchData" />
+          @refresh="fetchData">
+          <template #append="{ data }">
+            <ClusterLoad
+              :cluster-type="ClusterTypes.REDIS_INSTANCE"
+              :domain="data.master_domain"
+              size="small" />
+          </template>
+        </MasterDomainColumn>
       </template>
       <template #slaveDomain>
         <SlaveDomainColumn
@@ -319,6 +326,7 @@
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
     OperationColumn,
