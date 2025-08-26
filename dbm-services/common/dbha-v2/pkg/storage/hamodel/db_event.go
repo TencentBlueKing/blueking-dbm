@@ -33,23 +33,27 @@ import (
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
-	MysqlEventFieldMachineID  = "machine_id"
-	MysqlEventFieldInstanceID = "instance_id"
-	MysqlEventFieldType       = "type"
-	MysqlEventFieldEndpoint   = "endpoint"
-	MysqlEventFieldMessage    = "messge"
-	MysqlEventCreatedAt       = "created_at"
-	MysqlEventUpdatedAt       = "updated_at"
-	MysqlEventDeletedAt       = "deleted_at"
+	DbEventFieldMachineID = "machine_id"
+	DbEventFieldBkCloudID = "bk_cloud_id"
+	DbEventFieldIP        = "ip"
+	DbEventFieldPort      = "port"
+	DbEventFieldEndpoint  = "endpoint"
+	DbEventFieldType      = "db_event_type"
+	DbEventFieldMessage   = "messge"
+	DbEventFieldCreatedAt = "created_at"
+	DbEventFieldUpdatedAt = "updated_at"
+	DbEventFieldDeletedAt = "deleted_at"
 )
 
-type MysqlEvent struct {
+type DbEvent struct {
 	// Keys
-	MachineID  string                 `gorm:"column:machine_id;primaryKey"`
-	InstanceID string                 `gorm:"column:instance_id;primaryKey"`
-	Type       haprobe.MySQLEventType `gorm:"column:type"`
-	Endpoint   string                 `gorm:"column:endpoint"`
-	Message    string                 `gorm:"column:message"`
+	MachineID   string              `gorm:"column:machine_id;primaryKey"`
+	BkCloudID   int                 `gorm:"column:bk_cloud_id;primaryKey"`
+	IP          string              `gorm:"column:ip;primaryKey"`
+	Port        int                 `gorm:"column:port;primaryKey"`
+	Endpoint    string              `gorm:"column:endpoint"`
+	DbEventType haprobe.DbEventType `gorm:"column:db_event_type"`
+	Message     string              `gorm:"column:message"`
 
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
@@ -57,6 +61,6 @@ type MysqlEvent struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
-func (t MysqlEvent) TableName() string {
-	return "t_mysql_event"
+func (t DbEvent) TableName() string {
+	return "t_db_event"
 }

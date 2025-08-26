@@ -38,7 +38,7 @@ var tables = []interface{}{
 	&hamodel.HostMetric{},
 	&hamodel.SkipDbInstance{},
 	&hamodel.DbmMetadata{},
-	&hamodel.MysqlEvent{},
+	&hamodel.DbEvent{},
 }
 
 type Migrator struct {

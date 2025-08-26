@@ -28,10 +28,12 @@ package haprobe
 type MySQLMetric struct {
 	SequenceID      uint64            `json:"sequence_id"`
 	MachineID       string            `json:"machine_id"`
+	BkCloudID       int               `json:"bk_cloud_id"`
+	AgentID         string            `json:"agent_id"`
 	MessageID       string            `json:"message_id"`
 	ServiceID       string            `json:"service_id"`
 	ReportTimestamp uint64            `json:"report_timestamp"`
 	Host            *HostMetric       `json:"system"`
-	Events          []*MySQLEvent     `json:"events"`
+	Events          []*DbEvent        `json:"events"`
 	Databases       []*DatabaseMetric `json:"databases"`
 }
