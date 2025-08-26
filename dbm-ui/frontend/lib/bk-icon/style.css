@@ -788,3 +788,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-quanbubukejian:before {
 	content: "\e22e";
 }
+.db-icon-gaofuzai:before {
+	content: "\e231";
+}
+.db-icon-difuzai:before {
+	content: "\e232";
+}

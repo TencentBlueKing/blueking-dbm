@@ -328,6 +328,10 @@
                   entry-type="polaris"
                   :panel-width="418" />
               </div>
+              <ClusterLoad
+                :cluster-type="ClusterTypes.REDIS"
+                :domain="data.master_domain"
+                size="small" />
             </template>
           </MasterDomainColumn>
         </template>
@@ -431,6 +435,7 @@
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
   import ClusterTable, {
     MasterDomainColumn,
     OperationColumn,
