@@ -192,14 +192,16 @@ func (t DatabaseMetric) TableName() string {
 
 // DbhaData contains system and databases metrics
 type DbhaData struct {
-	MachineID       string `gorm:"column:machine_id;primaryKey"`
 	SequenceID      uint64 `gorm:"column:sequence_id"`
+	MachineID       string `gorm:"column:machine_id;primaryKey"`
+	BkCloudID       int    `gorm:"column:bk_cloud_id"`
+	AgentID         string `gorm:"column:agent_id"`
 	MessageID       string `gorm:"column:message_id"`
 	ServiceID       string `gorm:"column:service_id"`
 	ReportTimestamp uint64 `gorm:"column:report_timestamp"`
 
 	Host      *HostMetric       `gorm:"foreignKey:machine_id;references:machine_id"`
-	Events    []*MysqlEvent     `gorm:"foreignKey:machine_id;references:machine_id"`
+	Events    []*DbEvent        `gorm:"foreignKey:machine_id;references:machine_id"`
 	Databases []*DatabaseMetric `gorm:"foreignKey:machine_id;references:machine_id"`
 
 	// Time automatically managed by GORM
@@ -211,8 +213,10 @@ type DbhaData struct {
 func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 	data := &DbhaData{}
 
-	data.MachineID = msg.MachineID
 	data.SequenceID = msg.SequenceID
+	data.MachineID = msg.MachineID
+	data.BkCloudID = msg.BkCloudID
+	data.AgentID = msg.AgentID
 	data.MessageID = msg.MessageID
 	data.ServiceID = msg.ServiceID
 	data.ReportTimestamp = msg.ReportTimestamp
@@ -249,12 +253,14 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 			continue
 		}
 
-		data.Events = append(data.Events, &MysqlEvent{
-			MachineID:  msg.MachineID,
-			InstanceID: strconv.Itoa(event.Endpoint.Port),
-			Type:       event.Type,
-			Endpoint:   event.Endpoint.String(),
-			Message:    event.Message,
+		data.Events = append(data.Events, &DbEvent{
+			MachineID:   msg.MachineID,
+			BkCloudID:   msg.BkCloudID,
+			IP:          event.Endpoint.Host,
+			Port:        event.Endpoint.Port,
+			Endpoint:    event.Endpoint.String(),
+			Message:     event.Message,
+			DbEventType: event.Type,
 		})
 	}
 
