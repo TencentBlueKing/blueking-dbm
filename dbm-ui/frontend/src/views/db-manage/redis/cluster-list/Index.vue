@@ -28,6 +28,12 @@
         @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'redis.clusterManage.export'"
+        :cluster-types="[
+          ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+          ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+          ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ]"
         :ids="selectedIds"
         type="redis" />
       <ClusterIpCopy
