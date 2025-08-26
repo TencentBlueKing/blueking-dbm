@@ -27,6 +27,7 @@
         @success="fetchData" />
       <DropdownExportExcel
         :ids="selectedIds"
+        :cluster-types="[ClusterTypes.REDIS_INSTANCE]"
         type="redis" />
       <ClusterIpCopy
         v-db-console="'redis.haClusterManage.batchCopy'"
