@@ -202,7 +202,7 @@ export function getMongodbMachineList(params: {
 /**
  * 导出Mongo集群数据为 excel 文件
  */
-export function exportMongodbClusterToExcel(params: { cluster_ids?: number[] }) {
+export function exportMongodbClusterToExcel(params: { cluster_ids?: number[]; cluster_types?: string }) {
   return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
