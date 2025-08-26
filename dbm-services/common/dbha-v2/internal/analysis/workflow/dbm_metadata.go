@@ -64,8 +64,8 @@ func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
 			BkCloudID:       rsp.BkCloudID,
 			LogicalCityID:   rsp.LogicalCityID,
 			LogicalCityName: rsp.LogicalCityName,
-			ListenPort:      rsp.Port,
-			ListenIP:        rsp.IP,
+			Port:            rsp.Port,
+			IP:              rsp.IP,
 			Cluster:         rsp.Cluster,
 			ClusterID:       rsp.ClusterID,
 			ClusterType:     rsp.ClusterType,
@@ -100,7 +100,7 @@ func (dbm *DbmMetadata) saveRespond(resp *dbmRespond) error {
 	return err
 }
 
-func (dbm *DbmMetadata) queryMetadataFromDBM(ctx context.Context) error {
+func (dbm *DbmMetadata) syncMetadataFromDBM(ctx context.Context) error {
 	req := defaultDbmRequst
 	req.HashCnt = maxCountPerPage
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
@@ -150,8 +150,8 @@ func (dbm *DbmMetadata) queryMetadataFromDBM(ctx context.Context) error {
 }
 
 func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
-	if err := dbm.queryMetadataFromDBM(ctx); err != nil {
-		logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
+	if err := dbm.syncMetadataFromDBM(ctx); err != nil {
+		logger.Warn("faled to sync metadata from dbm, errmsg: %v", err)
 	}
 
 	election, err := dbm.discoveryCli.CreateElection(electionName)
@@ -203,7 +203,7 @@ func (dbm *DbmMetadata) updateCache(ctx context.Context) error {
 				return
 
 			case <-timer.C:
-				if err := dbm.queryMetadataFromDBM(ctx); err != nil {
+				if err := dbm.syncMetadataFromDBM(ctx); err != nil {
 					logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
 				}
 

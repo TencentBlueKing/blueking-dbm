@@ -67,13 +67,13 @@ func NewMySql(cfg config.HarvesterConfig) (*MySql, error) {
 	return msql, nil
 }
 
-func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.MySQLEvent, error) {
+func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.DbEvent, error) {
 	epoints, err := hanet.NewEndpoints(m.cfg.Endpoint)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	events := []*haprobe.MySQLEvent{}
+	events := []*haprobe.DbEvent{}
 	dbs := []*hamysql.DB{}
 	for _, epoint := range epoints {
 		db, err := hamysql.New(
@@ -86,7 +86,7 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.MySQLEvent, error) {
 
 		if err != nil {
 			logger.Warn("create mysql db operator failed, %v", err)
-			events = append(events, &haprobe.MySQLEvent{
+			events = append(events, &haprobe.DbEvent{
 				Type:     haprobe.MySQLEventConnectionException,
 				Endpoint: epoint,
 				Message:  err.Error(),
@@ -94,6 +94,7 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.MySQLEvent, error) {
 
 			continue
 		}
+
 		dbs = append(dbs, db)
 	}
 
@@ -160,7 +161,7 @@ func (m *MySql) collectSystemMetrics() (*haprobe.HostMetric, error) {
 }
 
 // collectMySQLInfo collect all instances MySQL metrics.
-func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, []*haprobe.MySQLEvent, error) {
+func (m *MySql) collectMysqlMetrics() ([]*haprobe.DatabaseMetric, []*haprobe.DbEvent, error) {
 	var allDbMetrics []*haprobe.DatabaseMetric
 
 	dbs, events, err := m.connectMySql()

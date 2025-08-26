@@ -26,16 +26,16 @@ package haprobe
 
 import "dbm-services/common/dbha-v2/pkg/hanet"
 
-// MySQLEventType mysql event type
-type MySQLEventType int
+// DbEventType mysql event type
+type DbEventType int
 
 const (
-	MySQLEventConnectionException MySQLEventType = iota
+	MySQLEventConnectionException DbEventType = iota
 )
 
-// MySQLEvent Include some exception events
-type MySQLEvent struct {
-	Type     MySQLEventType  `json:"type"`
+// DbEvent Include some exception events
+type DbEvent struct {
+	Type     DbEventType     `json:"type"`
 	Endpoint *hanet.Endpoint `json:"endpoint,omitempty"`
 	Message  string          `json:"message"`
 }
