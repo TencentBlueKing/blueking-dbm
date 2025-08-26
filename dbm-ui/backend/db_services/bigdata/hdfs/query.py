@@ -68,3 +68,15 @@ class HDFSListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "hdfs_namenode", "name": _("NameNode")},
+            {"id": "hdfs_zookeeper", "name": _("Zookeeper")},
+            {"id": "hdfs_journalnode", "name": _("Journalnode")},
+            {"id": "hdfs_datanode", "name": _("DataNode")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)

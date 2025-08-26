@@ -264,3 +264,21 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         # 对创建时间或者实例数量进行排序
 
         return query.ResourceList(count=count, data=paginated_group_list)
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        """
+        更新的headers列表数据
+        """
+        # 大数据不需要从域名/模块字段值
+        filtered_headers = list(filter(lambda header: header["id"] not in ["slave_domain", "db_module_name"], headers))
+        return filtered_headers, kwargs["extra_headers"]
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新的集群列表数据
+        """
+        # 删除cluster_info中的从域名/模块字段值
+        del cluster_info["slave_domain"], cluster_info["db_module_name"]
+        return cluster_info

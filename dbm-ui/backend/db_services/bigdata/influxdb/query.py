@@ -159,3 +159,12 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
             "restart_at": datetime2str(restart_at) if restart_at else restart_at,
             "operations": InstanceOperateRecord.objects.get_locking_operations(instance["id"]),
         }
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "influxdb", "name": _("influxdb")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)

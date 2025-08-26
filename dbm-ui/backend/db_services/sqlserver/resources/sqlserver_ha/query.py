@@ -78,3 +78,22 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
         )
         cluster_info.update({**cluster_role_info, **sync_mode_info})
         return cluster_info
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "sync_mode", "name": _("同步模式")},
+        ]
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新的集群列表数据
+        """
+        cluster_info.update(
+            {
+                "sync_mode": cls.db_sync_mode_map.get(cluster.id, ""),
+            }
+        )
+        return cluster_info
