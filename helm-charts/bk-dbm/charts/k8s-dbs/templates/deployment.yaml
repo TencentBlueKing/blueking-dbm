@@ -26,9 +26,9 @@ spec:
               protocol: TCP
           env:
           - name: VM_METRIC_SERVER_HOST
-            value: {{ .Values.server.vmMetricServerHost }}
+            value: "{{ .Values.server.vmMetricServerHost }}"
           - name: VM_METRIC_SERVER_PORT
-            value: {{ .Values.server.vmMetricServerPort }}
+            value: "{{ .Values.server.vmMetricServerPort }}"
           - name: TZ
             value: {{ .Values.server.timezone }}
           - name: MYSQL_HOST
