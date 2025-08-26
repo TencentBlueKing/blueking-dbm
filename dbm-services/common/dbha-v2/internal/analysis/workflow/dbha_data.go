@@ -28,14 +28,20 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"fmt"
+	"time"
 )
+
+type dbInstance struct {
+	ip   string
+	port int
+}
 
 type DbhaData struct {
 	db *hamysql.DB
 }
 
 func (ha *DbhaData) getBizIDs() ([]int, error) {
-
 	bkBizIDs := []int{}
 
 	err := ha.db.DB().Model(&hamodel.DbmMetadata{}).
@@ -47,4 +53,64 @@ func (ha *DbhaData) getBizIDs() ([]int, error) {
 	}
 
 	return bkBizIDs, nil
+}
+
+func (ha *DbhaData) readMetadataCacheWithBizID(bizID int, batchCnt int) (metaData []*hamodel.DbmMetadata, err error) {
+	lastUpdateTime := time.Now().Local().Add(-24 * time.Hour)
+
+	for {
+		var batches []*hamodel.DbmMetadata
+
+		err := ha.db.DB().Model(&hamodel.DbmMetadata{}).
+			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbmMetadataFieldUpdatedAt),
+				map[string]interface{}{"updatedAt": lastUpdateTime}).
+			Where(hamodel.DbmMetadataFieldBkBizID, bizID).
+			Order(fmt.Sprintf("%s asc", hamodel.DbmMetadataFieldUpdatedAt)).
+			Limit(batchCnt).Find(&batches).Error
+
+		if err != nil {
+			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		}
+
+		readCnt := len(batches)
+		if readCnt == 0 {
+			// no date to read
+			break
+		}
+
+		// Save the batches into the cache.
+		metaData = append(metaData, batches...)
+
+		// update cursor
+		lastUpdateTime = batches[readCnt-1].UpdatedAt
+	}
+
+	return
+}
+
+func (ha *DbhaData) readDbEventWithDbInstances(dbInstances []*dbInstance,
+	offsetDuration time.Duration) (events []*hamodel.DbEvent, err error) {
+
+	if len(dbInstances) == 0 {
+		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
+	}
+
+	conditions := map[string]interface{}{}
+	for _, instance := range dbInstances {
+		conditions[instance.ip] = instance.port
+	}
+
+	lastUpdateTime := time.Now().Local().Add(offsetDuration)
+
+	err = ha.db.DB().Model(&hamodel.DbEvent{}).
+		Where(fmt.Sprintf("(%s, %s) in ?", hamodel.DbEventFieldIP, hamodel.DbEventFieldPort), conditions).
+		Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbEventFieldUpdatedAt),
+			map[string]interface{}{"updatedAt": lastUpdateTime}).
+		Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).Find(&events).Error
+
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+	}
+
+	return
 }

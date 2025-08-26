@@ -49,6 +49,7 @@ const (
 	DbmMetadataFieldStatus          = "status"
 	DbmMetadataFieldBindEntry       = "bind_entry"
 	DbmMetadataFieldCreatedAt       = "created_at"
+	DbmMetadataFieldUpdatedAt       = "updated_at"
 	DbmMetadataFieldDeletedAt       = "deleted_at"
 	DbmMetadataFieldSyncDuration    = "sync_duration"
 )
@@ -93,8 +94,8 @@ func (be BindEntryType) Value() (driver.Value, error) {
 
 type DbmMetadata struct {
 	BkCloudID       int           `gorm:"column:bk_cloud_id;primaryKey"`
-	ListenIP        string        `gorm:"column:ip;primaryKey"`
-	ListenPort      int           `gorm:"column:port;primaryKey"`
+	IP              string        `gorm:"column:ip;primaryKey"`
+	Port            int           `gorm:"column:port;primaryKey"`
 	BkIdcCityID     int           `gorm:"column:bk_idc_city_id"`
 	BkBizID         int           `gorm:"column:bk_biz_id"`
 	LogicalCityID   int           `gorm:"column:logical_city_id"`

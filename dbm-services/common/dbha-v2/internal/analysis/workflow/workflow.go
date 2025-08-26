@@ -51,11 +51,15 @@ type Workflow struct {
 
 func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
-		hadata: &DbhaData{db: db},
+		hadata: &DbhaData{
+			db: db,
+		},
+
 		dbmMetadata: &DbmMetadata{
 			db:           db,
 			discoveryCli: cli,
 		},
+
 		cfg:          cfg,
 		discoveryCli: cli,
 		quit:         make(chan struct{}, 1),
@@ -84,7 +88,15 @@ func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) 
 		}
 	}()
 
-	// TODO: check the biz
+	metaData, retErr := w.hadata.readMetadataCacheWithBizID(bizID, 1000)
+	if retErr != nil {
+		return retErr
+	}
+
+	for _, meta := range metaData {
+		logger.Debug("check the business: %d, bk cloud id: %d ip: %s port: %d",
+			meta.BkBizID, meta.BkCloudID, meta.IP, meta.Port)
+	}
 
 	return retErr
 }
