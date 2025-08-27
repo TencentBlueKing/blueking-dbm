@@ -195,16 +195,16 @@
       trigger: 'change',
       validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
-    {
-      message: t('含通配符的单元格仅支持输入单个对象'),
-      trigger: 'change',
-      validator: (value: string[]) => {
-        if (_.some(value, (item) => /[*%?]/.test(item))) {
-          return value.length < 2;
-        }
-        return true;
-      },
-    },
+    // {
+    //   message: t('含通配符的单元格仅支持输入单个对象'),
+    //   trigger: 'change',
+    //   validator: (value: string[]) => {
+    //     if (_.some(value, (item) => /[*%?]/.test(item))) {
+    //       return value.length < 2;
+    //     }
+    //     return true;
+    //   },
+    // },
     {
       message: t('DB 已存在'),
       trigger: 'change',
