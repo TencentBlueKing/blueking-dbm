@@ -17,7 +17,6 @@ from typing import Any, Dict
 
 from django.db.models import Q
 from django.forms.models import model_to_dict
-from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
@@ -127,8 +126,7 @@ class MySQLBackupHandler:
                 conditions &= Q(backup_host__in=self.instance_ips)
             if self.deadlines_days > 0:
                 logger.info(_("指定备份最小时间 {} 天前").format(self.deadlines_days))
-                # rollback_time = datetime.now(timezone.utc)
-                begin_time = datetime.now(timezone.utc) - timedelta(days=self.deadlines_days)
+                begin_time = datetime.now().astimezone() - timedelta(days=self.deadlines_days)
                 conditions &= Q(backup_consistent_time__gte=begin_time)
             if latest_time is not None:
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
@@ -136,8 +134,10 @@ class MySQLBackupHandler:
                 conditions &= Q(backup_consistent_time__lte=latest_time)
             if self.shard_id is not None:
                 logger.info(_("指定shard_value {} 查询").format(self.shard_id))
-                conditions &= Q(shard_value=self.shard_id)
-
+                conditions &= Q(
+                    shard_value=self.shard_id,
+                    mysql_role__in=[InstanceInnerRole.MASTER.value, InstanceInnerRole.SLAVE.value],
+                )
             if self.filter_ips is not None and len(self.filter_ips) > 0:
                 logger.info(_("指定备份实例的ip必须在指定ip里 {}".format(self.filter_ips)))
                 conditions &= Q(backup_host__in=self.filter_ips)
@@ -153,9 +153,12 @@ class MySQLBackupHandler:
             return None
         backup_info_dist = []
         for backup_info in backup_infos:
-            backup_info.backup_consistent_time = backup_info.backup_consistent_time.strftime("%Y-%m-%dT%H:%M:%S%z")
-            backup_info.backup_begin_time = backup_info.backup_begin_time.strftime("%Y-%m-%dT%H:%M:%S%z")
-            backup_info.backup_end_time = backup_info.backup_end_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # backup_info.backup_consistent_time = backup_info.backup_consistent_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # backup_info.backup_begin_time = backup_info.backup_begin_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # backup_info.backup_end_time = backup_info.backup_end_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            backup_info.backup_consistent_time = backup_info.backup_consistent_time.isoformat()
+            backup_info.backup_begin_time = backup_info.backup_begin_time.isoformat()
+            backup_info.backup_end_time = backup_info.backup_end_time.isoformat()
             backup_info_dict = model_to_dict(backup_info)
             backup_info_dist.append(self._backup_info_format(backup_info_dict))
 
@@ -318,14 +321,10 @@ class MySQLBackupHandler:
         """
         conditions = Q(cluster_id=self.cluster.id, host=host, port=port)
         if end_time is None:
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now().astimezone()
         conditions &= Q(start_time__gte=start_time) & Q(stop_time__lte=end_time)
         logger.info(
-            _(
-                "binlog查询时间范围是: {} {}".format(
-                    start_time.astimezone(timezone.utc).isoformat(), end_time.astimezone(timezone.utc).isoformat()
-                )
-            )
+            _("binlog查询时间范围是: {} {}".format(start_time.astimezone().isoformat(), end_time.astimezone().isoformat()))
         )
         binlog_infos = MysqlBinlogResult.objects.using("report_db").filter(conditions).order_by("-start_time")
         self.query = str(binlog_infos.query)
@@ -334,9 +333,12 @@ class MySQLBackupHandler:
             return []
         binlog_list = []
         for binlog_info in binlog_infos:
-            binlog_info.file_mtime = binlog_info.file_mtime.strftime("%Y-%m-%dT%H:%M:%S%z")
-            binlog_info.start_time = binlog_info.start_time.strftime("%Y-%m-%dT%H:%M:%S%z")
-            binlog_info.stop_time = binlog_info.stop_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # binlog_info.file_mtime = binlog_info.file_mtime.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # binlog_info.start_time = binlog_info.start_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            # binlog_info.stop_time = binlog_info.stop_time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            binlog_info.file_mtime = binlog_info.file_mtime.isoformat()
+            binlog_info.start_time = binlog_info.start_time.isoformat()
+            binlog_info.stop_time = binlog_info.stop_time.isoformat()
             binlog_info_dict = model_to_dict(binlog_info)
             binlog_list.append(binlog_info_dict)
         return binlog_list
@@ -350,7 +352,7 @@ class MySQLBackupHandler:
         binlog_info = backup_info["binlog_info"]
         result = {}
         if end_time is None:
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now().astimezone()
         if start_time > end_time:
             result["query_binlog_error"] = _("备份时间点:{} 大于 回滚时间点:{}".format(start_time, end_time))
             return result
@@ -438,16 +440,15 @@ class MySQLBackupHandler:
             #     server_id=@@server_id 已经检查
             if self.deadlines_days > 0:
                 logger.info(_("指定备份最小时间 {} 天前").format(self.deadlines_days))
-                # rollback_time = datetime.now(timezone.utc)
-                begin_time = datetime.now(timezone.utc) - timedelta(days=self.deadlines_days)
-                begin_time = begin_time.astimezone(timezone.utc).isoformat()
+                begin_time = datetime.now().astimezone() - timedelta(days=self.deadlines_days)
+                begin_time_str = begin_time.isoformat()
                 conditions = (
-                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time}',@@time_zone,'+00:00') "
+                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}',@@time_zone,'+00:00') "
                 )
 
             if latest_time is not None:
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
-                latest_time = latest_time.astimezone(timezone.utc).isoformat()
+                latest_time = latest_time.astimezone().isoformat()
                 conditions = (
                     f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time}',@@time_zone,'+00:00') "
                 )
@@ -494,7 +495,7 @@ class MySQLBackupHandler:
         """
         查询tendbHa/tendbCluster集群指定多个实例列表下的最新一个本地备份
         @param instances:实例列表 ip:port
-        @param latest_time: 备份最大时间，这里的时间需要转换成UTC时间，因为sql语句中是转换为0时区进行比较的
+        @param latest_time: 备份最大时间
         @return: 返回一条本地备份记录
         """
         backup_infos = self.get_local_backup_infos(instances, latest_time, "limit 1")

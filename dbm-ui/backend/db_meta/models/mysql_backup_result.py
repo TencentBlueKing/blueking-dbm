@@ -31,18 +31,20 @@ class MysqlBackupResult(models.Model):
     shard_value = models.BigIntegerField()
     bill_id = models.CharField(max_length=32)
     bk_biz_id = models.BigIntegerField()
-    mysql_version = models.CharField(max_length=32)
+    mysql_version = models.CharField(max_length=120)
     data_schema_grant = models.CharField(max_length=32)
     is_full_backup = models.IntegerField()
     file_retention_tag = models.CharField(max_length=32)
     total_filesize = models.BigIntegerField()
-    backup_consistent_time = models.DateTimeField()
+    backup_consistent_time = models.DateTimeField(blank=True, null=True)
     backup_begin_time = models.DateTimeField()
     backup_end_time = models.DateTimeField()
     binlog_info = models.TextField()
     file_list = models.TextField()
     extra_fields = models.TextField()
     backup_status = models.CharField(max_length=32)
+    backup_method = models.CharField(max_length=32, blank=True, null=True)
+    is_standby = models.CharField(max_length=10)
 
     class Meta:
         managed = False

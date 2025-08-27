@@ -29,7 +29,8 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBinlogFailedException,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import CheckSlaveStatusKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -174,6 +175,7 @@ def mysql_restore_data_sub_flow(
         cluster["target_ip"] = cluster["master_ip"]
         cluster["target_port"] = cluster["master_port"]
         cluster["repl_ip"] = cluster["new_slave_ip"]
+        cluster["repl_port"] = cluster["new_slave_port"]
         exec_act_kwargs.cluster = copy.deepcopy(cluster)
         exec_act_kwargs.exec_ip = cluster["master_ip"]
         exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
@@ -183,12 +185,7 @@ def mysql_restore_data_sub_flow(
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        # 配置新从库指向旧主库的主从关系参数
-        cluster["repl_ip"] = cluster["new_slave_ip"]
-        cluster["repl_port"] = cluster["new_slave_port"]
-        cluster["target_ip"] = cluster["master_ip"]
-        cluster["target_port"] = cluster["master_port"]
-        # 使用备份文件的方式建立主从关系
+        # 配置新从库指向旧主库的主从关系参数 使用备份文件的方式建立主从关系
         cluster["change_master_type"] = MysqlChangeMasterType.BACKUPFILE.value
         exec_act_kwargs.cluster = copy.deepcopy(cluster)
         exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
@@ -197,6 +194,21 @@ def mysql_restore_data_sub_flow(
             act_name=_("建立主从关系 {}:{}".format(exec_act_kwargs.exec_ip, cluster["repl_port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
+        )
+        sub_pipeline.add_act(
+            act_name=_("检查主从复制链路"),
+            act_component_code=MySQLCheckSlaveDelayComponent.code,
+            kwargs=asdict(
+                CheckSlaveStatusKwargs(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    instance_ip=cluster["repl_ip"],
+                    instance_port=cluster["repl_port"],
+                    master_ip=cluster["target_ip"],
+                    master_port=cluster["target_port"],
+                    slave_delay_threshold=900000000,
+                    rounds=3,
+                )
+            ),
         )
     # 阶段5: 恢复数据库权限（可选，仅TenDB HA）
     # 如果是TenDB HA集群且要求恢复权限，则从其他实例恢复权限到新从节点
@@ -359,42 +371,25 @@ def mysql_restore_master_slave_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=restore_list)
 
     # 阶段5: 建立主从关系 - 新从库指向新主库
-    # 在新主库上为从库创建复制用户
-    cluster["target_ip"] = cluster["new_master_ip"]
-    cluster["target_port"] = cluster["new_master_port"]
-    cluster["repl_ip"] = cluster["new_slave_ip"]
-    exec_act_kwargs.cluster = copy.deepcopy(cluster)
-    exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
-    sub_pipeline.add_act(
-        act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="show_master_status_info",
-    )
-
-    # 配置新从库指向新主库的主从关系参数
-    cluster["repl_ip"] = cluster["new_slave_ip"]
-    cluster["repl_port"] = cluster["new_slave_port"]
-    cluster["target_ip"] = cluster["new_master_ip"]
-    cluster["target_port"] = cluster["new_master_port"]
-    # 使用show master status的方式建立主从关系
-    cluster["change_master_type"] = MysqlChangeMasterType.MASTERSTATUS.value
-    exec_act_kwargs.cluster = copy.deepcopy(cluster)
-    exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
-    sub_pipeline.add_act(
-        act_name=_("建立主从关系:新从库指向新主库 {} {}:".format(exec_act_kwargs.exec_ip, cluster["repl_port"])),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
+    change_master_cluster = {
+        "repl_ip": cluster["new_slave_ip"],
+        "repl_port": cluster["new_slave_port"],
+        "target_ip": cluster["new_master_ip"],
+        "target_port": cluster["new_master_port"],
+        "cluster_type": cluster_model.cluster_type,
+        "bk_cloud_id": cluster_model.bk_cloud_id,
+    }
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=change_master_by_master_status(
+            root_id=root_id, uid=ticket_data["uid"], cluster_info=copy.deepcopy(change_master_cluster)
+        )
     )
 
     # 阶段6: 建立主从关系 - 新主库指向旧主库
-    # 在旧主库上为新主库创建复制用户
     cluster["target_ip"] = cluster["master_ip"]
     cluster["target_port"] = cluster["master_port"]
     cluster["repl_ip"] = cluster["new_master_ip"]
+    cluster["repl_port"] = cluster["new_master_port"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
@@ -403,12 +398,6 @@ def mysql_restore_master_slave_sub_flow(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-
-    # 配置新主库指向旧主库的主从关系参数
-    cluster["repl_ip"] = cluster["new_master_ip"]
-    cluster["repl_port"] = cluster["new_master_port"]
-    cluster["target_ip"] = cluster["master_ip"]
-    cluster["target_port"] = cluster["master_port"]
     # 使用备份文件的方式建立主从关系
     cluster["change_master_type"] = MysqlChangeMasterType.BACKUPFILE.value
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
@@ -418,6 +407,22 @@ def mysql_restore_master_slave_sub_flow(
         act_name=_("建立主从关系:新主库指向旧主库 {}:{}".format(exec_act_kwargs.exec_ip, cluster["repl_port"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
+    )
+
+    sub_pipeline.add_act(
+        act_name=_("检查主从复制链路"),
+        act_component_code=MySQLCheckSlaveDelayComponent.code,
+        kwargs=asdict(
+            CheckSlaveStatusKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                instance_ip=cluster["repl_ip"],
+                instance_port=cluster["repl_port"],
+                master_ip=cluster["target_ip"],
+                master_port=cluster["target_port"],
+                slave_delay_threshold=900000000,
+                rounds=3,
+            )
+        ),
     )
     # 阶段7: 恢复数据库权限（可选）
     # TenDB HA主从成对迁移是2个is_stand_by的迁移，权限对等，这里补充恢复权限
@@ -505,7 +510,9 @@ def priv_recover_sub_flow(
         return None
 
 
-def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluster, cluster_info: dict):
+def tendbha_rollback_data_sub_flow(
+    root_id: str, uid: str, cluster_model: Cluster, cluster_info: dict, backup_info: dict = None
+):
     """
     tendbHa 回档流程
     @param root_id: flow 流程root_id
@@ -515,8 +522,6 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
                    - cluster_id: 集群ID
                    - rollback_ip: 回档实例ip
                    - rollback_port: 回档实例端口
-                   - rollback_type: 回档类型
-                   - master_port: 原主节点端口
                    - file_target_path: 备份文件目标路径
                    - rollback_type: 回档类型（本地/远程/时间/备份ID)
                    - backup_id: 指定备份ID,如果为空表示查询指定回档时间的最近一份备份
@@ -525,6 +530,8 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
                    - databases_ignore: 忽略数据库列表
                    - tables_ignore: 忽略表列表
                    - enable_binlog: 恢复数据时候是否记录binlog,默认False
+                   - rollback_time: 回档时间
+    @param backup_info: 备份信息,如果为None则子流程发起查询备份信息
     """
     #  阶段1 查询备份
     rollback_time = None
@@ -550,16 +557,17 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
         backup_id=backup_id,
         check_instance_exist=check_instance_exist,
     )
-    backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
     if backup_info is None:
-        logger.error("cluster {} backup info not exists".format(cluster_model.id))
-        raise TendbGetBackupInfoFailedException(
-            message=_(
-                "获取集群 {} 备份信息失败,错误信息 {} 备份查询语句: {}".format(
-                    cluster_model.id, backup_handler.errmsg, backup_handler.query
+        backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
+        if backup_info is None:
+            logger.error("cluster {} backup info not exists".format(cluster_model.id))
+            raise TendbGetBackupInfoFailedException(
+                message=_(
+                    "获取集群 {} 备份信息失败,错误信息 {} 备份查询语句: {}".format(
+                        cluster_model.id, backup_handler.errmsg, backup_handler.query
+                    )
                 )
             )
-        )
     cluster_info["backupinfo"] = copy.deepcopy(backup_info)
     cluster_info["backup_time"] = backup_info["backup_time"]
     backup_time = str2datetime(backup_info["backup_time"])
@@ -641,6 +649,71 @@ def tendbha_rollback_data_sub_flow(root_id: str, uid: str, cluster_model: Cluste
 
     return backup_info, sub_pipeline.build_sub_process(
         sub_name=_("tendbHa定点回档 {}:{} ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"]))
+    )
+
+
+def change_master_by_master_status(root_id: str, uid: str, cluster_info: dict):
+    """
+    通过 show master status 的方式建立主从关系
+    @param root_id: flow 流程root_id
+    @param uid: 单据 uid
+    @param cluster_info: 集群配置信息
+                - target_ip: 目标实例ip
+                - target_port: 目标实例端口
+                - repl_ip: 原主实例ip
+                - repl_port: 原主实例端口
+                - bk_cloud_id: 云区域ID
+                - cluster_type: 集群类型
+                - change_master_force: 是否强制建立主从关系
+    """
+    cluster_info["uid"] = uid
+    cluster_info["change_master_force"] = cluster_info.get("change_master_force", False)
+    cluster_info["change_master_type"] = MysqlChangeMasterType.MASTERSTATUS.value
+    change_master_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(cluster_info))
+    exec_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=cluster_info["bk_cloud_id"],
+        cluster_type=cluster_info["cluster_type"],
+        cluster=copy.deepcopy(cluster_info),
+        exec_ip=cluster_info["target_ip"],
+    )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
+    change_master_pipeline.add_act(
+        act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+        write_payload_var="show_master_status_info",
+    )
+    exec_act_kwargs.exec_ip = cluster_info["repl_ip"]
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
+    change_master_pipeline.add_act(
+        act_name=_("建立从关系"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+    change_master_pipeline.add_act(
+        act_name=_("检查主从复制链路"),
+        act_component_code=MySQLCheckSlaveDelayComponent.code,
+        kwargs=asdict(
+            CheckSlaveStatusKwargs(
+                bk_cloud_id=cluster_info["bk_cloud_id"],
+                instance_ip=cluster_info["repl_ip"],
+                instance_port=cluster_info["repl_port"],
+                master_ip=cluster_info["target_ip"],
+                master_port=cluster_info["target_port"],
+                slave_delay_threshold=900000000,
+                rounds=3,
+            )
+        ),
+    )
+    return change_master_pipeline.build_sub_process(
+        sub_name=_(
+            "建立主从关系: {}:{} -> {}:{}".format(
+                cluster_info["repl_ip"],
+                cluster_info["repl_port"],
+                cluster_info["target_ip"],
+                cluster_info["target_port"],
+            )
+        )
     )
 
 
