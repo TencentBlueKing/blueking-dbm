@@ -36,6 +36,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 
@@ -130,6 +131,10 @@ func (s *Service) createStorage() error {
 }
 
 func (s *Service) createNotifier() error {
+	monitor.SetDataID(config.Cfg.Monitor.DataID)
+	monitor.SetEndpoint(config.Cfg.Monitor.BkMonitorEndpoint)
+	monitor.SetBkMonitorBeat(config.Cfg.Monitor.BkMonitorBeat)
+	monitor.SetAccessToken(config.Cfg.Monitor.AccessToken)
 	return nil
 }
 

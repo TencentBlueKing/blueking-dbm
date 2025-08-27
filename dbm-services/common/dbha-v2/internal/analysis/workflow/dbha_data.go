@@ -25,11 +25,12 @@
 package workflow
 
 import (
+	"fmt"
+	"time"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"fmt"
-	"time"
 )
 
 type dbInstance struct {
@@ -88,6 +89,43 @@ func (ha *DbhaData) readMetadataCacheWithBizID(bizID int, batchCnt int) (metaDat
 	return
 }
 
+func (ha *DbhaData) readDbMetricsWithDbInstances(dbInstances []*dbInstance,
+	offsetDuration time.Duration) (dbMetrics []*hamodel.DatabaseMetric, err error) {
+
+	if len(dbInstances) == 0 {
+		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
+	}
+
+	lastUpdateTime := time.Now().Local().Add(offsetDuration)
+
+	query := ha.db.DB().Model(&hamodel.DatabaseMetric{})
+	hasCondition := false
+
+	for _, inst := range dbInstances {
+		if hasCondition {
+			query = query.Or(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
+				hamodel.DatabaseMetricFieldInstanceID), inst.ip, inst.port)
+			continue
+		}
+
+		query = query.Where(fmt.Sprintf("%s like ? and %s = ?", hamodel.DatabaseMetricFieldIPs,
+			hamodel.DatabaseMetricFieldInstanceID), inst.ip, inst.port)
+		hasCondition = true
+	}
+
+	queryErr := query.Where(fmt.Sprintf("%s > @updatedAt", hamodel.DatabaseMetricFieldUpdatedAt),
+		map[string]any{"updatedAt": lastUpdateTime}).
+		Order(fmt.Sprintf("%s asc", hamodel.DatabaseMetricFieldUpdatedAt)).
+		Find(&dbMetrics).Error
+
+	if queryErr != nil {
+		err = gerrors.NewE(gerrors.ComponentFailure, queryErr)
+		return
+	}
+
+	return
+}
+
 func (ha *DbhaData) readDbEventWithDbInstances(dbInstances []*dbInstance,
 	offsetDuration time.Duration) (events []*hamodel.DbEvent, err error) {
 
@@ -95,9 +133,9 @@ func (ha *DbhaData) readDbEventWithDbInstances(dbInstances []*dbInstance,
 		return nil, gerrors.New(gerrors.InvalidParameter, "no db instances")
 	}
 
-	conditions := map[string]interface{}{}
+	conditions := [][]interface{}{}
 	for _, instance := range dbInstances {
-		conditions[instance.ip] = instance.port
+		conditions = append(conditions, []interface{}{instance.ip, instance.port})
 	}
 
 	lastUpdateTime := time.Now().Local().Add(offsetDuration)
@@ -110,6 +148,38 @@ func (ha *DbhaData) readDbEventWithDbInstances(dbInstances []*dbInstance,
 
 	if err != nil {
 		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+	}
+
+	return
+}
+
+func (ha *DbhaData) readAllDbEvent(batchCnt int, offsetDuration time.Duration) (events []*hamodel.DbEvent, err error) {
+	lastUpdateTime := time.Now().Local().Add(offsetDuration)
+
+	for {
+		var batches []*hamodel.DbEvent
+
+		err := ha.db.DB().Model(&hamodel.DbEvent{}).
+			Where(fmt.Sprintf("%s > @updatedAt", hamodel.DbEventFieldUpdatedAt),
+				map[string]interface{}{"updatedAt": lastUpdateTime}).
+			Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).
+			Limit(batchCnt).Find(&batches).Error
+
+		if err != nil {
+			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		}
+
+		readCnt := len(batches)
+		if readCnt == 0 {
+			// no date to read
+			break
+		}
+
+		// Save the batches into the cache.
+		events = append(events, batches...)
+
+		// update cursor
+		lastUpdateTime = batches[readCnt-1].UpdatedAt
 	}
 
 	return

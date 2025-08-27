@@ -24,18 +24,70 @@
 
 package haprobe
 
-import "dbm-services/common/dbha-v2/pkg/hanet"
+import (
+	"dbm-services/common/dbha-v2/pkg/hanet"
+	"fmt"
+)
 
-// DbEventType mysql event type
+// DbEventName db event name
+type DbEventName string
+
+const (
+	DbEventNameDetectFailure    DbEventName = "dbha_detect_db_failure"
+	DbEventNameDetectSSHFailure DbEventName = "dbha_detect_ssh_failure"
+)
+
+// DbEventType db event type
 type DbEventType int
 
 const (
-	MySQLEventConnectionException DbEventType = iota
+	DbEventTypeConnectionException DbEventType = iota
+	DbEventTypeAuthException
+	DbEventTypeSSHAuthException
+)
+
+// DbType  db type
+type DbType int
+
+const (
+	DbTypeNameMysql DbType = iota
 )
 
 // DbEvent Include some exception events
 type DbEvent struct {
-	Type     DbEventType     `json:"type"`
-	Endpoint *hanet.Endpoint `json:"endpoint,omitempty"`
-	Message  string          `json:"message"`
+	Name       DbEventName     `json:"name"`
+	Type       DbEventType     `json:"type"`
+	DbTypeName DbType          `json:"dbTypeName"`
+	Endpoint   *hanet.Endpoint `json:"endpoint,omitempty"`
+	Message    string          `json:"message"`
+}
+
+func (t DbEventName) String() string {
+	return string(t)
+}
+
+func (t DbEventType) String() string {
+	switch t {
+	case DbEventTypeConnectionException:
+		return "connection exception"
+
+	case DbEventTypeAuthException:
+		return "auth failure"
+
+	case DbEventTypeSSHAuthException:
+		return "ssh auth failure"
+
+	default:
+		return fmt.Sprintf("unknown event type: %d", t)
+	}
+}
+
+func (t DbType) String() string {
+	switch t {
+	case DbTypeNameMysql:
+		return "mysql"
+
+	default:
+		return fmt.Sprintf("unknown db type name: %d", t)
+	}
 }

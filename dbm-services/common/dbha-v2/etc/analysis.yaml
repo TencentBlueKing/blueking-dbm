@@ -34,6 +34,7 @@ workflow:
 
 monitor:
   dataID: 0
+  accessToken: ""
   bkMonitorBeat: ""
   bkMonitorEndpoint: 127.0.0.1:9090
 

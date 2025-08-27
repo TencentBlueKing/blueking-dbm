@@ -26,6 +26,7 @@ package hamodel
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -59,12 +60,90 @@ const (
 	HostMetrifFieldCreatedAt        = "created_at"
 	HostMetricFieldUpdatedAt        = "updated_at"
 	HostMetricFieldDeletedAt        = "deleted_at"
+
+	// DatabaseMetrif fields
+	DatabaseMetricFieldMachineID                 = "machine_id"
+	DatabaseMetricFieldAgentID                   = "agent_id"
+	DatabaseMetricFieldInstanceID                = "instance_id"
+	DatabaseMetricFieldIPs                       = "ips"
+	DatabaseMetricFieldVersion                   = "mysql_version"
+	DatabaseMetricFieldThreadsConnected          = "mysql_threads_connected"
+	DatabaseMetricFieldServerCharset             = "mysql_server_charset"
+	DatabaseMetricFieldOpenTablesTotal           = "mysql_open_tables_total"
+	DatabaseMetricFieldFlushTables               = "mysql_flush_tables"
+	DatabaseMetricFieldOpenTablesNow             = "mysql_open_tables_now"
+	DatabaseMetricFieldSlowQueriesNow            = "mysql_slow_queries_now"
+	DatabaseMetricFieldTotalQuestions            = "mysql_total_questions"
+	DatabaseMetricFieldQueriesPerSecond          = "mysql_avg_qps"
+	DatabaseMetricFieldThreadsRunning            = "mysql_threads_running"
+	DatabaseMetricFieldConnectionsAborted        = "mysql_connections_aborted"
+	DatabaseMetricFieldConnections               = "mysql_connections"
+	DatabaseMetricFieldConnectionsErrorsAccept   = "mysql_connections_errors_accept"
+	DatabaseMetricFieldConnectionsErrorsInternal = "mysql_connections_errors_internal"
+	DatabaseMetricFieldConnectionsErrorsPeerAddr = "mysql_connections_errors_peer_address"
+
+	// mysql operation stat
+	DatabaseMetricFieldQueryTotal       = "mysql_query_total"
+	DatabaseMetricFieldQPS              = "mysql_qps"
+	DatabaseMetricFieldTPS              = "mysql_tps"
+	DatabaseMetricFieldQueryQuestions   = "mysql_questions_total"
+	DatabaseMetricFieldQuerySelects     = "mysql_selects_times"
+	DatabaseMetricFieldQueryInserts     = "mysql_inserts_times"
+	DatabaseMetricFieldQueryUpdates     = "mysql_updates_times"
+	DatabaseMetricFieldQueryDeletes     = "mysql_deletes_times"
+	DatabaseMetricFieldQuerySlow        = "mysql_slow_queries_times"
+	DatabaseMetricFieldKeyReadRequests  = "mysql_key_read_requests"
+	DatabaseMetricFieldKeyReads         = "mysql_key_reads"
+	DatabaseMetricFieldKeyBufferHitRate = "mysql_key_buffer_hit_rate"
+
+	// Query cache
+	DatabaseMetricQCacheHits             = "query_cache_hits"
+	DatabaseMetricFieldQCacheFreeBlocks  = "query_cache_free_blocks"
+	DatabaseMetricFieldQCacheFreeMem     = "query_cache_free_mem"
+	DatabaseMetricFieldQCacheInserts     = "query_cache_inserts"
+	DatabaseMetricFieldQCachePrunes      = "query_cache_lowmen_prunes"
+	DatabaseMetricFieldQCacheNotCached   = "query_cache_not_cahced"
+	DatabaseMetricFieldQCacheTotalBlocks = "query_cache_total_blocks"
+
+	// handler_xxx metrics
+	DatabaseMetricFieldHandlerReadKey      = "handler_read_key"
+	DatabaseMetricFieldHandlerReadRndNext  = "handler_read_key_rnd_next"
+	DatabaseMetricFieldHandlerWrite        = "handler_write"
+	DatabaseMetricFieldHandlerPrepare      = "handler_prepare"
+	DatabaseMetricFieldHandlerCommit       = "handler_commit"
+	DatabaseMetricFieldHandlerExternalLock = "handler_external_lock"
+	DatabaseMetricFieldTableCratedTmp      = "tables_created_tmp"
+	DatabaseMetricFieldTableCreatedTmpDisk = "tables_created_tmp_disk"
+	DatabaseMetricFieldFielCreatedTmp      = "files_created_tmp"
+	DatabaseMetricFieldFileOpen            = "files_opened"
+	DatabaseMetricFieldTableOpen           = "tables_opened"
+
+	// binlog stat
+	DatabaseMetricFieldBinlogCacheDiskUse     = "binlog_cache_disk_use"
+	DatabaseMetricFieldBinlogCacheUse         = "binlog_cache_use"
+	DatabaseMetricFieldBinlogStmtCacheDiskUse = "binlog_stmt_cache_disk_use"
+	DatabaseMetricFieldBinlogStmtCacheUse     = "binlog_stmt_cache_use"
+
+	// performance schema stat
+	DatabaseMetricFieldSchemaAccountsLost        = "performance_schema_accounts_lost"
+	DatabaseMetricFieldSchemaCondClassesLost     = "performance_schema_cond_classes_lost"
+	DatabaseMetricFieldSchemaFileHandlesLost     = "performance_schema_file_handles_lost"
+	DatabaseMetricFieldSchemaLockerLost          = "performance_schema_locker_lost"
+	DatabaseMetricFieldSchemaDigestLost          = "performance_schema_digest_lost"
+	DatabaseMetricFieldSchemaRwlockInstancesLost = "performance_schema_rwlock_instances_lost"
+	DatabaseMetricFieldSchemaThreadInstancesLost = "performance_schema_thread_instances_lost"
+	DatabaseMetricFieldSchemaTableLockStatLost   = "performance_schema_table_lock_stat_lost"
+	DatabaseMetricFieldCreatedAt                 = "created_at"
+	DatabaseMetricFieldUpdatedAt                 = "updated_at"
+	DatabaseMetricFieldDeletedAt                 = "deleted_at"
 )
 
 // HostMetric host metric
 type HostMetric struct {
 	// Keys
 	MachineID string `gorm:"column:machine_id;primaryKey"`
+	AgentID   string `gorm:"column:agent_id;primaryKey"`
+	IPs       string `gorm:"column:ips;type:mediumtext"`
 
 	// CPU
 	CpuUsagePercent  float64 `gorm:"column:cpu_usage_percent"`
@@ -105,7 +184,9 @@ func (t HostMetric) TableName() string {
 type DatabaseMetric struct {
 	// Keys
 	MachineID  string `gorm:"column:machine_id;primaryKey"`
+	AgentID    string `gorm:"column:agent_id;primaryKey"`
 	InstanceID string `gorm:"column:instance_id;primaryKey"`
+	IPs        string `gorm:"column:ips;type:mediumtext"`
 
 	// Status
 	Version          string  `gorm:"column:mysql_version"`
@@ -127,9 +208,9 @@ type DatabaseMetric struct {
 	ConnectionsErrorsPeerAddr int `gorm:"column:mysql_connections_errors_peer_address"`
 
 	// MySQL Performance Query metric
-	QueryTotal     uint64 `gorm:"column:mysql_quey_total"`
-	QPS            uint   `gorm:"column:mysql_QPS"`
-	TPS            uint   `gorm:"column:mysql_TPS"`
+	QueryTotal     uint64 `gorm:"column:mysql_query_total"`
+	QPS            uint   `gorm:"column:mysql_qps"`
+	TPS            uint   `gorm:"column:mysql_tps"`
 	QueryQuestions uint64 `grom:"column:mysql_questions_total"`
 	QuerySelects   uint64 `gorm:"column:mysql_selects_times"`
 	QueryInserts   uint64 `gorm:"column:mysql_inserts_times"`
@@ -194,8 +275,9 @@ func (t DatabaseMetric) TableName() string {
 type DbhaData struct {
 	SequenceID      uint64 `gorm:"column:sequence_id"`
 	MachineID       string `gorm:"column:machine_id;primaryKey"`
-	BkCloudID       int    `gorm:"column:bk_cloud_id"`
 	AgentID         string `gorm:"column:agent_id"`
+	IPs             string `gorm:"column:ips;type:mediumtext"`
+	BkCloudID       int    `gorm:"column:bk_cloud_id"`
 	MessageID       string `gorm:"column:message_id"`
 	ServiceID       string `gorm:"column:service_id"`
 	ReportTimestamp uint64 `gorm:"column:report_timestamp"`
@@ -215,14 +297,17 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 
 	data.SequenceID = msg.SequenceID
 	data.MachineID = msg.MachineID
-	data.BkCloudID = msg.BkCloudID
 	data.AgentID = msg.AgentID
+	data.IPs = strings.Join(msg.Host.NetIPs, ";")
+	data.BkCloudID = msg.BkCloudID
 	data.MessageID = msg.MessageID
 	data.ServiceID = msg.ServiceID
 	data.ReportTimestamp = msg.ReportTimestamp
 
 	data.Host = &HostMetric{
 		MachineID: msg.MachineID,
+		AgentID:   msg.AgentID,
+		IPs:       data.IPs,
 
 		CpuUsagePercent:  msg.Host.CpuUsagePercent,
 		CpuUserPercent:   msg.Host.CpuUserPercent,
@@ -259,8 +344,10 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 			IP:          event.Endpoint.Host,
 			Port:        event.Endpoint.Port,
 			Endpoint:    event.Endpoint.String(),
-			Message:     event.Message,
+			DbTypeName:  event.DbTypeName,
+			Name:        event.Name,
 			DbEventType: event.Type,
+			Message:     event.Message,
 		})
 	}
 
@@ -283,6 +370,8 @@ func (t DbhaData) TableName() string {
 func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 	t.Databases = append(t.Databases, &DatabaseMetric{
 		MachineID:  t.MachineID,
+		AgentID:    t.AgentID,
+		IPs:        t.IPs,
 		InstanceID: strconv.Itoa(db.ListenPort),
 
 		Version:          db.Version,
