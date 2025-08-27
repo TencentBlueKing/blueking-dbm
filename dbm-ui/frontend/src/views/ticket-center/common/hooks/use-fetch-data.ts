@@ -60,10 +60,10 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     fetchTicketStatus();
   }, 3000);
 
-  let daymicTimer: NodeJS.Timeout;
+  let requestKey = 0;
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
-    clearTimeout(daymicTimer);
+    requestKey = Date.now();
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
@@ -71,14 +71,21 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
       ...params,
     })
       .then((data) => {
+        const latestRequestKey = requestKey;
         dataList.value = data.results;
 
         tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
         if (data.results.length > 20) {
-          daymicTimer = setTimeout(() => {
+          setTimeout(() => {
+            if (latestRequestKey !== requestKey) {
+              return;
+            }
             tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
             if (data.results.length > 50) {
-              daymicTimer = setTimeout(() => {
+              setTimeout(() => {
+                if (latestRequestKey !== requestKey) {
+                  return;
+                }
                 tableRef.value.getVxeTableInstance().loadData(data.results);
               }, 3000);
             }
