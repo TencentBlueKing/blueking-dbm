@@ -30,6 +30,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { Mongodb } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
+
   import Editor from '../editor/Index.vue';
 
   type Emits = (e: 'change', value: string) => void;
@@ -41,6 +47,14 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      content.value = details.scripts[0].content;
+      handleContentChange(content.value);
+    },
+  });
 
   const content = ref('');
 

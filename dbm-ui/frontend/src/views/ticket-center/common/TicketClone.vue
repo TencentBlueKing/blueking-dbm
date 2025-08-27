@@ -91,6 +91,7 @@
     [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
     [TicketTypes.MONGODB_ADD_SHARD_NODES]: TicketTypes.MONGODB_ADD_SHARD_NODES, // 扩容 Shard 节点数
     [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
+    [TicketTypes.MONGODB_EXEC_SCRIPT_APPLY]: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, // mongo 脚本执行
     [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
     [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: TicketTypes.MONGODB_REDUCE_SHARD_NODES, // 缩容 Shard 节点数
