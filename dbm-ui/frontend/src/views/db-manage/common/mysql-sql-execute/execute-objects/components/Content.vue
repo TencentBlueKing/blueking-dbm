@@ -29,11 +29,13 @@
               v-model="rowData.dbnames"
               field="dbnames"
               :label="t('变更 DB')"
-              required />
+              required
+              :show-batch-edit="false" />
             <DbNameColumn
               v-model="rowData.ignore_dbnames"
               field="ignore_dbnames"
-              :label="t('忽略 DB ')" />
+              :label="t('忽略 DB ')"
+              :show-batch-edit="false" />
           </EditableRow>
         </EditableTable>
       </BkFormItem>
@@ -54,8 +56,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type SqlFileModel from '@views/db-manage/common/mysql-sql-execute/model/SqlFile';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
 
-  import DbNameColumn from './components/db-name-column/Index.vue';
   import RenderSql from './components/render-sql/Index.vue';
 
   interface IDataRow {
