@@ -40,16 +40,16 @@
             @sort="handleFileSortChange" />
         </div>
         <div class="editor-layout-right">
-          <BkLoading
+          <!-- <BkLoading
             class="content-loading"
-            :loading="isContentLoading">
-            <Editor
-              v-model="currentSelectFileData.content"
-              :message-list="currentSelectFileData.messageList"
-              readonly
-              :title="selectFileName"
-              @change="triggerChange" />
-          </BkLoading>
+            :loading="isContentLoading"> -->
+          <Editor
+            v-model="currentSelectFileData.content"
+            :message-list="[]"
+            readonly
+            :title="selectFileName"
+            @change="triggerChange" />
+          <!-- </BkLoading> -->
         </div>
       </div>
       <input
@@ -66,6 +66,12 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { Mongodb } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
+
   import Editor from '../editor/Index.vue';
 
   import RenderFileList, { createFileData, type IFileData } from './components/FileList.vue';
@@ -80,8 +86,27 @@
 
   const { t } = useI18n();
 
-  const isContentLoading = ref(false);
-  const uploadRef = ref();
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      uploadFileNameList.value = details.scripts.map((item) => item.name);
+      uploadFileDataMap.value = Object.fromEntries(
+        details.scripts.map((item) => [
+          item.name,
+          createFileData({
+            file: new File([item.content], item.name),
+          }),
+        ]),
+      );
+      selectFileName.value = uploadFileNameList.value[0];
+
+      triggerChange();
+    },
+  });
+
+  const uploadRef = useTemplateRef('uploadRef');
+
+  // const isContentLoading = ref(false);
   const selectFileName = ref('');
   const uploadFileDataMap = ref<Record<string, IFileData>>({});
 
@@ -120,14 +145,14 @@
   };
 
   const getFileContent = (fileInfo: IFileData) =>
-    new Promise((resove, reject) => {
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = function (evt) {
         if (evt?.target?.readyState === FileReader.DONE) {
           Object.assign(fileInfo, {
             content: evt.target.result,
           });
-          resove(evt.target.result);
+          resolve(evt.target.result);
         } else {
           reject();
         }
@@ -137,7 +162,7 @@
 
   // 开始选择本地文件
   const handleSelectLocalFile = () => {
-    uploadRef.value.click();
+    uploadRef.value!.click();
   };
 
   // 开始预览本地文件

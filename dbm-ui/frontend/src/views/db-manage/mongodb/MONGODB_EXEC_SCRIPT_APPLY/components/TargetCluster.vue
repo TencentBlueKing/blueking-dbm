@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="sql-execute-target-cluster">
+  <div class="mongodb-sql-execute-target-cluster">
     <DbFormItem
       ref="formItemRef"
       :label="t('目标集群')"
@@ -27,11 +27,38 @@
       </BkButton>
       <div :class="{ 'cluster-checking': isLoading }">
         <BkLoading :loading="isLoading">
-          <DbOriginalTable
+          <BkTable
             v-if="targetClusterList.length > 0"
             class="mt-16"
-            :columns="colums"
-            :data="targetClusterList" />
+            :data="targetClusterList">
+            <BkTableColumn
+              field="master_domain"
+              :label="t('集群')">
+            </BkTableColumn>
+            <BkTableColumn
+              field="clusterTypeText"
+              :label="t('集群类型')">
+            </BkTableColumn>
+            <BkTableColumn
+              field="status"
+              :label="t('状态')">
+              <template #default="{data}: {data: MongodbModel}">
+                <RenderClusterStatus :data="data.status" />
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              :label="t('操作')"
+              :width="100">
+              <template #default="{data}: {data: MongodbModel}">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="() => handleRemove(data)">
+                  {{ t('删除') }}
+                </BkButton>
+              </template>
+            </BkTableColumn>
+          </BkTable>
         </BkLoading>
       </div>
     </DbFormItem>
@@ -45,11 +72,17 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
+  import type { Mongodb } from '@services/model/ticket/ticket';
+  import { getMongoList } from '@services/source/mongodb';
 
-  import { ClusterTypes } from '@common/const';
+  import { useTicketDetail } from '@hooks';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
@@ -58,14 +91,31 @@
 
   const { t } = useI18n();
 
-  const isLoading = ref(false);
-  const isShowClusterSelector = ref(false);
-  const formItemRef = ref();
-  const clusterSelectorValue = shallowRef<{ [key: string]: MongodbModel[] }>({
-    [ClusterTypes.MONGO_REPLICA_SET]: [],
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+  const { loading: isLoading, run: runGetMongoList } = useRequest(getMongoList, {
+    manual: true,
+    onSuccess(mongoList) {
+      const selected: UnwrapRef<typeof clusterSelectorValue> = {
+        [ClusterTypes.MONGO_REPLICA_SET]: [],
+        [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+      };
+      mongoList.results.forEach((item) => {
+        selected[item.cluster_type].push(item);
+      });
+
+      handelClusterChange(selected);
+    },
   });
-  const targetClusterList = shallowRef<Array<MongodbModel>>([]);
+
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      modelValue.value = details.cluster_ids;
+
+      runGetMongoList({
+        cluster_ids: details.cluster_ids.join(','),
+      });
+    },
+  });
 
   const tabListConfig = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
@@ -78,35 +128,6 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
-  const colums = [
-    {
-      field: 'master_domain',
-      label: t('集群'),
-    },
-    {
-      field: 'cluster_type',
-      label: t('集群类型'),
-      render: ({ data }: { data: MongodbModel }) => data.clusterTypeText,
-    },
-    {
-      label: t('状态'),
-      render: ({ data }: { data: MongodbModel }) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      field: 'action',
-      label: t('操作'),
-      render: ({ data }: { data: MongodbModel }) => (
-        <bk-button
-          theme='primary'
-          text
-          onClick={() => handleRemove(data)}>
-          {t('删除')}
-        </bk-button>
-      ),
-      width: '100',
-    },
-  ];
-
   const rules = [
     {
       message: t('目标集群不能为空'),
@@ -114,6 +135,15 @@
       validator: (value: number[]) => value.length > 0,
     },
   ];
+
+  const formItemRef = useTemplateRef('formItemRef');
+  const isShowClusterSelector = ref(false);
+
+  const clusterSelectorValue = shallowRef<{ [key: string]: MongodbModel[] }>({
+    [ClusterTypes.MONGO_REPLICA_SET]: [],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+  });
+  const targetClusterList = shallowRef<Array<MongodbModel>>([]);
 
   const triggerChange = () => {
     modelValue.value = targetClusterList.value.map((item) => item.id);
@@ -135,18 +165,20 @@
       }
     });
 
+    targetClusterList.value = list;
+
     triggerChange();
   };
 
   const handelClusterChange = (selected: { [key: string]: Array<MongodbModel> }) => {
-    formItemRef.value.clearValidate();
+    formItemRef.value!.clearValidate();
     clusterSelectorValue.value = selected;
     targetClusterList.value = _.flatMap(Object.values(selected));
     triggerChange();
   };
 </script>
 <style lang="less">
-  .sql-execute-target-cluster {
+  .mongodb-sql-execute-target-cluster {
     display: block;
     margin-top: 16px;
     margin-bottom: 24px;

@@ -38,6 +38,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { Mongodb } from '@services/model/ticket/ticket';
+
+  import { useTicketDetail } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
+
   import LocalFile from './local-file/Index.vue';
   import ManualInput from './manual-input/Index.vue';
 
@@ -58,7 +64,14 @@
 
   const { t } = useI18n();
 
-  const fileRef = ref();
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      const { details } = ticketDetail;
+      importMode.value = details.mode;
+    },
+  });
+
+  const fileRef = useTemplateRef('fileRef');
 
   const comMap = {
     file: LocalFile,
@@ -74,7 +87,7 @@
   defineExpose<Exposes>({
     getValue: () => ({
       mode: importMode.value,
-      scripts: fileRef.value.getValue(),
+      scripts: fileRef.value!.getValue(),
     }),
   });
 </script>

@@ -26,7 +26,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mongodb.toolbox.scriptExecute',
-        id: 'MongoScriptExecute',
+        id: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
         name: t('变更脚本执行'),
         parentId: 'mongo_script',
       },
