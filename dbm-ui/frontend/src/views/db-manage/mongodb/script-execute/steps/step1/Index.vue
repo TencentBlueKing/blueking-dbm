@@ -15,6 +15,10 @@
   <SmartAction>
     <div class="mongo-script-execute-page">
       <!-- <TaskTips /> -->
+      <BkAlert
+        closable
+        theme="info"
+        :title="t('变更脚本执行：提供多个集群执行js脚本功能')" />
       <DbForm
         ref="formRef"
         form-type="vertical"
