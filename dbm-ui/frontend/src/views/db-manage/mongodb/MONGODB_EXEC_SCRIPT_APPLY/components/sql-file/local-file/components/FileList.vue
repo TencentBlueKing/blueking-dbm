@@ -29,8 +29,8 @@
             class="file-item"
             :class="{
               active: fileItemData.name === modelValue,
-              'is-error':
-                fileData[fileItemData.name].isUploadFailed || fileData[fileItemData.name].grammarCheck?.isError,
+              // 'is-error':
+              //   fileData[fileItemData.name].isUploadFailed || fileData[fileItemData.name].grammarCheck?.isError,
             }"
             @click="handleClick(fileItemData.name)">
             <div
@@ -39,16 +39,16 @@
               {{ fileItemData.name }}
             </div>
             <div class="extend-box">
-              <div
+              <!-- <div
                 v-if="fileData[fileItemData.name].isUploading"
                 class="action-btn">
                 <div class="uploading-flag">
                   <DbIcon type="sync-pending" />
                 </div>
-              </div>
-              <template v-else>
-                <div class="upload-info">
-                  <DbIcon
+              </div> -->
+              <!-- <template v-else> -->
+              <div class="upload-info">
+                <!-- <DbIcon
                     v-if="fileData[fileItemData.name].grammarCheck?.isError"
                     style="color: #ea3636"
                     svg
@@ -60,22 +60,25 @@
                   <DbIcon
                     v-else
                     style="color: #2dcb56"
-                    type="check-circle-fill" />
-                </div>
-                <div class="drag-flag">
-                  <DbIcon
-                    style="font-size: 10px; color: #fff"
-                    type="drag" />
-                </div>
-                <div
-                  v-bk-tooltips="t('移除')"
-                  class="action-btn remove-btn"
-                  @click.stop="handleRemove(fileItemData.name)">
-                  <DbIcon
-                    style="color: #fff"
-                    type="delete" />
-                </div>
-              </template>
+                    type="check-circle-fill" /> -->
+                <DbIcon
+                  style="color: #2dcb56"
+                  type="check-circle-fill" />
+              </div>
+              <div class="drag-flag">
+                <DbIcon
+                  style="font-size: 10px; color: #fff"
+                  type="drag" />
+              </div>
+              <div
+                v-bk-tooltips="t('移除')"
+                class="action-btn remove-btn"
+                @click.stop="handleRemove(fileItemData.name)">
+                <DbIcon
+                  style="color: #fff"
+                  type="delete" />
+              </div>
+              <!-- </template> -->
             </div>
           </div>
         </template>
@@ -86,30 +89,30 @@
 <script lang="ts">
   import Vuedraggable from 'vuedraggable';
 
-  import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
+  // import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
 
   export interface IFileData {
     content: string;
     file: File | null;
-    grammarCheck?: GrammarCheckModel;
-    isCheckFailded: boolean;
-    isSuccess: boolean;
-    isUploadFailed: boolean;
-    isUploading: boolean;
-    messageList: GrammarCheckModel['messageList'];
-    realFilePath: string;
+    // grammarCheck?: GrammarCheckModel;
+    // isCheckFailded: boolean;
+    // isSuccess: boolean;
+    // isUploadFailed: boolean;
+    // isUploading: boolean;
+    // messageList: GrammarCheckModel['messageList'];
+    // realFilePath: string;
   }
 
   export const createFileData = (data = {} as Partial<IFileData>) => ({
     content: data.content || '',
     file: data.file || null,
-    grammarCheck: data.grammarCheck,
-    isCheckFailded: data.isCheckFailded === undefined,
-    isSuccess: data.isSuccess || false,
-    isUploadFailed: data.isUploadFailed || false,
-    isUploading: data.isUploading || false,
-    messageList: data.messageList || [],
-    realFilePath: data.realFilePath || '',
+    // grammarCheck: data.grammarCheck,
+    // isCheckFailded: data.isCheckFailded === undefined,
+    // isSuccess: data.isSuccess || false,
+    // isUploadFailed: data.isUploadFailed || false,
+    // isUploading: data.isUploading || false,
+    // messageList: data.messageList || [],
+    // realFilePath: data.realFilePath || '',
   });
 </script>
 <script setup lang="ts">
@@ -119,7 +122,7 @@
 
   interface Props {
     data: Array<string>;
-    fileData: Record<string, IFileData>;
+    // fileData: Record<string, IFileData>;
   }
 
   interface Emits {

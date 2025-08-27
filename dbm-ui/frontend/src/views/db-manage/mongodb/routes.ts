@@ -12,15 +12,7 @@ import { t } from '@locales/index';
 const { createRouteItem } = createToolboxRoute(DBTypes.MONGODB);
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
-  {
-    path: 'script-execute/:step?',
-    name: 'MongoScriptExecute',
-    meta: {
-      activeMenu: 'mongoToolbox',
-      navName: t('变更脚本执行'),
-    },
-    component: () => import('@views/db-manage/mongodb/script-execute/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, t('变更脚本执行')),
   createRouteItem(TicketTypes.MONGODB_ADD_SHARD_NODES, t('扩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_SHARD_NODES, t('缩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
@@ -66,7 +58,7 @@ const mongodbToolboxRouters: RouteRecordRaw[] = [
       navName: t('工具箱'),
     },
     redirect: {
-      name: 'MongoScriptExecute',
+      name: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
     },
     component: () => import('@views/db-manage/mongodb/toolbox/Index.vue'),
     children: [

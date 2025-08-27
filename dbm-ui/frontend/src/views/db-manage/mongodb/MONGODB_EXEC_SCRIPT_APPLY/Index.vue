@@ -29,6 +29,7 @@
           ref="sqlFileRef"
           v-model="formData.execute_sqls"
           v-model:import-mode="formData.import_mode" />
+        <TicketPayload v-model="formData.payload" />
       </DbForm>
     </div>
     <template #action>
@@ -56,18 +57,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/source/ticket';
+  import type { Mongodb } from '@services/model/ticket/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
+
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import SqlFile from './components/sql-file/Index.vue';
   import TargetCluster from './components/TargetCluster.vue';
   // import TaskTips from './components/TaskTips.vue';
-
-  const { currentBizId } = useGlobalBizs();
-  const router = useRouter();
 
   const createDefaultData = () => ({
     backup: [],
@@ -75,6 +77,7 @@
     execute_db_infos: [],
     execute_sqls: [] as string[],
     import_mode: 'manual',
+    payload: createTickePayload(),
   });
 
   const { t } = useI18n();
@@ -85,38 +88,36 @@
 
   const resetFormKey = ref(0);
 
-  const isSubmitting = ref(false);
-
   const isAbleSubmit = computed(() => formData.cluster_ids.length > 0 && formData.execute_sqls.length > 0);
 
-  const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value.validate();
-      const executeInfo = sqlFileRef.value.getValue();
-      const params = {
-        bk_biz_id: currentBizId,
-        details: {
-          cluster_ids: formData.cluster_ids,
-          ...executeInfo,
-        },
-        ticket_type: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
-      };
-      await createTicket(params).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'MongoScriptExecute',
-          params: {
-            step: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      Object.assign(formData, {
+        payload: createTickePayload(ticketDetail),
       });
-    } finally {
-      isSubmitting.value = false;
-    }
+    },
+  });
+
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    cluster_ids: number[];
+    mode: string;
+    scripts: {
+      content: string;
+      name: string;
+    }[];
+  }>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY);
+
+  const handleSubmit = async () => {
+    await formRef.value.validate();
+    const executeInfo = sqlFileRef.value.getValue();
+
+    createTicketRun({
+      details: {
+        cluster_ids: formData.cluster_ids,
+        ...executeInfo,
+      },
+      ...formData.payload,
+    });
   };
 
   const handleReset = () => {
