@@ -207,7 +207,6 @@ func obtainStorageMetrics(systemMetric *haprobe.HostMetric) error {
 
 // obtainNetworkMetrics obtain the network metrics
 func obtainNetworkMetrics(systemMetric *haprobe.HostMetric) error {
-	ipAddress := ""
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -238,13 +237,9 @@ func obtainNetworkMetrics(systemMetric *haprobe.HostMetric) error {
 				continue
 			}
 
-			if ipAddress != "" {
-				ipAddress += ";"
-			}
-			ipAddress += ip.String()
+			systemMetric.NetIPs = append(systemMetric.NetIPs, ip.String())
 		}
 	}
-	systemMetric.NetIpAddress = ipAddress
 
 	// Network usage
 	networkUsage := ""

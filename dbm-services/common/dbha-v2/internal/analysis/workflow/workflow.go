@@ -33,11 +33,13 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
 const (
 	scanIntervalLimitMin = 5 * time.Second
+	readBatchCount       = 1000
 )
 
 type Workflow struct {
@@ -68,6 +70,34 @@ func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Wor
 	return wflow, nil
 }
 
+func (w *Workflow) scanEvents() {
+	events, retErr := w.hadata.readAllDbEvent(readBatchCount, -10*time.Minute)
+	if retErr != nil {
+		return
+	}
+
+	for _, event := range events {
+		monitorEvent := &monitor.EventData{
+			Name:      event.Name.String(),
+			Target:    event.Endpoint,
+			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = event.Message
+		monitorEvent.Dimension.BkCloudID = event.BkCloudID
+		monitorEvent.Dimension.IP = event.IP
+		monitorEvent.Dimension.Port = event.Port
+		monitorEvent.Dimension.DbTypeName = event.DbTypeName.String()
+		monitorEvent.Dimension.DbEventType = event.DbEventType.String()
+
+		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+			logger.Warn("%v", err)
+		}
+
+		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
+	}
+}
+
 func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) {
 	logger.Debug("check the business: %d", bizID)
 
@@ -88,13 +118,14 @@ func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) 
 		}
 	}()
 
-	metaData, retErr := w.hadata.readMetadataCacheWithBizID(bizID, 1000)
+	// read all metadata with bizID
+	metaData, retErr := w.hadata.readMetadataCacheWithBizID(bizID, readBatchCount)
 	if retErr != nil {
 		return retErr
 	}
 
 	for _, meta := range metaData {
-		logger.Debug("check the business: %d, bk cloud id: %d ip: %s port: %d",
+		logger.Debug("check the business(metadata): %d, bk cloud id: %d ip: %s port: %d",
 			meta.BkBizID, meta.BkCloudID, meta.IP, meta.Port)
 	}
 
@@ -154,7 +185,9 @@ func (w *Workflow) Run(ctx context.Context) error {
 				return
 
 			case <-timer.C:
+				w.scanEvents()
 				w.scanBusinesses(ctx)
+
 				timer.Reset(w.cfg.ScanInterval)
 			}
 		}
