@@ -33,16 +33,18 @@ import (
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
-	DbEventFieldMachineID = "machine_id"
-	DbEventFieldBkCloudID = "bk_cloud_id"
-	DbEventFieldIP        = "ip"
-	DbEventFieldPort      = "port"
-	DbEventFieldEndpoint  = "endpoint"
-	DbEventFieldType      = "db_event_type"
-	DbEventFieldMessage   = "messge"
-	DbEventFieldCreatedAt = "created_at"
-	DbEventFieldUpdatedAt = "updated_at"
-	DbEventFieldDeletedAt = "deleted_at"
+	DbEventFieldMachineID  = "machine_id"
+	DbEventFieldBkCloudID  = "bk_cloud_id"
+	DbEventFieldIP         = "ip"
+	DbEventFieldPort       = "port"
+	DbEventFieldEndpoint   = "endpoint"
+	DbEventFieldDbTypeName = "db_type_name"
+	DbEventFieldName       = "db_event_name"
+	DbEventFieldType       = "db_event_type"
+	DbEventFieldMessage    = "messge"
+	DbEventFieldCreatedAt  = "created_at"
+	DbEventFieldUpdatedAt  = "updated_at"
+	DbEventFieldDeletedAt  = "deleted_at"
 )
 
 type DbEvent struct {
@@ -52,6 +54,8 @@ type DbEvent struct {
 	IP          string              `gorm:"column:ip;primaryKey"`
 	Port        int                 `gorm:"column:port;primaryKey"`
 	Endpoint    string              `gorm:"column:endpoint"`
+	DbTypeName  haprobe.DbType      `gorm:"column:db_type_name"`
+	Name        haprobe.DbEventName `gorm:"column:db_event_name"`
 	DbEventType haprobe.DbEventType `gorm:"column:db_event_type"`
 	Message     string              `gorm:"column:message"`
 

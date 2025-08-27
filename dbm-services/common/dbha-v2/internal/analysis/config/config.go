@@ -58,6 +58,7 @@ type WorkflowConfig struct {
 // MonitorConfig monitor's configuration
 type MonitorConfig struct {
 	DataID            uint64 `yaml:"dataID"            mapstructure:"dataID"`
+	AccessToken       string `yaml:"accessToken"       mapstructure:"accessToken"`
 	BkMonitorBeat     string `yaml:"bkMonitorBeat"     mapstructure:"bkMonitorBeat"`
 	BkMonitorEndpoint string `yaml:"bkMonitorEndpoint" mapstructure:"bkMonitorEndpoint"`
 }
