@@ -18,19 +18,21 @@ from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import MYSQL_USUAL_JOB_TIME, DBType
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum, MySQLBackupTypeEnum, MysqlChangeMasterType
+from backend.flow.consts import MediumEnum, MySQLBackupTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
-from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import tendbha_rollback_data_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
+    change_master_by_master_status,
+    tendbha_rollback_data_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
-from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -350,27 +352,16 @@ class MySQLRollbackDataFlow(object):
                             "target_port": repl_master.ejector.port,
                             "repl_ip": rollback_storage.machine.ip,
                             "repl_port": rollback_storage.port,
-                            "change_master_type": MysqlChangeMasterType.MASTERSTATUS.value,
                             "change_master_force": True,
+                            "bk_cloud_id": cluster_class.bk_cloud_id,
+                            "cluster_type": cluster_class.cluster_type,
                         }
-                        exec_act_kwargs.cluster = copy.deepcopy(repl_cluster)
-                        exec_act_kwargs.exec_ip = repl_master.ejector.machine.ip
-                        exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
-                        exec_act_kwargs.get_mysql_payload_func = (
-                            MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
-                        )
-                        change_master_pipeline.add_act(
-                            act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
-                            act_component_code=ExecuteDBActuatorScriptComponent.code,
-                            kwargs=asdict(exec_act_kwargs),
-                            write_payload_var="show_master_status_info",
-                        )
-                        exec_act_kwargs.exec_ip = rollback_storage.machine.ip
-                        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
-                        change_master_pipeline.add_act(
-                            act_name=_("建立原主从关系{}".format(rollback_storage.ip_port)),
-                            act_component_code=ExecuteDBActuatorScriptComponent.code,
-                            kwargs=asdict(exec_act_kwargs),
+                        change_master_pipeline.add_sub_pipeline(
+                            sub_flow=change_master_by_master_status(
+                                root_id=self.root_id,
+                                uid=self.ticket_data["uid"],
+                                cluster_info=copy.deepcopy(repl_cluster),
+                            )
                         )
                     elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
                         change_master_pipeline.add_act(
