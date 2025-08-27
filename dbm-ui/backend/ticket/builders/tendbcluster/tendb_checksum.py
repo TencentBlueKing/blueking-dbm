@@ -17,6 +17,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance, TenDBClusterStorageSet
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
@@ -105,13 +106,19 @@ class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
         return shard_infos
 
     def fetch_instance_shard_infos(self, cluster, master, backup_table_info):
-        master_inst = StorageInstance.find_insts_by_addresses([master]).first()
+        master_inst = (
+            StorageInstance.find_insts_by_addresses([master]).prefetch_related("as_receiver__ejector").first()
+        )
         inst_tuple = master_inst.as_ejector.first()
         master_info = self._get_instance_related_info(master_inst)
         slave_info = self._get_instance_related_info(inst_tuple.receiver)
-
+        # 如果master是repeater角色，需获取旧主机的分片信息
+        if master_inst.instance_inner_role == InstanceInnerRole.REPEATER.value:
+            shard_id = master_inst.as_receiver.get().ejector.as_ejector.first().tendbclusterstorageset.shard_id
+        else:
+            shard_id = inst_tuple.tendbclusterstorageset.shard_id
         shard_info = {
-            "shard_id": inst_tuple.tendbclusterstorageset.shard_id,
+            "shard_id": shard_id,
             "master": master_info,
             "slaves": [slave_info],
             **backup_table_info,

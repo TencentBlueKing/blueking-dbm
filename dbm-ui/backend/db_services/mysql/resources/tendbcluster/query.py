@@ -116,7 +116,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             for role in TenDBClusterSpiderRole.get_values()
         }
 
-        remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(cluster.storages)
+        remote_db, remote_dr, _, _ = TenDBClusterClusterHandler.get_remote_infos(cluster.storages)
         remote_db = [{**inst.simple_desc, "shard_id": inst.shard_id} for inst in remote_db]
         remote_dr = [{**inst.simple_desc, "shard_id": inst.shard_id} for inst in remote_dr]
         # 计算machine分组

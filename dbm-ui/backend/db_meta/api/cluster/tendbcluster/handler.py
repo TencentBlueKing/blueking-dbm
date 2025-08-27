@@ -386,10 +386,25 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
             setattr(inst, "shard_id", shard_id)
             remote_infos[inst.instance_role].append(inst)
+            # 如果实例是repeater 把对应的实例添加到new_remote_slave中
+            if inst.instance_inner_role == InstanceInnerRole.REPEATER:
+                new_slave = getattr(inst, "as_ejector").first().receiver
+                setattr(new_slave, "shard_id", shard_id)
+                remote_infos["new_remote_slave"].append(new_slave)
+
+        # 即存在new_remote_slave 需移除原remote_slave的实例
+        for new_slave in remote_infos.get("new_remote_slave", []):
+            if new_slave in remote_infos[InstanceRole.REMOTE_SLAVE.value]:
+                remote_infos[InstanceRole.REMOTE_SLAVE.value].remove(new_slave)
 
         # 将-1分片放在最后，优先展示合法分片
         sort_func = lambda x: x.shard_id if x.shard_id >= 0 else float("inf")  # noqa: E731
         master_infos = sorted(remote_infos[InstanceRole.REMOTE_MASTER.value], key=sort_func)
         slave_infos = sorted(remote_infos[InstanceRole.REMOTE_SLAVE.value], key=sort_func)
-
-        return master_infos, slave_infos
+        repeater_infos = []
+        new_slave_infos = []
+        if InstanceRole.REMOTE_REPEATER.value in remote_infos:
+            repeater_infos = sorted(remote_infos[InstanceRole.REMOTE_REPEATER.value], key=sort_func)
+        if "new_remote_slave" in remote_infos:
+            new_slave_infos = sorted(remote_infos["new_remote_slave"], key=sort_func)
+        return master_infos, slave_infos, repeater_infos, new_slave_infos
