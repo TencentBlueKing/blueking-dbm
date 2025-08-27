@@ -8,6 +8,8 @@
 
 package model
 
+import "time"
+
 type BinlogFileModel struct {
 	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
@@ -21,14 +23,14 @@ type BinlogFileModel struct {
 	Filename      string `json:"filename,omitempty" db:"filename" gorm:"column:filename;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:4"`
 	Filesize      int64  `json:"size" db:"filesize" gorm:"column:filesize;type:bigint;NOT NULL"`
 	// FileMtime 文件最后修改时间，带时区
-	FileMtime        string `json:"file_mtime" db:"file_mtime" gorm:"column:file_mtime;type:datetime;NOT NULL;index:idx_mtime"`
-	StartTime        string `json:"start_time" db:"start_time" gorm:"column:start_time;type:datetime;NOT NULL;index:id_clusterid,priority:2;id_clusterdomain,priority:2"`
-	StopTime         string `json:"stop_time" db:"stop_time" gorm:"column:stop_time;type:datetime;NOT NULL"`
-	BackupEnable     bool   `json:"backup_enable" db:"backup_enable" gorm:"column:backup_enable;type:tinyint;NOT NULL"`
-	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status" gorm:"column:backup_status;type:tinyint;NOT NULL;index:idx_status"`
-	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info" gorm:"column:backup_status_info;type:varchar(255);NOT NULL"`
-	TaskId           string `json:"task_id,omitempty" db:"task_id" gorm:"column:task_id;type:varchar(60);NOT NULL;index:idx_taskid"`
-	FileRetentionTag string `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
+	FileMtime        time.Time `json:"file_mtime" db:"file_mtime" gorm:"column:file_mtime;type:TIMESTAMP;default:'1970-01-02 00:00:00';index:idx_mtime"`
+	StartTime        time.Time `json:"start_time" db:"start_time" gorm:"column:start_time;type:TIMESTAMP NULL;default:null;index:id_clusterid,priority:2;id_clusterdomain,priority:2"`
+	StopTime         time.Time `json:"stop_time" db:"stop_time" gorm:"column:stop_time;type:TIMESTAMP NULL;default:null"`
+	BackupEnable     bool      `json:"backup_enable" db:"backup_enable" gorm:"column:backup_enable;type:tinyint;NOT NULL"`
+	BackupStatus     int       `json:"backup_status,omitempty" db:"backup_status" gorm:"column:backup_status;type:tinyint;NOT NULL;index:idx_status"`
+	BackupStatusInfo string    `json:"backup_status_info" db:"backup_status_info" gorm:"column:backup_status_info;type:varchar(255);NOT NULL"`
+	TaskId           string    `json:"task_id,omitempty" db:"task_id" gorm:"column:task_id;type:varchar(60);NOT NULL;index:idx_taskid"`
+	FileRetentionTag string    `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
 }
 
 func (m BinlogFileModel) TableName() string {

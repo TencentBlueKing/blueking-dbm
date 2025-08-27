@@ -66,6 +66,18 @@ func MySQLVersionParse(version string) uint64 {
 	return mysqlVersionParse(re, version)
 }
 
+func MySQLVersionCompare(ver1, ver2 string) int {
+	v1 := MySQLVersionParse(ver1)
+	v2 := MySQLVersionParse(ver2)
+	if compare := v2 - v1; compare > 0 {
+		return 1
+	} else if compare < 0 {
+		return -1
+	} else {
+		return 0
+	}
+}
+
 // SpiderVersionParse 解析spider version
 // example:
 // mariadb-10.3.7-linux-x86_64-tspider-3.7.6-gcs.tar.gz

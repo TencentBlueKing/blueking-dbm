@@ -16,7 +16,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 )
 
 // Dumper TODO
@@ -27,7 +26,7 @@ type Dumper interface {
 }
 
 // BuildDumper return logical or physical dumper
-func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db *sql.DB) (dumper Dumper, err error) {
+func (r *BackupRunner) BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db *sql.DB) (dumper Dumper, err error) {
 	if cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("only backup grants for %d. set backup-type to logical", cnf.Public.MysqlPort)
 		cnf.Public.BackupType = cst.BackupLogical
@@ -40,15 +39,14 @@ func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db 
 	if err != nil {
 		return nil, err
 	}
-	if err = precheck.CheckBackupType(cnf, storageEngine); err != nil {
-		return nil, err
-	}
-
+	/*
+		if err = r.CheckBackupType(cnf, storageEngine); err != nil {
+			return nil, err
+		}
+	*/
 	if strings.EqualFold(cnf.Public.BackupType, cst.BackupLogical) {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpAuto || cnf.LogicalBackup.UseMysqldump == "" {
-			if glibcVer, err := cmutil.GetGlibcVersion(); err != nil {
-				logger.Log.Warn("failed to glibc version, err:", err)
-			} else if glibcVer < "2.14" {
+			if r.glibcVersion != "" && r.glibcVersion < "2.14" {
 				/*
 					// mydumper need glibc version >= 2.14
 					logger.Log.Infof("UseMysqldump auto with glibc version %s < 2.14, use mysqldump", glibcVer)
@@ -57,7 +55,7 @@ func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db 
 				// 最新版本 mydumper 已经支持 glibc 2.14 以上版本
 				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpNo
 			} else {
-				logger.Log.Infof("UseMysqldump auto with glibc version %s >= 2.14, use mydumper", glibcVer)
+				logger.Log.Infof("UseMysqldump auto with glibc version %s >= 2.14, use mydumper", r.glibcVersion)
 				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpNo
 			}
 		}
@@ -86,7 +84,10 @@ func BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent, db 
 		if err := validate.GoValidateStructTag(cnf.PhysicalBackup, "ini"); err != nil {
 			return nil, err
 		}
-
+		if cmutil.MySQLVersionCompare(r.mysqlVersion, "8.0.0") >= 0 && r.glibcVersion < "2.14" {
+			return nil, errors.Errorf("glibc version %s < 2.14, "+
+				"not support physical backup for mysql 8.0.0+", r.glibcVersion)
+		}
 		if cst.StorageEngineRocksdb == storageEngine {
 			dumper = &PhysicalRocksdbDumper{
 				cnf: cnf,

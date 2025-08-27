@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package precheck
+package backupexe
 
 import (
 	"database/sql"

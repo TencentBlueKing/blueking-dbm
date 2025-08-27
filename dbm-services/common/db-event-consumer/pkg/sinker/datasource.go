@@ -48,13 +48,12 @@ func InitDatasource() error {
 }
 
 type InstanceDsn struct {
-	User                   string                 `yaml:"user"`
-	Password               string                 `yaml:"password"`
-	Address                string                 `yaml:"address"`
-	Database               string                 `yaml:"database"`
-	Charset                string                 `yaml:"charset"`
-	ConnectionPerPartition int                    `yaml:"connection_per_partition"`
-	SessionVariables       map[string]interface{} `yaml:"session_variables"`
+	User             string                 `yaml:"user"`
+	Password         string                 `yaml:"password"`
+	Address          string                 `yaml:"address"`
+	Database         string                 `yaml:"database"`
+	Charset          string                 `yaml:"charset"`
+	SessionVariables map[string]interface{} `yaml:"session_variables" mapstructure:"session_variables"`
 }
 
 func GetDSWriter(ds *Datasource) (DSWriter, error) {

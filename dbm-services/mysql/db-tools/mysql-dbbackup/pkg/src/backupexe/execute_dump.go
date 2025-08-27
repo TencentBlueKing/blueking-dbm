@@ -10,23 +10,34 @@ package backupexe
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 	"time"
 
 	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
-
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
 
+type BackupRunner struct {
+	cnf           *config.BackupConfig
+	db            *sql.DB
+	metaInfo      *dbareport.IndexContent
+	mysqlVersion  string
+	storageEngine string
+	glibcVersion  string
+	// dataDirSize bytes
+	dataDirSize uint64
+	// backupTypeFixed string
+}
+
 // ExecuteBackup execute dump backup command
-func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
+func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	// get mysql version from mysql server, and then set env variables
 	db, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
@@ -35,30 +46,25 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	defer func() {
 		_ = db.Close()
 	}()
-	versionStr, err := mysqlconn.GetMysqlVersion(db)
-	if err != nil {
-		return nil, err
-	}
 	logBinDisabled := false
 	if logBinStr, err := mysqlconn.GetSingleGlobalVar("log_bin", db); err == nil {
 		if logBin, err := cmutil.ToBoolExtE(logBinStr); err == nil {
 			logBinDisabled = !logBin
 		}
 	}
-	mysqlVersion, isOfficial := util.VersionParser(versionStr)
-	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
+	XbcryptBin = GetXbcryptBin(r.mysqlVersion)
 
 	metaInfo := &dbareport.IndexContent{}
-	dumper, err := BuildDumper(cnf, metaInfo, db) // 会在里面确定备份方式
+	dumper, err := r.BuildDumper(cnf, metaInfo, db) // 会在里面确定备份方式
 	if err != nil {
 		return nil, err
 	}
-	if err := dumper.initConfig(versionStr, logBinDisabled); err != nil {
+	if err := dumper.initConfig(r.mysqlVersion, logBinDisabled); err != nil {
 		return nil, err
 	}
 
 	// BuildDumper 里面会修正备份方式，所以 SetEnv 要放在后面执行
-	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
+	if envErr := SetEnv(cnf.Public.BackupType, r.mysqlVersion); envErr != nil {
 		return nil, envErr
 	}
 

@@ -26,8 +26,14 @@ import (
 	"xorm.io/xorm"
 )
 
-func GetGormDB(dsn *InstanceDsn, sessionVars map[string]interface{}) (*gorm.DB, error) {
-	dbc, err := GetConn(dsn, sessionVars)
+func GetGormDB(dsn *InstanceDsn) (*gorm.DB, error) {
+	// loc=UTC&time_zone='+00:00' 对 timestamp 字段友好，对 datetime 字段会有 +8 市区差距
+	defaultSessionVars := map[string]interface{}{
+		"loc":       "UTC",
+		"time_zone": "'+00:00'",
+		"parseTime": "True",
+	}
+	dbc, err := GetConn(dsn, defaultSessionVars)
 	slowLogger := logger.New(
 		//将标准输出作为Writer
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -65,26 +71,21 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 	if sessionVars == nil {
 		sessionVars = map[string]interface{}{}
 	}
-	slog.Info("session variables", slog.String("local", time.Local.String()), slog.Any("utc", time.UTC.String()))
-	if time.Local == time.UTC {
-		sessionVars["loc"] = "UTC"
-		sessionVars["time_zone"] = "'+00:00'"
-	} else {
-		sessionVars["loc"] = "Local"
-	}
-	sessionVars = lo.Assign(dsn.SessionVariables, sessionVars)
+	dsn.SessionVariables = lo.Assign(sessionVars, dsn.SessionVariables)
 	sessionParams := []string{}
-	for k, v := range sessionVars {
-		sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k,
-			url.QueryEscape(cast.ToString(v))))
+	for k, v := range dsn.SessionVariables {
+		if val := cast.ToString(v); strings.Contains(val, "%") {
+			sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k, val))
+		} else {
+			sessionParams = append(sessionParams, fmt.Sprintf("%s=%s", k, url.QueryEscape(val)))
+		}
 	}
-
 	if dsn.Charset == "" {
 		dsn.Charset = "utf8mb4"
 	}
-	slog.Info("session variables", slog.String("db", dsn.Address), slog.Any("sessionVars", sessionVars))
+	slog.Info("session variables", slog.String("db", dsn.Address), slog.Any("sessionVars", dsn.SessionVariables))
 
-	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&parseTime=True&%s",
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&%s",
 		dsn.User,
 		dsn.Password,
 		dsn.Address,

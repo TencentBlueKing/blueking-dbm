@@ -106,9 +106,11 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 
 // GetXbcryptBin get xbcrypt path for encryption, maybe for mydumper to encrypt file
 // mysqlVersion format:008000018
-func GetXbcryptBin(mysqlVersion string, isOfficial bool) string {
+func GetXbcryptBin(mysqlVersion string) string {
+	parsedVersion, isOfficial := util.VersionParser(mysqlVersion)
+
 	innoCmdBin := InnodbCommand{}
-	_ = innoCmdBin.ChooseXtrabackupTool(mysqlVersion, isOfficial)
+	_ = innoCmdBin.ChooseXtrabackupTool(parsedVersion, isOfficial)
 	return innoCmdBin.xbcryptBin
 }
 

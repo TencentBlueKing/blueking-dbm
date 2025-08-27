@@ -9,7 +9,7 @@
  */
 
 // Package precheck TODO
-package precheck
+package backupexe
 
 import (
 	"context"
@@ -17,10 +17,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // BeforeDump precheck before dumping backup
@@ -29,7 +31,7 @@ import (
 // 检查字符集
 // 删除就备份
 // 检查磁盘空间
-func BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
+func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
 	dbh, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return err
@@ -37,14 +39,25 @@ func BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
 	defer func() {
 		_ = dbh.Close()
 	}()
-	storageEngine, err := mysqlconn.GetStorageEngine(dbh)
+	r.storageEngine, err = mysqlconn.GetStorageEngine(dbh)
 	if err != nil {
 		return err
 	}
-	if err := CheckBackupType(cnf, storageEngine); err != nil {
+	r.mysqlVersion, err = mysqlconn.GetMysqlVersion(dbh)
+	if err != nil {
 		return err
 	}
-
+	r.glibcVersion, err = cmutil.GetGlibcVersion()
+	if err != nil {
+		logger.Log.Warn("failed to glibc version, err:", err)
+	}
+	r.dataDirSize, err = util.CalServerDataSize(cnf.Public.MysqlPort)
+	if err != nil {
+		logger.Log.Warnf("failed to get datadir size for %d", cnf.Public.MysqlPort)
+	}
+	if err = r.CheckBackupType(cnf, r.storageEngine); err != nil {
+		return err
+	}
 	cnfPublic := &cnf.Public
 
 	/*
@@ -66,7 +79,7 @@ func BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
 	}
 
 	if cnf.Public.IfBackupData() {
-		if err := CheckAndCleanDiskSpace(cnfPublic, dbh); err != nil {
+		if err := CheckAndCleanDiskSpace(cnfPublic, r.dataDirSize, dbh); err != nil {
 			logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
 			return err
 		}

@@ -125,7 +125,7 @@ var dumpLogicalCmd = &cobra.Command{
 		if cnf.Public.IsFullBackup == 0 {
 			// cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
 		}
-		err = task.backupData(context.Background(), &cnf)
+		err = task.run(context.Background(), &cnf)
 		if err != nil {
 			if resp, err := reapi.SyncReport(reportCore,
 				task.statusReport.SetStatus("Failed", err.Error())); err != nil {

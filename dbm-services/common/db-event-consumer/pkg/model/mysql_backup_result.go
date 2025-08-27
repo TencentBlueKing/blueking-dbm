@@ -13,8 +13,8 @@ import (
 	"log/slog"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/go-playground/validator/v10"
+	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -40,12 +40,14 @@ type MysqlBackupResultModel struct {
 	MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(120);NOT NULL"`
 	DataSchemaGrant string `json:"data_schema_grant" db:"data_schema_grant" gorm:"column:data_schema_grant;type:varchar(32);NOT NULL"`
 	// IsFullBackup 是否包含数据的全备
-	IsFullBackup         bool      `json:"is_full_backup" db:"is_full_backup" gorm:"column:is_full_backup;type:tinyint;NOT NULL"`
+	IsFullBackup bool `json:"is_full_backup" db:"is_full_backup" gorm:"column:is_full_backup;type:tinyint;NOT NULL"`
+	// IsStandby 是否是 standby, yes/no, empty means unknown
+	IsStandby            string    `json:"is_standby" db:"is_standby" gorm:"column:is_standby;type:varchar(10);NOT NULL"`
 	FileRetentionTag     string    `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
 	TotalFilesize        uint64    `json:"total_filesize" db:"total_filesize" gorm:"column:total_filesize;type:bigint;NOT NULL"`
-	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:timestamp;NOT NULL;index:uk_hostport,unique,priority:4"`
-	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time" gorm:"column:backup_begin_time;type:timestamp;NOT NULL"`
-	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time" gorm:"column:backup_end_time;type:timestamp;NOT NULL"`
+	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:TIMESTAMP;default:'1970-01-02 00:00:00';index:uk_hostport,unique,priority:4"`
+	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time" gorm:"column:backup_begin_time;type:TIMESTAMP NULL;default:null"`
+	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time" gorm:"column:backup_end_time;type:TIMESTAMP NULL;default:null"`
 	BackupMethod         string    `json:"backup_method" db:"backup_method" gorm:"column:backup_method;type:varchar(32)"`
 
 	BinlogInfo   json.RawMessage `json:"binlog_info" db:"binlog_info" gorm:"column:binlog_info;type:text;NOT NULL"`
@@ -112,7 +114,14 @@ func (m *MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) err
 }
 
 func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
-	sqlBuilder := sq.Replace(m.TableName()).Columns("cluster_address",
+	kafkaObjs, ok := i.([]MysqlBackupResultModel)
+	if !ok {
+		kafkaObjs = []MysqlBackupResultModel{i.(MysqlBackupResultModel)}
+	}
+
+	builder := sb.NewInsertBuilder()
+	builder.ReplaceInto(m.TableName())
+	builder.Cols("cluster_address",
 		"backup_host",
 		"backup_port",
 		"mysql_role",
@@ -121,6 +130,7 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"backup_type",
 		"data_schema_grant",
 		"is_full_backup",
+		"is_standby",
 		"backup_consistent_time",
 		"backup_begin_time",
 		"backup_end_time",
@@ -137,24 +147,17 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"file_list",
 		"event_report_timestamp",
 	)
-	kafkaObjs, ok := i.([]MysqlBackupResultModel)
-	if !ok {
-		kafkaObjs = []MysqlBackupResultModel{i.(MysqlBackupResultModel)}
-	}
 
 	for _, kafkaObj := range kafkaObjs {
 		var modelObj = &MysqlBackupResultModel{}
 		if err := copier.Copy(modelObj, kafkaObj); err != nil {
 			return err
 		}
-
 		modelObj.FileList, _ = json.Marshal(kafkaObj.FileList)
 		modelObj.BinlogInfo, _ = json.Marshal(kafkaObj.BinlogInfo)
 		modelObj.ExtraFields, _ = json.Marshal(kafkaObj.ExtraFields)
 		modelObj.BkBizId = kafkaObj.BkBizId
-
-		//err = c.Db.Table(*c.Sinker.RuntimeConfig.Dsn.Table).FirstOrCreate(&modelObj).Error
-		sqlBuilder = sqlBuilder.Values(
+		builder.Values(
 			modelObj.ClusterAddress,
 			modelObj.BackupHost,
 			modelObj.BackupPort,
@@ -164,9 +167,10 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BackupType,
 			modelObj.DataSchemaGrant,
 			modelObj.IsFullBackup,
-			modelObj.BackupConsistentTime,
-			modelObj.BackupBeginTime,
-			modelObj.BackupEndTime,
+			modelObj.IsStandby,
+			modelObj.BackupConsistentTime.UTC(), // 因为这里没有用 gorm 来来写入，所以需要手动转换时区(conn用的是 utc)
+			modelObj.BackupBeginTime.UTC(),
+			modelObj.BackupEndTime.UTC(),
 			modelObj.BackupStatus,
 			modelObj.BackupMethod,
 			modelObj.MysqlVersion,
@@ -182,11 +186,12 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		)
 	}
 
-	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
+	sqlStr, sqlArgs := builder.Build()
+	sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
 	if err != nil {
 		return err
 	}
-	err = db.Model(m).Exec(sqlStr, sqlArgs...).Error
+	err = db.Model(m).Exec(sqlFull).Error
 	if err != nil {
 		slog.Error("replace message",
 			slog.Any("msg", err), slog.String("sql", sqlStr), slog.Any("args", sqlArgs))

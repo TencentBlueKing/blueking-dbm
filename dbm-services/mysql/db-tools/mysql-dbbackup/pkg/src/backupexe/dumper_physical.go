@@ -239,7 +239,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 		} else {
 			logger.Log.Warn("tail can not find more detail error message from ", xtrabackupLogFile)
 		}
-		logger.Log.Error("run physical backup failed", err, p.cnf.Public.MysqlPort)
+		logger.Log.Error("run physical backup failed: ", err, p.cnf.Public.MysqlPort)
 		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	return nil

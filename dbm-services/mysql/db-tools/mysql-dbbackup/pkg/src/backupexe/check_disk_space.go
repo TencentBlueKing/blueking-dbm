@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package precheck
+package backupexe
 
 import (
 	"database/sql"
@@ -86,14 +86,10 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 }
 
 // CheckAndCleanDiskSpace 如果空间不足，则会强制删除所有备份文件
-func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
-	dataDirSize, err := util.CalServerDataSize(cnf.MysqlPort)
-	if err != nil {
-		return err
-	}
+func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sql.DB) (err error) {
 	// 第一次检查，空间满足直接通过
-	if sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize); err == nil {
-		logger.Log.Infof("disk space meets ok1, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
+	if sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes); err == nil {
+		logger.Log.Infof("disk space meets ok1, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
 		return nil
 	}
 	// 删除旧备份后，第二次检查
@@ -106,9 +102,9 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 		return nil
 	}
 
-	sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize)
+	sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes)
 	if err == nil {
-		logger.Log.Infof("disk space meets ok2, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
+		logger.Log.Infof("disk space meets ok2, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
 		return nil
 	} else {
 		logger.Log.Warnf("clean all backups still does not meet space needed: %s", err.Error())
@@ -136,13 +132,13 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 			logger.Log.Infof("evaluate using last backup size=%d, sizeLeft=%d, BackupDir=%s err=%v",
 				lastBackupSize, sizeLeft, cnf.BackupDir, err)
 		} else {
-			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize)
+			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSizeBytes)
 			logger.Log.Infof("evaluate using datadir size=%d, sizeLeft=%d, BackupDir=%s err=%v",
-				dataDirSize, sizeLeft, cnf.BackupDir, err)
+				dataDirSizeBytes, sizeLeft, cnf.BackupDir, err)
 		}
 		return err
 	} else {
-		logger.Log.Infof("disk space meets ok3, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
+		logger.Log.Infof("disk space meets ok3, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSizeBytes)
 	}
 	return nil
 }

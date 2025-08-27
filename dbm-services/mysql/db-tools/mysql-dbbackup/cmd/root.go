@@ -14,6 +14,7 @@ import (
 	"dbm-services/common/reverseapi/pkg"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
 
 // DbbackupVersion TODO
@@ -81,6 +82,11 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 	}
 	// 如果是在 remote 上执行，common_config 中一般获取不到 is_standby，会忽略错误
 	if instInfo, err := pkg.GetSelfInfo(cnf.Public.MysqlHost, cnf.Public.MysqlPort); err == nil {
+		if instInfo.IsStandBy {
+			dbareport.VarIsStandby = "yes"
+		} else {
+			dbareport.VarIsStandby = "no"
+		}
 		if instInfo.AccessLayer == meta.AccessLayerStorage && instInfo.InstanceInnerRole != "" {
 			cnf.Public.MysqlRole = instInfo.InstanceInnerRole
 			log.Infof("use role from common_config:%s, config:%s",

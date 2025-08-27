@@ -30,7 +30,7 @@ func NewMysqlWriter(dsn *InstanceDsn, db *gorm.DB) (*MysqlWriter, error) {
 	if dsn == nil {
 		return nil, errors.New("dsn is nil")
 	}
-	db, err := GetGormDB(dsn, nil)
+	db, err := GetGormDB(dsn)
 	if err != nil {
 		return nil, err
 	}

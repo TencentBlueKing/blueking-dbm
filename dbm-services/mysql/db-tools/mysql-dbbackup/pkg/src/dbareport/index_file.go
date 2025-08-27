@@ -31,6 +31,9 @@ const (
 	ReTar = `(.+)\.tar$`
 )
 
+// VarIsStandby global var
+var VarIsStandby string
+
 // BackupMetaFileBase index meta info 基础内容
 type BackupMetaFileBase struct {
 	// BackupId backup uuid 代表一次备份
@@ -57,6 +60,8 @@ type BackupMetaFileBase struct {
 	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
 	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`
 	BackupMethod         string    `json:"backup_method" db:"backup_method"`
+	// IsStandby 是否是 standby, yes/no empty means unknown
+	IsStandby string `json:"is_standby" db:"is_standby"`
 }
 
 // IndexContent the content of the index file
@@ -190,6 +195,7 @@ func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
 			i.BackupMethod = config.BackupNonFullByRegular
 		}
 	}
+	i.IsStandby = VarIsStandby
 }
 
 func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {

@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package precheck
+package backupexe
 
 import (
 	"strings"
@@ -17,15 +17,11 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // CheckBackupType check and fix backup type
-func CheckBackupType(cnf *config.BackupConfig, storageEngine string) error {
-	backupSize, err := util.CalServerDataSize(cnf.Public.MysqlPort)
-	if err != nil {
-		return err
-	}
+func (r *BackupRunner) CheckBackupType(cnf *config.BackupConfig, storageEngine string) (err error) {
+
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
 		if strings.EqualFold(storageEngine, cst.StorageEngineTokudb) ||
 			strings.EqualFold(storageEngine, cst.StorageEngineRocksdb) {
@@ -34,22 +30,21 @@ func CheckBackupType(cnf *config.BackupConfig, storageEngine string) error {
 			return nil
 		}
 		// report 时需要用真实的 backup type
-		if backupSize > cst.BackupTypeAutoDataSizeGB*1024*1024*1024 {
+		if r.dataDirSize > cst.BackupTypeAutoDataSizeGB*1024*1024*1024 {
 			logger.Log.Infof("data size %d for port %d is larger than %d GB, use physical",
-				backupSize, cnf.Public.MysqlPort, cst.BackupTypeAutoDataSizeGB)
+				r.dataDirSize, cnf.Public.MysqlPort, cst.BackupTypeAutoDataSizeGB)
 			cnf.Public.BackupType = cst.BackupPhysical
 		} else {
 			cnf.Public.BackupType = cst.BackupLogical
 		}
-		if glibcVer, err := cmutil.GetGlibcVersion(); err != nil {
-			logger.Log.Warn("failed to glibc version, err:", err)
-		} else if glibcVer < "2.14" {
-			// mydumper need glibc version >= 2.14
-			logger.Log.Infof("BackupType auto with glibc version %s < 2.14, use physical", glibcVer)
-			cnf.Public.BackupType = cst.BackupPhysical
+		if r.glibcVersion != "" && r.glibcVersion < "2.14" &&
+			cmutil.MySQLVersionCompare(r.mysqlVersion, "8.0.0") >= 0 {
+			// mysql 8.0 的物理备份，不支持 glibc < 2.14
+			// 修复版本的 mydumper 已经支持 glibc < 2.14
+			cnf.Public.BackupType = cst.BackupLogical
 		}
 	}
-	if cnf.Public.BackupType == cst.BackupPhysical && cnf.Public.IfBackupSchema() && !cnf.Public.IfBackupAll() {
+	if cnf.Public.IfBackupSchema() && !cnf.Public.IfBackupAll() {
 		logger.Log.Warnf("BackupType physical cannot backup schema only, change it to logical")
 		cnf.Public.BackupType = cst.BackupLogical
 		cnf.LogicalBackup.UseMysqldump = cst.BackupTypeAuto

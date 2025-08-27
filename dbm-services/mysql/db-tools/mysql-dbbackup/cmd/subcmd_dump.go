@@ -43,7 +43,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
@@ -132,7 +131,7 @@ var dumpCmd = &cobra.Command{
 		}
 		backupexe.ExecuteHome = filepath.Dir(exePath)
 		if err = dumpExecute(cmd, args); err != nil {
-			logger.Log.Error("dumpbackup failed ", err.Error())
+			logger.Log.Error("dumpbackup failed: ", err.Error())
 			manager := ma.NewManager(cst.MysqlCrondUrl)
 			body := struct {
 				Name      string
@@ -228,7 +227,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		ctx := context.Background()
 		done := make(chan error, 1)
 		go func() {
-			err := task.backupData(ctx, &cnf)
+			err := task.run(ctx, &cnf)
 			if err != nil {
 				logger.Log.Error("Create Dbbackup: Failure for ", f)
 			}
@@ -272,7 +271,8 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
-func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
+func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err error) {
+	runner := backupexe.BackupRunner{}
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStructTag(cnf.Public, "ini"); err != nil {
@@ -312,7 +312,7 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)
 		return nil
 	}
-	if err := precheck.BeforeDump(ctx, cnf); err != nil {
+	if err := runner.BeforeDump(ctx, cnf); err != nil {
 		return err
 	}
 	// 备份权限 backup priv info
@@ -320,7 +320,7 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 	//  如果还备份 schema/data，则走下面这个逻辑
 	if cnf.Public.IfBackupGrant() && !cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
-		if err := backupexe.BackupGrant(&cnf.Public); err != nil {
+		if err := runner.BackupGrant(&cnf.Public); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
 			return err
 		}
@@ -356,7 +356,7 @@ func (t *backupTask) backupData(ctx context.Context, cnf *config.BackupConfig) (
 	}
 	// ExecuteBackup 执行备份后，返回备份元数据信息
 	logger.Log.Info("backup main run:", cnf.Public.MysqlPort)
-	metaInfo, exeErr := backupexe.ExecuteBackup(ctx, cnf)
+	metaInfo, exeErr := runner.ExecuteBackup(ctx, cnf)
 	if exeErr != nil {
 		return exeErr
 	}
