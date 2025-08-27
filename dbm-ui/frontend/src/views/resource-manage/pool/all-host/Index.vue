@@ -191,10 +191,6 @@
 
   const { data: deviceClassList } = useRequest(fetchDeviceClass);
 
-  watch(searchValue, () => {
-    fetchData();
-  });
-
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'operator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
@@ -251,10 +247,6 @@
     isRecordShow.value = true;
     currentRow.value = data;
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 
 <style lang="less" scoped>
