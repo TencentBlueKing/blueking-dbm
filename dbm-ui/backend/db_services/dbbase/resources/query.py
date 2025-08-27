@@ -864,6 +864,25 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             module["db_module_id"]: module["db_module_name"]
             for module in db_module_queryset.values("db_module_id", "db_module_name")
         }
+        # 查询slave/repeater角色关联的主库
+        role = query_params.get("role", "").split(",")
+        pair_instance_map = {}
+        if (
+            InstanceRole.REMOTE_SLAVE.value in role
+            or InstanceRole.REMOTE_REPEATER.value in role
+            or InstanceRole.BACKEND_SLAVE.value in role
+            or InstanceRole.BACKEND_REPEATER.value in role
+        ):
+            instance_ids = [instance["id"] for instance in instances]
+            insts = (
+                StorageInstance.objects.filter(id__in=instance_ids)
+                .select_related("machine")
+                .prefetch_related("as_receiver", "as_receiver__ejector__machine")
+            )
+            for inst in insts:
+                pair_instance_map[inst.machine.ip] = inst.as_receiver.get().ejector.simple_desc
+
+        kwargs.update(pair_instance_map=pair_instance_map)
 
         # 将实例的查询结果序列化为实例字典信息
         instance_infos = [
@@ -957,6 +976,9 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         """
         cloud_info = kwargs.get("cloud_info", {})
         bk_cloud_name = cloud_info.get(str(instance["machine__bk_cloud_id"]), {}).get("bk_cloud_name", "")
+        instance["related_pair_instance"] = (
+            kwargs["pair_instance_map"][instance["machine__ip"]] if kwargs.get("pair_instance_map") else ""
+        )
         return {
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
@@ -985,6 +1007,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "create_at": datetime2str(instance["create_at"]),
             "spec_config": instance["machine__spec_config"],
             "bk_biz_id": instance["bk_biz_id"],
+            "related_pair_instance": instance["related_pair_instance"] or "",
         }
 
     @classmethod
