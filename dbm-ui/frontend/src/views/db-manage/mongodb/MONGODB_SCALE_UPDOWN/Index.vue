@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
+        :title="t('集群容量变更：提供MongoDB集群容量变更功能实现集群的扩容或缩容（集群分片数不变）')" />
       <DbForm
         ref="form"
         class="toolbox-form"
