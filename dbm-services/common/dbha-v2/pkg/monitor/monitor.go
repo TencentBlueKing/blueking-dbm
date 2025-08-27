@@ -65,8 +65,11 @@ type EventData struct {
 	} `json:"event"`
 
 	Dimension struct {
-		// recovery or abnormal, default is abnormal
-		Type string `json:"event_type,omitempty"`
+		BkCloudID   int    `json:"bk_cloud_id"`
+		IP          string `json:"ip"`
+		Port        int    `json:"port"`
+		DbTypeName  string `json:"db_type_name"`
+		DbEventType string `json:"db_event_type"`
 	} `json:"dimension"`
 }
 

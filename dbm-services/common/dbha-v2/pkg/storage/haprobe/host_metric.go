@@ -52,11 +52,11 @@ type HostMetric struct {
 	DiskReadOnly     bool    `json:"disk_read_only"`
 
 	// Network
-	NetIpAddress      string  `json:"network_ip_address"`
-	NetBytesIn        uint64  `json:"network_bytes_in"`
-	NetBytesOut       uint64  `json:"network_bytes_out"`
-	NetUsage          string  `json:"network_usage"`
-	NetTCPConnections uint    `json:"network_tcp_connections"`
-	NetPacketLossIn   float64 `json:"network_packet_loss_in"`
-	NetPacketLossOut  float64 `json:"network_packet_loss_out"`
+	NetIPs            []string `json:"network_ip_address"`
+	NetBytesIn        uint64   `json:"network_bytes_in"`
+	NetBytesOut       uint64   `json:"network_bytes_out"`
+	NetUsage          string   `json:"network_usage"`
+	NetTCPConnections uint     `json:"network_tcp_connections"`
+	NetPacketLossIn   float64  `json:"network_packet_loss_in"`
+	NetPacketLossOut  float64  `json:"network_packet_loss_out"`
 }
