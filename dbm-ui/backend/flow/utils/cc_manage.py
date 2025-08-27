@@ -645,23 +645,29 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, bk_instan
     if db_type not in INSTANCE_BKLOG_PLUGINS or machine_type not in INSTANCE_BKLOG_PLUGINS[db_type]:
         return
 
-    plugin_id = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_id"]
+    plugin_ids = INSTANCE_BKLOG_PLUGINS[db_type][machine_type]["plugin_ids"]
     # 获取当前采集项的列表
     data = BKLogApi.list_collectors({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True)
     collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
-    collect = collectors_name__info_map.get(plugin_id)
-    # 忽略不存在的采集项
-    if not collect:
-        return
-    # 下发采集器
-    collect_id = collect["collector_config_id"]
-    try:
-        BKLogApi.run_databus_collectors(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "collector_config_id": collect_id, "scope": scope, "action": action},
-            use_admin=True,
-        )
-    except ApiError as err:
-        logger.error(f"[bklog] id:{collect_id} error: {err}")
+    for plugin_id in plugin_ids:
+        collect = collectors_name__info_map.get(plugin_id)
+        # 忽略不存在的采集项
+        if not collect:
+            continue
+        # 下发采集器
+        collect_id = collect["collector_config_id"]
+        try:
+            BKLogApi.run_databus_collectors(
+                {
+                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                    "collector_config_id": collect_id,
+                    "scope": scope,
+                    "action": action,
+                },
+                use_admin=True,
+            )
+        except ApiError as err:
+            logger.error(f"[bklog] id:{collect_id} error: {err}")
 
 
 def trigger_operate_collector(
