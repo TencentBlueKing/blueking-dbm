@@ -48,12 +48,40 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 			if a.LocationSpec.IsEmpty() {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
+			// 验证容忍度参数
+			if a.Tolerance < 0 || a.Tolerance > 1 {
+				return fmt.Errorf("tolerance must be between 0 and 1, got: %f", a.Tolerance)
+			}
+			// tolerance=0的特殊场景验证：必须跨机架，检查是否有足够的机架
+			if a.Tolerance == 0 {
+				totalMachines := a.Count + len(a.CurrentHosts)
+				// 当tolerance=0时，每个机架最多只能有1台机器，所以需要至少totalMachines个机架
+				if totalMachines > 1 {
+					logger.Info("tolerance=0要求所有机器跨机架分布，总计需要%d个不同机架", totalMachines)
+				}
+			}
 		case CROS_SUBZONE:
 			if a.LocationSpec.IsEmpty() {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
-			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 && len(a.LocationSpec.SubZoneIds) < 2) {
+			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 &&
+				len(a.LocationSpec.SubZoneIds) < 2) {
 				return fmt.Errorf("because need cross sub-zone,you special subzones need more than 2 subzones")
+			}
+			// 验证容忍度参数
+			if a.Tolerance < 0 || a.Tolerance > 1 {
+				return fmt.Errorf("tolerance must be between 0 and 1, got: %f", a.Tolerance)
+			}
+			// tolerance=0的特殊场景验证：必须跨园区，检查是否有足够的园区
+			if a.Tolerance == 0 {
+				totalMachines := a.Count + len(a.CurrentHosts)
+				// 当tolerance=0时，每个园区最多只能有1台机器，所以需要至少totalMachines个园区
+				if !a.LocationSpec.IsExclude() && len(a.LocationSpec.SubZoneIds) > 0 &&
+					len(a.LocationSpec.SubZoneIds) < totalMachines {
+					return fmt.Errorf("tolerance=0 requires all machines in different subzones, "+
+						"need at least %d subzones but only specified %d",
+						totalMachines, len(a.LocationSpec.SubZoneIds))
+				}
 			}
 		case NONE:
 			return nil
@@ -240,23 +268,42 @@ const (
 // CROS_SUBZONE：同城跨subzone
 // NONE: 无需亲和性处理
 type ObjectDetail struct {
-	BkCloudId int      `json:"bk_cloud_id"`
-	Hosts     Hosts    `json:"hosts"`                          // 主机id
-	GroupMark string   `json:"group_mark" binding:"required" ` // 资源组标记
-	Labels    []string `json:"labels"`                         // 标签
+	// 云区域id
+	BkCloudId int `json:"bk_cloud_id"`
+	// 主机id
+	Hosts Hosts `json:"hosts"`
+	// 资源组标记
+	GroupMark string `json:"group_mark" binding:"required" `
+	// 标签
+	Labels []string `json:"labels"`
 	// 通过机型规格 或者 资源规格描述来匹配资源
 	// 这两个条件是 || 关系
-	DeviceClass  []string          `json:"device_class"` // 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
-	Spec         meta.Spec         `json:"spec"`         // 规格描述
-	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
-	LocationSpec meta.LocationSpec `json:"location_spec"` // 地域区间
-
+	// 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
+	DeviceClass []string `json:"device_class"`
+	// 规格描述
+	Spec         meta.Spec       `json:"spec"`
+	StorageSpecs []meta.DiskSpec `json:"storage_spec"`
+	// 地域区间
+	LocationSpec meta.LocationSpec `json:"location_spec"`
+	// 容忍度，表示每个园区最多不能超过总数total * tolerance 向上取整
+	Tolerance float64 `json:"tolerance"`
+	// 当前集群已经存在的资源，用于亲和性处理
+	CurrentHosts []CurrentResource `json:"current_hosts"`
+	// 亲和性
 	Affinity string `json:"affinity"`
 	// Windows,Linux
 	OsType        string   `json:"os_type"`
 	OsNames       []string `json:"os_names"`
 	ExcludeOsName bool     `json:"exclude_os_name"`
-	Count         int      `json:"count" binding:"required,min=1"` // 申请数量
+	// 申请数量
+	Count int `json:"count" binding:"required,min=1"`
+}
+
+// CurrentResource 当前集群已存在的资源信息，用于亲和性处理
+type CurrentResource struct {
+	BkHostId int    `json:"bk_host_id" binding:"required,gt=0,number"`
+	SubZone  string `json:"sub_zone" binding:"required,min=1,max=40"`
+	RackId   string `json:"rack_id" binding:"required,min=1,max=40"`
 }
 
 // Hosts bk hosts
@@ -331,10 +378,40 @@ func (a *ObjectDetail) GetMessage() (message string) {
 		message += "资源亲和性： NONE\n"
 	case CROS_SUBZONE:
 		message += "资源亲和性： 同城跨园区\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨园区)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个园区最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	case SAME_SUBZONE:
 		message += "资源亲和性： 同城同园区\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨机架)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个机架最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	case SAME_SUBZONE_CROSS_SWTICH:
 		message += "资源亲和性： 同城同园区 跨交换机跨机架\n"
+		if a.Tolerance >= 0 {
+			if a.Tolerance == 0 {
+				message += "容忍度： 0 (所有机器必须跨机架)\n"
+			} else {
+				message += fmt.Sprintf("容忍度： %.2f (每个机架最多不超过总数的%.1f%%)\n", a.Tolerance, a.Tolerance*100)
+			}
+		}
+		if len(a.CurrentHosts) > 0 {
+			message += fmt.Sprintf("当前集群已有机器数： %d\n", len(a.CurrentHosts))
+		}
 	}
 	message += fmt.Sprintf("申请总数: %d \n", a.Count)
 	return message

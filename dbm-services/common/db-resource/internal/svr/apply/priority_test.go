@@ -1,0 +1,159 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package apply
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/db-resource/internal/svr/meta"
+)
+
+// mockHost 构造最小可用的资源记录（唯一 BkHostID）
+func mockHost(id int, subZone, rack, netDev, deviceClass string) model.TbRpDetail {
+	return model.TbRpDetail{
+		BkHostID:      id,
+		IP:            fmt.Sprintf("10.0.%d.%d", id/100, id%100),
+		SubZone:       subZone,
+		SubZoneID:     subZone + "_id",
+		RackID:        rack,
+		NetDeviceID:   netDev,
+		CPUNum:        8,
+		DramCap:       16384,
+		DeviceClass:   deviceClass,
+		StorageDevice: []byte(`{"/data":{"size":100,"disk_id":"d1","disk_type":"SSD","file_type":"ext4"}}`),
+		CreateTime:    time.Now().Add(-24 * time.Hour),
+		Status:        "Ready",
+		City:          "sz",
+		CityID:        "sz",
+	}
+}
+
+// TestPriorityQueueOrder 验证队列顺序为“数值越大优先级越高”
+func TestPriorityQueueOrder(t *testing.T) {
+	pq := NewPriorityQueue()
+	_ = pq.Push(&Item{Key: "a", Priority: 10})
+	_ = pq.Push(&Item{Key: "b", Priority: 5})
+	_ = pq.Push(&Item{Key: "c", Priority: 20})
+
+	i1, _ := pq.Pop()
+	i2, _ := pq.Pop()
+	i3, _ := pq.Pop()
+
+	if i1.Key != "c" || i2.Key != "a" || i3.Key != "b" {
+		t.Fatalf("优先队列弹出顺序不符合预期: got %v,%v,%v", i1.Key, i2.Key, i3.Key)
+	}
+}
+
+// TestAnalysisResourcePriority_NoDuplicate 验证无重复数据时能正常分析与入队
+func TestAnalysisResourcePriority_NoDuplicate(t *testing.T) {
+	// 构造两园区资源，各3台，主机ID唯一
+	var items []model.TbRpDetail
+	for i := 1; i <= 3; i++ {
+		items = append(items, mockHost(100+i, "zoneA", "rackA1", "netA", "SA2.SMALL4"))
+	}
+	for i := 1; i <= 3; i++ {
+		items = append(items, mockHost(200+i, "zoneB", "rackB1", "netB", "SA2.SMALL4"))
+	}
+
+	ctx := &SearchContext{
+		IntentionBkBizId: 0,
+		RsType:           "",
+		ObjectDetail: &ObjectDetail{
+			Affinity:  CROS_SUBZONE,
+			Tolerance: 0.3,
+			Spec:      meta.Spec{Cpu: meta.MeasureRange{Min: 1, Max: 16}},
+		},
+	}
+
+	result, sumMap, err := ctx.AnalysisResourcePriority(items, false)
+	if err != nil {
+		t.Fatalf("AnalysisResourcePriority 失败: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("期望2个园区队列，实际=%d", len(result))
+	}
+	if _, ok := result["zoneA"]; !ok {
+		t.Fatalf("缺少 zoneA 队列")
+	}
+	if _, ok := result["zoneB"]; !ok {
+		t.Fatalf("缺少 zoneB 队列")
+	}
+	if result["zoneA"].Len() != 3 || result["zoneB"].Len() != 3 {
+		t.Fatalf("每个园区应各3台，实际: zoneA=%d zoneB=%d", result["zoneA"].Len(), result["zoneB"].Len())
+	}
+	if len(sumMap) != 2 {
+		t.Fatalf("期望2个园区优先级合计，实际=%d", len(sumMap))
+	}
+}
+
+// TestOrganizeResourcesBySubZone_NoDuplicate 数据无重复时按园区聚合
+func TestOrganizeResourcesBySubZone_NoDuplicate(t *testing.T) {
+	var resources []model.TbRpDetail
+	for i := 1; i <= 5; i++ {
+		resources = append(resources, mockHost(1000+i, "zoneX", "rackX1", "netX", "SA2.SMALL4"))
+	}
+	for i := 1; i <= 4; i++ {
+		resources = append(resources, mockHost(2000+i, "zoneY", "rackY1", "netY", "SA2.SMALL4"))
+	}
+
+	gc := &GlobalBalanceCoordinator{AllResourcePools: make(map[string][]model.TbRpDetail)}
+	gc.organizeResourcesBySubZone(resources)
+
+	if len(gc.AllResourcePools) != 2 {
+		t.Fatalf("应聚合为2个园区，实际=%d", len(gc.AllResourcePools))
+	}
+	if len(gc.AllResourcePools["zoneX"]) != 5 || len(gc.AllResourcePools["zoneY"]) != 4 {
+		t.Fatalf("园区聚合数量不正确: zoneX=%d zoneY=%d",
+			len(gc.AllResourcePools["zoneX"]), len(gc.AllResourcePools["zoneY"]))
+	}
+}
+
+// TestOrganizeTwice_NoDuplicate 调用 organizeResourcesBySubZone 两次，第二次包含第一批中的部分主机
+// 再执行 AnalysisResourcePriority，期望不会触发 duplicate item
+func TestOrganizeTwice_NoDuplicate(t *testing.T) {
+	// 第一批：zoneX 3台，zoneY 2台
+	var batch1 []model.TbRpDetail
+	for i := 1; i <= 3; i++ {
+		batch1 = append(batch1, mockHost(3000+i, "zoneX", "rackX1", "netX", "SA2.SMALL4"))
+	}
+	for i := 1; i <= 2; i++ {
+		batch1 = append(batch1, mockHost(4000+i, "zoneY", "rackY1", "netY", "SA2.SMALL4"))
+	}
+
+	// 第二批：重复 zoneX 的前2台 + 新增1台；重复 zoneY 的1台 + 新增1台
+	var batch2 []model.TbRpDetail
+	batch2 = append(batch2, mockHost(3001, "zoneX", "rackX1", "netX", "SA2.SMALL4"))
+	batch2 = append(batch2, mockHost(3002, "zoneX", "rackX1", "netX", "SA2.SMALL4"))
+	batch2 = append(batch2, mockHost(3004, "zoneX", "rackX1", "netX", "SA2.SMALL4"))
+	batch2 = append(batch2, mockHost(4001, "zoneY", "rackY1", "netY", "SA2.SMALL4"))
+	batch2 = append(batch2, mockHost(4003, "zoneY", "rackY1", "netY", "SA2.SMALL4"))
+
+	gc := &GlobalBalanceCoordinator{AllResourcePools: make(map[string][]model.TbRpDetail)}
+	gc.organizeResourcesBySubZone(batch1)
+	gc.organizeResourcesBySubZone(batch2) // 应当只增加未出现过的主机
+
+	// 期望：zoneX 最终 4 台（3001,3002,3003,3004），zoneY 最终 3 台（4001,4002,4003）
+	if len(gc.AllResourcePools["zoneX"]) != 4 || len(gc.AllResourcePools["zoneY"]) != 3 {
+		t.Fatalf("organize twice 后数量不正确: zoneX=%d zoneY=%d",
+			len(gc.AllResourcePools["zoneX"]), len(gc.AllResourcePools["zoneY"]))
+	}
+
+	// 再执行优先级分析，若仍有重复会在内部 Push 时报错
+	ctx := &SearchContext{ObjectDetail: &ObjectDetail{Affinity: CROS_SUBZONE, Tolerance: -1}}
+	_, _, err := ctx.AnalysisResourcePriority(append(gc.AllResourcePools["zoneX"], gc.AllResourcePools["zoneY"]...), false)
+	if err != nil {
+		t.Fatalf("AnalysisResourcePriority 不应失败: %v", err)
+	}
+}

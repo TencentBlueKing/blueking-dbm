@@ -144,13 +144,13 @@ func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
 			if _, ok := campusSummary[item.SubZoneID]; !ok {
 				campusSummary[item.SubZoneID] = &SubZoneSummary{
 					Count:             1,
-					EquipmentIdList:   []string{item.RackID},
+					RackIdList:        []string{item.RackID},
 					LinkNetdeviceList: strings.Split(item.NetDeviceID, ","),
 					RequestCount:      v.Count,
 				}
 			} else {
 				campusSummary[item.SubZoneID].Count++
-				campusSummary[item.SubZoneID].EquipmentIdList = append(campusSummary[item.SubZoneID].EquipmentIdList, item.RackID)
+				campusSummary[item.SubZoneID].RackIdList = append(campusSummary[item.SubZoneID].RackIdList, item.RackID)
 				campusSummary[item.SubZoneID].LinkNetdeviceList = append(campusSummary[item.SubZoneID].LinkNetdeviceList,
 					strings.Split(item.NetDeviceID, ",")...)
 			}
@@ -166,7 +166,7 @@ func sortgroupcampusNice(gpms map[string]map[string]*SubZoneSummary) []string {
 	var cns []CampusNice
 	for _, campusSummary := range gpms {
 		for campus := range campusSummary {
-			equipmentIdList := lo.Uniq(campusSummary[campus].EquipmentIdList)
+			equipmentIdList := lo.Uniq(campusSummary[campus].RackIdList)
 			linkNetdeviceList := lo.Uniq(campusSummary[campus].LinkNetdeviceList)
 			count := campusSummary[campus].Count
 			requestCount := campusSummary[campus].RequestCount
@@ -211,7 +211,7 @@ func sortgroupcampusNice(gpms map[string]map[string]*SubZoneSummary) []string {
 type SubZoneSummary struct {
 	RequestCount      int
 	Count             int
-	EquipmentIdList   []string // 存在的设备Id
+	RackIdList        []string // 存在的设备Id
 	LinkNetdeviceList []string // 存在的网卡Id
 }
 
@@ -239,6 +239,70 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		logger.Info("apply all groups in same location")
 		return applyGroupsInSameLocation(param)
 	}
+
+	// 检查是否需要全局均衡分配
+	if needsGlobalBalancing(param) {
+		logger.Info("使用全局均衡分配策略")
+		return CycleApplyWithGlobalBalancing(param)
+	}
+
+	// 使用原有的顺序分配策略
+	return cycleApplySequential(param)
+}
+
+// needsGlobalBalancing 判断是否需要全局均衡分配
+func needsGlobalBalancing(param RequestInputParam) bool {
+	// 多个请求且包含容忍度设置的亲和性
+	if len(param.Details) <= 1 {
+		return false
+	}
+
+	toleranceAffinities := []string{CROS_SUBZONE, SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH, CROSS_RACK}
+	for _, detail := range param.Details {
+		if detail.Tolerance >= 0 && slices.Contains(toleranceAffinities, detail.Affinity) {
+			return true
+		}
+	}
+	return false
+}
+
+// CycleApplyWithGlobalBalancing 全局均衡分配策略
+func CycleApplyWithGlobalBalancing(param RequestInputParam) (pickers []*PickerObject, err error) {
+	resourceReqList, err := param.SortDetails()
+	if err != nil {
+		logger.Error("对请求参数排序失败%v", err)
+		return nil, err
+	}
+
+	// 创建全局均衡协调器
+	coordinator := NewGlobalBalanceCoordinator(param)
+
+	// 第一阶段：准备所有请求的资源池
+	contexts, err := coordinator.PrepareAllContexts(resourceReqList)
+	if err != nil {
+		return nil, err
+	}
+
+	// 第二阶段：全局均衡分配
+	pickers, err = coordinator.GlobalBalancedAllocation(contexts)
+	if err != nil {
+		return nil, err
+	}
+
+	// 第三阶段：批量更新资源状态
+	for _, picker := range pickers {
+		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
+			// 回滚已更新的资源状态
+			RollBackAllInstanceUnused(pickers)
+			return nil, fmt.Errorf("update picker %s status failed: %v", picker.Item, updateErr)
+		}
+	}
+
+	return pickers, nil
+}
+
+// cycleApplySequential 原有的顺序分配策略
+func cycleApplySequential(param RequestInputParam) (pickers []*PickerObject, err error) {
 	resourceReqList, err := param.SortDetails()
 	if err != nil {
 		logger.Error("对请求参数排序失败%v", err)
@@ -250,7 +314,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
 		// 如果没有配置亲和性，或者请求的数量小于1 重置亲和性为NONE
-		if v.Affinity == "" || v.Count <= 1 {
+		if v.Affinity == "" {
 			v.Affinity = NONE
 		}
 		idcCites := []string{}
@@ -539,6 +603,8 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerRandom()
 	case CROS_SUBZONE:
+		// 初始化容忍度配置
+		picker.InitToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerCrossSubzone(true, false)
 	case MAX_EACH_ZONE_EQUAL:
@@ -569,12 +635,17 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 		// 在循环园区 选一遍
 		picker.PickerCrossSubzone(false, false)
 	case SAME_SUBZONE:
+		// 初始化机架级容忍度配置
+		picker.InitRackToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerSameSubZone(false)
 	case SAME_SUBZONE_CROSS_SWTICH:
+		// 初始化机架级容忍度配置
+		picker.InitRackToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerSameSubZone(true)
 	case CROSS_RACK:
+		picker.InitRackToleranceConfig(o.Tolerance, o.CurrentHosts, o.Count)
 		picker.PriorityElements, picker.SubZonePrioritySumMap, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerSameSubZone(true)
 	}
