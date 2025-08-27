@@ -43,7 +43,7 @@ type IdcCitiesResp struct {
 func GetIdcCityByLogicCity(logicCity string) (idcCites []string, err error) {
 	if idcCacheCites, ok := cityCache.Get(logicCity); ok {
 		idcCites, ok = idcCacheCites.([]string)
-		if ok {
+		if ok && len(idcCites) > 0 {
 			logger.Info("get idc cities from cache %s,idcCites:%v ", logicCity, idcCites)
 			return idcCites, nil
 		}

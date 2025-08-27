@@ -82,13 +82,37 @@ func init() {
 	logger.Info("tb_rp_operation_info columns %v", TbRpOperationInfoColumns)
 }
 
+// validateIdentifier 校验数据库标识符（数据库名、表名等）的安全性
+func validateIdentifier(name string) error {
+	// 只允许字母、数字、下划线，且不能以数字开头
+	if len(name) == 0 || len(name) > 64 {
+		return fmt.Errorf("invalid identifier length: %s", name)
+	}
+	for i, r := range name {
+		if i == 0 && (r >= '0' && r <= '9') {
+			return fmt.Errorf("identifier cannot start with digit: %s", name)
+		}
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-') {
+			return fmt.Errorf("invalid character in identifier: %s", name)
+		}
+	}
+	return nil
+}
+
 func createSysDb() {
 	user := config.AppConfig.Db.UserName
 	pwd := config.AppConfig.Db.PassWord
 	addr := config.AppConfig.Db.Addr
 	testConn := openDB(user, pwd, addr, "")
 	dbname := config.AppConfig.Db.Name
-	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", dbname)).Error
+
+	// 安全校验数据库名
+	if err := validateIdentifier(dbname); err != nil {
+		log.Fatalf("invalid database name: %s", err.Error())
+	}
+
+	// 使用参数化查询创建数据库（注意：MySQL不支持参数化DDL，但我们已经校验了标识符）
+	err := testConn.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbname)).Error
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
@@ -100,18 +124,30 @@ func createSysDb() {
 	if err != nil {
 		log.Fatalf("init migrate from embed failed:%s", err.Error())
 	}
+
+	// 获取表名并校验
+	archiveTableName := TbRpDetailArchiveName()
+	detailTableName := TbRpDetailName()
+	if err := validateIdentifier(archiveTableName); err != nil {
+		log.Fatalf("invalid archive table name: %s", err.Error())
+	}
+	if err := validateIdentifier(detailTableName); err != nil {
+		log.Fatalf("invalid detail table name: %s", err.Error())
+	}
+
 	var autoIncrement sql.NullInt64
-	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
-		Error
+	// 使用校验过的标识符构建查询
+	query := fmt.Sprintf("SELECT MAX(id) FROM `%s`.`%s`", dbname, archiveTableName)
+	err = testConn.Raw(query).Scan(&autoIncrement).Error
 	if err != nil {
 		log.Printf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
 	}
 
 	if autoIncrement.Valid {
-		testConn.Exec(fmt.Sprintf("alter table `%s`.`%s` AUTO_INCREMENT  = %d ", dbname, TbRpDetailName(),
-			autoIncrement.Int64+1))
+		alterQuery := fmt.Sprintf("ALTER TABLE `%s`.`%s` AUTO_INCREMENT = %d", dbname, detailTableName, autoIncrement.Int64+1)
+		err = testConn.Exec(alterQuery).Error
 		if err != nil {
-			log.Fatalf("get max autoIncrement from tb_rp_detail_archive failed :%s", err.Error())
+			log.Fatalf("alter table auto_increment failed :%s", err.Error())
 		}
 	}
 	sqldb.Close()

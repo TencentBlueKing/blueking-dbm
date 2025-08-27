@@ -47,6 +47,13 @@ func (c *PickerObject) PickerRandom() {
 
 // PickerSameSubZone 同园区资源匹配
 func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
+	// 如果设置了容忍度，使用机架均衡分配策略
+	if c.Tolerance >= 0 && c.MaxPerRack > 0 {
+		c.PickerSameSubZoneBalanced(cross_switch)
+		return
+	}
+
+	// 原有的同园区分配逻辑
 	sortSubZones := c.sortSubZoneNum(false)
 	if len(sortSubZones) == 0 {
 		return
@@ -60,7 +67,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 		}
 		logger.Info("debug %v", subzone)
 		c.SatisfiedHostIds = []int{}
-		c.ExistEquipmentIds = []string{}
+		c.ExistRackIds = []string{}
 		c.ExistLinkNetdeviceIds = []string{}
 		for pq.Len() > 0 {
 			c.pickerOneByPriority(subzone, cross_switch)
@@ -72,63 +79,395 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 	}
 }
 
-// PickerCrossSubzone 跨园区匹配
-func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_switch bool) {
-	sortFuncs := []func(cross_subzone bool) []string{
-		c.sortSubZoneByPriority,
-		c.sortSubZoneNum,
+// PickerSameSubZoneBalanced 同园区机架均衡资源匹配
+func (c *PickerObject) PickerSameSubZoneBalanced(cross_switch bool) {
+	sortSubZones := c.sortSubZoneNum(false)
+	if len(sortSubZones) == 0 {
+		return
 	}
-	for _, sfc := range sortFuncs {
-		campKeys := sfc(cross_subzone)
-		if len(campKeys) == 0 {
+
+	logger.Info("开始同园区机架均衡分配")
+
+	for _, subzone := range sortSubZones {
+		pq := c.PriorityElements[subzone]
+		if pq.Len() < c.Count || pq.Len() == 0 {
+			c.ProcessLogs = append(c.ProcessLogs, fmt.Sprintf("%s 符合条件的资源有%d,实际需要申请%d,不满足！！！",
+				subzone, pq.Len(), c.Count))
+			continue
+		}
+
+		logger.Info("在园区 %s 中进行机架均衡分配", subzone)
+		c.SatisfiedHostIds = []int{}
+		c.ExistRackIds = []string{}
+		c.ExistLinkNetdeviceIds = []string{}
+
+		// 使用机架均衡分配策略
+		if c.pickerSameSubZoneRackBalanced(subzone, cross_switch) {
 			return
 		}
-		subzoneChan := make(chan subZone, len(campKeys))
-		for _, v := range campKeys {
-			subzoneChan <- v
+	}
+}
+
+// pickerSameSubZoneRackBalanced 在同园区内进行机架均衡分配
+func (c *PickerObject) pickerSameSubZoneRackBalanced(subzone string, cross_switch bool) bool {
+	// 记录上次重新排序的分配数量
+	lastRebalanceAt := 0
+
+	for !c.PickerDone() {
+		// 每分配几台机器后，检查是否需要重新排序以保持机架均衡
+		currentAllocated := len(c.SatisfiedHostIds)
+
+		var rackKeys []string
+		if currentAllocated > lastRebalanceAt && (currentAllocated-lastRebalanceAt) >= 3 {
+			// 重新获取机架均衡排序
+			rackKeys = c.SortRackByBalance(subzone)
+			lastRebalanceAt = currentAllocated
+		} else {
+			// 第一次或者间隔不够时，使用机架均衡排序
+			rackKeys = c.SortRackByBalance(subzone)
 		}
-		for subzone := range subzoneChan {
-			if len(c.PriorityElements) == 0 {
-				logger.Info("go out")
-				close(subzoneChan)
-				return
-			}
-			pq, ok := c.PriorityElements[subzone]
-			if !ok {
-				logger.Warn("%s is queue is nil", subzone)
-				delete(c.PriorityElements, subzone)
+
+		if len(rackKeys) == 0 {
+			logger.Info("园区 %s 没有可用的机架", subzone)
+			break
+		}
+
+		allocated := false
+
+		// 轮询各机架进行分配
+		for _, rackId := range rackKeys {
+			// 检查机架容忍度限制
+			if !c.CanAllocateToRack(rackId) {
+				logger.Debug("机架 %s 已达到容忍度限制，跳过", rackId)
 				continue
 			}
-			if pq.Len() == 0 {
-				delete(c.PriorityElements, subzone)
+
+			// 尝试从该机架分配一台机器
+			if c.pickerOneFromRack(subzone, rackId, cross_switch) {
+				allocated = true
+				logger.Info("成功从机架 %s 分配一台机器，当前总分配: %d/%d，机架当前机器数: %d",
+					rackId, len(c.SatisfiedHostIds), c.Count, c.GetRackCurrentTotal(rackId))
+
+				if c.PickerDone() {
+					c.logFinalRackDistribution(subzone)
+					return true
+				}
+				break // 分配成功后重新开始轮询
 			}
-			if len(sfc(cross_subzone)) == 0 {
-				logger.Info("go out here")
-				close(subzoneChan)
-				return
+		}
+
+		// 如果本轮没有成功分配任何机器，退出循环
+		if !allocated {
+			logger.Info("本轮未能分配任何机器，退出机架均衡分配")
+			break
+		}
+	}
+
+	return c.PickerDone()
+}
+
+// pickerOneFromRack 从指定机架中分配一台机器
+func (c *PickerObject) pickerOneFromRack(subzone, rackId string, cross_switch bool) bool {
+	pq, ok := c.PriorityElements[subzone]
+	if !ok || pq.Len() == 0 {
+		return false
+	}
+
+	// 临时存储不匹配的机器，稍后放回队列
+	var tempItems []*Item
+	defer func() {
+		// 将未被选中的机器放回队列
+		for _, item := range tempItems {
+			if err := pq.Push(item); err != nil {
+				logger.Error("failed to push item back to queue: %v", err)
 			}
-			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
-			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-			if c.pickerOneByPriority(subzone, cross_switch) {
-				if cross_subzone {
-					delete(c.PriorityElements, subzone)
+		}
+	}()
+
+	for pq.Len() > 0 {
+		item, _ := pq.Pop()
+		v, ok := item.Value.(InstanceObject)
+		if !ok {
+			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
+			continue
+		}
+
+		// 检查是否是目标机架的机器
+		if v.RackId != rackId {
+			tempItems = append(tempItems, item)
+			continue
+		}
+
+		// 跨交换机检查
+		if cross_switch {
+			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
+				tempItems = append(tempItems, item)
+				continue
+			}
+		}
+
+		// 检查是否已经被选中
+		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
+			tempItems = append(tempItems, item)
+			continue
+		}
+
+		// 分配成功
+		c.ExistRackIds = append(c.ExistRackIds, v.RackId)
+		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
+		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
+		c.PickDistribute[subzone]++
+		c.RackDistribute[v.RackId]++
+		return true
+	}
+
+	return false
+}
+
+// logFinalRackDistribution 输出最终的机架分配统计信息
+func (c *PickerObject) logFinalRackDistribution(subzone string) {
+	if len(c.RackDistribute) == 0 {
+		return
+	}
+
+	logger.Info("=== 最终机架分配统计 (园区%s) ===", subzone)
+	totalAllocated := len(c.SatisfiedHostIds)
+
+	logger.Info("总申请数量: %d, 总分配数量: %d", c.Count, totalAllocated)
+
+	if c.Tolerance >= 0 {
+		logger.Info("容忍度: %.2f, 每机架最大允许: %d", c.Tolerance, c.MaxPerRack)
+	}
+
+	// 输出各机架分配详情
+	for rackId, allocated := range c.RackDistribute {
+		existing := c.CurrentHostsByRack[rackId]
+		total := existing + allocated
+		logger.Info("机架 %s: 已存在=%d, 新分配=%d, 总计=%d", rackId, existing, allocated, total)
+	}
+
+	// 输出仅有已存在机器的机架
+	for rackId, existing := range c.CurrentHostsByRack {
+		if _, allocated := c.RackDistribute[rackId]; !allocated && existing > 0 {
+			logger.Info("机架 %s: 已存在=%d, 新分配=0, 总计=%d", rackId, existing, existing)
+		}
+	}
+
+	logger.Info("============================")
+}
+
+// PickerCrossSubzone 跨园区匹配
+func (c *PickerObject) PickerCrossSubzone(cross_subzone, cross_switch bool) {
+	// 定义排序策略：优先使用均衡排序，如果均衡排序无法找到足够资源，再使用原有策略
+	sortFuncs := []func(cross_subzone bool) []string{
+		c.SortSubZoneByBalance,  // 新增的均衡排序策略
+		c.sortSubZoneByPriority, // 原有的优先级排序
+		c.sortSubZoneNum,        // 原有的数量排序
+	}
+
+	for funcIndex, sfc := range sortFuncs {
+		campKeys := sfc(cross_subzone)
+		if len(campKeys) == 0 {
+			logger.Info("排序函数 %d 未返回可用园区", funcIndex)
+			continue
+		}
+
+		logger.Info("使用排序策略 %d，获得园区顺序: %v", funcIndex, campKeys)
+
+		// 如果是均衡排序策略，使用轮询方式分配
+		if funcIndex == 0 && c.Tolerance >= 0 && c.MaxPerSubZone > 0 {
+			c.pickerCrossSubzoneBalanced(campKeys, cross_subzone, cross_switch)
+		} else {
+			// 使用原有的channel方式分配
+			c.pickerCrossSubzoneOriginal(campKeys, cross_subzone, cross_switch)
+		}
+
+		// 如果已经完成分配，直接返回
+		if c.PickerDone() {
+			logger.Info("使用排序策略 %d 成功完成资源分配", funcIndex)
+			return
+		}
+	}
+}
+
+// pickerCrossSubzoneBalanced 使用均衡策略分配资源
+func (c *PickerObject) pickerCrossSubzoneBalanced(campKeys []string, cross_subzone, cross_switch bool) {
+	if len(campKeys) == 0 {
+		return
+	}
+
+	logger.Info("开始均衡分配，园区顺序: %v", campKeys)
+
+	// 记录上次重新排序的分配数量
+	lastRebalanceAt := 0
+
+	// 在有可用园区的情况下持续分配
+	for len(campKeys) > 0 && !c.PickerDone() {
+		allocated := false
+
+		// 每分配几台机器后，检查是否需要重新排序以保持均衡
+		currentAllocated := len(c.SatisfiedHostIds)
+		if currentAllocated > lastRebalanceAt && (currentAllocated-lastRebalanceAt) >= 3 {
+			if c.ShouldRebalance() {
+				logger.Info("检测到不均衡，重新排序园区")
+				// 重新获取均衡排序的园区顺序
+				newKeys := c.SortSubZoneByBalance(cross_subzone)
+				if len(newKeys) > 0 {
+					campKeys = newKeys
+					lastRebalanceAt = currentAllocated
+					logger.Info("重新排序后的园区顺序: %v", campKeys)
 				}
 			}
-			// 匹配资源完成
-			if c.PickerDone() {
-				close(subzoneChan)
-				return
-			}
-			// 非跨园区循环读取
-			if !cross_subzone {
-				subzoneChan <- subzone
+		}
+
+		// 遍历所有园区，尝试分配一台机器
+		for i := 0; i < len(campKeys); i++ {
+			subzone := campKeys[i]
+
+			pq, ok := c.PriorityElements[subzone]
+			if !ok || pq.Len() == 0 {
+				// 移除没有资源的园区
+				campKeys = append(campKeys[:i], campKeys[i+1:]...)
+				i-- // 调整索引
 				continue
 			}
-			// 跨园区
-			if len(subzoneChan) == 0 {
-				close(subzoneChan)
-				return
+
+			// 检查是否可以分配到该园区
+			if c.Tolerance >= 0 && c.MaxPerSubZone > 0 {
+				if !c.CanAllocateToSubZone(subzone) {
+					logger.Debug("园区 %s 已达到容忍度限制，从候选移除", subzone)
+					// 从候选列表中移除，避免反复遍历导致潜在死循环
+					delete(c.PriorityElements, subzone)
+					campKeys = append(campKeys[:i], campKeys[i+1:]...)
+					i-- // 调整索引
+					continue
+				}
 			}
+
+			logger.Debug("尝试从园区 %s 分配资源，剩余: %d，当前机器数: %d",
+				subzone, pq.Len(), c.GetSubZoneCurrentTotal(subzone))
+
+			if c.pickerOneByPriority(subzone, cross_switch) {
+				allocated = true
+				logger.Info("成功从园区 %s 分配一台机器，当前总分配: %d/%d，园区当前机器数: %d",
+					subzone, len(c.SatisfiedHostIds), c.Count, c.GetSubZoneCurrentTotal(subzone))
+
+				if cross_subzone {
+					// 跨园区模式：
+					// - 容忍度为0时，严格跨园区，该园区只能取一台后移除
+					// - 容忍度>0时，仅当该园区已无法继续分配（达到本组上限或无可用资源）才移除
+					if c.Tolerance == 0 {
+						delete(c.PriorityElements, subzone)
+						campKeys = append(campKeys[:i], campKeys[i+1:]...)
+						i-- // 调整索引
+					} else {
+						// 若该园区已达本组上限或队列无资源，则移除
+						if !c.CanAllocateToSubZone(subzone) || pq.Len() == 0 {
+							delete(c.PriorityElements, subzone)
+							campKeys = append(campKeys[:i], campKeys[i+1:]...)
+							i-- // 调整索引
+						}
+					}
+				}
+
+				if c.PickerDone() {
+					// 输出最终分配统计
+					c.logFinalDistribution()
+					return
+				}
+				break // 分配成功后重新开始轮询
+			}
+		}
+
+		// 如果本轮没有成功分配任何机器，退出循环
+		if !allocated {
+			logger.Info("本轮未能分配任何机器，退出均衡分配")
+			break
+		}
+	}
+}
+
+// logFinalDistribution 输出最终的分配统计信息
+func (c *PickerObject) logFinalDistribution() {
+	if len(c.PickDistribute) == 0 {
+		return
+	}
+
+	logger.Info("=== 最终分配统计 ===")
+	totalAllocated := len(c.SatisfiedHostIds)
+	balanceScore := c.CalculateBalanceScore()
+
+	logger.Info("总申请数量: %d, 总分配数量: %d, 均衡得分: %.3f", c.Count, totalAllocated, balanceScore)
+
+	if c.Tolerance >= 0 {
+		logger.Info("容忍度: %.2f, 每园区最大允许: %d", c.Tolerance, c.MaxPerSubZone)
+	}
+
+	// 输出各园区分配详情
+	for subZone, allocated := range c.PickDistribute {
+		existing := c.CurrentHostsBySubZone[subZone]
+		total := existing + allocated
+		logger.Info("园区 %s: 已存在=%d, 新分配=%d, 总计=%d", subZone, existing, allocated, total)
+	}
+
+	// 输出仅有已存在机器的园区
+	for subZone, existing := range c.CurrentHostsBySubZone {
+		if _, allocated := c.PickDistribute[subZone]; !allocated && existing > 0 {
+			logger.Info("园区 %s: 已存在=%d, 新分配=0, 总计=%d", subZone, existing, existing)
+		}
+	}
+
+	logger.Info("==================")
+}
+
+// pickerCrossSubzoneOriginal 使用原有策略分配资源
+func (c *PickerObject) pickerCrossSubzoneOriginal(campKeys []string, cross_subzone, cross_switch bool) {
+	subzoneChan := make(chan subZone, len(campKeys))
+	for _, v := range campKeys {
+		subzoneChan <- v
+	}
+
+	for subzone := range subzoneChan {
+		if len(c.PriorityElements) == 0 {
+			logger.Info("go out")
+			close(subzoneChan)
+			return
+		}
+		pq, ok := c.PriorityElements[subzone]
+		if !ok {
+			logger.Warn("%s is queue is nil", subzone)
+			delete(c.PriorityElements, subzone)
+			continue
+		}
+		if pq.Len() == 0 {
+			delete(c.PriorityElements, subzone)
+		}
+		if len(c.PriorityElements) == 0 {
+			logger.Info("go out here")
+			close(subzoneChan)
+			return
+		}
+		logger.Info(fmt.Sprintf("surplus %s,%d", subzone, pq.Len()))
+		logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
+		if c.pickerOneByPriority(subzone, cross_switch) {
+			if cross_subzone {
+				delete(c.PriorityElements, subzone)
+			}
+		}
+		// 匹配资源完成
+		if c.PickerDone() {
+			close(subzoneChan)
+			return
+		}
+		// 非跨园区循环读取
+		if !cross_subzone {
+			subzoneChan <- subzone
+			continue
+		}
+		// 跨园区
+		if len(subzoneChan) == 0 {
+			close(subzoneChan)
+			return
 		}
 	}
 }
@@ -197,7 +536,23 @@ func (c *PickerObject) sortSubZoneNum(cross_subzone bool) []string {
 	return keys
 }
 
+// pickerOneByPriority 通用的按优先级选择一台机器（兼容旧版本，不建议新代码使用）
 func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
+	// 根据当前配置的容忍度类型选择合适的方法
+	if c.MaxPerRack > 0 {
+		// 使用机架级容忍度检查（SAME_SUBZONE场景）
+		return c.pickerOneByPriorityWithRackTolerance(key, cross_switch)
+	}
+	if c.MaxPerSubZone > 0 {
+		// 使用园区级容忍度检查（CROS_SUBZONE场景）
+		return c.pickerOneByPriorityWithSubZoneTolerance(key, cross_switch)
+	}
+	// 无容忍度限制（原有逻辑）
+	return c.pickerOneByPriorityWithoutTolerance(key, cross_switch)
+}
+
+// pickerOneByPriorityWithSubZoneTolerance 带园区级容忍度检查的机器选择（用于CROS_SUBZONE）
+func (c *PickerObject) pickerOneByPriorityWithSubZoneTolerance(key string, cross_switch bool) bool {
 	c.ExistSubZone = append(c.ExistSubZone, key)
 	pq, ok := c.PriorityElements[key]
 	if !ok {
@@ -219,7 +574,93 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
 			return false
 		}
-		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
+
+		// 园区级容忍度检查
+		if c.Tolerance >= 0 && c.MaxPerSubZone > 0 {
+			if !c.CanAllocateToSubZone(key) {
+				logger.Debug("园区 %s 已达到容忍度限制，当前总数: %d, 最大允许: %d",
+					key, c.GetSubZoneCurrentTotal(key), c.MaxPerSubZone)
+				continue
+			}
+		}
+
+		c.ExistRackIds = append(c.ExistRackIds, v.RackId)
+		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
+		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
+		c.PickDistribute[key]++
+		return true
+	}
+	return len(c.PriorityElements) == 0
+}
+
+// pickerOneByPriorityWithRackTolerance 带机架级容忍度检查的机器选择（用于SAME_SUBZONE）
+func (c *PickerObject) pickerOneByPriorityWithRackTolerance(key string, cross_switch bool) bool {
+	c.ExistSubZone = append(c.ExistSubZone, key)
+	pq, ok := c.PriorityElements[key]
+	if !ok {
+		logger.Error("not exist %s", key)
+		return false
+	}
+	for pq.Len() > 0 {
+		item, _ := pq.Pop()
+		v, ok := item.Value.(InstanceObject)
+		if !ok {
+			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
+			continue
+		}
+		if cross_switch {
+			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
+				continue
+			}
+		}
+		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
+			return false
+		}
+
+		// 机架级容忍度检查
+		if c.Tolerance >= 0 && c.MaxPerRack > 0 {
+			if !c.CanAllocateToRack(v.RackId) {
+				logger.Debug("机架 %s 已达到容忍度限制，当前总数: %d, 最大允许: %d",
+					v.RackId, c.GetRackCurrentTotal(v.RackId), c.MaxPerRack)
+				continue
+			}
+		}
+
+		c.ExistRackIds = append(c.ExistRackIds, v.RackId)
+		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
+		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
+		c.PickDistribute[key]++
+		c.RackDistribute[v.RackId]++
+		return true
+	}
+	return len(c.PriorityElements) == 0
+}
+
+// pickerOneByPriorityWithoutTolerance 无容忍度限制的机器选择（原有逻辑）
+func (c *PickerObject) pickerOneByPriorityWithoutTolerance(key string, cross_switch bool) bool {
+	c.ExistSubZone = append(c.ExistSubZone, key)
+	pq, ok := c.PriorityElements[key]
+	if !ok {
+		logger.Error("not exist %s", key)
+		return false
+	}
+	for pq.Len() > 0 {
+		item, _ := pq.Pop()
+		v, ok := item.Value.(InstanceObject)
+		if !ok {
+			logger.Warn("Type Assertion failed,hostId:%s", item.Key)
+			continue
+		}
+		if cross_switch {
+			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
+				continue
+			}
+		}
+		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
+			return false
+		}
+
+		c.ExistRackIds = append(c.ExistRackIds, v.RackId)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
 		c.PickDistribute[key]++
@@ -357,7 +798,7 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 			Priority: 1,
 			Value: InstanceObject{
 				BkHostId:        ins.BkHostID,
-				Equipment:       ins.RackID,
+				RackId:          ins.RackID,
 				LinkNetdeviceId: strings.Split(ins.NetDeviceID, ","),
 				Nice:            createNice(int(ins.CPUNum), ins.DramCap, 0, 0),
 				InsDetail:       &ins,
@@ -386,7 +827,9 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 		}
 		for _, item := range items {
 			if err := result[subZoneName].Push(&item); err != nil {
-				logger.Error("push item failed %v", err)
+				// 安全日志：打印重复键与队列键，便于定位异常数据
+				logger.Error("push item failed %v, subZone=%s, key=%s, priority=%d",
+					err, subZoneName, item.Key, item.Priority)
 				return nil, subZonePrioritySumMap, err
 			}
 		}

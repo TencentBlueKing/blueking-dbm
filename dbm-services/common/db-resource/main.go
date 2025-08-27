@@ -57,6 +57,8 @@ func main() {
 	metric.NewPrometheus("").Use(app)
 
 	app.Use(requestid.New())
+	app.Use(middleware.SecurityHeaders())              // 安全响应头
+	app.Use(middleware.RequestBodySizeLimit(10 << 20)) // 10MB请求体限制
 	app.Use(middleware.ApiLogger)
 	app.Use(middleware.BodyLogMiddleware)
 	routers.RegisterRoutes(app)
@@ -68,7 +70,11 @@ func main() {
 	srv := &http.Server{
 		Addr:              config.AppConfig.ListenAddress,
 		Handler:           app,
-		ReadHeaderTimeout: 5 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,  // 防止Slowloris攻击
+		ReadTimeout:       30 * time.Second, // 完整请求读取超时
+		WriteTimeout:      60 * time.Second, // 响应写入超时
+		IdleTimeout:       60 * time.Second, // 空闲连接超时
+		MaxHeaderBytes:    1 << 20,          // 1MB头部大小限制
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

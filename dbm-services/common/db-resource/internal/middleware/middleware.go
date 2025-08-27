@@ -92,6 +92,36 @@ func BodyLogMiddleware(c *gin.Context) {
 	}
 }
 
+// RequestBodySizeLimit 限制请求体大小的中间件
+func RequestBodySizeLimit(maxSize int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 只对有请求体的方法进行限制
+		if c.Request.Method == http.MethodPost || c.Request.Method == http.MethodPut || c.Request.Method == http.MethodPatch {
+			// 使用http.MaxBytesReader限制请求体大小
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+		}
+		c.Next()
+	}
+}
+
+// SecurityHeaders 添加安全响应头的中间件
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 设置安全响应头
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// 设置正确的Content-Type
+		if c.Request.Method != http.MethodOptions {
+			c.Header("Content-Type", "application/json; charset=utf-8")
+		}
+
+		c.Next()
+	}
+}
+
 // ApiLogger TODO
 func ApiLogger(c *gin.Context) {
 	if c.Request.URL.Path == "/metrics" || c.Request.URL.Path == "/ping" {

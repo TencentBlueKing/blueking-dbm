@@ -353,8 +353,10 @@ type BatchGetTbDetail struct {
 
 // BatchGetTbDetailResult TODO
 type BatchGetTbDetailResult struct {
-	Item string       `json:"item"`
-	Data []TbRpDetail `json:"data"`
+	Item    string                 `json:"item"`
+	Data    []TbRpDetail           `json:"data"`
+	Total   int                    `json:"total"`
+	Summary map[string]interface{} `json:"summary"`
 }
 
 // BatchGetSatisfiedByAssetIds batch setting resource status
@@ -373,7 +375,7 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 			logger.Error("Item:%s,failed to obtain resource details!,Error is %s", v.Item, err.Error())
 			return nil, err
 		}
-		result = append(result, BatchGetTbDetailResult{Item: v.Item, Data: d})
+		result = append(result, BatchGetTbDetailResult{Item: v.Item, Data: d, Total: len(d)})
 	}
 	err = db.Commit().Error
 	if err != nil {
