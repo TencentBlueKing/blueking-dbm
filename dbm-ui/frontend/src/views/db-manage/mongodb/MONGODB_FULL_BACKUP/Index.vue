@@ -16,7 +16,7 @@
     <div class="db-backup-page">
       <BkAlert
         theme="info"
-        :title="t('全库备份：所有库表备份, 除 MySQL 系统库和 DBA 专用库外')" />
+        :title="t('全库备份：所有库表备份')" />
       <DbForm
         ref="form"
         class="toolbox-form"

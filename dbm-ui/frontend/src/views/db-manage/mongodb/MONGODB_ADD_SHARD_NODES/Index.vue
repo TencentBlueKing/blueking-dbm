@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('扩容Shard节点数：xxx')" />
+        :title="t('扩容 Shard 节点数：提供增加副本集对应的member功能，目标节点数建议为3,5,7..奇数')" />
       <DbForm
         ref="form"
         class="toolbox-form"
