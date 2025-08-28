@@ -112,6 +112,24 @@ func DeleteCRD(k8sClient *commutil.K8sClient, crd *coreentity.CustomResourceDefi
 	return nil
 }
 
+// UpdateCRD update crd by k8sClient client
+func UpdateCRD(
+	k8sClient *commutil.K8sClient,
+	crd *coreentity.CustomResourceDefinition,
+	clusterConfig *unstructured.Unstructured,
+) (*unstructured.Unstructured, error) {
+	if crd == nil {
+		return nil, fmt.Errorf("CustomResourceDefinition can't be nil when deleting resource")
+	}
+	update, err := k8sClient.DynamicClient.Resource(crd.GroupVersionResource).
+		Namespace(crd.Namespace).
+		Update(context.TODO(), clusterConfig, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return update, nil
+}
+
 // GetCRD get crd by k8sClient client
 func GetCRD(
 	k8sClient *commutil.K8sClient,

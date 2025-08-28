@@ -454,7 +454,6 @@ func (c *ClusterController) GetClusterService(ctx *gin.Context) {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
 	}
-
 	// 获取集群元数据
 	clusterMetaEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		Namespace:   svcEntity.Namespace,
@@ -503,7 +502,6 @@ func (c *ClusterController) getComponentService(
 		if err != nil {
 			return nil, err
 		}
-
 		// 获取外部服务地址
 		externalServices, err := c.componentProvider.GetComponentExternalSvc(&componentSvcEntity)
 		if err != nil {

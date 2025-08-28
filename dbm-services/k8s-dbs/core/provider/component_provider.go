@@ -191,7 +191,6 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvc
 		coreconst.InstanceName: svcEntity.ClusterName,
 		coreconst.ManagedBy:    coreconst.Kubeblocks,
 	})
-
 	lbServices, err := k8sClient.ClientSet.CoreV1().Services(namespace).
 		List(context.TODO(), metav1.ListOptions{
 			LabelSelector: labelSelector,
@@ -211,7 +210,7 @@ func (c *ComponentProvider) GetComponentExternalSvc(svcEntity *coreentity.K8sSvc
 		coreconst.ManagedBy:     coreconst.Kubeblocks,
 		coreconst.ComponentName: svcEntity.ComponentName,
 	}
-	k8sSvcInfos := c.convertExternalSvc(lbServices, svcSelector)
+	k8sSvcInfos := c.convertExternalSvc(lbServices, svcSelector, svcEntity)
 	return k8sSvcInfos, nil
 }
 
@@ -252,6 +251,7 @@ func (c *ComponentProvider) convertInternalSvc(clusterIPServices *corev1.Service
 func (c *ComponentProvider) convertExternalSvc(
 	lbServices *corev1.ServiceList,
 	svcSelector map[string]string,
+	svcEntity *coreentity.K8sSvcEntity,
 ) []coreentity.K8sExternalSvcInfo {
 	var k8sSvcInfos []coreentity.K8sExternalSvcInfo
 	for _, service := range lbServices.Items {
@@ -273,11 +273,14 @@ func (c *ComponentProvider) convertExternalSvc(
 				FullAddr: fullAddr,
 			})
 		}
+		prefix := svcEntity.ClusterName + "-" + svcEntity.ComponentName + "-"
 		k8sSvcInfos = append(k8sSvcInfos, coreentity.K8sExternalSvcInfo{
-			Name:      service.Name,
-			Namespace: service.Namespace,
-			Hostname:  ingress.IP,
-			Ports:     externalPorts,
+			Name:        strings.TrimPrefix(service.Name, prefix),
+			ServiceName: service.Name,
+			Namespace:   service.Namespace,
+			Hostname:    ingress.IP,
+			Ports:       externalPorts,
+			Annotations: service.Annotations,
 		})
 	}
 	return k8sSvcInfos

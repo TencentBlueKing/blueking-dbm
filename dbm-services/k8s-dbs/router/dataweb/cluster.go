@@ -37,6 +37,7 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		clusterGroup.POST("/create", clusterController.CreateCluster)
 		clusterGroup.GET("/search", clusterController.GetClusterList)
 		clusterGroup.GET("/:id", clusterController.GetClusterInfo)
+		clusterGroup.POST("/expose", clusterController.ExposeCluster)
 	}
 }
 

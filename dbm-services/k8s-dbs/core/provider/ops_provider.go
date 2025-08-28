@@ -31,6 +31,8 @@ import (
 	metautil "k8s-dbs/metadata/util"
 	"log/slog"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"github.com/pkg/errors"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
@@ -189,6 +191,111 @@ func (o *OpsRequestProvider) GetOpsRequestStatus(request *coreentity.Request) (*
 	return responseData.OpsRequestStatus, nil
 }
 
+// CancelOpsRequest cancel opsRequest
+func (o *OpsRequestProvider) CancelOpsRequest(request *coreentity.Request) error {
+	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get k8sClusterConfig: %s", request.K8sClusterName)
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create k8sClient: %s", request.K8sClusterName)
+	}
+
+	crd := &coreentity.CustomResourceDefinition{
+		ResourceName:         request.ClusterName,
+		Namespace:            request.Metadata.Namespace,
+		GroupVersionResource: kbtypes.ClusterGVR(),
+	}
+	/**
+	有些opsRequest一直卡在running状态，直接删除opsRequest可能会卡住，因为svc的资源是pending状态
+	所以需要先清理掉pending的svc，然后再删除opsRequest
+	*/
+	cleanServiceName := request.ComponentName + "-" + request.Service.Name
+	err = o.doCleanService(request, cleanServiceName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to clean service: %v", err)
+	}
+	// 执行删除opsRequest
+	return o.doCancelOpsRequest(request, crd, k8sClient)
+}
+
+// doCleanSvc 清理 service
+func (o *OpsRequestProvider) doCleanService(request *coreentity.Request, cleanServiceName string) error {
+	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get k8sClusterConfig: %s", request.K8sClusterName)
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create k8sClient: %s", request.K8sClusterName)
+	}
+	crd := &coreentity.CustomResourceDefinition{
+		ResourceName:         request.ClusterName,
+		Namespace:            request.Metadata.Namespace,
+		GroupVersionResource: kbtypes.ClusterGVR(),
+	}
+	// 要清理的service名称
+	serviceName := cleanServiceName
+	// 获取cluster配置
+	clusterConfig, err := coreutil.GetCRD(k8sClient, crd)
+	if err != nil {
+		return err
+	}
+
+	clusterObject := clusterConfig.UnstructuredContent()
+	spec, found := clusterObject["spec"].(map[string]interface{})
+	// spec不存在时返回，证明没有需要清理的
+	if !found {
+		return nil
+	}
+	// 获取 services 列表
+	// service不存在时返回，证明没有需要清理的
+	services, found := spec["services"].([]interface{})
+	if !found {
+		return nil
+	}
+
+	// 过滤掉要删除的 service
+	var filteredServices []interface{}
+	for _, service := range services {
+		serviceMap := service.(map[string]interface{})
+		if serviceMap["serviceName"] != serviceName {
+			filteredServices = append(filteredServices, service)
+		}
+	}
+
+	// 不相等时，证明需要清理
+	if len(filteredServices) != len(services) {
+		// 将修改后的内容设置回 clusterConfig
+		if err := unstructured.SetNestedSlice(clusterConfig.Object, filteredServices, "spec", "services"); err != nil {
+			return errors.Wrapf(err, "failed to update services column: %v", err)
+		}
+
+		// 更新cluster
+		_, err := coreutil.UpdateCRD(k8sClient, crd, clusterConfig)
+		if err != nil {
+			return errors.Wrapf(err, "failed update clusterConfig: %v", err)
+		}
+	}
+	return nil
+}
+
+// doCancelOpsRequest cancel opsRequest
+func (o *OpsRequestProvider) doCancelOpsRequest(
+	request *coreentity.Request,
+	crd *coreentity.CustomResourceDefinition,
+	k8sClient *commutil.K8sClient,
+) error {
+	crd.ResourceName = request.OpsRequestName
+	crd.GroupVersionResource = kbtypes.OpsGVR()
+	err := coreutil.DeleteCRD(k8sClient, crd)
+	if err != nil {
+		return errors.Wrapf(err, "failed delete opsRequest: %v", err)
+	}
+	return nil
+}
+
 // VerticalScaling Create a verticalScaling of opsRequest
 func (o *OpsRequestProvider) VerticalScaling(
 	ctx *commentity.DbsContext,
@@ -228,12 +335,12 @@ func (o *OpsRequestProvider) doVerticalScaling(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, verticalScaling); err != nil {
-		return nil, fmt.Errorf("下发垂直扩容任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发垂直扩容任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(verticalScaling.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取垂直扩容任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取垂直扩容任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -271,7 +378,7 @@ func (o *OpsRequestProvider) checkClusterExists(
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
-			fmt.Errorf("未找到对应的 k8s 集群信息,集群名称:%s, 错误详情:%w", request.K8sClusterName, err))
+			errors.Wrapf(err, "未找到对应的 k8s 集群信息,集群名称:%s, 错误详情", request.K8sClusterName))
 	}
 	ctx.K8sClusterConfig = k8sClusterConfig
 	clusterEntity, err := o.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
@@ -281,11 +388,11 @@ func (o *OpsRequestProvider) checkClusterExists(
 	})
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
-			fmt.Errorf("集群 %s 元数据查找失败，请稍后请重试: %w", request.ClusterName, err))
+			errors.Wrapf(err, "集群 %s 元数据查找失败，请稍后请重试", request.ClusterName))
 	}
 	if clusterEntity == nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
-			fmt.Errorf("集群 %s 不存在，请确认集群是否已部署", request.ClusterName))
+			errors.Wrapf(err, "集群 %s 不存在，请确认集群是否已部署", request.ClusterName))
 	}
 	return clusterEntity, nil
 }
@@ -322,12 +429,12 @@ func (o *OpsRequestProvider) doHorizontalScaling(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, horizontalScaling); err != nil {
-		return nil, fmt.Errorf("下发水平扩容任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发水平扩容任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(horizontalScaling.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取水平扩容任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取水平扩容任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -393,12 +500,12 @@ func (o *OpsRequestProvider) doVolumeExpansion(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, volumeExpansion); err != nil {
-		return nil, fmt.Errorf("下发磁盘扩容任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发磁盘扩容任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(volumeExpansion.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取磁盘扩容任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取磁盘扩容任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -442,12 +549,12 @@ func (o *OpsRequestProvider) doStartCluster(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, start); err != nil {
-		return nil, fmt.Errorf("下发集群启动任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发集群启动任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(start.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取集群启动任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取集群启动任务详情失败")
 	}
 
 	return &responseData.Metadata, nil
@@ -502,12 +609,12 @@ func (o *OpsRequestProvider) doRestartCluster(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, restart); err != nil {
-		return nil, fmt.Errorf("下发集群重启任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发集群重启任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(restart.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取集群重启任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取集群重启任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -552,12 +659,12 @@ func (o *OpsRequestProvider) doStopCluster(
 
 	err = coreutil.CreateCRD(k8sClient, stop)
 	if err != nil {
-		return nil, fmt.Errorf("下发集群停止任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发集群停止任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(stop.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取集群停止任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取集群停止任务详情失败")
 	}
 
 	return &responseData.Metadata, nil
@@ -608,12 +715,12 @@ func (o *OpsRequestProvider) doUpgradeCluster(
 
 	err = coreutil.CreateCRD(k8sClient, upgrade)
 	if err != nil {
-		return nil, fmt.Errorf("下发集群升级任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发集群升级任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(upgrade.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取集群升级任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取集群升级任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -657,12 +764,12 @@ func (o *OpsRequestProvider) doExposeCluster(
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, expose); err != nil {
-		return nil, fmt.Errorf("下发服务暴露任务失败: %w", err)
+		return nil, errors.Wrapf(err, "下发服务暴露任务失败")
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(expose.ResourceObject)
 	if err != nil {
-		return nil, fmt.Errorf("获取服务暴露任务详情失败: %w", err)
+		return nil, errors.Wrapf(err, "获取服务暴露任务详情失败")
 	}
 	return &responseData.Metadata, nil
 }
@@ -671,12 +778,12 @@ func (o *OpsRequestProvider) doExposeCluster(
 func (o *OpsRequestProvider) DescribeOpsRequest(request *coreentity.Request) (*coreentity.OpsRequestData, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get k8sClusterConfig: %w", err)
+		return nil, errors.Wrapf(err, "failed to get k8sClusterConfig")
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create k8sClient: %w", err)
+		return nil, errors.Wrapf(err, "failed to create k8sClient")
 	}
 	crd := &coreentity.CustomResourceDefinition{
 		ResourceName:         request.Metadata.OpsRequestName,
