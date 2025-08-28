@@ -51,6 +51,8 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPar
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_extend import ProxySwitchForExtendFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_migrate import ProxySwitchForMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
@@ -63,9 +65,17 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQ
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow, MySQMigrateUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator import MySQLProxyClusterAddFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
     MySQLProxyClusterReduceFlowValidator,
 )
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_extend_validator import (
+    MySQLProxySwitchForExtendValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migrate_validator import (
+    MySQLProxySwitchForMigrateValidator,
+)
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validator import MySQLProxySwitchValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -238,6 +248,7 @@ class MySQLController(BaseController):
         flow = AccountRulesFlows(root_id=self.root_id, data=self.ticket_data)
         flow.delete_account_rule()
 
+    @validates_with(MySQLProxyClusterAddFlowValidator)
     def mysql_proxy_add_scene(self):
         """
         添加mysql_proxy实例场景(新flow编排)
@@ -298,32 +309,32 @@ class MySQLController(BaseController):
         flow = MySQLTruncateFlow(root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBHA.value)
         flow.truncate_flow()
 
+    @validates_with(MySQLProxySwitchValidator)
     def mysql_proxy_switch_scene(self):
         """
-        上架mysql_proxy实例场景(新flow编排)
-        ticket_data 参数结构体样例
-        {
-        "uid": "2022051612120001",
-        "created_by": "xxx",
-        "bk_biz_id": "152",
-        "force": false,
-        "ticket_type": "MYSQL_PROXY_SWITCH",
-        "switch_infos": [
-              {
-                "cluster_ids": [1,2,3],
-                "origin_proxy_ip":"1.1.1.1",
-                "target_proxy_ip":"2.2.2.2"
-              },
-              {
-                "cluster_ids": [4,5,6]
-                "origin_proxy_ip":"3.3.3.3",
-                "target_proxy_ip":"4.4.4.4"
-              }
-        ]
-        }
+        proxy 替换单据调用flow的入口，
+        整机替换
         """
         flow = MySQLProxyClusterSwitchFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_mysql_cluster_proxy_flow()
+
+    @validates_with(MySQLProxySwitchForExtendValidator)
+    def mysql_proxy_switch_for_extend_scene(self):
+        """
+        proxy 扩缩容单据调用flow的入口
+        整个集群、整个机器扩缩容
+        """
+        flow = ProxySwitchForExtendFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_extend_flow()
+
+    @validates_with(MySQLProxySwitchForMigrateValidator)
+    def mysql_proxy_switch_for_migrate_scene(self):
+        """
+        proxy 拆分单据调用flow的入口
+        整个集群维度操作
+        """
+        flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_migrate_flow()
 
     def mysql_import_sqlfile_scene(self):
         flow = ImportSQLFlow(root_id=self.root_id, data=self.ticket_data)

@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from collections import defaultdict
-from typing import List
+from typing import List, Set
 
 from django.utils.translation import ugettext as _
 
@@ -117,6 +117,35 @@ class MysqlBaseValidator(BaseValidator):
 
         return err_msg
 
+    def pre_check_duplicate_cluster_ids(self, check_cluster_ids_field_name: str):
+        """
+        检验是否有存在重复的ip信息，如果有则记录异常
+        因为SaaS传给所有flow的ip信息都是固定格式，故可以做通用处理
+        @param check_cluster_ids_field_name: 在info结构体获取ip的key名称
+        """
+        cluster_id_counts = defaultdict(int)
+        for info in self.data["infos"]:
+            if isinstance(info[check_cluster_ids_field_name], list):
+                for c_id in info[check_cluster_ids_field_name]:
+                    cluster_id_counts[c_id] += 1
+            elif isinstance(info[check_cluster_ids_field_name], int):
+                cluster_id_counts[info[check_cluster_ids_field_name]] += 1
+
+            else:
+                # 不是传入通用的ip表达方式，无法计算，退出异常
+                raise TicketDataException(
+                    f"run [pre_check_duplicate_cluster_ids] failed: No such type checking is supported:"
+                    f"{info[check_cluster_ids_field_name]}"
+                )
+
+        # 找出统计数大于1的ip数量
+        err_msg = ""
+        for cluster_id, count in cluster_id_counts.items():
+            if count > 1:
+                err_msg += _("在单据中，存在重复集群ID信息填入 [{}]，请检查 \n".format(cluster_id))
+
+        return err_msg
+
     @classmethod
     @validator_log_format
     def pre_check_mysql_proxy_in_cluster(cls, ip_list: list, cluster_ids: List[int]):
@@ -135,7 +164,9 @@ class MysqlBaseValidator(BaseValidator):
         return err_msg
 
     @classmethod
-    def pre_check_ip_clusters_included(cls, ip: str, bk_cloud_id: int, cluster_ids: list, access_layer: AccessLayer):
+    def pre_check_ip_clusters_included(
+        cls, ip: str, bk_cloud_id: int, cluster_ids: List[int], access_layer: AccessLayer
+    ):
         """
         检验单据中传入ip信息，所属的集群是否和传入的cluster_ids一样
         @param ip: 待校验的ip信息
@@ -166,4 +197,120 @@ class MysqlBaseValidator(BaseValidator):
                 )
             )
 
+        return ""
+
+    @validator_log_format
+    def pre_check_proxy_clusters_included(self, proxy_ip: str, bk_cloud_id: int, cluster_ids: List[int]):
+        """
+        判断proxy_ip和传入的cluster_ids的所属关系，是否已经完整
+        @param proxy_ip: 待判断的proxy_ip
+        @param bk_cloud_id: 带判断proxy_ip所在的云区域
+        @param cluster_ids: 待判断的集群列表信息
+        """
+        return self.pre_check_ip_clusters_included(proxy_ip, bk_cloud_id, cluster_ids, AccessLayer.PROXY)
+
+    @validator_log_format
+    def pre_check_storage_clusters_included(self, storage_ip: str, bk_cloud_id: int, cluster_ids: List[int]):
+        """
+        判断storage_ip和传入的cluster_ids的所属关系，是否已经完整
+        @param storage_ip: 待判断的storage_ip
+        @param bk_cloud_id: 带判断proxy_ip所在的云区域
+        @param cluster_ids: 待判断的集群列表信息
+        """
+
+        return self.pre_check_ip_clusters_included(storage_ip, bk_cloud_id, cluster_ids, AccessLayer.STORAGE)
+
+    @classmethod
+    def pre_check_same_group_relationship(
+        cls, cluster_ids: List[int], access_layer: AccessLayer, check_is_all_in_group: bool = False
+    ) -> str:
+        """
+        根据传入的集群ID列表，判断这些集群是否同组共享的，同时判断有没有别集群也是同组共享的，且没有传进来
+        怎么定义集群才是同组共享：
+        比如 集群ID 1,2，且两组集群的对应的proxy所有机器，都是完全一样，则认为proxy层是同组共享，否则不是
+        @param cluster_ids: 待检测的集群ID列表
+        @param access_layer: 待检测的接入类型，比如传入的是proxy，则只检测集群的proxy是否同组共享关系，以此类推
+        @param check_is_all_in_group: 是否开启检查 cluster_ids的列表，已经是所有同组共享的集群列表，默认不开启
+        """
+        if len(cluster_ids) != len(set(cluster_ids)):
+            # 这里判断传入的cluster_ids中，有元素重复，应该检查
+            return _("传入的集群ID列表中，有元素重复，请检查[{}]".format(cluster_ids))
+
+        first_cluster_ips_set = set()
+        first_cluster = ""
+        for cluster in Cluster.objects.filter(id__in=cluster_ids).prefetch_related(
+            "storageinstance_set", "proxyinstance_set"
+        ):
+
+            if access_layer == AccessLayer.PROXY:
+                ips = {i.machine.ip for i in cluster.proxyinstance_set.all()}
+
+            elif access_layer == AccessLayer.STORAGE:
+                ips = {i.machine.ip for i in cluster.storageinstance_set.all()}
+
+            else:
+                # 其余的不支持
+                raise TicketDataException(f" No such access_layer [{access_layer}] type checking is supported")
+
+            if not first_cluster_ips_set:
+                first_cluster_ips_set = ips
+                first_cluster = cluster.immute_domain
+                continue
+
+            if first_cluster_ips_set != ips:
+                # 出现不一样的ip集合，则报出异常。
+                return _(
+                    "这批集群存在不属于同组共享特性，排查类型：{}，判定集群：[{}:{}]，不一致集群:[{}:{}]".format(
+                        access_layer, first_cluster, first_cluster_ips_set, cluster.immute_domain, ips
+                    )
+                )
+        if check_is_all_in_group:
+            # 判断cluster_ids的列表，已经是所有同组共享的集群列表
+            # 这里如果上面检查通过，则已经证明了cluster_ids的集群，是同组共享，现在这里是判断是否包括所有的同组共享的集群。
+            # 拿第一个集群的机器，作为判断依据，或者机器关联所有的集群信息，是否和传入cluster_ids 对等
+            if access_layer == AccessLayer.PROXY:
+                check_machine = Cluster.objects.get(id=cluster_ids[0]).proxyinstance_set.first().machine
+                all_cluster_ids = {p.cluster.get().id for p in ProxyInstance.objects.filter(machine=check_machine)}
+            else:
+                check_machine = Cluster.objects.get(id=cluster_ids[0]).storageinstance_set.first().machine
+                all_cluster_ids = {s.cluster.get().id for s in StorageInstance.objects.filter(machine=check_machine)}
+            if all_cluster_ids != set(cluster_ids):
+                # 如果两个集合不相等，则认为传入的cluster_ids，不齐全，检查不通过
+                return _("检测到传入集群列表，还有缺漏的同机共享的集群， 缺漏的集群ID:[{}]".format(all_cluster_ids - set(cluster_ids)))
+
+        return ""
+
+    @classmethod
+    def per_check_all_machine_in_cluster(cls, cluster_id: int, machines: Set[str], access_layer: AccessLayer) -> str:
+        """
+        判断传入的机器列表machines，是否属于集群cluster_id的接入类型access_layer, 并且判断集群所有的access_layer类型，都在machines里面
+        @param cluster_id: 待检查集群列表
+        @param machines: 待检查的机器信息，机器列表是[ip1,ip2,...]
+        @param access_layer: 待检测的接入类型，比如传入的是proxy，则检查proxy类型的关系，以此类推
+        """
+        cluster = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").get(id=cluster_id)
+
+        if access_layer == AccessLayer.PROXY:
+            ips = {i.machine.ip for i in cluster.proxyinstance_set.all()}
+
+        elif access_layer == AccessLayer.STORAGE:
+            ips = {i.machine.ip for i in cluster.storageinstance_set.all()}
+
+        else:
+            # 其余的不支持
+            raise TicketDataException(f" No such access_layer [{access_layer}] type checking is supported")
+
+        if ips < machines:
+            # 表示machines里面，存在不属于集群的access_layer类型机器，检查不通过
+            return _("存在不属于集群[{}]所有{}类型的机器, 无效的机器信息{}".format(cluster.immute_domain, access_layer, machines - ips))
+
+        if ips > machines:
+            # 表示machines里面，不能包括集群所有access_layer类型的机器，检查不通过
+            return _("没有包括集群[{}]所有{}类型的机器, 相差的机器信息{}".format(cluster.immute_domain, access_layer, ips - machines))
+
+        if ips != machines:
+            # 表示两个集合不相等，校验不通过
+            return _("集群[{}]所有{}类型的机器和存入的机器不对等, 差异的机器信息{}".format(cluster.immute_domain, access_layer, ips ^ machines))
+
+        # 表示两个集合相等，则代表集群所有的access_layer类型的机器，都在machines里面，校验通过
         return ""

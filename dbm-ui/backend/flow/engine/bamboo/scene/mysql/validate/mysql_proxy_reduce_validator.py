@@ -11,11 +11,9 @@ from collections import defaultdict
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import AccessLayer
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MIN_TENDB_PROXY_COUNT_IN_TICKET
 from backend.flow.engine.bamboo.scene.mysql.validate.exception import ProxyReduceCountFailedException
-from backend.flow.engine.validate.base_validate import validator_log_format
 from backend.flow.engine.validate.exceptions import DuplicateIPException, TicketDataException
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
@@ -48,11 +46,6 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
                 raise TicketDataException(f"run func [__calc_reduce_ips_based_on_cluster] failed:{err}")
 
         return cluster_reduced_ips
-
-    @classmethod
-    @validator_log_format
-    def pre_check_ip_clusters_included(cls, ip: str, bk_cloud_id: int, cluster_ids: list, access_layer: AccessLayer):
-        return super().pre_check_ip_clusters_included(ip, bk_cloud_id, cluster_ids, access_layer)
 
     def pre_check_remaining_proxy(self):
         """
@@ -120,11 +113,10 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
 
         # 检查每一行的ip的所属集群信息是否传全
         log_format_tag = self.create_log_tag(field="origin_proxy_ip", index=index, row_key=row_key)
-        error_msg = self.pre_check_ip_clusters_included(
-            ip=info["origin_proxy_ip"]["ip"],
+        error_msg = self.pre_check_proxy_clusters_included(
+            proxy_ip=info["origin_proxy_ip"]["ip"],
             bk_cloud_id=int(info["origin_proxy_ip"]["bk_cloud_id"]),
             cluster_ids=info["cluster_ids"],
-            access_layer=AccessLayer.PROXY,
             **log_format_tag,
         )
         if error_msg:
