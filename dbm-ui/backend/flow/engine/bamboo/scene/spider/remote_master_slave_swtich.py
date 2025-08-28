@@ -11,6 +11,7 @@ import copy
 import logging.config
 from collections import defaultdict
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -25,6 +26,8 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
 )
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -127,6 +130,28 @@ class RemoteMasterSlaveSwitchFlow(object):
             if sub_flow:
                 sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
+            # 收集需要屏蔽告警的IP地址 - 只屏蔽slave节点（即将切换为master的节点）
+            shield_ips = []
+            for switch_tuple in switch_tuples:
+                shield_ips.append(switch_tuple["slave"]["ip"])
+            shield_ips = list(set(shield_ips))  # 去重
+
+            sub_pipeline.add_act(
+                act_name=_("屏蔽告警"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": _("Spider集群主从切换操作：{}").format(cluster.name),
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": shield_ips,
+                        }
+                    ],
+                },
+            )
+
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),
                 act_component_code=TransFileComponent.code,
@@ -212,6 +237,12 @@ class RemoteMasterSlaveSwitchFlow(object):
                         with_collect_sysinfo=False,
                     ),
                 ]
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("解除告警屏蔽"),
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs={},
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name))))
