@@ -327,7 +327,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         is_tendbcluster = cluster_type == ClusterType.TenDBCluster.value
         is_storage_instance = isinstance(instances[0], StorageInstance)
         if is_tendbcluster and is_storage_instance:
-            remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(instances)
+            remote_db, remote_dr, _, _ = TenDBClusterClusterHandler.get_remote_infos(instances)
             for instance in remote_db + remote_dr:
                 role = instance.instance_role
                 cluster_info[role] += f"\n{instance.machine.ip}:{instance.port}(%_{instance.shard_id})"
