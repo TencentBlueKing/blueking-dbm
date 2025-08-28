@@ -12,6 +12,10 @@ export default defineComponent({
       required: true,
       type: String,
     },
+    remoteSearch: {
+      required: true,
+      type: Boolean,
+    },
   },
   // eslint-disable-next-line perfectionist/sort-objects
   emits: ['change'],
@@ -21,6 +25,7 @@ export default defineComponent({
         onChange: (value: any) => {
           context.emit('change', value);
         },
+        remoteSearch: props.remoteSearch,
         ...(props.config.props || { not: 'empty' }),
         modelValue: props.modelValue,
       });

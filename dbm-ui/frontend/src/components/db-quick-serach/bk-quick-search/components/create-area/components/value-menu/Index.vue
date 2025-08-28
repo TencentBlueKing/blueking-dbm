@@ -1,12 +1,15 @@
 <template>
   <div class="bk-quick-search-type-menu">
-    <component
-      :is="renderCom"
-      :config="config"
-      :keyword="keyword"
-      v-bind="renderComProps"
-      :model-value="modelValue"
-      @change="handleChange" />
+    <ElConfigProvider :locale="zhCn">
+      <component
+        :is="renderCom"
+        :config="config"
+        :keyword="keyword"
+        v-bind="renderComProps"
+        :model-value="modelValue"
+        :remote-search="isRemoteSearach"
+        @change="handleChange" />
+    </ElConfigProvider>
     <div
       v-if="isRemoteList && (isRemoteListLoading || remoteList.length < 1)"
       style="padding: 0 16px; line-height: 32px; color: #63656e; text-align: center">
@@ -31,12 +34,16 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { ElConfigProvider } from 'element-plus';
+  import zhCn from 'element-plus/es/locale/lang/zh-cn';
   import _ from 'lodash';
   import { Button } from 'tdesign-vue-next';
   import { computed, shallowRef, watch } from 'vue';
 
   import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+
+  import 'element-plus/dist/index.css';
 
   import Cascader from './components/Cascader.vue';
   import Custom from './components/Custom';
@@ -113,8 +120,14 @@
       return false;
     }
     return props.config.type
-      ? [comType.MULTIPLE, comType.MULTIPLE_CASCADER].includes(props.config.type as comType)
+      ? [comType.DATETIME, comType.DATETIME_RANGE, comType.MULTIPLE, comType.MULTIPLE_CASCADER].includes(
+          props.config.type as comType,
+        )
       : Boolean(props.config.showConfirmAndReset);
+  });
+
+  const isRemoteSearach = computed(() => {
+    return Boolean(props.config && props.config.remoteMethod && props.config.remoteSearch);
   });
 
   const fetchRemoteList = () => {
@@ -146,6 +159,17 @@
       immediate: true,
     },
   );
+  watch(
+    () => props.keyword,
+    () => {
+      if (props.config && props.config.remoteMethod && props.config.remoteSearch) {
+        fetchRemoteList();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: IValue['values']) => {
     modelValue.value = value;
@@ -167,18 +191,20 @@
   .bk-quick-search-type-menu {
     --td-brand-color: #3f87ff;
     --td-brand-color-hover: #5594fa;
+    --el-datepicker-active-color: #3f87ff;
+    --el-datepicker-hover-text-color: #3f87ff;
+    --el-color-primary: #3f87ff;
 
     padding: 0;
     margin: -5px -9px;
     font-size: 12px;
 
-    & > * {
-      max-height: 450px;
-      min-width: 230px;
-      min-height: 32px;
-      overflow: hidden auto;
-      font-size: 12px;
-      pointer-events: all;
+    .el-date-picker,
+    .el-date-range-picker__time-picker-wrap {
+      .el-time-panel {
+        right: 0;
+        left: unset;
+      }
     }
 
     .value-item {
@@ -205,6 +231,29 @@
         background: #f4f6fa;
       }
     }
+  }
+
+  .bk-quick-search-type-menu-filter-box {
+    .t-input {
+      border: none;
+      border-bottom: 1px solid #eaebf0;
+      border-radius: 0;
+      box-shadow: none;
+
+      &.t-input--focused {
+        border-color: var(--td-brand-color);
+      }
+    }
+  }
+
+  .bk-quick-search-value-wrapper {
+    max-height: 350px;
+    min-width: 230px;
+    min-height: 32px;
+    margin-top: 8px;
+    overflow: auto;
+    font-size: 12px;
+    pointer-events: all;
   }
 
   .bk-quick-search-type-menu-filter-empty {

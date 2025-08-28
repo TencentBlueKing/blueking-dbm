@@ -63,7 +63,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     [STATUS_APPROVE]: t('待审批'),
     [STATUS_FAILED]: t('已失败'),
     [STATUS_INNER_TODO]: t('待继续'),
-    [STATUS_PENDING]: t('等待中'),
+    [STATUS_PENDING]: t('待调度'),
     [STATUS_RESOURCE_REPLENISH]: t('待补货'),
     [STATUS_RUNNING]: t('执行中'),
     [STATUS_SUCCEEDED]: t('已完成'),

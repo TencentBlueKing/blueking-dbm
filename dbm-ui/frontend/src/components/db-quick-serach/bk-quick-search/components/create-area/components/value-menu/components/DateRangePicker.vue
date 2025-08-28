@@ -1,14 +1,17 @@
 <template>
-  <DateRangePickerPanel
+  <ElDatePickerPanel
     v-model="localValue"
-    @change="handleChange" />
+    :border="false"
+    type="daterange"
+    @update:model-value="handleChange" />
 </template>
 <script setup lang="ts">
-  import { DateRangePickerPanel } from 'tdesign-vue-next';
+  import dayjs from 'dayjs';
+  import { ElDatePickerPanel } from 'element-plus';
 
   interface IResult {
     label: string;
-    value: string | number;
+    value: string;
   }
 
   type Emits = (e: 'change', value: IResult[]) => void;
@@ -19,7 +22,7 @@
     default: () => [],
   });
 
-  const localValue = ref<IResult['value'][]>(['', '']);
+  const localValue = ref<string[]>(['', '']);
 
   watch(
     modelValue,
@@ -27,22 +30,24 @@
       if (modelValue.value.length < 1) {
         return;
       }
-      localValue.value = [modelValue.value[0].value || '', modelValue.value[1].value || ''];
+      localValue.value = [modelValue.value[0]!.value || '', modelValue.value[1]!.value || ''];
     },
     {
       immediate: true,
     },
   );
 
-  const handleChange = (value: (string | number | Date)[]) => {
+  const handleChange = (value: string[]) => {
+    const startDateFormat = dayjs(value[0]).format('YYYY-MM-DD');
+    const endDateFormat = dayjs(value[1]).format('YYYY-MM-DD');
     emits('change', [
       {
-        label: `${value[0]}`,
-        value: `${value[0]}`,
+        label: startDateFormat,
+        value: startDateFormat,
       },
       {
-        label: `${value[1]}`,
-        value: `${value[1]}`,
+        label: endDateFormat,
+        value: endDateFormat,
       },
     ]);
   };

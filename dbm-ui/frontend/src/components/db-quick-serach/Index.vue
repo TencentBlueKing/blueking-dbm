@@ -38,9 +38,9 @@
       const currentDataConfig = _.find(props.data, (config) => config.id === item.id)!;
       if (currentDataConfig.type === 'date-range' || currentDataConfig.type === 'datetime-range') {
         Object.assign(result, {
-          [`${currentDataConfig.id}__gte`]: item.values[0].value,
-          [`${currentDataConfig.id}__lte`]: item.values[1].value,
-          [`${currentDataConfig.id}`]: `${item.values[0].value},${item.values[1].value}`,
+          [`${currentDataConfig.id}__gte`]: item.values[0]!.value,
+          [`${currentDataConfig.id}__lte`]: item.values[1]!.value,
+          [`${currentDataConfig.id}`]: `${item.values[0]!.value},${item.values[1]!.value}`,
         });
       } else if (currentDataConfig.type === 'multiple' || currentDataConfig.type === 'multiple-cascader') {
         Object.assign(result, {
@@ -100,7 +100,7 @@
             latestValue[searchItemConfig.id] &&
             (searchItemConfig.type === 'date-range' || searchItemConfig.type === 'datetime-range')
           ) {
-            const [startTime, endTime] = latestValue[searchItemConfig.id].split(',');
+            const [startTime, endTime] = latestValue[searchItemConfig.id]!.split(',');
             return Promise.resolve().then(() => {
               return {
                 id: searchItemConfig.id,
@@ -127,7 +127,7 @@
             .then(() => {
               // 备选数据来源
               if (_.isFunction(searchItemConfig.remoteMethod)) {
-                return searchItemConfig.remoteMethod();
+                return searchItemConfig.remoteMethod({ defaultValue: latestValue[searchItemConfig.id] });
               }
               if (_.isArray(searchItemConfig.list)) {
                 return searchItemConfig.list;
@@ -137,7 +137,7 @@
             .then((data) => {
               // 备选数据结构
               // 级联
-              if (data.length > 0 && _.isArray(data[0].children)) {
+              if (data.length > 0 && _.isArray(data[0]!.children)) {
                 return data.reduce((result, item) => result.concat(item.children || []), [] as IValue['values']);
               }
               return data;

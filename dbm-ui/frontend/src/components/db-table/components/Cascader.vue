@@ -125,7 +125,7 @@
       if (modelValue.value.length < 1) {
         return;
       }
-      const currentValue = modelValue.value[0].value;
+      const currentValue = modelValue.value[0]!.value;
       for (const parentItem of props.list) {
         for (const childItem of parentItem.children) {
           if (childItem.value === currentValue) {
@@ -152,7 +152,7 @@
   };
 
   onMounted(() => {
-    handleSelectParent(props.list[0]);
+    handleSelectParent(props.list[0]!);
   });
 </script>
 <style lang="less">

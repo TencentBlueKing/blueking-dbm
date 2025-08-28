@@ -1,9 +1,26 @@
 .t-table {
+  --td-bg-color-secondarycontainer: #f0f1f5;
+  --td-bg-color-secondarycontainer-hover: #eaebf0;
+
   z-index: 0;
+
+  .t-table__header th:hover {
+    background-color: var(--td-bg-color-secondarycontainer-hover);
+  }
 }
 
 .t-table__filter-pop {
+  .t-table__filter-pop-content {
+    .t-table__filter-pop-wrapper {
+      max-height: 280px;
+    }
+  }
+
   .t-input {
     box-shadow: none !important;
   }
+}
+
+.t-table__cell--sort-trigger {
+  margin-right: 4px;
 }

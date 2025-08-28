@@ -2,7 +2,18 @@
   <div
     ref="root"
     class="bk-quick-search-type-select">
-    <div ref="layout">
+    <div class="bk-quick-search-type-menu-filter-box">
+      <Input
+        v-model="serachKey"
+        borderless
+        clearable
+        placeholder="请输入关键字">
+        <template #prefix-icon> <SearchIcon /></template>
+      </Input>
+    </div>
+    <div
+      ref="layout"
+      class="bk-quick-search-value-wrapper">
       <div
         v-for="(valueItem, index) in renderList"
         :key="valueItem.value"
@@ -16,25 +27,26 @@
       </div>
     </div>
     <div
-      v-if="keyword && renderList.length < 1"
+      v-if="serachKey && renderList.length < 1"
       class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ keyword }}" 相关数据
+      未搜索到 "{{ serachKey }}" 相关数据
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { Radio } from 'tdesign-vue-next';
+  import { SearchIcon } from 'tdesign-icons-vue-next';
+  import { Input, Radio } from 'tdesign-vue-next';
   import { ref, useTemplateRef } from 'vue';
 
   import useMenuKeyboard from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
 
   interface Props {
-    keyword: string;
     list: {
       label: string;
       value: string | number;
     }[];
+    remoteSearch: boolean;
   }
 
   interface IResult {
@@ -56,10 +68,11 @@
   const layoutRef = useTemplateRef('layout');
   const contentMinWidth = ref(0);
   const localValue = ref<string | number>('');
+  const serachKey = ref('');
 
   const renderList = computed(() => {
-    const keyword = `${props.keyword || ''}`.trim().toLowerCase();
-    if (!keyword) {
+    const keyword = `${serachKey.value || ''}`.trim().toLowerCase();
+    if (!keyword || props.remoteSearch) {
       return props.list;
     }
 
@@ -73,7 +86,7 @@
         return;
       }
 
-      localValue.value = modelValue.value[0].value;
+      localValue.value = modelValue.value[0]!.value;
     },
     {
       immediate: true,
@@ -104,6 +117,6 @@
 </script>
 <style lang="less">
   .bk-quick-search-type-select {
-    padding: 8px 0;
+    padding: 8px 12px;
   }
 </style>

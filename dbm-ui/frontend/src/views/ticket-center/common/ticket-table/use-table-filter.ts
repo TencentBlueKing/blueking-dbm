@@ -4,12 +4,12 @@ import { useRequest } from 'vue-request';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketGroupTypes } from '@services/source/ticket';
+import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
+import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
-
-import DatetimeRange from '@/components/db-table/components/DatetimeRange.vue';
 
 type ITableFilter = Record<
   string,
@@ -50,15 +50,28 @@ export default () => {
     }[]
   >([]);
 
+  const userList = shallowRef<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
+
   const tableFilter = computed<ITableFilter>(() => {
     return {
-      bk_biz_id: {
+      bk_biz_ids: {
         list: globalBizsStore.bizs.map((item) => ({
           label: item.name,
           value: `${item.bk_biz_id}`,
         })),
         name: t('业务'),
-        type: 'single',
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
+      cluster: {
+        name: t('集群'),
+        showConfirmAndReset: true,
+        type: 'input',
       },
       create_at: {
         component: markRaw(DatetimeRange),
@@ -71,6 +84,12 @@ export default () => {
             [t('近 7 天')]: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
           },
         },
+      },
+      creator: {
+        list: userList.value,
+        name: t('申请人'),
+        showConfirmAndReset: true,
+        type: 'multiple',
       },
       ids: {
         name: t('单号'),
@@ -102,12 +121,32 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
+      todo_helpers: {
+        list: userList.value,
+        name: t('当前协助人'),
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
+      todo_operators: {
+        list: userList.value,
+        name: t('当前处理人'),
+        showConfirmAndReset: true,
+        type: 'multiple',
+      },
     };
   });
 
   useRequest(getTicketGroupTypes, {
     onSuccess(data) {
       ticketTypeGroupList.value = data;
+    },
+  });
+  useRequest(getUserList, {
+    onSuccess(data) {
+      userList.value = data.results.map((item) => ({
+        label: item.display_name,
+        value: item.username,
+      }));
     },
   });
 

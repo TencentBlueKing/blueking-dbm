@@ -1,15 +1,17 @@
 <template>
-  <DatePickerPanel
+  <ElDatePickerPanel
     v-model="localValue"
-    enable-time-picker
-    @change="handleChange" />
+    :border="false"
+    type="datetime"
+    @update:model-value="handleChange" />
 </template>
 <script setup lang="ts">
-  import { DatePickerPanel } from 'tdesign-vue-next';
+  import dayjs from 'dayjs';
+  import { ElDatePickerPanel } from 'element-plus';
 
   interface IResult {
     label: string;
-    value: string | number;
+    value: string;
   }
 
   type Emits = (e: 'change', value: IResult[]) => void;
@@ -20,7 +22,7 @@
     default: () => [],
   });
 
-  const localValue = ref<string | number>();
+  const localValue = ref<string>();
 
   watch(
     modelValue,
@@ -32,11 +34,12 @@
     },
   );
 
-  const handleChange = (value: string | number | Date) => {
+  const handleChange = (value: string) => {
+    const valueFormat = dayjs(value).format('YYYY-MM-DD HH:mm:ss');
     emits('change', [
       {
-        label: `${value}`,
-        value: `${value}`,
+        label: valueFormat,
+        value: valueFormat,
       },
     ]);
   };

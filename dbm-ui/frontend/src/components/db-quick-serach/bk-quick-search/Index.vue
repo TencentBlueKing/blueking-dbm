@@ -110,6 +110,7 @@
           value: string | number;
         }[]
       >;
+      remoteSearch?: boolean;
       showConfirmAndReset?: boolean;
       type?: `${comType}`;
       validator?: (value: string) => boolean | string;
@@ -290,9 +291,12 @@
     font-size: 12px;
 
     &.is-focused {
+      .bk-quick-search-wrapper {
+        border-color: #1890ff;
+      }
+
       .bk-quick-search-tag-box {
         height: auto;
-        border-color: #1890ff;
         flex-wrap: wrap;
       }
     }
@@ -304,18 +308,19 @@
     right: 0;
     left: 0;
     color: #63656e;
+    background: #fff;
+    border: 1px solid #c4c6cc;
+    border-radius: 2px;
   }
 
   .bk-quick-search-tag-box {
     display: flex;
     height: 32px;
+    max-width: calc(100% - 24px);
     min-height: 32px;
     padding: 0 8px;
     padding-bottom: 4px;
     overflow: hidden;
-    background: #fff;
-    border: 1px solid #c4c6cc;
-    border-radius: 2px;
     box-sizing: border-box;
     transition: border 0.2s linear;
     align-items: flex-start;
