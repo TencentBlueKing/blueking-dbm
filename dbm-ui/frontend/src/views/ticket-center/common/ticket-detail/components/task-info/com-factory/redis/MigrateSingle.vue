@@ -29,7 +29,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="old_nodes"
+      field="origin_old_nodes"
       :label="t('关联的主从实例')"
       min-width="400">
       <template #default="{ data }: { data: RowData }">
@@ -78,20 +78,28 @@
   const { t } = useI18n();
 
   const { infos, specs } = props.ticketDetails.details;
-  const isDomain = infos[0].display_info.migrate_type === 'domain';
+  const isDomain = infos[0].display_info?.migrate_type || infos[0].migrate_type === 'domain';
 
   const tableData = props.ticketDetails.details.infos.map((item) => {
-    const primaryKey = isDomain ? item.display_info.domain : item.display_info.ip;
+    const primaryKey = isDomain
+      ? item.display_info?.domain || item.migrate_domain
+      : item.display_info?.ip || item.migrate_ip;
     const specName = specs[item.resource_spec.backend_group.spec_id].name;
 
-    const masterItem = item.old_nodes.master[0];
-    const slaveItem = item.old_nodes.slave[0];
+    const oldNodesItem = item?.display_info
+      ? item?.old_nodes || {
+          master: [],
+          slave: [],
+        }
+      : item.origin_old_nodes;
+    const masterItem = oldNodesItem.master[0];
+    const slaveItem = oldNodesItem.slave[0];
     const instances = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
 
     return {
       db_version: item.db_version,
       instances: [instances],
-      primary_key: primaryKey.split(','),
+      primary_key: primaryKey?.split(',') || '',
       spec_name: specName,
     };
   });

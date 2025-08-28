@@ -24,24 +24,41 @@
       <span
         v-bk-tooltips="t('批量选择')"
         class="batch-host-select"
-        @click="handleShowSelector">
+        @click="handleBatchSelectorShow">
         <DbIcon type="batch-host-select" />
       </span>
     </template>
     <EditableTextarea
       v-model="modelValue.renderText"
       :placeholder="t('请输入实例，多个实例用分隔符输入')"
-      @change="handleInputChange" />
+      @change="handleInputChange">
+      <template #append>
+        <span v-bk-tooltips="t('选择实例')">
+          <span
+            class="batch-host-select"
+            @click="handleCellSelectorShow">
+            <DbIcon type="host-select" />
+          </span>
+        </span>
+      </template>
+    </EditableTextarea>
   </EditableColumn>
   <InstanceSelector
-    v-model:is-show="showSelector"
+    v-model:is-show="isBatchSelectorShow"
     :cluster-types="['RedisInstance']"
-    :selected="selectedInstances"
+    :selected="batchSelectedInstances"
     :tab-list-config="tabListConfig"
-    @change="handleInstanceSelectChange" />
+    @change="handleBatchSelectChange" />
+  <InstanceSelector
+    v-model:is-show="isCellSelectorShow"
+    :cluster-types="['RedisInstance']"
+    :selected="cellSelectedInstances"
+    :tab-list-config="tabListConfig"
+    @change="handleCellClusterChange" />
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
@@ -100,9 +117,10 @@
   const { t } = useI18n();
 
   const isLoading = ref(false);
-  const showSelector = ref(false);
+  const isBatchSelectorShow = ref(false);
+  const isCellSelectorShow = ref(false);
 
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+  const batchSelectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
     RedisInstance: props.selected.map(
       (item) =>
         ({
@@ -110,6 +128,16 @@
         }) as IValue,
     ),
   }));
+
+  const cellSelectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    RedisInstance: Object.values(modelValue.value.instances).map(
+      (item) =>
+        ({
+          instance_address: item.instance_address,
+        }) as IValue,
+    ),
+  }));
+
   const selectedCounter = computed(() => _.countBy(props.selected, 'instance_address'));
 
   const rules = [
@@ -155,22 +183,6 @@
     },
   ];
 
-  const handleShowSelector = () => {
-    showSelector.value = true;
-  };
-
-  const handleInputChange = (value: string) => {
-    modelValue.value = {
-      instances: {},
-      renderText: value,
-    };
-  };
-
-  const handleInstanceSelectChange = (selected: Record<string, RedisInstanceModel[]>) => {
-    const list = Object.values(selected).flatMap((selectedList) => selectedList);
-    emits('batch-edit', list);
-  };
-
   watch(
     modelValue,
     () => {
@@ -188,7 +200,7 @@
         ])
           .then(([instanceCheckList, slaveInstanceMap]) => {
             if (instanceCheckList.length) {
-              let instances = {};
+              let instances = {} as UnwrapRef<typeof modelValue>['instances'];
               instanceCheckList.forEach((item) => {
                 const slaveItem = slaveInstanceMap.instances![item.instance_address];
                 if (slaveItem) {
@@ -202,11 +214,14 @@
                   instances = {
                     ...instances,
                     [item.instance_address]: {
+                      bk_cloud_id: item.bk_cloud_id,
                       bk_host_id: item.bk_host_id,
                       cluster_id: item.cluster_id,
                       cluster_type: item.cluster_type,
                       instance_address: item.instance_address,
+                      ip: item.ip,
                       master_domain: item.master_domain,
+                      port: item.port,
                       slave,
                       spec_config: item.spec_config,
                     },
@@ -225,6 +240,35 @@
       immediate: true,
     },
   );
+
+  const handleBatchSelectorShow = () => {
+    isBatchSelectorShow.value = true;
+  };
+
+  const handleCellSelectorShow = () => {
+    isCellSelectorShow.value = true;
+  };
+
+  const handleInputChange = (value: string) => {
+    modelValue.value = {
+      instances: {},
+      renderText: value
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .join('\n'),
+    };
+  };
+
+  const handleBatchSelectChange = (selected: Record<string, RedisInstanceModel[]>) => {
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    emits('batch-edit', list);
+  };
+
+  const handleCellClusterChange = (selected: Record<string, RedisInstanceModel[]>) => {
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    handleInputChange(list.map((item) => item.instance_address).join('\n'));
+  };
 </script>
 <style lang="less" scoped>
   .batch-host-select {

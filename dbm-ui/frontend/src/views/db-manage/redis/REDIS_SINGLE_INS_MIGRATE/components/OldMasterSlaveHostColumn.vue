@@ -56,7 +56,7 @@
 
   const props = defineProps<Props>();
   const modleValue = defineModel<{
-    old_nodes: {
+    origin_old_nodes: {
       master: IHostData[];
       slave: IHostData[];
     };
@@ -177,7 +177,7 @@
       });
 
       modleValue.value = {
-        old_nodes: {
+        origin_old_nodes: {
           master: masters,
           slave: slaves,
         },

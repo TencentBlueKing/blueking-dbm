@@ -1,6 +1,6 @@
 <template>
   <BkFormItem
-    :label="t('升级类型')"
+    :label="t('架构类型')"
     property="updateType"
     required>
     <CardCheckbox

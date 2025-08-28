@@ -55,11 +55,10 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
-  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
@@ -68,50 +67,15 @@
   import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
 
+  import { useTicketDetail } from '@/hooks';
+
   import OldMasterSlaveHostColumn from '../OldMasterSlaveHostColumn.vue';
 
   import ClusterBatchColumn from './components/ClusterBatchColumn.vue';
 
   interface Exposes {
-    getValue: () => Promise<
-      {
-        db_version: string;
-        display_info: {
-          domain: string;
-          ip: string;
-          migrate_type: string; // domain | machine
-        };
-        old_nodes: {
-          master: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-          slave: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-        };
-        resource_spec: {
-          backend_group: {
-            count: number;
-            spec_id: number;
-          };
-        };
-        src_cluster: {
-          cluster_id: number;
-          master_ins: string;
-          slave_ins: string;
-        }[];
-      }[]
-    >;
+    getValue: () => Promise<Redis.MigrateSingle['infos']>;
     resetTable: () => void;
-    setTableByTicketClone: (infos: TicketModel<Redis.MigrateSingle>) => void;
   }
 
   interface IHostData {
@@ -126,7 +90,7 @@
     batchCluster: ComponentProps<typeof ClusterBatchColumn>['modelValue'];
     db_version: string;
     instance_data: {
-      old_nodes: {
+      origin_old_nodes: {
         master: IHostData[];
         slave: IHostData[];
       };
@@ -156,9 +120,37 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
+  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+    onSuccess(ticketDetail) {
+      const { infos } = ticketDetail.details;
+      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+        const migrateDomain = infoItem.migrate_domain!;
+        if (prevMap[migrateDomain]) {
+          return Object.assign({}, prevMap, {
+            [migrateDomain]: prevMap[migrateDomain].concat(infoItem),
+          });
+        }
+        return Object.assign({}, prevMap, {
+          [migrateDomain]: [infoItem],
+        });
+      }, {});
+
+      tableData.value = Object.values(rowMap).map((infoItem) => {
+        const rowItem = infoItem[0];
+        return createRowData({
+          batchCluster: {
+            renderText: rowItem.migrate_domain,
+          } as IDataRow['batchCluster'],
+          db_version: rowItem.db_version,
+          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
+        });
+      });
+    },
+  });
+
   const batchInputConfig = [
     {
-      case: 'redis.test.1.db,redis.test.2.db',
+      case: 'redis.test.1.db\\nredis.test.2.db',
       key: 'master_domain',
       label: t('目标集群'),
     },
@@ -216,7 +208,7 @@
       acc.push(
         createRowData({
           batchCluster: {
-            renderText: item.master_domain.split(batchSplitRegex).join('\n'),
+            renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
           } as IDataRow['batchCluster'],
           db_version: item.version,
           target_spec_id: item.spec_name,
@@ -242,13 +234,11 @@
             return {
               ...tableItem.instance_data,
               db_version: tableItem.db_version,
-              display_info: {
-                domain: Object.values(tableItem.batchCluster.clusters)
-                  .map((item) => item.master_domain)
-                  .join(','),
-                ip: '',
-                migrate_type: 'domain',
-              },
+              migrate_domain: Object.values(tableItem.batchCluster.clusters)
+                .map((item) => item.master_domain)
+                .join(','),
+              // migrate_ip: '',
+              migrate_type: 'domain',
               resource_spec: {
                 backend_group: {
                   count: 1,
@@ -262,30 +252,6 @@
       }),
     resetTable: () => {
       tableData.value = [createRowData()];
-    },
-    setTableByTicketClone: (ticketDetail: TicketModel<Redis.MigrateSingle>) => {
-      const { infos } = ticketDetail.details;
-      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
-        if (prevMap[infoItem.display_info.domain]) {
-          return Object.assign({}, prevMap, {
-            [infoItem.display_info.domain]: prevMap[infoItem.display_info.domain].concat(infoItem),
-          });
-        }
-        return Object.assign({}, prevMap, {
-          [infoItem.display_info.domain]: [infoItem],
-        });
-      }, {});
-
-      tableData.value = Object.values(rowMap).map((infoItem) => {
-        const rowItem = infoItem[0];
-        return createRowData({
-          batchCluster: {
-            renderText: rowItem.display_info.domain,
-          } as IDataRow['batchCluster'],
-          db_version: rowItem.db_version,
-          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
-        });
-      });
     },
   });
 </script>

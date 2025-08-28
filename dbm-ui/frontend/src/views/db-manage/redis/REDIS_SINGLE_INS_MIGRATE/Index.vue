@@ -82,54 +82,16 @@
   // 单据克隆
   useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
-      if (ticketDetail.details.infos[0].display_info.migrate_type === 'machine') {
+      if (ticketDetail.details.infos[0].migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
       }
-
-      nextTick(() => {
-        currentTableRef.value!.setTableByTicketClone(ticketDetail);
-        formData.payload = createTickePayload(ticketDetail);
-        window.changeConfirm = true;
-      });
+      formData.payload = createTickePayload(ticketDetail);
+      window.changeConfirm = true;
     },
   });
 
   const { loading: isSubmitting, run: createSingleTicketRun } = useCreateTicket<{
-    infos: {
-      db_version: string;
-      display_info: {
-        domain: string;
-        ip: string;
-        migrate_type: string; // domain | machine
-      };
-      old_nodes: {
-        master: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-        slave: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-      };
-      resource_spec: {
-        backend_group: {
-          count: number;
-          spec_id: number;
-        };
-      };
-      src_cluster: {
-        cluster_id: number;
-        master_ins: string;
-        slave_ins: string;
-      }[];
-    }[];
+    infos: Redis.MigrateSingle['infos'];
   }>(TicketTypes.REDIS_SINGLE_INS_MIGRATE);
 
   const initFormData = () => ({

@@ -106,7 +106,6 @@
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-  import { batchSplitRegex } from '@common/regex';
 
   import ManualInputHostContent from '@components/instance-selector/components/common/manual-content/Index.vue';
   import { type PanelListType } from '@components/instance-selector/Index.vue';
@@ -144,7 +143,7 @@
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2:10000,192.168.10.2:10001',
+      case: '192.168.10.2:10000\\n192.168.10.2:10001',
       key: 'instance',
       label: t('目标实例'),
     },
@@ -159,48 +158,17 @@
         tableData: infos.map((infoItem) =>
           createRowData({
             batchInstance: {
-              renderText: infoItem.display_info.instance,
+              renderText: infoItem.migrate_instance,
             } as IDataRow['batchInstance'],
           }),
         ),
       });
-      // nextTick(() => {
-      //   instanceColumnRef.value!.map((item) => item.inputManualChange());
-      // });
     },
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: {
-      cluster_id: number;
-      display_info: {
-        db_version: string[];
-        instance: string;
-      };
-      old_nodes: {
-        master: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-        slave: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port: number;
-        }[];
-      };
-      resource_spec: {
-        backend_group: {
-          count: number;
-          spec_id: number;
-        };
-      };
-    }[];
-  }>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE);
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{ infos: Redis.MigrateCluster['infos'] }>(
+    TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
+  );
 
   const initFormData = () => ({
     architectureType: ArchitectureType.CLUSTER,
@@ -332,10 +300,6 @@
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
     window.changeConfirm = true;
-
-    // nextTick(() => {
-    //   editableTableRef.value!.validateByField('instance.master_domain');
-    // });
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -343,7 +307,7 @@
       acc.push(
         createRowData({
           batchInstance: {
-            renderText: item.instance.split(batchSplitRegex).join('\n'),
+            renderText: item.instance?.replaceAll('\\n', '\n') || '',
           } as IDataRow['batchInstance'],
         }),
       );
@@ -390,11 +354,10 @@
             const [instance] = instances;
             return {
               cluster_id: instance.cluster_id,
-              display_info: {
-                db_version: tableItem.current_versions,
-                instance: instances.map((item) => item.instance_address).join(','),
-              },
-              old_nodes: oldNodes,
+              db_version: tableItem.current_versions,
+              migrate_instance: instances.map((item) => item.instance_address).join(','),
+              // old_nodes: oldNodes,
+              origin_old_nodes: oldNodes,
               resource_spec: {
                 backend_group: {
                   count: 1,

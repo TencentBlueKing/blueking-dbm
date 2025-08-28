@@ -16,12 +16,12 @@
     :data="ticketDetails.details.infos"
     :show-overflow="false">
     <BkTableColumn
-      field="display_info.instance"
+      field="migrate_instance"
       :label="t('目标 Master 实例')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <div
-          v-for="(item, index) in data.display_info.instance.split(',')"
+          v-for="(item, index) in (data.display_info?.instance || data.migrate_instance).split(',')"
           :key="index">
           {{ item }}
         </div>
@@ -45,11 +45,11 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="display_info.db_version"
+      field="data.db_version"
       :label="t('版本')">
       <template #default="{ data }: { data: RowData }">
         <div
-          v-for="version in data.display_info.db_version"
+          v-for="version in data.display_info?.db_version || data.db_version"
           :key="version"
           style="line-height: 20px">
           {{ version }}
