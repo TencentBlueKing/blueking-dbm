@@ -12,25 +12,42 @@
       <BkButton
         text
         theme="primary"
-        @click="handleShowClusterSelector">
+        @click="handleBatchSelectorShow">
         <DbIcon type="batch-host-select" />
       </BkButton>
     </template>
     <EditableTextarea
       v-model="modelValue.renderText"
       :placeholder="t('请输入集群域名_多个集群用分隔符输入')"
-      @change="handleInputChange" />
-    <ClusterSelector
-      v-model:is-show="showSelector"
-      :cluster-types="[ClusterTypes.REDIS]"
-      :selected="selectedClusters"
-      :tab-list-config="tabListConfig"
-      @change="handelClusterChange" />
+      @change="handleInputChange">
+      <template #append>
+        <span v-bk-tooltips="t('选择实例')">
+          <span
+            class="batch-host-select"
+            @click="handleCellSelectorShow">
+            <DbIcon type="host-select" />
+          </span>
+        </span>
+      </template>
+    </EditableTextarea>
   </EditableColumn>
+  <ClusterSelector
+    v-model:is-show="isBatchSelectorShow"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :selected="batchSelectedClusters"
+    :tab-list-config="tabListConfig"
+    @change="handleBatchSelectChange" />
+  <ClusterSelector
+    v-model:is-show="isCellSelectorShow"
+    :cluster-types="[ClusterTypes.REDIS]"
+    :selected="cellSelectedClusters"
+    :tab-list-config="tabListConfig"
+    @change="handleCellClusterChange" />
 </template>
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -76,10 +93,17 @@
 
   const { t } = useI18n();
 
-  const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
+  const isBatchSelectorShow = ref(false);
+  const isCellSelectorShow = ref(false);
+
+  const batchSelectedClusters = computed<Record<string, RedisModel[]>>(() => ({
     [ClusterTypes.REDIS]: props.selected as RedisModel[],
   }));
+
+  const cellSelectedClusters = computed<Record<string, RedisModel[]>>(() => ({
+    [ClusterTypes.REDIS]: props.selected as RedisModel[],
+  }));
+
   const selectedCounter = computed(() => _.countBy(props.selected, 'master_domain'));
 
   const rules = [
@@ -129,7 +153,7 @@
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        let clusters = {};
+        let clusters = {} as UnwrapRef<typeof modelValue>['clusters'];
         data.forEach((item) => {
           clusters = {
             ...clusters,
@@ -166,19 +190,32 @@
     },
   );
 
+  const handleBatchSelectorShow = () => {
+    isBatchSelectorShow.value = true;
+  };
+
+  const handleCellSelectorShow = () => {
+    isCellSelectorShow.value = true;
+  };
+
   const handleInputChange = (value: string) => {
     modelValue.value = {
       clusters: {},
-      renderText: value,
+      renderText: value
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .join('\n'),
     };
   };
 
-  const handleShowClusterSelector = () => {
-    showSelector.value = true;
-  };
-
-  const handelClusterChange = (selected: Record<string, RedisModel[]>) => {
+  const handleBatchSelectChange = (selected: Record<string, RedisModel[]>) => {
     const clusterList = Object.values(selected).flatMap((selectedList) => selectedList);
     emits('batch-edit', clusterList);
+  };
+
+  const handleCellClusterChange = (selected: Record<string, RedisModel[]>) => {
+    const list = Object.values(selected).flatMap((selectedList) => selectedList);
+    handleInputChange(list.map((item) => item.master_domain).join('\n'));
   };
 </script>

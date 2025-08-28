@@ -65,10 +65,10 @@
 
   import RedisModel from '@services/model/redis/redis';
   import RedisMachineModel from '@services/model/redis/redis-machine';
-  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
+  import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
@@ -78,48 +78,13 @@
   import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
 
+  import { useTicketDetail } from '@/hooks';
+
   import OldMasterSlaveHostColumn from '../OldMasterSlaveHostColumn.vue';
 
   interface Exposes {
-    getValue: () => Promise<
-      {
-        db_version: string;
-        display_info: {
-          domain: string;
-          ip: string;
-          migrate_type: string; // domain | machine
-        };
-        old_nodes: {
-          master: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-          slave: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-            port: number;
-          }[];
-        };
-        resource_spec: {
-          backend_group: {
-            count: number;
-            spec_id: number;
-          };
-        };
-        src_cluster: {
-          cluster_id: number;
-          master_ins: string;
-          slave_ins: string;
-        }[];
-      }[]
-    >;
+    getValue: () => Promise<Redis.MigrateSingle['infos']>;
     resetTable: () => void;
-    setTableByTicketClone: (infos: TicketModel<Redis.MigrateSingle>) => void;
   }
 
   interface IHostData {
@@ -144,7 +109,7 @@
       spec_config: NonNullable<IValue['spec_config']>;
     };
     instance_data: {
-      old_nodes: {
+      origin_old_nodes: {
         master: IHostData[];
         slave: IHostData[];
       };
@@ -178,6 +143,34 @@
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
+    onSuccess(ticketDetail) {
+      const { infos } = ticketDetail.details;
+      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
+        const migrateIp = infoItem.migrate_ip!;
+        if (prevMap[migrateIp]) {
+          return Object.assign({}, prevMap, {
+            [migrateIp]: prevMap[migrateIp].concat(infoItem),
+          });
+        }
+        return Object.assign({}, prevMap, {
+          [migrateIp]: [infoItem],
+        });
+      }, {});
+
+      tableData.value = Object.values(rowMap).map((infoItem) => {
+        const rowItem = infoItem[0];
+        return createRowData({
+          db_version: rowItem.db_version,
+          host: {
+            ip: rowItem.migrate_ip,
+          } as IDataRow['host'],
+          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
+        });
+      });
+    },
+  });
 
   const batchInputConfig = [
     {
@@ -313,11 +306,9 @@
           return tableData.value.flatMap((tableItem) => ({
             ...tableItem.instance_data,
             db_version: tableItem.db_version,
-            display_info: {
-              domain: '',
-              ip: tableItem.host.ip,
-              migrate_type: 'machine',
-            },
+            // migrate_domain: '',
+            migrate_ip: tableItem.host.ip,
+            migrate_type: 'machine',
             resource_spec: {
               backend_group: {
                 count: 1,
@@ -330,30 +321,6 @@
       }),
     resetTable: () => {
       tableData.value = [createRowData()];
-    },
-    setTableByTicketClone: (ticketDetail: TicketModel<Redis.MigrateSingle>) => {
-      const { infos } = ticketDetail.details;
-      const rowMap = infos.reduce<Record<string, Redis.MigrateSingle['infos']>>((prevMap, infoItem) => {
-        if (prevMap[infoItem.display_info.ip]) {
-          return Object.assign({}, prevMap, {
-            [infoItem.display_info.ip]: prevMap[infoItem.display_info.ip].concat(infoItem),
-          });
-        }
-        return Object.assign({}, prevMap, {
-          [infoItem.display_info.ip]: [infoItem],
-        });
-      }, {});
-
-      tableData.value = Object.values(rowMap).map((infoItem) => {
-        const rowItem = infoItem[0];
-        return createRowData({
-          db_version: rowItem.db_version,
-          host: {
-            ip: rowItem.display_info.ip,
-          } as IDataRow['host'],
-          target_spec_id: rowItem.resource_spec.backend_group.spec_id,
-        });
-      });
     },
   });
 </script>
