@@ -147,12 +147,12 @@ export function updateResourceSpec(
 /**
  * 批量更新规格属性
  */
-export function batchUpdateSpec(params: {
+export function batchCommonUpdate(params: {
   biz_scope?: number[]; // 业务范围，全部业务为[]
   enable?: boolean; // 启用禁用
   spec_ids: number[];
 }) {
-  return http.post<ResourceSpecModel>(`${path}/batch_update_spec/`, params);
+  return http.post<ResourceSpecModel>(`${path}/batch_common_update/`, params);
 }
 
 /**

@@ -32,7 +32,7 @@
   import { useRequest } from 'vue-request';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { batchUpdateSpec } from '@services/source/dbresourceSpec';
+  import { batchCommonUpdate } from '@services/source/dbresourceSpec';
 
   import type { DBTypes } from '@common/const';
 
@@ -53,7 +53,7 @@
 
   const disabled = computed(() => props.dataList.length === 0);
 
-  const { run: runUpdateResourceSpec } = useRequest(batchUpdateSpec, {
+  const { run: runBatchCommonUpdate } = useRequest(batchCommonUpdate, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('操作成功'));
@@ -62,7 +62,7 @@
   });
 
   const handleBatchUpdate = () => {
-    runUpdateResourceSpec({
+    runBatchCommonUpdate({
       enable: props.enable,
       spec_ids: props.dataList.map((item) => item.spec_id),
     });

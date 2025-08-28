@@ -270,7 +270,7 @@
   import { useRequest } from 'vue-request';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { batchDeleteResourceSpec, batchUpdateSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
+  import { batchCommonUpdate, batchDeleteResourceSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose, useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
@@ -372,7 +372,7 @@
     disabled: ['model', 'spec_name'],
   });
 
-  const { run: runUpdateResourceSpec } = useRequest(batchUpdateSpec, {
+  const { run: runBatchCommonUpdate } = useRequest(batchCommonUpdate, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('操作成功'));
@@ -388,7 +388,7 @@
   );
 
   const handleConfirmSwitch = (row: ResourceSpecModel) => {
-    runUpdateResourceSpec({
+    runBatchCommonUpdate({
       enable: !row.enable,
       spec_ids: [row.spec_id],
     });
