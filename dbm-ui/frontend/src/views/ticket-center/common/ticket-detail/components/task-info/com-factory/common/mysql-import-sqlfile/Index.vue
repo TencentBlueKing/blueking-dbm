@@ -109,7 +109,7 @@
       </BkTable>
     </InfoItem>
     <InfoItem
-      v-if="ticketDetails.details.backup.length > 0"
+      v-if="ticketDetails.details.backup?.length > 0"
       :label="t('备份设置')"
       style="flex: 1 0 100%; margin-top: 10px; overflow: hidden">
       <BkTable :data="ticketDetails.details.backup">
