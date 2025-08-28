@@ -83,6 +83,7 @@ BK_APIGW_RESOURCE_DOCS_BASE_DIR = get_type_env(
     key="BK_APIGW_RESOURCE_DOCS_BASE_DIR", _type=str, default="backend/docs/apigw"
 )
 APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
+BKAPP_BKVISION_APIGW_URL = get_type_env(key="BKAPP_BKVISION_APIGW_URL", _type=str, default="")
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 

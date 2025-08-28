@@ -81,6 +81,8 @@ urlpatterns = [
     path("db_report/", include("backend.db_report.urls")),
     # 接入消息通知
     path("{}".format(config.ENTRANCE_URL), include("bk_notice_sdk.urls")),
+    # 接入bkvision
+    path("bkvision/", include("django_bkvision.urls")),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod

@@ -82,6 +82,8 @@ INSTALLED_APPS += (
     "backend.version_log",
     # bk_notice
     "bk_notice_sdk",
+    # bkvision
+    'django_bkvision',
     # pipeline
     "pipeline.component_framework",
     "pipeline.eri",
@@ -305,6 +307,7 @@ BK_APIGW_RESOURCE_DOCS_BASE_DIR = env.BK_APIGW_RESOURCE_DOCS_BASE_DIR
 BK_NOTICE = {
     "BK_API_URL_TMPL": BK_API_URL_TMPL,
 }
+BKAPP_BKVISION_APIGW_URL = env.BKAPP_BKVISION_APIGW_URL
 
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 

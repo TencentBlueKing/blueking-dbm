@@ -961,6 +961,7 @@ optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
+    {file = "cos_python_sdk_v5-1.9.38-py3-none-any.whl", hash = "sha256:1d3dd3be2bd992b2e9c2dcd018e2596aa38eab022dbc86b4a5d14c8fc88370e6"},
     {file = "cos_python_sdk_v5-1.9.38.tar.gz", hash = "sha256:491a8689ae2f1a6f04dacba66a877b2c8d361456f9cfd788ed42170a1cbf7a9f"},
 ]
 
@@ -1163,6 +1164,26 @@ sqlparse = ">=0.2.2"
 [package.extras]
 argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
+
+[[package]]
+name = "django-bkvision"
+version = "1.1.0"
+description = "bkvision's python sdk of django for dashboard embed scene"
+optional = false
+python-versions = ">=3.0,<4.0"
+groups = ["main"]
+files = [
+    {file = "django_bkvision-1.1.0-py3-none-any.whl", hash = "sha256:db79617178dc1deb084c7d1cf5a0d386f598a3873f68aab5489294ba2e0811b6"},
+    {file = "django_bkvision-1.1.0.tar.gz", hash = "sha256:115606ef8c1972883fb556ff1d784a80f09467a860002cd2d04c2c6eaa2409de"},
+]
+
+[package.dependencies]
+Django = ">=2.0"
+
+[package.source]
+type = "legacy"
+url = "https://mirrors.tencent.com/repository/pypi/tencent_pypi/simple"
+reference = "tencent"
 
 [[package]]
 name = "django-celery-beat"
@@ -4055,4 +4076,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10.0"
-content-hash = "f8cc34c42457565975cb0b95d0b923e273a979fea305fa94588835654d1bdb8d"
+content-hash = "2e273bc0ffb27ab0bd64601f493a08d62505c10f332e0bb4156f0895ee865cca"
