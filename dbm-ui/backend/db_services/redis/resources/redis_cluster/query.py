@@ -270,7 +270,10 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         if item:
             item.update({"id": "db_module_name", "name": _("modules")})
 
-        return headers, extra_headers
+        # redis集群架构不需要从域名
+        filtered_headers = list(filter(lambda header: header["id"] != "slave_domain", headers))
+
+        return filtered_headers, extra_headers
 
     @classmethod
     def update_cluster_info(cls, cluster, cluster_info, **kwargs):
@@ -292,4 +295,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
                 "polaris": polaris_entry,
             }
         )
+        # 删除cluster_info中的从域名
+        del cluster_info["slave_domain"]
         return cluster_info
