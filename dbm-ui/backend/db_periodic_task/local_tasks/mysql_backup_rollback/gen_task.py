@@ -387,14 +387,8 @@ def calculate_dynamic_cluster_type_targets(num: int, recent_stats: dict) -> tupl
     return tendbcluster_target, tendbha_target
 
 
-def get_exercise_clusters(num: int) -> list:
-    """
-    获取待演练的集群，根据最近2小时演练情况动态调整集群类型分配
-    已演练成功的集群被选中的概率更低
-    """
-    count = 0
-    cluster_biz_map = defaultdict(list)
-    recover_success_map = {}
+def _prepare_cluster_data(num: int):
+    """准备集群选择所需的基础数据"""
     exclude_biz_ids = MySQLBackupRecoverTask.get_all_practiced_biz_ids()
     exclude_cluster_id = MySQLBackupRecoverTask.get_all_practiced_cluster_ids()
     recent_task_cluster_ids = MySQLBackupRecoverTask.get_recent_24h_task_cluster_ids()
@@ -416,46 +410,171 @@ def get_exercise_clusters(num: int) -> list:
     )
     recover_success_map = {item["cluster_domain"]: item["total"] for item in result}
 
-    # 先获取未演练的业务的集群
+    return exclude_biz_ids, exclude_cluster_id, target_tendbcluster, target_tendbha, recover_success_map
+
+
+def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, cluster_biz_map):
+    """收集未演练的集群"""
+    count = 0
     clusters = Cluster.objects.exclude(
         bk_biz_id__in=exclude_biz_ids,
         id__in=exclude_cluster_id,
     ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
-    if len(clusters) >= 0:
-        for cluster in clusters:
-            # 未演练过的集群权重最高
-            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(1000, cluster))
-            count = count + 1
+
+    for cluster in clusters:
+        # 未演练过的集群权重最高
+        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(1000, cluster))
+        count += 1
+
+    return count
+
+
+def _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_success_map, count, num):
+    """收集已演练的集群"""
     if count <= num * 3:
         # 如果都演练过的话,则选择没有演练过的集群
         clusters = Cluster.objects.exclude(
             id__in=exclude_cluster_id,
         ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
-        if len(clusters) >= 0:
-            for cluster in clusters:
-                recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-                # 根据演练成功次数调整优先级，演练次数越多优先级越低
-                priority = max(500 - recover_success_cnt * 50, 100)
-                heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
-                count = count + 1
-        if count <= num * 3:
-            clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
-            for cluster in clusters:
-                recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-                # 根据演练成功次数调整优先级，演练次数越多优先级越低
-                priority = max(200 - recover_success_cnt * 20, 50)
-                heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
-                count = count + 1
-                if count >= num * 3:
-                    break
 
-    # 收集所有候选集群及其权重
+        for cluster in clusters:
+            recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
+            # 根据演练成功次数调整优先级，演练次数越多优先级越低
+            priority = max(500 - recover_success_cnt * 50, 100)
+            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+            count += 1
+
+    return count
+
+
+def _collect_all_clusters(cluster_biz_map, recover_success_map, count, num):
+    """收集所有集群"""
+    if count <= num * 3:
+        clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
+        for cluster in clusters:
+            recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
+            # 根据演练成功次数调整优先级，演练次数越多优先级越低
+            priority = max(200 - recover_success_cnt * 20, 50)
+            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+            count += 1
+            if count >= num * 3:
+                break
+
+    return count
+
+
+def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendbha):
+    """收集有效的候选集群"""
     all_candidates = []
+    tendbcluster_count = 0
+    tendbha_count = 0
+
+    # 计算需要的最大集群数量（预留一些余量以防部分集群没有有效备份）
+    max_needed_tendbcluster = target_tendbcluster * 2  # 2倍余量
+    max_needed_tendbha = target_tendbha * 2  # 2倍余量
+
     for bk_biz_id, pq in cluster_biz_map.items():
         while pq:
             task = heapq.heappop(pq)
-            if cluster_has_backup_record(task.cluster.id):
-                all_candidates.append(task.cluster)
+            cluster = task.cluster
+
+            # 根据集群类型检查是否已收集足够数量
+            if cluster.cluster_type == ClusterType.TenDBCluster:
+                if tendbcluster_count >= max_needed_tendbcluster:
+                    continue
+            elif cluster.cluster_type == ClusterType.TenDBHA:
+                if tendbha_count >= max_needed_tendbha:
+                    continue
+
+            # 检查集群是否有有效的备份记录
+            if cluster_has_backup_record(cluster.id):
+                all_candidates.append(cluster)
+                if cluster.cluster_type == ClusterType.TenDBCluster:
+                    tendbcluster_count += 1
+                elif cluster.cluster_type == ClusterType.TenDBHA:
+                    tendbha_count += 1
+
+            # 如果两种类型都收集够了，提前退出
+            if tendbcluster_count >= max_needed_tendbcluster and tendbha_count >= max_needed_tendbha:
+                break
+
+    logger.info(_("检查了集群备份记录，收集到 TenDBCluster {} 个，TenDBHA {} 个有效候选集群").format(tendbcluster_count, tendbha_count))
+
+    return all_candidates
+
+
+def _select_clusters_by_type(candidates, cluster_type, target_count, recover_success_map):
+    """按类型选择集群"""
+    if not candidates or target_count <= 0:
+        return []
+
+    weights = []
+    for cluster in candidates:
+        success_count = recover_success_map.get(cluster.immute_domain, 0)
+        weight = calculate_cluster_weight(cluster, success_count)
+        weights.append(weight)
+
+    # 加权随机选择
+    selected = weighted_random_choice(candidates, weights, target_count)
+
+    logger.info(_("{}选择详情: 候选{}个, 目标{}个, 实际选择{}个").format(cluster_type, len(candidates), target_count, len(selected)))
+
+    return selected
+
+
+def _supplement_selection(all_candidates, current_selection, num, recover_success_map):
+    """补充选择不足的集群"""
+    if len(current_selection) >= num:
+        return current_selection
+
+    remaining_needed = num - len(current_selection)
+    selected_ids = {cluster.id for cluster in current_selection}
+
+    # 收集未选中的候选集群
+    remaining_candidates = [c for c in all_candidates if c.id not in selected_ids]
+
+    if remaining_candidates:
+        remaining_weights = []
+        for cluster in remaining_candidates:
+            success_count = recover_success_map.get(cluster.immute_domain, 0)
+            weight = calculate_cluster_weight(cluster, success_count)
+            remaining_weights.append(weight)
+
+        # 从剩余候选中加权随机选择
+        additional_selected = weighted_random_choice(remaining_candidates, remaining_weights, remaining_needed)
+        current_selection.extend(additional_selected)
+
+        logger.info(
+            _("补充选择: 需要{}个, 候选{}个, 实际补充{}个").format(
+                remaining_needed, len(remaining_candidates), len(additional_selected)
+            )
+        )
+
+    return current_selection
+
+
+def get_exercise_clusters(num: int) -> list:
+    """
+    获取待演练的集群，根据最近2小时演练情况动态调整集群类型分配
+    已演练成功的集群被选中的概率更低
+    """
+    # 准备基础数据
+    (
+        exclude_biz_ids,
+        exclude_cluster_id,
+        target_tendbcluster,
+        target_tendbha,
+        recover_success_map,
+    ) = _prepare_cluster_data(num)
+
+    # 收集候选集群
+    cluster_biz_map = defaultdict(list)
+    count = _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, cluster_biz_map)
+    count = _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_success_map, count, num)
+    _collect_all_clusters(cluster_biz_map, recover_success_map, count, num)
+
+    # 收集有效候选集群
+    all_candidates = _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendbha)
 
     # 按集群类型分组
     tendbcluster_candidates = [c for c in all_candidates if c.cluster_type == ClusterType.TenDBCluster]
@@ -468,68 +587,18 @@ def get_exercise_clusters(num: int) -> list:
     # 根据动态目标进行加权随机选择
     rs = []
 
-    # 为TenDBCluster候选集群计算权重并选择
-    if tendbcluster_candidates and target_tendbcluster > 0:
-        tendbcluster_weights = []
-        for cluster in tendbcluster_candidates:
-            success_count = recover_success_map.get(cluster.immute_domain, 0)
-            weight = calculate_cluster_weight(cluster, success_count)
-            tendbcluster_weights.append(weight)
+    # 选择TenDBCluster集群
+    selected_tendbcluster = _select_clusters_by_type(
+        tendbcluster_candidates, "TenDBCluster", target_tendbcluster, recover_success_map
+    )
+    rs.extend(selected_tendbcluster)
 
-        # 加权随机选择TenDBCluster
-        selected_tendbcluster = weighted_random_choice(
-            tendbcluster_candidates, tendbcluster_weights, target_tendbcluster
-        )
-        rs.extend(selected_tendbcluster)
-
-        logger.info(
-            _("TenDBCluster选择详情: 候选{}个, 目标{}个, 实际选择{}个").format(
-                len(tendbcluster_candidates), target_tendbcluster, len(selected_tendbcluster)
-            )
-        )
-
-    # 为TenDBHA候选集群计算权重并选择
-    if tendbha_candidates and target_tendbha > 0:
-        tendbha_weights = []
-        for cluster in tendbha_candidates:
-            success_count = recover_success_map.get(cluster.immute_domain, 0)
-            weight = calculate_cluster_weight(cluster, success_count)
-            tendbha_weights.append(weight)
-
-        # 加权随机选择TenDBHA
-        selected_tendbha = weighted_random_choice(tendbha_candidates, tendbha_weights, target_tendbha)
-        rs.extend(selected_tendbha)
-
-        logger.info(
-            _("TenDBHA选择详情: 候选{}个, 目标{}个, 实际选择{}个").format(
-                len(tendbha_candidates), target_tendbha, len(selected_tendbha)
-            )
-        )
+    # 选择TenDBHA集群
+    selected_tendbha = _select_clusters_by_type(tendbha_candidates, "TenDBHA", target_tendbha, recover_success_map)
+    rs.extend(selected_tendbha)
 
     # 如果还没达到目标数量，从剩余候选中补充
-    if len(rs) < num:
-        remaining_needed = num - len(rs)
-        selected_ids = {cluster.id for cluster in rs}
-
-        # 收集未选中的候选集群
-        remaining_candidates = [c for c in all_candidates if c.id not in selected_ids]
-
-        if remaining_candidates:
-            remaining_weights = []
-            for cluster in remaining_candidates:
-                success_count = recover_success_map.get(cluster.immute_domain, 0)
-                weight = calculate_cluster_weight(cluster, success_count)
-                remaining_weights.append(weight)
-
-            # 从剩余候选中加权随机选择
-            additional_selected = weighted_random_choice(remaining_candidates, remaining_weights, remaining_needed)
-            rs.extend(additional_selected)
-
-            logger.info(
-                _("补充选择: 需要{}个, 候选{}个, 实际补充{}个").format(
-                    remaining_needed, len(remaining_candidates), len(additional_selected)
-                )
-            )
+    rs = _supplement_selection(all_candidates, rs, num, recover_success_map)
 
     # 统计最终结果
     tendbcluster_final_count = sum(1 for c in rs if c.cluster_type == ClusterType.TenDBCluster)
