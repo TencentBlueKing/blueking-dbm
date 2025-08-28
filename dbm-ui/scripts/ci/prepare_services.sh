@@ -1,13 +1,8 @@
 #!/bin/bash
 
-if [ "$YUM_INSTALL_SERVICE" ]; then
-    yum -y install python310-devel mysql-devel
-fi
-
-
 if [ "$CREATE_PYTHON_VENV" ]; then
   # 创建虚拟环境
-  pip install virtualenv
+  pip install virtualenv pytest pytest-cov
   VENV_DIR="/tmp/ci_py_venv"
   virtualenv "$VENV_DIR"
   virtualenv -p /usr/bin/python3.10 "$VENV_DIR"

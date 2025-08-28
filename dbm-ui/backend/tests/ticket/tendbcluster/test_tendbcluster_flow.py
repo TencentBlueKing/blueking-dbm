@@ -81,6 +81,7 @@ class TestTenDBClusterFlow(BaseTicketTest):
             [
                 patch("backend.db_services.mysql.remote_service.handlers.DRSApi", DRSApiMock),
                 patch("backend.flow.utils.spider.spider_bk_config.DBConfigApi", DBConfigApiMock),
+                patch("backend.ticket.builders.tendbcluster.tendb_apply.DBConfigApi", DBConfigApiMock),
             ]
         )
         super().apply_patches()

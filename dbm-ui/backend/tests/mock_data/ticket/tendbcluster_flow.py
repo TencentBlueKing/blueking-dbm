@@ -86,7 +86,7 @@ TENDBCLUSTER_APPLY_DATA = {
         "cluster_name": "7899",
         "cluster_shard_num": 1,
         "db_app_abbr": "1",
-        "db_module_id": 0,
+        "db_module_id": 1,
         "disaster_tolerance_level": "NONE",
         "remote_shard_num": 1,
         "resource_spec": {

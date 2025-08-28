@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 
+from django.utils import timezone
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
@@ -280,7 +282,7 @@ REDIS_DATA_STRUCTURE_DATA = {
                     "5.5.5.3:30002",
                     "5.5.5.3:30003",
                 ],
-                "recovery_time_point": "2025-06-19T04:00:00+08:00",
+                "recovery_time_point": datetime.datetime.now(timezone.utc),
                 "resource_spec": {"redis": {"count": 1, "spec_id": 333}},
             }
         ],

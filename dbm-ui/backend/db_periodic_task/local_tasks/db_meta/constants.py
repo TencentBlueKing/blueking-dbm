@@ -132,21 +132,21 @@ QUERY_TEMPLATE = {
     ClusterType.Es: {
         "range": 5,
         "used": """sum by (cluster_domain) (
-            max_over_time(
-                bkmonitor:dbm_system:disk:used{
-                        device_type=~"ext.?|xfs",
-                        instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
-                        mount_point!~"^(/|/usr/local)$",%s
-                    }[5m]
-                ))""",
+            max by (cluster_domain,bk_target_ip)(
+                sum by (cluster_domain,bk_target_ip, instance_port)(bkmonitor:dbm_system:disk:used{
+                    device_type=~"ext.?|xfs",
+                    instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
+                    mount_point!~"^(/|/usr/local)$",%s
+                    }
+                )))""",
         "total": """sum by (cluster_domain) (
-            max_over_time(
-                bkmonitor:dbm_system:disk:total{
-                        device_type=~"ext.?|xfs",
-                        instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
-                        mount_point!~"^(/|/usr/local)$",%s
-                    }[5m]
-                ))""",
+            max by (cluster_domain,bk_target_ip)(
+                sum by (cluster_domain,bk_target_ip, instance_port)(bkmonitor:dbm_system:disk:total{
+                    device_type=~"ext.?|xfs",
+                    instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
+                    mount_point!~"^(/|/usr/local)$",%s
+                }
+            )))""",
     },
     ClusterType.Kafka: {
         "range": 5,
