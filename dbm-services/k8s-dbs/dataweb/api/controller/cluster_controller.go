@@ -26,6 +26,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
+	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	webreq "k8s-dbs/dataweb/vo/request"
 	"k8s-dbs/dataweb/vo/response"
@@ -33,9 +34,10 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metaresponse "k8s-dbs/metadata/vo/response"
-	"log/slog"
 	"strconv"
+	"time"
 
+	"github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
 	"github.com/jinzhu/copier"
 
 	"github.com/gin-gonic/gin"
@@ -75,7 +77,6 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 		GetBuilder(request.BasicInfo.StorageAddonType).
 		BuildConfig(request)
 	if err != nil {
-		slog.Error("convert to cluster config error", "clusterInstall", request, "err", err)
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateClusterError, err))
 		return
 	}
@@ -175,7 +176,6 @@ func (c *ClusterController) processingClusterOpsStatus(ctx *gin.Context, data *r
 	clusterQueryParams.Namespace = data.Namespace
 	crdClusterEntity, err := c.clusterMetaProvider.FindByParams(&clusterQueryParams)
 	if err != nil {
-		slog.Error("failed to find cluster by param", "err", err)
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterError, err))
 		return
 	}
@@ -185,7 +185,6 @@ func (c *ClusterController) processingClusterOpsStatus(ctx *gin.Context, data *r
 	opsRequestParams.K8sClusterConfigID = crdClusterEntity.K8sClusterConfigID
 	entities, err := c.opsProvider.FindOpsRequestByParams(opsRequestParams)
 	if err != nil {
-		slog.Error("failed to find ops request by param", "err", err)
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetOpsRequestStatusError, err))
 		return
 	}
@@ -202,4 +201,79 @@ func (c *ClusterController) processingClusterOpsStatus(ctx *gin.Context, data *r
 	} else {
 		data.ClusterOpsStatus = data.Status
 	}
+}
+
+// ExposeCluster 暴露 cluster 服务
+func (c *ClusterController) ExposeCluster(ctx *gin.Context) {
+	request := &entity.Request{}
+	err := ctx.ShouldBindJSON(request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
+		return
+	}
+
+	dbsCtx := &commentity.DbsContext{
+		BkAuth:      &request.BKAuth,
+		RequestType: coreconst.ExposeService,
+	}
+
+	responseData, err := c.opsRequestProvider.ExposeCluster(dbsCtx, request)
+	if err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, err))
+		return
+	}
+
+	// 1s间隔定时器
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	// 30s超时器
+	timeout := time.After(30 * time.Second)
+
+	for {
+		select {
+		// 检查状态
+		case <-ticker.C:
+			status := c.checkOpsStatusEnded(request, responseData)
+			if status {
+				coreentity.SuccessResponse(ctx, responseData, commconst.Success)
+				return
+			}
+		// 超时处理
+		case <-timeout:
+			request.OpsRequestName = responseData.OpsRequestName
+			err = c.opsRequestProvider.CancelOpsRequest(request)
+			if err != nil {
+				coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, err))
+				return
+			}
+			coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ExposeClusterError, fmt.Errorf("expose cluster error")))
+			return
+		}
+	}
+}
+
+// checkOpsStatusEnded 检查操作状态是结束状态
+func (c *ClusterController) checkOpsStatusEnded(
+	request *entity.Request,
+	responseData *entity.Metadata,
+) bool {
+	opsRequestStatus := &entity.Request{
+		K8sClusterName: request.K8sClusterName,
+		Metadata: entity.Metadata{
+			OpsRequestName: responseData.OpsRequestName,
+			Namespace:      responseData.Namespace,
+		},
+	}
+	status, err := c.opsRequestProvider.GetOpsRequestStatus(opsRequestStatus)
+	if err != nil {
+		return true
+	}
+	if status.Phase == v1alpha1.OpsSucceedPhase ||
+		status.Phase == v1alpha1.OpsCancelledPhase ||
+		status.Phase == v1alpha1.OpsFailedPhase ||
+		status.Phase == v1alpha1.OpsAbortedPhase {
+		return true
+	}
+	return false
 }

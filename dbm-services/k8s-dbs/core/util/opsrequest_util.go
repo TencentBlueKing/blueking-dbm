@@ -527,7 +527,6 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 	if err != nil {
 		return nil, err
 	}
-
 	opsRequest := createExposeOpsRequest(request, opsService, objectName)
 
 	unstructuredClusterDef, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&opsRequest)

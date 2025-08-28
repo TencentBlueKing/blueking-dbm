@@ -44,10 +44,12 @@ type PortInfo struct {
 
 // K8sExternalSvcInfo 封装 LoadBalancer 的外部访问信息
 type K8sExternalSvcInfo struct {
-	Name      string         `json:"name"`
-	Namespace string         `json:"namespace"`
-	Hostname  string         `json:"hostname,omitempty"` // 外部域名（仅 LoadBalancer 有）
-	Ports     []ExternalPort `json:"ports,omitempty"`    // 外部端口信息（仅 LoadBalancer 有）
+	Name        string            `json:"name"`
+	ServiceName string            `json:"serviceName"`
+	Namespace   string            `json:"namespace"`
+	Hostname    string            `json:"hostname,omitempty"` // 外部域名（仅 LoadBalancer 有）
+	Ports       []ExternalPort    `json:"ports,omitempty"`    // 外部端口信息（仅 LoadBalancer 有）
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ExternalPort 表示单个外部端口的信息
