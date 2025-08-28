@@ -82,9 +82,9 @@ export const nodeTypes = {
   MONGODB_M1: 'mongodb::m1',
   MONGODB_M2: 'mongodb::m2',
   MONGODB_MONGOS: 'mongos',
+  PROXY: 'proxy',
   ORACLE_PRIMARY: 'oracle::primary',
   ORACLE_STANDBY: 'oracle::standby',
-  PROXY: 'proxy',
   PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
   PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
   PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
@@ -94,9 +94,7 @@ export const nodeTypes = {
   TENDBCLUSTER_CONTROLLER: 'controller_group',
   TENDBCLUSTER_MASTER: 'spider_master',
   TENDBCLUSTER_MNT: 'spider_mnt',
-  TENDBCLUSTER_NEW_REMOTE_SLAVE: 'remote::new_remote_slave',
   TENDBCLUSTER_REMOTE_MASTER: 'remote::remote_master',
-  TENDBCLUSTER_REMOTE_REPEATER: 'remote::remote_repeater',
   TENDBCLUSTER_REMOTE_SLAVE: 'remote::remote_slave',
   TENDBCLUSTER_SLAVE: 'spider_slave',
   TENDISCACHE_MASTER: 'tendiscache::redis_master',
@@ -442,32 +440,13 @@ export class GraphData {
 
     // 设置运维节点位置
     const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
-    const tendbClusterRemoteMaster = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
-    if (mntNode && tendbClusterRemoteMaster) {
-      mntNode.style.y = tendbClusterRemoteMaster.style.y;
-      mntNode.style.x = tendbClusterRemoteMaster.style.x - mntNode.style.width - this.nodeConfig.offsetX;
+    const referenceNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
+    if (mntNode && referenceNode) {
+      const { height, y } = referenceNode.style;
+      const heightDifference = (mntNode.style.height - height) / 2;
+      mntNode.style.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
+      mntNode.style.x = referenceNode.style.x;
       this.calcChildrenNodeLocations(mntNode);
-    }
-
-    // 设置 remote repeater
-    const tendbClusterRemoteRepeaterNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_REPEATER];
-    if (tendbClusterRemoteRepeaterNode && tendbClusterRemoteMaster) {
-      const { height, y } = tendbClusterRemoteMaster.style;
-      const heightDifference = (tendbClusterRemoteRepeaterNode.style.height - height) / 2;
-      tendbClusterRemoteRepeaterNode.style.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
-      tendbClusterRemoteRepeaterNode.style.x = tendbClusterRemoteMaster.style.x;
-      this.calcChildrenNodeLocations(tendbClusterRemoteRepeaterNode);
-    }
-
-    // 设置 new remote slave
-    const tendbClusterNewRemoteSlaveNode = nodeMap[nodeTypes.TENDBCLUSTER_NEW_REMOTE_SLAVE];
-    const tendbClusterRemoteSlave = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_SLAVE];
-    if (tendbClusterNewRemoteSlaveNode && tendbClusterRemoteSlave) {
-      const { height, y } = tendbClusterRemoteSlave.style;
-      const heightDifference = (tendbClusterNewRemoteSlaveNode.style.height - height) / 2;
-      tendbClusterNewRemoteSlaveNode.style.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
-      tendbClusterNewRemoteSlaveNode.style.x = tendbClusterRemoteSlave.style.x;
-      this.calcChildrenNodeLocations(tendbClusterNewRemoteSlaveNode);
     }
 
     const masterDomainNode = nodeMap[nodeTypes.SPIDER_MASTER_ENTRY_BIND];
