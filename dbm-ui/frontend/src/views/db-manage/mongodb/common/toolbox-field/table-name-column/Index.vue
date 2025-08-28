@@ -65,7 +65,7 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    compareData?: string[];
+    // compareData?: string[];
     disabled?: boolean;
     field: string;
     label: string;
@@ -103,17 +103,17 @@
       trigger: 'change',
       validator: (value: string[]) => _.every(value, (item) => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
     },
-    {
-      message: t('忽略DB名、忽略表名要么同时为空, 要么同时不为空'),
-      trigger: 'change',
-      validator: (value: string[]) => {
-        const { compareData } = props;
-        if (compareData) {
-          return (value.length === 0 && compareData?.length === 0) || (value.length > 0 && compareData?.length > 0);
-        }
-        return true;
-      },
-    },
+    // {
+    //   message: t('忽略DB名、忽略表名要么同时为空, 要么同时不为空'),
+    //   trigger: 'change',
+    //   validator: (value: string[]) => {
+    //     const { compareData } = props;
+    //     if (compareData) {
+    //       return (value.length === 0 && compareData?.length === 0) || (value.length > 0 && compareData?.length > 0);
+    //     }
+    //     return true;
+    //   },
+    // },
   ];
 
   const isShowBatchEdit = ref(false);
