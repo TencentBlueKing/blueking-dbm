@@ -64,7 +64,6 @@
             <DbNameColumn
               v-model="item.ignore_dbs"
               :cluster-id="item.cluster.id"
-              :compare-data="item.ignore_tables"
               field="ignore_dbs"
               :label="t('忽略 DB 名')"
               :required="false"
@@ -76,7 +75,6 @@
               @batch-edit="handleBatchEdit" />
             <TableNameColumn
               v-model="item.ignore_tables"
-              :compare-data="item.ignore_dbs"
               field="ignore_tables"
               :label="t('忽略表名')"
               :required="false"
