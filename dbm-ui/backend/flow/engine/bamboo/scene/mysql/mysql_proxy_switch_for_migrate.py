@@ -7,18 +7,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext as _
 
-from backend.flow.engine.validate.exceptions import FlowValidateBaseException
-
-
-class ProxyReduceCountFailedException(FlowValidateBaseException):
-    ERROR_CODE = "35001"
-    MESSAGE = _("集群proxy缩容没有可用的proxy")
-    MESSAGE_TPL = _("{message}")
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_extend import ProxySwitchForExtendFlow
 
 
-class ProxySpecFailedException(FlowValidateBaseException):
-    ERROR_CODE = "35002"
-    MESSAGE = _("出现两个以后的proxy规格")
-    MESSAGE_TPL = _("{message}")
+class ProxySwitchForMigrateFlow(ProxySwitchForExtendFlow):
+    """
+    构建mysql集群整体proxy实例拆分的流程类
+    因为proxy实例拆分和proxy扩缩容的入参结构体、流程行为是一致的，所有这里完全复用proxy扩缩容流程
+    """
+
+    def switch_proxy_for_migrate_flow(self):
+        """
+        定义迁移proxy流程, 复用扩缩容proxy流程
+        """
+        self.switch_mysql_cluster_proxy_flow()
