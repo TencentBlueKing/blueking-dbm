@@ -152,9 +152,10 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     # 建立remote dr与remote db的数据同步关系
     graph.add_line(source=remote_db_group, target=remote_dr_group, label=LineLabel.Rep)
 
+    # 建立remote db 与 remote repeater 和 new_remote dr数据的同步关系
     if remote_repeater_group:
-        graph.add_line(source=remote_repeater_group, target=remote_db_group, label=LineLabel.Rep)
-        graph.add_line(source=new_remote_dr_group, target=remote_repeater_group, label=LineLabel.Rep)
+        graph.add_line(source=remote_db_group, target=remote_repeater_group, label=LineLabel.Rep)
+        graph.add_line(source=remote_repeater_group, target=new_remote_dr_group, label=LineLabel.Rep)
 
     # 收纳运维节点
     spider_mnt_insts, spider_mnt_group = graph.add_spider_nodes(
