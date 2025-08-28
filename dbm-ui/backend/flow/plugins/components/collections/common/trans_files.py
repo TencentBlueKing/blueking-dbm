@@ -78,7 +78,7 @@ class SerialTransFileService(BkJobService):
         payload["target_server"]["ip_list"] = target_ip_info
         payload["rolling_config"] = {
             "type": 2,  # 1-传输目标；2-源文件
-            "mode": 2,  # 1-执行失败则暂停；2-忽略失败，自动滚动下一批；3-人工确认
+            "mode": 1,  # 1-执行失败则暂停；2-忽略失败，自动滚动下一批；3-人工确认
             "file_source": {
                 "max_execute_object_num_in_batch": 1,
                 "max_file_num_of_single_execute_object": 1,
