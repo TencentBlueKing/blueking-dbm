@@ -68,7 +68,7 @@
       }
       const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
 
-      const spaceWidth = props.valueList.length > modelValue.value ? 150 : 120;
+      const spaceWidth = props.valueList.length > modelValue.value ? 180 : 150;
 
       const tagMaxWidth = (maxWidth - spaceWidth) / valueTagElList.length;
 

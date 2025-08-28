@@ -8,6 +8,7 @@
         :bk-ui-settings="tableSettings"
         :data="dataList"
         :ellipsis="false"
+        :filter-row="(null as any)"
         :filter-value="quickSearchValue"
         :max-height="tableMaxHeight"
         :row-class-name="rowClass"
@@ -75,8 +76,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="id"
-          :filter="tableFilter['id']"
+          col-key="ids"
+          :filter="tableFilter['ids']"
           fixed="left"
           :title="t('单号')"
           width="100">
@@ -99,8 +100,8 @@
         </TableColumn>
         <TableColumn
           v-if="!excludeColumn.includes('bk_biz_id')"
-          col-key="bk_biz_id"
-          :filter="tableFilter['bk_biz_id']"
+          col-key="bk_biz_ids"
+          :filter="tableFilter['bk_biz_ids']"
           :min-width="150"
           :title="t('业务')">
           <template #default="{ row }: { row: IRowData }">
@@ -133,7 +134,7 @@
                   {{ flowItem.flow_alias }}
                 </BkButton>
               </div>
-              <span v-if="ticketInnerFlowInfo[row.id].length < 1">--</span>
+              <span v-if="ticketInnerFlowInfo[row.id]!.length < 1">--</span>
             </template>
             <div
               v-else
@@ -146,7 +147,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="related_object"
+          col-key="cluster"
+          :filter="tableFilter['cluster']"
           min-width="300"
           :title="t('集群')">
           <template #default="{ row }: { row: IRowData }">
@@ -199,6 +201,7 @@
         </TableColumn>
         <TableColumn
           col-key="todo_operators"
+          :filter="tableFilter['todo_operators']"
           :title="t('当前处理人')"
           width="160">
           <template #default="{ row }: { row: IRowData }">
@@ -209,6 +212,7 @@
         </TableColumn>
         <TableColumn
           col-key="todo_helpers"
+          :filter="tableFilter['todo_helpers']"
           :title="t('当前协助人')"
           width="250">
           <template #default="{ row }: { row: IRowData }">
@@ -219,6 +223,7 @@
         </TableColumn>
         <TableColumn
           col-key="creator"
+          :filter="tableFilter['creator']"
           :title="t('申请人')"
           width="150" />
         <TableColumn
@@ -264,7 +269,19 @@
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           @change="handlePageValueChange"
-          @limit-change="handlePageLimitChange" />
+          @limit-change="handlePageLimitChange">
+          <template
+            v-if="selectedCount > 0"
+            #limitAppend>
+            <I18nT
+              class="ml-8"
+              keypath="已选择n条"
+              scope="global"
+              tag="span">
+              <span class="number">{{ selectedCount }}</span>
+            </I18nT>
+          </template>
+        </BkPagination>
       </div>
     </div>
     <TableDetailDialog
@@ -315,8 +332,6 @@
     selectable?: boolean;
   }
 
-  type Emits = (e: 'selection', data: TicketModel<unknown>[]) => void;
-
   const props = withDefaults(defineProps<Props>(), {
     excludeColumn: () => [],
     selectable: false,
@@ -328,6 +343,8 @@
     action?: () => VNode;
     prepend?: () => VNode;
   }>();
+
+  type Emits = (e: 'selection', data: TicketModel<unknown>[]) => void;
 
   const TABLE_SETTING_KEY = 'TICKET_TABLE_SETTINGS';
 
@@ -365,6 +382,7 @@
   });
 
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
+  const selectedCount = computed(() => Object.keys(rowSelectMemo.value).length);
 
   const rowClass = ({ row }: { row: TicketModel<unknown> }) => {
     return row.id === ticketId.value ? 'select-row' : '';
@@ -620,8 +638,8 @@
 
         &::after {
           position: absolute;
-          top: 2px;
-          left: 5px;
+          top: 1px;
+          left: 4px;
           width: 4px;
           height: 8px;
           border: 2px solid #3a84ff;

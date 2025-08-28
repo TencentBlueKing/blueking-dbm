@@ -242,6 +242,7 @@
     width: auto;
     min-width: 30px;
     flex: 1;
+    overflow: hidden;
 
     &.is-pop-menu-edit {
       textarea {

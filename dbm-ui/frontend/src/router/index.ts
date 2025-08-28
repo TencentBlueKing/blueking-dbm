@@ -119,6 +119,10 @@ export default () => {
         ...getDutyRuleManageRoutes(),
         ...getServiceStatusRoutes(),
         ...moduleList,
+        {
+          component: () => import('@/demo/Index.vue'),
+          path: 'demo',
+        },
       ],
       name: 'index',
       path: rootPath,
@@ -155,7 +159,7 @@ export default () => {
   console.log('routes = ', routes);
 
   if (!bizPermission) {
-    renderPageWithComponent(routes[1], BizPermission);
+    renderPageWithComponent(routes[1]!, BizPermission);
   }
 
   appRouter = createRouter({

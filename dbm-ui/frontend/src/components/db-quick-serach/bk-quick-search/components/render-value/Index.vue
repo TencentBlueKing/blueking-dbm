@@ -32,7 +32,6 @@
   import { computed, ref } from 'vue';
 
   import ValueTag from '@components/db-quick-serach/bk-quick-search/components/ValueTag.vue';
-  import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
 
   import { calcNeedShowValueMenu, getValuesText } from '@/components/db-quick-serach/bk-quick-search/utils';
@@ -55,12 +54,7 @@
 
   const currentDataConfig = _.find(props.data, (item) => item.id === props.value.id) as Props['data'][number];
   const isCustomInput = !calcNeedShowValueMenu(currentDataConfig);
-  const isReadonly = Boolean(
-    currentDataConfig.type &&
-      [comType.DATE, comType.DATETIME, comType.DATETIME_RANGE, comType.DATETIME_RANGE].includes(
-        currentDataConfig.type as comType,
-      ),
-  );
+  const isReadonly = Boolean(currentDataConfig.type) || Boolean(currentDataConfig.component);
 
   const isFocused = ref(false);
   const lastValueText = computed(() => getValuesText(props.value.values, currentDataConfig));

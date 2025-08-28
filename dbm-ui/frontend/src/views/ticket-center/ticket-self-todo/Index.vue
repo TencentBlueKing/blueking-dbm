@@ -22,6 +22,7 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
+        :placeholder="t('搜索单号、单据类型，集群，业务，备注，提单人...')"
         style="width: 550px; margin-left: auto" />
     </div>
     <TicketTable
@@ -38,6 +39,7 @@
 </template>
 <script setup lang="ts">
   import { ref, shallowRef, useTemplateRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
@@ -54,6 +56,8 @@
 
   const route = useRoute();
   const router = useRouter();
+
+  const { t } = useI18n();
 
   const { quickSearchData, quickSearchValue } = useSearchSelect({
     exclude: ['status'],

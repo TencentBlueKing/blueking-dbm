@@ -17,6 +17,7 @@
         ref="textarea"
         name="search"
         :placeholder="currentPlaceholder"
+        :readonly="isTextareaReadonly"
         spellcheck="false"
         :value="inputValue"
         @blur="handleBlur"
@@ -102,6 +103,10 @@
   const inputValue = ref('');
   const currentDataConfig = shallowRef<ContextProps['data'][number]>();
   const localValue = ref(genDefaultValue());
+
+  const isTextareaReadonly = computed(
+    () => Boolean(currentDataConfig.value?.type) || Boolean(currentDataConfig.value?.component),
+  );
 
   const currentPlaceholder = computed(() => {
     if (!currentDataConfig.value) {
@@ -236,7 +241,7 @@
           return;
         }
         // value 使用 input 的值
-        if (!needShowValueMenu.value || currentDataConfig.value!.inputInclude) {
+        if (!needShowValueMenu.value) {
           let errorMessage = '';
           if (currentDataConfig.value!.validator) {
             const result = currentDataConfig.value.validator(inputValue.value);
@@ -262,7 +267,7 @@
         if (currentDataConfig.value) {
           if (inputValue.value || latestInputValue) {
             // 编辑输入框更新当前弹出面板位置
-            updateMenuPop();
+            showCurrentPop();
           } else if (!inputValue.value && !latestInputValue) {
             // 删除最后一个选中的 tag
             restartSelect();

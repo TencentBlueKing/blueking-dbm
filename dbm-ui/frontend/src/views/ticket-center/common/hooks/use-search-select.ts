@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketGroupTypes } from '@services/source/ticket';
+import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
@@ -14,6 +15,22 @@ const quickSearchValue = ref<Record<string, any>>({});
 export default (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+
+  const fetchUserList = (params: { defaultValue?: string; keyword?: string }) => {
+    const requestParams = {};
+    if (params.defaultValue) {
+      Object.assign(requestParams, { exact_lookups: params.defaultValue });
+    }
+    if (params.keyword) {
+      Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+    }
+    return getUserList(requestParams).then((data) =>
+      data.results.map((item) => ({
+        label: `${item.display_name}(${item.username})`,
+        value: item.username,
+      })),
+    );
+  };
 
   const quickSearchData = computed(() => {
     const serachList = [
@@ -32,13 +49,13 @@ export default (options = {} as { exclude: string[] }) => {
         name: t('集群'),
       },
       {
-        id: 'bk_biz_id',
+        id: 'bk_biz_ids',
         list: globalBizsStore.bizs.map((item) => ({
           label: item.name,
           value: `${item.bk_biz_id}`,
         })),
         name: t('业务'),
-        type: 'single',
+        type: 'multiple',
       },
       {
         id: 'status',
@@ -58,18 +75,52 @@ export default (options = {} as { exclude: string[] }) => {
       },
       {
         id: 'creator',
-        name: t('提单人'),
+        name: t('申请人'),
+        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
+        remoteSearch: true,
+        type: 'multiple',
+      },
+      {
+        id: 'todo_operators',
+        name: t('当前处理人'),
+        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
+        remoteSearch: true,
+        type: 'multiple',
+      },
+      {
+        id: 'todo_helpers',
+        name: t('当前协助人'),
+        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
+        remoteSearch: true,
+        type: 'multiple',
       },
       {
         id: 'create_at',
         name: t('申请时间'),
         props: {
-          presets: {
-            [t('今天')]: [dayjs().toDate(), dayjs().toDate()],
-            [t('近 15 天')]: [dayjs().subtract(14, 'day').toDate(), dayjs().toDate()],
-            [t('近 30 天')]: [dayjs().subtract(29, 'day').toDate(), dayjs().toDate()],
-            [t('近 7 天')]: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
-          },
+          shortcuts: [
+            {
+              text: t('今天'),
+              value: () => {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(start.getDate() - 7);
+                return [start, end];
+              },
+            },
+            {
+              text: t('近 7 天'),
+              value: () => [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 15 天'),
+              value: () => [dayjs().subtract(14, 'day').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 30 天'),
+              value: () => [dayjs().subtract(29, 'day').toDate(), dayjs().toDate()],
+            },
+          ],
         },
         type: 'datetime-range',
       },

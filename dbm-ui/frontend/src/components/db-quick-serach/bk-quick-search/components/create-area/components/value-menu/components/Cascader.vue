@@ -1,9 +1,18 @@
 <template>
   <div class="bk-quick-search-type-cascader">
+    <div class="bk-quick-search-type-menu-filter-box">
+      <Input
+        v-model="serachKey"
+        borderless
+        clearable
+        placeholder="请输入关键字">
+        <template #prefix-icon> <SearchIcon /></template>
+      </Input>
+    </div>
     <div
       v-if="isSearching && renderSearchList.length > 0"
       key="search"
-      class="search-wrapper">
+      class="bk-quick-search-value-wrapper filter-result-list">
       <div
         v-for="(item, index) in renderSearchList"
         :key="index"
@@ -18,7 +27,7 @@
     <div
       v-if="!isSearching"
       ref="layout"
-      class="list-layout">
+      class="bk-quick-search-value-wrapper">
       <div class="parent-wrapper">
         <div
           v-for="item in list"
@@ -46,17 +55,17 @@
     <div
       v-if="isSearching && renderSearchList.length < 1"
       class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ keyword }}" 相关数据
+      未搜索到 "{{ serachKey }}" 相关数据
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { Radio } from 'tdesign-vue-next';
+  import { SearchIcon } from 'tdesign-icons-vue-next';
+  import { Input, Radio } from 'tdesign-vue-next';
   import { onMounted, ref, useTemplateRef } from 'vue';
 
   interface Props {
-    keyword: string;
     list: {
       children: {
         label: string;
@@ -65,6 +74,7 @@
       label: string;
       value: string | number;
     }[];
+    remoteSearch: boolean;
   }
 
   interface IResult {
@@ -83,15 +93,16 @@
 
   const layoutRef = useTemplateRef('layout');
   const contentMinWidth = ref(0);
+  const serachKey = ref('');
   const parentKey = ref<string | number>('');
   const localValue = ref<string | number>('');
 
-  const isSearching = computed(() => Boolean(props.keyword && _.trim(props.keyword)));
+  const isSearching = computed(() => Boolean(serachKey.value && _.trim(serachKey.value)));
   const childrenList = computed(() => _.find(props.list, (item) => item.value === parentKey.value)?.children || []);
 
   const renderSearchList = computed(() => {
-    const keyword = `${props.keyword || ''}`.trim().toLowerCase();
-    if (!keyword) {
+    const keyword = `${serachKey.value || ''}`.trim().toLowerCase();
+    if (!keyword || props.remoteSearch) {
       return [];
     }
 
@@ -117,7 +128,7 @@
       if (modelValue.value.length < 1) {
         return;
       }
-      const currentValue = modelValue.value[0].value;
+      const currentValue = modelValue.value[0]!.value;
       for (const parentItem of props.list) {
         for (const childItem of parentItem.children) {
           if (childItem.value === currentValue) {
@@ -154,32 +165,35 @@
 
   onMounted(() => {
     contentMinWidth.value = layoutRef.value!.getBoundingClientRect().width;
-    handleSelectParent(props.list[0]);
+    handleSelectParent(props.list[0]!);
   });
 </script>
 <style lang="less">
   .bk-quick-search-type-cascader {
-    .list-layout {
+    padding: 8px 12px;
+
+    .bk-quick-search-value-wrapper {
       display: flex;
-      height: 100%;
-      max-height: inherit;
       padding: 8px 0;
       overflow: hidden;
     }
 
-    .search-wrapper {
-      flex: 1;
+    .filter-result-list {
+      overflow-y: auto;
+      flex-direction: column;
     }
 
     .parent-wrapper {
+      min-width: 120px;
+      overflow-y: auto;
       flex: 0 1 auto;
-      overflow-y: scroll;
     }
 
     .children-wrapper {
-      flex: 1;
-      overflow-y: scroll;
+      min-width: 120px;
+      overflow-y: auto;
       border-left: 1px solid #dcdee5;
+      flex: 1;
     }
   }
 </style>

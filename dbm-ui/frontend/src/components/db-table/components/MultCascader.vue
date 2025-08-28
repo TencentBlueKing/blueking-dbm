@@ -97,7 +97,7 @@
   const contentMinWidth = ref(0);
 
   const serachKey = ref('');
-  const parentKey = ref<string | number>(props.list[0].value);
+  const parentKey = ref<string | number>(props.list[0]!.value);
   const localValueIdMap = shallowRef<Record<string, IResult>>({});
 
   const isSearch = computed(() => Boolean(serachKey.value && _.trim(serachKey.value)));
@@ -231,7 +231,7 @@
   .db-table-filter-type-mult-cascader {
     .layout-wrapper {
       display: flex;
-      max-height: 450px;
+      max-height: 280px;
       margin-top: 8px;
       overflow: hidden;
     }

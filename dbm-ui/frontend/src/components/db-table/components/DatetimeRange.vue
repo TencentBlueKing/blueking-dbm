@@ -1,19 +1,29 @@
 <template>
-  <div>
-    <DateRangePickerPanel
+  <ElConfigProvider :locale="zhCn">
+    <ElDatePickerPanel
       v-model="localValue"
-      enable-time-picker
-      :presets="presets"
-      @change="handleChange" />
-  </div>
+      :border="false"
+      :shortcuts="shortcuts"
+      type="datetimerange"
+      @update:model-value="handleChange" />
+  </ElConfigProvider>
 </template>
 <script setup lang="ts">
-  import { DateRangePickerPanel } from 'tdesign-vue-next';
+  import dayjs from 'dayjs';
+  import { ElConfigProvider, ElDatePickerPanel } from 'element-plus';
+  import zhCn from 'element-plus/es/locale/lang/zh-cn';
 
   interface Props {
-    presets?: Record<string, [string, string]>;
+    shortcuts?: {
+      text: string;
+      value: () => [Date, Date];
+    }[];
     value?: string;
   }
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   const props = defineProps<Props>();
 
@@ -38,6 +48,8 @@
   );
 
   const handleChange = (value: (string | number | Date)[]) => {
-    emits('change', `${value[0]},${value[1]}`);
+    const startDatetimeFormat = dayjs(value[0]).format('YYYY-MM-DD HH:mm:ss');
+    const endDatetimeFormat = dayjs(value[1]).format('YYYY-MM-DD HH:mm:ss');
+    emits('change', `${startDatetimeFormat},${endDatetimeFormat}`);
   };
 </script>
