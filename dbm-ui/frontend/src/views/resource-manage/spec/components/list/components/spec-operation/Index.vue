@@ -47,6 +47,7 @@
             :db-type="dbType"
             :editable="editable"
             :is-required="isRequired"
+            :mode="mode"
             @table-value-change="handleTableValueChange" />
         </div>
       </div>
@@ -184,7 +185,6 @@
   const initFormdata = () => {
     if (props.data) {
       const data = _.cloneDeep(props.data);
-      Object.assign(data, { biz_scope: data.biz_scope.map((item) => `${item}`) });
       return data;
     }
 
