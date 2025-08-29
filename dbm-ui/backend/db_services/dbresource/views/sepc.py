@@ -128,7 +128,10 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         spec = self.get_object()
         for key in update_data:
             # 如果是可更新字段或不存在字段，则忽略
-            if key in ["desc", "spec_name", "enable", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
+            if (
+                key in ["desc", "spec_name", "enable", "biz_scope", *AuditedModel.AUDITED_FIELDS]
+                or key not in spec.__dict__
+            ):
                 continue
             elif key == "device_class":
                 removed_classes = list(set(spec.device_class) - set(update_data[key]))
@@ -141,6 +144,17 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
                 ):
                     raise SpecOperateException(_("规格: {}已经被引用，机型未发生改变cpu和内存不允许修改").format(spec_id))
 
+            # 判断磁盘的变化
+            elif key == "storage_spec":
+                new_storage_spec = {d["mount_point"]: d for d in update_data["storage_spec"]}
+                old_storage_spec = {d["mount_point"]: d for d in spec.storage_spec}
+
+                if list(new_storage_spec.keys()) != list(old_storage_spec.keys()):
+                    raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
+
+                for mount_point in new_storage_spec:
+                    if new_storage_spec[mount_point] != old_storage_spec[mount_point]:
+                        raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
             # 对正在被引用的规格的配置字段更改，抛出异常
             elif update_data[key] != spec.__dict__[key]:
                 raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
