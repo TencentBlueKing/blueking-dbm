@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -72,6 +74,7 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 	// 把 schema 单独打包？
 
 	var tarFiles = make(map[string]*dbareport.TarFileItem, 0)
+	databaseUniq := make(map[string]struct{})
 	// The files are walked in lexical order
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -92,9 +95,15 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 		tarFileName := filepath.Base(dstTarName)
 		if _, ok := tarFiles[tarFileName]; !ok {
 			tarFiles[tarFileName] = &dbareport.TarFileItem{FileName: tarFileName, FileType: cst.FileTar}
-		} else {
-			tarFiles[tarFileName].ContainFiles = append(tarFiles[tarFileName].ContainFiles,
-				strings.TrimPrefix(strings.TrimPrefix(filename, p.srcDir), "/"))
+		}
+		tarFiles[tarFileName].ContainFiles = append(tarFiles[tarFileName].ContainFiles,
+			strings.TrimPrefix(strings.TrimPrefix(filename, p.srcDir), "/"))
+
+		if tbSchema, _, _ := p.indexFile.ParseTableSchema(filepath.Base(filename)); tbSchema != "" {
+			if strings.HasPrefix(tbSchema, "mydumper_") {
+				logger.Log.Warnf("parsed name from dumper file may be not collect: %s. check in metadata", tbSchema)
+			}
+			databaseUniq[tbSchema] = struct{}{}
 		}
 		tarFiles[tarFileName].FileSize += written
 
@@ -137,7 +146,7 @@ func (p *PackageFile) LogicalTarParts() (string, error) {
 	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
 	p.indexFile.TotalFilesize = backupTotalFileSize + tarSize
-
+	p.indexFile.DatabaseList = lo.Keys(databaseUniq)
 	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", p.cnf.Public.IOLimitMBPerSec)
 	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
 		// if err := os.RemoveAll(p.srcDir); err != nil {

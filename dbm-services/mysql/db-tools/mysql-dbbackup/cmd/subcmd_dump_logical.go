@@ -122,7 +122,7 @@ var dumpLogicalCmd = &cobra.Command{
 
 		cnf.PhysicalBackup = config.PhysicalBackup{}
 		cnf.PhysicalLoad = config.PhysicalLoad{}
-		if cnf.Public.IsFullBackup == 0 {
+		if cnf.Public.IsFullBackup == "" || cnf.Public.IsFullBackup == "auto" {
 			// cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
 		}
 		err = task.run(context.Background(), &cnf)

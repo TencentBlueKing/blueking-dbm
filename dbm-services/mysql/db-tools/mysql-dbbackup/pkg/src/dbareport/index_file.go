@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -138,15 +139,17 @@ type ExtraFields struct {
 	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
 	// BackupFilter backup object filter db.table
 	BackupFilter string `json:"backup_filter" db:"backup_filter"`
+	// DatabaseList database list that this backup contains. we do not care about table name
+	DatabaseList []string `json:"database_list" db:"database_list"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
 // 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
 func (i *IndexContent) judgeIsFullBackup(cnf *config.Public) bool {
-	if cnf.IsFullBackup < 0 {
+	if cnf.IsFullBackup == "no" {
 		i.IsFullBackup = false
 		return false
-	} else if cnf.IsFullBackup > 0 {
+	} else if cnf.IsFullBackup == "yes" {
 		i.IsFullBackup = true
 		return true
 	}
@@ -155,13 +158,16 @@ func (i *IndexContent) judgeIsFullBackup(cnf *config.Public) bool {
 	// 库表备份单，false
 	if !cnf.IfBackupAll() || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
 		i.IsFullBackup = false
+		cnf.IsFullBackup = "no"
 		return i.IsFullBackup
 	}
 	// 物理备份数据，true
 	if cnf.IfBackupAll() && i.BackupType == cst.BackupPhysical {
 		i.IsFullBackup = true
+		cnf.IsFullBackup = "yes"
 	}
 	i.IsFullBackup = true
+	cnf.IsFullBackup = "yes"
 
 	if cnf.BillId != "" {
 		if i.IsFullBackup {
@@ -219,6 +225,7 @@ func (r *BackupLogReport) BuildMetaInfo(cnf *config.BackupConfig, metaInfo *Inde
 	metaInfo.reMetadata = regexp.MustCompile(ReMetadata)
 	metaInfo.reSchemaView = regexp.MustCompile(ReSchemaView)
 	metaInfo.reSplitPart = regexp.MustCompile(ReSplitPart)
+	metaInfo.reTar = regexp.MustCompile(ReTar)
 	return nil
 }
 
@@ -227,7 +234,21 @@ func (i *IndexContent) AppendFileList(f TarFileItem) {
 	i.FileList = append(i.FileList, &f)
 }
 
+func (i *IndexContent) ParseTableSchema(fileName string) (db string, table string, err error) {
+	fileMeta := IndexFileItem{BackupFileName: fileName}
+	i.parseTableSchema(&fileMeta)
+	if fileMeta.FileType == cst.FileData || fileMeta.FileType == cst.FileSchema {
+		if strings.Contains(fileMeta.DBTable, ".") {
+			return cmutil.GetDbTableName(fileMeta.DBTable)
+		} else {
+			return fileMeta.DBTable, "", nil
+		}
+	}
+	return "", "", nil
+}
+
 // parseTableSchema 从 mydumper 文件名里解析出库表和文件类型
+// 注意这里不是特别精确，比如 tablename 包含非英文字符，mydumper 会用 mydumper_ 来作为文件名
 func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 	var matches []string
 	if matches = i.reData.FindStringSubmatch(f.BackupFileName); len(matches) == 3 {

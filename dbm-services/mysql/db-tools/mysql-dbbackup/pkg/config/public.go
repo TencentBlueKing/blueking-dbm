@@ -87,10 +87,10 @@ type Public struct {
 	// issue lock to mysqld: default 10s
 	//  lock-ddl-timeout(xtrabackup57), backup-lock-timeout(xtrabackup80) --lock-wait-timeout(mydumper)
 	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"`
-	// IsFullBackup 1: true, -1: false, 0: auto
-	// 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
+	// IsFullBackup yes: true, no: false, empty or auto: 自动判断
+	// 这个选项默认 empty 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 	// 某些情况只需要表结构，可以设置此选项强制上报为全备
-	IsFullBackup int `ini:"IsFullBackup"`
+	IsFullBackup string `ini:"IsFullBackup"`
 	// SkipTarball 跳过打包步骤
 	// 跳过打包意味着保持备份完后的目录，会自动禁用 backup_client(目前 backup_client不支持上传目录)
 	// 一般用于测试用途，可以将目录手动拷贝到远程进行恢复
