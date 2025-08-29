@@ -29,6 +29,7 @@ import "time"
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
+	SkipDbInstanceTableName         = "t_skip_dbinstance"
 	SkipDbInstanceFieldBkCloudID    = "bk_cloud_id"
 	SkipDbInstanceFieldBkBizID      = "bk_biz_id"
 	SkipDbInstanceFieldInstanceIP   = "instance_ip"
@@ -49,5 +50,5 @@ type SkipDbInstance struct {
 }
 
 func (t SkipDbInstance) TableName() string {
-	return "t_skip_dbinstance"
+	return SkipDbInstanceTableName
 }

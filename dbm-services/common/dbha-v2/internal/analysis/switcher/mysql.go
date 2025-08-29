@@ -24,5 +24,50 @@
 
 package switcher
 
-type MySQL struct {
+import (
+	"context"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/monitor"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+)
+
+var _ Switcher = (*Mysql)(nil)
+
+type Mysql struct {
+}
+
+func (m *Mysql) DbTypeName() haprobe.DbType {
+	return haprobe.DbTypeMysql
+}
+
+func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
+	// TODO: Need to implement the switching logic with the switching strategy.
+
+	rsp := &Response{}
+
+	for _, event := range req.BreakdownEvents {
+		monitorEvent := &monitor.EventData{
+			Name:      event.Name.String(),
+			Target:    event.Endpoint,
+			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = event.Message
+		monitorEvent.Dimension.BkCloudID = event.BkCloudID
+		monitorEvent.Dimension.IP = event.IP
+		monitorEvent.Dimension.Port = event.Port
+		monitorEvent.Dimension.DbTypeName = event.DbTypeName
+		monitorEvent.Dimension.DbEventName = event.Name
+		monitorEvent.Dimension.DbEventNameReason = event.Reason
+
+		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+			logger.Warn("%v", err)
+		}
+
+		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
+	}
+
+	return rsp
 }
