@@ -26,15 +26,22 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/storage"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (
@@ -43,9 +50,10 @@ const (
 )
 
 type Workflow struct {
-	hadata       *DbhaData
+	hadata       *storage.DbhaData
 	dbmMetadata  *DbmMetadata
 	discoveryCli *discovery.Client
+	switchers    map[haprobe.DbType]switcher.Switcher
 	cfg          config.WorkflowConfig
 	quit         chan struct{}
 	wg           sync.WaitGroup
@@ -53,13 +61,17 @@ type Workflow struct {
 
 func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Workflow, error) {
 	wflow := &Workflow{
-		hadata: &DbhaData{
-			db: db,
+		hadata: &storage.DbhaData{
+			DB: db,
 		},
 
 		dbmMetadata: &DbmMetadata{
 			db:           db,
 			discoveryCli: cli,
+		},
+
+		switchers: map[haprobe.DbType]switcher.Switcher{
+			haprobe.DbTypeMysql: &switcher.Mysql{},
 		},
 
 		cfg:          cfg,
@@ -70,35 +82,102 @@ func New(cfg config.WorkflowConfig, cli *discovery.Client, db *hamysql.DB) (*Wor
 	return wflow, nil
 }
 
-func (w *Workflow) scanEvents() {
-	events, retErr := w.hadata.readAllDbEvent(readBatchCount, -10*time.Minute)
-	if retErr != nil {
-		return
-	}
+func (w *Workflow) breakdownRecovery(bizID int, metaInsts map[string]*hamodel.DbmMetadata,
+	breakdownInsts map[string]*hamodel.DbmMetadata) {
 
-	for _, event := range events {
-		monitorEvent := &monitor.EventData{
-			Name:      event.Name.String(),
-			Target:    event.Endpoint,
-			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
+	// TODO: Implement the switching logic for the breakdown database.
+}
+
+func (w *Workflow) databaseLivenessDoubleCheck(bizID int, metaInsts map[string]*hamodel.DbmMetadata,
+	breakdownInsts map[string]*hamodel.DbmMetadata) {
+
+	// TODO: Implement the double-check logic for the breakdown database.
+
+	w.breakdownRecovery(bizID, metaInsts, breakdownInsts)
+}
+
+func (w *Workflow) checkEventWithBizID(bizID int, dbEvents []*hamodel.DbEvent,
+	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
+
+	events := []*hamodel.DbEvent{}
+	metas := []*hamodel.DbmMetadata{}
+
+	for _, event := range dbEvents {
+		key := fmt.Sprintf("%d:%s:%d", event.BkCloudID, event.IP, event.Port)
+
+		if inst, exists := metaInsts[key]; exists {
+			metas = append(metas, inst)
 		}
 
-		monitorEvent.Content.Content = event.Message
-		monitorEvent.Dimension.BkCloudID = event.BkCloudID
-		monitorEvent.Dimension.IP = event.IP
-		monitorEvent.Dimension.Port = event.Port
-		monitorEvent.Dimension.DbTypeName = event.DbTypeName.String()
-		monitorEvent.Dimension.DbEventType = event.DbEventType.String()
+		if _, exists := skipDbInsts[key]; exists {
+			logger.Info("skip the db instance: %s", key)
+			continue
+		}
+
+		events = append(events, event)
+	}
+
+	req := &switcher.Request{}
+	req.BkBizID = bizID
+	req.BreakdownEvents = events
+	req.MetaInsts = metas
+
+	w.switchers[haprobe.DbTypeMysql].Switch(context.Background(), req)
+}
+
+func (w *Workflow) checkMissedProbeWithBizID(bizID int, dbMetrics []*hamodel.DatabaseMetric,
+	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
+
+	insts := metaInsts
+
+	// Delete the existing keys.
+	for _, dbMetric := range dbMetrics {
+		ips := strings.SplitSeq(dbMetric.IPs, constant.Delimiter)
+
+		for ip := range ips {
+			key := fmt.Sprintf("%d:%s:%s", dbMetric.BkCloudID, ip, dbMetric.InstanceID)
+
+			if _, exists := metaInsts[key]; exists {
+				delete(insts, key)
+			}
+
+			if _, exists := skipDbInsts[key]; exists {
+				logger.Info("skip the db instance: %s", key)
+				delete(insts, key)
+			}
+		}
+	}
+
+	// Post the alarm event by the bk-monitor.
+	for _, metaInst := range insts {
+		target := fmt.Sprintf("%d:%s:%d", metaInst.BkCloudID, metaInst.IP, metaInst.Port)
+		monitorEvent := &monitor.EventData{
+			Name:      haprobe.DbEventNameProbeOffline.String(),
+			Target:    target,
+			Timestamp: uint64(time.Now().UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = fmt.Sprintf("%s missed probe", target)
+		monitorEvent.Dimension.IP = metaInst.IP
+		monitorEvent.Dimension.Port = metaInst.Port
+		monitorEvent.Dimension.DbClusterType = metaInst.ClusterType
+		monitorEvent.Dimension.DbMachineType = metaInst.MachineType
+		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameProbeOffline
+		monitorEvent.Dimension.DbEventNameReason = haprobe.DbEventNameReasonMissedProbe
 
 		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
 			logger.Warn("%v", err)
 		}
-
-		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
 	}
+
+	w.databaseLivenessDoubleCheck(bizID, metaInsts, insts)
 }
 
-func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) {
+func (w *Workflow) checkDbMetricWithBizID(ctx context.Context, bizID int, dbMetrics []*hamodel.DatabaseMetric) {
+	// TODO:
+}
+
+func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retErr error) {
 	logger.Debug("check the business: %d", bizID)
 
 	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
@@ -118,22 +197,98 @@ func (w *Workflow) checkBusiness(ctx context.Context, bizID int) (retErr error) 
 		}
 	}()
 
-	// read all metadata with bizID
-	metaData, retErr := w.hadata.readMetadataCacheWithBizID(bizID, readBatchCount)
+	// Read all metadata by business ID.
+	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizID, readBatchCount)
 	if retErr != nil {
 		return retErr
 	}
 
+	conds := []*storage.DbInstance{}
+	metaInsts := map[string]*hamodel.DbmMetadata{}
 	for _, meta := range metaData {
-		logger.Debug("check the business(metadata): %d, bk cloud id: %d ip: %s port: %d",
-			meta.BkBizID, meta.BkCloudID, meta.IP, meta.Port)
+		conds = append(conds, &storage.DbInstance{
+			BkCloudID: meta.BkCloudID,
+			IP:        meta.IP,
+			Port:      meta.Port,
+		})
+
+		metaInsts[fmt.Sprintf("%d:%s:%d", meta.BkCloudID, meta.IP, meta.Port)] = meta
 	}
 
+	// Read the status data reported by the probe.
+	dbMetrics, err := w.hadata.ReadDbMetricsWithDbInstances(conds, -60*time.Second)
+	if err != nil {
+		// TODO: post notify by bk-monitor
+	}
+
+	dbEvents, err := w.hadata.ReadDbEventWithDbInstances(conds, -10*time.Minute)
+	if err != nil {
+		// TODO: post notify by bk-monitor
+	}
+
+	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizID(bizID)
+	if err != nil {
+		// TODO: post notify by bk-monitor
+	}
+
+	skipInsts := map[string]*hamodel.SkipDbInstance{}
+	for _, skipInst := range dbSkipInsts {
+		skipInsts[fmt.Sprintf("%d:%s:%d", skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.checkMissedProbeWithBizID(bizID, dbMetrics, skipInsts, metaInsts)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.checkEventWithBizID(bizID, dbEvents, skipInsts, metaInsts)
+	}()
+
+	// Parse and trigger switching logic.
+	w.checkDbMetricWithBizID(ctx, bizID, dbMetrics)
+
+	wg.Wait()
 	return retErr
 }
 
+func (w *Workflow) scanEventWithoutMetadata() {
+	events, err := w.hadata.ReadAllDbEventWithoutMetadata(readBatchCount, -10*time.Minute)
+	if err != nil {
+		logger.Warn("failed to read db event without metadata, errmsg: %s", err)
+		return
+	}
+
+	for _, event := range events {
+		monitorEvent := &monitor.EventData{
+			Name:      event.Name.String(),
+			Target:    event.Endpoint,
+			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
+		}
+
+		monitorEvent.Content.Content = fmt.Sprintf("without metadata, %s", event.Message)
+		monitorEvent.Dimension.BkCloudID = event.BkCloudID
+		monitorEvent.Dimension.IP = event.IP
+		monitorEvent.Dimension.Port = event.Port
+		monitorEvent.Dimension.DbTypeName = event.DbTypeName
+		monitorEvent.Dimension.DbEventName = event.Name
+		monitorEvent.Dimension.DbEventNameReason = event.Reason
+
+		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+			logger.Warn("%v", err)
+		}
+
+		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
+	}
+}
+
 func (w *Workflow) scanBusinesses(ctx context.Context) {
-	bizIDs, err := w.hadata.getBizIDs()
+	bizIDs, err := w.hadata.GetBizIDs()
 	if err != nil {
 		logger.Warn("get business ids failed, %v", err)
 		return
@@ -146,7 +301,7 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 		go func(bizID int) {
 			defer wgBizs.Done()
 
-			if err := w.checkBusiness(ctx, bizID); err != nil {
+			if err := w.checkBusinessWithBizID(ctx, bizID); err != nil {
 				// TODO: notify admin
 			}
 
@@ -185,9 +340,8 @@ func (w *Workflow) Run(ctx context.Context) error {
 				return
 
 			case <-timer.C:
-				w.scanEvents()
+				w.scanEventWithoutMetadata()
 				w.scanBusinesses(ctx)
-
 				timer.Reset(w.cfg.ScanInterval)
 			}
 		}

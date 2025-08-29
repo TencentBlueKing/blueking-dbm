@@ -23,3 +23,29 @@
  */
 
 package switcher
+
+import (
+	"context"
+
+	"dbm-services/common/dbha-v2/internal/analysis/storage"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+)
+
+type Request struct {
+	BkBizID             int
+	Hadb                *storage.DbhaData
+	BreakdownEvents     []*hamodel.DbEvent
+	BreakdownInts       []*hamodel.DbmMetadata
+	MetaInsts           []*hamodel.DbmMetadata
+	SwitchingStrategies []*hamodel.DbSwitchingStrategy
+}
+
+type Response struct {
+	Err error
+}
+
+type Switcher interface {
+	DbTypeName() haprobe.DbType
+	Switch(ctx context.Context, req *Request) *Response
+}
