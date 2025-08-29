@@ -33,6 +33,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
@@ -129,7 +130,7 @@ func New(cfg config.IntputConfig) (*consumer, error) {
 		cliCfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	}
 
-	endpoints := strings.Split(cfg.Endpoints, ";")
+	endpoints := strings.Split(cfg.Endpoints, constant.Delimiter)
 	group, err := sarama.NewConsumerGroup(endpoints, kafkaConsumerGroupID, cliCfg)
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.ComponentFailure, "create kafka client failed, errmsg: %v", err)

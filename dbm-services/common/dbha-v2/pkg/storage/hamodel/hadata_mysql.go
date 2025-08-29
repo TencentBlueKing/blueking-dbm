@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -37,6 +38,8 @@ const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
 	DatabaseName                    = "dbha_data"
+	HostMetricTableName             = "t_host_metric"
+	DbhaDataTableName               = "t_dbha_mysql"
 	HostMetricFieldMachineID        = "machine_id"
 	HostMetricFieldCpuUsagePercent  = "cpu_usage_percent"
 	HostMetricFieldCpuUserPercent   = "cpu_user_percent"
@@ -61,7 +64,8 @@ const (
 	HostMetricFieldUpdatedAt        = "updated_at"
 	HostMetricFieldDeletedAt        = "deleted_at"
 
-	// DatabaseMetrif fields
+	// database metric fields
+	DatabaseMetricTableName                      = "t_mysql_metric"
 	DatabaseMetricFieldMachineID                 = "machine_id"
 	DatabaseMetricFieldAgentID                   = "agent_id"
 	DatabaseMetricFieldInstanceID                = "instance_id"
@@ -96,7 +100,7 @@ const (
 	DatabaseMetricFieldKeyReads         = "mysql_key_reads"
 	DatabaseMetricFieldKeyBufferHitRate = "mysql_key_buffer_hit_rate"
 
-	// Query cache
+	// query cache
 	DatabaseMetricQCacheHits             = "query_cache_hits"
 	DatabaseMetricFieldQCacheFreeBlocks  = "query_cache_free_blocks"
 	DatabaseMetricFieldQCacheFreeMem     = "query_cache_free_mem"
@@ -141,6 +145,7 @@ const (
 // HostMetric host metric
 type HostMetric struct {
 	// Keys
+	BkCloudID int    `gorm:"column:bk_cloud_id;primaryKey"`
 	MachineID string `gorm:"column:machine_id;primaryKey"`
 	AgentID   string `gorm:"column:agent_id;primaryKey"`
 	IPs       string `gorm:"column:ips;type:mediumtext"`
@@ -177,12 +182,13 @@ type HostMetric struct {
 }
 
 func (t HostMetric) TableName() string {
-	return "t_host_metric"
+	return HostMetricTableName
 }
 
 // DatabaseMetric Databases metric
 type DatabaseMetric struct {
 	// Keys
+	BkCloudID  int    `gorm:"column:bk_cloud_id;primaryKey"`
 	MachineID  string `gorm:"column:machine_id;primaryKey"`
 	AgentID    string `gorm:"column:agent_id;primaryKey"`
 	InstanceID string `gorm:"column:instance_id;primaryKey"`
@@ -268,7 +274,7 @@ type DatabaseMetric struct {
 }
 
 func (t DatabaseMetric) TableName() string {
-	return "t_mysql_metric"
+	return DatabaseMetricTableName
 }
 
 // DbhaData contains system and databases metrics
@@ -298,13 +304,14 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 	data.SequenceID = msg.SequenceID
 	data.MachineID = msg.MachineID
 	data.AgentID = msg.AgentID
-	data.IPs = strings.Join(msg.Host.NetIPs, ";")
+	data.IPs = strings.Join(msg.Host.NetIPs, constant.Delimiter)
 	data.BkCloudID = msg.BkCloudID
 	data.MessageID = msg.MessageID
 	data.ServiceID = msg.ServiceID
 	data.ReportTimestamp = msg.ReportTimestamp
 
 	data.Host = &HostMetric{
+		BkCloudID: msg.BkCloudID,
 		MachineID: msg.MachineID,
 		AgentID:   msg.AgentID,
 		IPs:       data.IPs,
@@ -339,15 +346,15 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 		}
 
 		data.Events = append(data.Events, &DbEvent{
-			MachineID:   msg.MachineID,
-			BkCloudID:   msg.BkCloudID,
-			IP:          event.Endpoint.Host,
-			Port:        event.Endpoint.Port,
-			Endpoint:    event.Endpoint.String(),
-			DbTypeName:  event.DbTypeName,
-			Name:        event.Name,
-			DbEventType: event.Type,
-			Message:     event.Message,
+			MachineID:  msg.MachineID,
+			BkCloudID:  msg.BkCloudID,
+			IP:         event.Endpoint.Host,
+			Port:       event.Endpoint.Port,
+			Endpoint:   event.Endpoint.String(),
+			DbTypeName: event.DbTypeName,
+			Name:       event.Name,
+			Reason:     event.Reason,
+			Message:    event.Message,
 		})
 	}
 
@@ -364,11 +371,13 @@ func NewDbhaData(msg *haprobe.MySQLMetric) *DbhaData {
 }
 
 func (t DbhaData) TableName() string {
-	return "t_dbha_mysql"
+	return DbhaDataTableName
 }
 
 func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 	t.Databases = append(t.Databases, &DatabaseMetric{
+		// copy base info
+		BkCloudID:  t.BkCloudID,
 		MachineID:  t.MachineID,
 		AgentID:    t.AgentID,
 		IPs:        t.IPs,
@@ -378,6 +387,7 @@ func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 		ThreadsConnected: db.ThreadsConnected,
 		ServerCharset:    db.ServerCharset,
 
+		// copy connection stat
 		ThreadsRunning:            db.ThreadsRunning,
 		ConnectionsAborted:        db.ConnectionsAborted,
 		Connections:               db.Connections,
@@ -385,6 +395,7 @@ func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 		ConnectionsErrorsInternal: db.ConnectionsErrorsInternal,
 		ConnectionsErrorsPeerAddr: db.ConnectionsErrorsPeerAddr,
 
+		// copy query operation stat
 		QueryTotal:     db.QueryTotal,
 		QPS:            db.QPS,
 		TPS:            db.TPS,
@@ -395,6 +406,7 @@ func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 		QueryDeletes:   db.QueryDeletes,
 		QuerySlow:      db.QuerySlow,
 
+		// copy cache information
 		KeyReadRequests:   db.KeyReadRequests,
 		KeyReads:          db.KeyReads,
 		KeyBufferHitRate:  db.KeyBufferHitRate,
@@ -419,11 +431,13 @@ func (t *DbhaData) loadDatabase(db *haprobe.DatabaseMetric) {
 		FileOpen:            db.FileOpen,
 		TableOpen:           db.TableOpen,
 
+		// copy binlog information
 		BinlogCacheDiskUse:     db.BinlogCacheUse,
 		BinlogCacheUse:         db.BinlogCacheUse,
 		BinlogStmtCacheDiskUse: db.BinlogStmtCacheDiskUse,
 		BinlogStmtCacheUse:     db.BinlogStmtCacheUse,
 
+		// copy schema information
 		SchemaAccountsLost:        db.SchemaAccountsLost,
 		SchemaCondClassesLost:     db.SchemaCondClassesLost,
 		SchemaFileHandlesLost:     db.SchemaFileHandlesLost,

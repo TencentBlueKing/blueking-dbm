@@ -40,7 +40,7 @@ var defaultOptions = options{
 	charset:                   "utf8mb4",
 	parseTime:                 true,
 	loc:                       "Local",
-	defaultStringSize:         256,
+	defaultStringSize:         128,
 	disableDatetimePrecision:  true,
 	dontSupportRenameIndex:    true,
 	dontSupportRenameColumn:   true,

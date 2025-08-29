@@ -25,69 +25,90 @@
 package haprobe
 
 import (
-	"dbm-services/common/dbha-v2/pkg/hanet"
 	"fmt"
+
+	"dbm-services/common/dbha-v2/pkg/hanet"
 )
 
 // DbEventName db event name
 type DbEventName string
 
 const (
+	// Compatible with V1
+	DbEventNameRedisSwitchSuccessV1     DbEventName = "dbha_redis_switch_succ"
+	DbEventNameRedisSwitchFailureV1     DbEventName = "dbha_redis_switch_err"
+	DbEventNameMysqlSwitchSuccessV1     DbEventName = "dbha_mysql_switch_ok"
+	DbEventNameMysqlSwitchFailureV1     DbEventName = "dbha_mysql_switch_err"
+	DbEventNameRiakSwitchSuccessV1      DbEventName = "dbha_riak_switch_ok"
+	DbEventNameRiakSwitchFailureV1      DbEventName = "dbha_riak_switch_err"
+	DbEventNameSqlServerSwitchSuccessV1 DbEventName = "dbha_sqlserver_switch_ok"
+	DbEventNameSqlServerSwitchFailureV1 DbEventName = "dbha_sqlserver_switch_err"
+	DbEventNameMongoSwitchSuccessV1     DbEventName = "dbha_mongos_switch_succ"
+	DbEventNameMongoSwitchFailureV1     DbEventName = "dbha_mongos_switch_err"
+	DbEventNameDetectRedisAuthFailureV1 DbEventName = "dbha_detect_redis_auth_fail"
+	DbEventNameDetectSshAuthFailureV1   DbEventName = "dbha_detect_ssh_auth_fail"
+	DbEventNameDetectSshFailureV1       DbEventName = "dbha_detect_ssh_fail"
+	DbEventNameDetectDbFailureV1        DbEventName = "dbha_detect_db_fail"
+	DbEventNameDoubleCheckSshFailureV1  DbEventName = "dbha_doublecheck_ssh_fail"
+	DbEventNameDoubleCheckAuthFailureV1 DbEventName = "dbha_doublecheck_auth_fail"
+	DbEventNameGlobalMonitorV1          DbEventName = "dbha_global_monitor"
+	DbEventNameApiFailureV1             DbEventName = "dbha_call_api_fail"
+
+	// V2
 	DbEventNameDetectFailure    DbEventName = "dbha_detect_db_failure"
 	DbEventNameDetectSSHFailure DbEventName = "dbha_detect_ssh_failure"
+	DbEventNameProbeOffline     DbEventName = "dbha_probe_offline"
 )
 
-// DbEventType db event type
-type DbEventType int
+// DbEventNameReason db event name reason
+type DbEventNameReason int
 
 const (
-	DbEventTypeConnectionException DbEventType = iota
-	DbEventTypeAuthException
-	DbEventTypeSSHAuthException
+	DbEventNameReasonConnectionException DbEventNameReason = iota
+	DbEventNameReasonAuthException
+	DbEventNameReasonSSHAuthException
+	DbEventNameReasonMissedProbe
 )
 
 // DbType  db type
-type DbType int
+type DbType string
 
 const (
-	DbTypeNameMysql DbType = iota
+	DbTypeMysql DbType = "mysql"
 )
 
 // DbEvent Include some exception events
 type DbEvent struct {
-	Name       DbEventName     `json:"name"`
-	Type       DbEventType     `json:"type"`
-	DbTypeName DbType          `json:"dbTypeName"`
-	Endpoint   *hanet.Endpoint `json:"endpoint,omitempty"`
-	Message    string          `json:"message"`
+	Name       DbEventName       `json:"name"`
+	Reason     DbEventNameReason `json:"type"`
+	DbTypeName DbType            `json:"dbTypeName"`
+	Endpoint   *hanet.Endpoint   `json:"endpoint,omitempty"`
+	Message    string            `json:"message"`
 }
 
 func (t DbEventName) String() string {
 	return string(t)
 }
 
-func (t DbEventType) String() string {
+func (t DbEventNameReason) String() string {
 	switch t {
-	case DbEventTypeConnectionException:
+	case DbEventNameReasonConnectionException:
 		return "connection exception"
 
-	case DbEventTypeAuthException:
+	case DbEventNameReasonAuthException:
 		return "auth failure"
 
-	case DbEventTypeSSHAuthException:
+	case DbEventNameReasonSSHAuthException:
 		return "ssh auth failure"
 
+	case DbEventNameReasonMissedProbe:
+		return "missed probe"
+
 	default:
-		return fmt.Sprintf("unknown event type: %d", t)
+		return fmt.Sprintf("unknown event name reason: %d", t)
 	}
 }
 
 func (t DbType) String() string {
-	switch t {
-	case DbTypeNameMysql:
-		return "mysql"
-
-	default:
-		return fmt.Sprintf("unknown db type name: %d", t)
-	}
+	return string(t)
 }

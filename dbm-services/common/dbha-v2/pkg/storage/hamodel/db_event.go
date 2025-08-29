@@ -33,6 +33,7 @@ import (
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
+	DbEventTableName       = "t_db_event"
 	DbEventFieldMachineID  = "machine_id"
 	DbEventFieldBkCloudID  = "bk_cloud_id"
 	DbEventFieldIP         = "ip"
@@ -40,7 +41,7 @@ const (
 	DbEventFieldEndpoint   = "endpoint"
 	DbEventFieldDbTypeName = "db_type_name"
 	DbEventFieldName       = "db_event_name"
-	DbEventFieldType       = "db_event_type"
+	DbEventFieldType       = "db_event_name_reason"
 	DbEventFieldMessage    = "messge"
 	DbEventFieldCreatedAt  = "created_at"
 	DbEventFieldUpdatedAt  = "updated_at"
@@ -49,15 +50,15 @@ const (
 
 type DbEvent struct {
 	// Keys
-	MachineID   string              `gorm:"column:machine_id;primaryKey"`
-	BkCloudID   int                 `gorm:"column:bk_cloud_id;primaryKey"`
-	IP          string              `gorm:"column:ip;primaryKey"`
-	Port        int                 `gorm:"column:port;primaryKey"`
-	Endpoint    string              `gorm:"column:endpoint"`
-	DbTypeName  haprobe.DbType      `gorm:"column:db_type_name"`
-	Name        haprobe.DbEventName `gorm:"column:db_event_name"`
-	DbEventType haprobe.DbEventType `gorm:"column:db_event_type"`
-	Message     string              `gorm:"column:message"`
+	MachineID  string                    `gorm:"column:machine_id;primaryKey"`
+	BkCloudID  int                       `gorm:"column:bk_cloud_id;primaryKey"`
+	IP         string                    `gorm:"column:ip;primaryKey"`
+	Port       int                       `gorm:"column:port;primaryKey"`
+	Endpoint   string                    `gorm:"column:endpoint"`
+	DbTypeName haprobe.DbType            `gorm:"column:db_type_name"`
+	Name       haprobe.DbEventName       `gorm:"column:name"`
+	Reason     haprobe.DbEventNameReason `gorm:"column:reason"`
+	Message    string                    `gorm:"column:message"`
 
 	// Time automatically managed by GORM
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
@@ -66,5 +67,5 @@ type DbEvent struct {
 }
 
 func (t DbEvent) TableName() string {
-	return "t_db_event"
+	return DbEventTableName
 }

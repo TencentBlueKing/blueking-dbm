@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
@@ -65,7 +66,7 @@ func NewEndpoint(dsn string) (*Endpoint, error) {
 func NewEndpoints(dsns string) ([]*Endpoint, error) {
 	epoints := []*Endpoint{}
 
-	endpoints := strings.Split(dsns, ";")
+	endpoints := strings.Split(dsns, constant.Delimiter)
 	for _, endpoint := range endpoints {
 		epoint, err := NewEndpoint(endpoint)
 		if err != nil {
