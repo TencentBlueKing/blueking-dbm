@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_services.plugin.redis.capacity_evaluate.views import CapacityEvaluateViewSet
 from rest_framework.routers import DefaultRouter
 
 from .bf.views import BFPluginViewSet
@@ -22,5 +23,5 @@ routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
 routers.register("bf", BFPluginViewSet, basename="bfplugin")
 routers.register("ticket", TicketViewSet, basename="ticket")
 routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")
-
+routers.register("redis/capacity_evaluate", CapacityEvaluateViewSet, basename="capacity_evaluate")
 urlpatterns = routers.urls

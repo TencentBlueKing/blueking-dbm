@@ -131,4 +131,30 @@ class ClusterType(str, StructuredEnum):
     @classmethod
     def is_mongodb(cls, cluster_type: str):
         """is_mongodb 判断是否为Mongo集群类型"""
-        return cluster_type in [cls.MongoShardedCluster.value, cls.MongoReplicaSet.value]
+        return cluster_type in cls.db_type_cluster_types_map()[DBType.MongoDB.value]
+
+    @classmethod
+    def is_redis_cluster_type(cls, cluster_type: str):
+        """is_redis 判断是否为Redis集群类型"""
+        return cluster_type in cls.db_type_cluster_types_map()[DBType.Redis.value]
+
+    @classmethod
+    def is_ssd_redis(cls, cluster_type: str):
+        """is_ssd_redis 判断是否为SSD Redis集群类型. 关键字为SSD,TendisPlus"""
+        return cluster_type in [
+            cls.TwemproxyTendisSSDInstance.value,
+            cls.TendisTendisSSDInstance.value,
+            cls.TendisPredixyTendisplusCluster.value,
+            cls.TendisTwemproxyTendisplusIns.value,
+        ]
+
+    @classmethod
+    def is_memory_redis(cls, cluster_type: str):
+        """is_memory_redis 判断是否为内存Redis集群类型"""
+        return cluster_type in [
+            cls.TendisTwemproxyRedisInstance.value,
+            cls.RedisInstance.value,
+            cls.TendisPredixyRedisCluster.value,
+            cls.TendisRedisInstance.value,
+            cls.TendisRedisCluster.value,
+        ]
