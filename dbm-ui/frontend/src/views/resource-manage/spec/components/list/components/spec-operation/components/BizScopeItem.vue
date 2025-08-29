@@ -84,7 +84,7 @@
     },
   ];
 
-  const selectedBiz = ref(props.data.map((item) => `${item}`));
+  const selectedBiz = ref(props.data);
   const bizScope = ref(selectedBiz.value.length === 0 ? BizScopes.ALL : BizScopes.BIZ);
 
   const handleBizScopeChange = () => {
@@ -97,7 +97,7 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => selectedBiz.value.map((item) => Number(item)),
+    getValue: () => selectedBiz.value,
   });
 </script>
 

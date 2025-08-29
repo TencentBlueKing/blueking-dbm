@@ -36,7 +36,7 @@
           v-if="bizScope === BizScopes.BIZ"
           v-model="selectBizList"
           class="mt-12"
-          :popover-props="{
+          :popover-options="{
             zIndex: 1000000,
           }" />
       </template>
@@ -72,7 +72,7 @@
   const { t } = useI18n();
 
   const bizScope = ref(BizScopes.ALL);
-  const selectBizList = ref<string[]>([]);
+  const selectBizList = ref<number[]>([]);
 
   const disabled = computed(() => props.dataList.length === 0);
 
@@ -86,7 +86,7 @@
 
   const handleBatchUpdate = () => {
     runBatchCommonUpdate({
-      biz_scope: bizScope.value === BizScopes.ALL ? [] : selectBizList.value.map((item) => Number(item)),
+      biz_scope: bizScope.value === BizScopes.ALL ? [] : selectBizList.value,
       spec_ids: props.dataList.map((item) => item.spec_id),
     });
   };

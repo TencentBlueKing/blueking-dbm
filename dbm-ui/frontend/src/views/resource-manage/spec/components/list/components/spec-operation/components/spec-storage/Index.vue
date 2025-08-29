@@ -43,9 +43,9 @@
             :append-rules="mountPointRules"
             field="mount_point"
             :label="t('挂载点')"
-            :min-width="180"
+            :min-width="170"
             :required="isRequired"
-            :width="200">
+            :width="170">
             <EditableInput
               v-model="item.mount_point"
               v-bk-tooltips="{
@@ -62,7 +62,7 @@
             field="min"
             :label="t('最小容量（G）')"
             :required="isRequired"
-            :width="100">
+            :width="110">
             <EditableInput
               ref="minCapacityRef"
               v-model="item.min"
@@ -81,7 +81,7 @@
             field="max"
             :label="t('最大容量（G）')"
             :required="isRequired"
-            :width="100">
+            :width="120">
             <EditableInput
               ref="maxCapacityRef"
               v-model="item.max"
@@ -147,12 +147,13 @@
     dbType: string;
     editable: boolean;
     isRequired?: boolean;
+    mode: 'create' | 'edit' | 'clone';
   }
 
   type Emits = (e: 'table-value-change') => void;
 
   interface Exposes {
-    getValue: () => Promise<InfoItem[]>;
+    getValue: () => Promise<({ size?: number } & InfoItem)[]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -339,12 +340,16 @@
             if (validateResult) {
               return tableData.value.reduce<InfoItem[]>((prevList, row) => {
                 if (row.mount_point && row.max && row.min && row.type) {
-                  return prevList.concat({
+                  const item = {
                     max: row.max,
                     min: row.min,
                     mount_point: row.mount_point,
                     type: row.type,
-                  });
+                  };
+                  if (props.mode === 'edit') {
+                    Object.assign(item, { size: item.min });
+                  }
+                  return prevList.concat(item);
                 }
                 return prevList;
               }, []);

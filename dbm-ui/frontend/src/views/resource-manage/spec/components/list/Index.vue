@@ -100,10 +100,13 @@
               {{ data.spec_name }}
             </AuthButton>
             <template #append>
-              <span
+              <BkTag
                 v-if="data.isRecentSeconds"
-                class="glob-new-tag ml-4"
-                data-text="NEW" />
+                class="ml-4"
+                size="small"
+                theme="success">
+                NEW
+              </BkTag>
             </template>
           </TextOverflowLayout>
         </template>
