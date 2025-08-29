@@ -31,10 +31,10 @@ export interface BackupLogRecord {
   backup_status: string;
   /**
    * backup_method
-    - full_by_ticket: 单据全库备份
-    - partial_by_ticket: 单据库表备份
-    - full_by_regular: 例行全备
-    - non_full_by_regular: 例行非全备
+    - full_by_ticket: 全库备份（单据）
+    - partial_by_ticket: 库表备份（单据）
+    - full_by_regular: 全库备份（例行）
+    - non_full_by_regular: 非全库备份（例行）
    */
   backup_method: string;
   backup_time: string;
@@ -62,14 +62,14 @@ export interface BackupLogRecord {
   data_schema_grant: string;
   extra_fields: {
     backup_charset: string;
-    backup_tool: string;
     bk_cloud_id: number;
     encrypt_enable: boolean;
     storage_engine: string;
     time_zone: string;
-    total_filesize: number;
     total_size_kb_uncompress: number;
   };
+  total_filesize: number;
+  backup_tool: string;
   file_list: {
     contain_files: null;
     contain_tables: null;
@@ -127,7 +127,7 @@ export function queryLatesBackupLog(params: {
   job_instance_id?: number;
   rollback_time: string;
   backup_source?: string;
-  backup_type?: string;
+  backup_method?: string;
 }) {
   return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
 }

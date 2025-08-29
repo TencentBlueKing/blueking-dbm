@@ -20,12 +20,13 @@
       <BkDatePicker
         v-model="daterange"
         append-to-body
-        :clearable="false"
+        clearable
         :disabled-date="disableDate"
         :placeholder="t('请选择')"
         style="width: 100%"
         type="datetimerange"
-        @pick-success="handleDateChange" />
+        @pick-success="handleDateChange"
+        @clear="handleDateClear" />
     </div>
     <DbSearchSelect
       v-model="searchSelectValue"
@@ -63,7 +64,7 @@
       </BkTableColumn>
       <BkTableColumn
         field="backup_id"
-        :width="260"
+        :width="270"
         :label="t('备份 ID')">
         <template #default="{ row }: { row: BackupLogRecord }">
           {{ row.backup_id }}
@@ -72,6 +73,7 @@
       <BkTableColumn
         field="backup_method"
         :filter="filterOption.backup_method"
+        :width="140"
         :label="t('备份范围')">
         <template #default="{ row }: { row: BackupLogRecord & { backup_method_label: string } }">
           {{ row?.backup_method_label || '--' }}
@@ -90,12 +92,12 @@
         :filter="filterOption.backup_tool"
         :label="t('备份工具')">
         <template #default="{ row }: { row: BackupLogRecord }">
-          {{ row.extra_fields?.backup_tool || '--' }}
+          {{ row?.backup_tool || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn :label="t('备份大小')">
         <template #default="{ row }: { row: BackupLogRecord }">
-          {{ bytePretty(row.extra_fields?.total_filesize ?? 0) }}
+          {{ bytePretty(row?.total_filesize ?? 0) }}
         </template>
       </BkTableColumn>
       <BkTableColumn :label="t('关联单据')">
@@ -152,8 +154,10 @@
   const tableMaxHeight = useTableMaxHeight(240);
 
   const daterange = ref<[string, string] | [Date, Date]>([
-    dayjs().subtract(30, 'day').format('YYYY-MM-DD 00:00:00'),
-    dayjs().format('YYYY-MM-DD 23:59:59'),
+    // dayjs().subtract(30, 'day').format('YYYY-MM-DD 00:00:00'),
+    // dayjs().format('YYYY-MM-DD 23:59:59'),
+    '',
+    '',
   ]);
   // 用于时间选择器点确定时赋值
   const comfirmDaterange = ref<[string, string] | [Date, Date]>(daterange.value);
@@ -209,21 +213,21 @@
       key: 'backup_method',
       list: [
         {
-          text: t('单据全库备份'),
+          text: t('全库备份（例行）'),
+          value: 'full_by_regular',
+        },
+        {
+          text: t('全库备份（单据）'),
           value: 'full_by_ticket',
         },
         {
-          text: t('单据库表备份'),
+          text: t('库表备份（单据）'),
           value: 'partial_by_ticket',
-        },
-        {
-          text: t('例行全库备份'),
-          value: 'full_by_regular',
         },
       ],
     },
   });
-  const isChecked = (row: any, field: 'backup_method' | 'backup_type_filter' | 'extra_fields.backup_tool') => {
+  const isChecked = (row: any, field: 'backup_method' | 'backup_type_filter' | 'backup_tool') => {
     return filterOption.value[field]?.checked?.length ? filterOption.value[field].checked.includes(row[field]) : true;
   };
   const renderData = computed(() => {
@@ -234,10 +238,7 @@
             end_time: new Date(end).getTime(),
             start_time: new Date(start).getTime(),
           }
-        : {
-            end_time: 0,
-            start_time: 0,
-          };
+        : undefined;
 
     const searchParams = getSearchSelectorParams(searchSelectValue.value);
 
@@ -247,14 +248,14 @@
         end_time: new Date(row.backup_begin_time).getTime(),
         start_time: new Date(row.backup_begin_time).getTime(),
       };
-      const isTimeMatch = timerange.start_time >= dateParams.start_time && timerange.end_time <= dateParams.end_time;
+      const isTimeMatch = !dateParams
+        ? true
+        : timerange.start_time >= dateParams.start_time && timerange.end_time <= dateParams.end_time;
       const isSearchMatch = !searchParams.display
         ? true
         : `${row.mysql_role} ${utcDisplayTime(row.backup_time)}`.indexOf(searchParams.display) > -1;
       const isFilterChecked =
-        isChecked(row, 'backup_type_filter') &&
-        isChecked(row, 'backup_method') &&
-        isChecked(row, 'extra_fields.backup_tool');
+        isChecked(row, 'backup_type_filter') && isChecked(row, 'backup_method') && isChecked(row, 'backup_tool');
       if (isTimeMatch && isSearchMatch && isFilterChecked) {
         filteredData.value.push(row);
       }
@@ -275,13 +276,13 @@
     let backup_type_label = '--';
     /**
      * backup_method
-      - full_by_ticket: 单据全库备份
+      - full_by_ticket: 全库备份（单据）
         可能为物理备份，或者逻辑备份
-      - partial_by_ticket: 单据库表备份
+      - partial_by_ticket: 库表备份（单据）
         逻辑备份，bill_id 不为空
-      - full_by_regular: 例行全备: 可能为物理备份
+      - full_by_regular: 全库备份（例行）: 可能为物理备份
         或者逻辑备份, bill_id 为空
-      - non_full_by_regular: 例行非全备
+      - non_full_by_regular: 非全库备份（例行）
         构造，回档，这个应该要过滤掉，备份只有库表结构，权限，不能用户恢复
      */
     if (row.backup_method === 'partial_by_ticket') {
@@ -299,10 +300,10 @@
     }
 
     const backupMethodMap = {
-      full_by_ticket: t('单据全库备份'),
-      partial_by_ticket: t('单据库表备份'),
-      full_by_regular: t('例行全库备份'),
-      non_full_by_regular: t('例行非全库备份'), // 过滤掉，不展示
+      full_by_ticket: t('全库备份（单据）'),
+      partial_by_ticket: t('库表备份（单据）'),
+      full_by_regular: t('全库备份（例行）'),
+      non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
     } as Record<string, string>;
 
     return {
@@ -336,8 +337,8 @@
 
       filterOption.value.backup_tool.list = _.uniqBy(
         results.map((item) => ({
-          text: item.extra_fields?.backup_tool,
-          value: item.extra_fields?.backup_tool,
+          text: item?.backup_tool,
+          value: item?.backup_tool,
         })),
         'text',
       );
@@ -371,6 +372,10 @@
 
   const handleDateChange = () => {
     comfirmDaterange.value = daterange.value;
+  };
+
+  const handleDateClear = () => {
+    comfirmDaterange.value = ['', ''];
   };
 
   const handleFilter = ({ checked, field }: { checked: string[]; field: string }) => {
