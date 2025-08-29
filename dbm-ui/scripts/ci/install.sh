@@ -50,10 +50,6 @@ else
   mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -sNe "$CREATE_DB_SQL"
 fi
 
-# 清空redis数据
-redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} FLUSHALL
-redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} DBSIZE
-
 echo "开始执行 python manage.py migrate --database=report_db"
 python manage.py migrate --database=report_db >> /tmp/migrate_report_db.log
 if [[ $? -ne 0 ]];

@@ -350,7 +350,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
     def execute(self, data, parent_data):
         self.active_language(data)
 
-        root_id, node_id = self.runtime_attrs["root_pipeline_id"], self.runtime_attrs["id"]
+        root_id, node_id = self.runtime_attrs.get("root_pipeline_id"), self.runtime_attrs.get("id")
         outputs = BambooEngine(root_id).get_node_output_data(node_id).data
         # 针对允许失败IP重试且上次执行失败的job节点，进行失败ip重试。
         if self.only_failed_retry and outputs.get("job_execute") is False:

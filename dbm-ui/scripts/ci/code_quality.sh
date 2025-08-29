@@ -20,20 +20,29 @@ TEST_LOGS=$(pytest --cov)
 # TOTAL 66348  39795    40%
 # ====== 1 failed, 109 passed, 3 skipped, 580 warnings, 3 errors in 48.02s =======
 TEST_RESULT=$(echo "$TEST_LOGS" | tail -n 1)
+TEST_TIME=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\.[0-9]*\)s.*/\1/g')
+
 echo $TEST_RESULT
 
-TEST_TIME=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\.[0-9]*\)s.*/\1/g')
-TEST_FAILURE=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\).* failed.*/\1/g')
-TEST_SUCCESS=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\).* passed.*/\1/g')
-TEST_SKIP=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\).* skipped.*/\1/g')
+TEST_FAILURE=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* failed.*/\1/p')
+TEST_ERROR=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* errors.*/\1/p')
+TEST_SUCCESS=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* passed.*/\1/p')
+TEST_SKIP=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* skipped.*/\1/p')
 
-TEST_COUNT=$[$TEST_SUCCESS+$TEST_FAILURE+$TEST_SKIP]
-TEST_NOT_SUCCESS_COUNT=$TEST_FAILURE
+# 如果没有匹配到相关关键字，默认为0
+TEST_FAILURE=${TEST_FAILURE:-0}
+TEST_SUCCESS=${TEST_SUCCESS:-0}
+TEST_SKIP=${TEST_SKIP:-0}
+TEST_ERROR=${TEST_ERROR:-0}
+
+TEST_COUNT=$[$TEST_SUCCESS+$TEST_FAILURE+$TEST_SKIP+$TEST_ERROR]
+TEST_NOT_SUCCESS_COUNT=$[$TEST_FAILURE+$TEST_ERROR]
 
 echo "测试时长: $TEST_TIME 秒"
 echo "单元测试数: $TEST_COUNT"
 echo "成功数: $TEST_SUCCESS"
 echo "失败数: $TEST_FAILURE"
+echo "异常数: $TEST_ERROR"
 echo "跳过数: $TEST_SKIP"
 echo "未通过数: $TEST_NOT_SUCCESS_COUNT"
 
