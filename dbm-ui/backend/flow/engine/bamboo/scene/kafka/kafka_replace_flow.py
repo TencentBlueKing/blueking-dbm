@@ -338,6 +338,12 @@ class KafkaReplaceFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
+            kafka_pipeline.add_act(
+                act_name=_("更新DBMeta元信息"),
+                act_component_code=KafkaDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
         # 判断是否替换broker节点
         if self.data["new_nodes"].get("broker"):
             # 安装broker
@@ -479,16 +485,16 @@ class KafkaReplaceFlow(object):
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("下架broker-{}子流程").format(ip)))
             kafka_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        # 缩容DBMeta
-        sub_pipeline = SubBuilder(
-            root_id=self.root_id,
-            data={**self.data, "nodes": self.old_nodes, "ticket_type": TicketType.KAFKA_SHRINK.value},
-        )
-        sub_pipeline.add_act(
-            act_name=_("缩容-更新DBMeta元信息"),
-            act_component_code=KafkaDBMetaComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-        kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("缩容DBMeta")))
+            # 缩容DBMeta
+            sub_pipeline = SubBuilder(
+                root_id=self.root_id,
+                data={**self.data, "nodes": self.old_nodes, "ticket_type": TicketType.KAFKA_SHRINK.value},
+            )
+            sub_pipeline.add_act(
+                act_name=_("缩容-更新DBMeta元信息"),
+                act_component_code=KafkaDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+            kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("缩容DBMeta")))
 
         kafka_pipeline.run_pipeline()
