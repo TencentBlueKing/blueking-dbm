@@ -27,6 +27,7 @@ package constant
 import "time"
 
 const (
+	Delimiter                         = ";"
 	DefaultClientPingTime             = 5 * time.Second
 	DefaultServerPingTime             = 5 * time.Minute
 	DefaultPingTimeout                = 10 * time.Second

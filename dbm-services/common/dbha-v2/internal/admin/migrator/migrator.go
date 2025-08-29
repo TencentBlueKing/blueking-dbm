@@ -39,6 +39,8 @@ var tables = []interface{}{
 	&hamodel.SkipDbInstance{},
 	&hamodel.DbmMetadata{},
 	&hamodel.DbEvent{},
+	&hamodel.DbSwitchingLog{},
+	&hamodel.DbSwitchingStrategy{},
 }
 
 type Migrator struct {

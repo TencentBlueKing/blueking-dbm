@@ -88,8 +88,8 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.DbEvent, error) {
 			logger.Warn("create mysql db operator failed, %v", err)
 			events = append(events, &haprobe.DbEvent{
 				Name:       haprobe.DbEventNameDetectFailure,
-				DbTypeName: haprobe.DbTypeNameMysql,
-				Type:       haprobe.DbEventTypeConnectionException,
+				Reason:     haprobe.DbEventNameReasonConnectionException,
+				DbTypeName: haprobe.DbTypeMysql,
 				Endpoint:   epoint,
 				Message:    err.Error(),
 			})

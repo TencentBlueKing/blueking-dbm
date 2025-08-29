@@ -33,6 +33,8 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"golang.org/x/net/context"
 )
@@ -65,11 +67,46 @@ type EventData struct {
 	} `json:"event"`
 
 	Dimension struct {
-		BkCloudID   int    `json:"bk_cloud_id"`
-		IP          string `json:"ip"`
-		Port        int    `json:"port"`
-		DbTypeName  string `json:"db_type_name"`
-		DbEventType string `json:"db_event_type"`
+		// Added in v2
+		BkCloudID         int                            `json:"bk_cloud_id,omitempty"`
+		IP                string                         `json:"ip,omitempty"`
+		Port              int                            `json:"port,omitempty"`
+		BkBizID           int                            `json:"bk_biz_id,omitempty"`
+		DbClusterType     hamodel.DbmMetadataClusterType `json:"dbm_cluster_type,omitempty"`
+		DbMachineType     hamodel.DbmMetadataMachineType `json:"dbm_machine_type,omitempty"`
+		DbTypeName        haprobe.DbType                 `json:"db_type_name,omitempty"`
+		DbEventName       haprobe.DbEventName            `json:"db_event_name,omitempty"`
+		DbEventNameReason haprobe.DbEventNameReason      `json:"db_event_name_reason,omitempty"`
+
+		// Compatible with V1.
+		SwitchInfoBkBizIdV1       string `json:"appid,omitempty"`
+		SwitchInfoServerIpV1      string `json:"server_ip,omitempty"`
+		SwitchInfoServerPortV1    int    `json:"server_port,omitempty"`
+		SwitchInfoStatusV1        string `json:"status,omitempty"`
+		SwitchInfoClusterDomainV1 string `json:"cluster_domain,omitempty"`
+		SwitchInfoMachineTypeV1   string `json:"machine_type,omitempty"`
+
+		// switch info.
+		SwitchInfoInstanceRoleV1      string `json:"instance_role,omitempty"`
+		SwitchInfoIdcV1               string `json:"idc,omitempty"`
+		SwitchInfoCheckIdV1           string `json:"double_check_id,omitempty"`
+		SwitchInfoNewMasterBinlogFile string `json:"new_master_binlog_file,omitempty"`
+		SwitchInfoNewMasterBinlogPos  uint64 `json:"new_master_binlog_pos,omitempty"`
+		SwitchInfoNewMasterHost       string `json:"new_master_host,omitempty"`
+		SwitchInfoNewMasterPort       int    `json:"new_master_port,omitempty"`
+
+		// switch detect info.
+		SwitchInfoDetectClusterType string `json:"cluster_type,omitempty"`
+
+		// global switch info.
+		SwitchInfoGlobalUncoveredInsNum  int    `json:"uncovered_ins_num,omitempty"`
+		SwitchInfoGlobalNeedDetectNum    int    `json:"need_detect_num,omitempty"`
+		SwitchInfoGlobalHaDetectNum      int    `json:"ha_detect_num,omitempty"`
+		SwitchInfoGlobalUncoveredCityIDs string `json:"uncovered_city_ids,omitempty"` // joined with ','
+
+		// API info.
+		SwitchInfoApiName    string `json:"api_name,omitempty"`
+		SwitchInfoApiMessage string `json:"api_message,omitempty"`
 	} `json:"dimension"`
 }
 
