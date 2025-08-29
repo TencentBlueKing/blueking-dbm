@@ -124,6 +124,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -135,6 +136,7 @@
     max: string | number;
     min: string | number;
     mount_point: string;
+    size?: number;
     type: string;
   }
 
@@ -165,12 +167,18 @@
 
   const { t } = useI18n();
 
-  const createRowData = (data = {} as InfoItem) => ({
-    max: data.max || ('' as string | number),
-    min: data.min || ('' as string | number),
-    mount_point: data.mount_point || '',
-    type: data.type || '',
-  });
+  const createRowData = (data = {} as InfoItem) => {
+    const rowData = {
+      max: data.max || ('' as string | number),
+      min: data.min || ('' as string | number),
+      mount_point: data.mount_point || '',
+      type: data.type || '',
+    };
+    if (_.has(data, 'size')) {
+      Object.assign(rowData, { size: data.size });
+    }
+    return rowData;
+  };
 
   const editableTableRef = useTemplateRef('editableTableRef');
 
@@ -346,7 +354,7 @@
                     mount_point: row.mount_point,
                     type: row.type,
                   };
-                  if (props.mode === 'edit') {
+                  if (props.mode === 'edit' && _.has(row, 'size')) {
                     Object.assign(item, { size: item.min });
                   }
                   return prevList.concat(item);
