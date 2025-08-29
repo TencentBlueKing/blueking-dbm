@@ -23,6 +23,7 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin, ResourceList
 from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
+from backend.db_services.mysql.resources.query import MysqlCommon
 
 
 @register_resource_decorator()
@@ -173,6 +174,17 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("ordering"):
             instance_queryset = instance_queryset.order_by(query_params.get("ordering"))
         return instance_queryset
+
+    @classmethod
+    def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
+        # 查询slave/repeater角色关联的主库
+        role = query_params.get("role", "").split(",")
+        pair_instance_map = {}
+        if InstanceRole.BACKEND_SLAVE.value in role or InstanceRole.BACKEND_REPEATER.value in role:
+            pair_instance_map = MysqlCommon().slave_associate_mater_role(instances)
+
+        kwargs.update(pair_instance_map=pair_instance_map)
+        return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
 
     @classmethod
     def update_headers(cls, headers, **kwargs):
