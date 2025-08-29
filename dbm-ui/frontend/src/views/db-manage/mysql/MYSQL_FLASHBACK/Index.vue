@@ -14,24 +14,20 @@
         <TimeZonePicker style="width: 450px" />
       </BkFormItem>
       <BkFormItem
-        :label="t('闪回方式')"
+        :label="t('回档类型')"
         required>
         <BkRadioGroup
           v-model="flashbackType"
+          style="width: 450px"
+          type="card"
           @change="handleFlashbackTypeChange">
-          <BkRadioButton
-            label="ROLLBACK_FLASHBACK"
-            style="width: 225px">
+          <BkRadioButton label="BUILD_INTO_METACLUSTER">
             {{ t('构造回档') }}
           </BkRadioButton>
-          <BkRadioButton
-            label="TABLE_FLASHBACK"
-            style="width: 225px">
+          <BkRadioButton label="TABLE_FLASHBACK">
             {{ t('库表闪回回档') }}
           </BkRadioButton>
-          <BkRadioButton
-            label="RECORD_FLASHBACK"
-            style="width: 225px">
+          <BkRadioButton label="RECORD_FLASHBACK">
             {{ t('记录级闪回回档') }}
           </BkRadioButton>
         </BkRadioGroup>
@@ -84,7 +80,7 @@
           type,
         },
       });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
+    } else if (type === 'BUILD_INTO_METACLUSTER') {
       router.push({
         name: TicketTypes.MYSQL_ROLLBACK,
       });

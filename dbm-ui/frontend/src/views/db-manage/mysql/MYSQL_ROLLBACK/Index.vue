@@ -100,18 +100,18 @@
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.databases"
-            :clearable="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
+            :clearable="!isOnlyRead(item)"
             :cluster-id="item.cluster?.id"
             field="databases"
-            :has-delete-icon="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
+            :has-delete-icon="!isOnlyRead(item)"
             :label="t('源 DB')"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
-            :clearable="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
+            :clearable="!isOnlyRead(item)"
             :cluster-id="item.cluster?.id"
             field="tables"
-            :has-delete-icon="formData.rollbackMethod === 'BACKUPID' && item.backupRecord.backup_type === 'logical'"
+            :has-delete-icon="!isOnlyRead(item)"
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
           <ConflictDbColumn :row-data="item" />
@@ -307,12 +307,26 @@
     rollback_cluster_type: string;
   }>(TicketTypes.MYSQL_ROLLBACK);
 
+  // 切换构造方式、备份源时重置表格
   watch(
-    () => formData.rollbackMethod,
+    () => [formData.rollbackMethod, formData.backupSource],
     () => {
       tableKey.value = random();
+      formData.tableData = [createTableRow()];
     },
   );
+
+  const isOnlyRead = (row: RowData) => {
+    // 只要备份方式选择的是物理备份，则库，表字段默认填充*，且不可编辑
+    if (row.backupRecord.backup_type === 'physical') {
+      return true;
+    }
+    // 指定时间构造数据，库，表字段默认填充*，且不可编辑
+    if (formData.rollbackMethod === 'TIME') {
+      return true;
+    }
+    return false;
+  };
 
   const handleFlashbackTypeChange = (type: string) => {
     if (['TABLE_FLASHBACK', 'RECORD_FLASHBACK'].includes(type)) {
@@ -365,12 +379,17 @@
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 
-  const handleBatchEdit = (value: any, field: string) => {
-    formData.tableData.forEach((item) => {
-      Object.assign(item, {
+  const handleBatchEdit = (value: any, field: string, row?: RowData) => {
+    for (let i = 0; i < formData.tableData.length; i++) {
+      const row = formData.tableData[i];
+      // 只读行不可通过表头修改
+      if (['databases', 'tables'].includes(field) && row && isOnlyRead(row)) {
+        continue;
+      }
+      Object.assign(row, {
         [field as keyof RowData]: _.cloneDeep(value),
       });
-    });
+    }
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

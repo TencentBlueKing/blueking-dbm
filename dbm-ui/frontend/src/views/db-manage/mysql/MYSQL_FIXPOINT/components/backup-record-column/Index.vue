@@ -41,21 +41,24 @@
                 type="datetime" />
             </BkFormItem>
             <BkFormItem
-              field="backup_type"
+              field="backup_method"
               :label="t('备份范围')"
               required>
               <BkRadioGroup
-                v-model="formData.backup_type"
+                v-model="formData.backup_method"
                 class="mb-12"
                 style="width: 100%">
-                <BkRadio :label="BACKUP_TYPE.ALL">
+                <BkRadio :label="BackupMethod.non_full_by_regular">
                   {{ t('全部') }}
                 </BkRadio>
-                <BkRadio :label="BACKUP_TYPE.FULL">
-                  {{ t('仅全库备份') }}
+                <BkRadio :label="BackupMethod.full_by_ticket">
+                  {{ t('全库备份（单据）') }}
                 </BkRadio>
-                <BkRadio :label="BACKUP_TYPE.DB_TABLE">
-                  {{ t('仅全库备份') }}
+                <BkRadio :label="BackupMethod.partial_by_ticket">
+                  {{ t('库表备份（单据）') }}
+                </BkRadio>
+                <BkRadio :label="BackupMethod.full_by_regular">
+                  {{ t('全库备份（例行）') }}
                 </BkRadio>
               </BkRadioGroup>
             </BkFormItem>
@@ -77,13 +80,11 @@
         <div class="content-label">{{ t('备份文件名：') }}</div>
         <div class="content-value">{{ `${modelValue.mysql_role} ${utcDisplayTime(modelValue.backup_time)}` }}</div>
         <div class="content-label">{{ t('备份范围：') }}</div>
-        <div class="content-value">{{ modelValue.is_full_backup === '1' ? t('全库备份') : t('库表备份') }}</div>
+        <div class="content-value">{{ backupMethodMap[modelValue.backup_method] || '--' }}</div>
         <div class="content-label">{{ t('备份类型：') }}</div>
-        <div class="content-value">{{ modelValue.backup_type === 'logical' ? t('逻辑备份') : t('物理备份') }}</div>
-        <div class="content-label">{{ t('发起方式：') }}</div>
-        <div class="content-value">{{ modelValue.bill_id ? t('单据备份') : t('例行备份') }}</div>
+        <div class="content-value">{{ backupTypeMap[modelValue.backup_type] || '--' }}</div>
         <div class="content-label">{{ t('文件大小：') }}</div>
-        <div class="content-value">{{ bytePretty(modelValue.extra_fields?.total_filesize ?? 0) }}</div>
+        <div class="content-value">{{ bytePretty(modelValue?.total_filesize ?? 0) }}</div>
         <div
           v-if="modelValue.bill_id"
           class="content-label">
@@ -156,16 +157,29 @@
 
   const isShowSelector = ref(false);
   const isShowBatchEdit = ref(false);
-  enum BACKUP_TYPE {
-    ALL = 'all_backup',
-    DB_TABLE = 'db_table_backup',
-    FULL = 'full_backup',
+  enum BackupMethod {
+    non_full_by_regular = 'non_full_by_regular',
+    full_by_ticket = 'full_by_ticket',
+    partial_by_ticket = 'partial_by_ticket',
+    full_by_regular = 'full_by_regular',
   }
 
   const formData = ref({
     backup_time: '',
-    backup_type: BACKUP_TYPE.ALL,
+    backup_method: BackupMethod.non_full_by_regular,
   });
+
+  const backupMethodMap = {
+    full_by_ticket: t('全库备份（单据）'),
+    partial_by_ticket: t('库表备份（单据）'),
+    full_by_regular: t('全库备份（例行）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+  } as Record<string, string>;
+
+  const backupTypeMap = {
+    logical: t('逻辑备份'),
+    physical: t('物理备份'),
+  } as Record<string, string>;
 
   const disabledMethod = () => (props.cluster.id ? false : t('请先选择集群'));
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
@@ -181,7 +195,7 @@
   const handleBatchEdit = async () => {
     const data = await queryLatesBackupLog({
       backup_source: props.backupSource,
-      backup_type: formData.value.backup_type,
+      backup_method: formData.value.backup_method,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
       rollback_time: formData.value.backup_time,

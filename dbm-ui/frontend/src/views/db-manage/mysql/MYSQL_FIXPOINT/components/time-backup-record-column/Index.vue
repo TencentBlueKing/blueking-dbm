@@ -73,13 +73,11 @@
         <div class="content-label">{{ t('备份文件名：') }}</div>
         <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
         <div class="content-label">{{ t('备份范围：') }}</div>
-        <div class="content-value">{{ backupRecord.is_full_backup === '1' ? t('全库备份') : t('库表备份') }}</div>
+        <div class="content-value">{{ backupMethodMap[backupRecord.backup_method] || '--' }}</div>
         <div class="content-label">{{ t('备份类型：') }}</div>
-        <div class="content-value">{{ backupRecord.backup_type === 'logical' ? t('逻辑备份') : t('物理备份') }}</div>
-        <div class="content-label">{{ t('发起方式：') }}</div>
-        <div class="content-value">{{ backupRecord.bill_id ? t('单据备份') : t('例行备份') }}</div>
+        <div class="content-value">{{ backupTypeMap[backupRecord.backup_type] || '--' }}</div>
         <div class="content-label">{{ t('文件大小：') }}</div>
-        <div class="content-value">{{ bytePretty(backupRecord.extra_fields?.total_filesize ?? 0) }}</div>
+        <div class="content-value">{{ bytePretty(backupRecord?.total_filesize ?? 0) }}</div>
         <div
           v-if="backupRecord.bill_id"
           class="content-label">
@@ -146,6 +144,18 @@
   const formData = ref({
     backup_time: '',
   });
+
+  const backupMethodMap = {
+    full_by_ticket: t('全库备份（单据）'),
+    partial_by_ticket: t('库表备份（单据）'),
+    full_by_regular: t('全库备份（例行）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+  } as Record<string, string>;
+
+  const backupTypeMap = {
+    logical: t('逻辑备份'),
+    physical: t('物理备份'),
+  } as Record<string, string>;
 
   const { run: fetchData } = useRequest(queryLatesBackupLog, {
     manual: true,

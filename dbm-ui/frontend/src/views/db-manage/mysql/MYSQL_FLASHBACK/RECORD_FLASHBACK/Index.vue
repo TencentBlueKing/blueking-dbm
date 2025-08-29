@@ -152,7 +152,7 @@
       label: t('目标库'),
     },
     {
-      case: 'id,name/100,zhangsan (/ 表示换行)',
+      case: 'id,name\\n100,zhangsan',
       key: 'rows_filter',
       label: t('待闪回的记录'),
     },
@@ -272,7 +272,7 @@
         databases: item.databases ? [item.databases] : [],
         start_time: item.start_time || '',
         end_time: item.end_time || '',
-        rows_filter: item.rows_filter?.replace('/', '\n') || '',
+        rows_filter: item.rows_filter?.replace('\\n', '\n') || '',
       }),
     );
     if (isClear) {

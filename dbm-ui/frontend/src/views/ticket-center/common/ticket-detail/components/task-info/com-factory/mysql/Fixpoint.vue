@@ -60,7 +60,7 @@
           <div class="content-label">{{ t('发起方式：') }}</div>
           <div class="content-value">{{ data.backupinfo.bill_id ? t('单据备份') : t('例行备份') }}</div>
           <div class="content-label">{{ t('文件大小：') }}</div>
-          <div class="content-value">{{ bytePretty(data.backupinfo.extra_fields?.total_filesize ?? 0) }}</div>
+          <div class="content-value">{{ bytePretty(data.backupinfo?.total_filesize ?? 0) }}</div>
           <div
             v-if="data.backupinfo.bill_id"
             class="content-label">

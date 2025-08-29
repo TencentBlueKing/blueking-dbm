@@ -52,15 +52,11 @@
             {{ `${data.backupinfo.mysql_role} ${utcDisplayTime(data.backupinfo.backup_time)}` }}
           </div>
           <div class="content-label">{{ t('备份范围：') }}</div>
-          <div class="content-value">{{ data.backupinfo.is_full_backup === '1' ? t('全库备份') : t('库表备份') }}</div>
+          <div class="content-value">{{ backupMethodMap[data.backupinfo.backup_method] || '--' }}</div>
           <div class="content-label">{{ t('备份类型：') }}</div>
-          <div class="content-value">
-            {{ data.backupinfo.backup_type === 'logical' ? t('逻辑备份') : t('物理备份') }}
-          </div>
-          <div class="content-label">{{ t('发起方式：') }}</div>
-          <div class="content-value">{{ data.backupinfo.bill_id ? t('单据备份') : t('例行备份') }}</div>
+          <div class="content-value">{{ backupTypeMap[data.backupinfo.backup_type] || '--' }}</div>
           <div class="content-label">{{ t('文件大小：') }}</div>
-          <div class="content-value">{{ bytePretty(data.backupinfo.extra_fields?.total_filesize ?? 0) }}</div>
+          <div class="content-value">{{ bytePretty(data.backupinfo?.total_filesize ?? 0) }}</div>
           <div
             v-if="data.backupinfo.bill_id"
             class="content-label">
@@ -136,6 +132,18 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const backupMethodMap = {
+    full_by_ticket: t('全库备份（单据）'),
+    partial_by_ticket: t('库表备份（单据）'),
+    full_by_regular: t('全库备份（例行）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+  } as Record<string, string>;
+
+  const backupTypeMap = {
+    logical: t('逻辑备份'),
+    physical: t('物理备份'),
+  } as Record<string, string>;
 </script>
 <style lang="less" scoped>
   .content-block {
