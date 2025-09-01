@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
     path: 'service-apply',
     name: 'serviceApply',
     meta: {
-      navName: t('服务申请'),
+      navName: t('部署申请'),
     },
     redirect: {
       name: 'serviceApplyIndex',
@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
         path: 'index',
         name: 'serviceApplyIndex',
         meta: {
-          navName: t('服务申请'),
+          navName: t('部署申请'),
         },
         component: () => import('@views/service-apply/index/Index.vue'),
       },
@@ -200,7 +200,7 @@ export default function getRoutes() {
         path: 'service-apply',
         name: 'BussinessServiceApply',
         meta: {
-          navName: t('服务申请'),
+          navName: t('部署申请'),
         },
         redirect: {
           name: 'BussinessServiceApplyIndex',
@@ -210,7 +210,7 @@ export default function getRoutes() {
             path: 'index',
             name: 'BussinessServiceApplyIndex',
             meta: {
-              navName: t('服务申请'),
+              navName: t('部署申请'),
             },
             component: () => import('@views/service-apply/index/Index.vue'),
           },
