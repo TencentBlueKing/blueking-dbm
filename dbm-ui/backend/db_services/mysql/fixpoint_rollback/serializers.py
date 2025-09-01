@@ -49,7 +49,7 @@ class BackupLogRollbackTimeSerializer(serializers.Serializer):
         help_text=_("备份类型"),
         choices=MySQLBackupType.get_choices(),
         required=False,
-        default=MySQLBackupType.NON_FULL_BY_REGULAR.value,
+        default=MySQLBackupType.FULL_BY_TICKET.value,
     )
 
 
