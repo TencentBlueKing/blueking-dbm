@@ -419,12 +419,16 @@ class FixPointRollbackHandler:
         instances = [f"{inst['machine__ip']}:{inst['port']}" for inst in instances]
         backup_type = kwargs.get("backup_type", "")
 
-        if backup_type == MySQLBackupType.ALL_BACKUP:
-            backup_type = "1=1"
-        elif backup_type == MySQLBackupType.DB_TABLE_BACKUP:
-            backup_type = "is_full_backup=0 and bill_id!=0"
+        if backup_type == MySQLBackupType.FULL_BY_TICKET.value:
+            backup_type = "is_full_backup = 1 and bill_id != ''"
+        elif backup_type == MySQLBackupType.PARTIAL_BY_TICKET.value:
+            backup_type = "is_full_backup = 0 and bill_id != ''"
+        elif backup_type == MySQLBackupType.FULL_BY_REGULAR.value:
+            backup_type = "is_full_backup = 1 and bill_id = ''"
+        elif backup_type == "default":
+            backup_type = "is_full_backup = 1"
         else:
-            backup_type = "is_full_backup=1"
+            backup_type = "1=1"
         query_cmds = cmds.format(cond="true", backup_type=backup_type, limit="")
 
         # 查询集群本地的备份记录
@@ -435,7 +439,7 @@ class FixPointRollbackHandler:
         self,
         rollback_time: datetime,
         backup_source: str = MySQLBackupSource.REMOTE.value,
-        backup_type: str = MySQLBackupType.FULL_BACKUP.value,
+        backup_type: str = "default",
         **kwargs,
     ) -> Dict[str, Any]:
         """

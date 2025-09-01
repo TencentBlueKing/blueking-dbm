@@ -75,7 +75,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
     def query_backup_log_from_local(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        kwargs.update({"backup_type": MySQLBackupType.FULL_BACKUP})
+        kwargs.update({"backup_type": "default"})
         logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_local(**kwargs)
         return Response(logs)
 
