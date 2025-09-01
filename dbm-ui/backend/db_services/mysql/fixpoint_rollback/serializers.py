@@ -46,7 +46,10 @@ class BackupLogRollbackTimeSerializer(serializers.Serializer):
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
     )
     backup_type = serializers.ChoiceField(
-        help_text=_("备份类型"), choices=MySQLBackupType.get_choices(), required=False, default=MySQLBackupType.FULL_BACKUP
+        help_text=_("备份类型"),
+        choices=MySQLBackupType.get_choices(),
+        required=False,
+        default=MySQLBackupType.NON_FULL_BY_REGULAR.value,
     )
 
 
