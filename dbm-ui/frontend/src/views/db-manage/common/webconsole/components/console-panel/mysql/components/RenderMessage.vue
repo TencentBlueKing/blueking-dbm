@@ -53,7 +53,7 @@
 
     table {
       width: 100%;
-      word-wrap: break-word;
+      overflow-wrap: break-word;
 
       thead {
         border: 1px solid transparent;
