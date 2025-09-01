@@ -93,9 +93,10 @@ class MySQLBackupType(str, StructuredEnum):
     库备份的类型
     """
 
-    ALL_BACKUP = EnumField("all_backup", _("全部"))
-    FULL_BACKUP = EnumField("full_backup", _("全库备份"))
-    DB_TABLE_BACKUP = EnumField("db_table_backup", _("库表备份"))
+    FULL_BY_TICKET = EnumField("full_by_ticket", _("单据全库备份"))
+    PARTIAL_BY_TICKET = EnumField("partial_by_ticket", _("单据库表备份"))
+    FULL_BY_REGULAR = EnumField("full_by_regular", _("例行全备"))
+    NON_FULL_BY_REGULAR = EnumField("non_full_by_regular", _("例行非全备"))
 
 
 class MySQLChecksumTicketMode(str, StructuredEnum):
