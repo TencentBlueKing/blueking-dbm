@@ -73,7 +73,7 @@
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'personalWorkbench'"
-      :name="t('服务申请')">
+      :name="t('数据库部署')">
       <BkMenuItem
         key="serviceApply"
         v-db-console="'personalWorkbench.serviceApply'">
@@ -83,7 +83,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t('服务申请') }}
+          {{ t('部署申请') }}
         </span>
       </BkMenuItem>
     </BkMenuGroup>
