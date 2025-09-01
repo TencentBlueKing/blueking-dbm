@@ -367,7 +367,7 @@ func (c *ClusterProvider) UpdateClusterRelease(
 	}
 
 	// 更新 cluster release
-	values, err := c.updateClusterRelease(request, k8sClient, isPartial)
+	values, err := c.updateClusterRelease(ctx, request, k8sClient, isPartial)
 	if err != nil {
 		slog.Error("failed to update cluster", "error", err)
 		return dbserrors.NewK8sDbsError(dbserrors.UpdateClusterError, err)
@@ -771,6 +771,7 @@ func (c *ClusterProvider) installHelmRelease(
 
 // updateClusterRelease 更新 cluster release
 func (c *ClusterProvider) updateClusterRelease(
+	ctx *commentity.DbsContext,
 	request *coreentity.Request,
 	k8sClient *commutil.K8sClient,
 	isPartial bool,
@@ -780,7 +781,7 @@ func (c *ClusterProvider) updateClusterRelease(
 		slog.Error("failed to build helm action config", "error", err)
 		return nil, err
 	}
-	values, err := c.doUpdateClusterRelease(request, actionConfig, isPartial)
+	values, err := c.doUpdateClusterRelease(ctx, request, actionConfig, isPartial)
 	if err != nil {
 		slog.Error("cluster update failed", "clusterName", request.ClusterName, "error", err)
 		return nil, err
@@ -790,6 +791,7 @@ func (c *ClusterProvider) updateClusterRelease(
 
 // doUpdateClusterRelease 执行更新 release
 func (c *ClusterProvider) doUpdateClusterRelease(
+	ctx *commentity.DbsContext,
 	request *coreentity.Request,
 	actionConfig *action.Configuration,
 	isPartial bool,
@@ -822,16 +824,25 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 
 	var values map[string]interface{}
 	if isPartial {
-		getValuesAction := action.NewGetValues(actionConfig)
-		releaseValues, err := getValuesAction.Run(request.ClusterName)
+		// 这里改为从 release 元数据表中获取最新的 values 配置
+		releaseEntity, err := c.releaseMetaProvider.FindByParams(&metaentity.ClusterReleaseQueryParams{
+			Namespace:          request.Namespace,
+			ReleaseName:        request.ClusterName,
+			K8sClusterConfigID: ctx.K8sClusterConfigID,
+		})
+		if err != nil {
+			return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+				fmt.Errorf("获取集群 release 元数据失败 %w", err))
+		}
+		var currentValues map[string]any
+		err = json.Unmarshal([]byte(releaseEntity.ChartValues), &currentValues)
 		if err != nil {
 			return nil, err
 		}
-
-		if err = coreutil.MergeValues(releaseValues, request); err != nil {
+		if err = coreutil.MergeValues(currentValues, request); err != nil {
 			return nil, err
 		}
-		values = releaseValues
+		values = currentValues
 	} else {
 		chartValues := chart.Values
 		err = coreutil.MergeValues(chartValues, request)
