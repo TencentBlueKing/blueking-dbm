@@ -50,6 +50,19 @@
     <BkTableColumn
       :label="t('校验从库')"
       :width="220">
+      <template #header>
+        <span class="tendbcluster-checksum-ip-header">
+          <span>{{ t('校验从库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopy('slave', 'ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopy('slave', 'instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }">
         {{ data.slave || '--' }}
       </template>
@@ -57,6 +70,19 @@
     <BkTableColumn
       :label="t('校验主库')"
       :width="220">
+      <template #header>
+        <span class="tendbcluster-checksum-ip-header">
+          <span>{{ t('校验主库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopy('slave', 'ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopy('slave', 'instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }">
         {{ data.master || '--' }}
       </template>
@@ -106,6 +132,10 @@
   import { utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  import PopoverCopy from '@components/popover-copy/Index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.CheckSum>;
@@ -157,4 +187,28 @@
       rowIndex += infoItem.backup_infos.length;
     });
   });
+
+  const handleCopy = (role: 'master' | 'slave', field: 'ip' | 'instance') => {
+    const items = tableData.value.map((item) => (item[role] && field === 'ip' ? item[role].split(':')[0] : item[role]));
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
 </script>
+<style lang="less">
+  .tendbcluster-checksum-ip-header {
+    display: flex;
+
+    &:hover {
+      .copy-btn {
+        display: block;
+      }
+    }
+
+    .copy-btn {
+      display: none;
+      margin-left: 4px;
+      cursor: pointer;
+    }
+  }
+</style>
