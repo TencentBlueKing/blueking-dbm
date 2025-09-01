@@ -261,7 +261,8 @@ def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
         migrate_ports[ip].add(port)
 
     # 查询出ips对应的所有实例
-    storages = StorageInstance.find_storage_instance_by_ip(list(ips)).filter(bk_biz_id=bk_biz_id)
+    if len(ips) != 0:
+        storages = StorageInstance.find_storage_instance_by_ip(list(ips)).filter(bk_biz_id=bk_biz_id)
 
     exist_ports = defaultdict(set)
     # 遍历实例，确认端口，如果端口都没了，就是要下架的机器
@@ -278,9 +279,10 @@ def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
             raise Exception(_("{}有迁移端口{}不在元数据中".format(ip, migrate_ports[ip] - exist_ports[ip])))
         if len(exist_ports[ip] - migrate_ports[ip]) == 0:
             shutdown_hosts.append(ip)
-
-    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_hosts)).filter(bk_biz_id=bk_biz_id)
-    for s in storages:
-        m_desc = s.machine.simple_desc
-        shutdown_hosts_info.append({"bk_host_id": m_desc["bk_host_id"], "ip": m_desc["ip"]})
+    # 如果有需要下架的机器
+    if len(shutdown_hosts) != 0:
+        storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_hosts)).filter(bk_biz_id=bk_biz_id)
+        for s in storages:
+            m_desc = s.machine.simple_desc
+            shutdown_hosts_info.append({"bk_host_id": m_desc["bk_host_id"], "ip": m_desc["ip"]})
     return shutdown_hosts_info

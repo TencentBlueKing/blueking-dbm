@@ -193,8 +193,8 @@ class RedisSingleInsMigrateFlow(object):
             "ip": master_ip,
             "ports": [port],
             "instance_numb": 1,
-            "spec_id": spec_info["id"],
-            "spec_config": spec_info,
+            "spec_id": spec_info["master"]["id"],
+            "spec_config": spec_info["master"],
             # 老实例的db版本，主要用来获取配置
             "origin_db_version": src_master_info["origin_db_version"],
         }
@@ -217,8 +217,8 @@ class RedisSingleInsMigrateFlow(object):
             "ip": slave_ip,
             "ports": [port],
             "instance_numb": 1,
-            "spec_id": spec_info["id"],
-            "spec_config": spec_info,
+            "spec_id": spec_info["slave"]["id"],
+            "spec_config": spec_info["slave"],
             "origin_db_version": src_master_info["origin_db_version"],
         }
         install_redis_sub_pipeline.append(
