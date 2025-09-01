@@ -42,7 +42,7 @@ def get_local_backup_list(instances: list, cluster: Cluster, query_cmds: str = N
     @return: dict
     """
     #  为了兼容 backup_time和backup_consistent_time是一样的
-    query_cmds = query_cmds or cmds.format(cond="true", backup_type="1=1", limit="")
+    query_cmds = query_cmds or cmds.format(cond="true", backup_type="is_full_backup = 1", limit="")
     backups = []
     for addr in instances:
         res = DRSApi.rpc(
@@ -92,10 +92,9 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
     if end_time:
         end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
         cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
-        query_cmds = cmds.format(cond=cond, backup_type="1=1", limit="limit 1")
+        query_cmds = cmds.format(cond=cond, backup_type="is_full_backup = 1", limit="limit 1")
     else:
-        query_cmds = cmds.format(cond="true", backup_type="1=1", limit="limit 1")
-
+        query_cmds = cmds.format(cond="true", backup_type="is_full_backup = 1", limit="limit 1")
     backups = get_local_backup_list(instances, cluster, query_cmds)
     # 多份备份比较 backup map 列表....
     backup_time = "1999-01-01T11:11:11+08:00"
