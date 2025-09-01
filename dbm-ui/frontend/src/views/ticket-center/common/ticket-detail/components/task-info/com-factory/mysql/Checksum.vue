@@ -39,6 +39,19 @@
     <BkTableColumn
       :label="t('校验从库')"
       :min-width="150">
+      <template #header>
+        <span class="mysql-checksum-ip-header">
+          <span>{{ t('校验从库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopySlave('ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopySlave('instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="(item, index) in data.slaves"
@@ -50,6 +63,19 @@
     <BkTableColumn
       :label="t('校验主库')"
       :min-width="150">
+      <template #header>
+        <span class="mysql-checksum-ip-header">
+          <span>{{ t('校验主库') }}</span>
+          <PopoverCopy class="copy-btn">
+            <div @click="() => handleCopyMaster('ip')">
+              {{ t('复制IP') }}
+            </div>
+            <div @click="() => handleCopyMaster('instance')">
+              {{ t('复制实例') }}
+            </div>
+          </PopoverCopy>
+        </span>
+      </template>
       <template #default="{ data }: { data: RowData }"> {{ data.master.ip }}:{{ data.master.port }} </template>
     </BkTableColumn>
     <BkTableColumn :label="t('校验 DB 名')">
@@ -86,6 +112,10 @@
   import { utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  import PopoverCopy from '@components/popover-copy/Index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.CheckSum>;
@@ -139,4 +169,43 @@
       immediate: true,
     },
   );
+
+  const handleCopySlave = (field: 'ip' | 'instance') => {
+    const slaves = tableData.value.reduce<RowData['slaves']>((acc, item) => {
+      if (item.slaves.length) {
+        return [...acc, ...item.slaves];
+      }
+      return acc;
+    }, []);
+    const items = slaves.map((item) => (item && field === 'instance' ? `${item.ip}:${item.port}` : item.ip));
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
+
+  const handleCopyMaster = (field: 'ip' | 'instance') => {
+    const items = tableData.value.map((item) =>
+      item.master && field === 'instance' ? `${item.master.ip}:${item.master.port}` : item.master.ip,
+    );
+    if (items.length > 0) {
+      execCopy(items.join('\n'), t('复制成功，共n条', { n: items.length }));
+    }
+  };
 </script>
+<style lang="less">
+  .mysql-checksum-ip-header {
+    display: flex;
+
+    &:hover {
+      .copy-btn {
+        display: block;
+      }
+    }
+
+    .copy-btn {
+      display: none;
+      margin-left: 4px;
+      cursor: pointer;
+    }
+  }
+</style>

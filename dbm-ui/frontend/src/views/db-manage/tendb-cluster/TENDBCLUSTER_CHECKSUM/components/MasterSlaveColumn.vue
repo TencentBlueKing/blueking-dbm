@@ -178,7 +178,7 @@
               firsrColumn: {
                 field: 'instance_address',
                 label: 'slave',
-                role: 'remote_slave',
+                role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
               },
             },
             topoConfig: {
@@ -329,7 +329,7 @@
       if (props.cluster.id) {
         fetchData({
           cluster_id: props.cluster.id,
-          role: 'backend_slave,backend_repeater',
+          role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
         });
       }
     },
