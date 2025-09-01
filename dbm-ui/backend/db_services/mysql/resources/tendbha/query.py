@@ -20,7 +20,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
-from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin, ResourceList
 from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
@@ -199,3 +199,24 @@ class ListRetrieveResource(MysqlListRetrieveResource):
             related_pair_instance=kwargs.get("pair_instance_map", {}).get(instance["machine__ip"], "")
         )
         return instance_info
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+        ]
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+        # 补充clb
+        clb_entry, _ = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+            }
+        )
+        return cluster_info

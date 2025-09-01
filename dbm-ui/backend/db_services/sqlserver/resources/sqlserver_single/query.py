@@ -74,3 +74,21 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
         )
         cluster_info.update({**cluster_role_info, **sync_mode_info})
         return cluster_info
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        """
+        更新的headers列表数据
+        """
+        # 单节点不需要从域名
+        filtered_headers = list(filter(lambda header: header["id"] != "slave_domain", headers))
+        return filtered_headers, []
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新的集群列表数据
+        """
+        # 删除cluster_info中的从域名
+        del cluster_info["slave_domain"]
+        return cluster_info

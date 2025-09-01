@@ -23,7 +23,7 @@ from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
-from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin, ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.mysql.resources.query import MysqlListRetrieveResource
 from backend.ticket.constants import TicketType
@@ -296,3 +296,74 @@ class ListRetrieveResource(MysqlListRetrieveResource):
         """获取集群主节点信息"""
         cluster_id__primary_address_map = Cluster.get_cluster_id__primary_address_map(cluster_ids)
         return [{"cluster_id": k, "primary": v} for k, v in cluster_id__primary_address_map.items()]
+
+    @classmethod
+    def fill_instances_to_cluster_info(cls, cluster_info: Dict, instance_queryset: QuerySet, role_header_ids: set):
+        """
+        将实例信息填充到集群信息中
+        """
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        # 获取第一个实例的集群类型即可
+        cluster_type = instances[0].cluster_type
+        for ins in instances:
+            # 暂时过滤掉 repeater 角色实例
+            if "repeater" in ins.instance_role:
+                continue
+
+            # # 确定实例的角色 tendbcluster需要用到TenDBClusterSpiderRole枚举类角色
+            if isinstance(ins, ProxyInstance):
+                role = ins.tendbclusterspiderext.spider_role
+            else:
+                role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+            # 将需要分片信息的角色重新赋予初始值
+            if role in [
+                InstanceRole.REMOTE_MASTER,
+                InstanceRole.REMOTE_SLAVE,
+            ]:
+                cluster_info[role] = ""
+
+        # 补充tendbcluster集群的分片信息
+        is_tendbcluster = cluster_type == ClusterType.TenDBCluster.value
+        is_storage_instance = isinstance(instances[0], StorageInstance)
+        if is_tendbcluster and is_storage_instance:
+            remote_db, remote_dr, _, _ = TenDBClusterClusterHandler.get_remote_infos(instances)
+            for instance in remote_db + remote_dr:
+                role = instance.instance_role
+                cluster_info[role] += f"\n{instance.machine.ip}:{instance.port}(%_{instance.shard_id})"
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+            {"id": "spider_master", "name": _("Spider_master")},
+            {"id": "spider_slave", "name": _("Spider_slave")},
+            {"id": "spider_mnt", "name": _("Spider_mnt")},
+            {"id": "remote_master", "name": _("Remote_master")},
+            {"id": "remote_slave", "name": _("Remote_slave")},
+        ]
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+        # 补充clb/北极星
+        clb_entry, _ = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+            }
+        )
+        return cluster_info

@@ -207,3 +207,20 @@ def base64_decode(content: Union[str, bytes]) -> str:
     if isinstance(content, str):
         content = content.encode("utf-8")
     return base64.b64decode(content).decode("utf-8")
+
+
+# 容量单位自适应转为其他单位
+def format_size(size_bytes: int) -> str:
+    if size_bytes == 0:
+        return "0B"  # 如果大小为0，直接返回0B
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(len(size_name) - 1)
+    p = 1024.0
+    size = float(size_bytes)
+
+    while size >= p and i > 0:
+        size /= p
+        i -= 1
+
+    # 使用合适的单位并限制小数点后两位
+    return f"{size:.2f} {size_name[len(size_name) - 1 - i]}"

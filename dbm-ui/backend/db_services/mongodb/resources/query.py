@@ -20,7 +20,7 @@ from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
-from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin, ResourceList
 from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_mongo_instance
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
@@ -366,3 +366,61 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
                     storage_id__shard[storage.id] = ""
 
         return storage_instance, storage_id__shard
+
+    @staticmethod
+    def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet, role_header_ids):
+        """
+        将实例信息填充到集群信息中
+        """
+
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        for ins in instances:
+            if ins.machine.machine_type in [MachineType.MONOG_CONFIG, MachineType.MONGOS, MachineType.MONGODB]:
+                role = ins.machine.machine_type
+            else:
+                role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+            {"id": "mongo_config", "name": _("ConfigSvr")},
+            {"id": "mongos", "name": _("Mongos")},
+            {"id": "mongodb", "name": _("ShardSvr")},
+        ]
+
+        # 去除从域名/模块字段
+        for header in headers:
+            if header["id"] in ["slave_domain", "db_module_name"]:
+                headers.remove(header)
+
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+
+        # 补充clb
+        clb_entry, _ = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+            }
+        )
+
+        # 删除cluster_info中的从域名/模块字段值
+        del cluster_info["slave_domain"], cluster_info["db_module_name"]
+
+        return cluster_info

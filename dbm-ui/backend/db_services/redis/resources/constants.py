@@ -62,3 +62,16 @@ SQL_QUERY_MASTER_SLAVE_STATUS = (
     "{where} "
     "group by mim.ip"
 )
+
+
+REDIS_LIST_CLUSTER_TYPE = [
+    ClusterType.TendisPredixyRedisCluster.value,
+    ClusterType.TendisPredixyTendisplusCluster.value,
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TwemproxyTendisSSDInstance.value,
+    ClusterType.TendisTwemproxyTendisplusIns.value,
+    ClusterType.TendisRedisInstance.value,
+    ClusterType.TendisTendisplusInsance.value,
+    ClusterType.TendisRedisCluster.value,
+    ClusterType.TendisTendisplusCluster.value,
+]
