@@ -17,7 +17,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.db_meta.models import Cluster, StorageInstance, TenDBClusterStorageSet
+from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple, TenDBClusterStorageSet
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -95,23 +96,48 @@ class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
 
     def fetch_cluster_shard_infos(self, cluster, backup_table_info):
         storage_set = TenDBClusterStorageSet.objects.select_related("storage_instance_tuple").filter(cluster=cluster)
-        shard_infos: List[Dict[str, Any]] = []
+        # 获取所有从节点信息
+        ejector_ids = [shard.storage_instance_tuple.ejector for shard in storage_set]
+        all_slaves = StorageInstanceTuple.objects.filter(ejector__in=ejector_ids)
+
+        # 构建 master 到 slave list 的字典映射
+        master_to_slaves_map = {}
+        for slave in all_slaves:
+            ejector = slave.ejector
+            if ejector not in master_to_slaves_map:
+                master_to_slaves_map[ejector] = []
+            master_to_slaves_map[ejector].append(slave.receiver)
+
+        shard_infos = []
         for shard in storage_set:
-            # 排除spider集群迁移的情况(这个放到具体场景下做)。正常checksum提单，一个分片只有一主一从
-            master = self._get_instance_related_info(shard.storage_instance_tuple.ejector)
-            slave = self._get_instance_related_info(shard.storage_instance_tuple.receiver)
-            shard_infos.append({"shard_id": shard.shard_id, "master": master, "slaves": [slave], **backup_table_info})
+            # 获取主节点相关信息
+            ejector = shard.storage_instance_tuple.ejector
+            master = self._get_instance_related_info(ejector)
+
+            # 使用映射获取从节点相关信息
+            slaves = master_to_slaves_map.get(ejector, [])
+            slave_info = [self._get_instance_related_info(slave) for slave in slaves]
+
+            shard_info = {"shard_id": shard.shard_id, "master": master, "slaves": slave_info, **backup_table_info}
+            shard_infos.append(shard_info)
 
         return shard_infos
 
-    def fetch_instance_shard_infos(self, cluster, master, backup_table_info):
-        master_inst = StorageInstance.find_insts_by_addresses([master]).first()
+    def fetch_instance_shard_infos(self, cluster, master, slave, backup_table_info):
+        master_inst = (
+            StorageInstance.find_insts_by_addresses([master]).prefetch_related("as_receiver__ejector").first()
+        )
+        slave_inst = StorageInstance.find_insts_by_addresses([slave]).prefetch_related("as_receiver__ejector").first()
         inst_tuple = master_inst.as_ejector.first()
         master_info = self._get_instance_related_info(master_inst)
-        slave_info = self._get_instance_related_info(inst_tuple.receiver)
-
+        slave_info = self._get_instance_related_info(slave_inst)
+        # 如果master是repeater角色，需获取旧主机的分片信息
+        if master_inst.instance_inner_role == InstanceInnerRole.REPEATER.value:
+            shard_id = master_inst.as_receiver.get().ejector.as_ejector.first().tendbclusterstorageset.shard_id
+        else:
+            shard_id = inst_tuple.tendbclusterstorageset.shard_id
         shard_info = {
-            "shard_id": inst_tuple.tendbclusterstorageset.shard_id,
+            "shard_id": shard_id,
             "master": master_info,
             "slaves": [slave_info],
             **backup_table_info,
@@ -133,7 +159,9 @@ class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
                 shard_infos: List[Dict[str, Any]] = []
                 for backup_info in info["backup_infos"]:
                     backup_table_info = self._get_backup_table_info(backup_info)
-                    sub_shard_info = self.fetch_instance_shard_infos(cluster, backup_info["master"], backup_table_info)
+                    sub_shard_info = self.fetch_instance_shard_infos(
+                        cluster, backup_info["master"], backup_info["slave"], backup_table_info
+                    )
                     shard_infos.append(sub_shard_info)
 
             # 填充校验的分片信息，填充时区，域名和云区域

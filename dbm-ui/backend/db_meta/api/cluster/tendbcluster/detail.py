@@ -17,58 +17,61 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, TenDBClust
 from backend.db_meta.models import Cluster
 
 
+def build_spider_entry_relations(
+    graph, cluster, entry_role, role, spider_group_name, entry_group_id, entry_group_name
+):
+    """获得Spider和对应的访问入口，并建立访问关系"""
+
+    spider_insts, spider_group = graph.add_spider_nodes(cluster, role, group_name=spider_group_name)
+    if not spider_insts:
+        return spider_insts, spider_group
+
+    clb_entry_group = None
+    spider_entry_group = Group(node_id=entry_group_id, group_name=entry_group_name)
+    all_spider_entry = cluster.clusterentry_set.filter(role=entry_role).all()
+    if all_spider_entry.filter(cluster__clusterentry__cluster_entry_type=ClusterEntryType.CLB).exists():
+        if role == TenDBClusterSpiderRole.SPIDER_MASTER:
+            clb_entry_group = Group(node_id="clb_master_entry_group", group_name=_("CLB IP(master)"))
+        else:
+            clb_entry_group = Group(node_id="clb_slave_entry_group", group_name=_("CLB IP(slave)"))
+
+    for spider_entry in all_spider_entry:
+        # clb肯定指向proxy
+        if spider_entry.cluster_entry_type == ClusterEntryType.CLB:
+            dummy_be_node, clb_entry_group = graph.add_node(spider_entry, to_group=clb_entry_group)
+            graph.add_line(source=clb_entry_group, target=spider_group, label=LineLabel.Forward)
+
+        # clbDNS肯定指向clb
+        elif spider_entry.cluster_entry_type == ClusterEntryType.CLBDNS:
+            if role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                clb_dns_entry_group = Group(node_id="clb_master_dns_entry_group", group_name=_("CLB域名(master)"))
+            else:
+                clb_dns_entry_group = Group(node_id="clb_slave_dns_entry_group", group_name=_("CLB域名(slave)"))
+            dummy_be_node, clb_dns_entry_group = graph.add_node(spider_entry, to_group=clb_dns_entry_group)
+            graph.add_line(source=clb_dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
+
+        # dns默认指向proxy 指向clb之后不再指向proxy
+        elif spider_entry.cluster_entry_type == ClusterEntryType.DNS:
+            if spider_entry.forward_to:
+                if role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                    dns_entry_group = Group(node_id="dns_master_entry_group", group_name=_("主域名"))
+
+                else:
+                    dns_entry_group = Group(node_id="dns_slave_entry_group", group_name=_("从域名"))
+                dummy_be_node, dns_entry_group = graph.add_node(spider_entry, to_group=dns_entry_group)
+                graph.add_line(source=dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
+
+            else:
+                dummy_be_node, spider_entry_group = graph.add_node(spider_entry, to_group=spider_entry_group)
+                graph.add_line(source=spider_entry_group, target=spider_group, label=LineLabel.Bind)
+
+    return spider_insts, spider_group
+
+
 def scan_cluster(cluster: Cluster) -> Graphic:
     """
     绘制spider的拓扑结构图
     """
-
-    def build_spider_entry_relations(entry_role, role, spider_group_name, entry_group_id, entry_group_name):
-        """获得Spider和对应的访问入口，并建立访问关系"""
-
-        spider_insts, spider_group = graph.add_spider_nodes(cluster, role, group_name=spider_group_name)
-        if not spider_insts:
-            return spider_insts, spider_group
-
-        clb_entry_group = None
-        spider_entry_group = Group(node_id=entry_group_id, group_name=entry_group_name)
-        all_spider_entry = cluster.clusterentry_set.filter(role=entry_role).all()
-        if all_spider_entry.filter(cluster__clusterentry__cluster_entry_type=ClusterEntryType.CLB).exists():
-            if role == TenDBClusterSpiderRole.SPIDER_MASTER:
-                clb_entry_group = Group(node_id="clb_master_entry_group", group_name=_("CLB IP(master)"))
-            else:
-                clb_entry_group = Group(node_id="clb_slave_entry_group", group_name=_("CLB IP(slave)"))
-
-        for spider_entry in all_spider_entry:
-            # clb肯定指向proxy
-            if spider_entry.cluster_entry_type == ClusterEntryType.CLB:
-                dummy_be_node, clb_entry_group = graph.add_node(spider_entry, to_group=clb_entry_group)
-                graph.add_line(source=clb_entry_group, target=spider_group, label=LineLabel.Forward)
-
-            # clbDNS肯定指向clb
-            elif spider_entry.cluster_entry_type == ClusterEntryType.CLBDNS:
-                if role == TenDBClusterSpiderRole.SPIDER_MASTER:
-                    clb_dns_entry_group = Group(node_id="clb_master_dns_entry_group", group_name=_("CLB域名(master)"))
-                else:
-                    clb_dns_entry_group = Group(node_id="clb_slave_dns_entry_group", group_name=_("CLB域名(slave)"))
-                dummy_be_node, clb_dns_entry_group = graph.add_node(spider_entry, to_group=clb_dns_entry_group)
-                graph.add_line(source=clb_dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
-
-            # dns默认指向proxy 指向clb之后不再指向proxy
-            elif spider_entry.cluster_entry_type == ClusterEntryType.DNS:
-                if spider_entry.forward_to:
-                    if role == TenDBClusterSpiderRole.SPIDER_MASTER:
-                        dns_entry_group = Group(node_id="dns_master_entry_group", group_name=_("主域名"))
-
-                    else:
-                        dns_entry_group = Group(node_id="dns_slave_entry_group", group_name=_("从域名"))
-                    dummy_be_node, dns_entry_group = graph.add_node(spider_entry, to_group=dns_entry_group)
-                    graph.add_line(source=dns_entry_group, target=clb_entry_group, label=LineLabel.Bind)
-
-                else:
-                    dummy_be_node, spider_entry_group = graph.add_node(spider_entry, to_group=spider_entry_group)
-                    graph.add_line(source=spider_entry_group, target=spider_group, label=LineLabel.Bind)
-
-        return spider_insts, spider_group
 
     def _get_or_create_group(instances, group_name):
         """辅助函数：创建或获取组"""
@@ -83,7 +86,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
     def add_remote_nodes(cluster):
         """获取remote节点，并跟相应的spider建立关系"""
-        remote_db, remote_dr = TenDBClusterClusterHandler.get_remote_infos(cluster.storages)
+        remote_db, remote_dr, remote_repeater, new_remote_dr = TenDBClusterClusterHandler.get_remote_infos(
+            cluster.storages
+        )
         # 创建或获取 RemoteDB 和 RemoteDR 组
         db_group = _get_or_create_group(remote_db, "RemoteDB")
         dr_group = _get_or_create_group(remote_dr, "RemoteDR")
@@ -92,12 +97,30 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         _add_nodes_to_group(remote_db, db_group)
         _add_nodes_to_group(remote_dr, dr_group)
 
-        return db_group, dr_group
+        repeater_group = None
+        new_dr_group = None
+        if remote_repeater:
+            # 创建repeater组及节点
+            repeater_group = _get_or_create_group(remote_repeater, "RemoteRepeater")
+            _add_nodes_to_group(remote_repeater, repeater_group)
+
+        if new_remote_dr:
+            new_dr_group = graph.get_or_create_group(group_id="remote::new_remote_slave", group_name="NewRemoteDR")
+
+            # 添加node到new_dr_group组中
+            for new_remote in new_remote_dr:
+                node = Node(new_remote, node_type="remote::new_remote_slave")
+                new_dr_group.add_child(node)
+                graph.nodes.append(node)
+
+        return db_group, dr_group, repeater_group, new_dr_group
 
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
     # 建立spider master和访问入口（主）的关系
     spider_master_insts, spider_master_group = build_spider_entry_relations(
+        graph,
+        cluster,
         ClusterEntryRole.MASTER_ENTRY,
         TenDBClusterSpiderRole.SPIDER_MASTER,
         spider_group_name=_("Spider Master"),
@@ -106,6 +129,8 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     )
     # 建立spider slave和访问入口（从）的关系
     __, spider_slave_group = build_spider_entry_relations(
+        graph,
+        cluster,
         ClusterEntryRole.SLAVE_ENTRY,
         TenDBClusterSpiderRole.SPIDER_SLAVE,
         spider_group_name=_("Spider Slave"),
@@ -114,7 +139,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     )
 
     # 按master/slave组分片数排序
-    remote_db_group, remote_dr_group = add_remote_nodes(cluster)
+    remote_db_group, remote_dr_group, remote_repeater_group, new_remote_dr_group = add_remote_nodes(cluster)
 
     # 建立spider_master和remote db的关系
     if spider_master_group:
@@ -126,6 +151,10 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
     # 建立remote dr与remote db的数据同步关系
     graph.add_line(source=remote_db_group, target=remote_dr_group, label=LineLabel.Rep)
+
+    if remote_repeater_group:
+        graph.add_line(source=remote_db_group, target=remote_repeater_group, label=LineLabel.Rep)
+        graph.add_line(source=remote_repeater_group, target=new_remote_dr_group, label=LineLabel.Rep)
 
     # 收纳运维节点
     spider_mnt_insts, spider_mnt_group = graph.add_spider_nodes(
