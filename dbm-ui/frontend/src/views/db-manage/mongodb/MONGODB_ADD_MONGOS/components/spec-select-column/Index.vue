@@ -73,6 +73,7 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}`,
         limit: -1,
         offset: 0,
         spec_cluster_type: ClusterTypes.MONGODB,

@@ -22,13 +22,19 @@ const path = '/apis/dbresource/spec';
 /**
  * 获取资源规格列表
  */
-export function getResourceSpecList(
-  params: {
-    enable?: boolean;
-    spec_cluster_type: string;
-    spec_machine_type?: string;
-  } & Record<string, any>,
-) {
+export function getResourceSpecList(params: {
+  biz_scope?: string;
+  desc?: string;
+  enable?: boolean;
+  limit: number;
+  offset?: number;
+  spec_cluster_type: string;
+  spec_db_type?: string;
+  spec_ids?: string;
+  spec_machine_type?: string;
+  spec_name?: string;
+  update_at?: string;
+}) {
   return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

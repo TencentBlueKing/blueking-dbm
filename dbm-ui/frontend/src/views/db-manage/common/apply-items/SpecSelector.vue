@@ -96,6 +96,7 @@
 
   const getData = () => {
     fetchData({
+      biz_scope: `${props.bizId}`,
       enable: true,
       limit: -1,
       spec_cluster_type: props.clusterType,
@@ -104,9 +105,9 @@
   };
 
   watch(
-    [() => props.clusterType, () => props.machineType],
+    () => [props.clusterType, props.machineType, props.bizId],
     () => {
-      if (props.clusterType && props.machineType) {
+      if (props.clusterType && props.machineType && props.bizId) {
         getData();
       }
     },
