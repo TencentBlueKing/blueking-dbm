@@ -157,6 +157,7 @@
     () => [props.selectable, props.clusterType, props.machineType],
     () => {
       fetchData({
+        biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}`,
         enable: props.selectable ? true : undefined,
         limit: -1,
         spec_cluster_type: props.clusterType,

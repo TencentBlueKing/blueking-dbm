@@ -78,7 +78,10 @@
 
   const defaultValue = defineModel<ValueType>('defaultValue');
 
+  const route = useRoute();
   const { t } = useI18n();
+
+  const isBusiness = route.name === 'BizResourcePool';
 
   // 临时修复 bk-select 无法重置的问题
   const rerenderKey = ref(0);
@@ -131,6 +134,9 @@
         };
         if (props.isEnableSpec) {
           Object.assign(params, { enable: props.isEnableSpec });
+        }
+        if (isBusiness) {
+          Object.assign(params, { biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}` });
         }
         fetchResourceSpecList(params);
       }

@@ -116,6 +116,7 @@
   const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}`,
         limit: -1,
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
