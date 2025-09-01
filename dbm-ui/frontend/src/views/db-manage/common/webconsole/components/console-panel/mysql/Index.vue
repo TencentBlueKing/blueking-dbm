@@ -5,6 +5,7 @@
     :options="{
       charset,
       timezone,
+      instance_role: role,
     }"
     :pre-check="preCheck">
     <template #default="{ message }">
@@ -26,6 +27,7 @@
     charset: string;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
     timezone: string;
+    role: string;
   }
 
   defineProps<Props>();
