@@ -19,8 +19,7 @@ from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import (
     AppCache,
@@ -40,9 +39,6 @@ from backend.db_services.dbbase.resources.query_base import (
 )
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYPE
-
 from backend.flow.utils.dns_manage import DnsManage
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.excel import ExcelHandler
