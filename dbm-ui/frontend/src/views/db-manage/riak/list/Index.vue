@@ -62,7 +62,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.RIAK">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RiakModel }">
             <div v-db-console="'riak.clusterManage.addNodes'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton

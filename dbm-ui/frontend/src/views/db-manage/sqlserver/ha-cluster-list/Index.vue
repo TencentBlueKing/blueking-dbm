@@ -50,7 +50,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.SQLSERVER_HA">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: SqlServerHaModel }">
             <div v-db-console="'sqlserver.haClusterList.authorize'">
               <BkButton
                 :disabled="data.isOffline"

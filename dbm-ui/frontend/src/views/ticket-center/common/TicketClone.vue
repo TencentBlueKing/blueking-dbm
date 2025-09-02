@@ -79,12 +79,12 @@
    */
   const ticketTypeRouteNameMap: Record<string, string> = {
     ...resourcePoolTickets,
+    [TicketTypes.DORIS_APPLY]: 'DorisApply',
+    [TicketTypes.ES_APPLY]: 'EsApply',
     [TicketTypes.ES_CREATE_CLB]: 'EsList', // es 启用clb',
     [TicketTypes.ES_CREATE_POLARIS]: 'EsList', // es 启用北极星',
     [TicketTypes.ES_DNS_BIND_CLB]: 'EsList', // es 主域名指向CLB ip
     [TicketTypes.ES_DNS_UNBIND_CLB]: 'EsList', // es 解绑主域名指向clb
-    [TicketTypes.DORIS_APPLY]: 'DorisApply',
-    [TicketTypes.ES_APPLY]: 'EsApply',
     [TicketTypes.HDFS_APPLY]: 'HdfsApply',
     [TicketTypes.INFLUXDB_APPLY]: 'SelfServiceApplyInfluxDB',
     [TicketTypes.KAFKA_APPLY]: 'KafkaApply',
@@ -98,27 +98,27 @@
     [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS,
     [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
-    [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
+    [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权
     [TicketTypes.MYSQL_CHECKSUM]: TicketTypes.MYSQL_CHECKSUM, // Mysql 数据校验修复
     [TicketTypes.MYSQL_CLB_BIND_DOMAIN]: 'DatabaseTendbha', // mysql 主域名指向CLB ip
     [TicketTypes.MYSQL_CLB_UNBIND_DOMAIN]: 'DatabaseTendbha', // mysql 解绑主域名指向clb
-    [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: 'MySQLPrivilegeCloneClient', // Mysql 客户端权限克隆
+    [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: TicketTypes.MYSQL_CLIENT_CLONE_RULES, // Mysql 客户端权限克隆
     [TicketTypes.MYSQL_CLUSTER_STANDARDIZE]: TicketTypes.MYSQL_CLUSTER_STANDARDIZE, // mysql 集群标准化
-    [TicketTypes.MYSQL_DATA_MIGRATE]: 'MySQLDataMigrate', // Mysql DB克隆
+    [TicketTypes.MYSQL_DATA_MIGRATE]: TicketTypes.MYSQL_DATA_MIGRATE, // Mysql DB克隆
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
-    [TicketTypes.MYSQL_FLASHBACK]: 'MySQLDBFlashback', // Mysql 闪回
+    [TicketTypes.MYSQL_FLASHBACK]: TicketTypes.MYSQL_FLASHBACK, // Mysql 闪回
     [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
-    [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: 'MySQLDBTableBackup', // Mysql 库表备份
+    [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, // Mysql 库表备份
     [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
     [TicketTypes.MYSQL_HA_DISABLE]: 'DatabaseTendbha', // Mysql 禁用
     [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
-    [TicketTypes.MYSQL_HA_FULL_BACKUP]: 'MySQLDBBackup', // Mysql 全库备份
-    [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 高可用清档
+    [TicketTypes.MYSQL_HA_FULL_BACKUP]: TicketTypes.MYSQL_HA_FULL_BACKUP, // Mysql 全库备份
+    [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: TicketTypes.MYSQL_HA_TRUNCATE_DATA, // Mysql 高可用清档
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: TicketTypes.MYSQL_IMPORT_SQLFILE, // Mysql 变更SQL执行
-    [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
+    [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: TicketTypes.MYSQL_INSTANCE_CLONE_RULES, // Mysql DB实例权限克隆
     [TicketTypes.MYSQL_INSTANCE_FAIL_OVER]: TicketTypes.MYSQL_INSTANCE_FAIL_OVER, // Mysql主库实例故障切换
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
@@ -137,7 +137,7 @@
     [TicketTypes.MYSQL_SINGLE_DESTROY]: 'DatabaseTendbsingle', // Mysql 单节点删除
     [TicketTypes.MYSQL_SINGLE_DISABLE]: 'DatabaseTendbsingle', // Mysql 单节点禁用
     [TicketTypes.MYSQL_SINGLE_ENABLE]: 'DatabaseTendbsingle', // Mysql 单节点启用
-    [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 单节点清档
+    [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, // Mysql 单节点清档
     [TicketTypes.ORACLE_EXEC_SCRIPT_APPLY]: TicketTypes.ORACLE_EXEC_SCRIPT_APPLY, // Oracle 变更SQL执行
     [TicketTypes.PULSAR_APPLY]: 'PulsarApply',
     [TicketTypes.REDIS_BACKUP]: TicketTypes.REDIS_BACKUP, // Redis 集群备份
@@ -189,20 +189,20 @@
     [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_原地重建
     [TicketTypes.SQLSERVER_RESTORE_SLAVE]: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, // sqlserver 重建从库_新机重建
     [TicketTypes.SQLSERVER_ROLLBACK]: TicketTypes.SQLSERVER_ROLLBACK, // sqlserver 定点构造
-    [TicketTypes.TENDBCLUSTER_ADD_CLB]: 'tendbClusterList', // tendbcluster 启用clb
     [TicketTypes.SQLSERVER_SINGLE_APPLY]: 'SqlServiceSingleApply',
+    [TicketTypes.TENDBCLUSTER_ADD_CLB]: 'tendbClusterList', // tendbcluster 启用clb
     [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
     [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: TicketTypes.TENDBCLUSTER_CHECKSUM, // Spider checksum
     [TicketTypes.TENDBCLUSTER_CLB_BIND_DOMAIN]: 'tendbClusterList', // tendbcluster 主域名指向CLB ip
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
-    [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
+    [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES, // Spider 客户端权限克隆
     [TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE]: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, // spider 集群标准化
-    [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
-    [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
-    [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
+    [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, // Spider TenDBCluster 库表备份
+    [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
+    [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: TicketTypes.TENDBCLUSTER_FULL_BACKUP, // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行
-    [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
+    [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障
     [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE]: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, // spider 原地升级
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换
@@ -215,7 +215,7 @@
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
     [TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE]: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, // spider 迁移升级
-    [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
+    [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, // Spider tendbcluster 清档
   };
 
   const isSupported = computed(() => {

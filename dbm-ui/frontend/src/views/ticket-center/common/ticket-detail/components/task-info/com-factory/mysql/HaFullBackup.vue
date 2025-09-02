@@ -19,7 +19,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('备份位置')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.backup_local }}
+        {{ data.backup_local ? _.capitalize(data.backup_local) : '--' }}
       </template>
     </BkTableColumn>
   </BkTable>

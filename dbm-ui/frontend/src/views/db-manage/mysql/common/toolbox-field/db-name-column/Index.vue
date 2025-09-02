@@ -19,16 +19,14 @@
     :label="label"
     :min-width="200"
     :required="required">
-    <template #headAppend>
-      <div style="display: flex">
-        <slot name="tooltip" />
-        <BatchEditColumn
-          v-if="showBatchEdit"
-          :confirm-handler="handleBatchEditConfirm"
-          :label="label">
-          <BatchEditTagInput v-model="batchEditValue" />
-        </BatchEditColumn>
-      </div>
+    <template
+      v-if="showBatchEdit"
+      #headAppend>
+      <BatchEditColumn
+        :confirm-handler="handleBatchEditConfirm"
+        :label="label">
+        <BatchEditTagInput v-model="batchEditValue" />
+      </BatchEditColumn>
     </template>
     <EditableTagInput
       v-model="modelValue"
@@ -71,7 +69,6 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import type { VNode } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -115,10 +112,6 @@
 
   type Emits = (e: 'batch-edit', value: string[], field: string) => void;
 
-  interface Slots {
-    tooltip?: () => VNode;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
     allowWildcard: true,
@@ -132,8 +125,6 @@
     single: false,
   });
   const emits = defineEmits<Emits>();
-
-  defineSlots<Slots>();
 
   const modelValue = defineModel<string[]>({
     required: true,

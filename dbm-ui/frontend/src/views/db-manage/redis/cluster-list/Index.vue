@@ -58,7 +58,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.REDIS">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RedisModel }">
               <div v-db-console="'redis.clusterManage.extractKey'">
                 <OperationBtnStatusTips
                   :data="data"
@@ -345,7 +345,7 @@
             :search-ip="batchSearchIpInatanceList"
             :selected-list="selected"
             @go-detail="handleToDetails">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RedisModel['redis_slave'][number] }">
               {{ data.ip }}:{{ data.port }}
               <template v-if="data.seg_range">({{ data.seg_range }})</template>
             </template>
@@ -360,7 +360,7 @@
             :search-ip="batchSearchIpInatanceList"
             :selected-list="selected"
             @go-detail="handleToDetails">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RedisModel['redis_slave'][number] }">
               {{ data.ip }}:{{ data.port }}
               <template v-if="data.seg_range">({{ data.seg_range }})</template>
             </template>
@@ -411,6 +411,7 @@
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
   import { getUserList } from '@services/source/user';
+  import type { ClusterListNode } from '@services/types';
 
   import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 

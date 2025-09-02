@@ -291,6 +291,7 @@ export function getGlobalCluster<
     id: number;
     major_version: string;
     master_domain: string;
+    phase: string;
   },
 >(params: {
   bk_biz_id?: number;
