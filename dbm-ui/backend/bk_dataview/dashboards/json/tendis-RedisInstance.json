@@ -103,7 +103,7 @@
             "y": 1
           },
           "id": 56,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -248,7 +248,7 @@
             "y": 1
           },
           "id": 58,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -393,7 +393,7 @@
             "y": 9
           },
           "id": 60,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -594,7 +594,7 @@
             "y": 9
           },
           "id": 68,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -873,7 +873,7 @@
               ],
               "refId": "A",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / (96 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / (48 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
-              "step": "1m",
+              "step": "2m",
               "type": "range"
             },
             {
@@ -1133,7 +1133,7 @@
               ],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
-              "step": "1m",
+              "step": "2m",
               "type": "range"
             }
           ],
@@ -1204,7 +1204,7 @@
             "y": 17
           },
           "id": 65,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -1495,7 +1495,7 @@
             "y": 17
           },
           "id": 63,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -1696,7 +1696,7 @@
             "y": 25
           },
           "id": 71,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -1898,7 +1898,7 @@
             "y": 25
           },
           "id": 66,
-          "interval": "1m",
+          "interval": "2m",
           "options": {
             "legend": {
               "calcs": [
@@ -2038,7 +2038,7 @@
         "y": 2
       },
       "id": 73,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2164,7 +2164,7 @@
         "y": 2
       },
       "id": 26,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2274,7 +2274,7 @@
         "y": 2
       },
       "id": 28,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2398,7 +2398,7 @@
         "y": 2
       },
       "id": 17,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2501,7 +2501,7 @@
         "y": 2
       },
       "id": 86,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2622,7 +2622,7 @@
         "y": 2
       },
       "id": 36,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2737,7 +2737,7 @@
         "y": 2
       },
       "id": 72,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2848,7 +2848,7 @@
         "y": 2
       },
       "id": 37,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2970,7 +2970,7 @@
         "y": 5
       },
       "id": 84,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3086,7 +3086,7 @@
         "y": 5
       },
       "id": 82,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3201,7 +3201,7 @@
         "y": 5
       },
       "id": 35,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3327,7 +3327,7 @@
         "y": 5
       },
       "id": 85,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3438,7 +3438,7 @@
         "y": 5
       },
       "id": 74,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3599,7 +3599,7 @@
         "y": 5
       },
       "id": 29,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3714,7 +3714,7 @@
         "y": 5
       },
       "id": 75,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3860,7 +3860,7 @@
         "y": 8
       },
       "id": 51,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -3945,7 +3945,7 @@
           ],
           "refId": "A",
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -4011,7 +4011,7 @@
           ],
           "refId": "B",
           "source": "sum (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -4086,7 +4086,7 @@
         "y": 8
       },
       "id": 5,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -4162,7 +4162,7 @@
           ],
           "refId": "A",
           "source": "sum by (cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -4218,7 +4218,7 @@
           ],
           "refId": "B",
           "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "1m",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -4290,7 +4290,7 @@
         "y": 16
       },
       "id": 49,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -4506,7 +4506,7 @@
         "y": 16
       },
       "id": 40,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -4818,7 +4818,7 @@
         "y": 24
       },
       "id": 81,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -4951,7 +4951,7 @@
           ],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}",
-          "step": "1m",
+          "step": "2m",
           "type": "range"
         },
         {
@@ -5066,7 +5066,7 @@
           ],
           "refId": "B",
           "source": "bkmonitor:exporter_dbm_redis_exporter:redis_config_maxclients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}",
-          "step": "1m",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -5138,7 +5138,7 @@
         "y": 24
       },
       "id": 46,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -5356,7 +5356,7 @@
         "y": 32
       },
       "id": 50,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -5488,7 +5488,7 @@
           ],
           "refId": "B",
           "source": "max by (cmd) (1e+06 * (max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) / max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))) )",
-          "step": "",
+          "step": "2m",
           "type": "range"
         }
       ],
@@ -5560,7 +5560,7 @@
         "y": 32
       },
       "id": 52,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -5716,7 +5716,7 @@
         "y": 40
       },
       "id": 47,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -5938,7 +5938,7 @@
         "y": 40
       },
       "id": 83,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "legend": {
           "calcs": [
@@ -6080,7 +6080,7 @@
         "y": 48
       },
       "id": 79,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -6482,7 +6482,7 @@
         "y": 48
       },
       "id": 80,
-      "interval": "1m",
+      "interval": "2m",
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -6911,7 +6911,7 @@
   "timezone": "",
   "title": "tendis-RedisInstance",
   "uid": "RedisInstance",
-  "version": 55,
+  "version": 56,
   "weekStart": "",
   "__inputs": [
     {
