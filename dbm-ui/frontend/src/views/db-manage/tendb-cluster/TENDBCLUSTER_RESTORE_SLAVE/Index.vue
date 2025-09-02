@@ -62,6 +62,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
+            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND"
             :current-spec-id-list="[item.slave.spec_id]"
             required />
           <ResourceTagColumn
@@ -126,7 +127,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
