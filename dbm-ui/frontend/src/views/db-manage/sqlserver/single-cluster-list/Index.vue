@@ -51,7 +51,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: SqlServerSingleModel }">
               <div v-db-console="'sqlserver.singleClusterList.authorize'">
                 <BkButton
                   text

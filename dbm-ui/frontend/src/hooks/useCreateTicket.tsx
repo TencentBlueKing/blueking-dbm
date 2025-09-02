@@ -28,14 +28,17 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
     try {
       loading.value = true;
       const { id: ticketId } = await createTicketNew<T>(params);
-      // 如果当前路由非工具箱路由
-      if (ticketType !== route.meta.routeName) {
-        ticketMessage(ticketId);
-        if (options?.onSuccess) {
-          options.onSuccess(ticketId);
-        }
+      if (options?.onSuccess) {
+        options.onSuccess(ticketId);
         return;
       }
+
+      // 如果当前路由非工具箱路由
+      if (!route.meta.ticketType) {
+        ticketMessage(ticketId);
+        return;
+      }
+
       const toolboxResultMap = {
         MONGODB: 'MongodbToolboxResult',
         MYSQL: 'MysqlToolboxResult',
@@ -44,7 +47,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
         SQLSERVER: 'SqlserverToolboxResult',
         TENDBCLUSTER: 'TendbclusterToolboxResult',
       };
-      const targetTicketType = route.meta.routeName as string;
+      const targetTicketType = route.meta.ticketType as string;
       const targetDb = targetTicketType.split('_')[0];
       const resultRouteName = toolboxResultMap[targetDb as keyof typeof toolboxResultMap];
       if (resultRouteName) {

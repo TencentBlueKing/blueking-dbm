@@ -41,6 +41,7 @@
       </span>
       <DropdownExportExcel
         v-db-console="'mongodb.replicaSetList.export'"
+        :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
@@ -71,7 +72,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: MongodbModel }">
             <div v-db-console="'mongodb.replicaSetList.getAccess'">
               <BkButton
                 :disabled="data.isOffline"
