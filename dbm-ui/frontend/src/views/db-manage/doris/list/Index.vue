@@ -57,7 +57,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.DORIS">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: DorisModel }">
             <div v-db-console="'doris.clusterManage.manage'">
               <a
                 :href="data.access_url"

@@ -122,36 +122,12 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.spiderMigateUpgrade',
     }),
-    {
-      path: 'db-table-backup/:page?',
-      name: 'spiderDbTableBackup',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbTableBackup',
-        navName: t('库表备份'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-table-backup/Index.vue'),
-    },
-    {
-      path: 'db-backup/:page?',
-      name: 'spiderDbBackup',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbBackup',
-        navName: t('全库备份'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
-    },
-    // 库表闪回
-    {
-      path: 'flashback/:page?',
-      name: 'spiderFlashback',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.flashback',
-        navName: t('闪回'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
-    },
-    // 记录级闪回
-    // 两个闪回两个路由，这里没问题
+    createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'), {
+      dbConsole: 'tendbCluster.toolbox.dbTableBackup',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_FULL_BACKUP, t('全库备份'), {
+      dbConsole: 'tendbCluster.toolbox.dbBackup',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'), {
       dbConsole: 'tendbCluster.toolbox.flashback',
     }),
@@ -167,36 +143,18 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
     },
-    {
-      path: 'db-clear/:page?',
-      name: 'spiderDbClear',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbClear',
-        navName: t('清档'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-clear/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'), {
+      dbConsole: 'tendbCluster.toolbox.dbClear',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_CHECKSUM, t('数据校验修复'), {
       dbConsole: 'tendbCluster.toolbox.checksum',
     }),
-    {
-      path: 'privilege-clone-client/:page?',
-      name: 'spiderPrivilegeCloneClient',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.clientPermissionClone',
-        navName: t('客户端权限克隆'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/privilege-clone-client/Index.vue'),
-    },
-    {
-      path: 'privilege-clone-inst/:page?',
-      name: 'spiderPrivilegeCloneInst',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        navName: t('DB 实例权限克隆'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/privilege-clone-inst/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES, t('客户端权限克隆'), {
+      dbConsole: 'tendbCluster.toolbox.clientPermissionClone',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, t('DB 实例权限克隆'), {
+      dbConsole: 'tendbCluster.toolbox.dbInstancePermissionClone',
+    }),
     {
       path: 'openarea-template',
       name: 'spiderOpenareaTemplate',

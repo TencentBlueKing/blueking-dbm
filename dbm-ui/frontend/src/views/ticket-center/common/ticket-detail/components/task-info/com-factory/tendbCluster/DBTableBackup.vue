@@ -25,7 +25,7 @@
       :label="t('备份位置')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ data.backup_local }}
+        {{ data.spider_mnt_address || 'RemoteDR' }}
       </template>
     </BkTableColumn>
     <BkTableColumn

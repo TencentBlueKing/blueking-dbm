@@ -13,6 +13,7 @@
 
 <template>
   <BkTable
+    class="mysql-client-clone-render-table"
     :data="ticketDetails.details.clone_data"
     :show-overflow="false">
     <BkTableColumn :label="t('源客户端IP')">
@@ -25,20 +26,22 @@
         {{ data.module }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新客户端 IP')">
+    <BkTableColumn :label="t('新客户端IP')">
       <template #default="{ data }: { data: RowData }">
-        <template
-          v-for="(item, index) in data.target"
-          :key="index">
-          <p class="pt-2 pb-2">
-            {{ item }}
-            <i
-              v-if="index === 0"
-              class="db-icon-copy"
-              :v-bk-tooltips="t('复制IP')"
-              @click="copyIp(data.target)" />
-          </p>
-        </template>
+        <div class="render-target">
+          <template
+            v-for="(item, index) in data.target"
+            :key="index">
+            <p class="pt-2 pb-2">
+              {{ item }}
+            </p>
+          </template>
+          <DbIcon
+            class="db-icon-copy"
+            type="copy"
+            :v-bk-tooltips="t('复制IP')"
+            @click="copyIp(data.target)" />
+        </div>
       </template>
     </BkTableColumn>
   </BkTable>
@@ -56,7 +59,7 @@
     ticketDetails: TicketModel<TendbCluster.ClientCloneRules>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  type RowData = Props['ticketDetails']['details']['clone_data'][number];
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
@@ -65,9 +68,33 @@
 
   defineProps<Props>();
 
+  const { t } = useI18n();
+
   const copyIp = (data: string[]) => {
     execCopy(data.join('\n'), t('复制成功，共n条', { n: data.length }));
   };
-
-  const { t } = useI18n();
 </script>
+<style lang="less" scoped>
+  .mysql-client-clone-render-table {
+    .render-target {
+      position: relative;
+      width: 100px;
+
+      .db-icon-copy {
+        position: absolute;
+        top: 8px;
+        right: 14px;
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+      &:hover {
+        .db-icon-copy {
+          display: block;
+        }
+      }
+    }
+  }
+</style>

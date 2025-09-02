@@ -7,7 +7,7 @@
     v-bind="{ ...attrs, ...props }"
     :value="modelValue"
     @change="handleAppChange">
-    <template #value="{ data }">
+    <template #value="{ data }: { data: IAppItem }">
       <TextOverflowLayout class="db-select-with-permission-trigger">
         <span>{{ data.name }}</span>
         <span> (#{{ data.bk_biz_id }}</span>
@@ -15,11 +15,11 @@
         <span>)</span>
       </TextOverflowLayout>
     </template>
-    <template #default="{ data }">
+    <template #default="{ data }: { data: IAppItem }">
       <AuthTemplate
         :action-id="permissionActionId"
         :biz-id="data.bk_biz_id"
-        :permission="data.permission[permissionActionId]"
+        :permission="data.permission[permissionActionId as 'db_manage']"
         :resource="data.bk_biz_id">
         <template #default="{ permission }">
           <div

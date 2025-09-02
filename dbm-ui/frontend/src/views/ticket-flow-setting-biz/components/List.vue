@@ -53,7 +53,7 @@
             :label="t('单据类型')"
             :min-width="240"
             :rowspan="rowSpan">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <TextOverflowLayout>
                 {{ data.ticket_type_display }}
                 <template #append>
@@ -78,7 +78,7 @@
           <BkTableColumn
             :label="t('目标')"
             :min-width="200">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <RenderRow
                 v-if="data.isClusterTarget"
                 :data="data.clusterDomainList"
@@ -152,7 +152,7 @@
             field="need_itsm"
             :label="() => renderHead('need_itsm')"
             :width="120">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <span v-if="data.configs.need_itsm">
                 {{ t('需审批') }}
               </span>
@@ -167,7 +167,7 @@
             field="need_manual_confirm"
             :label="() => renderHead('need_manual_confirm')"
             :width="120">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <span v-if="data.configs.need_manual_confirm">
                 {{ t('需确认') }}
               </span>
@@ -183,7 +183,7 @@
             :label="t('流程预览')"
             :min-width="400"
             show-overflow-tooltip>
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <span>{{ data.flow_desc.join(' -> ') }}</span>
             </template>
           </BkTableColumn>
@@ -199,7 +199,7 @@
             show-overflow-tooltip
             sort
             :width="200" />
-            <BkTableColumn
+          <BkTableColumn
             field="remark"
             :label="t('备注')"
             show-overflow-tooltip
@@ -208,7 +208,7 @@
             fixed="right"
             :label="t('操作')"
             :width="100">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: RowData }">
               <AuthButton
                 v-bk-tooltips="{
                   content: t('内置策略不支持编辑'),
@@ -282,7 +282,7 @@
   import DeleteConfig from './DeleteConfig.vue';
   import EditConfig from './EditConfig.vue';
 
-  interface IDataRow extends TicketFlowDescribeModel {
+  interface RowData extends TicketFlowDescribeModel {
     rowSpan: number;
   }
 
@@ -301,7 +301,7 @@
   const showEditConfig = ref<Record<string, boolean>>({});
   const isAnomalies = ref(false);
   const pagination = ref(useDefaultPagination());
-  const allTableData = shallowRef<IDataRow[]>([]);
+  const allTableData = shallowRef<RowData[]>([]);
   const appendConfig = reactive({
     data: {} as TicketFlowDescribeModel,
     isEdit: false,
@@ -443,7 +443,7 @@
     );
   };
 
-  const rowSpan = ({ row }: { colIndex: number; column: any; row: IDataRow; rowIndex: number }) => row.rowSpan;
+  const rowSpan = ({ row }: { colIndex: number; column: any; row: RowData; rowIndex: number }) => row.rowSpan;
 
   const fetchData = () => {
     queryTicketFlowDescribeRun({
@@ -462,7 +462,7 @@
     handleChangePage(1);
   };
 
-  const handleShowAppendConfig = (data: IDataRow, e: PointerEvent, isEdit = false) => {
+  const handleShowAppendConfig = (data: RowData, e: PointerEvent, isEdit = false) => {
     e?.stopPropagation();
     const cloneData = _.cloneDeep(data);
     if (!isEdit) {

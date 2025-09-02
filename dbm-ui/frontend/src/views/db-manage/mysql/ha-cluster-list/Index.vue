@@ -68,7 +68,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.TENDBHA">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: TendbhaModel }">
               <div v-db-console="'mysql.haClusterList.authorize'">
                 <BkButton
                   :disabled="data.isOffline"

@@ -12,27 +12,50 @@
 -->
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :width="240">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('备份DB名')">
+    <BkTableColumn
+      :label="t('备份位置')"
+      :width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{
+          ticketDetails.details.clusters[data.cluster_id]
+            ? ticketDetails.details.clusters[data.cluster_id].cluster_type === ClusterTypes.TENDBHA
+              ? 'Slave'
+              : 'Master'
+            : '--'
+        }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('备份DB名')"
+      :width="180">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB名')">
+    <BkTableColumn
+      :label="t('忽略DB名')"
+      :width="180">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('备份表名')">
+    <BkTableColumn
+      :label="t('备份表名')"
+      :width="180">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
+    <BkTableColumn
+      :label="t('忽略表名')"
+      :width="180">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
@@ -44,7 +67,7 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TagBlock from '@components/tag-block/Index.vue';
 

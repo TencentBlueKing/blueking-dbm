@@ -43,7 +43,7 @@
       <BkTableColumn
         :label="t('Agent 状态')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           <DbStatus
             v-if="data.host_info?.alive === 1"
             theme="success">

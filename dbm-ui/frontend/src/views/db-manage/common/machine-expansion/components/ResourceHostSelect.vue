@@ -39,7 +39,7 @@
         field="agent_status"
         :label="t('Agent状态')"
         :min-width="200">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           <HostAgentStatus :data="data.agent_status" />
         </template>
       </BkTableColumn>
@@ -51,7 +51,7 @@
         fixed="right"
         :label="t('操作')"
         :min-width="100">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           <BkButton
             text
             theme="primary"

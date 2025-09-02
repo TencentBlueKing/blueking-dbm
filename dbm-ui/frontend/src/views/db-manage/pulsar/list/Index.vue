@@ -56,7 +56,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.PULSAR">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: PulsarModel }">
             <div v-db-console="'pulsar.clusterManage.manage'">
               <a
                 :href="data.access_url"

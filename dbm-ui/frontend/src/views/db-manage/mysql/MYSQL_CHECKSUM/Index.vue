@@ -170,7 +170,7 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import { format } from 'date-fns';
+  import dayjs from 'dayjs';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -418,7 +418,7 @@
         })),
         remark: formData.payload.remark,
         runtime_hour: formData.runtime_hour,
-        timing: formatDateToUTC(format(new Date(formData.timing), 'yyyy-MM-dd HH:mm:ss')),
+        timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
       },
       ...formData.payload,
     });

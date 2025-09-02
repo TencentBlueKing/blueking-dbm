@@ -101,7 +101,7 @@
   const isClear = ref(false);
 
   const handleCopy = () => {
-    copy(props.config.map((item) => `${item.case}`).join('\t'));
+    copy(props.config.map((item) => `${item.case}`).join('\t') + '\n');
   };
 
   const handleClose = () => {
