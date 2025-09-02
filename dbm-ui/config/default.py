@@ -221,7 +221,7 @@ DATABASES = {
         "PASSWORD": os.environ.get("REPORT_DB_PASSWORD", ""),
         "HOST": os.environ.get("REPORT_DB_HOST", "127.0.0.1"),
         "PORT": os.environ.get("REPORT_DB_PORT", "3306"),
-        "OPTIONS": {"init_command": "SET default_storage_engine=INNODB", "charset": "utf8mb4"},
+        "OPTIONS": {"init_command": """SET default_storage_engine=INNODB,time_zone='+00:00'""", "charset": "utf8mb4"},
         "TEST": {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",

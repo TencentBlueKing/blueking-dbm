@@ -12,7 +12,7 @@ import copy
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 from django.db.models import Q
@@ -23,8 +23,8 @@ from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster
-from backend.db_meta.models.mysql_backup_result import MysqlBackupResult
-from backend.db_meta.models.mysql_binlog_backup_result import MysqlBinlogResult
+from backend.db_report.models.mysql_backup_result import MysqlBackupResult
+from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
 from backend.utils.time import compare_time
 
@@ -126,9 +126,10 @@ class MySQLBackupHandler:
                 conditions &= Q(backup_host__in=self.instance_ips)
             if self.deadlines_days > 0:
                 logger.info(_("指定备份最小时间 {} 天前").format(self.deadlines_days))
-                begin_time = datetime.now().astimezone() - timedelta(days=self.deadlines_days)
+                begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
                 conditions &= Q(backup_consistent_time__gte=begin_time)
             if latest_time is not None:
+                latest_time = latest_time.astimezone(timezone.utc)
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
                 # 非空说明截止时间有指定
                 conditions &= Q(backup_consistent_time__lte=latest_time)
@@ -142,9 +143,7 @@ class MySQLBackupHandler:
                 logger.info(_("指定备份实例的ip必须在指定ip里 {}".format(self.filter_ips)))
                 conditions &= Q(backup_host__in=self.filter_ips)
 
-        backup_infos = (
-            MysqlBackupResult.objects.using("report_db").filter(conditions).order_by("-backup_consistent_time")
-        )
+        backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
         logger.info(self.query)
         if backup_infos is None or len(backup_infos) == 0:
@@ -321,12 +320,14 @@ class MySQLBackupHandler:
         """
         conditions = Q(cluster_id=self.cluster.id, host=host, port=port)
         if end_time is None:
-            end_time = datetime.now().astimezone()
+            end_time = datetime.now().astimezone(timezone.utc)
+        start_time = start_time.astimezone(timezone.utc)
+        end_time = end_time.astimezone(timezone.utc)
         conditions &= Q(start_time__gte=start_time) & Q(stop_time__lte=end_time)
         logger.info(
             _("binlog查询时间范围是: {} {}".format(start_time.astimezone().isoformat(), end_time.astimezone().isoformat()))
         )
-        binlog_infos = MysqlBinlogResult.objects.using("report_db").filter(conditions).order_by("-start_time")
+        binlog_infos = MysqlBinlogResult.objects.filter(conditions).order_by("-start_time")
         self.query = str(binlog_infos.query)
         logger.info(self.query)
         if binlog_infos is None or len(binlog_infos) == 0:
