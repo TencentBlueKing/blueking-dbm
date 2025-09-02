@@ -53,14 +53,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('缩容Proxy')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
-  {
-    path: 'db-table-backup/:page?',
-    name: 'MySQLDBTableBackup',
-    meta: {
-      navName: t('库表备份'),
-    },
-    component: () => import('@views/db-manage/mysql/db-table-backup/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
   {
     path: 'db-backup/:page?',
     name: 'MySQLDBBackup',

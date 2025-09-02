@@ -47,7 +47,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.dbTableBackup',
-        id: 'MySQLDBTableBackup',
+        id: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'copy',
       },
