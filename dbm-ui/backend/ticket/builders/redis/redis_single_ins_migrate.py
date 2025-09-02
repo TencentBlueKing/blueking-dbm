@@ -31,7 +31,11 @@ class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serialize
     class RedisSingleInsMigrateItemSerializer(DisplayInfoSerializer):
         db_version = serializers.CharField(help_text=_("Redis版本"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
-        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"))
+        migrate_domain = serializers.CharField(help_text=_("迁移的域名"), required=False)
+        migrate_ip = serializers.CharField(help_text=_("迁移的ip"), required=False)
+        migrate_type = serializers.CharField(help_text=_("迁移的类型"), required=False)
+        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
+        origin_old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
         src_cluster = serializers.ListField(child=serializers.JSONField(help_text=_("替换主机信息集合")))
 
     ip_source = serializers.ChoiceField(
@@ -99,7 +103,8 @@ class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         for info in self.ticket.details["infos"]:
-            for role in info["old_nodes"]:
-                src_ins_list = [f'{node["ip"]}:{node["port"]}' for node in info["old_nodes"][role]]
+            info["old_nodes"] = {}
+            for role in info["origin_old_nodes"]:
+                src_ins_list = [f'{node["ip"]}:{node["port"]}' for node in info["origin_old_nodes"][role]]
                 info["old_nodes"][role] = get_migrate_shutdown_hosts(src_ins_list, self.ticket.bk_biz_id)
         super().patch_ticket_detail()

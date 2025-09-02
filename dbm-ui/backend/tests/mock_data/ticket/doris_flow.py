@@ -419,7 +419,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 1, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 1,
         "bk_agent_id": "",
     },
@@ -450,7 +450,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 1, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 1,
         "bk_agent_id": "",
     },
@@ -481,7 +481,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 1, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 1,
         "bk_agent_id": "",
     },
@@ -512,7 +512,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 2, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 2,
         "bk_agent_id": "",
     },
@@ -543,7 +543,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 2, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 2,
         "bk_agent_id": "",
     },
@@ -574,7 +574,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -605,7 +605,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -636,7 +636,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -667,7 +667,7 @@ DORIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 64, "min": 2}, "mem": {"max": 64, "min": 4}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },

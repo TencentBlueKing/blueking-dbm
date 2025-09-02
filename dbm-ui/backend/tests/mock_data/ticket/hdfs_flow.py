@@ -39,7 +39,7 @@ HDFS_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "1核_1G_10G",
                 "storage_spec": [
-                    {"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_93"}
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_93"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -52,7 +52,7 @@ HDFS_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "1核_1G_10G",
                 "storage_spec": [
-                    {"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_53"}
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_53"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -65,7 +65,7 @@ HDFS_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "1核_1G_10G",
                 "storage_spec": [
-                    {"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_69"}
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_69"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -102,7 +102,7 @@ HDFS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "12",
         "enable": True,
         "instance_num": 0,
@@ -120,7 +120,7 @@ HDFS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "212112",
         "enable": True,
         "instance_num": 0,
