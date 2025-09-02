@@ -113,7 +113,7 @@
     [TicketTypes.MYSQL_FIXPOINT]: TicketTypes.MYSQL_FIXPOINT, // mysql 构造
     [TicketTypes.MYSQL_FLASHBACK]: TicketTypes.MYSQL_FLASHBACK, // Mysql 闪回
     [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
-    [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: 'MySQLDBTableBackup', // Mysql 库表备份
+    [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, // Mysql 库表备份
     [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
     [TicketTypes.MYSQL_HA_DISABLE]: 'DatabaseTendbha', // Mysql 禁用
     [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
