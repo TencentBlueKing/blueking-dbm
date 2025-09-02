@@ -168,12 +168,12 @@
 
   .bk-quick-search-value-tag-text {
     display: -webkit-box;
-    max-height: 330px;
+    max-height: 220px;
     overflow: hidden;
     text-overflow: ellipsis; /* 显示省略号 */
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 15; /* 限制显示行数 */
-    line-clamp: 15; /* 限制显示行数 */
+    -webkit-line-clamp: 10; /* 限制显示行数 */
+    line-clamp: 10; /* 限制显示行数 */
   }
 
   .bk-quick-search-value-tag-remote-btn {

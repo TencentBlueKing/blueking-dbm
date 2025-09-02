@@ -24,6 +24,7 @@ export default (options = {} as { exclude: string[] }) => {
     if (params.keyword) {
       Object.assign(requestParams, { fuzzy_lookups: params.keyword });
     }
+
     return getUserList(requestParams).then((data) =>
       data.results.map((item) => ({
         label: `${item.display_name}(${item.username})`,
@@ -81,32 +82,13 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'multiple',
       },
       {
-        id: 'todo_operators',
-        name: t('当前处理人'),
-        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
-        remoteSearch: true,
-        type: 'multiple',
-      },
-      {
-        id: 'todo_helpers',
-        name: t('当前协助人'),
-        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
-        remoteSearch: true,
-        type: 'multiple',
-      },
-      {
         id: 'create_at',
         name: t('申请时间'),
         props: {
           shortcuts: [
             {
               text: t('今天'),
-              value: () => {
-                const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 7);
-                return [start, end];
-              },
+              value: () => [dayjs().toDate(), dayjs().toDate()],
             },
             {
               text: t('近 7 天'),

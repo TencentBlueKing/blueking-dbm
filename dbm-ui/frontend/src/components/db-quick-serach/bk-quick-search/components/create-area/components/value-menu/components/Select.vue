@@ -1,52 +1,58 @@
 <template>
   <div
     ref="root"
-    class="bk-quick-search-type-select">
+    class="bk-quick-search-type-select"
+    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-type-menu-filter-box">
       <Input
-        v-model="serachKey"
+        v-model="filterKey"
         borderless
         clearable
         placeholder="请输入关键字">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
-    <div
-      ref="layout"
-      class="bk-quick-search-value-wrapper">
+    <BkLoading :loading="isRemoteListLoading">
       <div
-        v-for="(valueItem, index) in renderList"
-        :key="valueItem.value"
-        class="value-item"
-        :class="{ active: activeIndex === index }"
-        @click="handleChange(valueItem)">
-        <Radio
-          :checked="valueItem.value === localValue"
-          style="pointer-events: none" />
-        {{ valueItem.label }}
+        ref="layout"
+        class="bk-quick-search-value-wrapper">
+        <div
+          v-for="(valueItem, index) in renderList"
+          :key="valueItem.value"
+          class="value-item"
+          :class="{ active: activeIndex === index }"
+          @click="handleChange(valueItem)">
+          <Radio
+            :checked="valueItem.value === localValue"
+            style="pointer-events: none" />
+          {{ valueItem.label }}
+        </div>
       </div>
-    </div>
-    <div
-      v-if="serachKey && renderList.length < 1"
-      class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ serachKey }}" 相关数据
-    </div>
+      <div
+        v-if="filterKey && renderList.length < 1"
+        class="bk-quick-search-type-menu-filter-empty">
+        <BkException
+          description="搜索为空"
+          scene="part"
+          type="search-empty" />
+      </div>
+    </BkLoading>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Input, Radio } from 'tdesign-vue-next';
-  import { ref, useTemplateRef } from 'vue';
+  import { onMounted, ref, useTemplateRef } from 'vue';
 
-  import useMenuKeyboard from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
+  import useMenuKeyboard from '@components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
+  import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+  import { makeMap } from '@components/db-quick-serach/bk-quick-search/utils';
+
+  import useMenuList from '../hooks/useMenuList';
 
   interface Props {
-    list: {
-      label: string;
-      value: string | number;
-    }[];
-    remoteSearch: boolean;
+    config: ContextProps['data'][number];
   }
 
   interface IResult {
@@ -64,19 +70,23 @@
     default: () => [],
   });
 
+  const defaultModelValue = [...modelValue.value];
+
+  const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
+
   const rootRef = useTemplateRef<HTMLElement>('root');
   const layoutRef = useTemplateRef('layout');
   const contentMinWidth = ref(0);
   const localValue = ref<string | number>('');
-  const serachKey = ref('');
 
   const renderList = computed(() => {
-    const keyword = `${serachKey.value || ''}`.trim().toLowerCase();
-    if (!keyword || props.remoteSearch) {
-      return props.list;
+    const keyword = filterKey.value.trim().toLowerCase();
+    if (!keyword) {
+      const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
+      return [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
     }
 
-    return _.filter(props.list, (item) => item.label.toLowerCase().includes(keyword));
+    return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
   });
 
   watch(
@@ -93,14 +103,14 @@
     },
   );
 
-  watch(
-    () => props.list,
-    () => {
-      nextTick(() => {
-        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
-      });
-    },
-  );
+  watch(list, () => {
+    if (list.value.length < 1) {
+      return;
+    }
+    nextTick(() => {
+      contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+    });
+  });
 
   const handleChange = (data: IResult) => {
     localValue.value = data.value;
@@ -117,6 +127,6 @@
 </script>
 <style lang="less">
   .bk-quick-search-type-select {
-    padding: 8px 12px;
+    padding-bottom: 8px;
   }
 </style>

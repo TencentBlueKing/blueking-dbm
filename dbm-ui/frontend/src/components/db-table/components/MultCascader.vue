@@ -233,6 +233,7 @@
       display: flex;
       max-height: 280px;
       margin-top: 8px;
+      margin-bottom: 8px;
       overflow: hidden;
     }
 
@@ -249,6 +250,7 @@
 
     .search-wrapper {
       flex: 1;
+      overflow-y: auto;
     }
 
     .value-item {

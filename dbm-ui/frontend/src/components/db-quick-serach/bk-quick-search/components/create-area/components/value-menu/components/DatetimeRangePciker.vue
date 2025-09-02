@@ -1,13 +1,18 @@
 <template>
-  <ElDatePickerPanel
-    v-model="localValue"
-    :border="false"
-    type="datetimerange"
-    @update:model-value="handleChange" />
+  <div>
+    <ElDatePickerPanel
+      v-model="localValue"
+      :border="false"
+      v-bind="attrs"
+      type="datetimerange"
+      @pick="handlePick"
+      @update:model-value="handleChange" />
+  </div>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import { ElDatePickerPanel } from 'element-plus';
+  import { useAttrs } from 'vue';
 
   interface IResult {
     label: string;
@@ -21,6 +26,8 @@
   const modelValue = defineModel<IResult[]>({
     default: () => [],
   });
+
+  const attrs = useAttrs();
 
   const localValue = ref<IResult['value'][]>(['', '']);
 
@@ -52,5 +59,9 @@
         value: endDatetimeFormat,
       },
     ]);
+  };
+
+  const handlePick = (value: any) => {
+    console.log('pick = ', value);
   };
 </script>

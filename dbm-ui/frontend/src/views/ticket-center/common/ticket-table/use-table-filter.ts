@@ -11,6 +11,8 @@ import { useGlobalBizs } from '@stores';
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
 
+import MultipleSelect from '@/components/db-table/components/MultipleSelect.vue';
+
 type ITableFilter = Record<
   string,
   {
@@ -77,19 +79,49 @@ export default () => {
         component: markRaw(DatetimeRange),
         name: t('申请时间'),
         props: {
-          presets: {
-            [t('今天')]: [dayjs().toDate(), dayjs().toDate()],
-            [t('近 15 天')]: [dayjs().subtract(14, 'day').toDate(), dayjs().toDate()],
-            [t('近 30 天')]: [dayjs().subtract(29, 'day').toDate(), dayjs().toDate()],
-            [t('近 7 天')]: [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
-          },
+          shortcuts: [
+            {
+              text: t('今天'),
+              value: () => [dayjs().toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 7 天'),
+              value: () => [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 15 天'),
+              value: () => [dayjs().subtract(14, 'day').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 30 天'),
+              value: () => [dayjs().subtract(29, 'day').toDate(), dayjs().toDate()],
+            },
+          ],
         },
+        showConfirmAndReset: true,
       },
       creator: {
-        list: userList.value,
+        component: markRaw(MultipleSelect),
         name: t('申请人'),
+        props: {
+          remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+            const requestParams = {};
+            if (params.defaultValue) {
+              Object.assign(requestParams, { exact_lookups: params.defaultValue });
+            }
+            if (params.keyword) {
+              Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+            }
+            return getUserList(requestParams).then((res) =>
+              res.results.map((item) => ({
+                label: item.display_name,
+                value: item.username,
+              })),
+            );
+          },
+          remoteSearch: true,
+        },
         showConfirmAndReset: true,
-        type: 'multiple',
       },
       ids: {
         name: t('单号'),
@@ -120,18 +152,6 @@ export default () => {
           list: ticketTypeGroupList.value,
         },
         showConfirmAndReset: true,
-      },
-      todo_helpers: {
-        list: userList.value,
-        name: t('当前协助人'),
-        showConfirmAndReset: true,
-        type: 'multiple',
-      },
-      todo_operators: {
-        list: userList.value,
-        name: t('当前处理人'),
-        showConfirmAndReset: true,
-        type: 'multiple',
       },
     };
   });
