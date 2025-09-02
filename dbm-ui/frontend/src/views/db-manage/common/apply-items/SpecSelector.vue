@@ -91,6 +91,12 @@
     },
     onSuccess: () => {
       list.value = data.value?.results ?? [];
+      if (props.modelValue) {
+        const isExist = list.value.some((item) => item.spec_id === props.modelValue);
+        if (!isExist) {
+          handleChange('');
+        }
+      }
     },
   });
 
