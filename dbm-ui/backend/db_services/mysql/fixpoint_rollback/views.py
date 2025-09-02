@@ -61,7 +61,8 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=validated_data["days"])
         handler = FixPointRollbackHandler(validated_data["cluster_id"], check_full_backup=True)
-        logs = handler.query_backup_log_from_bklog(start_time, end_time)
+        kwargs.update({"backup_method": validated_data.pop("backup_method", "")})
+        logs = handler.query_backup_log_from_bklog(start_time, end_time, **kwargs)
         logs.sort(key=lambda x: x["backup_time"], reverse=True)
         return Response(logs)
 
@@ -74,7 +75,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
     def query_backup_log_from_local(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        kwargs.update({"backup_type": "default"})
+        kwargs.update({"backup_method": validated_data.pop("backup_method", "")})
         logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_local(**kwargs)
         return Response(logs)
 
@@ -95,7 +96,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
             handler.query_latest_backup_log(
                 rollback_time=str2datetime(validated_data["rollback_time"]),
                 backup_source=validated_data.get("backup_source"),
-                backup_type=validated_data.pop("backup_type"),
+                backup_method=validated_data.pop("backup_method"),
             )
         )
 
