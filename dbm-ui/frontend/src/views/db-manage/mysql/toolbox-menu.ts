@@ -53,7 +53,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbBackup',
-        id: 'MySQLDBBackup',
+        id: TicketTypes.MYSQL_HA_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'copy',
       },

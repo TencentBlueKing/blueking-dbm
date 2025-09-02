@@ -117,7 +117,7 @@
     [TicketTypes.MYSQL_HA_DESTROY]: 'DatabaseTendbha', // Mysql 删除
     [TicketTypes.MYSQL_HA_DISABLE]: 'DatabaseTendbha', // Mysql 禁用
     [TicketTypes.MYSQL_HA_ENABLE]: 'DatabaseTendbha', // Mysql 启用
-    [TicketTypes.MYSQL_HA_FULL_BACKUP]: 'MySQLDBBackup', // Mysql 全库备份
+    [TicketTypes.MYSQL_HA_FULL_BACKUP]: TicketTypes.MYSQL_HA_FULL_BACKUP, // Mysql 全库备份
     [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: 'MySQLDBClear', // Mysql 高可用清档
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: TicketTypes.MYSQL_IMPORT_SQLFILE, // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: 'MySQLPrivilegeCloneInst', // Mysql DB实例权限克隆
