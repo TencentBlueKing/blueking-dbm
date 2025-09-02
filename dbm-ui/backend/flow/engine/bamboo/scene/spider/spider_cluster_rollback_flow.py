@@ -252,7 +252,7 @@ class TenDBRollBackDataFlow(object):
                 backup_info_tmp, spider_restore_sub_flow = tendbha_rollback_data_sub_flow(
                     root_id=self.root_id,
                     uid=self.ticket_data["uid"],
-                    cluster_model=target_cluster,
+                    cluster_model=source_cluster,
                     cluster_info=spd_cluster,
                     backup_info=backup_info["spider_node"],
                 )
@@ -303,7 +303,7 @@ class TenDBRollBackDataFlow(object):
                     backup_info_tmp, dbctl_restore_sub_flow = tendbha_rollback_data_sub_flow(
                         root_id=self.root_id,
                         uid=self.ticket_data["uid"],
-                        cluster_model=target_cluster,
+                        cluster_model=source_cluster,
                         cluster_info=ctl_cluster,
                         backup_info=backup_info["tdbctl_node"],
                     )
@@ -397,7 +397,7 @@ class TenDBRollBackDataFlow(object):
                 backup_info_tmp, master_restore_sub_flow = tendbha_rollback_data_sub_flow(
                     root_id=self.root_id,
                     uid=self.ticket_data["uid"],
-                    cluster_model=target_cluster,
+                    cluster_model=source_cluster,
                     cluster_info=master_cluster_info,
                     backup_info=shard_backup_info,
                 )
@@ -421,7 +421,7 @@ class TenDBRollBackDataFlow(object):
                     backup_info_tmp, slave_restore_sub_flow = tendbha_rollback_data_sub_flow(
                         root_id=self.root_id,
                         uid=self.ticket_data["uid"],
-                        cluster_model=target_cluster,
+                        cluster_model=source_cluster,
                         cluster_info=slave_cluster_info,
                         backup_info=shard_backup_info,
                     )
