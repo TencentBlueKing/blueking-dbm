@@ -43,7 +43,7 @@
             v-model="formData.backup_method"
             class="mb-12"
             style="width: 100%">
-            <BkRadio :label="BackupMethod.non_full_by_regular">
+            <BkRadio label="all">
               {{ t('全部') }}
             </BkRadio>
             <BkRadio :label="BackupMethod.full_by_ticket">
@@ -90,7 +90,7 @@
   const formRef = ref();
   const formData = ref({
     backup_time: '',
-    backup_method: BackupMethod.non_full_by_regular,
+    backup_method: 'all',
   });
 
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
@@ -111,7 +111,7 @@
       }
       fetchData({
         backup_source: props.backupSource,
-        backup_method: formData.value.backup_method,
+        backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.cluster.id,
         rollback_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),

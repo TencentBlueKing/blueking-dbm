@@ -272,7 +272,7 @@
         databases: item.databases ? [item.databases] : [],
         start_time: item.start_time || '',
         end_time: item.end_time || '',
-        rows_filter: item.rows_filter?.replace('\\n', '\n') || '',
+        rows_filter: item.rows_filter?.replaceAll('\\n', '\n') || '',
       }),
     );
     if (isClear) {
