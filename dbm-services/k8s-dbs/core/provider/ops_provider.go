@@ -25,7 +25,7 @@ import (
 	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
-	"k8s-dbs/errors"
+	dbserrors "k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
@@ -137,6 +137,17 @@ func (o *OpsRequestProvider) withMetaDataSync(
 	clusterOpsFn ClusterOperationFn,
 	releaseUpdateFn ReleaseMetaUpdateFn,
 ) (*coreentity.Metadata, error) {
+	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	dbsCtx.K8sClusterConfigID = k8sClusterConfig.ID
+	dbsCtx.K8sClusterConfig = k8sClusterConfig
+	_, err = metautil.GetClusterMeta(o.clusterMetaProvider, request, dbsCtx.K8sClusterConfig)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
 	// 记录审计日志
 	addedRequestEntity, err := metautil.SaveAuditLog(o.reqRecordProvider, request, dbsCtx.RequestType)
 	if err != nil {
@@ -189,11 +200,11 @@ func (o *OpsRequestProvider) doVerticalScaling(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	verticalScaling, err := coreutil.CreateVerticalScalingObject(request)
@@ -209,7 +220,7 @@ func (o *OpsRequestProvider) doVerticalScaling(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, verticalScaling); err != nil {
@@ -255,7 +266,7 @@ func (o *OpsRequestProvider) checkClusterExists(
 ) (*metaentity.K8sCrdClusterEntity, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
 			fmt.Errorf("未找到对应的 k8s 集群信息,集群名称:%s, 错误详情:%w", request.K8sClusterName, err))
 	}
 	ctx.K8sClusterConfig = k8sClusterConfig
@@ -265,12 +276,12 @@ func (o *OpsRequestProvider) checkClusterExists(
 		Namespace:          request.Namespace,
 	})
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
 			fmt.Errorf("集群 %s 元数据查找失败，请稍后请重试: %w", request.ClusterName, err))
 	}
 	if clusterEntity == nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError,
-			fmt.Errorf("集群 %s 不存在，请确认集群是否已部署: %w", request.ClusterName, err))
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
+			fmt.Errorf("集群 %s 不存在，请确认集群是否已部署", request.ClusterName))
 	}
 	return clusterEntity, nil
 }
@@ -282,11 +293,11 @@ func (o *OpsRequestProvider) doHorizontalScaling(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	horizontalScaling, err := coreutil.CreateHorizontalScalingObject(request)
@@ -303,7 +314,7 @@ func (o *OpsRequestProvider) doHorizontalScaling(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, horizontalScaling); err != nil {
@@ -349,16 +360,16 @@ func (o *OpsRequestProvider) doVolumeExpansion(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	clusterInfo, err := getClusterInfo(request, k8sClient)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetClusterError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError, err)
 	}
 
 	volumeExpansion, err := coreutil.CreateVolumeExpansionObject(request, clusterInfo)
@@ -374,7 +385,7 @@ func (o *OpsRequestProvider) doVolumeExpansion(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, volumeExpansion); err != nil {
@@ -403,11 +414,11 @@ func (o *OpsRequestProvider) doStartCluster(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	start, err := coreutil.CreateStartClusterObject(request)
@@ -423,7 +434,7 @@ func (o *OpsRequestProvider) doStartCluster(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, start); err != nil {
@@ -453,17 +464,17 @@ func (o *OpsRequestProvider) doRestartCluster(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	if request.RestartList == nil {
 		clusterResponseData, err := o.clusterProvider.DescribeCluster(request)
 		if err != nil {
-			return nil, errors.NewK8sDbsError(errors.DescribeClusterError, err)
+			return nil, dbserrors.NewK8sDbsError(dbserrors.DescribeClusterError, err)
 		}
 		request.RestartList = make([]opv1.ComponentOps, 0, len(clusterResponseData.Spec.ComponentList))
 		for _, comp := range clusterResponseData.Spec.ComponentList {
@@ -483,7 +494,7 @@ func (o *OpsRequestProvider) doRestartCluster(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, restart); err != nil {
@@ -512,11 +523,11 @@ func (o *OpsRequestProvider) doStopCluster(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	stop, err := coreutil.CreateStopClusterObject(request)
@@ -532,7 +543,7 @@ func (o *OpsRequestProvider) doStopCluster(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	err = coreutil.CreateCRD(k8sClient, stop)
@@ -563,16 +574,16 @@ func (o *OpsRequestProvider) doUpgradeCluster(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	cluster, err := getClusterInfo(request, k8sClient)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetClusterError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError, err)
 	}
 
 	upgrade, err := coreutil.CreateUpgradeClusterObject(request, cluster)
@@ -588,7 +599,7 @@ func (o *OpsRequestProvider) doUpgradeCluster(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	err = coreutil.CreateCRD(k8sClient, upgrade)
@@ -618,11 +629,11 @@ func (o *OpsRequestProvider) doExposeCluster(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.GetMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
 	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateK8sClientError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
 	expose, err := coreutil.CreateExposeClusterObject(request)
@@ -638,7 +649,7 @@ func (o *OpsRequestProvider) doExposeCluster(
 		ctx.RequestID,
 		k8sClusterConfig.ID,
 	); err != nil {
-		return nil, errors.NewK8sDbsError(errors.CreateMetaDataError, err)
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
 	}
 
 	if err = coreutil.CreateCRD(k8sClient, expose); err != nil {

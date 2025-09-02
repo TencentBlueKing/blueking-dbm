@@ -447,19 +447,9 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
-	clusterEntity, err := c.clusterMetaProvider.FindByParams(
-		&metaentity.ClusterQueryParams{
-			ClusterName:        request.ClusterName,
-			Namespace:          request.Namespace,
-			K8sClusterConfigID: k8sClusterConfig.ID,
-		})
+	clusterEntity, err := metautil.GetClusterMeta(c.clusterMetaProvider, request, k8sClusterConfig)
 	if err != nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
-			fmt.Errorf("检索集群 %s 元数据失败 %w ", request.ClusterName, err))
-	}
-	if clusterEntity == nil {
-		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError,
-			fmt.Errorf("集群 %s 不存在", request.ClusterName))
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 
 	// 集群操作检查
