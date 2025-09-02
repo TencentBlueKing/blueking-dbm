@@ -403,9 +403,9 @@ def _filter_packages_by_module_version_higher_major(
     """
     try:
         # 获取所有可用的spider包
-        packages = Package.objects.filter(pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, enable=True).order_by(
-            "-create_at"
-        )
+        packages = Package.objects.filter(
+            pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, version=spider_version, enable=True
+        ).order_by("-create_at")
 
         if not packages.exists():
             logger.warning(_("没有找到可用的spider包"))
@@ -613,7 +613,7 @@ def _filter_packages_by_module_version(
     try:
         # 获取所有可用的spider包
         packages = Package.objects.filter(pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, enable=True).order_by(
-            "-create_at"
+            "-priority", "-create_at"
         )
 
         if not packages.exists():

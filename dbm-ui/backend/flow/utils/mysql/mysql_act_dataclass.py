@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from backend import env
 from backend.db_dirty.constants import MachineEventType
@@ -689,3 +689,18 @@ class InitiativeDownloadFileKwargs:
     file_url: str
     md5sum: str
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+
+
+@dataclass
+class UpgradeKeyWordCheckKwargs:
+    """
+    定义upgrade_key_word_check活动节点的私有变量结构体
+    用于Spider版本升级前的关键字冲突检查
+    """
+
+    cluster_id: int  # 集群ID
+    from_version_map: Dict[str, List[str]]  # 源版本到地址的映射，如 {"5.5.24-tspider-1.15-log": ["192.168.1.100:25000"]}
+    to_version: str  # 目标版本
+    check_types: Optional[List[str]] = None  # 检查类型列表，如["table_check", "column_check"]
+    schemas: Optional[List[str]] = None  # 要检查的数据库列表
+    fail_on_conflict: bool = True  # 发现冲突时是否失败

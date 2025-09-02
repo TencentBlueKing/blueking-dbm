@@ -142,7 +142,10 @@ def tmysql_version_parse(mysql_version: str) -> int:
 
 
 def tspider_version_parse(mysql_version: str) -> int:
-    re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    if mysql_version.startswith("tspider-"):
+        re_pattern = r"tspider-([\d]+).?([\d]+)?.?([\d]+)?"
+    else:
+        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
 
     if len(result) == 0:
@@ -232,3 +235,16 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
         return ""
 
     return resp[0]["cmd_results"][0]["table_data"][0].get("version")
+
+
+def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
+    """判断spider是否跨主版本
+
+    Args:
+        current_version_num (_type_): _description_
+        refer_version_num (_type_): _description_
+
+    Returns:
+        bool: _description_
+    """
+    return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1

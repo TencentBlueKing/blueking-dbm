@@ -20,6 +20,7 @@ from backend.flow.consts import MediumEnum
 from backend.flow.utils.mysql.mysql_version_parse import (
     get_online_mysql_version,
     major_version_parse,
+    spider_cross_major_version,
     spider_major_version_parse,
     tmysql_version_parse,
 )
@@ -309,16 +310,3 @@ def convert_mysql8_version_num(major_version: int) -> int:
 
 def just_cross_one_major_version(current_version_num, refer_version_num) -> bool:
     return (current_version_num // 1000 - refer_version_num // 1000) == 1
-
-
-def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
-    """判断spider是否跨主版本
-
-    Args:
-        current_version_num (_type_): _description_
-        refer_version_num (_type_): _description_
-
-    Returns:
-        bool: _description_
-    """
-    return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1

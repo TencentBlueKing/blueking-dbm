@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable import Spider
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
+from backend.flow.engine.bamboo.scene.spider.spider_keyword_check_flow import SpiderKeywordCheckFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
@@ -270,3 +271,10 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterSwitchNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_spider_nodes()
+
+    def spider_keyword_check_scene(self):
+        """
+        spider关键字检查场景
+        """
+        flow = SpiderKeywordCheckFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()
