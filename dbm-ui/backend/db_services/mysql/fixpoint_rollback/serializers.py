@@ -22,6 +22,12 @@ from . import mock_data
 class BackupLogSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     days = serializers.IntegerField(help_text=_("查询时间间隔"), default=BACKUP_LOG_RANGE_DAYS, required=False)
+    backup_method = serializers.ChoiceField(
+        help_text=_("备份类型"),
+        choices=MySQLBackupType.get_choices(),
+        required=False,
+        default="default",
+    )
 
 
 class BackupLogTendbResponseSerializer(serializers.Serializer):
@@ -45,11 +51,11 @@ class BackupLogRollbackTimeSerializer(serializers.Serializer):
     backup_source = serializers.ChoiceField(
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
     )
-    backup_type = serializers.ChoiceField(
+    backup_method = serializers.ChoiceField(
         help_text=_("备份类型"),
         choices=MySQLBackupType.get_choices(),
         required=False,
-        default=MySQLBackupType.FULL_BY_TICKET.value,
+        default="default",
     )
 
 
