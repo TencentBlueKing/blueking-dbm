@@ -416,14 +416,28 @@
         infos: formData.tableData.map((item) => ({
           cluster_id: item.cluster.id,
           checksum_scope: item.scope,
-          backup_infos: item.slaves.map((slave) => ({
-            db_patterns: item.db_patterns,
-            ignore_dbs: item.ignore_dbs,
-            ignore_tables: item.ignore_tables,
-            table_patterns: item.table_patterns,
-            master: item.scope === 'all' ? '' : item.master.instance_address,
-            slave: item.scope === 'all' ? '' : slave.instance_address,
-          })),
+          backup_infos:
+            item.scope === 'partial'
+              ? // scope = '部分实例'
+                item.slaves.map((slave) => ({
+                  db_patterns: item.db_patterns,
+                  ignore_dbs: item.ignore_dbs,
+                  ignore_tables: item.ignore_tables,
+                  table_patterns: item.table_patterns,
+                  master: item.master.instance_address,
+                  slave: slave.instance_address,
+                }))
+              : // scope = '整个集群'
+                [
+                  {
+                    db_patterns: item.db_patterns,
+                    ignore_dbs: item.ignore_dbs,
+                    ignore_tables: item.ignore_tables,
+                    table_patterns: item.table_patterns,
+                    master: '',
+                    slave: '',
+                  },
+                ],
         })),
       },
       ...formData.payload,
