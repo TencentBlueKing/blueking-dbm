@@ -76,7 +76,7 @@ class DBPeriodicTask(AuditedModel):
             celery_task = PeriodicTask.objects.create(
                 name=name, task=task, args=_args, kwargs=_kwargs, **{model_field: model_schedule}
             )
-            DBPeriodicTask.objects.create(name=name, task=celery_task, task_type=task_type)
+            db_task = DBPeriodicTask.objects.create(name=name, task=celery_task, task_type=task_type)
         else:
             # 未冻结的情况，需要更新执行周期和执行参数
             if not db_task.is_frozen:
@@ -85,6 +85,8 @@ class DBPeriodicTask(AuditedModel):
                 celery_task.args = _args
                 celery_task.kwargs = _kwargs
                 celery_task.save(update_fields=[model_field, "args", "kwargs"])
+
+        return db_task
 
 
 class TaskStatus:

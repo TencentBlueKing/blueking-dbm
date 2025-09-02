@@ -137,6 +137,7 @@ class BkChatHandler(BaseNotifyHandler):
         return title, content
 
     def send_msg(self, msg_type, context):
+        """发送单据消息"""
         ticket, phase, receivers = context["ticket"], context["phase"], context["receivers"]
         title, content = self.render_title_content(msg_type, self.title, self.content, phase, receivers)
         ticket_operators = ticket.get_current_operators()
@@ -153,7 +154,13 @@ class BkChatHandler(BaseNotifyHandler):
             "actions": self.get_actions(msg_type, ticket),
             "click": {"click_url": ticket.url, "name": _("查看详情")},
         }
-        BkChatApi.send_msg(msg_info, use_admin=True)
+        BkChatApi.send_ticket_msg(msg_info, use_admin=True)
+
+    def send_custom_msg(self):
+        """发送任意自定义消息"""
+        content = f"### {self.title}\n{self.content}"
+        msg_info = {"receiver_id_list": self.receivers, "msg_content": content}
+        BkChatApi.send_custom_msg(msg_info, use_admin=True)
 
 
 class CmsiHandler(BaseNotifyHandler):

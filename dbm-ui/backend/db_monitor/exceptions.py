@@ -46,3 +46,9 @@ class DutyRuleSaveException(DBMonitorBaseException):
     ERROR_CODE = "204"
     MESSAGE = _("轮值策略保存失败")
     MESSAGE_TPL = _("轮值策略保存失败: {message}")
+
+
+class DutyNoticeScheduleException(DBMonitorBaseException):
+    ERROR_CODE = "204"
+    MESSAGE = _("轮值排班表异常")
+    MESSAGE_TPL = _("轮值排班表异常: {message}")

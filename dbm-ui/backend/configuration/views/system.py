@@ -28,7 +28,6 @@ from backend.configuration.serializers import (
     ListBizSettingsResponseSerializer,
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
-    UpdateDutyNoticeSerializer,
 )
 from backend.db_meta.models import AppCache
 from backend.db_services.cmdb.biz import get_resource_biz
@@ -94,25 +93,6 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def device_classes(self, request, *args, **kwargs):
         return Response(SystemSettings.get_setting_value(SystemSettingsEnum.DEVICE_CLASSES.value, default=[]))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("查询轮值通知配置"),
-        tags=tags,
-    )
-    @action(methods=["GET"], detail=False, pagination_class=None)
-    def duty_notice_config(self, request, *args, **kwargs):
-        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
-
-    @common_swagger_auto_schema(
-        operation_summary=_("更新轮值通知配置"),
-        tags=tags,
-        request_body=UpdateDutyNoticeSerializer(),
-    )
-    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
-    def update_duty_notice_config(self, request, *args, **kwargs):
-        """"""
-        SystemSettings.insert_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, self.validated_data, "dict")
-        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
 
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])

@@ -8,23 +8,32 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import json
 import logging
+from datetime import datetime, timedelta
 
 from blueapps.core.celery.celery import app
+from celery import shared_task
 from celery.schedules import crontab
 from django.core.cache import cache
+from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from backend import env
-from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, SystemSettingsEnum
+from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.core.notify.constants import MsgType
+from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
-from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
+from backend.db_monitor.exceptions import DutyNoticeScheduleException
+from backend.db_monitor.models import CollectInstance, DispatchGroup, DutyRule, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
 from backend.db_periodic_task.constants import GET_AND_DELETE_SET_LUA
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
+from backend.exceptions import ApiResultError
 from backend.flow.utils.cc_manage import operate_collector, parser_operate_collector_cache_key
 from backend.utils.redis import RedisConn
 
@@ -207,3 +216,62 @@ def cycle_trigger_operator_collector():
         # 获取当前任务缓存的实例ID，下发采集任务
         instance_id_to_host_id = script(keys=[cache_key])
         operate_collector(bk_biz_id, db_type, machine_type, instance_id_to_host_id, action)
+
+
+@shared_task
+def send_duty_schedule(db_type):
+    """发送轮值排班表"""
+
+    def __format_arrange_str(arranges):
+        # 格式化排版表文本
+        date_space = " " * 10  # 2000-01-01
+        work_time_space = " " * (max([len(d["work_times"]) for d in arranges]) * 12)  # 00:00--23:59
+        content = _("日期{}时段{}轮值人员").format(date_space, work_time_space)
+        for arrange in arranges:
+            arrange_str = f"{arrange['date']}  {','.join(arrange['work_times'])}  {','.join(arrange['members'])}"
+            content += f"\n{arrange_str}"
+
+        # 格式化标题
+        now_date = f"{now.month}.{now.day}"
+        after_now = now + timedelta(days=notice_after)
+        after_now_data = f"{after_now.month}.{after_now.day}"
+        title = _("[{}] {}-{} 轮值排班表").format(DBType.get_choice_label(db_type), now_date, after_now_data)
+
+        return title, content
+
+    # 获取对应组件的轮值通知设置
+    notice_cfg = SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}).get(db_type)
+    if not notice_cfg:
+        raise DutyNoticeScheduleException(_("轮值通知配置[{}]不存在").format(db_type))
+
+    # 轮值通知天数包含今天，所以-1
+    notice_after = notice_cfg["after"] - 1
+    now = datetime.now(timezone.utc)
+
+    # 获取有效的轮值规则
+    duty_rules = DutyRule.objects.filter(db_type=db_type, is_enabled=True)
+    for rule in duty_rules:
+        # 获取排班表和接收人
+        arranges = rule.get_date_schedule(date=now, after=notice_after)
+        members = list(set(itertools.chain(*[a["members"] for a in arranges])))
+        if not arranges:
+            continue
+
+        # 获取通知内容
+        title, arrange_content = __format_arrange_str(arranges)
+        # 根据通知渠道进行通知
+        msg_types = [msg_type for msg_type in notice_cfg["channels"] if notice_cfg["channels"][msg_type]]
+        for msg_type in msg_types:
+            receivers = members
+            # 企业微信机器人通知，通知人群ID，加上@所有人
+            if msg_type == MsgType.WECOM_ROBOT:
+                receivers = [notice_cfg["channels"][msg_type]]
+                arrange_content += _("\n<@所有人>")
+
+            try:
+                if msg_type in BkChatHandler.get_msg_type() and env.BKCHAT_APIGW_DOMAIN:
+                    BkChatHandler(title, arrange_content, receivers).send_custom_msg()
+                else:
+                    CmsiHandler(title, arrange_content, receivers).send_msg(msg_type, context=None)
+            except (ApiResultError, Exception) as e:
+                logger.error("[%s]send_duty_schedule error: %s", msg_type, e)
