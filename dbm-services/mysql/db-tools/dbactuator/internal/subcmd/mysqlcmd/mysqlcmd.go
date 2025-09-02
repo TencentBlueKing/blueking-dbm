@@ -76,6 +76,7 @@ func NewMysqlCommand() *cobra.Command {
 				v2.NewGenPeripheralToolsConfigCommand(),
 				v2.NewReloadPeripheralToolsConfigCommand(),
 				v2.NewInitCommonConfigCommand(),
+				NewImportGrantsFileCommand(),
 			},
 		},
 		{

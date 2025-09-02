@@ -1,6 +1,7 @@
 package components
 
 import (
+	"dbm-services/common/go-pubpkg/logger"
 	"encoding/json"
 	"fmt"
 )
@@ -25,6 +26,7 @@ func PrintOutputCtx(v interface{}) error {
 		return err
 	} else {
 		fmt.Println(ss)
+		logger.Info("output context: %s", ss)
 	}
 	return nil
 }

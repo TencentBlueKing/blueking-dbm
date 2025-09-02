@@ -20,7 +20,7 @@ class MySQLAutofixException(AppBaseException):
 
 class MySQLDBHAAutofixUnsupportedMachineType(MySQLAutofixException):
     ERROR_CODE = "000"
-    MESSAGE_TPL = _("check_id: {}, ip: {}, machine_type: {machine_type} 未支持")
+    MESSAGE_TPL = _("check_id: {check_id}, ip: {ip}, machine_type: {machine_type} 未支持")
 
 
 class MySQLDBHAAutofixBadTodoRecord(MySQLAutofixException):

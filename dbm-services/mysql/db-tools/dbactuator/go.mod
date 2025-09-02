@@ -9,6 +9,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/IBM/sarama v1.42.1
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2
+	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/cloudfoundry/gosigar v1.3.59
 	github.com/dustin/go-humanize v1.0.1
 	github.com/github/gh-ost v1.1.6

@@ -40,7 +40,8 @@ func (c *Checker) backupToBackend(users []string) error {
 					PRIMARY KEY (proxy_ip, username, host),
 					KEY IDX_USERNAME_HOST(username, host, create_at),
 					KEY IDX_HOST(host, create_at),
-					KEY IDX_IP_HOST(proxy_ip, host, create_at)
+					KEY IDX_IP_HOST(proxy_ip, host, create_at),
+    				KEY IDX_CREATE_TIMESTAMP(create_at),
 				) ENGINE=InnoDB;`,
 	)
 	if err != nil {

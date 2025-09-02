@@ -22,6 +22,10 @@ from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_repair_re
 from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_todo_register_flow import (
     MySQLDBHAAutofixTodoRegisterFlow,
 )
+from backend.flow.engine.bamboo.scene.mysql.clone_grants.clone_mysql_grants import CloneMySQLGrantsFlow
+from backend.flow.engine.bamboo.scene.mysql.clone_grants.validator.clone_mysql_grants_flow_validator import (
+    CloneMySQLGrantsFlowValidator,
+)
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
@@ -739,3 +743,8 @@ class MySQLController(BaseController):
     def mysql_failover_scene(self):
         flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
         flow.failover_drill()
+
+    @validates_with(CloneMySQLGrantsFlowValidator)
+    def clone_mysql_grants(self):
+        flow = CloneMySQLGrantsFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.clone_grants()

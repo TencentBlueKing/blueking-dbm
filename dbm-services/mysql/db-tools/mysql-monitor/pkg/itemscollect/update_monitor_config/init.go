@@ -3,6 +3,7 @@ package update_monitor_config
 import (
 	"dbm-services/common/reverseapi/define"
 	"dbm-services/common/reverseapi/define/mysql"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/v2/monitor"
 	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"encoding/json"
@@ -21,6 +22,7 @@ import (
 var name = "update-monitor-config"
 
 type Checker struct {
+	roleChanged bool
 }
 
 func (c *Checker) Run() (msg string, err error) {
@@ -34,6 +36,15 @@ func (c *Checker) Run() (msg string, err error) {
 	err = c.updateConfigFile(sii)
 	if err != nil {
 		return "", err
+	}
+
+	if c.roleChanged {
+		err := monitor.AddCrond([]int{config.MonitorConfig.Port})
+		if err != nil {
+			slog.Error(name, slog.String("err", err.Error()))
+			return "", err
+		}
+		slog.Info(name + "reschedule success")
 	}
 
 	return "", nil
@@ -84,6 +95,10 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 		slog.String("lock", lockFilePath),
 	)
 
+	if *config.MonitorConfig.Role != sii.InstanceInnerRole {
+		c.roleChanged = true
+	}
+
 	slog.Info(name, slog.Any("monitor config before", config.MonitorConfig))
 	config.MonitorConfig.Role = &sii.InstanceInnerRole
 	slog.Info(name, slog.Any("monitor config after", config.MonitorConfig))
@@ -117,7 +132,7 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 func (c *Checker) getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	filePath := filepath.Join(
 		define.DefaultCommonConfigDir,
-		define.DefaultNginxProxyAddrsFileName,
+		define.DefaultInstanceInfoFileName,
 	)
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {

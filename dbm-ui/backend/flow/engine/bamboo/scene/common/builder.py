@@ -98,7 +98,7 @@ class Builder(object):
         self.node_output_list = []
 
         # 判断是否添加临时账号的流程逻辑
-        if self.need_random_pass_cluster_ids:
+        if self.need_random_pass_cluster_ids or self.need_random_pass_instances:
             self.create_random_pass_act()
 
     def create_random_pass_act(self):

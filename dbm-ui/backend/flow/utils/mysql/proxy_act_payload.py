@@ -179,10 +179,8 @@ class ProxyActPayload(object):
             "payload": {
                 "general": {"runtime_account": self.proxy_account},
                 "extend": {
-                    "source_proxy_host": kwargs["ip"],
-                    "source_proxy_port": self.cluster["proxy_port"],
-                    "target_proxy_host": self.cluster["target_proxy_ip"],
-                    "target_proxy_port": self.cluster["proxy_port"],
+                    "source_address": self.cluster["source_address"],
+                    "dest_addresses": self.cluster["dest_addresses"],
                 },
             },
         }

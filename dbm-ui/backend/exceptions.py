@@ -49,6 +49,7 @@ class ErrorCode(object):
     PROXY_PASS_CODE = "31"
     PROXY_PASS_REVERSE_API_CODE = "32"
     MYSQL_AUTOFIX_CODE = "77"
+    MYSQL_CLONE_GRANTS_CODE = "78"
 
 
 class AppBaseException(Exception):

@@ -8,59 +8,90 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"errors"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 // CloneProxyUserComp TODO
 type CloneProxyUserComp struct {
-	GeneralParam         *components.GeneralParam
-	Params               *CloneProxyUserParam
-	SourceProxyAdminConn *native.ProxyAdminDbWork
-	TargetProxyAdminConn *native.ProxyAdminDbWork
+	GeneralParam *components.GeneralParam
+	Params       *CloneProxyUserParam
 }
 
 // CloneProxyUserParam TODO
 // payload param
 type CloneProxyUserParam struct {
-	SourceProxyHost string `json:"source_proxy_host"  validate:"required,ip"`
-	SourceProxyPort int    `json:"source_proxy_port" validate:"required,gte=3306"`
-	TargetProxyHost string `json:"target_proxy_host"  validate:"required,ip"`
-	TargetProxyPort int    `json:"target_proxy_port" validate:"required,gte=3306"`
+	SourceAddress string   `json:"source_address"`
+	DestAddresses []string `json:"dest_addresses"`
 }
 
-// Init TODO
-func (p *CloneProxyUserComp) Init() (err error) {
-	p.SourceProxyAdminConn, err = native.InsObject{
-		Host: p.Params.SourceProxyHost,
-		Port: p.Params.SourceProxyPort,
-		User: p.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
-		Pwd:  p.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
-	}.ConnProxyAdmin()
-	if err != nil {
-		logger.Error("connect source proxy admin port(ori:%s) failed,%s", p.Params.SourceProxyPort, err.Error())
-		return err
+func (p *CloneProxyUserComp) CloneProxyUser() (err error) {
+	var mut sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(len(p.Params.DestAddresses))
+	logger.Info("set wg group to %d", len(p.Params.DestAddresses))
+
+	for _, destAddress := range p.Params.DestAddresses {
+		logger.Info("go to clone to %s", destAddress)
+		go func(destAddress string) {
+			defer wg.Done()
+			e := p.cloneOneProxyUser(destAddress)
+			if e != nil {
+				mut.Lock()
+				err = errors.Join(err, e)
+				mut.Unlock()
+			}
+		}(destAddress)
 	}
-	p.TargetProxyAdminConn, err = native.InsObject{
-		Host: p.Params.TargetProxyHost,
-		Port: p.Params.TargetProxyPort,
-		User: p.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
-		Pwd:  p.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
-	}.ConnProxyAdmin()
-	if err != nil {
-		logger.Error("connect target proxy admin port(ori:%s) failed,%s", p.Params.TargetProxyPort, err.Error())
-		return err
-	}
+	wg.Wait()
+
 	return
 }
 
 // CloneProxyUser 在源proxy克隆user白名单给目标proxy
-func (p *CloneProxyUserComp) CloneProxyUser() (err error) {
-	err = p.SourceProxyAdminConn.CloneProxyUser(p.TargetProxyAdminConn)
+func (p *CloneProxyUserComp) cloneOneProxyUser(destAddress string) (err error) {
+	sourceWorker, err := p.connProxyAdmin(p.Params.SourceAddress)
+	if err != nil {
+		return err
+	}
+	defer sourceWorker.Close()
+	logger.Info("connect %s success", p.Params.SourceAddress)
+
+	destWorker, err := p.connProxyAdmin(destAddress)
+	if err != nil {
+		return err
+	}
+	defer destWorker.Close()
+	logger.Info("connect %s success", destAddress)
+
+	err = sourceWorker.CloneProxyUser(destWorker)
 	if err != nil {
 		logger.Error(
-			"clone proxy users to instance(%s#%s) failed,%s", p.Params.TargetProxyHost, p.Params.TargetProxyPort,
-			err.Error(),
+			"clone proxy user from %s to %s failed,%s", p.Params.SourceAddress, destAddress, err.Error(),
 		)
 		return err
+	}
+	logger.Info("clone proxy user from %s to %s success", p.Params.SourceAddress, destAddress)
+	return
+}
+
+func (p *CloneProxyUserComp) connProxyAdmin(address string) (worker *native.ProxyAdminDbWork, err error) {
+	splitAddress := strings.Split(address, ":")
+	ip := splitAddress[0]
+	port, err := strconv.Atoi(splitAddress[1])
+	if err != nil {
+		return nil, err
+	}
+	worker, err = native.InsObject{
+		Host: ip,
+		Port: port,
+		User: p.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
+		Pwd:  p.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
+	}.ConnProxyAdmin()
+	if err != nil {
+		return nil, err
 	}
 	return
 }
@@ -69,10 +100,8 @@ func (p *CloneProxyUserComp) CloneProxyUser() (err error) {
 func (p *CloneProxyUserComp) Example() interface{} {
 	comp := CloneProxyUserComp{
 		Params: &CloneProxyUserParam{
-			SourceProxyHost: "1.1.1.1",
-			SourceProxyPort: 10000,
-			TargetProxyHost: "2.2.2.2",
-			TargetProxyPort: 10000,
+			SourceAddress: "127.0.0.1:3306",
+			DestAddresses: []string{"127.0.0.2:3306"},
 		},
 	}
 	return comp

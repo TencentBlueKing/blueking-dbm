@@ -500,6 +500,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     ReloadPeripheralToolsConfig = EnumField("reload-peripheraltools-config", _("重载周边配置"))
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
+    ImportGrantsFile = EnumField("import-grants-file", _("导入MySQL权限文件"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

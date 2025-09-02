@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.encoding import force_text
+from django.utils.translation import ugettext_lazy as _
 
-from backend.exceptions import AppBaseException
+from backend.exceptions import AppBaseException, ErrorCode
 
 
 class DataAPIException(AppBaseException):
@@ -24,3 +25,8 @@ class DataAPIException(AppBaseException):
             error_message = "{}, resp={}".format(error_message, self.response)
 
         super(DataAPIException, self).__init__(error_message)
+
+
+class DRSException(DataAPIException):
+    MODULE_CODE = ErrorCode.DB_REMOTE_SERVICE_CODE
+    MESSAGE = _("DRS接口请求通用异常")

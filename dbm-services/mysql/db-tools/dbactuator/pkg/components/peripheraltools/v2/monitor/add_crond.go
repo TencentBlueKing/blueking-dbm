@@ -19,7 +19,7 @@ func AddCrond(ports []int) (err error) {
 	mysqlMonitor, err := tl.Get(tools.ToolMySQLMonitor)
 	if err != nil {
 		logger.Error("get %s failed: %s", tools.ToolMySQLMonitor, err.Error())
-		return err
+		return fmt.Errorf("get %s failed: %s", tools.ToolMySQLMonitor, err.Error())
 	}
 
 	for _, port := range ports {
@@ -31,7 +31,7 @@ func AddCrond(ports []int) (err error) {
 		err = internal.RegisterCrond(mysqlMonitor, configPath, "system")
 		if err != nil {
 			logger.Error("register %s failed: %s", mysqlMonitor, err.Error())
-			return err
+			return fmt.Errorf("register %s failed: %s", mysqlMonitor, err.Error())
 		}
 	}
 	return nil

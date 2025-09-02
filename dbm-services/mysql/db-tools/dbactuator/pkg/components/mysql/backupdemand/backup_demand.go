@@ -265,7 +265,7 @@ func (c *Component) DoBackup() error {
 func (c *Component) generateReport() (report *Report, indexFile string, err error) {
 	report = &Report{}
 
-	indexFileSearch := filepath.Join(c.backupDir, "*.index")
+	indexFileSearch := filepath.Join(c.backupDir, fmt.Sprintf("*%d*.index", c.Params.Port))
 	if files, err := filepath.Glob(indexFileSearch); err != nil {
 		return nil, indexFile, err
 	} else {
@@ -281,7 +281,7 @@ func (c *Component) generateReport() (report *Report, indexFile string, err erro
 				continue
 				//return nil, err
 			}
-			if result.BillId == c.Params.BillId && c.Params.BillId != "" {
+			if result.BillId == c.Params.BillId && c.Params.BillId != "" && result.BackupId == c.Params.BackupId {
 				report.Result = &result
 				indexFile = f
 				break

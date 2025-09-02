@@ -172,6 +172,7 @@ CREATE PROCEDURE infodba_schema.check_db_conflict(
 )
 SQL SECURITY INVOKER
 BEGIN
+    DECLARE is_one_check_failed INT;
     WHILE (LOCATE(',', ip_list) > 0)
     DO
         SET @ip = TRIM(SUBSTRING(ip_list, 1, LOCATE(',', ip_list) - 1));
@@ -179,7 +180,8 @@ BEGIN
 
         SELECT EXISTS(SELECT 1 FROM mysql.db WHERE user = username AND host = @ip) INTO @db_priv_applied;
         IF @db_priv_applied THEN
-            CALL check_db_conflict_one_ip(uuid, grant_time, username, @ip, db_list, is_check_failed);
+            CALL check_db_conflict_one_ip(uuid, grant_time, username, @ip, db_list, is_one_check_failed);
+            SET is_check_failed = is_check_failed OR is_one_check_failed;
         END IF;
     END WHILE;
 END #
@@ -198,7 +200,7 @@ SQL SECURITY INVOKER
 BEGIN
     DECLARE applied_dbname VARCHAR(64);
     DECLARE cursor_done INT DEFAULT FALSE;
-    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = @ip;
+    DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = ip;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = TRUE;    
 
     -- 不同版本授权语句不兼容, 所以干脆不写
@@ -211,6 +213,7 @@ BEGIN
             LEAVE fetch_loop;
         END IF;
 
+
         SET @loop_db_list = db_list;
 
         WHILE (LOCATE(',', @loop_db_list) > 0)
@@ -218,8 +221,8 @@ BEGIN
             SET @dbname = TRIM(SUBSTRING(@loop_db_list, 1, LOCATE(',', @loop_db_list) - 1));
             SET @loop_db_list = SUBSTRING(@loop_db_list, LOCATE(',', @loop_db_list) + 1);
 
-            -- 申请库名和已有库名不等并且能模式匹配 
-            IF @dbname <> applied_dbname AND (@dbname LIKE applied_dbname OR applied_dbname LIKE @dbname) THEN 
+            -- 申请库名和已有库名不等并且能模式匹配
+            IF @dbname <> applied_dbname AND (@dbname LIKE applied_dbname OR applied_dbname LIKE @dbname) THEN
                 SET is_check_failed = is_check_failed OR 1;
                 INSERT INTO dba_grant_result(id, grant_time, username, client_ip, dbname, long_psw, short_psw, msg)
                     VALUES (uuid, grant_time, username, @ip, @dbname, long_psw, short_psw, CONCAT("conflict with applied db [", applied_dbname, "]"));

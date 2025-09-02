@@ -6,27 +6,16 @@
 package proxycmd
 
 import (
-	"fmt"
-
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql_proxy"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
 
 // CloneProxyUserAct TODO
-// extend payload
-/*
- {
-		 "source_proxy_host": "1.1.1.1",
-		 "source_proxy_port"  10000,
-		 "target_proxy_host"  "2.2.2.2",
-		 "target_proxy_port"  10000
-
- }
-*/
 type CloneProxyUserAct struct {
 	*subcmd.BaseOptions
 	Service mysql_proxy.CloneProxyUserComp
@@ -74,10 +63,6 @@ func (c *CloneProxyUserAct) Validate() (err error) {
 // Run TODO
 func (c *CloneProxyUserAct) Run() (err error) {
 	steps := subcmd.Steps{
-		{
-			FunName: "初始化",
-			Func:    c.Service.Init,
-		},
 		{
 			FunName: "Clone proxy user",
 			Func:    c.Service.CloneProxyUser,
