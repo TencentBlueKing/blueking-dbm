@@ -52,7 +52,9 @@ REDIS_CLUSTER_APPLY_DATA = {
                 "mem": {"max": 4, "min": 3},
                 "qps": {},
                 "spec_name": "2c_4g_50g",
-                "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_107"}],
+                "storage_spec": [
+                    {"min": 50, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_107"}
+                ],
                 "affinity": "CROSS_RACK",
                 "location_spec": {"city": "default"},
                 "spec_cluster_type": "PredixyRedisCluster",
@@ -89,7 +91,7 @@ REDIS_INS_APPLY_DATA = {
                 "mem": {"max": 4, "min": 3},
                 "qps": {},
                 "spec_name": "2c_4g_50gb",
-                "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data"}],
+                "storage_spec": [{"min": 50, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
                 "affinity": "CROSS_RACK",
                 "location_spec": {"city": "default"},
             }
@@ -203,7 +205,8 @@ REDIS_MIGRATE_DATA = {
             {
                 "cluster_id": CLUSTER_ID,
                 "display_info": {"db_version": ["redis-6.2.14"], "instance": "5.5.5.5:30000"},
-                "old_nodes": {
+                "db_version": ["redis-6.2.14"],
+                "origin_old_nodes": {
                     "master": [
                         {
                             "bk_biz_id": BK_BIZ_ID,
@@ -238,8 +241,8 @@ REDIS_VERSION_UPDATE_DATA = {
         "infos": [
             {
                 "node_type": "Backend",
-                "cluster_ids": [CLUSTER_ID],
-                "target_version": "redis-6.2.14",
+                "cluster_id": CLUSTER_ID,
+                "target_versions": ["redis-6.2.14"],
                 "current_versions": ["redis-4.0.11-t-v1"],
             }
         ]
@@ -411,7 +414,7 @@ REDIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -442,7 +445,7 @@ REDIS_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -577,7 +580,7 @@ REDIS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "111",
         "enable": True,
         "instance_num": 0,
@@ -595,7 +598,7 @@ REDIS_SPEC_DATA = [
         "cpu": {"max": 2, "min": 2},
         "mem": {"max": 4, "min": 3},
         "device_class": ["S5.MEDIUM4", "SA2.MEDIUM4", "S5t.MEDIUM4"],
-        "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 50, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "",
         "enable": True,
         "instance_num": 0,
@@ -613,7 +616,7 @@ REDIS_SPEC_DATA = [
         "cpu": {"max": 2, "min": 2},
         "mem": {"max": 4, "min": 3},
         "device_class": ["S5.MEDIUM4", "SA2.MEDIUM4", "S5t.MEDIUM4"],
-        "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 50, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "基础机型",
         "enable": True,
         "instance_num": 0,
@@ -657,7 +660,7 @@ REDIS_TENDIS_ROLLBACK_TASK_DATA = {
         "name": "无限制",
         "count": 1,
         "device_class": [],
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
     },
     "host_count": 1,
     "recovery_time_point": "2024-05-19T00:00:00+08:00",
