@@ -140,13 +140,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
-        id: 'spiderDbTableBackup',
+        id: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'spider_copy',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
-        id: 'spiderDbBackup',
+        id: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'spider_copy',
       },
@@ -170,9 +170,8 @@ export default [
         parentId: 'spider_fileback',
       },
       {
-        bind: ['spiderFlashback', TicketTypes.TENDBCLUSTER_FLASHBACK],
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
-        id: 'spiderFlashback',
+        id: TicketTypes.TENDBCLUSTER_FLASHBACK,
         name: t('闪回'),
         parentId: 'spider_fileback',
       },
@@ -185,7 +184,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbClear',
-        id: 'spiderDbClear',
+        id: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
         name: t('清档'),
         parentId: 'spider_data',
       },
@@ -204,13 +203,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
-        id: 'spiderPrivilegeCloneClient',
+        id: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
         name: t('客户端权限克隆'),
         parentId: 'spider_privilege',
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        id: 'spiderPrivilegeCloneInst',
+        id: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'spider_privilege',
       },

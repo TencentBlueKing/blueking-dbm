@@ -57,7 +57,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.ES">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: EsModel }">
             <div v-db-console="'es.clusterManage.manage'">
               <a
                 :href="data.access_url"

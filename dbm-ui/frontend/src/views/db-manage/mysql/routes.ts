@@ -27,22 +27,6 @@ const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
   createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
-  {
-    path: 'privilege-clone-client/:page?',
-    name: 'MySQLPrivilegeCloneClient',
-    meta: {
-      navName: t('客户端权限克隆'),
-    },
-    component: () => import('@views/db-manage/mysql/privilege-clone-client/Index.vue'),
-  },
-  {
-    path: 'privilege-clone-inst/:page?',
-    name: 'MySQLPrivilegeCloneInst',
-    meta: {
-      navName: t('DB实例权限克隆'),
-    },
-    component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
-  },
   createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
@@ -53,44 +37,16 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('缩容Proxy')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
-  {
-    path: 'db-table-backup/:page?',
-    name: 'MySQLDBTableBackup',
-    meta: {
-      navName: t('库表备份'),
-    },
-    component: () => import('@views/db-manage/mysql/db-table-backup/index.vue'),
-  },
-  {
-    path: 'db-backup/:page?',
-    name: 'MySQLDBBackup',
-    meta: {
-      navName: t('全库备份'),
-    },
-    component: () => import('@views/db-manage/mysql/db-backup/index.vue'),
-  },
-  {
-    path: 'db-clear/:page?',
-    name: 'MySQLDBClear',
-    meta: {
-      navName: t('清档'),
-    },
-    component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
+  createRouteItem(TicketTypes.MYSQL_HA_FULL_BACKUP, t('全库备份')),
+  createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档')),
+  createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
-  // 库表闪回
-  {
-    path: 'flashback/:page?',
-    name: 'MySQLDBFlashback',
-    meta: {
-      navName: t('闪回'),
-    },
-    component: () => import('@views/db-manage/mysql/flashback/Index.vue'),
-  },
-  // 记录级闪回
-  // 两个闪回两个路由，这里没问题
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('闪回')),
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
+  createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
+  createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
+  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',
@@ -98,14 +54,6 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
       navName: t('开区模版'),
     },
     component: () => import('@views/db-manage/mysql/openarea/template/Index.vue'),
-  },
-  {
-    path: 'data-migrate/:page?',
-    name: 'MySQLDataMigrate',
-    meta: {
-      navName: t('DB克隆'),
-    },
-    component: () => import('@views/db-manage/mysql/data-migrate/Index.vue'),
   },
   {
     path: 'webconsole',

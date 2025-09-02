@@ -97,17 +97,19 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<{
-    cluster_type: ClusterTypes;
-    id: number;
-    master_domain: string;
-    region: string;
-    related_clusters: {
+  const modelValue = defineModel<
+    {
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
-    }[];
-    spec_id_list: number[];
-  }>({
+      region?: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+      spec_id_list?: number[];
+    } & Partial<TendbhaModel>
+  >({
     required: true,
   });
 
@@ -166,30 +168,30 @@
     onSuccess: (data) => {
       const [currentCluster] = data;
       if (currentCluster?.id) {
-        modelValue.value.id = currentCluster.id;
-        modelValue.value.cluster_type = currentCluster.cluster_type as ClusterTypes;
         const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
-        modelValue.value.spec_id_list =
-          (currentCluster[roleListKey] as TendbhaModel['masters'])?.map((item) => item.spec_config.id) || [];
-        modelValue.value.region = currentCluster.region || '';
+        modelValue.value = Object.assign({}, new TendbhaModel(currentCluster), {
+          related_clusters: [],
+          spec_id_list:
+            (currentCluster[roleListKey] as TendbhaModel['masters'])?.map((item) => item.spec_config.id) || [],
+        });
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],
-          role: props.role,
+          role: currentCluster.cluster_type === ClusterTypes.TENDBSINGLE ? 'orphan' : props.role,
         });
       }
     },
   });
 
   const handleChange = (value: string) => {
-    modelValue.value = {
+    modelValue.value = Object.assign({} as TendbhaModel, {
       cluster_type: props.clusterTypes?.[0] || ClusterTypes.TENDBHA,
       id: 0, // 重置ID，表示需要重新查询集群
       master_domain: value,
       region: '',
       related_clusters: [],
       spec_id_list: [],
-    };
+    });
   };
 
   watch(

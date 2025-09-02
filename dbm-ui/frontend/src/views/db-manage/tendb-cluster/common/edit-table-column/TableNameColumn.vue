@@ -71,7 +71,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
     clusterId: undefined,
-    required: true,
+    required: false,
     single: false,
   });
 

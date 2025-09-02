@@ -18,14 +18,14 @@
     <BkTableColumn
       fixed="left"
       :label="t('源集群')"
-      :min-width="220">
+      :min-width="240">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.source_cluster].immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('目标集群')"
-      :min-width="220">
+      :min-width="240">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.target_clusters"
@@ -42,14 +42,28 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('迁移DB名')"
+      :label="t('克隆DB名')"
       :min-width="180">
-      <template #default> -- </template>
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.clone_db_list"
+          :key="item">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.clone_db_list.length < 1">--</span>
+      </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('忽略DB名')"
       :min-width="180">
-      <template #default> -- </template>
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.ignore_db_list"
+          :key="item">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.ignore_db_list.length < 1">--</span>
+      </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('最终DB名')"

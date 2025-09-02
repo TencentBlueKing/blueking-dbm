@@ -40,6 +40,7 @@
       </span>
       <DropdownExportExcel
         v-db-console="'mongodb.sharedClusterList.export'"
+        :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
@@ -70,7 +71,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: MongodbModel }">
             <div v-db-console="'mongodb.sharedClusterList.getAccess'">
               <BkButton
                 :disabled="data.isOffline"

@@ -8,7 +8,9 @@ export interface DataMigrate extends DetailBase {
   clusters: DetailClusters;
   infos: {
     data_schema_grant: string;
-    db_list: string;
+    db_list: string[];
+    clone_db_list: string[];
+    ignore_db_list: string[];
     source_cluster: number;
     target_clusters: number[];
   }[];

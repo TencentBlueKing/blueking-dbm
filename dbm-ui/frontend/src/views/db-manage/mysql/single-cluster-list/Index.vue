@@ -62,7 +62,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.TENDBSINGLE">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: TendbsingleModel }">
               <div v-db-console="'mysql.singleClusterList.authorize'">
                 <BkButton
                   :disabled="data.isOffline"

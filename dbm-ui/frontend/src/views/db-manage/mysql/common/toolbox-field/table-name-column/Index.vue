@@ -72,7 +72,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
     clusterId: undefined,
-    required: true,
+    required: false,
     showBatchEdit: true,
     single: false,
   });

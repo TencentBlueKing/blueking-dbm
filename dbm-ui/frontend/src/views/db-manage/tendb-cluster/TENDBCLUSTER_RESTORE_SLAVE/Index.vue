@@ -64,6 +64,7 @@
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
             :current-spec-id-list="[item.slave.spec_id]"
+            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND"
             required />
           <ResourceTagColumn
             v-model="item.labels"

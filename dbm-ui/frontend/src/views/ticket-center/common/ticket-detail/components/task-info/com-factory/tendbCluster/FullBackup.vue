@@ -20,7 +20,13 @@
     </BkTableColumn>
     <BkTableColumn :label="t('备份位置')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.backup_local }}
+        {{
+          data.spider_mnt_address
+            ? `运维节点(${data.spider_mnt_address})`
+            : data.backup_local === 'slave'
+              ? 'RemoteDR'
+              : 'RemoteDB'
+        }}
       </template>
     </BkTableColumn>
   </BkTable>

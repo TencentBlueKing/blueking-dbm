@@ -17,9 +17,6 @@
       :data="modelValue"
       :max-height="300"
       show-overflow-tooltip>
-      <!-- <BkTableColumn label="asdasd">
-        <template #default="{ data }"> {{ data.instance_address }}sadadad </template>
-      </BkTableColumn> -->
     </BkTable>
   </BkFormItem>
 

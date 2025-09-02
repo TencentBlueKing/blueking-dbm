@@ -47,13 +47,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.dbTableBackup',
-        id: 'MySQLDBTableBackup',
+        id: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'copy',
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbBackup',
-        id: 'MySQLDBBackup',
+        id: TicketTypes.MYSQL_HA_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'copy',
       },
@@ -71,9 +71,8 @@ export default [
         parentId: 'fileback',
       },
       {
-        bind: ['MySQLDBFlashback', TicketTypes.MYSQL_FLASHBACK],
         dbConsoleValue: 'mysql.toolbox.flashback',
-        id: 'MySQLDBFlashback',
+        id: TicketTypes.MYSQL_FLASHBACK,
         name: t('闪回'),
         parentId: 'fileback',
       },
@@ -86,13 +85,13 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.clientPermissionClone',
-        id: 'MySQLPrivilegeCloneClient',
+        id: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
         name: t('客户端权限克隆'),
         parentId: 'privilege',
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbInstancePermissionClone',
-        id: 'MySQLPrivilegeCloneInst',
+        id: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'privilege',
       },
@@ -173,8 +172,9 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA],
         dbConsoleValue: 'mysql.toolbox.dbClear',
-        id: 'MySQLDBClear',
+        id: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
         name: t('清档'),
         parentId: 'data',
       },
@@ -186,7 +186,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
-        id: 'MySQLDataMigrate',
+        id: TicketTypes.MYSQL_DATA_MIGRATE,
         name: t('DB克隆'),
         parentId: 'data',
       },

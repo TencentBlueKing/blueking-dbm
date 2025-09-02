@@ -13,17 +13,17 @@
 
 <template>
   <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源客户端IP')">
+    <BkTableColumn :label="t('源实例')">
       <template #default="{ data }: { data: RowData }">
         {{ data.source }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
+    <BkTableColumn :label="t('所属集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.module }}
+        {{ data.cluster_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新客户端 IP')">
+    <BkTableColumn :label="t('新实例')">
       <template #default="{ data }: { data: RowData }">
         {{ data.target }}
       </template>
@@ -33,15 +33,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Tendbcluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.InstanceCloneRules>;
+    ticketDetails: TicketModel<Tendbcluster.InstanceCloneRules>;
   }
 
-  type RowData = Props['ticketDetails']['details']['clone_data'][number];
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
