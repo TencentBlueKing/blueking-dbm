@@ -153,17 +153,16 @@ func (c *Checker) reportHeartbeatDelay() error {
 
 	var timeDelay int64
 
-	// 5.7 需要设置这个才能正确拿到 uptime
-	_, _ = c.db.Exec(`set global show_compatibility_56 = 1`)
-
+	var _useless interface{}
 	var uptime int64
 	err = c.db.QueryRowx(
-		`select VARIABLE_VALUE as uptime from information_schema.GLOBAL_STATUS where VARIABLE_NAME='Uptime';`,
-	).Scan(&uptime)
+		`show global status where Variable_name = 'Uptime';`,
+	).Scan(&_useless, &uptime)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
 		return err
 	}
+	slog.Info(name, slog.Int64("uptime", uptime))
 
 	if uptime < 3600 {
 		timeDelay = 0
