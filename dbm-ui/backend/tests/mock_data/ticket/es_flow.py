@@ -39,7 +39,9 @@ ES_APPLY_DATA = {
                 "mem": {"max": 256, "min": 1},
                 "qps": {},
                 "spec_name": "1核_1G_10G",
-                "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row"}],
+                "storage_spec": [
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_72"}
+                ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
             },
@@ -52,7 +54,7 @@ ES_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "1核_1G_10G",
                 "storage_spec": [
-                    {"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_117"}
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_117"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -127,7 +129,7 @@ ES_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 393, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, "qps": {}, '
         '"name": "1核_1G_10G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 393,
         "bk_agent_id": "",
     },
@@ -158,7 +160,7 @@ ES_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 393, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, "qps": {}, '
         '"name": "1核_1G_10G", "count": 1, "device_class": [], '
-        '"storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 393,
         "bk_agent_id": "",
     },
@@ -196,7 +198,7 @@ ES_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "12",
         "enable": True,
         "instance_num": 0,
@@ -214,7 +216,7 @@ ES_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "es_datanode",
         "enable": True,
         "instance_num": 0,

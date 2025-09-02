@@ -596,7 +596,7 @@ MYSQL_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 444,
         "bk_agent_id": "",
     },
@@ -627,7 +627,7 @@ MYSQL_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 444,
         "bk_agent_id": "",
     },
@@ -658,7 +658,7 @@ MYSQL_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 445,
         "bk_agent_id": "",
     },
@@ -689,7 +689,7 @@ MYSQL_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 444,
         "bk_agent_id": "",
     },
@@ -720,7 +720,7 @@ MYSQL_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 336,
         "bk_agent_id": "",
     },
@@ -739,7 +739,7 @@ MYSQL_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "111",
         "enable": True,
         "instance_num": 0,
@@ -757,7 +757,7 @@ MYSQL_SPEC_DATA = [
         "cpu": {"max": 2, "min": 2},
         "mem": {"max": 4, "min": 3},
         "device_class": ["S5.MEDIUM4", "SA2.MEDIUM4", "S5t.MEDIUM4"],
-        "storage_spec": [{"size": 50, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 50, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "",
         "enable": True,
         "instance_num": 0,
@@ -775,7 +775,7 @@ MYSQL_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "111",
         "enable": True,
         "instance_num": 0,

@@ -42,7 +42,7 @@ KAFKA_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "1核_1G_10G",
                 "storage_spec": [
-                    {"min": 10, "max": 10, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_387"}
+                    {"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data", "_X_ROW_KEY": "row_387"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -55,7 +55,7 @@ KAFKA_APPLY_DATA = {
                 "qps": {},
                 "spec_name": "2核_4G_100G",
                 "storage_spec": [
-                    {"min": 100, "max": 100, "type": "SSD", "mount_point": "/data", "_X_ROW_KEY": "row_371"}
+                    {"min": 100, "max": 2147483647, "type": "SSD", "mount_point": "/data", "_X_ROW_KEY": "row_371"}
                 ],
                 "affinity": "MAX_EACH_ZONE_EQUAL",
                 "location_spec": {"city": "default"},
@@ -117,7 +117,7 @@ KAFKA_SPEC_DATA = [
         "cpu": {"max": 2, "min": 2},
         "mem": {"max": 4, "min": 4},
         "device_class": [],
-        "storage_spec": [{"min": 100, "max": 100, "type": "SSD", "mount_point": "/data"}],
+        "storage_spec": [{"min": 100, "max": 2147483647, "type": "SSD", "mount_point": "/data"}],
         "desc": "zookeeper规格",
         "enable": True,
         "instance_num": 0,
@@ -135,7 +135,7 @@ KAFKA_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "device_class": [],
-        "storage_spec": [{"min": 10, "max": 10, "type": "ALL", "mount_point": "/data"}],
+        "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}],
         "desc": "",
         "enable": True,
         "instance_num": 0,
