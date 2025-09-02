@@ -111,8 +111,8 @@
    */
   const roleListConfig = {
     [ClusterTypes.TENDBHA]: [
-      { label: 'Master', value: 'master' },
-      { label: 'Slave', value: 'slave' },
+      { label: 'Master', value: 'backend_master' },
+      { label: 'Slave', value: 'backend_slave' },
     ],
     [ClusterTypes.TENDBSINGLE]: [{ label: 'Orphan', value: 'orphan' }],
   };
