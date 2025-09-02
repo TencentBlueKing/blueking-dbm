@@ -58,10 +58,12 @@ def mongos_install(
         ],
         info=sub_get_kwargs.mongos_info,
     )
+    kwargs["create"] = False
     # 增加mongos获取密码
     if increase_mongos:
-        kwargs["create"] = False
         kwargs = sub_get_kwargs.get_password_from_db(info=kwargs)
+    else:
+        kwargs["passwords"] = sub_get_kwargs.payload["passwords"]
     sub_pipeline.add_act(
         act_name=_("MongoDB--保存dba用户及额外管理用户密码"),
         act_component_code=ExecAddPasswordToDBOperationComponent.code,

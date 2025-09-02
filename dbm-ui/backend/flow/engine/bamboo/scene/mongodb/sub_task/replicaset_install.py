@@ -22,9 +22,6 @@ from backend.flow.plugins.components.collections.mongodb.add_password_to_db impo
     ExecAddPasswordToDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
-from backend.flow.plugins.components.collections.mongodb.get_manager_user_password import (
-    ExecGetPasswordOperationComponent,
-)
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
@@ -71,10 +68,7 @@ def replicaset_install(
         sub_get_kwargs.save_conf(namespace=ClusterType.MongoReplicaSet.value)
 
         # 密码服务获取管理用户密码
-        kwargs = sub_get_kwargs.get_get_manager_password_kwargs()
-        sub_pipeline.add_act(
-            act_name=_("MongoDB--获取管理员用户密码"), act_component_code=ExecGetPasswordOperationComponent.code, kwargs=kwargs
-        )
+        sub_get_kwargs.get_user_password_kwargs()
 
     # 创建dba用户
     kwargs = sub_get_kwargs.get_add_manager_user_kwargs()
@@ -98,6 +92,8 @@ def replicaset_install(
         ],
         info=sub_get_kwargs.replicaset_info,
     )
+    kwargs["passwords"] = sub_get_kwargs.payload["passwords"]
+    kwargs["create"] = False
     sub_pipeline.add_act(
         act_name=_("MongoDB--保存dba用户及额外管理用户密码"),
         act_component_code=ExecAddPasswordToDBOperationComponent.code,
@@ -115,6 +111,19 @@ def replicaset_install(
     )
 
     if not cluster:
+        # 创建默认用户
+        kwargs = sub_get_kwargs.get_default_user_kwargs(cluster_type=ClusterType.MongoReplicaSet.value)
+        sub_pipeline.add_act(
+            act_name=_("MongoDB--创建默认用户"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+        )
+        # 保存默认用户到密码服务
+        kwargs = sub_get_kwargs.get_save_default_pwd_kwargs(cluster_type=ClusterType.MongoReplicaSet.value)
+        sub_pipeline.add_act(
+            act_name=_("MongoDB--保存默认用户密码"),
+            act_component_code=ExecAddPasswordToDBOperationComponent.code,
+            kwargs=kwargs,
+        )
+
         # 域名写入dns
         kwargs = sub_get_kwargs.get_add_domain_to_dns_kwargs(cluster=False)
         sub_pipeline.add_act(

@@ -23,13 +23,13 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
     InstallNodemanPluginServiceComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
+from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
+    ExecAddPasswordToDBOperationComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.add_relationship_to_meta import (
     ExecAddRelationshipOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
-from backend.flow.plugins.components.collections.mongodb.get_manager_user_password import (
-    ExecGetPasswordOperationComponent,
-)
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.calculate_cluster import calculate_cluster
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -164,10 +164,7 @@ class MongoDBInstallFlow(object):
         # 保存配置到dbconfig
         self.get_kwargs.save_conf(namespace=ClusterType.MongoShardedCluster.value)
         # 密码服务获取管理用户密码 shard，config的密码保持一致
-        kwargs = self.get_kwargs.get_get_manager_password_kwargs()
-        pipeline.add_act(
-            act_name=_("MongoDB--获取管理员用户密码"), act_component_code=ExecGetPasswordOperationComponent.code, kwargs=kwargs
-        )
+        self.get_kwargs.get_user_password_kwargs()
 
         # cluster安装
         # config和shard安装——子流程并行
@@ -217,6 +214,19 @@ class MongoDBInstallFlow(object):
         pipeline.add_act(
             act_name=_("MongoDB--添加关系到meta"),
             act_component_code=ExecAddRelationshipOperationComponent.code,
+            kwargs=kwargs,
+        )
+
+        # 创建默认用户
+        kwargs = self.get_kwargs.get_default_user_kwargs(cluster_type=ClusterType.MongoShardedCluster.value)
+        pipeline.add_act(
+            act_name=_("MongoDB--创建默认用户"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+        )
+        # 保存默认用户到密码服务
+        kwargs = self.get_kwargs.get_save_default_pwd_kwargs(cluster_type=ClusterType.MongoShardedCluster.value)
+        pipeline.add_act(
+            act_name=_("MongoDB--保存默认用户密码"),
+            act_component_code=ExecAddPasswordToDBOperationComponent.code,
             kwargs=kwargs,
         )
 

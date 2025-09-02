@@ -1492,12 +1492,19 @@ class MongoDBManagerUser(str, StructuredEnum):
     WebconsoleUser = EnumField("_webconsoleuser", _("_webconsoleuser"))
 
 
+class MongoDBDefaultUser(str, StructuredEnum):
+    """mongodb 默认用户"""
+
+    DefaultUser = EnumField("gameuser", _("gameuser"))
+
+
 class MongoDBUserPrivileges(str, StructuredEnum):
     """mongodb 用户权限"""
 
     RootRole = EnumField("root", _("root"))
     BackupRole = EnumField("backup", _("backup"))
     ClusterMonitorRole = EnumField("clusterMonitor", _("clusterMonitor"))
+    ClusterManagerRole = EnumField("clusterManager", _("clusterManager"))
     ReadAnyDatabaseRole = EnumField("readAnyDatabase", _("readAnyDatabase"))
     HostManagerRole = EnumField("hostManager", _("hostManager"))
     ReadWriteRole = EnumField("readWrite", _("readWrite"))

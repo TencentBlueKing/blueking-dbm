@@ -153,7 +153,15 @@ def deinstall(
     # 删除保存在密码服务的密码
     kwargs = sub_get_kwargs.get_delete_pwd_kwargs()
     sub_pipeline.add_act(
-        act_name=_("MongoDB-删除密码"),
+        act_name=_("MongoDB-管理用户删除密码"),
+        act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
+        kwargs=kwargs,
+    )
+
+    # 删除默认用户的密码
+    kwargs = sub_get_kwargs.get_del_user_pwd_kwargs()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-默认用户删除密码"),
         act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
         kwargs=kwargs,
     )

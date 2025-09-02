@@ -22,7 +22,6 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
-from backend.flow.consts import MongoDBManagerUser
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -72,59 +71,6 @@ class ExecuteDBActuatorJobService(BkJobService):
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
-
-        # 创建db管理员账号，从上游流程节点获取密码
-        if kwargs.get("create_manager_user", False):
-            if kwargs["set_name"]:
-                kwargs["db_act_template"]["payload"]["password"] = trans_data[kwargs["set_name"]][
-                    kwargs["db_act_template"]["payload"]["username"]
-                ]
-            else:
-                kwargs["db_act_template"]["payload"]["password"] = trans_data[
-                    kwargs["db_act_template"]["payload"]["username"]
-                ]
-
-        # 创建额外管理员账号
-        if kwargs.get("create_extra_manager_user", False):
-            script = kwargs["db_act_template"]["payload"]["script"]
-            if kwargs["set_name"]:
-                kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[kwargs["set_name"]][
-                    kwargs["db_act_template"]["payload"]["adminUsername"]
-                ]
-                script = script.replace(
-                    "{{appdba_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppDbaUser]
-                )
-                script = script.replace(
-                    "{{monitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.MonitorUser]
-                )
-                script = script.replace(
-                    "{{appmonitor_pwd}}", trans_data[kwargs["set_name"]][MongoDBManagerUser.AppMonitorUser]
-                )
-            else:
-                kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
-                    kwargs["db_act_template"]["payload"]["adminUsername"]
-                ]
-                script = script.replace("{{appdba_pwd}}", trans_data[MongoDBManagerUser.AppDbaUser])
-                script = script.replace("{{monitor_pwd}}", trans_data[MongoDBManagerUser.MonitorUser])
-                script = script.replace("{{appmonitor_pwd}}", trans_data[MongoDBManagerUser.AppMonitorUser])
-            kwargs["db_act_template"]["payload"]["script"] = script
-
-        # 进行db初始设置获，从上游流程节点获取密码
-        if kwargs.get("db_init_set", False):
-            if kwargs["set_name"]:
-                kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[kwargs["set_name"]][
-                    kwargs["db_act_template"]["payload"]["adminUsername"]
-                ]
-            else:
-                kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
-                    kwargs["db_act_template"]["payload"]["adminUsername"]
-                ]
-
-        # cluster添加shards，从上游流程节点获取密码
-        if kwargs.get("add_shard_to_cluster", False) or kwargs.get("mongodb_cluster_init", False):
-            kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
-                kwargs["db_act_template"]["payload"]["adminUsername"]
-            ]
 
         # 替换mongos安装新的mongos获取configDB配置  所有的mongos修改configDB参数
         mongos_replace_install = kwargs.get("mongos_replace_install", False)
