@@ -17,12 +17,36 @@ from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
+from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.sqlserver.resources.query import SqlserverListRetrieveResource
 
 
+class SqlserverHAExportQueryResourceMixin(CommonExportQueryResourceMixin):
+    """补充SqlserverHA集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        extra_headers = [
+            {"id": "sync_mode", "name": _("同步模式")},
+        ]
+        return headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新的集群列表数据
+        """
+        cluster_info.update(
+            {
+                "sync_mode": cls.db_sync_mode_map.get(cluster.id, ""),
+            }
+        )
+        return cluster_info
+
+
 @register_resource_decorator()
-class ListRetrieveResource(SqlserverListRetrieveResource):
+class ListRetrieveResource(SqlserverListRetrieveResource, SqlserverHAExportQueryResourceMixin):
     """查看 sqlserver ha 架构的资源"""
 
     cluster_types = [ClusterType.SqlserverHA]
@@ -77,23 +101,4 @@ class ListRetrieveResource(SqlserverListRetrieveResource):
             **kwargs
         )
         cluster_info.update({**cluster_role_info, **sync_mode_info})
-        return cluster_info
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        extra_headers = [
-            {"id": "sync_mode", "name": _("同步模式")},
-        ]
-        return headers, extra_headers
-
-    @classmethod
-    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
-        """
-        更新的集群列表数据
-        """
-        cluster_info.update(
-            {
-                "sync_mode": cls.db_sync_mode_map.get(cluster.id, ""),
-            }
-        )
         return cluster_info
