@@ -7,7 +7,7 @@
         v-model="quickSearchValue"
         :data="quickSearchData"
         parse-url
-        :placeholder="t('搜索单号、单据类型，集群，业务，备注，提单人...')"
+        :placeholder="t('搜索单号、单据类型，集群，业务，备注，申请人...')"
         style="width: 550px" />
     </div>
     <TicketTable

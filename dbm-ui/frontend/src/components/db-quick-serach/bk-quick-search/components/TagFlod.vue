@@ -3,8 +3,7 @@
     <div
       v-if="flodTagCount > 0"
       ref="popHandler"
-      class="bk-quick-search-tag-flod"
-      @mouseenter="handleMouseenter">
+      class="bk-quick-search-tag-flod">
       +{{ flodTagCount }}
     </div>
     <div ref="popContent">
@@ -53,13 +52,17 @@
     flodTagCount,
     () => {
       nextTick(() => {
-        if (!popHandlerRef.value || !popContentRef.value) {
-          return;
-        }
         if (flodTagCount.value < 1 && popInstance) {
           popInstance.hide();
           popInstance.destroy();
           popInstance = undefined;
+          return;
+        }
+
+        if (!popHandlerRef.value || !popContentRef.value) {
+          return;
+        }
+        if (popInstance) {
           return;
         }
 
@@ -82,14 +85,9 @@
     },
   );
 
-  const handleMouseenter = () => {
-    // if (popInstance) {
-    //   popInstance.show();
-    // }
-  };
-
   onBeforeUnmount(() => {
     if (popInstance) {
+      popInstance.hide();
       popInstance.destroy();
       popInstance = undefined;
     }

@@ -4,41 +4,58 @@
       <component
         :is="renderCom"
         :config="config"
-        :keyword="keyword"
         v-bind="renderComProps"
         :model-value="modelValue"
-        :remote-search="isRemoteSearach"
         @change="handleChange" />
     </ElConfigProvider>
     <div
-      v-if="isRemoteList && (isRemoteListLoading || remoteList.length < 1)"
-      style="padding: 0 16px; line-height: 32px; color: #63656e; text-align: center">
-      {{ isRemoteListLoading ? '加载中...' : '暂无数据' }}
-    </div>
-    <div
-      v-if="isNeedComfirmAndReset"
+      v-if="isNeedComfirmAndReset || isSupportQuickSelect"
       class="bk-quick-search-type-menu-footer">
-      <Button
-        size="small"
-        style="margin-right: 8px"
-        variant="outline"
-        @click="handleReset">
-        重置
-      </Button>
-      <Button
-        size="small"
-        @click="handleConfirm">
-        确定
-      </Button>
+      <div class="bk-quick-search-quick-submit-tips">
+        <!-- <template v-if="isSupportQuickSelect">
+          <div class="action-tips">
+            <div class="tag">
+              <DbIcon type="up-big" />
+            </div>
+            <div class="tag">
+              <DbIcon type="down-big" />
+            </div>
+            <span>移动光标</span>
+          </div>
+          <div class="action-tips">
+            <div class="tag">Enter</div>
+            <span>选中</span>
+          </div>
+        </template>
+        <div
+          v-if="isNeedComfirmAndReset"
+          class="action-tips">
+          <div class="tag">Ctrl + Enter</div>
+          <span>确定</span>
+        </div> -->
+      </div>
+      <template v-if="isNeedComfirmAndReset">
+        <Button
+          size="small"
+          style="margin-right: 8px; margin-left: 24px"
+          variant="outline"
+          @click="handleReset">
+          重置
+        </Button>
+        <Button
+          size="small"
+          @click="handleConfirm">
+          确定
+        </Button>
+      </template>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { ElConfigProvider } from 'element-plus';
   import zhCn from 'element-plus/es/locale/lang/zh-cn';
-  import _ from 'lodash';
   import { Button } from 'tdesign-vue-next';
-  import { computed, shallowRef, watch } from 'vue';
+  import { computed } from 'vue';
 
   import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
@@ -57,31 +74,20 @@
 
   interface Props {
     config?: ContextProps['data'][number];
-    keyword?: string;
   }
 
   type Emits = (e: 'change', value: IValue['values']) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     config: undefined,
-    keyword: '',
   });
   const emits = defineEmits<Emits>();
 
   // modelValue 类型支持所有值，由各个组件自行处理
   const modelValue = defineModel<any[]>();
 
-  const isRemoteListLoading = ref(true);
-  const remoteList = shallowRef<any[]>([]);
-
-  const isRemoteList = computed(() => _.isFunction(props.config?.remoteMethod));
-
   const renderCom = computed(() => {
     if (!props.config || !props.config.type) {
-      return null;
-    }
-    // remoteList 加载中不渲染任何组件，避免组件对 remoteList 数据类型处理错误
-    if (isRemoteList.value && isRemoteListLoading.value) {
       return null;
     }
     const defaultComMap = {
@@ -110,11 +116,17 @@
     }
     console.log('renderComProps = ', props.config);
     return {
-      list: isRemoteList.value ? remoteList.value : props.config.list || [],
+      list: props.config.list || [],
       ...Object.assign({}, props.config.props || {}),
     };
   });
 
+  const isSupportQuickSelect = computed(() => {
+    if (!props.config || !props.config.type) {
+      return false;
+    }
+    return [comType.MULTIPLE, comType.SINGLE].includes(props.config.type as comType);
+  });
   const isNeedComfirmAndReset = computed(() => {
     if (!props.config) {
       return false;
@@ -125,51 +137,6 @@
         )
       : Boolean(props.config.showConfirmAndReset);
   });
-
-  const isRemoteSearach = computed(() => {
-    return Boolean(props.config && props.config.remoteMethod && props.config.remoteSearch);
-  });
-
-  const fetchRemoteList = () => {
-    if (props.config && isRemoteList.value) {
-      isRemoteListLoading.value = true;
-      Promise.resolve()
-        .then(() =>
-          props.config!.remoteMethod!({
-            keyword: props.keyword,
-          }),
-        )
-        .then((data) => {
-          remoteList.value = data;
-        })
-        .finally(() => {
-          isRemoteListLoading.value = false;
-        });
-    }
-  };
-
-  watch(
-    () => props.config,
-    () => {
-      if (props.config && props.config.remoteMethod) {
-        fetchRemoteList();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-  watch(
-    () => props.keyword,
-    () => {
-      if (props.config && props.config.remoteMethod && props.config.remoteSearch) {
-        fetchRemoteList();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const handleChange = (value: IValue['values']) => {
     modelValue.value = value;
@@ -210,7 +177,7 @@
     .value-item {
       display: flex;
       height: 32px;
-      padding: 0 10px 0 16px;
+      padding: 0 16px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -234,6 +201,8 @@
   }
 
   .bk-quick-search-type-menu-filter-box {
+    padding: 8px 12px 0;
+
     .t-input {
       border: none;
       border-bottom: 1px solid #eaebf0;
@@ -258,6 +227,7 @@
 
   .bk-quick-search-type-menu-filter-empty {
     padding: 8px 16px;
+    margin-top: -30px;
     color: #63656e;
     text-align: center;
     flex: 1;
@@ -267,6 +237,34 @@
     display: flex;
     justify-content: flex-end;
     padding: 8px 12px;
+    align-items: center;
     border-top: 1px solid #dcdee5;
+    user-select: none;
+  }
+
+  .bk-quick-search-quick-submit-tips {
+    display: flex;
+    margin-right: auto;
+    font-size: 12px;
+    color: #7a8599;
+
+    .action-tips {
+      margin-right: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      height: 16px;
+      padding: 0 2px;
+      margin-right: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a3b1cc;
+      background: rgb(163 177 204 / 16.1%);
+      border: 1px solid rgb(163 177 204 / 30.2%);
+      border-radius: 2px;
+      align-items: center;
+      justify-content: center;
+    }
   }
 </style>

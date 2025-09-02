@@ -1,0 +1,58 @@
+.t-table {
+  --td-bg-color-secondarycontainer: #f0f1f5;
+  --td-bg-color-secondarycontainer-hover: #eaebf0;
+
+  z-index: 0;
+
+  .t-table__header th:hover {
+    background-color: var(--td-bg-color-secondarycontainer-hover);
+  }
+}
+
+.t-table__filter-pop {
+  .t-table__filter-pop-content {
+    .t-table__filter-pop-content-inner {
+      padding: 0;
+
+      & > .t-input__wrap {
+        width: 280px;
+        padding: 8px 12px;
+      }
+    }
+
+    .t-table__filter-pop-search {
+      padding: 8px 12px 0;
+    }
+
+    .t-table__filter-pop-wrapper {
+      max-height: 350px;
+      padding: 0;
+      margin: 8px 0;
+    }
+
+    .t-table__filter-pop-item {
+      padding: 0 16px;
+
+      &:hover {
+        color: #3a84ff;
+        background-color: #eaf3ff;
+      }
+    }
+  }
+
+  .t-input {
+    box-shadow: none !important;
+  }
+}
+
+.t-table__filter--bottom-buttons {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  align-items: center;
+  border-top: 1px solid #dcdee5;
+}
+
+.t-table__cell--sort-trigger {
+  margin-right: 4px;
+}

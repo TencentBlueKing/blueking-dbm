@@ -201,7 +201,6 @@
         </TableColumn>
         <TableColumn
           col-key="todo_operators"
-          :filter="tableFilter['todo_operators']"
           :title="t('当前处理人')"
           width="160">
           <template #default="{ row }: { row: IRowData }">
@@ -212,7 +211,6 @@
         </TableColumn>
         <TableColumn
           col-key="todo_helpers"
-          :filter="tableFilter['todo_helpers']"
           :title="t('当前协助人')"
           width="250">
           <template #default="{ row }: { row: IRowData }">

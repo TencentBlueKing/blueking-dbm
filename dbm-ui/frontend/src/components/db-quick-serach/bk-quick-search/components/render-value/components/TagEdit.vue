@@ -25,7 +25,6 @@
         @focus="handleFocus"
         @keydown="handleKeydown"
         @keyup="handleKeyup" />
-
       <div ref="valueMenuPopContent">
         <ValueMenu
           :config="config"
@@ -103,25 +102,15 @@
   });
 
   const placeholderStyles = computed<any>(() => {
-    const baseStyles = {
+    return {
+      'max-height': '220px',
       'min-height': '22px',
+      overflow: 'hidden',
       'padding-bottom': isShowValueMenu ? 0 : withNullValueMenuPlaceholderHeight,
       visibility: 'hidden',
-    };
-    if (props.readonly) {
-      return Object.assign(baseStyles, {
-        'white-space': 'nowrap',
-      });
-    }
-    if (isShowValueMenu) {
-      return Object.assign(baseStyles, {
-        'white-space': 'nowrap',
-      });
-    }
-    return Object.assign(baseStyles, {
       'white-space': 'pre-wrap',
       'word-break': 'break-all',
-    });
+    };
   });
 
   const { show: showValueMenu } = useMenuPop(editTextareaRef, popContentRef);
@@ -243,13 +232,6 @@
     min-width: 30px;
     flex: 1;
     overflow: hidden;
-
-    &.is-pop-menu-edit {
-      textarea {
-        overflow: hidden;
-        white-space: nowrap;
-      }
-    }
 
     textarea {
       position: absolute;

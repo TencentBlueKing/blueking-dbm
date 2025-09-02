@@ -38,7 +38,6 @@
       v-if="isShowValueMenu"
       :key="currentDataConfig?.id || '--'"
       :config="currentDataConfig"
-      :keyword="inputValue"
       @change="handleValueMenuChange" />
   </div>
   <div ref="suggestMenu">

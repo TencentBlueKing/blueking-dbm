@@ -1,68 +1,74 @@
 <template>
   <div
     class="bk-quick-search-type-mult-cascader"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth + 12}px` : '' }">
+    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-type-menu-filter-box">
       <Input
-        v-model="serachKey"
+        v-model="filterKey"
         borderless
         clearable
         placeholder="请输入关键字">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
-    <div
-      v-if="isSearching && renderSearchList.length > 0"
-      key="search"
-      class="bk-quick-search-value-wrapper filter-result-list">
+    <BkLoading :loading="isRemoteListLoading">
       <div
-        v-for="(item, index) in renderSearchList"
-        :key="index"
-        class="value-item"
-        @click="() => handleChange(item)">
-        <Checkbox
-          :checked="Boolean(localValueIdMap[item.value])"
-          style="pointer-events: none" />
-        {{ item.searchLabel }}
-      </div>
-    </div>
-    <div
-      v-if="!isSearching"
-      ref="layout"
-      class="bk-quick-search-value-wrapper">
-      <div class="parent-wrapper">
+        v-if="isSearching"
+        key="search"
+        ref="layout"
+        class="bk-quick-search-value-wrapper filter-result-list">
         <div
-          v-for="item in list"
-          :key="item.value"
-          class="value-item"
-          :class="{ active: item.value === parentKey }"
-          @click="() => handleSelectParent(item)">
-          <Checkbox
-            v-bind="calcParentCheckStatus(item)"
-            @change="(value) => handleParentChange(value, item)" />
-          {{ item.label }}
-        </div>
-      </div>
-      <div
-        :key="parentKey"
-        class="children-wrapper">
-        <div
-          v-for="item in childrenList"
-          :key="item.value"
+          v-for="(item, index) in renderSearchList"
+          :key="index"
           class="value-item"
           @click="() => handleChange(item)">
           <Checkbox
             :checked="Boolean(localValueIdMap[item.value])"
             style="pointer-events: none" />
-          {{ item.label }}
+          {{ item.searchLabel }}
         </div>
       </div>
-    </div>
-    <div
-      v-if="isSearching && renderSearchList.length < 1"
-      class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ serachKey }}" 相关数据
-    </div>
+      <div
+        v-if="!isSearching"
+        ref="layout"
+        class="bk-quick-search-value-wrapper">
+        <div class="parent-wrapper">
+          <div
+            v-for="item in list"
+            :key="item.value"
+            class="value-item"
+            :class="{ active: item.value === parentKey }"
+            @click="() => handleSelectParent(item)">
+            <Checkbox
+              v-bind="calcParentCheckStatus(item)"
+              @change="(value) => handleParentChange(value, item)" />
+            {{ item.label }}
+          </div>
+        </div>
+        <div
+          :key="parentKey"
+          class="children-wrapper">
+          <div
+            v-for="item in childrenList"
+            :key="item.value"
+            class="value-item"
+            @click="() => handleChange(item)">
+            <Checkbox
+              :checked="Boolean(localValueIdMap[item.value])"
+              style="pointer-events: none" />
+            {{ item.label }}
+          </div>
+        </div>
+      </div>
+      <div
+        v-if="isSearching && renderSearchList.length < 1"
+        class="bk-quick-search-type-menu-filter-empty">
+        <BkException
+          description="搜索为空"
+          scene="part"
+          type="search-empty" />
+      </div>
+    </BkLoading>
   </div>
 </template>
 <script setup lang="ts">
@@ -71,16 +77,12 @@
   import { Checkbox, Input } from 'tdesign-vue-next';
   import { ref, useTemplateRef } from 'vue';
 
+  import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+
+  import useMenuList from '../hooks/useMenuList';
+
   interface Props {
-    list: {
-      children: {
-        label: string;
-        value: string | number;
-      }[];
-      label: string;
-      value: string | number;
-    }[];
-    remoteSearch: boolean;
+    config: ContextProps['data'][number];
   }
 
   interface IResult {
@@ -98,22 +100,27 @@
     default: () => [],
   });
 
+  const {
+    filterKey,
+    list,
+    loading: isRemoteListLoading,
+  } = useMenuList<{ children: IResult[] } & IResult>(props.config);
+
   const layoutRef = useTemplateRef('layout');
-  const parentKey = ref<string | number>(props.list[0]!.value);
+  const parentKey = ref<string | number>('');
   const localValueIdMap = shallowRef<Record<string, IResult>>({});
   const contentMinWidth = ref(0);
-  const serachKey = ref('');
 
-  const isSearching = computed(() => Boolean(serachKey.value && _.trim(serachKey.value)));
-  const childrenList = computed(() => _.find(props.list, (item) => item.value === parentKey.value)?.children || []);
+  const isSearching = computed(() => Boolean(filterKey.value && _.trim(filterKey.value)));
+  const childrenList = computed(() => _.find(list.value, (item) => item.value === parentKey.value)?.children || []);
 
   const renderSearchList = computed(() => {
-    const keyword = `${serachKey.value || ''}`.trim().toLowerCase();
-    if (!keyword || props.remoteSearch) {
+    const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
+    if (!keyword) {
       return [];
     }
 
-    return props.list.reduce(
+    return list.value.reduce(
       (result, parentItem) => {
         parentItem.children.forEach((childItem) => {
           if (childItem.label.toLowerCase().includes(keyword)) {
@@ -133,7 +140,7 @@
     );
   });
 
-  const calcParentCheckStatus = (parentData: Props['list'][number]) => {
+  const calcParentCheckStatus = (parentData: { children: IResult[] } & IResult) => {
     let indeterminate = false;
     let checked = true;
     parentData.children.forEach((item) => {
@@ -162,20 +169,11 @@
         localValueIdMap.value = {};
         return;
       }
-      const currentValue = modelValue.value[0]!.value;
-      for (const parentItem of props.list) {
-        for (const childItem of parentItem.children) {
-          if (childItem.value === currentValue) {
-            parentKey.value = parentItem.value;
-            localValueIdMap.value = modelValue.value.reduce((result, item) => {
-              return Object.assign(result, {
-                [item.value]: item,
-              });
-            }, {});
-            return;
-          }
-        }
-      }
+      localValueIdMap.value = modelValue.value.reduce((result, item) => {
+        return Object.assign(result, {
+          [item.value]: item,
+        });
+      }, {});
     },
     {
       immediate: true,
@@ -183,11 +181,32 @@
   );
 
   watch(
-    () => props.list,
+    list,
     () => {
-      nextTick(() => {
+      if (list.value.length < 1) {
+        return;
+      }
+
+      if (modelValue.value.length < 1) {
+        parentKey.value = list.value[0]!.value;
+      } else {
+        const currentValue = modelValue.value[0]!.value;
+        for (const parentItem of list.value) {
+          for (const childItem of parentItem.children) {
+            if (childItem.value === currentValue) {
+              parentKey.value = parentItem.value;
+              break;
+            }
+          }
+        }
+      }
+
+      setTimeout(() => {
         contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
       });
+    },
+    {
+      immediate: true,
     },
   );
 
@@ -197,7 +216,7 @@
 
   const handleParentChange = (checked: boolean, data: IResult) => {
     const latestValueMap = { ...localValueIdMap.value };
-    const childrenList = _.find(props.list, (item) => item.value === data.value)?.children || [];
+    const childrenList = _.find(list.value, (item) => item.value === data.value)?.children || [];
     childrenList.forEach((item) => {
       if (checked) {
         latestValueMap[item.value] = item;
@@ -231,12 +250,12 @@
 </script>
 <style lang="less">
   .bk-quick-search-type-mult-cascader {
-    padding: 8px 12px;
+    padding-bottom: 8px;
 
     .bk-quick-search-value-wrapper {
       display: flex;
-      padding: 8px 0;
-      overflow: hidden;
+      min-width: max-content;
+      overflow: unset;
     }
 
     .filter-result-list {

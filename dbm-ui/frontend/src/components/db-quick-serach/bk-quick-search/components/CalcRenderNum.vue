@@ -2,7 +2,9 @@
   <div
     ref="root"
     style="position: absolute; top: 0; left: 0; width: 100%; height: 0; visibility: hidden">
-    <div style="display: flex">
+    <div
+      v-if="isShow"
+      style="display: flex">
       <ValueTag
         v-for="valueItem in valueList"
         :key="valueItem.id"
@@ -41,6 +43,7 @@
   const currentInstance = getCurrentInstance();
 
   const rootRef = useTemplateRef('root');
+  const isShow = ref(false);
   const tagRefs = ref<InstanceType<typeof ValueTag>[]>();
 
   const renderValuText = (value: IValue) => {
@@ -51,6 +54,7 @@
   const calcTagSize = _.throttle(
     () => {
       if (!currentInstance?.proxy?.$el) {
+        isShow.value = false;
         return;
       }
       const valueTagElList = (
@@ -64,6 +68,7 @@
             textEl.style.maxWidth = 'unset';
           }
         });
+        isShow.value = false;
         return;
       }
       const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
@@ -97,6 +102,7 @@
 
         textEl.style.maxWidth = `${longWidthOffset + tagMaxWidth - labelWidth}px`;
       });
+      isShow.value = false;
     },
     60,
     {
@@ -108,34 +114,37 @@
   watch(
     () => props.valueList,
     () => {
+      isShow.value = true;
       nextTick(() => {
         if (!rootRef.value || !tagRefs.value) {
           return;
         }
 
-        const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
-        let calcCount = 0;
-        let renderTagTotalWidth = 0;
+        setTimeout(() => {
+          const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
+          let calcCount = 0;
+          let renderTagTotalWidth = 0;
 
-        tagRefs.value!.forEach((tag) => {
-          renderTagTotalWidth += tag.$el.getBoundingClientRect().width;
-          if (renderTagTotalWidth >= maxWidth - calcCount * 4 - 20) {
-            return;
-          }
-          calcCount += 1;
-        });
-
-        if (props.valueList.length >= 3) {
-          modelValue.value = Math.max(calcCount, 3);
-        } else {
-          modelValue.value = props.valueList.length;
-        }
-
-        if (!props.fouced) {
-          nextTick(() => {
-            calcTagSize();
+          tagRefs.value!.forEach((tag) => {
+            renderTagTotalWidth += tag.$el.getBoundingClientRect().width;
+            if (renderTagTotalWidth >= maxWidth - calcCount * 4 - 20) {
+              return;
+            }
+            calcCount += 1;
           });
-        }
+
+          if (props.valueList.length >= 3) {
+            modelValue.value = Math.max(calcCount, 3);
+          } else {
+            modelValue.value = props.valueList.length;
+          }
+
+          if (!props.fouced) {
+            nextTick(() => {
+              calcTagSize();
+            });
+          }
+        });
       });
     },
     {
@@ -143,7 +152,14 @@
     },
   );
 
-  watch(() => props.fouced, calcTagSize, {
-    immediate: true,
-  });
+  watch(
+    () => props.fouced,
+    () => {
+      isShow.value = true;
+      calcTagSize();
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
