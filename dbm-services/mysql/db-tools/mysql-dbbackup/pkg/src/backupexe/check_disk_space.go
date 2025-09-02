@@ -151,7 +151,7 @@ func GetLastBackupSize(cnf *config.Public, db *sql.DB) (uint64, error) {
 		cnf.MysqlPort)
 
 	sqlBuilder := sq.Select("backup_id", "backup_begin_time", "extra_fields").
-		From(dbareport.ModelBackupReport{}.TableName()).
+		From(dbareport.ModelLocalBackupReport{}.TableName()).
 		Where(whereStr).OrderBy("backup_begin_time desc").Limit(1)
 
 	sqlStr, _, err := sqlBuilder.ToSql()

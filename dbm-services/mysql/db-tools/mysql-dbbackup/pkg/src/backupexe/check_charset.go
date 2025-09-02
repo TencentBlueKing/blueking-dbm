@@ -15,80 +15,59 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // CheckCharset Check and fix mysql server charset
-func CheckCharset(cnf *config.BackupConfig, dbh *sql.DB) error {
-	//if strings.ToLower(cnf.Public.BackupType) != cst.BackupLogical {
-	//	return nil
-	//}
+// might change the backup_type
+func CheckCharset(cnf *config.BackupConfig, mysqlVersion string, dbh *sql.DB) error {
 	confCharset := cnf.Public.MysqlCharset
 	var superCharset string
-
-	version, verErr := mysqlconn.GetMysqlVersion(dbh)
-	if verErr != nil {
-		return verErr
-	}
-	verStr, _ := util.VersionParser(version)
+	verStr, _ := util.VersionParser(mysqlVersion)
 	if strings.Compare(verStr, "005005003") == -1 { // mysql_version <5.5.3
 		superCharset = "utf8"
 	} else {
 		superCharset = "utf8mb4"
 	}
-
-	if confCharset == "auto" || confCharset == "" {
-		// 如果 cnf.MysqlCharset 为空，则自动读取 character_set_server
-		serverCharset, err := mysqlconn.MysqlSingleColumnQuery("select @@character_set_server", dbh)
-		if err != nil {
-			logger.Log.Error("can't select mysql server charset , error :", err)
-			return errors.WithMessagef(err, "failed to get character_set_server from %d", cnf.Public.MysqlPort)
+	if !(cnf.Public.IfBackupData() && cnf.Public.BackupType == cst.BackupLogical) {
+		if confCharset == "auto" || confCharset == "" {
+			logger.Log.Info("use charset 'binary' for schema or physical backup")
+			cnf.Public.MysqlCharset = "binary" // superCharset
 		}
-		cnf.Public.MysqlCharset = serverCharset[0]
 		return nil
 	}
-	if confCharset != "binary" && confCharset != superCharset && strings.ToUpper(cnf.Public.DataSchemaGrant) == "ALL" {
-		var goodCharset = []string{"latin1", "utf8", "utf8mb4"}
 
-		serverCharset, err := mysqlconn.GetMysqlCharset(dbh)
-		for i := 0; i < len(serverCharset); i++ {
-			grep := false
-			for j := 0; j < len(goodCharset); j++ {
-				if serverCharset[i] == goodCharset[j] {
-					grep = true
-				}
-			}
-			if !grep {
-				superCharset = "binary"
-			}
-		}
-
+	// 备份数据，且未逻辑备份
+	var goodCharset = []string{"latin1", "utf8", "utf8mb4"}
+	if confCharset == "auto" || confCharset == "" {
+		serverCharset, err := mysqlconn.GetAllMysqlCharset(true, true, true, true, dbh)
 		if err != nil {
-			logger.Log.Warn("get_server_data_charsets query failed,use super charset")
-			cnf.Public.MysqlCharset = superCharset
-		} else if len(serverCharset) > 1 {
-			logger.Log.Warn("found multi character sets on server ")
-			cnf.Public.MysqlCharset = superCharset
-		} else if len(serverCharset) == 1 {
-			cnf.Public.MysqlCharset = serverCharset[0]
-			if serverCharset[0] != confCharset {
-				logger.Log.Warn("backup config charset:'%s' and server charset '%s' are not the same."+
-					" You should use %s to backup,please modify config charset to remove this warning",
-					confCharset, serverCharset[0], serverCharset[0])
-			}
-		} else {
-			tableNum := common.GetTableNum(cnf.Public.MysqlPort) // todo
-			if tableNum > 1000 {
-				cnf.Public.MysqlCharset = superCharset
-				logger.Log.Warn("too much table, tableNum is %d,check server charset failed,"+
-					"use super charset:%s to backup.", tableNum, superCharset)
-			}
+			logger.Log.Error("can't select mysql server charset , error :", err)
+			return errors.WithMessagef(err, "failed to get charset from %d", cnf.Public.MysqlPort)
 		}
+		if len(serverCharset) == 2 &&
+			lo.Contains(serverCharset, "utf8") && lo.Contains(serverCharset, "utf8mb4") {
+			// "utf8", "utf8mb4" -> utf8mb4
+			logger.Log.Infof("use charset 'utf8mb4' for %+v", serverCharset)
+			superCharset = "utf8mb4"
+		} else if len(serverCharset) >= 3 {
+			logger.Log.Infof("use charset 'binary' for %+v", serverCharset)
+			superCharset = "binary"
+		} else if lo.Contains(goodCharset, serverCharset[0]) {
+			logger.Log.Infof("use charset '%s' for good charset", serverCharset[0])
+			superCharset = serverCharset[0]
+		} else {
+			logger.Log.Infof("use charset 'binary' for bad charset:%s", serverCharset[0])
+			superCharset = "binary"
+		}
+		cnf.Public.MysqlCharset = superCharset
+		return nil
 	}
 	logger.Log.Info("use character set:", cnf.Public.MysqlCharset, "  to backup")
 	return nil

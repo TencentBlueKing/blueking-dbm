@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/process"
@@ -90,24 +91,62 @@ func uniqMysqlServers(backupServers []MysqlServer) (servers []MysqlServer) {
 	return
 }
 
-func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
-	createdAt := time.Now().Format(time.DateTime)
-	sqlI := sq.Insert(g.GlobalBackupModel.TableName()).
-		Columns("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus", "CreatedAt")
+// checkGlobalTableExists check table is innodb or spider
+func (g GlobalBackup) checkGlobalTableExists(db *sqlx.DB) (string, error) {
+	descSchema := fmt.Sprintf("show create table `%s`.`global_backup`", cst.INFODBA_SCHEMA)
+	var tableName, tableCreate string
+	if err := db.QueryRow(descSchema).Scan(&tableName, &tableCreate); err != nil {
+		logger.Log.Warnf("fail to check global_backup table: %s", err.Error())
+		return "", err
+	}
+	tableCreate = strings.ToLower(tableCreate)
+	if strings.Contains(tableCreate, "engine=innodb") {
+		return "innodb", nil
+	} else if strings.Contains(tableCreate, "engine=spider") {
+		return "spider", nil
+	}
+	return "", errors.Errorf("table %s.%s is not innodb or spider", cst.INFODBA_SCHEMA, "global_backup")
+}
 
+// initializeBackup 在 spider primary 节点执行
+func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
+	if engine, err := g.checkGlobalTableExists(dbw.Db); engine != "" && engine != "spider" {
+		mysqlErr := cmutil.NewMySQLError(err)
+		if mysqlErr.Code == 1 || mysqlErr.Code == 0 {
+			mysqlErr = cmutil.MySQLError{
+				Code:    1054, // 用这个错误码，为了复用 migrateBackupSchema drop table + create table
+				Message: "Table engine error",
+				Raw:     "Table engine error",
+			}
+		}
+
+		if err2 := migrateBackupSchema(mysqlErr, dbw.Db); err2 != nil {
+			return errors.WithMessagef(err, "recreate global_backup failed:%s", err2.Error())
+		}
+	}
+
+	createdAt := time.Now().Format(time.DateTime)
+	sqlBuilder := sb.NewInsertBuilder()
+	sqlBuilder.InsertInto(g.GlobalBackupModel.TableName()).
+		Cols("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus", "CreatedAt")
 	// 这里要按照 ip:port 去重，以免出现重复记录
 	backupServers = uniqMysqlServers(backupServers)
 	for _, s := range backupServers {
 		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
-			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId,
+			sqlBuilder.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId,
 				StatusReplicated, createdAt)
 		} else {
-			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit, createdAt)
+			sqlBuilder.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit, createdAt)
 		}
 	}
-	sqlStr, sqlArgs := sqlI.MustSql()
-	logger.Log.Infof("init backup tasks:%+v, %+v", sqlStr, sqlArgs)
-	if _, err := sqlI.RunWith(dbw.Db).Exec(); err != nil {
+
+	sqlStr, sqlArgs := sqlBuilder.Build()
+	sqlFull, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
+	if err != nil {
+		return err
+	}
+	logger.Log.Infof("init backup tasks:%s", sqlFull)
+	if _, err := dbw.Db.Exec(sqlFull); err != nil {
 		logger.Log.Warnf("fail to initializeBackup: %s", err.Error())
 		mysqlErr := cmutil.NewMySQLError(err)
 		if err2 := migrateBackupSchema(mysqlErr, dbw.Db); err2 != nil {

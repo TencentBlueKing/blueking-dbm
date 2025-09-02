@@ -25,7 +25,6 @@ import (
 
 type MysqlBackupResultModel struct {
 	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
-	// dbareport.ModelBackupReport
 
 	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(60);NOT NULL;index:uk_cluster,unique,priority:4" validate:"required"`
 	BackupType      string `json:"backup_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`

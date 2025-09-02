@@ -10,6 +10,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/mysqlcomm"
@@ -202,49 +203,64 @@ func TestEngineTablesNum(engine string, greaterThenNum int, dbh *sql.DB) (bool, 
 	}
 }
 
-// GetMysqlCharset Get charset of mysql server
-func GetMysqlCharset(dbh *sql.DB) ([]string, error) {
+// GetAllMysqlCharset Get charset of mysql server
+func GetAllMysqlCharset(server, db, table, column bool, dbh *sql.DB) ([]string, error) {
 	var mysqlCharsets []string
-	serverCharset, err := MysqlSingleColumnQuery("select @@character_set_server", dbh)
-	if err != nil {
-		logger.Log.Error("can't select mysql server charset , error :", err)
-		return mysqlCharsets, err
+	excludeDbs := []string{"mysql", "information_schema", "performance_schema", "sys", "test",
+		"db_infobase", "infodba_schema"}
+	notInClause, _ := mysqlcomm.UnsafeBuilderStringIn(excludeDbs, "'")
+
+	// server charset
+	if server {
+		serverCharset, err := MysqlSingleColumnQuery("select @@character_set_server", dbh)
+		if err != nil {
+			logger.Log.Error("can't select mysql server charset , error :", err)
+			return mysqlCharsets, err
+		}
+		mysqlCharsets = append(mysqlCharsets, serverCharset...)
 	}
-	mysqlCharsets = append(mysqlCharsets, serverCharset...)
 
 	// column charset
-	columnCharset, err := MysqlSingleColumnQuery(
-		"select distinct CHARACTER_SET_NAME from INFORMATION_SCHEMA.COLUMNS"+
-			" where CHARACTER_SET_NAME is not null and"+
-			" table_schema not in ('performance_schema','information_schema','mysql','test','db_infobase')", dbh)
-	if err != nil {
-		logger.Log.Error("can't select mysql column charset , error :", err)
-		return mysqlCharsets, err
+	if column {
+		columnCharset, err := MysqlSingleColumnQuery(
+			fmt.Sprintf("select distinct CHARACTER_SET_NAME from information_schema.COLUMNS "+
+				"where CHARACTER_SET_NAME is not null and  table_schema not in (%s)", notInClause), dbh)
+		if err != nil {
+			logger.Log.Error("can't select mysql column charset , error :", err)
+			return mysqlCharsets, err
+		}
+		mysqlCharsets = append(mysqlCharsets, columnCharset...)
 	}
-	mysqlCharsets = append(mysqlCharsets, columnCharset...)
 
 	// table charset
-	tableCharset, err := MysqlSingleColumnQuery(
-		"select distinct TABLE_COLLATION from information_schema.tables where"+
-			" TABLE_COLLATION is not null and"+
-			" table_schema not in ('performance_schema','information_schema','mysql','test','db_infobase')", dbh)
-	if err != nil {
-		logger.Log.Error("can't select mysql table charset , error :", err)
-		return mysqlCharsets, err
+	if table {
+		// join with information_schema.COLLATION_CHARACTER_SET_APPLICABILITY to fetch table charset is too heavy
+		tableCharset, err := MysqlSingleColumnQuery(
+			fmt.Sprintf("select distinct TABLE_COLLATION from information_schema.tables "+
+				"where TABLE_COLLATION is not null and table_schema not in (%s)", notInClause), dbh)
+		if err != nil {
+			logger.Log.Error("can't select mysql table charset , error :", err)
+			return mysqlCharsets, err
+		}
+		// utf8mb4_general_ci to utf8mb4
+		tableCharset = lo.Uniq(lo.Map(tableCharset, func(item string, _ int) string {
+			return strings.Split(item, "_")[0]
+		}))
+		mysqlCharsets = append(mysqlCharsets, tableCharset...)
 	}
-	mysqlCharsets = append(mysqlCharsets, tableCharset...)
 
 	// database charset
-	databaseCharset, err := MysqlSingleColumnQuery(
-		"select distinct DEFAULT_CHARACTER_SET_NAME from information_schema.SCHEMATA"+
-			" where DEFAULT_CHARACTER_SET_NAME is not null and"+
-			" schema_name not in ('performance_schema','information_schema','mysql','test','db_infobase')", dbh)
-	if err != nil {
-		logger.Log.Error("can't select mysql database charset , error :", err)
-		return mysqlCharsets, err
+	if db {
+		databaseCharset, err := MysqlSingleColumnQuery(
+			fmt.Sprintf("select distinct DEFAULT_CHARACTER_SET_NAME from information_schema.SCHEMATA "+
+				"where DEFAULT_CHARACTER_SET_NAME is not null and schema_name not in (%s)", notInClause), dbh)
+		if err != nil {
+			logger.Log.Error("can't select mysql database charset , error :", err)
+			return mysqlCharsets, err
+		}
+		mysqlCharsets = append(mysqlCharsets, databaseCharset...)
 	}
-	mysqlCharsets = append(mysqlCharsets, databaseCharset...)
-	return mysqlCharsets, nil
+	return lo.Uniq(mysqlCharsets), nil
 }
 
 // ShowMysqlSlaveStatus Show the slave status of mysql server

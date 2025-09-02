@@ -55,10 +55,16 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 	if err != nil {
 		logger.Log.Warnf("failed to get datadir size for %d", cnf.Public.MysqlPort)
 	}
+
 	if err = r.CheckBackupType(cnf, r.storageEngine); err != nil {
 		return err
 	}
-	cnfPublic := &cnf.Public
+
+	// check server charset, need correct charset
+	if err = CheckCharset(cnf, r.mysqlVersion, dbh); err != nil {
+		logger.Log.Errorf("failed to get Mysqlcharset for %d", cnf.Public.MysqlPort)
+		return err
+	}
 
 	/*
 		// check myisam tables
@@ -66,12 +72,7 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 			return err
 		}
 	*/
-	// check server charset, need correct charset
-	if err := CheckCharset(cnf, dbh); err != nil {
-		logger.Log.Errorf("failed to get Mysqlcharset for %d", cnfPublic.MysqlPort)
-		return err
-	}
-
+	cnfPublic := &cnf.Public
 	// 例行删除旧备份
 	logger.Log.Infof("remove old backup files OldFileLeftDay=%d normally", cnfPublic.OldFileLeftDay)
 	if err := DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay); err != nil {

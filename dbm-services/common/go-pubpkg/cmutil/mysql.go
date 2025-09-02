@@ -66,12 +66,15 @@ func MySQLVersionParse(version string) uint64 {
 	return mysqlVersionParse(re, version)
 }
 
+// MySQLVersionCompare ver1 > ver2 return 1
+// ver1 < ver2 return -1
+// ver1 == ver2 return 0
 func MySQLVersionCompare(ver1, ver2 string) int {
 	v1 := MySQLVersionParse(ver1)
 	v2 := MySQLVersionParse(ver2)
-	if compare := v2 - v1; compare > 0 {
+	if v1 > v2 {
 		return 1
-	} else if compare < 0 {
+	} else if v1 < v2 {
 		return -1
 	} else {
 		return 0

@@ -25,7 +25,7 @@ func addCrontabLegacy(port int, schedule string) (err error) {
 		logger.Error(err.Error())
 		return err
 	}
-	scheduleCmd := fmt.Sprintf("%s reschedule -c %s"+
+	scheduleCmd := fmt.Sprintf("%s reschedule -c %s "+
 		"&& chown -R mysql:mysql %s",
 		tl.MustGet(tools.ToolDbbackupGo),
 		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),
@@ -49,7 +49,7 @@ func addCrontabSpider(role string, port int, schedule string) (err error) {
 		logger.Error(err.Error())
 		return err
 	}
-	scheduleCmd := fmt.Sprintf("%s reschedule -c %s --cluster-type tendbcluster"+
+	scheduleCmd := fmt.Sprintf("%s reschedule -c %s --cluster-type tendbcluster "+
 		"&& chown -R mysql:mysql %s",
 		tl.MustGet(tools.ToolDbbackupGo),
 		filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("dbbackup.%d.ini", port)),

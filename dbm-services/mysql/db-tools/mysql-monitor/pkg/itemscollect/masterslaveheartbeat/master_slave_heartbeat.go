@@ -4,12 +4,12 @@ package masterslaveheartbeat
 import (
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
-
 	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -142,7 +142,10 @@ func (c *Checker) reportHeartbeatDelay() error {
 			slaveStatus[k] = strings.TrimSpace(string(value))
 		}
 	}
-
+	if len(slaveStatus) == 0 {
+		slog.Error(name, slog.String("error", "slave status is empty"))
+		return errors.New("slave status is empty")
+	}
 	masterServerId, err := strconv.ParseInt(slaveStatus["Master_Server_Id"].(string), 10, 64)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))

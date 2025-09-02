@@ -21,7 +21,6 @@ import (
 
 // CheckBackupType check and fix backup type
 func (r *BackupRunner) CheckBackupType(cnf *config.BackupConfig, storageEngine string) (err error) {
-
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
 		if strings.EqualFold(storageEngine, cst.StorageEngineTokudb) ||
 			strings.EqualFold(storageEngine, cst.StorageEngineRocksdb) {

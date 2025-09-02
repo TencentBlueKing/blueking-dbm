@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.6.0
+	github.com/huandu/go-sqlbuilder v1.36.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/klauspost/compress v1.18.0
 	github.com/melbahja/goph v1.4.0
@@ -34,6 +35,7 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect

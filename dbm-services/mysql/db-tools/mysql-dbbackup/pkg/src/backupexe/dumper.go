@@ -86,7 +86,7 @@ func (r *BackupRunner) BuildDumper(cnf *config.BackupConfig, metaInfo *dbareport
 		}
 		if cmutil.MySQLVersionCompare(r.mysqlVersion, "8.0.0") >= 0 && r.glibcVersion < "2.14" {
 			return nil, errors.Errorf("glibc version %s < 2.14, "+
-				"not support physical backup for mysql 8.0.0+", r.glibcVersion)
+				"not support physical backup for %s (>8.0.0+)", r.glibcVersion, r.mysqlVersion)
 		}
 		if cst.StorageEngineRocksdb == storageEngine {
 			dumper = &PhysicalRocksdbDumper{

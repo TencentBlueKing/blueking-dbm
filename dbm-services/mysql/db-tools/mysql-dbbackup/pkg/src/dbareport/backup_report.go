@@ -290,11 +290,12 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 
 	binlogInfo, _ := json.Marshal(metaInfo.BinlogInfo)
 	extraFields, _ := json.Marshal(metaInfo.ExtraFields)
-	localBackupReport := ModelBackupReport{}.TableName()
+	localBackupReport := ModelLocalBackupReport{}.TableName()
 	sqlBuilder := sq.Replace(localBackupReport).Columns("backup_id", "backup_type", "cluster_id",
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
 		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
+		//"backup_method",
 		"backup_meta_file",
 		"binlog_info", "extra_fields",
 		"file_list", "backup_config_file", "backup_status").Values(
@@ -313,6 +314,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 		metaInfo.DataSchemaGrant,
 		metaInfo.IsFullBackup,
 		metaInfo.BackupBeginTime, metaInfo.BackupEndTime, metaInfo.BackupConsistentTime,
+		//metaInfo.BackupMethod,
 		indexFilePath,
 		binlogInfo, extraFields,
 		fileListRaw, "", "")
@@ -324,6 +326,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
+		_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
 		if err = migrateLocalBackupSchema(err, conn); err != nil {
 			return err
 		}

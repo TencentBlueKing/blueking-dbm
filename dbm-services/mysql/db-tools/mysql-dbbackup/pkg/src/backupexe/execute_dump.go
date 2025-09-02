@@ -79,10 +79,11 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 		return nil, err
 	}
 	// 如果是 slave 节点，提前获取他的 master_host, master_port
-	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
+	// 考虑到 role 更新可能没那么及时，这里如果是 master 也会去尝试获取 show slave status : master ip/port
+	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater, cst.RoleMaster}, strings.ToLower(cnf.Public.MysqlRole)) {
 		masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
-		if err != nil {
-			return nil, err
+		if err != nil && lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
+			logger.Log.Warnf("show slave status failed for %d: %v", cnf.Public.MysqlPort, err)
 		}
 		if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
 			metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}

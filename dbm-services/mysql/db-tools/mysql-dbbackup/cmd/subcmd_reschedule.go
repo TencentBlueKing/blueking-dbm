@@ -86,9 +86,9 @@ func handleScheduler(cmd *cobra.Command) (err error) {
 		if strings.EqualFold(cnf.Public.MysqlRole, cst.BackupRoleSpiderMaster) {
 			// tendbcluster 集群的 CronTime 只对 spider 节点有用
 			if cnf.Schedule.CronTime == "" {
-				cnf.Schedule = *defaultJobs["spiderbackup-check"]
+				cnf.Schedule = *defaultJobs["spiderbackup-schedule"]
 			} else {
-				cnf.Schedule = *initScheduleWithDefault(cnf.Schedule, "spiderbackup-check")
+				cnf.Schedule = *initScheduleWithDefault(cnf.Schedule, "spiderbackup-schedule")
 			}
 			if !strings.HasPrefix(cnf.Schedule.JobName, "spiderbackup") {
 				return errors.Errorf("%s is a tendbcluster, JobName should start with spiderbackup",
@@ -135,10 +135,16 @@ func addSchedule(apiUrl string, schedule *config.Schedule) error {
 		return errors.Errorf("JobName is empty")
 	}
 	crondManager := ma.NewManager(apiUrl)
+	cmdName := strings.Fields(schedule.Command)
+	var cmdArgs []string
+	if len(cmdName) > 1 {
+		cmdArgs = cmdName[1:]
+	}
+	cmdArgs = append(cmdArgs, strings.Fields(schedule.Args)...)
 	jobItem := ma.JobDefine{
 		Name:     schedule.JobName,
-		Command:  schedule.Command,
-		Args:     strings.Split(schedule.Args, " "),
+		Command:  cmdName[0],
+		Args:     cmdArgs,
 		Schedule: schedule.CronTime,
 		WorkDir:  cst.DbbackupGoInstallPath,
 		Creator:  "sys",
