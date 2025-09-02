@@ -16,44 +16,17 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
 from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
-@register_resource_decorator()
-class ESListRetrieveResource(BigDataBaseListRetrieveResource):
-    cluster_types = [ClusterType.Es]
-    instance_roles = [
-        InstanceRole.ES_MASTER.value,
-        InstanceRole.ES_DATANODE_HOT.value,
-        InstanceRole.ES_DATANODE_COLD.value,
-        InstanceRole.ES_CLIENT.value,
-    ]
-    fields = [
-        *BigDataBaseListRetrieveResource.fields,
-        {"name": _("Master节点"), "key": "es_master_nodes"},
-        {"name": _("热节点"), "key": "es_hot_nodes"},
-        {"name": _("冷节点"), "key": "es_cold_nodes"},
-        {"name": _("代理节点"), "key": "es_client"},
-    ]
-
-    @classmethod
-    def get_nodes(cls, bk_biz_id: int, cluster_id: int, role: str, keyword: str = None) -> list:
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-
-        storage_instances = cluster.storageinstance_set.filter(instance_role=role)
-        machines = Machine.objects.filter(bk_host_id__in=storage_instances.values_list("machine", flat=True))
-
-        role_host_ids = list(machines.values_list("bk_host_id", flat=True))
-        return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
-
-    @classmethod
-    def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
-        graph = scan_cluster(cluster).to_dict()
-        return graph
+class ESExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充ES集群列表导出所需的header及数据"""
 
     @classmethod
     def update_headers(cls, headers, **kwargs):
@@ -84,3 +57,37 @@ class ESListRetrieveResource(BigDataBaseListRetrieveResource):
             }
         )
         return cluster_info
+
+
+@register_resource_decorator()
+class ESListRetrieveResource(BigDataBaseListRetrieveResource, ESExportQueryResourceMixin):
+    cluster_types = [ClusterType.Es]
+    instance_roles = [
+        InstanceRole.ES_MASTER.value,
+        InstanceRole.ES_DATANODE_HOT.value,
+        InstanceRole.ES_DATANODE_COLD.value,
+        InstanceRole.ES_CLIENT.value,
+    ]
+    fields = [
+        *BigDataBaseListRetrieveResource.fields,
+        {"name": _("Master节点"), "key": "es_master_nodes"},
+        {"name": _("热节点"), "key": "es_hot_nodes"},
+        {"name": _("冷节点"), "key": "es_cold_nodes"},
+        {"name": _("代理节点"), "key": "es_client"},
+    ]
+
+    @classmethod
+    def get_nodes(cls, bk_biz_id: int, cluster_id: int, role: str, keyword: str = None) -> list:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+
+        storage_instances = cluster.storageinstance_set.filter(instance_role=role)
+        machines = Machine.objects.filter(bk_host_id__in=storage_instances.values_list("machine", flat=True))
+
+        role_host_ids = list(machines.values_list("bk_host_id", flat=True))
+        return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
+
+    @classmethod
+    def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        graph = scan_cluster(cluster).to_dict()
+        return graph

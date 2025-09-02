@@ -59,6 +59,47 @@ CLUSTER_STATUS_MAP = {
 }
 
 
+class CommonExportQueryResourceMixin:
+    """集群列表导出基类"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        """
+        更新表头信息
+        """
+        return headers, []
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        更新集群信息
+        """
+        return cluster_info
+
+    @staticmethod
+    def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet, role_header_ids):
+        """
+        将实例信息填充到集群信息中
+        """
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        for ins in instances:
+            # 暂时过滤掉 repeater 角色实例
+            if "repeater" in ins.instance_role:
+                continue
+
+            role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+
 class CommonQueryResourceMixin(abc.ABC):
     """集群通用的查询方法封装类"""
 
@@ -105,43 +146,6 @@ class CommonQueryResourceMixin(abc.ABC):
                 }
             )
         return entry_details
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        """
-        更新表头信息
-        """
-        return headers, []
-
-    @classmethod
-    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
-        """
-        更新集群信息
-        """
-        return cluster_info
-
-    @staticmethod
-    def fill_instances_to_cluster_info(cluster_info: Dict, instance_queryset: QuerySet, role_header_ids):
-        """
-        将实例信息填充到集群信息中
-        """
-        instances = instance_queryset.all()
-        if not instances.exists():
-            return
-
-        for ins in instances:
-            # 暂时过滤掉 repeater 角色实例
-            if "repeater" in ins.instance_role:
-                continue
-
-            role = ins.instance_role
-
-            # 添加实例信息
-            if role in cluster_info:
-                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
-            else:
-                role_header_ids.add(role)
-                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
 
     @classmethod
     def common_query_cluster(

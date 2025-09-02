@@ -17,7 +17,10 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Machine
 from backend.db_meta.models.group import Group, GroupInstance
 from backend.db_meta.models.instance import StorageInstance
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -26,8 +29,21 @@ from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
 
+class InfluxDBExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充InfluxDB集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "influxdb", "name": _("influxdb")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+
 @register_resource_decorator()
-class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
+class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource, InfluxDBExportQueryResourceMixin):
     instance_roles = []
     cluster_types = [ClusterType.Influxdb]
     fields = [
@@ -159,12 +175,3 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
             "restart_at": datetime2str(restart_at) if restart_at else restart_at,
             "operations": InstanceOperateRecord.objects.get_locking_operations(instance["id"]),
         }
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        # 补充实例为空未展示的字段
-        extra_headers = [
-            {"id": "influxdb", "name": _("influxdb")},
-        ]
-
-        return super().update_headers(headers, extra_headers=extra_headers)

@@ -15,12 +15,30 @@ from backend.db_meta.api.cluster.pulsar.detail import scan_cluster
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 
 
+class PulsarExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充Pulsar集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "pulsar_bookkeeper", "name": _("Bookkeeper")},
+            {"id": "pulsar_zookeeper", "name": _("Zookeeper")},
+            {"id": "pulsar_broker", "name": _("Broker")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+
 @register_resource_decorator()
-class PulsarListRetrieveResource(BigDataBaseListRetrieveResource):
+class PulsarListRetrieveResource(BigDataBaseListRetrieveResource, PulsarExportQueryResourceMixin):
     cluster_types = [ClusterType.Pulsar]
     instance_roles = [InstanceRole.PULSAR_BROKER, InstanceRole.PULSAR_BOOKKEEPER, InstanceRole.PULSAR_ZOOKEEPER]
     fields = [
@@ -35,14 +53,3 @@ class PulsarListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        # 补充实例为空未展示的字段
-        extra_headers = [
-            {"id": "pulsar_bookkeeper", "name": _("Bookkeeper")},
-            {"id": "pulsar_zookeeper", "name": _("Zookeeper")},
-            {"id": "pulsar_broker", "name": _("Broker")},
-        ]
-
-        return super().update_headers(headers, extra_headers=extra_headers)

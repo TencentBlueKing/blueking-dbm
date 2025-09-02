@@ -16,13 +16,33 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.bigdata.resources.query import (
+    BigDataBaseExportQueryResourceMixin,
+    BigDataBaseListRetrieveResource,
+)
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
+class DorisExportQueryResourceMixin(BigDataBaseExportQueryResourceMixin):
+    """补充Doris集群列表导出所需的header及数据"""
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "doris_backend_hot", "name": _("热节点")},
+            {"id": "doris_backend_warm", "name": _("温节点")},
+            {"id": "doris_backend_cold", "name": _("冷节点")},
+            {"id": "doris_follower", "name": _("Follower")},
+            {"id": "doris_observer", "name": _("Observer")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+
 @register_resource_decorator()
-class DorisListRetrieveResource(BigDataBaseListRetrieveResource):
+class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQueryResourceMixin):
     cluster_types = [ClusterType.Doris]
     instance_roles = [
         InstanceRole.DORIS_FOLLOWER.value,
@@ -53,16 +73,3 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        # 补充实例为空未展示的字段
-        extra_headers = [
-            {"id": "doris_backend_hot", "name": _("热节点")},
-            {"id": "doris_backend_warm", "name": _("温节点")},
-            {"id": "doris_backend_cold", "name": _("冷节点")},
-            {"id": "doris_follower", "name": _("Follower")},
-            {"id": "doris_observer", "name": _("Observer")},
-        ]
-
-        return super().update_headers(headers, extra_headers=extra_headers)

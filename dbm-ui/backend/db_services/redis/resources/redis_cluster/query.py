@@ -25,7 +25,11 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, NosqlStorageSetDtl, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
-from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin, ResourceList
+from backend.db_services.dbbase.resources.query import (
+    CommonExportQueryResourceMixin,
+    CommonQueryResourceMixin,
+    ResourceList,
+)
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
@@ -33,8 +37,90 @@ from backend.db_services.redis.resources.constants import REDIS_LIST_CLUSTER_TYP
 from backend.utils.basic import dictfetchall
 
 
+class RedisExportQueryResourceMixin(CommonExportQueryResourceMixin):
+    """补充Redis集群列表导出所需的header及数据"""
+
+    @classmethod
+    def fill_instances_to_cluster_info(cls, cluster_info: Dict, instance_queryset: QuerySet, role_header_ids: set):
+        """
+        将实例信息填充到集群信息中
+        """
+
+        instances = instance_queryset.all()
+        if not instances.exists():
+            return
+
+        # 获取第一个实例的集群类型即可
+        cluster_type = instances[0].cluster_type
+        for ins in instances:
+            role = ins.instance_role
+
+            # 添加实例信息
+            if role in cluster_info:
+                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
+            else:
+                role_header_ids.add(role)
+                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
+
+        # 补充集群的分片信息
+        if isinstance(instances[0], StorageInstance):
+            seg_range_map, instance_tuple = seg_instance_info(instances[0].bk_biz_id, instance_queryset)
+            _, remote_infos = remote_tuple_info(seg_range_map, instance_tuple, cluster_type, instances)
+            for role in (InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value):
+                cluster_info[role] = ""
+                for ins in remote_infos[role]:
+                    if ins.get("seg_range", ""):
+                        cluster_info[role] += f"\n{ins['instance']}({ins['seg_range']})"
+                    else:
+                        cluster_info[role] += f"\n{ins['instance']}"
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # redis主从无clb/北极星
+        if kwargs["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            return headers, []
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+            {"id": "polaris", "name": _("北极星")},
+        ]
+
+        # 替换原headers的db_module_name为modules
+        item = next((item for item in headers if item["id"] == "db_module_name"), None)
+        if item:
+            item.update({"id": "db_module_name", "name": _("modules")})
+
+        # redis集群架构不需要从域名
+        filtered_headers = list(filter(lambda header: header["id"] != "slave_domain", headers))
+
+        return filtered_headers, extra_headers
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+        # 替换原headers的cluster_info字段db_module_name为modules
+        cluster_info["db_module_name"] = cls.redis_cluster_module_map.get(cluster.id, "")
+
+        # redis主从无clb/北极星
+        if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
+            return cluster_info
+
+        # 补充clb/北极星
+        clb_entry, polaris_entry = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+                "polaris": polaris_entry,
+            }
+        )
+        # 删除cluster_info中的从域名
+        del cluster_info["slave_domain"]
+        return cluster_info
+
+
 @register_resource_decorator()
-class RedisListRetrieveResource(query.ListRetrieveResource):
+class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryResourceMixin):
     """查看twemproxy-redis架构的资源"""
 
     cluster_types = REDIS_LIST_CLUSTER_TYPE
@@ -216,84 +302,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
                 item.update(master_slave_map.get(item["ip"], {}))
 
         return ResourceList(count=count, data=machines)
-
-    @classmethod
-    def fill_instances_to_cluster_info(cls, cluster_info: Dict, instance_queryset: QuerySet, role_header_ids: set):
-        """
-        将实例信息填充到集群信息中
-        """
-
-        instances = instance_queryset.all()
-        if not instances.exists():
-            return
-
-        # 获取第一个实例的集群类型即可
-        cluster_type = instances[0].cluster_type
-        for ins in instances:
-            role = ins.instance_role
-
-            # 添加实例信息
-            if role in cluster_info:
-                cluster_info[role] += f"\n{ins.machine.ip}:{ins.port}"
-            else:
-                role_header_ids.add(role)
-                cluster_info[role] = f"{ins.machine.ip}:{ins.port}"
-
-        # 补充集群的分片信息
-        if isinstance(instances[0], StorageInstance):
-            seg_range_map, instance_tuple = seg_instance_info(instances[0].bk_biz_id, instance_queryset)
-            _, remote_infos = remote_tuple_info(seg_range_map, instance_tuple, cluster_type, instances)
-            for role in (InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_SLAVE.value):
-                cluster_info[role] = ""
-                for ins in remote_infos[role]:
-                    if ins.get("seg_range", ""):
-                        cluster_info[role] += f"\n{ins['instance']}({ins['seg_range']})"
-                    else:
-                        cluster_info[role] += f"\n{ins['instance']}"
-
-    @classmethod
-    def update_headers(cls, headers, **kwargs):
-        # redis主从无clb/北极星
-        if kwargs["cluster_type"] == ClusterType.TendisRedisInstance.value:
-            return headers, []
-        extra_headers = [
-            {"id": "clb", "name": _("clb")},
-            {"id": "polaris", "name": _("北极星")},
-        ]
-
-        # 替换原headers的db_module_name为modules
-        item = next((item for item in headers if item["id"] == "db_module_name"), None)
-        if item:
-            item.update({"id": "db_module_name", "name": _("modules")})
-
-        # redis集群架构不需要从域名
-        filtered_headers = list(filter(lambda header: header["id"] != "slave_domain", headers))
-
-        return filtered_headers, extra_headers
-
-    @classmethod
-    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
-        """
-        补充额外的集群列表数据
-        """
-        # 替换原headers的cluster_info字段db_module_name为modules
-        cluster_info["db_module_name"] = cls.redis_cluster_module_map.get(cluster.id, "")
-
-        # redis主从无clb/北极星
-        if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
-            return cluster_info
-
-        # 补充clb/北极星
-        clb_entry, polaris_entry = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
-        cluster_info.update(
-            {
-                "clb": clb_entry,
-                "polaris": polaris_entry,
-            }
-        )
-        # 删除cluster_info中的从域名
-        del cluster_info["slave_domain"]
-        return cluster_info
 
 
 def seg_instance_info(bk_biz_id, storage_queryset):
