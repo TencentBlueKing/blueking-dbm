@@ -70,6 +70,7 @@
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.MYSQL"
+              :machine-type="MachineTypes.MYSQL_BACKEND"
               :current-spec-id-list="[item.slave.spec_id]"
               required />
             <ResourceTagColumn
@@ -146,7 +147,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 

@@ -49,6 +49,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
+            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND"
             :current-spec-id-list="[item.oldMaster.spec_id]"
             required />
           <ResourceTagColumn
@@ -110,7 +111,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
