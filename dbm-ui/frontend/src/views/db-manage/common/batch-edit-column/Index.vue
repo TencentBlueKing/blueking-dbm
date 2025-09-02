@@ -2,7 +2,7 @@
   <BkPopConfirm
     :is-show="isShow"
     trigger="manual"
-    width="395"
+    :width="width"
     @after-show="handleAfterShow"
     @cancel="() => (isShow = false)"
     @confirm="handleConfirm">
@@ -109,6 +109,7 @@
     title: string;
     titlePrefixType?: 'edit' | 'entry' | 'select';
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
+    width?: number;
   }
 
   type Emits = (e: 'change', value: UnwrapRef<typeof localValue>) => void;
@@ -120,6 +121,7 @@
     single: false,
     titlePrefixType: 'edit',
     type: 'select',
+    width: 395,
   });
 
   const emits = defineEmits<Emits>();

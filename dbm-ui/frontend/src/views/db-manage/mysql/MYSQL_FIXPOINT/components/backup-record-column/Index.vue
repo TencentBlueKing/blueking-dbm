@@ -22,6 +22,7 @@
       <BatchEditColumn
         v-model="isShowBatchEdit"
         :title="t('备份记录')"
+        :width="504"
         title-prefix-type="select"
         @change="handleBatchEdit">
         <template #content>
@@ -48,7 +49,7 @@
                 v-model="formData.backup_method"
                 class="mb-12"
                 style="width: 100%">
-                <BkRadio :label="BackupMethod.non_full_by_regular">
+                <BkRadio label="all">
                   {{ t('全部') }}
                 </BkRadio>
                 <BkRadio :label="BackupMethod.full_by_ticket">
@@ -166,7 +167,7 @@
 
   const formData = ref({
     backup_time: '',
-    backup_method: BackupMethod.non_full_by_regular,
+    backup_method: 'all',
   });
 
   const backupMethodMap = {
@@ -195,10 +196,10 @@
   const handleBatchEdit = async () => {
     const data = await queryLatesBackupLog({
       backup_source: props.backupSource,
-      backup_method: formData.value.backup_method,
+      backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
-      rollback_time: formData.value.backup_time,
+      rollback_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),
     });
     emits('batch-edit', data, 'backupRecord');
   };
