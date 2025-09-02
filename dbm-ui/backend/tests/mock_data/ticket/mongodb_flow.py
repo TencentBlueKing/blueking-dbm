@@ -246,7 +246,7 @@ MONGODB_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
@@ -277,7 +277,7 @@ MONGODB_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 2, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "2核_1G_10G", "count": 2, "device_class": [],'
-        '"storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        '"storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 2,
         "bk_agent_id": "",
     },
@@ -308,7 +308,7 @@ MONGODB_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 2, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "2核_1G_10G", "count": 2, "device_class": [],'
-        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 2,
         "bk_agent_id": "",
     },
@@ -339,7 +339,7 @@ MONGODB_MACHINE_DATA = [
         "bk_city_id": 0,
         "spec_config": '{"id": 3, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
         '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
-        ' "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}]}',
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
         "spec_id": 3,
         "bk_agent_id": "",
     },
