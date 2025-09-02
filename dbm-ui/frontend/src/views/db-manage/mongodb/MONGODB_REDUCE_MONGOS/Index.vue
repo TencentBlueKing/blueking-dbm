@@ -37,7 +37,7 @@
             :min-width="180">
             <EditableBlock v-model="item.role" />
           </EditableColumn>
-          <EditableColumn
+          <!-- <EditableColumn
             :label="t('当前规格')"
             :min-width="180">
             <EditableBlock v-if="item.cluster.spec_config.id">
@@ -53,7 +53,14 @@
             <EditableBlock
               v-else
               :placeholder="t('自动生成')" />
-          </EditableColumn>
+          </EditableColumn> -->
+          <SpecColumn
+            v-model="item.cluster.spec_config.id"
+            :cluster-type="DBTypes.MONGODB"
+            field="item.cluster.spec_config.id"
+            label="当前规格"
+            :machine-type="MachineTypes.MONGOS"
+            required />
           <IpColumn
             v-model="item.hosts"
             :row-data="item" />
@@ -94,10 +101,10 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
-  import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
-
+  // import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

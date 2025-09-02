@@ -51,7 +51,7 @@
               :width="120">
               <EditableBlock :placeholder="t('选择集群后自动生成')"> Proxy </EditableBlock>
             </EditableColumn>
-            <SpecSelectColumn
+            <!-- <SpecSelectColumn
               v-model="item.spec_id"
               :bk-cloud-id="item.cluster.bk_cloud_id"
               :cluster-type="ClusterTypes.REDIS"
@@ -62,7 +62,17 @@
               <template #label="{ label, value }">
                 {{ specLabelFormat({ label, value }, index) }}
               </template>
-            </SpecSelectColumn>
+            </SpecSelectColumn> -->
+            <SpecColumn
+              v-model="item.spec_id"
+              :cluster-type="DBTypes.REDIS"
+              :current-spec-id-list="item.cluster.proxy.map((item) => item.spec_config.id)"
+              field="spec_id"
+              label="扩容规格"
+              :machine-type="MachineTypes.REDIS_PROXY"
+              required
+              selectable
+              @batch-edit="handleBatchEdit" />
             <TargetProxyCountColumn
               v-model="item.target_proxy_count"
               @batch-edit="handleBatchEdit" />
@@ -105,16 +115,17 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import { type TabConfig } from '@components/cluster-selector/Index.vue';
 
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
-  import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
 
+  // import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetProxyCountColumn from './components/TargetProxyCountColumn.vue';
 
   interface IDataRow {
@@ -216,16 +227,16 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const getCurrentSpecIds = (proxy: IDataRow['cluster']['proxy']) => {
-    const specIdList = (proxy || []).map((proxyItem) => proxyItem.spec_config.id);
-    return Array.from(new Set(specIdList));
-  };
+  // const getCurrentSpecIds = (proxy: IDataRow['cluster']['proxy']) => {
+  //   const specIdList = (proxy || []).map((proxyItem) => proxyItem.spec_config.id);
+  //   return Array.from(new Set(specIdList));
+  // };
 
-  const specLabelFormat = ({ label, value }: { label: string; value: number }, index: number) => {
-    const row = formData.tableData[index];
-    const specCount = row.cluster.proxy.filter((proxyItem) => proxyItem.spec_config.id === value).length;
-    return specCount ? `${label} ${t('((n))台', { n: specCount })}` : label;
-  };
+  // const specLabelFormat = ({ label, value }: { label: string; value: number }, index: number) => {
+  //   const row = formData.tableData[index];
+  //   const specCount = row.cluster.proxy.filter((proxyItem) => proxyItem.spec_config.id === value).length;
+  //   return specCount ? `${label} ${t('((n))台', { n: specCount })}` : label;
+  // };
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
@@ -251,7 +262,7 @@
     window.changeConfirm = true;
   };
 
-  const handleBatchEdit = (value: string, field: string) => {
+  const handleBatchEdit = (value: string | number, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
