@@ -20,10 +20,16 @@ class _BkChatApi(BaseApi):
     BASE = BKCHAT_APIGW_DOMAIN
 
     def __init__(self):
-        self.send_msg = self.generate_data_api(
+        self.send_ticket_msg = self.generate_data_api(
             method="POST",
             url="dbm_ticket_send/",
             description=_("dbm消息发送"),
+        )
+
+        self.send_custom_msg = self.generate_data_api(
+            method="POST",
+            url="send_custom_msg/",
+            description=_("bkchat自定义消息发送"),
         )
 
 

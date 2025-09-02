@@ -858,3 +858,12 @@ LIST_ALARM_SHIELD_RESPONSE = [
         "update_user": "admin",
     },
 ]
+
+
+DUTY_NOTICE_RULE_DATA = {
+    "cron": {"minute": "1", "hour": "1"},
+    "after": 7,
+    "channels": {"rtx": True, "sms": True, "mail": True, "wecom_robot": "xxxxxxx"},
+    "db_type": "mysql",
+    "enabled": True,
+}

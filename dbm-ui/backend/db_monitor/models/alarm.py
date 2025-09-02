@@ -58,6 +58,7 @@ from backend.db_monitor.utils import (
 )
 from backend.db_services.cmdb.biz import list_cc_obj_user
 from backend.exceptions import ApiError
+from backend.utils.time import get_days_range, str2datetime
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
@@ -362,6 +363,42 @@ class DutyRule(AuditedModel):
         """删除轮值"""
         super().delete()
         delete_monitor_duty_rule.delay(self.db_type, self.monitor_duty_rule_id)
+
+    def person_schedule(self) -> List:
+        """获取人员排班"""
+        arranges = self.duty_arranges
+
+        # 固定轮值，则直接返回duty_arranges，即是排班规则
+        if self.category == DutyRuleCategory.REGULAR.value:
+            return arranges
+
+        duty_number, members = arranges[0]["duty_number"], arranges[0]["members"]
+        work_days, duty_day = arranges[0]["work_days"], arranges[0]["duty_day"]
+        # 将轮值人员破环成链，便于索引计算
+        persons = members + members[:-1]
+
+        # 交替轮值，需要根据轮值时间和轮值人员计算
+        duty_arranges = []
+        for index, dt in enumerate(get_days_range(self.effective_time, self.end_time, weekdays=work_days)):
+            st = ((index // duty_day) * duty_number) % len(members)
+            on_duty = persons[st : st + duty_number]
+            duty_arranges.append({"date": dt, "work_times": arranges[0]["work_times"], "members": on_duty})
+
+        return duty_arranges
+
+    def get_date_schedule(self, date: str, after: int) -> list:
+        """获取指定日期后x天的排班"""
+        duty_arranges = self.person_schedule()
+        if not duty_arranges:
+            return []
+
+        start = str2datetime(date, aware_check=False).astimezone()
+        end = start + datetime.timedelta(days=after)
+        days_range = get_days_range(start, end)
+
+        arrange_map = {arrange["date"]: arrange for arrange in duty_arranges}
+        duty_arranges = [arrange_map[day] for day in days_range if day in arrange_map]
+        return duty_arranges
 
     @classmethod
     def priority_distinct(cls) -> list:

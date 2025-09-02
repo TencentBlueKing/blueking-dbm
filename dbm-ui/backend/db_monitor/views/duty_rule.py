@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from celery.schedules import crontab
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
@@ -18,9 +19,17 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_monitor import serializers
 from backend.db_monitor.models.alarm import DutyRule
-from backend.db_monitor.serializers import DutyRuleSerializer
+from backend.db_monitor.serializers import (
+    DutyRuleSerializer,
+    SendDutyNoticeScheduleSerializer,
+    UpdateDutyNoticeSerializer,
+)
+from backend.db_periodic_task.constants import PeriodicTaskType
+from backend.db_periodic_task.models import DBPeriodicTask
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
@@ -108,3 +117,54 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False)
     def priority_distinct(self, request, *args, **kwargs):
         return Response(DutyRule.priority_distinct())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询轮值通知配置"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None, filter_backends=None)
+    def duty_notice_config(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新轮值通知配置"),
+        tags=[SWAGGER_TAG],
+        request_body=UpdateDutyNoticeSerializer(),
+    )
+    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
+    def update_duty_notice_config(self, request, *args, **kwargs):
+        from backend.db_periodic_task.local_tasks import send_duty_schedule
+
+        data = self.params_validate(self.get_serializer_class())
+        db_type = data.pop("db_type")
+
+        # 更新轮值通知配置
+        notice_cfg = SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={})
+        notice_cfg[db_type] = data
+        SystemSettings.insert_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, notice_cfg, "dict")
+        # 获取轮值通知定时任务
+        notice_task = DBPeriodicTask.create_or_update_periodic_task(
+            name=f"{db_type}_periodic_{send_duty_schedule.__name__}",
+            task=f"{send_duty_schedule.__module__}.{send_duty_schedule.__name__}",
+            run_every=crontab(**data["cron"]),
+            task_type=PeriodicTaskType.LOCAL.value,
+            kwargs={"db_type": db_type},
+        )
+        # 打开/关闭 定时任务
+        notice_task.task.enabled = data["enabled"]
+        notice_task.task.save(update_fields=["enabled"])
+
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("发送轮值排班表"),
+        tags=[SWAGGER_TAG],
+        request_body=SendDutyNoticeScheduleSerializer(),
+    )
+    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=SendDutyNoticeScheduleSerializer)
+    def send_duty_notice_schedule(self, request, *args, **kwargs):
+        from backend.db_periodic_task.local_tasks import send_duty_schedule
+
+        db_type = self.params_validate(self.get_serializer_class())["db_type"]
+        send_duty_schedule.apply_async(args=(db_type,))
+        return Response()

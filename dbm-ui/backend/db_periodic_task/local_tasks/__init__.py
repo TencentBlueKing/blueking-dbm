@@ -31,5 +31,10 @@ from backend.db_periodic_task.models import DBPeriodicTask
 from ..constants import PeriodicTaskType
 from .register import registered_local_tasks
 
+# 注册动态创建的定时任务
+# 添加轮值排版发送定时任务
+send_duty_schedule_names = [f"{db_type}_periodic_{send_duty_schedule.__name__}" for db_type in DBType.get_values()]
+registered_local_tasks.update(send_duty_schedule_names)
+
 # 删除过期的本地周期任务
 DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.LOCAL.value)
