@@ -101,7 +101,7 @@
   });
   const timezone = ref('+08:00');
   const charset = ref('default');
-  const role = ref('slave');
+  const role = ref('backend_slave');
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
