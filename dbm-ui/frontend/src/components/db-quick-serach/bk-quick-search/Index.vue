@@ -136,7 +136,7 @@
     clearable: true,
     modelValue: () => [],
     pasteParseMethod: (text: string) =>
-      _.uniq(_.filter(text.split(/[\r\n\t;；|｜]/g), (item) => Boolean(_.trim(item)))),
+      _.uniq(_.filter(text.split(/[\r\n\t,，;；|｜]/g), (item) => Boolean(_.trim(item)))),
     placeholder: '请选择搜索项',
   });
 

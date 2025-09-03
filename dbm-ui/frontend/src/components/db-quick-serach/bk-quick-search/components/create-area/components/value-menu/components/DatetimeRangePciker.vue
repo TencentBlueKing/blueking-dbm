@@ -1,13 +1,13 @@
 <template>
-  <div>
-    <ElDatePickerPanel
-      v-model="localValue"
-      :border="false"
-      v-bind="attrs"
-      type="datetimerange"
-      @pick="handlePick"
-      @update:model-value="handleChange" />
-  </div>
+  <ElDatePickerPanel
+    :key="refreshKey"
+    v-model="localValue"
+    :border="false"
+    v-bind="attrs"
+    :default-time="defaultTime"
+    type="datetimerange"
+    @update:model-value="handleChange">
+  </ElDatePickerPanel>
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
@@ -29,7 +29,10 @@
 
   const attrs = useAttrs();
 
+  const refreshKey = ref(0);
   const localValue = ref<IResult['value'][]>(['', '']);
+
+  const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 2, 1, 23, 59, 59)];
 
   watch(
     modelValue,
@@ -48,6 +51,7 @@
     const startDatetimeFormat = dayjs(value[0]).format('YYYY-MM-DD HH:mm:ss');
     const endDatetimeFormat = dayjs(value[1]).format('YYYY-MM-DD HH:mm:ss');
     localValue.value = value;
+    refreshKey.value = Date.now();
 
     emits('change', [
       {
@@ -59,9 +63,5 @@
         value: endDatetimeFormat,
       },
     ]);
-  };
-
-  const handlePick = (value: any) => {
-    console.log('pick = ', value);
   };
 </script>

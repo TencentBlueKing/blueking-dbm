@@ -1,8 +1,10 @@
 <template>
   <ElConfigProvider :locale="zhCn">
     <ElDatePickerPanel
+      :key="refreshKey"
       v-model="localValue"
       :border="false"
+      :default-time="defaultTime"
       :shortcuts="shortcuts"
       type="datetimerange"
       @update:model-value="handleChange" />
@@ -31,6 +33,9 @@
 
   type Emits = (e: 'change', value: string) => void;
 
+  const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 2, 1, 23, 59, 59)];
+
+  const refreshKey = ref(0);
   const localValue = ref<[string, string]>(['', '']);
 
   watch(
@@ -48,6 +53,8 @@
   );
 
   const handleChange = (value: (string | number | Date)[]) => {
+    refreshKey.value = Date.now();
+
     const startDatetimeFormat = dayjs(value[0]).format('YYYY-MM-DD HH:mm:ss');
     const endDatetimeFormat = dayjs(value[1]).format('YYYY-MM-DD HH:mm:ss');
     emits('change', `${startDatetimeFormat},${endDatetimeFormat}`);

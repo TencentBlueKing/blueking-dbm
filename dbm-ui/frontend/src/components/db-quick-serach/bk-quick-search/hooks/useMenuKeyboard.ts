@@ -20,7 +20,7 @@ export default <T>(
   const handleKeyDown = (event: KeyboardEvent) => {
     // enter键直接触发选中
     if (['Enter', 'NumpadEnter'].includes(event.code) && activeIndex.value > -1) {
-      submitCallback(list.value[activeIndex.value], activeIndex.value);
+      submitCallback(list.value[activeIndex.value]!, activeIndex.value);
       return;
     }
     // 上下键位移动选中
