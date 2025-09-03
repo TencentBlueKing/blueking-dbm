@@ -17,7 +17,6 @@
         autocomplete="false"
         :name="config.name"
         :placeholder="lastValueText"
-        :readonly="readonly"
         spellcheck="false"
         :style="{
           'padding-bottom': isShowValueMenu ? '' : withNullValueMenuPlaceholderHeight,
@@ -40,11 +39,13 @@
         right: 0;
         bottom: 0;
         left: 0;
+        padding-left: 4px;
+        margin-left: -4px;
         color: #c4c6cc;
         pointer-events: none;
         background: #fafbfd;
       ">
-      按”Enter“确认，”Shift + Enter“ 换行
+      输入多个值 ”Shift + Enter“ 换行，按”Enter“确认
     </div>
   </div>
 </template>
@@ -103,7 +104,7 @@
 
   const placeholderStyles = computed<any>(() => {
     return {
-      'max-height': '220px',
+      'max-height': props.readonly ? '220px' : 'unset',
       'min-height': '22px',
       overflow: 'hidden',
       'padding-bottom': isShowValueMenu ? 0 : withNullValueMenuPlaceholderHeight,
@@ -137,18 +138,25 @@
 
   const handleKeydown = (event: KeyboardEvent) => {
     calcInputStyle();
-    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey && !isShowValueMenu) {
+    // 手动输入模式支持 Shfit + Enter 换行
+    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
       return true;
     }
     if (['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
     }
+    // 需要通过选择面板选择值，textarea 不响应任何输入
+    if (isShowValueMenu) {
+      event.preventDefault();
+    }
   };
 
   const handleKeyup = (event: KeyboardEvent) => {
+    // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
     if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
       return true;
     }
+    // enter 提交
     if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
       if (isShowValueMenu) {

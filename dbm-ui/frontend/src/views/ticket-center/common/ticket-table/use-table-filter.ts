@@ -81,20 +81,32 @@ export default () => {
         props: {
           shortcuts: [
             {
+              text: t('近 1 小时'),
+              value: () => [dayjs().subtract(1, 'hour').toDate(), dayjs().toDate()],
+            },
+            {
+              text: t('近 12 小时'),
+              value: () => [dayjs().subtract(12, 'hour').toDate(), dayjs().toDate()],
+            },
+            {
               text: t('今天'),
-              value: () => [dayjs().toDate(), dayjs().toDate()],
+              value: () => [dayjs().startOf('day').toDate(), dayjs().endOf('day').toDate()],
             },
             {
               text: t('近 7 天'),
-              value: () => [dayjs().subtract(6, 'day').toDate(), dayjs().toDate()],
+              value: () => [dayjs().subtract(6, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
             },
             {
-              text: t('近 15 天'),
-              value: () => [dayjs().subtract(14, 'day').toDate(), dayjs().toDate()],
+              text: t('近 1 个月'),
+              value: () => [dayjs().subtract(1, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
             },
             {
-              text: t('近 30 天'),
-              value: () => [dayjs().subtract(29, 'day').toDate(), dayjs().toDate()],
+              text: t('近 3 个月'),
+              value: () => [dayjs().subtract(3, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+            },
+            {
+              text: t('近 6 个月'),
+              value: () => [dayjs().subtract(6, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
             },
           ],
         },

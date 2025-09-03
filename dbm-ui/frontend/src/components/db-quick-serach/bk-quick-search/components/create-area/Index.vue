@@ -17,7 +17,6 @@
         ref="textarea"
         name="search"
         :placeholder="currentPlaceholder"
-        :readonly="isTextareaReadonly"
         spellcheck="false"
         :value="inputValue"
         @blur="handleBlur"
@@ -102,10 +101,6 @@
   const inputValue = ref('');
   const currentDataConfig = shallowRef<ContextProps['data'][number]>();
   const localValue = ref(genDefaultValue());
-
-  const isTextareaReadonly = computed(
-    () => Boolean(currentDataConfig.value?.type) || Boolean(currentDataConfig.value?.component),
-  );
 
   const currentPlaceholder = computed(() => {
     if (!currentDataConfig.value) {
@@ -220,6 +215,9 @@
     if (['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
     }
+    if (needShowValueMenu.value && !['Backspace'].includes(event.code)) {
+      event.preventDefault();
+    }
   };
 
   let latestInputValue = '';
@@ -230,6 +228,7 @@
       if (['ArrowDown', 'ArrowUp'].includes(event.code)) {
         event.preventDefault();
       } else if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
+        console.log('enter');
         event.preventDefault();
         // 没有选择 key
         if (isShowKeyMenu.value || !currentDataConfig.value) {
@@ -239,27 +238,29 @@
         if (!inputValue.value) {
           return;
         }
+        // 在选择面板中选择值，不想要输入框输入
+        if (needShowValueMenu.value) {
+          return;
+        }
         // value 使用 input 的值
-        if (!needShowValueMenu.value) {
-          let errorMessage = '';
-          if (currentDataConfig.value!.validator) {
-            const result = currentDataConfig.value.validator(inputValue.value);
-            if (_.isString(result)) {
-              errorMessage = result;
-            } else {
-              errorMessage = result ? '' : '格式不正确';
-            }
-            emits('error', errorMessage);
+        let errorMessage = '';
+        if (currentDataConfig.value!.validator) {
+          const result = currentDataConfig.value.validator(inputValue.value);
+          if (_.isString(result)) {
+            errorMessage = result;
+          } else {
+            errorMessage = result ? '' : '格式不正确';
           }
-          if (!errorMessage) {
-            const values = context!.pasteParseMethod(inputValue.value);
-            handleValueMenuChange(
-              values.map((item) => ({
-                label: item,
-                value: item,
-              })),
-            );
-          }
+          emits('error', errorMessage);
+        }
+        if (!errorMessage) {
+          const values = context!.pasteParseMethod(inputValue.value);
+          handleValueMenuChange(
+            values.map((item) => ({
+              label: item,
+              value: item,
+            })),
+          );
         }
         return;
       } else if (['Backspace'].includes(event.code)) {
@@ -285,7 +286,7 @@
           }
         }
       } else if (!currentDataConfig.value) {
-        showSuggestMenu();
+        inputValue.value && showSuggestMenu();
       } else if (currentDataConfig.value) {
         needShowValueMenu.value && showValueMenu();
       }

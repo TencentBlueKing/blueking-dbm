@@ -1,5 +1,6 @@
 <template>
   <ElDatePickerPanel
+    :key="refreshKey"
     v-model="localValue"
     :border="false"
     type="datetime"
@@ -22,6 +23,7 @@
     default: () => [],
   });
 
+  const refreshKey = ref(0);
   const localValue = ref<string>();
 
   watch(
@@ -35,6 +37,8 @@
   );
 
   const handleChange = (value: string) => {
+    refreshKey.value = Date.now();
+
     const valueFormat = dayjs(value).format('YYYY-MM-DD HH:mm:ss');
     emits('change', [
       {
