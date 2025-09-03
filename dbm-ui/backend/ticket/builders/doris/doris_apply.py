@@ -25,7 +25,6 @@ from backend.flow.engine.controller.doris import DorisController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataApplyDetailsSerializer
-from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
@@ -39,9 +38,6 @@ class DorisApplyDetailSerializer(BigDataApplyDetailsSerializer):
         """
         doris上架限制:
         1. 主机角色互斥
-        2. follower数量必须为3台，只能替换，无法扩缩容
-        3. observer可选项 若选至少需要2台
-        3. hot/clod 至少存在2台
         """
 
         # 判断主机角色是否互斥
@@ -57,26 +53,6 @@ class DorisApplyDetailSerializer(BigDataApplyDetailsSerializer):
                 raise serializers.ValidationError(_("端口号必须在5000到65535之间"))
             if port in constants.DORIS_INVALID_PORTS:
                 raise serializers.ValidationError(_("端口号{}不可用").format(port))
-
-        # 判断follower节点是否为3台
-        follower_node_count = self.get_node_count(attrs, BigDataRole.Doris.FOLLOWER.value)
-        if follower_node_count != constants.DORIS_FOLLOWER_NEED:
-            raise serializers.ValidationError(_("follower节点数不为3台! 请保证follower的部署节点数等于为3"))
-
-        # 判断observer是否选择，若选至少需要2台
-        observer_node_count = self.get_node_count(attrs, BigDataRole.Doris.OBSERVER.value)
-        if constants.DORIS_OBSERVER_ZERO < observer_node_count < constants.DORIS_OBSERVER_MIN:
-            raise serializers.ValidationError(_("observer节点数小于2台! 请保证observer的部署节点数至少为2"))
-
-        # 冷热 数据节点必选1种以上， # 每个角色至少需要2台
-        hot_node_count = self.get_node_count(attrs, BigDataRole.Doris.HOT.value)
-        cold_node_count = self.get_node_count(attrs, BigDataRole.Doris.COLD.value)
-
-        total_nodes = hot_node_count + cold_node_count
-        if not total_nodes:
-            raise serializers.ValidationError(_("请保证冷/热节点必选1种以上"))
-        if not (hot_node_count >= constants.DORIS_HOT_COLD_LIMIT or cold_node_count >= constants.DORIS_HOT_COLD_LIMIT):
-            raise serializers.ValidationError(_("请保证部署节点的角色为2以上"))
 
         return attrs
 

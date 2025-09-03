@@ -13,8 +13,6 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.doris import DorisController
 from backend.ticket import builders
@@ -32,40 +30,6 @@ logger = logging.getLogger("root")
 class DorisScaleUpDetailSerializer(BigDataScaleDetailSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
-
-        # 存储角色对应的扩容数量
-        count_stats = {}
-        for key, value in attrs["resource_spec"].items():
-            extra = "doris_" if key == "observer" else "doris_backend_"
-            count_stats[extra + key] = value.get("count", 0)
-
-        cluster = Cluster.objects.get(id=attrs["cluster_id"])
-
-        # 获取集群所有角色信息
-        exist_storages = cluster.storageinstance_set.filter(
-            instance_role__in=[
-                InstanceRole.DORIS_BACKEND_HOT,
-                InstanceRole.DORIS_BACKEND_COLD,
-                InstanceRole.DORIS_OBSERVER,
-            ]
-        )
-
-        # 创建一个包含角色及其最低节点数量要求的元组列表
-        role_min_count_pairs = [
-            (InstanceRole.DORIS_OBSERVER, _("请保证扩容的observer节点的角色总和最小值为2以上")),
-            (InstanceRole.DORIS_BACKEND_COLD, _("请保证扩容的cold节点的角色总和最小值为2以上")),
-            (InstanceRole.DORIS_BACKEND_HOT, _("请保证扩容的hot节点的角色总和最小值为2以上")),
-        ]
-
-        # 验证角色节点数量
-        for role, error_message in role_min_count_pairs:
-            if role.value in count_stats:
-                exist_hosts = {
-                    storage.machine.bk_host_id for storage in exist_storages if storage.instance_role == role
-                }
-                node_count = len(exist_hosts) + count_stats[role.value]
-                if node_count < 2:
-                    raise serializers.ValidationError(error_message)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
