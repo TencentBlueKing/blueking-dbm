@@ -1382,7 +1382,7 @@ class ActKwargs:
                     if shard.set_name == seg_range:
                         for member in shard.members:
                             hosts.append({"ip": member.ip, "bk_cloud_id": member.bk_cloud_id})
-                    break
+                        break
                 # 目标ip
                 hosts.append({"ip": shard_by_ip["target"]["ip"], "bk_cloud_id": shard_by_ip["target"]["bk_cloud_id"]})
                 plugin_hosts.append(
