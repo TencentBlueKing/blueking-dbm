@@ -14,27 +14,6 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster, StorageInstance
 
 
-def get_remotedb_info(ip: str, bk_cloud_id: int) -> list:
-    nodes = []
-    storage_instances = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
-    for one in storage_instances:
-        # storage = one.__dict__
-        storage = {
-            "version": one.version,
-            "port": one.port,
-            "bk_biz_id": one.bk_biz_id,
-            "status": one.status,
-            "instance_role": one.instance_role,
-            "phase": one.phase,
-            "bk_instance_id": one.bk_instance_id,
-            "db_module_id": one.db_module_id,
-            "ip": ip,
-            "bk_cloud_id": bk_cloud_id,
-        }
-        nodes.append(storage)
-    return nodes
-
-
 def get_rollback_clusters_info(
     source_cluster_id: int,
     target_cluster_id: int,
@@ -150,16 +129,4 @@ def get_master_slave_recover_info(cluster_id: int, master_ip: str, slave_ip: str
         for key, val in cluster_info["shards"].items():
             if val["master"]["ip"] == master_ip and val["slave"]["ip"] == slave_ip:
                 cluster_info["my_shards"][key] = val
-    return cluster_info
-
-
-def get_slave_local_recover_info(cluster_id: int, storage_id: int):
-    cluster_info = get_cluster_info(cluster_id)
-    cluster_info["my_shards"] = {}
-    storage = StorageInstance.objects.get(id=storage_id)
-    cluster_info["target_ip"] = storage.machine.ip
-    for key, val in cluster_info["shards"].items():
-        if val["slave"]["id"] == storage.id:
-            cluster_info["my_shards"][key] = val
-            break
     return cluster_info

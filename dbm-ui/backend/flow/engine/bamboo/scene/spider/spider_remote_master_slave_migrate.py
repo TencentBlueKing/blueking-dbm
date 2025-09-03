@@ -25,8 +25,8 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import instal
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
-    remote_node_uninstall_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
     ALLDEPARTS,
     DeployPeripheralToolsDepart,
@@ -447,7 +447,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     ),
                 )
                 uninstall_svr_sub_pipeline.add_sub_pipeline(
-                    sub_flow=remote_node_uninstall_sub_flow(
+                    sub_flow=uninstall_instance_sub_flow(
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip
                     )
                 )

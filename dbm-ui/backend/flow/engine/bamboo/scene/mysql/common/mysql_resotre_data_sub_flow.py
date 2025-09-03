@@ -32,7 +32,6 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import CheckSlaveStatusKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.spider.tendb_cluster_info import get_remotedb_info
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.utils.time import str2datetime
 
@@ -648,7 +647,7 @@ def tendbha_rollback_data_sub_flow(
         )
 
     return backup_info, sub_pipeline.build_sub_process(
-        sub_name=_("tendbHa定点回档 {}:{} ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"]))
+        sub_name=_("定点回档 {}:{} ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"]))
     )
 
 
@@ -715,35 +714,3 @@ def change_master_by_master_status(root_id: str, uid: str, cluster_info: dict):
             )
         )
     )
-
-
-def remote_node_uninstall_sub_flow(root_id: str, ticket_data: dict, ip: str):
-    """
-    卸载remotedb 指定ip节点下的所有实例
-    @param root_id: flow流程的root_id
-    @param ticket_data: 单据 data 对象
-    @param ip: 指定卸载的ip
-    """
-    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"]}
-    instances = get_remotedb_info(cluster["uninstall_ip"], cluster["bk_cloud_id"])
-    sub_pipeline_list = []
-    for instance in instances:
-        cluster["backend_port"] = instance["port"]
-        sub_pipeline_list.append(
-            {
-                "act_name": _("卸载MySQL实例:{}:{}".format(cluster["uninstall_ip"], cluster["backend_port"])),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(
-                    ExecActuatorKwargs(
-                        exec_ip=cluster["uninstall_ip"],
-                        bk_cloud_id=cluster["bk_cloud_id"],
-                        cluster=cluster,
-                        get_mysql_payload_func=MysqlActPayload.get_uninstall_mysql_payload.__name__,
-                    )
-                ),
-            }
-        )
-
-    sub_pipeline.add_parallel_acts(acts_list=sub_pipeline_list)
-    return sub_pipeline.build_sub_process(sub_name=_("Remote node {} 卸载整机实例".format(cluster["uninstall_ip"])))

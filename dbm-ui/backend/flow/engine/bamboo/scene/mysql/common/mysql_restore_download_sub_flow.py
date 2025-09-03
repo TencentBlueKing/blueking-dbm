@@ -85,7 +85,7 @@ def mysql_restore_download_sub_flow(
             )
             download_sub_pipeline_list.append(
                 {
-                    "act_name": _("远程下载全库备份文件到 {}".format(dest_ip)),
+                    "act_name": _("远程备份文件到 {}".format(dest_ip)),
                     "act_component_code": MySQLDownloadBackupfileComponent.code,
                     "kwargs": asdict(download_kwargs),
                 }
@@ -105,7 +105,7 @@ def mysql_restore_download_sub_flow(
             ),
         )
         sub_pipeline.add_act(
-            act_name=_("从本地 {} 点对点传输备份文件到 {}").format(source_ip, dest_ips),
+            act_name=_("从本地 {} 点对点传输文件到 {}").format(source_ip, dest_ips),
             act_component_code=MySQLTransFileComponent.code,
             kwargs=asdict(
                 P2PFileKwargs(
