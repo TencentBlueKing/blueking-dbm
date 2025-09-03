@@ -58,6 +58,7 @@
   interface Props {
     allowAsterisk?: boolean; // 是否允许单个 *
     clusterId?: number;
+    // eslint-disable-next-line vue/require-default-prop
     disabledMethod?: ComponentProps<typeof EditableColumn>['disabledMethod'];
     field: string;
     label: string;
@@ -70,6 +71,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
+    clusterId: undefined,
     required: true,
     showBatchEdit: true,
     single: false,
