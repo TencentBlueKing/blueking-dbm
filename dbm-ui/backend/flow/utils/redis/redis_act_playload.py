@@ -949,6 +949,7 @@ class RedisActPayload(object):
                 "domain": domain_name,
                 "without_to_backup_sys": not BACKUP_SYS_STATUS,
                 "backup_client_storage_type": "",  # 留空,使用系统默认
+                "backup_identify": self.cluster.get("backup_identify", ""),  # 新参数，一次备份的整体标识
             },
         }
 

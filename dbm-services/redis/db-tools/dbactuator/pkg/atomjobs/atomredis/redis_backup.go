@@ -594,8 +594,7 @@ func (task *BackupTask) PrecheckDisk() {
 		task.Err = fmt.Errorf("%s disk Used%d%% > 85%% or %s disk Used(%d%%) >85%%",
 			task.BackupDir, bakDiskUsg.UsageRatio,
 			task.DataDir, dataDiskUsg.UsageRatio)
-		mylog.Logger.Error(task.Err.Error())
-		return
+		mylog.Logger.Warn(task.Err.Error())
 	}
 	if task.DbType == consts.TendisTypeRedisInstance {
 		// redisInstance  rdb or aof 都会使用data磁盘空间,如备份会导致磁盘空间超95%则报错
