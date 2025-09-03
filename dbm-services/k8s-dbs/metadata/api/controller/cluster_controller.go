@@ -106,7 +106,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	requestParams, err := commutil.BuildListParams(ctx)
+	requestParams, err := commutil.BuildClusterListParams(ctx)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return

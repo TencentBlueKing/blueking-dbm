@@ -97,7 +97,7 @@ func (c *ClusterController) GetClusterList(ctx *gin.Context) {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterError, err))
 		return
 	}
-	requestParams, err := commutil.BuildListParams(ctx)
+	requestParams, err := commutil.BuildClusterListParams(ctx)
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterTypeError, err))
 		return
