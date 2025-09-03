@@ -109,6 +109,11 @@ def redis_dst_cluster_backup_and_flush(root_id, ticket_data, act_kwargs: ActKwar
     # 替换成 flush 和 backup 的 cluster 信息
     backup_flush_cluster = generate_dst_cluster_backup_flush_info(act_kwargs)
     act_kwargs.cluster = backup_flush_cluster
+    import time
+
+    act_kwargs.cluster["backup_identify"] = (
+        "DTS{}-{}".format(ticket_data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))),
+    )  # 集群DTS的备份标识
 
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_base()

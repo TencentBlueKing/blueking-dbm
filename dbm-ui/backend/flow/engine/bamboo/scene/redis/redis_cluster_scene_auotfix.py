@@ -201,7 +201,7 @@ class RedisClusterAutoFixSceneFlow(object):
     # 这里整理替换所需要的参数
     def start_redis_auotfix(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-故障自愈"))
-        sub_pipelines = []
+        # sub_pipelines = []
         for cluster_fix in self.data["infos"]:
             for cluster_id in cluster_fix["cluster_ids"]:
                 cluster_kwargs = deepcopy(act_kwargs)
@@ -216,9 +216,11 @@ class RedisClusterAutoFixSceneFlow(object):
                     act_component_code=GetRedisActPayloadComponent.code,
                     kwargs=asdict(cluster_kwargs),
                 )
-                sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
+                # 单机多实例 ，让他串行跑吧
+                redis_pipeline.add_sub_pipeline(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
+                # sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
 
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            # redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
             # 主从的， 是以机器维度发起的自愈， 那么也以机器维度发起下架，方便主机回收
             # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
