@@ -127,10 +127,12 @@ class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
         master_inst = (
             StorageInstance.find_insts_by_addresses([master]).prefetch_related("as_receiver__ejector").first()
         )
-        slave_inst = StorageInstance.find_insts_by_addresses([slave]).prefetch_related("as_receiver__ejector").first()
+        slave_insts = StorageInstance.find_insts_by_addresses(slave.split(",")).prefetch_related(
+            "as_receiver__ejector"
+        )
         inst_tuple = master_inst.as_ejector.first()
         master_info = self._get_instance_related_info(master_inst)
-        slave_info = self._get_instance_related_info(slave_inst)
+        slave_info = [self._get_instance_related_info(slave) for slave in slave_insts]
         # 如果master是repeater角色，需获取旧主机的分片信息
         if master_inst.instance_inner_role == InstanceInnerRole.REPEATER.value:
             shard_id = master_inst.as_receiver.get().ejector.as_ejector.first().tendbclusterstorageset.shard_id
@@ -139,7 +141,7 @@ class TendbChecksumParamBuilder(MySQLChecksumFlowParamBuilder):
         shard_info = {
             "shard_id": shard_id,
             "master": master_info,
-            "slaves": [slave_info],
+            "slaves": slave_info,
             **backup_table_info,
         }
 
