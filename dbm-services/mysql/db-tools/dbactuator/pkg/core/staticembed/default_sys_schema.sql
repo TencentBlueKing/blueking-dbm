@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS infodba_schema.local_backup_report (
     backup_end_time timestamp NOT NULL DEFAULT '1970-01-02 00:00:00',
     backup_consistent_time timestamp NOT NULL DEFAULT '1970-01-02 00:00:00',
     backup_status varchar(60) DEFAULT NULL,
+    backup_method varchar(60) DEFAULT NULL,
     backup_meta_file varchar(255),
     binlog_info text,
     file_list text,

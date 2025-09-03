@@ -295,7 +295,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
 		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
-		//"backup_method",
+		"backup_method",
 		"backup_meta_file",
 		"binlog_info", "extra_fields",
 		"file_list", "backup_config_file", "backup_status").Values(
@@ -314,7 +314,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 		metaInfo.DataSchemaGrant,
 		metaInfo.IsFullBackup,
 		metaInfo.BackupBeginTime, metaInfo.BackupEndTime, metaInfo.BackupConsistentTime,
-		//metaInfo.BackupMethod,
+		metaInfo.BackupMethod,
 		indexFilePath,
 		binlogInfo, extraFields,
 		fileListRaw, "", "")

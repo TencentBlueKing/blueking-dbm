@@ -20,6 +20,7 @@ import (
 	"slices"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
@@ -141,9 +142,18 @@ func (c *Checker) Run() (msg string, err error) {
 		var cnfValue string
 		for k, v := range detail {
 			if k == cnfFile {
-				cnfValue = v.(string)
+				cnfValue = strings.ToLower(v.(string))
 			} else {
-				runtimeValue = v.(string)
+				runtimeValue = strings.ToLower(v.(string))
+			}
+		}
+		if cnfValue == runtimeValue {
+			continue
+		} else if slices.Index([]string{"on", "off"}, cnfValue) >= 0 ||
+			slices.Index([]string{"on", "off"}, runtimeValue) >= 0 {
+			// 在确认是 on/off 类型时，认为 on == 1, off == 0 是没有差异的
+			if cmutil.ToBoolExt(cnfValue) == cmutil.ToBoolExt(runtimeValue) {
+				continue
 			}
 		}
 		res = append(
@@ -153,7 +163,6 @@ func (c *Checker) Run() (msg string, err error) {
 				variableName, runtimeValue, cnfValue,
 			),
 		)
-
 	}
 	return strings.Join(res, "\n"), nil
 }

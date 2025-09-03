@@ -141,7 +141,6 @@ func (l *LogicalLoader) Execute() (err error) {
 		if l.initConnectOriginal != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnectOriginal)
 			if _, err := l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
-				//return err
 				logger.Log.Warn("fail set global init_connect back:", l.initConnectOriginal)
 			}
 		}
@@ -164,6 +163,9 @@ func (l *LogicalLoader) Execute() (err error) {
 	if !strings.Contains(l.cnf.InitCommand, "max_allowed_packet") {
 		l.cnf.InitCommand += ";set global max_allowed_packet=1073741824"
 	}
+	if !strings.Contains(l.cnf.InitCommand, "sql_mode") {
+		l.cnf.InitCommand += fmt.Sprintf(";set sql_mode='%s'", l.metaInfo.SqlMode)
+	}
 	if l.cnf.InitCommand != "" {
 		// https://github.com/mydumper/mydumper/blob/master/README.md#defaults-file
 		// [myloader_session_variables]
@@ -179,6 +181,7 @@ func (l *LogicalLoader) Execute() (err error) {
 		}
 		args = append(args, "--defaults-file", defaultsFile)
 	}
+
 	var serverVersion string
 	if err := l.dbConn.QueryRow("select version()").Scan(&serverVersion); err == nil {
 		if strings.Contains(serverVersion, "tdbctl") &&

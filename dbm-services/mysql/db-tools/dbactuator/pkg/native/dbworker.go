@@ -146,7 +146,7 @@ func (h *DbWorker) ExecMoreContext(sqls []string, ctx context.Context) (rowsAffe
 
 // Queryx execute query use sqlx
 func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) error {
-	logger.Info("Queryx:%s, args:%v", query, args)
+	// logger.Info("Queryx:%s, args:%v", query, args)
 	db := sqlx.NewDb(h.Db, "mysql")
 	udb := db.Unsafe()
 	if err := udb.Select(data, query, args...); err != nil {
