@@ -190,7 +190,7 @@ func (suite *ClusterDbAccessTestSuite) TestListClustersByPage() {
 
 	clusterMap := make(map[string]models.K8sCrdClusterModel)
 	for _, cluster := range clusters {
-		clusterMap[cluster.ClusterName] = cluster
+		clusterMap[cluster.ClusterName] = *cluster
 	}
 
 	for _, sample := range batchClusterSamples {

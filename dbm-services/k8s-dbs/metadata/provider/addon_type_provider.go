@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -45,20 +46,18 @@ func (a *AddonTypeProviderImpl) Create(entity *entitys.AddonTypeEntity) (
 	*entitys.AddonTypeEntity, error,
 ) {
 	model := models.AddonTypeModel{}
-	err := copier.Copy(&model, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&model, entity); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
+
 	addedModel, err := a.typeDbAccess.Create(&model)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon type with entity: %+v", entity)
 	}
+
 	addedEntity := entitys.AddonTypeEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedEntity, nil
 }
@@ -70,24 +69,21 @@ func (a *AddonTypeProviderImpl) ListByLimit(limit int) (
 ) {
 	typeModels, err := a.typeDbAccess.ListByLimit(limit)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addon type with limit %d", limit)
 	}
 	var typeEntities []*entitys.AddonTypeEntity
-	if err := copier.Copy(&typeEntities, typeModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&typeEntities, typeModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 
 	for i, typeEntity := range typeEntities {
 		categoryModel, err := a.categoryDbAccess.FindByID(typeEntity.CategoryID)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to find addon category with id %d", typeEntity.CategoryID)
 		}
 		categoryEntity := &entitys.AddonCategoryEntity{}
 		if err := copier.Copy(categoryEntity, categoryModel); err != nil {
-			slog.Error("Failed to copy entity to copied model", "error", err)
-			return nil, err
+			return nil, errors.Wrap(err, "failed to copy")
 		}
 		typeEntities[i].AddonCategory = categoryEntity
 	}

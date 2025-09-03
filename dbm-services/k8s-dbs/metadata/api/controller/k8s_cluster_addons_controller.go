@@ -56,7 +56,7 @@ func (k *K8sClusterAddonsController) GetAddon(ctx *gin.Context) {
 		return
 	}
 	var data response.K8sClusterAddonResponse
-	if err := copier.Copy(&data, addon); err != nil {
+	if err = copier.Copy(&data, addon); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -75,7 +75,7 @@ func (k *K8sClusterAddonsController) GetAddonsByClusterName(ctx *gin.Context) {
 		return
 	}
 	var data []response.K8sClusterAddonResponse
-	if err := copier.Copy(&data, clusterAddons); err != nil {
+	if err = copier.Copy(&data, clusterAddons); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

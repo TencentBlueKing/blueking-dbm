@@ -22,7 +22,8 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -44,8 +45,7 @@ func (c *ClusterOperationDbAccessImpl) Create(model *models.ClusterOperationMode
 	error,
 ) {
 	if err := c.db.Create(model).Error; err != nil {
-		slog.Error("Create cluster operation error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to create cluster operation with model %+v", model)
 	}
 	return model, nil
 }
@@ -58,8 +58,7 @@ func (c *ClusterOperationDbAccessImpl) ListByPage(pagination entity.Pagination) 
 ) {
 	var opsModels []models.ClusterOperationModel
 	if err := c.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&opsModels).Error; err != nil {
-		slog.Error("List cluster operation error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "Failed to list cluster operations with pagination %+v", pagination)
 	}
 	return opsModels, int64(len(opsModels)), nil
 }

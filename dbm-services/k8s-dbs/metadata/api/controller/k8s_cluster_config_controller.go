@@ -58,7 +58,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByID(ctx *gin.Context) {
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
-	if err := copier.Copy(&respVo, config); err != nil {
+	if err = copier.Copy(&respVo, config); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -79,7 +79,7 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 		return
 	}
 	var respRegions []*response.RegionResp
-	if err := copier.Copy(&respRegions, regions); err != nil {
+	if err = copier.Copy(&respRegions, regions); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -99,7 +99,7 @@ func (k *K8sClusterConfigController) GetK8sClusterConfigByName(ctx *gin.Context)
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
-	if err := copier.Copy(&respVo, config); err != nil {
+	if err = copier.Copy(&respVo, config); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -124,7 +124,7 @@ func (k *K8sClusterConfigController) CreateK8sClusterConfig(ctx *gin.Context) {
 		return
 	}
 	var respVo response.K8sClusterConfigResponse
-	if err := copier.Copy(&respVo, addedConfig); err != nil {
+	if err = copier.Copy(&respVo, addedConfig); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
@@ -140,12 +140,12 @@ func (k *K8sClusterConfigController) UpdateK8sClusterConfig(ctx *gin.Context) {
 		return
 	}
 	var reqVo request.K8sClusterConfigRequest
-	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
+	if err = ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	var configEntity entitys.K8sClusterConfigEntity
-	if err := copier.Copy(&configEntity, reqVo); err != nil {
+	if err = copier.Copy(&configEntity, reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}

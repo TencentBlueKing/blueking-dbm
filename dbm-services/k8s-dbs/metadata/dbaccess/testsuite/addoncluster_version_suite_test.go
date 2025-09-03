@@ -180,7 +180,7 @@ func (suite *AddonClusterVersionDbAccessTestSuite) TestListAddonClusterVersionsB
 
 	versionMap := make(map[string]models.AddonClusterVersionModel)
 	for _, version := range versions {
-		versionMap[version.AddonClusterName] = version
+		versionMap[version.AddonClusterName] = *version
 	}
 
 	for _, sample := range batchAddonClusterVersionSamples {

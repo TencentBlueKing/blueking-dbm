@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -46,21 +47,20 @@ func (k *K8sClusterServiceProviderImpl) CreateClusterService(entity *metaentity.
 	*metaentity.K8sClusterServiceEntity, error,
 ) {
 	newModel := metamodel.K8sClusterServiceModel{}
-	err := copier.Copy(&newModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&newModel, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedModel, err := k.dbAccess.Create(&newModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster service with entity: %+v", entity)
 	}
+
 	addedEntity := metaentity.K8sClusterServiceEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &addedEntity, nil
 }
 
@@ -73,14 +73,14 @@ func (k *K8sClusterServiceProviderImpl) DeleteClusterServiceByID(id uint64) (uin
 func (k *K8sClusterServiceProviderImpl) FindClusterServiceByID(id uint64) (*metaentity.K8sClusterServiceEntity, error) {
 	foundModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster service with id %d", id)
 	}
+
 	foundEntity := metaentity.K8sClusterServiceEntity{}
-	if err := copier.Copy(&foundEntity, foundModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&foundEntity, foundModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &foundEntity, nil
 }
 
@@ -92,13 +92,11 @@ func (k *K8sClusterServiceProviderImpl) UpdateClusterService(entity *metaentity.
 	newModel := metamodel.K8sClusterServiceModel{}
 	err := copier.Copy(&newModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed to copy")
 	}
 	rows, err := k.dbAccess.Update(&newModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update cluster service with entity: %+v", entity)
 	}
 	return rows, nil
 }

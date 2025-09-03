@@ -20,13 +20,13 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"fmt"
-	mconst "k8s-dbs/common/constant"
+	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -53,13 +53,12 @@ func (k *K8sClusterAddonsDbAccessImpl) FindByParams(
 	var addons []metamodel.K8sClusterAddonsModel
 	if err := k.db.
 		Where(params).
-		Limit(mconst.MaxFetchSize).
+		Limit(commconst.MaxFetchSize).
 		Find(&addons).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []metamodel.K8sClusterAddonsModel{}, nil
+			return nil, nil
 		}
-		slog.Error("failed to find by params", "error", err)
-		return nil, fmt.Errorf("database query failed: %w", err)
+		return nil, errors.Wrapf(err, "failed to find cluster addons with params %+v", params)
 	}
 	return addons, nil
 }
@@ -69,8 +68,7 @@ func (k *K8sClusterAddonsDbAccessImpl) Create(storageAddonModel *metamodel.K8sCl
 	*metamodel.K8sClusterAddonsModel, error,
 ) {
 	if err := k.db.Create(storageAddonModel).Error; err != nil {
-		slog.Error("Create storageAddon error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster addon with model %+v", storageAddonModel)
 	}
 	return storageAddonModel, nil
 }
@@ -80,7 +78,7 @@ func (k *K8sClusterAddonsDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&metamodel.K8sClusterAddonsModel{}, id)
 	if result.Error != nil {
 		slog.Error("Delete storageAddon error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster addon with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -90,8 +88,7 @@ func (k *K8sClusterAddonsDbAccessImpl) FindByID(id uint64) (*metamodel.K8sCluste
 	var storageAddonModel metamodel.K8sClusterAddonsModel
 	result := k.db.First(&storageAddonModel, id)
 	if result.Error != nil {
-		slog.Error("Find storageAddon error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster addon with id %d", id)
 	}
 	return &storageAddonModel, nil
 }
@@ -100,8 +97,7 @@ func (k *K8sClusterAddonsDbAccessImpl) FindByID(id uint64) (*metamodel.K8sCluste
 func (k *K8sClusterAddonsDbAccessImpl) Update(storageAddonModel *metamodel.K8sClusterAddonsModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(storageAddonModel)
 	if result.Error != nil {
-		slog.Error("failed to find by params", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update cluster addon with model %+v", storageAddonModel)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -115,8 +111,7 @@ func (k *K8sClusterAddonsDbAccessImpl) ListByPage(pagination commentity.Paginati
 	var clusterAddonModel []metamodel.K8sClusterAddonsModel
 	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).
 		Find(&clusterAddonModel).Error; err != nil {
-		slog.Error("List storageAddon error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list cluster addons with pagination %+v", pagination)
 	}
 	return clusterAddonModel, int64(len(clusterAddonModel)), nil
 }

@@ -84,7 +84,7 @@ func (c *AddonCategoryController) Create(ctx *gin.Context) {
 		return
 	}
 	var data metarespvo.AddonCategoryResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}

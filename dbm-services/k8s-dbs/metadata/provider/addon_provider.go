@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -53,13 +54,11 @@ func (k *K8sCrdStorageAddonProviderImpl) FindVersionsByParams(params *metaentity
 ) {
 	versionModels, err := k.dbAccess.FindVersionsByParams(params)
 	if err != nil {
-		slog.Error("Failed to find versions by params", "params", params, "err", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon versions with params %+v", params)
 	}
 	var versionEntities []*metaentity.AddonVersionEntity
-	if err := copier.Copy(&versionEntities, versionModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+	if err = copier.Copy(&versionEntities, versionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return versionEntities, nil
 }
@@ -71,13 +70,11 @@ func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByParams(params *metaen
 ) {
 	addonModels, err := k.dbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("failed to find storage addon by params.", "params", params, "err", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon with params %+v", params)
 	}
 	var addonEntities []*metaentity.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&addonEntities, addonModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+	if err = copier.Copy(&addonEntities, addonModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return addonEntities, nil
 }
@@ -90,22 +87,21 @@ func (k *K8sCrdStorageAddonProviderImpl) CreateStorageAddon(
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
 	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
 	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
-	err := copier.Copy(&storageAddonModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+
+	if err := copier.Copy(&storageAddonModel, entity); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 
 	addedStorageAddonModel, err := k.dbAccess.Create(&storageAddonModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon with entity: %+v", entity)
 	}
+
 	storageAddonEntity := metaentity.K8sCrdStorageAddonEntity{}
-	if err := copier.Copy(&storageAddonEntity, addedStorageAddonModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&storageAddonEntity, addedStorageAddonModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
+
 	return &storageAddonEntity, nil
 }
 
@@ -118,13 +114,11 @@ func (k *K8sCrdStorageAddonProviderImpl) DeleteStorageAddonByID(id uint64) (uint
 func (k *K8sCrdStorageAddonProviderImpl) FindStorageAddonByID(id uint64) (*metaentity.K8sCrdStorageAddonEntity, error) {
 	storageAddonModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon with id %d", id)
 	}
 	storageAddonEntity := metaentity.K8sCrdStorageAddonEntity{}
-	if err := copier.Copy(&storageAddonEntity, storageAddonModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&storageAddonEntity, storageAddonModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return &storageAddonEntity, nil
 }
@@ -136,15 +130,13 @@ func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(
 ) (uint64, error) {
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
 	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
-	err := copier.Copy(&storageAddonModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+	if err := copier.Copy(&storageAddonModel, entity); err != nil {
+		return 0, errors.Wrapf(err, "failed to copy")
 	}
+
 	rows, err := k.dbAccess.Update(&storageAddonModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update addon with entity: %+v", entity)
 	}
 	return rows, nil
 }
@@ -156,13 +148,11 @@ func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination commentity
 ) {
 	addonModels, _, err := k.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addons with pagination: %+v", pagination)
 	}
 	var storageAddons []*metaentity.K8sCrdStorageAddonEntity
-	if err := copier.Copy(&storageAddons, addonModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&storageAddons, addonModels); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return storageAddons, nil
 }

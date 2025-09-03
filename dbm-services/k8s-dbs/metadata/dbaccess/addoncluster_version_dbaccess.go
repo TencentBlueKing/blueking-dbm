@@ -20,11 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"fmt"
 	mconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -34,9 +34,9 @@ type AddonClusterVersionDbAccess interface {
 	Create(model *models.AddonClusterVersionModel) (*models.AddonClusterVersionModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.AddonClusterVersionModel, error)
-	FindByParams(params map[string]interface{}) ([]models.AddonClusterVersionModel, error)
+	FindByParams(params map[string]interface{}) ([]*models.AddonClusterVersionModel, error)
 	Update(model *models.AddonClusterVersionModel) (uint64, error)
-	ListByPage(pagination entity.Pagination) ([]models.AddonClusterVersionModel, int64, error)
+	ListByPage(pagination entity.Pagination) ([]*models.AddonClusterVersionModel, int64, error)
 }
 
 // AddonClusterVersionDbAccessImpl AddonClusterVersionDbAccess 的具体实现
@@ -46,18 +46,18 @@ type AddonClusterVersionDbAccessImpl struct {
 
 // FindByParams 参数查询实现
 func (k *AddonClusterVersionDbAccessImpl) FindByParams(params map[string]interface{}) (
-	[]models.AddonClusterVersionModel,
+	[]*models.AddonClusterVersionModel,
 	error,
 ) {
-	var saModels []models.AddonClusterVersionModel
+	var saModels []*models.AddonClusterVersionModel
 	if err := k.db.
 		Where(params).
 		Limit(mconst.MaxFetchSize).
 		Find(&saModels).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []models.AddonClusterVersionModel{}, nil
+			return nil, nil
 		}
-		return nil, fmt.Errorf("database query failed: %w", err)
+		return nil, errors.Wrapf(err, "failed to find addon cluster version with params %+v", params)
 	}
 	return saModels, nil
 }
@@ -68,7 +68,7 @@ func (k *AddonClusterVersionDbAccessImpl) Create(model *models.AddonClusterVersi
 	error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to add addon cluster version with model %+v", model)
 	}
 	return model, nil
 }
@@ -77,7 +77,7 @@ func (k *AddonClusterVersionDbAccessImpl) Create(model *models.AddonClusterVersi
 func (k *AddonClusterVersionDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.AddonClusterVersionModel{}, id)
 	if result.Error != nil {
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete addon cluster version with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -87,7 +87,7 @@ func (k *AddonClusterVersionDbAccessImpl) FindByID(id uint64) (*models.AddonClus
 	var storageAddonModel models.AddonClusterVersionModel
 	result := k.db.First(&storageAddonModel, id)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon cluster version with id %d", id)
 	}
 	return &storageAddonModel, nil
 }
@@ -96,20 +96,20 @@ func (k *AddonClusterVersionDbAccessImpl) FindByID(id uint64) (*models.AddonClus
 func (k *AddonClusterVersionDbAccessImpl) Update(storageAddonModel *models.AddonClusterVersionModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(storageAddonModel)
 	if result.Error != nil {
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update addon cluster version with id %d", storageAddonModel.ID)
 	}
 	return uint64(result.RowsAffected), nil
 }
 
 // ListByPage 分页查询 addon 元数据接口实现
 func (k *AddonClusterVersionDbAccessImpl) ListByPage(pagination entity.Pagination) (
-	[]models.AddonClusterVersionModel,
+	[]*models.AddonClusterVersionModel,
 	int64,
 	error,
 ) {
-	var addonModels []models.AddonClusterVersionModel
+	var addonModels []*models.AddonClusterVersionModel
 	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&addonModels).Error; err != nil {
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list addon cluster version with pagination %+v", pagination)
 	}
 	return addonModels, int64(len(addonModels)), nil
 }

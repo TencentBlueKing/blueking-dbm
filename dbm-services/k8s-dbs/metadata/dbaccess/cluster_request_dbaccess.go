@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -48,8 +49,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Create(model *metamodel.ClusterReques
 	*metamodel.ClusterRequestRecordModel, error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create request error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create request record with model %+v", model)
 	}
 	return model, nil
 }
@@ -58,8 +58,7 @@ func (k *ClusterRequestRecordDbAccessImpl) Create(model *metamodel.ClusterReques
 func (k *ClusterRequestRecordDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&metamodel.ClusterRequestRecordModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete request error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete request record with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -69,8 +68,7 @@ func (k *ClusterRequestRecordDbAccessImpl) FindByID(id uint64) (*metamodel.Clust
 	var request metamodel.ClusterRequestRecordModel
 	result := k.db.First(&request, id)
 	if result.Error != nil {
-		slog.Error("Find request error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find request record with id %d", id)
 	}
 	return &request, nil
 }
@@ -79,8 +77,7 @@ func (k *ClusterRequestRecordDbAccessImpl) FindByID(id uint64) (*metamodel.Clust
 func (k *ClusterRequestRecordDbAccessImpl) Update(model *metamodel.ClusterRequestRecordModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update request error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update request record with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -127,8 +124,7 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 	}
 
 	if err := query.Count(&count).Error; err != nil {
-		slog.Error("操作记录总数统计失败", "error", err)
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to count request record with pagination %+v", pagination)
 	}
 
 	offset := (pagination.Page - 1) * pagination.Limit
@@ -138,8 +134,7 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 		Order("created_at DESC").
 		Find(&recordModels).
 		Error; err != nil {
-		slog.Error("操作记录检索失败", "error", err)
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to find request record with pagination %+v", pagination)
 	}
 	return recordModels, uint64(count), nil
 }

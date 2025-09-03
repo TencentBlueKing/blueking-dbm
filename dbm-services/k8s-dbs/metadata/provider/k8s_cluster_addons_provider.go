@@ -25,6 +25,8 @@ import (
 	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
 
+	"github.com/pkg/errors"
+
 	"github.com/jinzhu/copier"
 )
 
@@ -49,24 +51,22 @@ func (k *K8sClusterAddonsProviderImpl) FindClusterAddonByParams(
 ) ([]metaentity.K8sClusterAddonsEntity, error) {
 	caModels, err := k.kcaDbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("failed to find cluster addon by params", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster addon with params: %v", params)
 	}
+
 	var caEntities []metaentity.K8sClusterAddonsEntity
-	if err := copier.Copy(&caEntities, caModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+	if err = copier.Copy(&caEntities, caModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 
 	for i, ca := range caEntities {
 		saModel, err := k.saDbAccess.FindByID(ca.AddonID)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to find addon with id: %v", ca.AddonID)
 		}
 		saEntity := metaentity.K8sCrdStorageAddonEntity{}
-		if err := copier.Copy(&saEntity, saModel); err != nil {
-			slog.Error("Failed to copy entity to copied model", "error", err)
-			return nil, err
+		if err = copier.Copy(&saEntity, saModel); err != nil {
+			return nil, errors.Wrap(err, "failed to copy")
 		}
 		caEntities[i].StorageAddon = saEntity
 	}

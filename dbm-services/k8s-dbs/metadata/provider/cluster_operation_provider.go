@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -46,20 +47,16 @@ func (o *ClusterOperationProviderImpl) CreateClusterOperation(entity *metaentity
 	*metaentity.ClusterOperationEntity, error,
 ) {
 	model := models.ClusterOperationModel{}
-	err := copier.Copy(&model, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&model, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	addedModel, err := o.clusterOpDBAccess.Create(&model)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster operation with entity: %+v", entity)
 	}
 	addedEntity := metaentity.ClusterOperationEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedEntity, nil
 }
@@ -71,25 +68,22 @@ func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.P
 ) {
 	clusterOpModels, _, err := o.clusterOpDBAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list cluster operations with pagination: %+v", pagination)
 	}
 
 	var clusterOpEntities []*metaentity.ClusterOperationEntity
-	if err := copier.Copy(&clusterOpEntities, clusterOpModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&clusterOpEntities, clusterOpModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 
 	for i, op := range clusterOpEntities {
 		opDefModel, err := o.opDefDBAccess.FindByID(op.OperationID)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to find operation with id %d", op.OperationID)
 		}
 		opDefEntity := metaentity.OperationDefinitionEntity{}
 		if err := copier.Copy(&opDefEntity, opDefModel); err != nil {
-			slog.Error("Failed to copy entity to copied model", "error", err)
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to copy")
 		}
 		clusterOpEntities[i].Operation = opDefEntity
 	}

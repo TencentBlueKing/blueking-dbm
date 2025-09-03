@@ -59,7 +59,7 @@ func (o *OperationDefinitionController) ListOperationDefinitions(ctx *gin.Contex
 		return
 	}
 	var data []response.OperationDefinitionResponse
-	if err := copier.Copy(&data, opDefs); err != nil {
+	if err = copier.Copy(&data, opDefs); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -84,7 +84,7 @@ func (o *OperationDefinitionController) CreateOperationDefinition(ctx *gin.Conte
 		return
 	}
 	var data response.OperationDefinitionResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}

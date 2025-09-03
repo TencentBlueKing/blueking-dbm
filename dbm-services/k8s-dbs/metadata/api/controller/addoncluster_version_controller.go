@@ -61,7 +61,7 @@ func (a *AddonClusterVersionController) ListAcVersions(ctx *gin.Context) {
 		return
 	}
 	var data []response.AddonClusterVersionResponse
-	if err := copier.Copy(&data, acVersions); err != nil {
+	if err = copier.Copy(&data, acVersions); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -82,7 +82,7 @@ func (a *AddonClusterVersionController) GetAcVersion(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonClusterVersionResponse
-	if err := copier.Copy(&data, addon); err != nil {
+	if err = copier.Copy(&data, addon); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -107,7 +107,7 @@ func (a *AddonClusterVersionController) CreateAcVersion(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonClusterVersionResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
@@ -123,12 +123,12 @@ func (a *AddonClusterVersionController) UpdateAcVersion(ctx *gin.Context) {
 		return
 	}
 	var acVersionVo request.AddonClusterVersionRequest
-	if err := ctx.ShouldBindJSON(&acVersionVo); err != nil {
+	if err = ctx.ShouldBindJSON(&acVersionVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}
 	var acVersionEntity entitys.AddonClusterVersionEntity
-	if err := copier.Copy(&acVersionEntity, acVersionVo); err != nil {
+	if err = copier.Copy(&acVersionEntity, acVersionVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
 		return
 	}

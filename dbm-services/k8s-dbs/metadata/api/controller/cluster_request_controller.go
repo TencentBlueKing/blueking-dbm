@@ -63,7 +63,7 @@ func (k *ClusterRequestRecordController) ListClusterRecords(ctx *gin.Context) {
 		return
 	}
 	var data []corevo.ClusterOperationLogResponse
-	if err := copier.Copy(&data, records); err != nil {
+	if err = copier.Copy(&data, records); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

@@ -55,7 +55,7 @@ func (c *ComponentController) GetComponent(ctx *gin.Context) {
 		return
 	}
 	var data response.K8sCrdComponentResponse
-	if err := copier.Copy(&data, component); err != nil {
+	if err = copier.Copy(&data, component); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

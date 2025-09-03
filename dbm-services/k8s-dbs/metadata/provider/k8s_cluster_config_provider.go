@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -50,13 +51,11 @@ func (k *K8sClusterConfigProviderImpl) GetRegionsByVisibility(isPublic bool) ([]
 	}
 	regionModels, err := k.dbAccess.FindRegionsByParams(params)
 	if err != nil {
-		slog.Error("Failed to find regions by params", "params", params, "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find regions with public visibility: %v", params)
 	}
 	var regions []*metaentity.RegionEntity
-	if err := copier.Copy(&regions, regionModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&regions, regionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return regions, nil
 }
@@ -68,18 +67,15 @@ func (k *K8sClusterConfigProviderImpl) CreateConfig(entity *metaentity.K8sCluste
 	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	createdModel, err := k.dbAccess.Create(&configModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster config with entity: %+v", entity)
 	}
 	configEntity := metaentity.K8sClusterConfigEntity{}
-	if err := copier.Copy(&configEntity, createdModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&configEntity, createdModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &configEntity, nil
 }
@@ -93,14 +89,14 @@ func (k *K8sClusterConfigProviderImpl) DeleteConfigByID(id uint64) (uint64, erro
 func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster config with id: %d", id)
 	}
+
 	configEntity := metaentity.K8sClusterConfigEntity{}
-	if err := copier.Copy(&configEntity, configModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&configEntity, configModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &configEntity, nil
 }
 
@@ -108,13 +104,11 @@ func (k *K8sClusterConfigProviderImpl) FindConfigByID(id uint64) (*metaentity.K8
 func (k *K8sClusterConfigProviderImpl) FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error) {
 	configModel, err := k.dbAccess.FindByClusterName(name)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster config with k8s cluster name: %s", name)
 	}
 	clusterEntity := metaentity.K8sClusterConfigEntity{}
-	if err := copier.Copy(&clusterEntity, configModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&clusterEntity, configModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &clusterEntity, nil
 }
@@ -124,13 +118,11 @@ func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *metaentity.K8sCluste
 	configModel := metamodel.K8sClusterConfigModel{}
 	err := copier.Copy(&configModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed to copy")
 	}
 	rows, err := k.dbAccess.Update(&configModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update cluster config with entity: %+v", entity)
 	}
 	return rows, nil
 }

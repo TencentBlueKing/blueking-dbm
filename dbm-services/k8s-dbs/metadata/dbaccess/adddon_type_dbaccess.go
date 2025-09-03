@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	models "k8s-dbs/metadata/model"
-	"log/slog"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -42,8 +42,9 @@ type AddonTypeDbAccessImpl struct {
 // FindByCategoryID 按照 category id 查找接口实现
 func (a *AddonTypeDbAccessImpl) FindByCategoryID(id uint64) ([]*models.AddonTypeModel, error) {
 	var typeModels []*models.AddonTypeModel
-	if err := a.db.Where("category_id = ?", id).Find(&typeModels).Error; err != nil {
-		return nil, err
+	if err := a.db.
+		Where("category_id = ?", id).Find(&typeModels).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to find addon type with category id %d", id)
 	}
 	return typeModels, nil
 }
@@ -53,8 +54,7 @@ func (a *AddonTypeDbAccessImpl) FindByID(id uint64) (*models.AddonTypeModel, err
 	var model models.AddonTypeModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon type with id %d", id)
 	}
 	return &model, nil
 }
@@ -62,11 +62,8 @@ func (a *AddonTypeDbAccessImpl) FindByID(id uint64) (*models.AddonTypeModel, err
 // ListByLimit limit 查询实现
 func (a *AddonTypeDbAccessImpl) ListByLimit(limit int) ([]*models.AddonTypeModel, error) {
 	var cmpOpsDefModels []*models.AddonTypeModel
-	if err := a.db.
-		Limit(limit).
-		Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
-		slog.Error("List by limit error", "error", err)
-		return nil, err
+	if err := a.db.Limit(limit).Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to find addon type with limit %d", limit)
 	}
 	return cmpOpsDefModels, nil
 }
@@ -77,8 +74,7 @@ func (a *AddonTypeDbAccessImpl) Create(model *models.AddonTypeModel) (
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon type with model %+v", model)
 	}
 	return model, nil
 }

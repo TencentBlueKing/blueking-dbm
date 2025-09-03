@@ -20,15 +20,15 @@ limitations under the License.
 package dbaccess
 
 import (
-	"fmt"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
 
-// K8sClusterServiceDbAccess 定义 clsuter servcie 元数据的数据库访问接口
+// K8sClusterServiceDbAccess 定义 cluster service 元数据的数据库访问接口
 type K8sClusterServiceDbAccess interface {
 	Create(model *models.K8sClusterServiceModel) (*models.K8sClusterServiceModel, error)
 	DeleteByID(id uint64) (uint64, error)
@@ -47,23 +47,16 @@ func (k *K8sClusterServiceDbAccessImpl) Create(model *models.K8sClusterServiceMo
 	*models.K8sClusterServiceModel, error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create service error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster service with model: %+v", model)
 	}
-	var addedService models.K8sClusterServiceModel
-	if err := k.db.First(&addedService, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find service error", "error", err)
-		return nil, err
-	}
-	return &addedService, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
 func (k *K8sClusterServiceDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sClusterServiceModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete service error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster service with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -73,8 +66,7 @@ func (k *K8sClusterServiceDbAccessImpl) FindByID(id uint64) (*models.K8sClusterS
 	var request models.K8sClusterServiceModel
 	result := k.db.First(&request, id)
 	if result.Error != nil {
-		slog.Error("Find service error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster service with id %d", id)
 	}
 	return &request, nil
 }
@@ -83,8 +75,7 @@ func (k *K8sClusterServiceDbAccessImpl) FindByID(id uint64) (*models.K8sClusterS
 func (k *K8sClusterServiceDbAccessImpl) Update(model *models.K8sClusterServiceModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update service error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update cluster service with model: %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -95,7 +86,7 @@ func (k *K8sClusterServiceDbAccessImpl) ListByPage(_ entity.Pagination) (
 	int64,
 	error,
 ) {
-	return nil, 0, fmt.Errorf("not implemented yet")
+	return nil, 0, errors.New("not implemented")
 }
 
 // NewK8sClusterServiceDbAccess 创建 K8sClusterServiceDbAccess 接口实现实例

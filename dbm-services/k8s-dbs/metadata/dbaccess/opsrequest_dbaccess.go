@@ -23,7 +23,8 @@ import (
 	"fmt"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -47,23 +48,16 @@ func (k *K8sCrdOpsRequestDbAccessImpl) Create(model *models.K8sCrdOpsRequestMode
 	*models.K8sCrdOpsRequestModel, error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create ops error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create opsRequest with model %+v", model)
 	}
-	var addedOps models.K8sCrdOpsRequestModel
-	if err := k.db.First(&addedOps, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find ops error", "error", err)
-		return nil, err
-	}
-	return &addedOps, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdOpsRequestModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete ops error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete opsRequest with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -73,8 +67,7 @@ func (k *K8sCrdOpsRequestDbAccessImpl) FindByID(id uint64) (*models.K8sCrdOpsReq
 	var ops models.K8sCrdOpsRequestModel
 	result := k.db.First(&ops, id)
 	if result.Error != nil {
-		slog.Error("Find ops error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find opsRequest with id %d", id)
 	}
 	return &ops, nil
 }
@@ -83,8 +76,7 @@ func (k *K8sCrdOpsRequestDbAccessImpl) FindByID(id uint64) (*models.K8sCrdOpsReq
 func (k *K8sCrdOpsRequestDbAccessImpl) Update(model *models.K8sCrdOpsRequestModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update ops error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update opsRequest with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }

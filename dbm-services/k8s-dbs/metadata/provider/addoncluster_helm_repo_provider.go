@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -55,21 +56,20 @@ func (a *AddonClusterHelmRepoProviderImpl) CreateHelmRepo(
 	model := metamodel.AddonClusterHelmRepoModel{}
 	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
 	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
-	err := copier.Copy(&model, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&model, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedModel, err := a.dbAccess.Create(&model)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addoncluster helm repo with entity: %+v", entity)
 	}
+
 	addedEntity := metaentity.AddonClusterHelmRepoEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &addedEntity, nil
 }
 
@@ -85,13 +85,11 @@ func (a *AddonClusterHelmRepoProviderImpl) FindHelmRepoByID(id uint64) (
 ) {
 	model, err := a.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addoncluster helm repo with id %d", id)
 	}
 	repoEntity := metaentity.AddonClusterHelmRepoEntity{}
-	if err := copier.Copy(&repoEntity, model); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&repoEntity, model); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &repoEntity, nil
 }
@@ -103,13 +101,11 @@ func (a *AddonClusterHelmRepoProviderImpl) FindByParams(params *metaentity.HelmR
 ) {
 	model, err := a.dbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addoncluster helm repo with params %+v", params)
 	}
 	repoEntity := metaentity.AddonClusterHelmRepoEntity{}
-	if err := copier.Copy(&repoEntity, model); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&repoEntity, model); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &repoEntity, nil
 }
@@ -120,15 +116,13 @@ func (a *AddonClusterHelmRepoProviderImpl) UpdateHelmRepo(entity *metaentity.Add
 	error,
 ) {
 	model := metamodel.AddonClusterHelmRepoModel{}
-	err := copier.Copy(&model, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+	if err := copier.Copy(&model, entity); err != nil {
+		return 0, errors.Wrap(err, "failed to copy")
 	}
+
 	rows, err := a.dbAccess.Update(&model)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update addoncluster helm repo with entity: %+v", entity)
 	}
 	return rows, nil
 }
@@ -140,13 +134,11 @@ func (a *AddonClusterHelmRepoProviderImpl) ListHelmRepos(pagination commentity.P
 ) {
 	repoModels, _, err := a.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to list models", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addoncluster helm repo with pagination: %+v", pagination)
 	}
 	var repoEntities []*metaentity.AddonClusterHelmRepoEntity
 	if err := copier.Copy(&repoEntities, repoModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return repoEntities, nil
 }

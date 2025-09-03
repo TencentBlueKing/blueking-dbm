@@ -65,7 +65,7 @@ func (a *AddonTopologyController) Create(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonTopologyResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}
@@ -86,7 +86,7 @@ func (a *AddonTopologyController) GetByID(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonTopologyResponse
-	if err := copier.Copy(&data, repo); err != nil {
+	if err = copier.Copy(&data, repo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -105,7 +105,7 @@ func (a *AddonTopologyController) GetByParams(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
 	var data []response.AddonTopologyResponse
-	if err := copier.Copy(&data, topoEntities); err != nil {
+	if err = copier.Copy(&data, topoEntities); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

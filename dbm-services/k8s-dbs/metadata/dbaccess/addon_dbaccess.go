@@ -20,14 +20,12 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"fmt"
 	commconst "k8s-dbs/common/constant"
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -57,12 +55,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindVersionsByParams(params *metaentity
 		Where(params).
 		Find(&versions).
 		Limit(commconst.MaxFetchSize).Error; err != nil {
-		slog.Error("Failed to find versions by params", "params", params, "error", err)
-		return nil, err
-	}
-	for _, version := range versions {
-		slog.Info("Found version", "addonVersion", version.AddonVersion,
-			"supportedVersions", version.SupportedVersions)
+		return nil, errors.Wrapf(err, "failed to list addon versions with params %+v", params)
 	}
 	return versions, nil
 }
@@ -73,15 +66,15 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindByParams(params *metaentity.AddonQu
 	error,
 ) {
 	var addonModels []*metamodel.K8sCrdStorageAddonModel
-	if err := k.db.
+	err := k.db.
 		Where(params).
 		Limit(commconst.MaxFetchSize).
-		Find(&addonModels).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []*metamodel.K8sCrdStorageAddonModel{}, nil
-		}
-		slog.Error("failed to find by params", "error", err)
-		return nil, fmt.Errorf("database query failed: %w", err)
+		Find(&addonModels).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find addon with params %+v", params)
 	}
 	return addonModels, nil
 }
@@ -92,8 +85,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *metamodel.K8sCrdStorageAd
 	error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create storageAddon error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon with model %+v", model)
 	}
 	return model, nil
 }
@@ -102,8 +94,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) Create(model *metamodel.K8sCrdStorageAd
 func (k *K8sCrdStorageAddonDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&metamodel.K8sCrdStorageAddonModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete storageAddon error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete addon with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -113,8 +104,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindByID(id uint64) (*metamodel.K8sCrdS
 	var addonModel metamodel.K8sCrdStorageAddonModel
 	result := k.db.First(&addonModel, id)
 	if result.Error != nil {
-		slog.Error("Find storageAddon error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon with id %d", id)
 	}
 	return &addonModel, nil
 }
@@ -123,8 +113,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindByID(id uint64) (*metamodel.K8sCrdS
 func (k *K8sCrdStorageAddonDbAccessImpl) Update(storageAddonModel *metamodel.K8sCrdStorageAddonModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(storageAddonModel)
 	if result.Error != nil {
-		slog.Error("Update storageAddon error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update addon with model %+v", storageAddonModel)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -137,8 +126,7 @@ func (k *K8sCrdStorageAddonDbAccessImpl) ListByPage(pagination commentity.Pagina
 ) {
 	var addonModel []metamodel.K8sCrdStorageAddonModel
 	if err := k.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&addonModel).Error; err != nil {
-		slog.Error("List storageAddon error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list addons with pagination %+v", pagination)
 	}
 	return addonModel, int64(len(addonModel)), nil
 }

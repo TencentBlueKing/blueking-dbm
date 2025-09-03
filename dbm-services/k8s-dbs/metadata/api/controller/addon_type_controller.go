@@ -57,7 +57,7 @@ func (a *AddonTypeController) ListByLimit(ctx *gin.Context) {
 		return
 	}
 	var data []response.AddonTypeResponse
-	if err := copier.Copy(&data, addonTypeEntities); err != nil {
+	if err = copier.Copy(&data, addonTypeEntities); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -84,7 +84,7 @@ func (a *AddonTypeController) Create(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonTypeResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}

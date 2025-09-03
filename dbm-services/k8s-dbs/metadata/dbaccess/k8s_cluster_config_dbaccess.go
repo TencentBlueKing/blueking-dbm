@@ -25,7 +25,8 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -56,8 +57,7 @@ func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.Re
 		Select("cluster_name, is_public,region_name,region_code, provider").
 		Where(params).
 		Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
-		slog.Error("find regions by params error", "param", params, "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find regions with params %+v", params)
 	}
 	return regions, nil
 }
@@ -65,9 +65,8 @@ func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.Re
 // FindByClusterName 通过集群名称查找
 func (k *K8sClusterConfigDbAccessImpl) FindByClusterName(name string) (*models.K8sClusterConfigModel, error) {
 	var model models.K8sClusterConfigModel
-	if err := k.db.First(&model, "cluster_name=?", name).Error; err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
+	if err := k.db.First(&model, "cluster_name = ?", name).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to find k8s cluster config by cluster name %s", name)
 	}
 	return &model, nil
 }
@@ -77,23 +76,16 @@ func (k *K8sClusterConfigDbAccessImpl) Create(model *models.K8sClusterConfigMode
 	*models.K8sClusterConfigModel, error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create k8s cluster config with model %+v", model)
 	}
-	var addedModel models.K8sClusterConfigModel
-	if err := k.db.First(&addedModel, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
-	}
-	return &addedModel, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
 func (k *K8sClusterConfigDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sClusterConfigModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete k8s cluster config with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -103,20 +95,18 @@ func (k *K8sClusterConfigDbAccessImpl) FindByID(id uint64) (*models.K8sClusterCo
 	var model models.K8sClusterConfigModel
 	result := k.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find k8s cluster config with id %d", id)
 	}
 	return &model, nil
 }
 
 // Update 更新元数据接口实现
 func (k *K8sClusterConfigDbAccessImpl) Update(model *models.K8sClusterConfigModel) (uint64, error) {
-	updatedModel := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
-	if updatedModel.Error != nil {
-		slog.Error("Update model error", "error", updatedModel.Error.Error())
-		return 0, updatedModel.Error
+	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error, "failed to update k8s cluster config with model %+v", model)
 	}
-	return uint64(updatedModel.RowsAffected), nil
+	return uint64(result.RowsAffected), nil
 }
 
 // ListByPage 分页查询元数据接口实现

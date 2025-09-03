@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -50,13 +51,11 @@ func (k *AddonClusterVersionProviderImpl) FindAcVersionByParams(
 ) ([]*entitys.AddonClusterVersionEntity, error) {
 	saModels, err := k.dbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("failed to find storage addon by params.", "params", params, "err", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon cluster version with params %+v", params)
 	}
 	var saEntities []*entitys.AddonClusterVersionEntity
-	if err := copier.Copy(&saEntities, saModels); err != nil {
-		slog.Error("failed to copy models", "error", err)
-		return nil, err
+	if err = copier.Copy(&saEntities, saModels); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return saEntities, nil
 }
@@ -66,20 +65,18 @@ func (k *AddonClusterVersionProviderImpl) CreateAcVersion(entity *entitys.AddonC
 	*entitys.AddonClusterVersionEntity, error,
 ) {
 	acVersionModel := models.AddonClusterVersionModel{}
-	err := copier.Copy(&acVersionModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&acVersionModel, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedAcVersionModel, err := k.dbAccess.Create(&acVersionModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon cluster version with entity: %+v", entity)
 	}
+
 	addedAcVersionEntity := entitys.AddonClusterVersionEntity{}
-	if err := copier.Copy(&addedAcVersionEntity, addedAcVersionModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedAcVersionEntity, addedAcVersionModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedAcVersionEntity, nil
 }
@@ -93,29 +90,28 @@ func (k *AddonClusterVersionProviderImpl) DeleteAcVersionByID(id uint64) (uint64
 func (k *AddonClusterVersionProviderImpl) FindAcVersionByID(id uint64) (*entitys.AddonClusterVersionEntity, error) {
 	acVersionModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon cluster version with id %d", id)
 	}
 	acVersionEntity := entitys.AddonClusterVersionEntity{}
 	if err := copier.Copy(&acVersionEntity, acVersionModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return &acVersionEntity, nil
 }
 
 // UpdateAcVersion 更新 addon cluster version
-func (k *AddonClusterVersionProviderImpl) UpdateAcVersion(entity *entitys.AddonClusterVersionEntity) (uint64, error) {
+func (k *AddonClusterVersionProviderImpl) UpdateAcVersion(entity *entitys.AddonClusterVersionEntity) (
+	uint64,
+	error,
+) {
 	adVersionModel := models.AddonClusterVersionModel{}
-	err := copier.Copy(&adVersionModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+	if err := copier.Copy(&adVersionModel, entity); err != nil {
+		return 0, errors.Wrap(err, "failed to copy")
 	}
+
 	rows, err := k.dbAccess.Update(&adVersionModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update addon cluster version with entity: %+v", entity)
 	}
 	return rows, nil
 }
@@ -127,13 +123,11 @@ func (k *AddonClusterVersionProviderImpl) ListAcVersion(pagination entity.Pagina
 ) {
 	acVersionModels, _, err := k.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addon cluster version with pagination: %+v", pagination)
 	}
 	var acVersionEntities []*entitys.AddonClusterVersionEntity
-	if err := copier.Copy(&acVersionEntities, acVersionModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&acVersionEntities, acVersionModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return acVersionEntities, nil
 }

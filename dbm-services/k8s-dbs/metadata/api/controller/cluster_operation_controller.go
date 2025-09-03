@@ -59,7 +59,7 @@ func (c *ClusterOperationController) ListClusterOperations(ctx *gin.Context) {
 		return
 	}
 	var data []response.ClusterOperationResponse
-	if err := copier.Copy(&data, clusterOps); err != nil {
+	if err = copier.Copy(&data, clusterOps); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -84,7 +84,7 @@ func (c *ClusterOperationController) CreateClusterOperation(ctx *gin.Context) {
 		return
 	}
 	var data response.ClusterOperationResponse
-	if err := copier.Copy(&data, added); err != nil {
+	if err = copier.Copy(&data, added); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}

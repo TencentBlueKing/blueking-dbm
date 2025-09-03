@@ -81,7 +81,7 @@ func (a *AddonController) GetAddon(ctx *gin.Context) {
 		return
 	}
 	var data metaresp.AddonResponse
-	if err := copier.Copy(&data, addon); err != nil {
+	if err = copier.Copy(&data, addon); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

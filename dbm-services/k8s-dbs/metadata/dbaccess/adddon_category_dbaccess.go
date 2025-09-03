@@ -21,8 +21,8 @@ package dbaccess
 
 import (
 	models "k8s-dbs/metadata/model"
-	"log/slog"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -43,22 +43,18 @@ func (a *AddonCategoryDbAccessImpl) FindByID(id uint64) (*models.AddonCategoryMo
 	var model models.AddonCategoryModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon category with id %d", id)
 	}
 	return &model, nil
 }
 
 // ListByLimit limit 查询实现
 func (a *AddonCategoryDbAccessImpl) ListByLimit(limit int) ([]*models.AddonCategoryModel, error) {
-	var cmpOpsDefModels []*models.AddonCategoryModel
-	if err := a.db.
-		Limit(limit).
-		Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
-		slog.Error("List by limit error", "error", err)
-		return nil, err
+	var activeAddonCategories []*models.AddonCategoryModel
+	if err := a.db.Limit(limit).Where("active = 1").Find(&activeAddonCategories).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to list addon category with limit %d", limit)
 	}
-	return cmpOpsDefModels, nil
+	return activeAddonCategories, nil
 }
 
 // Create 创建接口实现
@@ -67,8 +63,7 @@ func (a *AddonCategoryDbAccessImpl) Create(model *models.AddonCategoryModel) (
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon category with model %+v", model)
 	}
 	return model, nil
 }

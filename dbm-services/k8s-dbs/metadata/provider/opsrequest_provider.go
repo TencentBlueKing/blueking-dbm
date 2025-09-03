@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -46,21 +47,20 @@ func (k K8sCrdOpsRequestProviderImpl) CreateOpsRequest(entity *metaentity.K8sCrd
 	*metaentity.K8sCrdOpsRequestEntity, error,
 ) {
 	k8sOpsRequestModel := metamodel.K8sCrdOpsRequestModel{}
-	err := copier.Copy(&k8sOpsRequestModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&k8sOpsRequestModel, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	opsModel, err := k.dbAccess.Create(&k8sOpsRequestModel)
 	if err != nil {
-		slog.Error("Failed to create entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create opsRequest with entity: %+v", entity)
 	}
+
 	opsEntity := metaentity.K8sCrdOpsRequestEntity{}
-	if err := copier.Copy(&opsEntity, opsModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&opsEntity, opsModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &opsEntity, nil
 }
 
@@ -73,13 +73,11 @@ func (k K8sCrdOpsRequestProviderImpl) DeleteOpsRequestByID(id uint64) (uint64, e
 func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByID(id uint64) (*metaentity.K8sCrdOpsRequestEntity, error) {
 	opsModel, err := k.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to delete entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find opsRequest with id %d", id)
 	}
 	opsEntity := metaentity.K8sCrdOpsRequestEntity{}
-	if err := copier.Copy(&opsEntity, opsModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&opsEntity, opsModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &opsEntity, nil
 }
@@ -89,13 +87,11 @@ func (k K8sCrdOpsRequestProviderImpl) UpdateOpsRequest(entity *metaentity.K8sCrd
 	opsRequestModel := metamodel.K8sCrdOpsRequestModel{}
 	err := copier.Copy(&opsRequestModel, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed to copy")
 	}
 	rows, err := k.dbAccess.Update(&opsRequestModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update opsRequest with entity: %+v", entity)
 	}
 	return rows, nil
 }

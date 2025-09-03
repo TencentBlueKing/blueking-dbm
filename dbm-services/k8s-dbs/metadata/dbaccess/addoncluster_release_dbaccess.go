@@ -20,12 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
-	"fmt"
 	commentity "k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -50,8 +49,7 @@ func (a *AddonClusterReleaseDbAccessImpl) Create(model *metamodel.AddonClusterRe
 	*metamodel.AddonClusterReleaseModel, error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon cluster release with model %+v", model)
 	}
 	return model, nil
 }
@@ -60,8 +58,7 @@ func (a *AddonClusterReleaseDbAccessImpl) Create(model *metamodel.AddonClusterRe
 func (a *AddonClusterReleaseDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := a.db.Delete(&metamodel.AddonClusterReleaseModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete addon cluster release with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -71,8 +68,7 @@ func (a *AddonClusterReleaseDbAccessImpl) FindByID(id uint64) (*metamodel.AddonC
 	var model metamodel.AddonClusterReleaseModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon cluster release with id %d", id)
 	}
 	return &model, nil
 }
@@ -85,10 +81,10 @@ func (a *AddonClusterReleaseDbAccessImpl) FindByParams(params *metaentity.Cluste
 	var clusterRelease metamodel.AddonClusterReleaseModel
 	result := a.db.Where(params).First(&clusterRelease)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("cluster release not found")
+		return nil, nil
 	}
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon cluster release with params %+v", params)
 	}
 	return &clusterRelease, nil
 }
@@ -97,8 +93,7 @@ func (a *AddonClusterReleaseDbAccessImpl) FindByParams(params *metaentity.Cluste
 func (a *AddonClusterReleaseDbAccessImpl) Update(model *metamodel.AddonClusterReleaseModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update addon cluster release with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -111,8 +106,7 @@ func (a *AddonClusterReleaseDbAccessImpl) ListByPage(pagination commentity.Pagin
 ) {
 	var releaseModels []metamodel.AddonClusterReleaseModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
-		slog.Error("List release error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list addon cluster release with pagination %+v", pagination)
 	}
 	return releaseModels, int64(len(releaseModels)), nil
 }

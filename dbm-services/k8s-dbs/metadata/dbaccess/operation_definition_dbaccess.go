@@ -22,7 +22,8 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -44,8 +45,7 @@ func (o *OperationDefinitionDbAccessImpl) FindByID(id uint64) (*models.Operation
 	var opDefModel models.OperationDefinitionModel
 	result := o.db.First(&opDefModel, id)
 	if result.Error != nil {
-		slog.Error("Find operation definition error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find operation definition with id %d", id)
 	}
 	return &opDefModel, nil
 }
@@ -56,8 +56,7 @@ func (o *OperationDefinitionDbAccessImpl) Create(model *models.OperationDefiniti
 	error,
 ) {
 	if err := o.db.Create(model).Error; err != nil {
-		slog.Error("Create operation definition error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create operation definition with id %d", model.ID)
 	}
 	return model, nil
 }
@@ -69,9 +68,12 @@ func (o *OperationDefinitionDbAccessImpl) ListByPage(pagination entity.Paginatio
 	error,
 ) {
 	var opDefModels []models.OperationDefinitionModel
-	if err := o.db.Offset(pagination.Page).Limit(pagination.Limit).Where("active=1").Find(&opDefModels).Error; err != nil {
-		slog.Error("List operation definition error", "error", err.Error())
-		return nil, 0, err
+	if err := o.db.
+		Offset(pagination.Page).
+		Limit(pagination.Limit).
+		Where("active=1").
+		Find(&opDefModels).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to list operation definition with pagination %+v", pagination)
 	}
 	return opDefModels, int64(len(opDefModels)), nil
 }

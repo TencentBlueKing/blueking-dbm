@@ -23,7 +23,8 @@ import (
 	"fmt"
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -47,8 +48,7 @@ type K8sCrdComponentDbAccessImpl struct {
 func (k *K8sCrdComponentDbAccessImpl) DeleteByClusterID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdComponentModel{}, "crd_cluster_id = ?", id)
 	if result.Error != nil {
-		slog.Error("failed to delete component", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete component with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -56,23 +56,16 @@ func (k *K8sCrdComponentDbAccessImpl) DeleteByClusterID(id uint64) (uint64, erro
 // Create 创建元数据接口实现
 func (k *K8sCrdComponentDbAccessImpl) Create(model *models.K8sCrdComponentModel) (*models.K8sCrdComponentModel, error) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create component with model: %+v", model)
 	}
-	var addedComponent models.K8sCrdComponentModel
-	if err := k.db.First(&addedComponent, "id=?", model.ID).Error; err != nil {
-		slog.Error("Find component error", "error", err)
-		return nil, err
-	}
-	return &addedComponent, nil
+	return model, nil
 }
 
 // DeleteByID 删除元数据接口实现
 func (k *K8sCrdComponentDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdComponentModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete component error", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete component with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -82,8 +75,7 @@ func (k *K8sCrdComponentDbAccessImpl) FindByID(id uint64) (*models.K8sCrdCompone
 	var component models.K8sCrdComponentModel
 	result := k.db.First(&component, id)
 	if result.Error != nil {
-		slog.Error("Find component error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find component with id %d", id)
 	}
 	return &component, nil
 }
@@ -92,8 +84,7 @@ func (k *K8sCrdComponentDbAccessImpl) FindByID(id uint64) (*models.K8sCrdCompone
 func (k *K8sCrdComponentDbAccessImpl) Update(model *models.K8sCrdComponentModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update component error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update component with model: %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }

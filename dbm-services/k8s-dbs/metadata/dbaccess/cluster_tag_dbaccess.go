@@ -22,7 +22,8 @@ package dbaccess
 import (
 	commconst "k8s-dbs/common/constant"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -43,7 +44,7 @@ type K8sCrdClusterTagDbAccessImpl struct {
 // BatchCreate 批量新增
 func (k K8sCrdClusterTagDbAccessImpl) BatchCreate(models []*models.K8sCrdClusterTagModel) (uint64, error) {
 	if err := k.db.Create(&models).Error; err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "batch create cluster tag error")
 	}
 	return uint64(len(models)), nil
 }
@@ -54,7 +55,7 @@ func (k K8sCrdClusterTagDbAccessImpl) Create(model *models.K8sCrdClusterTagModel
 	error,
 ) {
 	if err := k.db.Create(model).Error; err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster tag with model %+v", model)
 	}
 	return model, nil
 }
@@ -63,8 +64,7 @@ func (k K8sCrdClusterTagDbAccessImpl) Create(model *models.K8sCrdClusterTagModel
 func (k K8sCrdClusterTagDbAccessImpl) DeleteByClusterID(clusterID uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdClusterTagModel{}, "crd_cluster_id = ?", clusterID)
 	if result.Error != nil {
-		slog.Error("Delete cluster models error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster tag with clusterID=%d", clusterID)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -76,8 +76,7 @@ func (k K8sCrdClusterTagDbAccessImpl) FindByClusterID(clusterID uint64) ([]*mode
 		Where("crd_cluster_id = ?", clusterID).
 		Order("created_at DESC").
 		Find(&tagModels).Error; err != nil {
-		slog.Error("Find cluster models error", "error", err.Error())
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster tag with clusterID=%d", clusterID)
 	}
 	return tagModels, nil
 

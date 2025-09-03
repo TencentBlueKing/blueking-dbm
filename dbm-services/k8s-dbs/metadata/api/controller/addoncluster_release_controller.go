@@ -60,7 +60,7 @@ func (c *ClusterReleaseController) GetClusterRelease(ctx *gin.Context) {
 		return
 	}
 	var data response.AddonClusterReleaseResponse
-	if err := copier.Copy(&data, cluster); err != nil {
+	if err = copier.Copy(&data, cluster); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

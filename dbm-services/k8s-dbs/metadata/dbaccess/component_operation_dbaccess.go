@@ -22,7 +22,8 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -44,8 +45,7 @@ func (c *ComponentOperationDbAccessImpl) Create(model *models.ComponentOperation
 	error,
 ) {
 	if err := c.db.Create(model).Error; err != nil {
-		slog.Error("Create component operation error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create component operation with model: %+v", model)
 	}
 	return model, nil
 }
@@ -61,8 +61,7 @@ func (c *ComponentOperationDbAccessImpl) ListByPage(pagination entity.Pagination
 		Offset(pagination.Page).
 		Limit(pagination.Limit).
 		Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
-		slog.Error("List component operation error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list component operations with pagination: %+v", pagination)
 	}
 	return cmpOpsDefModels, int64(len(cmpOpsDefModels)), nil
 }

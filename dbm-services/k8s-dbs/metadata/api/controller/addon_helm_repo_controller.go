@@ -61,7 +61,7 @@ func (c *AddonHelmRepoController) GetAddonHelmRepoByID(ctx *gin.Context) {
 		return
 	}
 	var data metaresp.AddonHelmRepoResponse
-	if err := copier.Copy(&data, repo); err != nil {
+	if err = copier.Copy(&data, repo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -89,7 +89,7 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		return
 	}
 	var data metaresp.AddonHelmRepoResponse
-	if err := copier.Copy(&data, addedRepo); err != nil {
+	if err = copier.Copy(&data, addedRepo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
 		return
 	}

@@ -91,7 +91,7 @@ func (c *ClusterController) GetClusterInfo(ctx *gin.Context) {
 		return
 	}
 	var data response.K8sCrdClusterResponse
-	if err := copier.Copy(&data, cluster); err != nil {
+	if err = copier.Copy(&data, cluster); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
@@ -117,7 +117,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 	}
 	var data []response.K8sCrdClusterResponse
-	if err := copier.Copy(&data, clusterEntities); err != nil {
+	if err = copier.Copy(&data, clusterEntities); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

@@ -31,6 +31,8 @@ import (
 	metautil "k8s-dbs/metadata/util"
 	"log/slog"
 
+	"github.com/pkg/errors"
+
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
@@ -139,6 +141,8 @@ func (o *OpsRequestProvider) withMetaDataSync(
 ) (*coreentity.Metadata, error) {
 	k8sClusterConfig, err := o.clusterConfigProvider.FindConfigByName(request.K8sClusterName)
 	if err != nil {
+		wrappedErr := errors.Wrapf(err, "k8s %s 集群查找失败", request.K8sClusterName)
+		slog.Error("k8s 集群查询失败", "error", wrappedErr)
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	dbsCtx.K8sClusterConfigID = k8sClusterConfig.ID

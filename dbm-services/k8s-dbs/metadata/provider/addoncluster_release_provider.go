@@ -24,7 +24,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -49,21 +50,20 @@ func (a *AddonClusterReleaseProviderImpl) CreateClusterRelease(entity *metaentit
 	*metaentity.AddonClusterReleaseEntity, error,
 ) {
 	releaseModel := metamodel.AddonClusterReleaseModel{}
-	err := copier.Copy(&releaseModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err := copier.Copy(&releaseModel, entity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	addedModel, err := a.dbAccess.Create(&releaseModel)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addoncluster release with entity: %+v", entity)
 	}
+
 	addedEntity := metaentity.AddonClusterReleaseEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
+
 	return &addedEntity, nil
 }
 
@@ -79,13 +79,12 @@ func (a *AddonClusterReleaseProviderImpl) FindClusterReleaseByID(id uint64) (
 ) {
 	releaseModel, err := a.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addoncluster release with id %d", id)
 	}
+
 	releaseEntity := metaentity.AddonClusterReleaseEntity{}
-	if err := copier.Copy(&releaseEntity, releaseModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&releaseEntity, releaseModel); err != nil {
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return &releaseEntity, nil
 }
@@ -97,13 +96,11 @@ func (a *AddonClusterReleaseProviderImpl) FindByParams(params *metaentity.Cluste
 ) {
 	clusterReleaseModel, err := a.dbAccess.FindByParams(params)
 	if err != nil {
-		slog.Error("Failed to find entity", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addoncluster release with params %+v", params)
 	}
 	clusterReleaseEntity := metaentity.AddonClusterReleaseEntity{}
 	if err := copier.Copy(&clusterReleaseEntity, clusterReleaseModel); err != nil {
-		slog.Error("Failed to copy model to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return &clusterReleaseEntity, nil
 }
@@ -114,15 +111,13 @@ func (a *AddonClusterReleaseProviderImpl) UpdateClusterRelease(entity *metaentit
 	error,
 ) {
 	releaseModel := metamodel.AddonClusterReleaseModel{}
-	err := copier.Copy(&releaseModel, entity)
-	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return 0, err
+	if err := copier.Copy(&releaseModel, entity); err != nil {
+		return 0, errors.Wrap(err, "failed to copy")
 	}
+
 	rows, err := a.dbAccess.Update(&releaseModel)
 	if err != nil {
-		slog.Error("Failed to update entity", "error", err)
-		return 0, err
+		return 0, errors.Wrapf(err, "failed to update addoncluster release with entity: %+v", entity)
 	}
 	return rows, nil
 }
@@ -134,13 +129,11 @@ func (a *AddonClusterReleaseProviderImpl) ListClusterReleases(pagination entity.
 ) {
 	releaseModels, _, err := a.dbAccess.ListByPage(pagination)
 	if err != nil {
-		slog.Error("Failed to find release")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list addoncluster releases with pagination: %+v", pagination)
 	}
 	var releaseEntities []*metaentity.AddonClusterReleaseEntity
-	if err := copier.Copy(&releaseEntities, releaseModels); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&releaseEntities, releaseModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return releaseEntities, nil
 }

@@ -25,6 +25,8 @@ import (
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 
+	"github.com/pkg/errors"
+
 	"github.com/jinzhu/copier"
 )
 
@@ -54,13 +56,13 @@ func (k K8sCrdClusterTagProviderImpl) BatchCreate(
 		inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
 		inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
 	}
-	err := copier.Copy(&dbModels, &inputEntities)
-	if err != nil {
-		return 0, err
+	if err := copier.Copy(&dbModels, &inputEntities); err != nil {
+		return 0, errors.Wrap(err, "failed to copy")
 	}
+
 	rows, err := k.dbAccess.BatchCreate(dbModels)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to batch create")
 	}
 	return rows, nil
 }
@@ -73,19 +75,20 @@ func (k K8sCrdClusterTagProviderImpl) Create(
 	dbModel := models.K8sCrdClusterTagModel{}
 	inputEntity.CreatedBy = dbsCtx.BkAuth.BkUserName
 	inputEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
-	err := copier.Copy(&dbModel, inputEntity)
-	if err != nil {
-		return nil, err
+	if err := copier.Copy(&dbModel, inputEntity); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 
 	createdDbModel, err := k.dbAccess.Create(&dbModel)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster tag with entity: %+v", inputEntity)
 	}
+
 	outputEntity := entitys.K8sCrdClusterTagEntity{}
-	if err := copier.Copy(&outputEntity, createdDbModel); err != nil {
-		return nil, err
+	if err = copier.Copy(&outputEntity, createdDbModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return &outputEntity, nil
 }
 
@@ -101,13 +104,14 @@ func (k K8sCrdClusterTagProviderImpl) FindByClusterID(_ *commentity.DbsContext, 
 ) {
 	dbModels, err := k.dbAccess.FindByClusterID(clusterID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find cluster tag by clusterID: %v", clusterID)
 	}
+
 	var outputEntities []*entitys.K8sCrdClusterTagEntity
-	err = copier.Copy(&outputEntities, dbModels)
-	if err != nil {
-		return nil, err
+	if err = copier.Copy(&outputEntities, dbModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
+
 	return outputEntities, nil
 }
 

@@ -20,11 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
 	commentity "k8s-dbs/common/entity"
 	metaenitty "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -50,8 +50,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *metamodel.AddonClusterH
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon cluster helm repo with model: %+v", model)
 	}
 	return model, nil
 }
@@ -60,8 +59,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) Create(model *metamodel.AddonClusterH
 func (a *AddonClusterHelmRepoDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := a.db.Delete(&metamodel.AddonClusterHelmRepoModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete addon cluster helm repo with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -71,8 +69,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) FindByID(id uint64) (*metamodel.Addon
 	var model metamodel.AddonClusterHelmRepoModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon cluster helm repo with id %d", id)
 	}
 	return &model, nil
 }
@@ -85,14 +82,11 @@ func (a *AddonClusterHelmRepoDbAccessImpl) FindByParams(params *metaenitty.HelmR
 	var helmRepo metamodel.AddonClusterHelmRepoModel
 	result := a.db.Where(params).First(&helmRepo)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, nil
 	}
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon cluster helm repo with params %+v", params)
 	}
-
 	return &helmRepo, nil
 }
 
@@ -100,8 +94,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) FindByParams(params *metaenitty.HelmR
 func (a *AddonClusterHelmRepoDbAccessImpl) Update(model *metamodel.AddonClusterHelmRepoModel) (uint64, error) {
 	result := a.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update model error", "error", result.Error.Error())
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update addon cluster helm repo with model: %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -114,8 +107,7 @@ func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination commentity.Pagi
 ) {
 	var releaseModels []metamodel.AddonClusterHelmRepoModel
 	if err := a.db.Offset(pagination.Page).Limit(pagination.Limit).Find(&releaseModels).Error; err != nil {
-		slog.Error("List release error", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list addon cluster helm repo with pagination %+v", pagination)
 	}
 	return releaseModels, int64(len(releaseModels)), nil
 }

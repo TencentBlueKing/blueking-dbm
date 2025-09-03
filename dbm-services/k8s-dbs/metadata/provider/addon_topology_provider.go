@@ -23,7 +23,8 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaenitty "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/copier"
 )
@@ -47,11 +48,11 @@ func (a *AddonTopologyProviderImpl) FindByParams(params *metaenitty.AddonTopolog
 ) {
 	topoModels, err := a.dbAccess.FindByParams(params)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon topology with params: %+v", params)
 	}
 	var topoEntities []*metaenitty.AddonTopologyEntity
-	if err := copier.Copy(&topoEntities, topoModels); err != nil {
-		return nil, err
+	if err = copier.Copy(&topoEntities, topoModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return topoEntities, nil
 }
@@ -60,13 +61,11 @@ func (a *AddonTopologyProviderImpl) FindByParams(params *metaenitty.AddonTopolog
 func (a *AddonTopologyProviderImpl) FindByID(id uint64) (*metaenitty.AddonTopologyEntity, error) {
 	model, err := a.dbAccess.FindByID(id)
 	if err != nil {
-		slog.Error("Failed to find entity")
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon topology with id: %d", id)
 	}
 	topoEntity := &metaenitty.AddonTopologyEntity{}
-	if err := copier.Copy(topoEntity, model); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(topoEntity, model); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return topoEntity, nil
 }
@@ -78,18 +77,15 @@ func (a *AddonTopologyProviderImpl) Create(entity *metaenitty.AddonTopologyEntit
 	model := models.AddonTopologyModel{}
 	err := copier.Copy(&model, entity)
 	if err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	addedModel, err := a.dbAccess.Create(&model)
 	if err != nil {
-		slog.Error("Failed to create model", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon topology with entity: %+v", entity)
 	}
 	addedEntity := metaenitty.AddonTopologyEntity{}
-	if err := copier.Copy(&addedEntity, addedModel); err != nil {
-		slog.Error("Failed to copy entity to copied model", "error", err)
-		return nil, err
+	if err = copier.Copy(&addedEntity, addedModel); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return &addedEntity, nil
 }

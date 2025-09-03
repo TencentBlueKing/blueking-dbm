@@ -56,7 +56,7 @@ func (o *OpsController) GetOps(ctx *gin.Context) {
 		return
 	}
 	var data response.K8sCrdOpsResponse
-	if err := copier.Copy(&data, ops); err != nil {
+	if err = copier.Copy(&data, ops); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

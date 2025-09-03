@@ -20,12 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
 	commconst "k8s-dbs/common/constant"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
-	"log/slog"
 
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -50,12 +49,10 @@ func (a *AddonTopologyDbAccessImpl) FindByParams(params *metaentity.AddonTopolog
 	var topoModels []*metamodel.AddonTopologyModel
 	err := a.db.Debug().Where(params).Limit(commconst.MaxFetchSize).Find(&topoModels).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		slog.Error("Not found model", "params", params)
-		return topoModels, nil
+		return nil, nil
 	}
 	if err != nil {
-		slog.Error("Find model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to find addon topologies with params %+v", params)
 	}
 	return topoModels, nil
 }
@@ -65,8 +62,7 @@ func (a *AddonTopologyDbAccessImpl) FindByID(id uint64) (*metamodel.AddonTopolog
 	var model metamodel.AddonTopologyModel
 	result := a.db.First(&model, id)
 	if result.Error != nil {
-		slog.Error("Find model error", "error", result.Error.Error())
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find addon topology with id %v", id)
 	}
 	return &model, nil
 }
@@ -74,11 +70,8 @@ func (a *AddonTopologyDbAccessImpl) FindByID(id uint64) (*metamodel.AddonTopolog
 // ListByLimit limit 查询实现
 func (a *AddonTopologyDbAccessImpl) ListByLimit(limit int) ([]*metamodel.AddonTopologyModel, error) {
 	var cmpOpsDefModels []*metamodel.AddonTopologyModel
-	if err := a.db.
-		Limit(limit).
-		Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
-		slog.Error("List by limit error", "error", err)
-		return nil, err
+	if err := a.db.Limit(limit).Where("active=1").Find(&cmpOpsDefModels).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to list addon topologies with limit %v", limit)
 	}
 	return cmpOpsDefModels, nil
 }
@@ -89,8 +82,7 @@ func (a *AddonTopologyDbAccessImpl) Create(model *metamodel.AddonTopologyModel) 
 	error,
 ) {
 	if err := a.db.Create(model).Error; err != nil {
-		slog.Error("Create model error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create addon topology with model %+v", model)
 	}
 	return model, nil
 }

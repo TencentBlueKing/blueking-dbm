@@ -20,11 +20,11 @@ limitations under the License.
 package dbaccess
 
 import (
-	"errors"
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
-	"log/slog"
+
+	"github.com/pkg/errors"
 
 	"gorm.io/gorm"
 )
@@ -37,7 +37,7 @@ type K8sCrdClusterDbAccess interface {
 	FindByParams(params *metaentity.ClusterQueryParams) (*models.K8sCrdClusterModel, error)
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
-		[]models.K8sCrdClusterModel, uint64, error)
+		[]*models.K8sCrdClusterModel, uint64, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
@@ -48,8 +48,7 @@ type K8sCrdClusterDbAccessImpl struct {
 // Create 创建 cluster 元数据接口实现
 func (k *K8sCrdClusterDbAccessImpl) Create(model *models.K8sCrdClusterModel) (*models.K8sCrdClusterModel, error) {
 	if err := k.db.Create(model).Error; err != nil {
-		slog.Error("Create cluster error", "error", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create cluster with model %+v", model)
 	}
 	return model, nil
 }
@@ -58,8 +57,7 @@ func (k *K8sCrdClusterDbAccessImpl) Create(model *models.K8sCrdClusterModel) (*m
 func (k *K8sCrdClusterDbAccessImpl) DeleteByID(id uint64) (uint64, error) {
 	result := k.db.Delete(&models.K8sCrdClusterModel{}, id)
 	if result.Error != nil {
-		slog.Error("Delete cluster error:", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster with id %d", id)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -72,8 +70,7 @@ func (k *K8sCrdClusterDbAccessImpl) FindByID(id uint64) (*models.K8sCrdClusterMo
 		return nil, nil
 	}
 	if result.Error != nil {
-		slog.Error("Find cluster error", "error", result.Error)
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster with id %d", id)
 	}
 	return &cluster, nil
 }
@@ -99,10 +96,8 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 		return nil, nil
 	}
 	if result.Error != nil {
-		slog.Error("Find cluster error", "error", result.Error)
-		return nil, result.Error
+		return nil, errors.Wrapf(result.Error, "failed to find cluster with params %+v", params)
 	}
-
 	return &cluster, nil
 }
 
@@ -110,8 +105,7 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (uint64, error) {
 	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
-		slog.Error("Update cluster error:", "error", result.Error)
-		return 0, result.Error
+		return 0, errors.Wrapf(result.Error, "failed to update cluster with model %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
 }
@@ -120,8 +114,8 @@ func (k *K8sCrdClusterDbAccessImpl) Update(model *models.K8sCrdClusterModel) (ui
 func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 	params *metaentity.ClusterQueryParams,
 	pagination *entity.Pagination,
-) ([]models.K8sCrdClusterModel, uint64, error) {
-	var clusterModels []models.K8sCrdClusterModel
+) ([]*models.K8sCrdClusterModel, uint64, error) {
+	var clusterModels []*models.K8sCrdClusterModel
 	var count int64
 	query := k.db.Debug().Model(&models.K8sCrdClusterModel{})
 	if len(params.Creators) > 0 {
@@ -153,8 +147,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 	}
 
 	if err := query.Count(&count).Error; err != nil {
-		slog.Error("集群总数统计失败", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to count cluster with pagination %+v", pagination)
 	}
 	offset := (pagination.Page - 1) * pagination.Limit
 	if err := query.
@@ -163,8 +156,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 		Order("created_at DESC").
 		Find(&clusterModels).
 		Error; err != nil {
-		slog.Error("集群列表检索失败", "error", err.Error())
-		return nil, 0, err
+		return nil, 0, errors.Wrapf(err, "failed to list cluster with pagination %+v", pagination)
 	}
 
 	return clusterModels, uint64(count), nil
