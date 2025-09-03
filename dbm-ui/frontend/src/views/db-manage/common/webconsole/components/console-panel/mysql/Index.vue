@@ -7,6 +7,7 @@
       timezone,
       instance_role: role,
     }"
+    :placeholder="placeholder"
     :pre-check="preCheck">
     <template #default="{ message }">
       <RenderMessage :data="message" />
@@ -30,11 +31,16 @@
     role: string;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
   const consoleInputRef = ref<typeof ConsoleInput>();
+
+  const placeholder = computed(() => {
+    const roleDisplay = props.role.replace(/^.*?_/, '');
+    return `${props.cluster.immute_domain}[${roleDisplay}] > `;
+  });
 
   const preCheck = (cmd: string) => {
     if (/^\s*use\s+.*$/.test(cmd)) {

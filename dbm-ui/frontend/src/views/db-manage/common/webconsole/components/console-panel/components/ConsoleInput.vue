@@ -105,6 +105,10 @@
   const clusterId = computed(() => props.cluster.id);
   const localPlaceholder = computed(() => props.placeholder || `${props.cluster.immute_domain} > `);
 
+  watch(localPlaceholder, (newValue, oldValue) => {
+    command.value = command.value.replace(oldValue, newValue);
+  });
+
   watch(
     clusterId,
     () => {
