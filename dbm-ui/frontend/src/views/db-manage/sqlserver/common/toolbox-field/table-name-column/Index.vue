@@ -1,20 +1,30 @@
 <template>
-  <TableNameColumn
-    v-model="modelValue"
-    :disabled="disabled"
+  <EditableColumn
+    :disabled-method="localDisabledMethod"
     :field="field"
     :label="label"
-    :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+    :min-width="180"
     :required="required"
-    :rules="rules"
-    @batch-edit="handleBatchEdit"
-    @change="handleChange">
-    <template #tip>
+    :rules="rules">
+    <template
+      v-if="showBatchEdit"
+      #headAppend>
+      <BatchEditColumn
+        :confirm-handler="handleBatchEditConfirm"
+        :label="label">
+        <BatchEditTagInput v-model="batchEditValue" />
+      </BatchEditColumn>
+    </template>
+    <EditableTagInput
+      v-model="modelValue"
+      :max-data="single ? 1 : -1"
+      :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')" />
+    <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
         <div>
           <div class="circle-dot"></div>
-          <span>{{ t('不允许输入系统库和特殊库，如mysql、sys 等') }}</span>
+          <span>{{ t('不允许输入系统库，如"master", "msdb", "model", "tempdb", "Monitor"') }}</span>
         </div>
         <div>
           <div class="circle-dot"></div>
@@ -22,7 +32,7 @@
         </div>
         <div>
           <div class="circle-dot"></div>
-          <span>{{ t('支持 %（指代任意长度字符串）, ?（指代单个字符串）, *（指代全部）三个通配符') }}</span>
+          <span>{{ t('支持 %（指代任意长度字符串）,*（指代全部）2个通配符') }}</span>
         </div>
         <div>
           <div class="circle-dot"></div>
@@ -30,26 +40,32 @@
         </div>
         <div>
           <div class="circle-dot"></div>
-          <span>{{ t('% ? 不能独立使用， * 只能单独使用') }}</span>
+          <span>{{ t('包含通配符时, 每一单元格只允许输入单个对象。% 不能独立使用， * 只能单独使用') }}</span>
         </div>
       </div>
     </template>
-  </TableNameColumn>
+  </EditableColumn>
 </template>
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TableNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
+  import { Column as EditableColumn } from '@components/editable-table/Index.vue';
+
+  import BatchEditColumn, { BatchEditTagInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
   interface Props {
     allowAsterisk?: boolean; // 是否允许单个 *
     clusterId?: number;
-    disabled?: boolean;
+    // eslint-disable-next-line vue/require-default-prop
+    disabledMethod?: ComponentProps<typeof EditableColumn>['disabledMethod'];
     field: string;
     label: string;
     required?: boolean;
+    showBatchEdit?: boolean;
+    single?: boolean;
   }
 
   type Emits = (e: 'batch-edit', value: string[], field: string) => void;
@@ -59,6 +75,8 @@
     clusterId: undefined,
     disabled: false,
     required: true,
+    showBatchEdit: true,
+    single: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -68,7 +86,7 @@
 
   const { t } = useI18n();
 
-  let isInit = true;
+  const batchEditValue = ref<string[]>([]);
 
   const rules = [
     {
@@ -121,23 +139,15 @@
     // TODO: 表不存在
   ];
 
-  // 集群改变时表名需要重置
-  watch(
-    () => props.clusterId,
-    () => {
-      if (!isInit) {
-        modelValue.value = [];
-      }
-    },
-  );
-
-  const handleBatchEdit = (value: string[]) => {
-    isInit = false;
-    emits('batch-edit', value, props.field);
+  const localDisabledMethod = () => {
+    if (props.disabledMethod) {
+      return props.disabledMethod();
+    }
+    return props.clusterId ? false : t('请先选择集群');
   };
 
-  const handleChange = () => {
-    isInit = false;
+  const handleBatchEditConfirm = () => {
+    emits('batch-edit', batchEditValue.value, props.field);
   };
 </script>
 
