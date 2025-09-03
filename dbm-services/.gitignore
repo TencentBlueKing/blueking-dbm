@@ -3,6 +3,7 @@
 .vscode
 # CodeBuddy
 .codebuddyignore
+.codebuddy/
 # Cursor
 .cursorignore
 .cursorrules

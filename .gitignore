@@ -16,6 +16,7 @@ package-lock.json
 .codecc
 # CodeBuddy
 .codebuddyignore
+.codebuddy/
 # Cursor
 .cursorignore
 .cursorrules
