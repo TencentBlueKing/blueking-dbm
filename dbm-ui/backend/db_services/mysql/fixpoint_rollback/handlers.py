@@ -100,7 +100,7 @@ class FixPointRollbackHandler:
                 continue
 
             # 过滤备份类型
-            if is_filter and log["backup_method"] != backup_method:
+            if is_filter and log.get("backup_method", "default") != backup_method:
                 continue
 
             file_list_infos = log.pop("file_list")
@@ -205,7 +205,7 @@ class FixPointRollbackHandler:
         for log in backup_logs:
 
             # 过滤备份类型
-            if is_filter and log["backup_method"] != backup_method:
+            if is_filter and log.get("backup_method", "default") != backup_method:
                 continue
 
             backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
