@@ -188,22 +188,22 @@
       label: t('目标集群'),
     },
     {
-      case: 'db1',
+      case: 'db1,db2',
       key: 'db_patterns',
       label: t('指定 DB 名'),
     },
     {
-      case: 'db2',
+      case: 'db1,db2',
       key: 'ignore_dbs',
       label: t('忽略 DB 名'),
     },
     {
-      case: 'table1',
+      case: 'table1,table2',
       key: 'table_patterns',
       label: t('指定表名'),
     },
     {
-      case: 'table2',
+      case: 'table1,table2',
       key: 'ignore_tables',
       label: t('忽略表名'),
     },
@@ -283,10 +283,10 @@
         cluster: {
           master_domain: item.domain,
         } as IDataRow['cluster'],
-        db_patterns: item.db_patterns ? [item.db_patterns] : [],
-        ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-        ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
-        table_patterns: item.table_patterns ? [item.table_patterns] : [],
+        db_patterns: item.db_patterns ? item.db_patterns.split(',') : [],
+        ignore_dbs: item.ignore_dbs ? item.ignore_dbs.split(',') : [],
+        ignore_tables: item.ignore_tables ? item.ignore_tables.split(',') : [],
+        table_patterns: item.table_patterns ? item.table_patterns.split(',') : [],
       }),
     );
 
