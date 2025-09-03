@@ -106,8 +106,8 @@ func DecodeParams(ctx *gin.Context,
 	return nil
 }
 
-// BuildListParams 构建ListParams
-func BuildListParams(ctx *gin.Context) (*metaentity.ClusterQueryParams, error) {
+// BuildClusterListParams 构建ClusterListParams
+func BuildClusterListParams(ctx *gin.Context) (*metaentity.ClusterQueryParams, error) {
 	var bkBizIDs []uint64
 	for _, bkBizIDStr := range ctx.QueryArray("bkBizId") {
 		bkBizID, err := strconv.ParseUint(bkBizIDStr, 10, 64)
