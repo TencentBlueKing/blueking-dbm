@@ -25,7 +25,7 @@ export default [
   {
     children: [
       {
-        id: 'sqlServerExecute',
+        id: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
         name: t('变更SQL执行'),
         parentId: 'sql',
       },

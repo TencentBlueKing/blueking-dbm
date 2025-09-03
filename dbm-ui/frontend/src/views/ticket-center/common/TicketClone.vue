@@ -185,7 +185,7 @@
     [TicketTypes.SQLSERVER_DBRENAME]: TicketTypes.SQLSERVER_DBRENAME, // sqlserver DB重命名
     [TicketTypes.SQLSERVER_FULL_MIGRATE]: TicketTypes.SQLSERVER_FULL_MIGRATE, // sqlserver 全库迁移
     [TicketTypes.SQLSERVER_HA_APPLY]: 'SqlServiceHaApply',
-    [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: 'sqlServerExecute', // sqlserver 变更SQL执行
+    [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: TicketTypes.SQLSERVER_IMPORT_SQLFILE, // sqlserver 变更SQL执行
     [TicketTypes.SQLSERVER_INCR_MIGRATE]: TicketTypes.SQLSERVER_INCR_MIGRATE, // sqlserver 增量迁移
     [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: TicketTypes.SQLSERVER_MASTER_FAIL_OVER, // sqlserver 主库故障切换
     [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH, // sqlserver 主从互切
