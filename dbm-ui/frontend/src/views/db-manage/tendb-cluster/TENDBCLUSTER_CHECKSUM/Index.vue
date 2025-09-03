@@ -286,7 +286,7 @@
         bk_cloud_id: 0,
         bk_biz_id: 0,
         bk_host_id: 0,
-      } as ComponentProps<typeof MasterSlaveColumn>['master'],
+      } as RowData['master'],
       data.master,
     ),
   });
@@ -345,34 +345,29 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
-      const rowDataByCluster = infos.reduce<Record<string, any[]>>((acc, item) => {
-        const slaves = item.backup_infos.map((item) => ({
-          instance_address: item.slave,
-        }));
-        const common = item.backup_infos[0];
-        Object.assign(acc, {
-          [item.cluster_id]: {
-            slaves,
-            db_patterns: common.db_patterns,
-            table_patterns: common.table_patterns,
-            ignore_dbs: common.ignore_dbs,
-            ignore_tables: common.ignore_tables,
-            master: {
-              instance_address: common.master,
-            },
-          },
-        });
-        return acc;
-      }, {});
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
-        tableData: infos.map((item) => ({
-          cluster: {
-            master_domain: clusters[item.cluster_id].immute_domain || '',
-          },
-          scope: item.checksum_scope,
-          ...rowDataByCluster[item.cluster_id],
-        })),
+        tableData: infos.reduce<RowData[]>((acc, item) => {
+          const rows = item.backup_infos.map((row) =>
+            createTableRow({
+              cluster: {
+                master_domain: clusters[item.cluster_id].immute_domain || '',
+              } as RowData['cluster'],
+              scope: item.checksum_scope,
+              db_patterns: row.db_patterns,
+              table_patterns: row.table_patterns,
+              ignore_dbs: row.ignore_dbs,
+              ignore_tables: row.ignore_tables,
+              master: {
+                instance_address: row.master,
+              } as RowData['master'],
+              slaves: row.slave.split(',').map((slave) => ({
+                instance_address: slave,
+              })) as RowData['slaves'],
+            }),
+          );
+          return [...acc, ...rows];
+        }, []),
       });
       handleRowMerge();
     },
