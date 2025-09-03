@@ -118,7 +118,7 @@
       }"
       @click="handleShowSelector" />
   </EditableColumn>
-  <RecordSelector
+  <BackupRecordSelector
     v-model="modelValue"
     v-model:is-show="isShowSelector"
     v-bind="props" />
@@ -134,7 +134,7 @@
 
   import { bytePretty, utcDisplayTime } from '@utils';
 
-  import RecordSelector from './RecordSelector.vue';
+  import BackupRecordSelector from '../backup-record-selector/Index.vue';
 
   interface Props {
     backupSource: 'local' | 'remote';

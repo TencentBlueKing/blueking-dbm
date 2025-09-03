@@ -139,6 +139,10 @@
   interface Props {
     backupSource: 'local' | 'remote';
     cluster: TendbhaModel;
+    /**
+     * 仅全备
+     */
+    onlyFull?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -328,6 +332,12 @@
           cluster_id: props.cluster.id,
           limit: -1,
         });
+      }
+
+      // 仅展示全备记录，需过滤掉库表备份
+      if (props.onlyFull) {
+        results = results.filter((item) => item.backup_method !== 'partial_by_ticket');
+        filterOption.value.backup_method.list.splice(2, 1);
       }
 
       originalData.value = results;

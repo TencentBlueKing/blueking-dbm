@@ -102,6 +102,11 @@
       </div>
     </EditableBlock>
   </EditableColumn>
+  <BackupRecordSelector
+    v-model="backupRecord"
+    v-model:is-show="isShowSelector"
+    v-bind="props"
+    only-full />
 </template>
 <script lang="ts" setup>
   import dayjs from 'dayjs';
@@ -114,6 +119,8 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import { bytePretty, utcDisplayTime } from '@utils';
+
+  import BackupRecordSelector from '../backup-record-selector/Index.vue';
 
   interface Props {
     backupSource: 'local' | 'remote';
