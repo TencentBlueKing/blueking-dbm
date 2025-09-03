@@ -73,10 +73,10 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import ExecuteObjects from '@views/db-manage/common/mysql-sql-execute/execute-objects/Index.vue';
-  import Backup from '@views/db-manage/common/sql-execute/backup-new/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
+  import Backup from '@views/db-manage/common/sql-execute/mysql-backup/Index.vue';
+  import ExecuteObjects from '@views/db-manage/common/sql-execute/mysql-execute-objects/Index.vue';
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
   import TicketPayload, {
