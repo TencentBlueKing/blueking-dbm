@@ -103,6 +103,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
+
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -134,7 +136,7 @@
 
   const tableData = shallowRef<RowData[]>([]);
 
-  const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
+  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
 
   watch(
     () => props.ticketDetails.details.infos,

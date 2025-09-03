@@ -406,6 +406,7 @@
     if (!result) {
       return;
     }
+    const groupByCluster = _.groupBy(formData.tableData, (item) => item.cluster.id);
     createTicketRun({
       details: {
         data_repair: formData.data_repair,
@@ -413,31 +414,17 @@
         runtime_hour: formData.runtime_hour,
         is_sync_non_innodb: true,
         timing: formatDateToUTC(format(new Date(formData.timing), 'yyyy-MM-dd HH:mm:ss')),
-        infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
-          checksum_scope: item.scope,
-          backup_infos:
-            item.scope === 'partial'
-              ? // scope = '部分实例'
-                item.slaves.map((slave) => ({
-                  db_patterns: item.db_patterns,
-                  ignore_dbs: item.ignore_dbs,
-                  ignore_tables: item.ignore_tables,
-                  table_patterns: item.table_patterns,
-                  master: item.master.instance_address,
-                  slave: slave.instance_address,
-                }))
-              : // scope = '整个集群'
-                [
-                  {
-                    db_patterns: item.db_patterns,
-                    ignore_dbs: item.ignore_dbs,
-                    ignore_tables: item.ignore_tables,
-                    table_patterns: item.table_patterns,
-                    master: '',
-                    slave: '',
-                  },
-                ],
+        infos: Object.values(groupByCluster).map((rows) => ({
+          cluster_id: rows[0].cluster.id,
+          checksum_scope: rows[0].scope,
+          backup_infos: rows.map((item) => ({
+            db_patterns: item.db_patterns,
+            ignore_dbs: item.ignore_dbs,
+            ignore_tables: item.ignore_tables,
+            table_patterns: item.table_patterns,
+            master: item.master.instance_address,
+            slave: item.slaves.map((slave) => slave.instance_address).join(','),
+          })),
         })),
       },
       ...formData.payload,
