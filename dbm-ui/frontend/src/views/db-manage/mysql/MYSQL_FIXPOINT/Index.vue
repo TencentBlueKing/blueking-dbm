@@ -105,6 +105,7 @@
             field="databases"
             :has-delete-icon="!isOnlyRead(item)"
             :label="t('源 DB')"
+            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
@@ -113,6 +114,7 @@
             field="tables"
             :has-delete-icon="!isOnlyRead(item)"
             :label="t('源表')"
+            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
@@ -190,7 +192,7 @@
 
   import BackupRecordColumn from './components/backup-record-column/Index.vue';
   import ConflictDbColumn from './components/conflict-db-column/Index.vue';
-  import TargetClusterColumn from './components/TargetClusterColumn.vue';
+  import TargetClusterColumn from './components/target-cluster-column/Index.vue';
   import TimeBackupRecordColumn from './components/time-backup-record-column/Index.vue';
 
   interface RowData {

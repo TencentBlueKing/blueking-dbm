@@ -104,6 +104,10 @@
   interface Props {
     backupSource: 'local' | 'remote';
     cluster: TendbhaModel;
+    /**
+     * 仅全备
+     */
+    onlyFull?: boolean;
   }
 
   const props = defineProps<Props>();

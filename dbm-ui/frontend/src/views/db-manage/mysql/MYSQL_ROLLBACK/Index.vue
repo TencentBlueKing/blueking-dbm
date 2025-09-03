@@ -105,6 +105,7 @@
             field="databases"
             :has-delete-icon="!isOnlyRead(item)"
             :label="t('源 DB')"
+            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
@@ -113,6 +114,7 @@
             field="tables"
             :has-delete-icon="!isOnlyRead(item)"
             :label="t('源表')"
+            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <ConflictDbColumn :row-data="item" />
           <OperationColumn

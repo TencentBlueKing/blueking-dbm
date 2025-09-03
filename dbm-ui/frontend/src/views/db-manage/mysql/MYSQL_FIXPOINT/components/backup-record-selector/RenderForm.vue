@@ -49,7 +49,9 @@
             <BkRadio :label="BackupMethod.full_by_ticket">
               {{ t('全库备份（单据）') }}
             </BkRadio>
-            <BkRadio :label="BackupMethod.partial_by_ticket">
+            <BkRadio
+              v-if="!onlyFull"
+              :label="BackupMethod.partial_by_ticket">
               {{ t('库表备份（单据）') }}
             </BkRadio>
             <BkRadio :label="BackupMethod.full_by_regular">
@@ -72,6 +74,10 @@
   interface Props {
     backupSource: 'local' | 'remote';
     cluster: TendbhaModel;
+    /**
+     * 仅全备
+     */
+    onlyFull?: boolean;
   }
 
   const props = defineProps<Props>();
