@@ -121,7 +121,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       navName: t('SQlServer_工具箱'),
     },
     redirect: {
-      name: 'sqlServerExecute',
+      name: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
     },
     component: () => import('@views/db-manage/sqlserver/toolbox/Index.vue'),
     children: [
@@ -130,14 +130,7 @@ const toolboxRouters: RouteRecordRaw[] = [
         name: 'SqlserverToolboxResult',
         component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
       },
-      {
-        path: 'sql-execute/:page?',
-        name: 'sqlServerExecute',
-        meta: {
-          navName: t('变更SQL执行'),
-        },
-        component: () => import('@views/db-manage/sqlserver/sql-execute/index.vue'),
-      },
+      createRouteItem(TicketTypes.SQLSERVER_IMPORT_SQLFILE, t('变更SQL执行')),
       createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
