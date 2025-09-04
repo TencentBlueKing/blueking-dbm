@@ -55,14 +55,8 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
   createRouteItem(TicketTypes.MYSQL_HA_FULL_BACKUP, t('全库备份')),
-  {
-    path: 'db-clear/:page?',
-    name: 'MySQLDBClear',
-    meta: {
-      navName: t('清档'),
-    },
-    component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档')),
+  createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),

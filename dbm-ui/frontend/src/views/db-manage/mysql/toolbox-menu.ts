@@ -179,8 +179,9 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA],
         dbConsoleValue: 'mysql.toolbox.dbClear',
-        id: 'MySQLDBClear',
+        id: TicketTypes.MYSQL_HA_TRUNCATE_DATA,
         name: t('清档'),
         parentId: 'data',
       },
