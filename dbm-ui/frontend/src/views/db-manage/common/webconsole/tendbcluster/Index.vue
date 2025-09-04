@@ -39,15 +39,15 @@
         </div>
       </div>
       <KeepAlive>
-        <MysqlConsolePanel
+        <ConsolePanel
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
           :charset="charset"
           :cluster="clusterInfo"
+          :role="role"
           :style="currentFontConfig"
-          :timezone="timezone"
-          :role="role" />
+          :timezone="timezone" />
       </KeepAlive>
       <div class="placeholder-main">
         <DbIcon
@@ -67,22 +67,25 @@
 <script lang="ts" setup>
   import { InfoBox } from 'bkui-vue';
   import screenfull from 'screenfull';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterFlatList } from '@services/source/tendbcluster';
 
   import { DBTypes } from '@common/const';
 
   import CharacterSet from '../components/CharacterSet.vue';
   import ClearScreen from '../components/ClearScreen.vue';
   import ClusterTabs, { type ClusterItem } from '../components/ClusterTabs.vue';
-  import MysqlConsolePanel from '../components/console-panel/mysql/Index.vue';
+  import ConsolePanel from '../components/console-panel/tendbcluster/Index.vue';
   import ExportData from '../components/ExportData.vue';
   import FontSetting from '../components/FontSetting.vue';
   import FullScreen from '../components/FullScreen.vue';
+  import RoleSelect from '../components/RoleSelect.vue';
   import TimeZone from '../components/time-zone/Index.vue';
   import UsageHelp from '../components/usage-help/Index.vue';
-  import RoleSelect from '../components/RoleSelect.vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   interface Props {
     dbType: DBTypes;
@@ -94,7 +97,7 @@
 
   const rootRef = ref();
   const clusterTabsRef = ref();
-  const consolePanelRef = ref<InstanceType<typeof MysqlConsolePanel>>();
+  const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
   const clusterInfo = ref<ClusterItem>();
   const currentFontConfig = ref({
     fontSize: '12px',
@@ -116,6 +119,18 @@
   ];
 
   const roleList = ref<ComponentProps<typeof RoleSelect>['list']>([]);
+  let clusterMap: Record<string, TendbClusterModel> = {};
+
+  useRequest(getTendbClusterFlatList, {
+    onSuccess(data) {
+      clusterMap = data.reduce<typeof clusterMap>((acc, item) => {
+        Object.assign(acc, {
+          [item.id]: item,
+        });
+        return acc;
+      }, {});
+    },
+  });
 
   const handleBeforeClose = (clusterId: number) =>
     new Promise<boolean>((resolve, reject) => {
@@ -154,7 +169,7 @@
 
   const handleChangeCurrentCluster = (data: ClusterItem) => {
     clusterInfo.value = data;
-    const isContainSpiderSlave = (data as unknown as TendbClusterModel)?.spider_slave;
+    const isContainSpiderSlave = clusterMap[data.id]?.spider_slave?.length > 0;
     if (isContainSpiderSlave) {
       roleList.value = roleListConfig;
       role.value = 'spider_slave';

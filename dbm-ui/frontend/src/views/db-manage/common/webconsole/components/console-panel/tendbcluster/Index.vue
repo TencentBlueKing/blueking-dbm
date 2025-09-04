@@ -21,8 +21,7 @@
   import type { queryAllTypeCluster } from '@services/source/dbbase';
 
   import ConsoleInput from '../components/ConsoleInput.vue';
-
-  import RenderMessage from './components/RenderMessage.vue';
+  import RenderMessage from '../mysql/components/RenderMessage.vue';
 
   interface Props {
     charset: string;
@@ -37,10 +36,7 @@
 
   const consoleInputRef = ref<typeof ConsoleInput>();
 
-  const placeholder = computed(() => {
-    const roleDisplay = props.role.replace(/^.*?_/, '');
-    return `${props.cluster.immute_domain}[${roleDisplay}] > `;
-  });
+  const placeholder = computed(() => `${props.cluster.immute_domain}[${props.role}] > `);
 
   const preCheck = (cmd: string) => {
     if (/^\s*use\s+.*$/.test(cmd)) {

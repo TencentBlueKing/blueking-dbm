@@ -27,7 +27,7 @@
     </div>
     <div class="content-main">
       <KeepAlive>
-        <RedisConsolePanel
+        <ConsolePanel
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
@@ -59,7 +59,7 @@
 
   import ClearScreen from '../components/ClearScreen.vue';
   import ClusterTabs, { type ClusterItem } from '../components/ClusterTabs.vue';
-  import RedisConsolePanel from '../components/console-panel/redis/Index.vue';
+  import ConsolePanel from '../components/console-panel/redis/Index.vue';
   import ExportData from '../components/ExportData.vue';
   import FontSetting from '../components/FontSetting.vue';
   import FullScreen from '../components/FullScreen.vue';
@@ -76,7 +76,7 @@
 
   const rootRef = ref();
   const clusterTabsRef = ref();
-  const consolePanelRef = ref<InstanceType<typeof RedisConsolePanel>>();
+  const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
   const clusterInfo = ref<ClusterItem>();
   const currentFontConfig = ref({
     fontSize: '12px',
