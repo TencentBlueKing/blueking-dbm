@@ -211,7 +211,7 @@ class Machine(AuditedModel):
 class DeviceClass(models.Model):
     device_type = models.CharField(max_length=128, help_text=_("机型类型"))
     cpu = models.IntegerField(default=0, help_text=_("机型cpu"))
-    mem = models.IntegerField(default=0, help_text=_("机型内存(单位MB)"))
+    mem = models.IntegerField(default=0, help_text=_("机型内存(单位GB)"))
     disk = models.IntegerField(default=0, help_text=_("机型磁盘(单位GB)"))
     bandwidth = models.IntegerField(default=INT_MAX, help_text=_("机型带宽(单位Mbps)"))
 
