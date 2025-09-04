@@ -28,14 +28,17 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
     try {
       loading.value = true;
       const { id: ticketId } = await createTicketNew<T>(params);
-      // 如果当前路由非工具箱路由
-      if (ticketType !== route.meta.ticketType) {
-        ticketMessage(ticketId);
-        if (options?.onSuccess) {
-          options.onSuccess(ticketId);
-        }
+      if (options?.onSuccess) {
+        options.onSuccess(ticketId);
         return;
       }
+
+      // 如果当前路由非工具箱路由
+      if (!route.meta.ticketType) {
+        ticketMessage(ticketId);
+        return;
+      }
+
       const toolboxResultMap = {
         MONGODB: 'MongodbToolboxResult',
         MYSQL: 'MysqlToolboxResult',

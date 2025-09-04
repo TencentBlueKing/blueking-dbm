@@ -12,38 +12,23 @@
 -->
 
 <template>
-  <Component :is="com" />
+  <TruncateData ref="truncateRef" />
 </template>
+
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
-  import { useRoute } from 'vue-router';
+  import type { Mysql } from '@services/model/ticket/ticket';
 
-  import Page1 from './pages/page1/Index.vue';
-  import Page2 from './pages/page2/Index.vue';
+  import { useTicketDetail } from '@hooks';
 
-  const route = useRoute();
+  import { TicketTypes } from '@common/const';
 
-  const comMap = {
-    success: Page2,
-    ticket: Page1,
-  };
+  import TruncateData from './truncate-data/Index.vue';
 
-  const page = ref('');
+  const truncateRef = ref();
 
-  const com = computed(() => {
-    if (comMap[page.value as keyof typeof comMap]) {
-      return comMap[page.value as keyof typeof comMap];
-    }
-    return Page1;
+  useTicketDetail<Mysql.TruncateData>(TicketTypes.MYSQL_HA_TRUNCATE_DATA, {
+    onSuccess(ticketDetail) {
+      truncateRef.value.cloneTicket(ticketDetail);
+    },
   });
-
-  watch(
-    route,
-    () => {
-      page.value = route.params.page as string;
-    },
-    {
-      immediate: true,
-    },
-  );
 </script>
