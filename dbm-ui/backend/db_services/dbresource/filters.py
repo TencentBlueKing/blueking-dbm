@@ -43,13 +43,13 @@ class SpecListFilter(filters.FilterSet):
 
     def filter_biz_scope(self, queryset, name, value):
         if value == "all":
-            return queryset.filter(Q(biz_scope__len=0) | Q(biz_scope__isnull=True))
+            return queryset.filter(Q(biz_scope=[]) | Q(biz_scope__isnull=True))
 
         bk_biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
 
         return queryset.filter(
             reduce(operator.or_, [Q(biz_scope__contains=int(bk_biz_id)) for bk_biz_id in bk_biz_ids])
-            | Q(biz_scope__len=0)
+            | Q(biz_scope=[])
             | Q(biz_scope__isnull=True)
         )
 
