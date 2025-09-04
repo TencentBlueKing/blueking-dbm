@@ -88,7 +88,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -233,7 +234,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -378,7 +380,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -523,7 +526,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -668,7 +672,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1278,7 +1283,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -3968,7 +3974,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -4004,10 +4010,11 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
           "query_configs": [
@@ -4026,7 +4033,7 @@
               "refId": "a",
               "result_table_id": "dbm_system.cpu_detail",
               "result_table_label": "os",
-              "time_field": "",
+              "time_field": "time",
               "where": [
                 {
                   "key": "cluster_domain",
@@ -4047,7 +4054,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
+          "source": "max(max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
           "step": "1m",
           "type": "instant"
         }
@@ -7200,8 +7207,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7396,8 +7402,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7591,8 +7596,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7787,8 +7791,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -7983,8 +7986,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -8197,8 +8199,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8401,8 +8402,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8549,8 +8549,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -8659,8 +8658,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -8988,8 +8986,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9197,8 +9194,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9354,8 +9350,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9500,8 +9495,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -9718,8 +9712,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -9868,8 +9861,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -11287,7 +11279,7 @@
   "timezone": "",
   "title": "tendis-TwemproxyRedisInstance",
   "uid": "6nXM8aF42xx",
-  "version": 24,
+  "version": 27,
   "weekStart": "",
   "__inputs": [
     {
