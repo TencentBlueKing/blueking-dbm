@@ -199,6 +199,7 @@
       const { originalTarget, target } = e;
       // 所有画布的点击事件都在这里统一处理，提升性能
       const { className } = originalTarget;
+      console.warn('node id: ', target.data.id);
       if (className.startsWith('manualConfirm')) {
         // 跳过
         handleOperationShowTip('continue', e);
