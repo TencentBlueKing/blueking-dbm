@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+from dataclasses import asdict
 from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -21,8 +22,15 @@ from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBCluste
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.engine.validate.base_validate import BaseValidator
 from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
+    AddUnlockTicketTypeConfigComponent,
+)
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -53,6 +61,14 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
 
         }
     """
+
+    # 定义临时解除单据互斥锁的单据类型列表
+    temporary_unlock_ticket_type_list = [
+        TicketType.TENDBCLUSTER_IMPORT_SQLFILE,
+        TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE,
+        TicketType.TENDBCLUSTER_SEMANTIC_CHECK,
+        TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
+    ]
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -161,8 +177,29 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             )
         )
 
-        # 人工确认
-        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        # 释放对单据的互斥锁
+        # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
+        sub_pipeline.add_act(
+            act_name=_("释放部分单据互斥锁"),
+            act_component_code=AddUnlockTicketTypeConfigComponent.code,
+            kwargs=asdict(
+                AddUnLockTicketTypeKwargs(
+                    cluster_ids=[cluster_id], unlock_ticket_type_list=self.temporary_unlock_ticket_type_list
+                )
+            ),
+        )
+
+        # 人工确认前，解除释放互斥锁，重新互斥
+        sub_pipeline.add_act(
+            act_name=_("人工确认，解除释放，重新判断互斥条件"),
+            act_component_code=PauseWithTicketLockCheckComponent.code,
+            kwargs=asdict(
+                ReleaseUnLockTicketTypeKwargs(
+                    cluster_ids=[cluster_id],
+                    release_unlock_ticket_type_list=self.temporary_unlock_ticket_type_list,
+                )
+            ),
+        )
 
         # 执行缩容实例
         sub_pipeline.add_sub_pipeline(

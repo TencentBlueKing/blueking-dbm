@@ -88,27 +88,6 @@ class MysqlBaseValidator(BaseValidator):
 
         return err_msg
 
-    def pre_check_spider_spec_for_cluster(self, cluster_id_field_name: str):
-        """
-        根据cluster维度聚合，计算这个单据需要的spider使用规格，如果大于2, 则记录异常
-        @param cluster_id_field_name: 在info结构体获取集群ID的key名称
-        """
-        id_roles = defaultdict(set)
-
-        # 一次性遍历收集所有角色
-        for info in self.data["infos"]:
-            cluster_id = info[cluster_id_field_name]
-            spec_id = list(info["resource_spec"].values())[0]["spec_id"]
-            id_roles[cluster_id].add(spec_id)
-
-        # 找出大于1的set
-        err_msg = ""
-        for cluster_id, spec_ids in id_roles.items():
-            if len(spec_ids) > 1:
-                err_msg += _("在单据中，集群ID [{}] 出现两个以上的不同规格去申请机器，请检查 \n".format(cluster_id))
-
-        return err_msg
-
     def pre_check_duplicate_ip(self, check_ip_field_name: str):
         """
         检验是否有存在重复的ip信息，如果有则记录异常

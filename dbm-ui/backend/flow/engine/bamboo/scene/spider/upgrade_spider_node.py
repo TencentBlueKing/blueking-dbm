@@ -26,17 +26,22 @@ from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
-from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
+from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
+    AddUnlockTicketTypeConfigComponent,
+)
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.upgrade_key_word_check import UpgradeKeyWordCheckComponent
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     CreateDnsKwargs,
@@ -59,14 +64,14 @@ from backend.flow.utils.spider.spider_check_constants import BASIC_CHECK_TYPES
 logger = logging.getLogger("flow")
 
 
-class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
+class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
     """
     TendbCluster spider节点升级流程
 
     功能说明：
     1. 支持本地升级：在现有机器上直接升级spider版本
     2. 支持迁移升级：通过新增机器替换旧机器的方式进行升级
-    3. 继承自TenDBClusterAddNodesFlow和TenDBClusterReduceNodesFlow，复用扩容和缩容功能
+    3. 继承自TenDBClusterSwitchNodesFlow类，复用扩容和缩容功能，以及继承TenDBClusterSwitchNodesFlow类的解锁单据列表
 
     升级模式：
     - 本地升级(upgrade_local=True)：在现有spider节点上直接升级版本
@@ -107,7 +112,6 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
         """
         # 初始化父类的init方法，设置基础流程参数
         super().__init__(root_id=root_id, data=data)
-        super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
 
         # 设置流程基础参数
         self.root_id = root_id  # 流程根ID
@@ -405,7 +409,6 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                     spider_slave_ip_list=info["spider_slave_ip_list"],
                     new_db_module_id=info["new_db_module_id"],
                     new_pkg_id=info["pkg_id"],
-                    # resource_spec=info.get("resource_spec", {}),
                 )
             )
 
@@ -495,7 +498,7 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
             )
         )
 
-        # 先执行扩容spider slave实例, 如果spider slave集群存在
+        # 再执行扩容spider slave实例, 如果spider slave集群存在
         if spider_slave_ip_list:
             sub_pipeline.add_sub_pipeline(
                 self.add_spider_nodes_with_cluster(
@@ -507,8 +510,29 @@ class UpgradeSpiderFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
                 )
             )
 
-        # 人工确认
-        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+        # 释放对单据的互斥锁
+        # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
+        sub_pipeline.add_act(
+            act_name=_("释放部分单据互斥锁"),
+            act_component_code=AddUnlockTicketTypeConfigComponent.code,
+            kwargs=asdict(
+                AddUnLockTicketTypeKwargs(
+                    cluster_ids=[cluster_id], unlock_ticket_type_list=self.temporary_unlock_ticket_type_list
+                )
+            ),
+        )
+
+        # 人工确认前，解除释放互斥锁，重新互斥
+        sub_pipeline.add_act(
+            act_name=_("人工确认，解除释放，重新判断互斥条件"),
+            act_component_code=PauseWithTicketLockCheckComponent.code,
+            kwargs=asdict(
+                ReleaseUnLockTicketTypeKwargs(
+                    cluster_ids=[cluster_id],
+                    release_unlock_ticket_type_list=self.temporary_unlock_ticket_type_list,
+                )
+            ),
+        )
 
         # 缩容spider master 节点
         sub_pipeline.add_sub_pipeline(

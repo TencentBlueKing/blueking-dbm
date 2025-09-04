@@ -16,6 +16,7 @@ from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.spider.validate.exception import SpiderRoleFailedException
 from backend.flow.engine.validate.base_validate import validator_log_format
+from backend.flow.engine.validate.exceptions import DuplicateIPException
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
 
@@ -23,10 +24,16 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
     """
     TenDBClusterSwitchNodesFlow类对应的validate类
     判断传入flow的data参数合法性
-    检验1：传入集群、ip、spider角色的基础信息合法性
-    检验2：传入替换节点过程中，是否会超过集群上限
-    检验3：同一个flow，同一个集群，传入机器不能有相同
-    检验4：同一个flow，同一个集群，不能出现不同待替换的spider角色
+    校验内容：
+    每行入参校验：
+        检验1：传入集群合法性
+        校验2：传入ip的合法性
+        校验3：传入的spider角色的合法性
+    聚合校验：
+        检验1：同一个flow，同一个集群，传入机器不能有相同
+        检验2：同一个flow，同一个集群，不能出现不同待替换的spider角色
+        检验3：同一个flow，同一个集群，不能出现不同待替换的spider规格
+        检查4：传入替换节点过程中，在同一集群内，不能会超过集群spider节点部署上限
     """
 
     @classmethod
@@ -82,6 +89,23 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
 
         return err_msg
 
+    def pre_check_spider_spec_group_by_cluster(self):
+        """
+        校验同一集群下，是否有出现不同规格的spider节点
+        """
+        cluster_id_spec = defaultdict(set)
+        for info in self.data["infos"]:
+            for host in info["spider_old_ip_list"]:
+                cluster_id_spec[info["cluster_id"]].add(host["spec"]["id"])
+
+        # 找出大于1的set
+        err_msg = ""
+        for cluster_id, spec_ids in cluster_id_spec.items():
+            if len(spec_ids) > 1:
+                err_msg += _("在单据中，集群ID [{}] 不能出现两个以上的不同规格去申请机器，请检查 \n".format(cluster_id))
+
+        return err_msg
+
     def __run_check_for_info(self, info: dict, index: int) -> list:
         """
         @param info
@@ -102,7 +126,7 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
         if error_msg:
             error_msg_list.append(error_msg)
 
-        # 检查spider
+        # 检查待替换的spider角色是否合法
         log_format_tag = self.create_log_tag(field="switch_spider_role", index=index, row_key=row_key)
         error_msg = self.pre_check_spider_role(info["switch_spider_role"], **log_format_tag)
         if error_msg:
@@ -126,14 +150,17 @@ class TenDBClusterSwitchNodesFlowValidator(MysqlBaseValidator):
         # 同一个flow，不能出现同样的ip
         err = self.pre_check_duplicate_ip("spider_old_ip_list")
         if err:
-            raise SpiderRoleFailedException(err)
+            raise DuplicateIPException(err)
 
         # 同一个flow，同一个集群，不能出现不同待替换的spider角色
         err = self.pre_check_spider_role_for_cluster("cluster_id", "switch_spider_role")
         if err:
             raise SpiderRoleFailedException(err)
 
-        # 传入替换节点是否超过集群上限的一半
+        # 传入替换节点是否超过集群上限的一半# 同一个flow，同一个集群，不能出现两个以上的规格
+        # todo 暂时不加，等申请资源逻辑改造完成
+
+        # 传入替换节点过程中，在同一集群内，不能会超过集群spider节点部署上限
         err = self.pre_check_spider_upper_limit()
         if err:
             raise SpiderRoleFailedException(err)
