@@ -9,22 +9,25 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import heapq
+import json
 import logging
 import random
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Union
 
-from django.db.models import Count
-from django.utils import timezone
+from django.db.models import Count, Q
+from django.forms.models import model_to_dict
+from django.utils import timezone as django_timezone
 from django.utils.translation import gettext as _
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
+from backend.db_periodic_task.models import ExerciseIgnoreConfig, MySQLBackupRecoverTask, TaskStatus
+from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.env import MYSQL_BACKUPRECOVER_BIZ_ID, MYSQL_BACKUPRECOVER_MCH_LABELS_ID
+from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import MySQLRollbackExerciseFlow
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.constants import ResourceApplyErrCode, TicketType
@@ -86,7 +89,7 @@ def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version:
             }
         ],
     }
-
+    logger.info(_("apply details: {}").format(details))
     # 如果MySQL版本大于等于8.0，则排除tlinux 1.2操作系统
 
     if mysql_version and mysql_version_parse(mysql_version) >= 8000000:
@@ -121,7 +124,7 @@ def get_last_week_range():
     Returns:
         tuple: (start_time, end_time) where both are datetime objects in UTC
     """
-    today = datetime.now(timezone.utc)
+    today = datetime.now(django_timezone.utc)
     # Find the most recent Monday (0=Monday, 6=Sunday)
     last_monday = today - timedelta(days=today.weekday() + 7)
     last_sunday = last_monday + timedelta(days=6)
@@ -134,24 +137,62 @@ def get_last_week_range():
     return start_time, end_time
 
 
-# 查询集群是否存在备份记录
+def should_ignore_cluster_for_exercise(cluster) -> tuple:
+    """
+    检查集群是否应该被忽略演练
+
+    Args:
+        cluster: 集群对象
+
+    Returns:
+        tuple: (should_ignore: bool, reason: str)
+    """
+    # 检查业务级别忽略
+    if ExerciseIgnoreConfig.is_biz_ignored(cluster.bk_biz_id):
+        return True, _("业务 {} 被忽略配置排除").format(cluster.bk_biz_id)
+
+    # 检查集群级别忽略
+    if ExerciseIgnoreConfig.is_cluster_ignored(cluster.id):
+        return True, _("集群 {} 被忽略配置排除").format(cluster.immute_domain)
+
+    return False, ""
+
+
 def cluster_has_backup_record(cluster_id: int) -> bool:
     """
     查询集群是否存在备份记录
     """
-    handler = FixPointRollbackHandler(cluster_id, check_full_backup=True)
     start_time, end_time = get_last_week_range()
-    backup_records = handler.query_recover_backup_logs(start_time, end_time)
-    if not backup_records:
-        return False
-    backup_ids = [record["backup_id"] for record in backup_records]
-    # 最近一周回档过就忽略
-    if MySQLBackupRecoverTask.objects.filter(
-        backup_id__in=backup_ids, task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
-    ).exists():
-        logger.info(f"backup_id {backup_ids} already exists, skip.")
-        return False
-    return True
+
+    # 先查询出已经回档过的备份ID，直接在查询时排除
+    exercised_backup_ids = set(
+        MySQLBackupRecoverTask.objects.filter(
+            task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
+        ).values_list("backup_id", flat=True)
+    )
+
+    # 构建查询条件
+    cluster = Cluster.objects.get(id=cluster_id)
+    conditions = Q(
+        cluster_id=cluster_id,
+        cluster_address=cluster.immute_domain,
+        is_full_backup=1,  # 全备
+        backup_consistent_time__range=(start_time, end_time),  # 在时间范围内
+    ) | Q(
+        cluster_id=cluster_id,
+        cluster_address=cluster.immute_domain,
+        mysql_role__in=["spider_master", "TDBCTL"],  # spider dbctl 节点只是备份权限
+        backup_consistent_time__range=(start_time, end_time),
+    )
+
+    # 查询备份记录，直接排除已回档的备份ID
+    backup_records = (
+        MysqlBackupResult.objects.filter(conditions)
+        .exclude(backup_id__in=exercised_backup_ids)
+        .order_by("-backup_consistent_time")
+    )
+
+    return backup_records.exists()
 
 
 # 查询备份记录生成回档任务
@@ -166,14 +207,72 @@ def gen_rollback_task():
         return
     clusters = get_exercise_clusters(rs_count)
     for cluster in clusters:
-        handler = FixPointRollbackHandler(cluster.id, check_full_backup=True)
-        start_time, end_time = get_last_week_range()
-        backup_records = handler.query_recover_backup_logs(start_time, end_time)
-        if not backup_records:
+        # 再次检查集群是否被忽略配置排除（双重保险）
+        should_ignore, ignore_reason = should_ignore_cluster_for_exercise(cluster)
+        if should_ignore:
+            logger.info(_("跳过演练: {}").format(ignore_reason))
             continue
-        backup_records.sort(key=lambda x: x["backup_time"], reverse=False)
+        # 查询备份记录
+        start_time, end_time = get_last_week_range()
+
+        # 先查询出已经回档过的备份ID，直接在查询时排除
+        exercised_backup_ids = set(
+            MySQLBackupRecoverTask.objects.filter(
+                task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
+            ).values_list("backup_id", flat=True)
+        )
+
+        # 构建查询条件
+        conditions = Q(
+            cluster_id=cluster.id,
+            cluster_address=cluster.immute_domain,
+            is_full_backup=1,  # 全备
+            backup_consistent_time__range=(start_time, end_time),  # 在时间范围内
+        ) | Q(
+            cluster_id=cluster.id,
+            cluster_address=cluster.immute_domain,
+            mysql_role__in=["spider_master", "TDBCTL"],  # spider dbctl 节点只是备份权限
+            backup_consistent_time__range=(start_time, end_time),
+        )
+
+        # 查询备份记录，直接排除已回档的备份ID
+        backup_results = (
+            MysqlBackupResult.objects.filter(conditions)
+            .exclude(backup_id__in=exercised_backup_ids)
+            .order_by("backup_consistent_time")
+        )
+
+        if not backup_results.exists():
+            continue
+
         # 选择第一个备份记录生成回档任务
-        backup_record = backup_records[0]
+        backup_result = backup_results.first()
+
+        # 格式化备份信息，保持与原有格式兼容
+        backup_record = model_to_dict(backup_result)
+
+        # 解析JSON字段
+        backup_record["binlog_info"] = json.loads(backup_record["binlog_info"])
+        backup_record["file_list"] = json.loads(backup_record["file_list"])
+        backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
+
+        # 添加兼容字段
+        backup_record["consistent_backup_time"] = backup_record["backup_consistent_time"]
+        backup_record["backup_time"] = backup_record["backup_consistent_time"]
+        backup_record["bk_cloud_id"] = backup_record["extra_fields"].get("bk_cloud_id")
+        backup_record["encrypt_enable"] = backup_record["extra_fields"].get("encrypt_enable")
+        backup_record["time_zone"] = backup_record["extra_fields"].get("time_zone", "")
+        backup_record["backup_charset"] = backup_record["extra_fields"].get("backup_charset", "")
+        backup_record["backup_tool"] = backup_record["extra_fields"].get("backup_tool", "")
+        backup_record["sql_mode"] = backup_record["extra_fields"].get("sql_mode", "")
+        data_dir_size_mb = backup_record["extra_fields"].get("data_dir_size_mb", 0)
+        # 格式化时间字段
+        if isinstance(backup_record["backup_consistent_time"], datetime):
+            backup_record["backup_consistent_time"] = backup_record["backup_consistent_time"].isoformat()
+        if isinstance(backup_record["backup_begin_time"], datetime):
+            backup_record["backup_begin_time"] = backup_record["backup_begin_time"].isoformat()
+        if isinstance(backup_record["backup_end_time"], datetime):
+            backup_record["backup_end_time"] = backup_record["backup_end_time"].isoformat()
         if not backup_record:
             logger.info("no backup record found")
             continue
@@ -204,7 +303,12 @@ def gen_rollback_task():
             updater="system",
         )
         # Calculate minimum disk size required
-        min_disk_size = calculate_min_disk_size(backup_record["total_filesize"])
+        if data_dir_size_mb > 0:
+            # 扩大1.5倍并转换为GB (MB转GB需要除以1024)
+            logger.info("data_dir_size_mb: {}".format(data_dir_size_mb))
+            min_disk_size = int((data_dir_size_mb * 1.5) / 1024)
+        else:
+            min_disk_size = calculate_min_disk_size(backup_record["total_filesize"])
         # 申请资源
         mysql_version = backup_record.get("mysql_version", "")
         apply_params = build_resource_apply_params(root_id, min_disk_size, mysql_version)
@@ -248,17 +352,43 @@ def gen_rollback_task():
                 "bk_biz_id": MYSQL_BACKUPRECOVER_BIZ_ID,
                 "backupinfo": backup_record,
                 "created_by": "system",
-                "backupinfo": backup_record,
                 "labels": mch_info["labels"],
+                "rollback_type": RollbackType.REMOTE_AND_BACKUPID,
             }
+            task.exercise_host_ip = mch_info["ip"]
             task.task_status = TaskStatus.COMMIT_SUCCESS
             task.save()
             flow = MySQLRollbackExerciseFlow(root_id=root_id, data=flow_context)
             flow.run()
         except Exception as e:
-            logger.exception("rollback exercise flow run failed: {}".format(e))
+            logger.exception(_("回档演练流程运行失败: {}").format(e))
+
+            # 演练失败时归还资源
+            resource_return_info = ""
+            try:
+                return_params = {
+                    "resource_type": "mysql",
+                    "for_biz": MYSQL_BACKUPRECOVER_BIZ_ID,
+                    "bk_biz_id": mch_info["bk_biz_id"],
+                    "hosts": [
+                        {
+                            "ip": mch_info["ip"],
+                            "bk_host_id": mch_info["bk_host_id"],
+                            "bk_cloud_id": mch_info["bk_cloud_id"],
+                        }
+                    ],
+                    "labels": mch_info["labels"],
+                    "operator": "system",
+                }
+                return_resource(return_params)
+                resource_return_info = _("资源归还成功: IP {}").format(mch_info["ip"])
+                logger.info(_("演练失败，已成功归还资源: {}").format(mch_info["ip"]))
+            except Exception as return_e:
+                resource_return_info = _("资源归还失败: {}").format(str(return_e))
+                logger.error(_("归还资源失败: {}").format(str(return_e)))
+
             task.task_status = TaskStatus.COMMIT_FAILED
-            task.task_info = str(e)
+            task.task_info = _("演练流程失败: {}; {}").format(str(e), resource_return_info)
             task.save()
 
 
@@ -394,6 +524,19 @@ def _prepare_cluster_data(num: int):
     recent_task_cluster_ids = MySQLBackupRecoverTask.get_recent_24h_task_cluster_ids()
     exclude_cluster_id.extend(recent_task_cluster_ids)
 
+    # 添加演练忽略配置的业务和集群
+    ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
+    ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
+
+    exclude_biz_ids.extend(ignored_biz_ids)
+    exclude_cluster_id.extend(ignored_cluster_ids)
+
+    logger.info(
+        _("演练忽略配置: 忽略业务 {} 个 {}, 忽略集群 {} 个 {}").format(
+            len(ignored_biz_ids), ignored_biz_ids, len(ignored_cluster_ids), ignored_cluster_ids
+        )
+    )
+
     # 获取最近2小时的演练统计信息
     recent_stats = MySQLBackupRecoverTask.get_recent_2h_exercise_cluster_type_stats()
 
@@ -478,6 +621,12 @@ def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendb
             task = heapq.heappop(pq)
             cluster = task.cluster
 
+            # 检查集群是否被忽略配置排除
+            should_ignore, ignore_reason = should_ignore_cluster_for_exercise(cluster)
+            if should_ignore:
+                logger.debug(_("候选集群筛选: {}").format(ignore_reason))
+                continue
+
             # 根据集群类型检查是否已收集足够数量
             if cluster.cluster_type == ClusterType.TenDBCluster:
                 if tendbcluster_count >= max_needed_tendbcluster:
@@ -487,6 +636,7 @@ def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendb
                     continue
 
             # 检查集群是否有有效的备份记录
+            logger.debug(_("检查集群{}:{} 是否有备份记录").format(cluster.immute_domain, cluster.id))
             if cluster_has_backup_record(cluster.id):
                 all_candidates.append(cluster)
                 if cluster.cluster_type == ClusterType.TenDBCluster:

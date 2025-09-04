@@ -475,7 +475,7 @@ func (o *SearchContext) filterEmptyMountPointStorage(items []model.TbRpDetail,
 		noUseStorages := make(map[string]bk.DiskDetail)
 		smp := meta.GetDiskSpecMountPoints(o.StorageSpecs)
 		for mp, v := range ins.Storages {
-			if cmutil.ElementNotInArry(mp, smp) {
+			if !slices.Contains(smp, mp) {
 				noUseStorages[mp] = v
 			}
 		}
@@ -761,7 +761,7 @@ func matchNoMountPointStorage(spec []meta.DiskSpec, sinc map[string]bk.DiskDetai
 }
 
 func diskDetailMatch(d bk.DiskDetail, s meta.DiskSpec) bool {
-	if d.DiskType != s.DiskType && cmutil.IsNotEmpty(s.DiskType) {
+	if strings.TrimSpace(d.DiskType) != strings.TrimSpace(s.DiskType) && lo.IsNotEmpty(s.DiskType) {
 		logger.Info("disk type not match")
 		return false
 	}
