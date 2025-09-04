@@ -92,7 +92,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.clientPermissionClone',
-        id: 'MySQLPrivilegeCloneClient',
+        id: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
         name: t('客户端权限克隆'),
         parentId: 'privilege',
       },
