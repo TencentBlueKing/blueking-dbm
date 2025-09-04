@@ -124,8 +124,6 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getSpiderVersionModules } from '@services/source/mysqlToolbox';
 
-  import { TicketTypes } from '@common/const';
-
   import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
 
   type ModulesInfo = ServiceReturnType<typeof getSpiderVersionModules>[0];
@@ -275,10 +273,9 @@
 
   const handleCreateModule = () => {
     const url = router.resolve({
-      name: 'SelfServiceCreateDbModule',
+      name: 'createSpiderModule',
       params: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        type: TicketTypes.TENDBCLUSTER_APPLY,
+        bizId: window.PROJECT_CONFIG.BIZ_ID,
       },
       query: {
         from: route.name as string,
