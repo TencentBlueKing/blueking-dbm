@@ -49,10 +49,10 @@ func (c *Checker) Run() (msg string, err error) {
 		slog.Bool("initConnLog valid", initConnLog.Valid),
 	)
 
-	if !initConnLog.Valid || initConnLog.String == "" {
-		slog.Info("init_connect disabled")
-		return "", nil
-	}
+	//if !initConnLog.Valid || initConnLog.String == "" {
+	//	slog.Info("init_connect disabled")
+	//	return "", nil
+	//}
 
 	return c.f(c.db)
 }
@@ -80,15 +80,6 @@ func NewMySQLConnLogRotate(cc *monitoriteminterface.ConnectionCollect) monitorit
 	}
 }
 
-//// NewMySQLConnLogReport TODO
-//func NewMySQLConnLogReport(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-//	return &Checker{
-//		db:   cc.MySqlDB,
-//		name: nameMySQLConnLogReport,
-//		f:    mysqlConnLogReport,
-//	}
-//}
-
 // RegisterMySQLConnLogSize TODO
 func RegisterMySQLConnLogSize() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
 	return nameMySQLConnLogSize, NewMySQLConnLogSize
@@ -98,8 +89,3 @@ func RegisterMySQLConnLogSize() (string, monitoriteminterface.MonitorItemConstru
 func RegisterMySQLConnLogRotate() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
 	return nameMySQLConnLogRotate, NewMySQLConnLogRotate
 }
-
-//// RegisterMySQLConnLogReport TODO
-//func RegisterMySQLConnLogReport() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
-//	return nameMySQLConnLogReport, NewMySQLConnLogReport
-//}
