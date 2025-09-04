@@ -23,7 +23,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.machine_os_init import insert_host_event
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
@@ -195,6 +195,7 @@ class MySQLRollbackExerciseFlow(object):
             "skip_local_exists": True,
             "rollback_ip": self.rollback_host["ip"],
             "rollback_port": self.rollback_port,
+            "rollback_type": self.ticket_data.get("rollback_type", RollbackType.REMOTE_AND_BACKUPID),
         }
         # 创建目录
         exec_act_kwargs = ExecActuatorKwargs(
