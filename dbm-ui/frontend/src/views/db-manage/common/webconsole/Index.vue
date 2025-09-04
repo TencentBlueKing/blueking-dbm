@@ -5,9 +5,10 @@
 </template>
 <script lang="ts" setup>
   import { DBTypes } from '@common/const';
+
+  import MongodbContent from './mongodb/Index.vue';
   import MysqlContent from './mysql/Index.vue';
   import RedisContent from './redis/Index.vue';
-  import MongodbContent from './mongodb/Index.vue';
   import TendbclusterContent from './tendbcluster/Index.vue';
 
   interface Props {

@@ -26,7 +26,7 @@
     </div>
     <div class="content-main">
       <KeepAlive>
-        <MongodbConsolePanel
+        <ConsolePanel
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
@@ -57,7 +57,7 @@
 
   import ClearScreen from '../components/ClearScreen.vue';
   import ClusterTabs, { type ClusterItem } from '../components/ClusterTabs.vue';
-  import MongodbConsolePanel from '../components/console-panel/mongodb/Index.vue';
+  import ConsolePanel from '../components/console-panel/mongodb/Index.vue';
   import ExportData from '../components/ExportData.vue';
   import FontSetting from '../components/FontSetting.vue';
   import FullScreen from '../components/FullScreen.vue';
@@ -73,7 +73,7 @@
 
   const rootRef = ref();
   const clusterTabsRef = ref();
-  const consolePanelRef = ref<InstanceType<typeof MongodbConsolePanel>>();
+  const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
   const clusterInfo = ref<ClusterItem>();
   const currentFontConfig = ref({
     fontSize: '12px',
