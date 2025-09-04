@@ -60,7 +60,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=validated_data["days"])
-        handler = FixPointRollbackHandler(validated_data["cluster_id"], check_full_backup=True)
+        handler = FixPointRollbackHandler(validated_data["cluster_id"])
         kwargs.update({"backup_method": validated_data.pop("backup_method", "")})
         logs = handler.query_backup_log_from_bklog(start_time, end_time, **kwargs)
         logs.sort(key=lambda x: x["backup_time"], reverse=True)
