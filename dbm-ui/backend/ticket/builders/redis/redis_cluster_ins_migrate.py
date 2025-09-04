@@ -60,10 +60,10 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
         # 资源申请的一些参数补充
         self.patch_info_affinity_location(roles=["backend_group"])
 
-    def get_master_slave_map(self, old_nodes):
+    def get_master_slave_map(self, origin_old_nodes):
         master_slave_map = {}
-        for master in old_nodes["master"]:
-            for slave in old_nodes["slave"]:
+        for master in origin_old_nodes["master"]:
+            for slave in origin_old_nodes["slave"]:
                 if master["port"] == slave["port"]:
                     master_slave_map[f'{master["ip"]}:{master["port"]}'] = f'{slave["ip"]}:{slave["port"]}'
                     break
@@ -75,7 +75,7 @@ class RedisClusterInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuil
         cluster__migrate_list_map = defaultdict(list)
         # 按照集群ID进行聚合
         for info in ticket_data["infos"]:
-            master_slave_map = self.get_master_slave_map(info["old_nodes"])
+            master_slave_map = self.get_master_slave_map(info["origin_old_nodes"])
             migrate_info = [
                 {
                     "resource_spec": info["resource_spec"],
