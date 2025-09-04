@@ -185,6 +185,7 @@
 
   const tabOptions = [
     {
+      hoverText: '',
       label: t('指定备份记录'),
       name: OperateType.MANUAL,
     },

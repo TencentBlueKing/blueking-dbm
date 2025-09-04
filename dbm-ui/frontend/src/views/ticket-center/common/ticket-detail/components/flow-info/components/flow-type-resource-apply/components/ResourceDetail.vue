@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isShow"
-    class="flow-resource-detail">
+    class="ticket-detail-flow-resource-detail">
     <BkCollapse>
       <BkCollapsePanel name="detail">
         <template #header>
@@ -95,11 +95,11 @@
   watchEffect(() => {
     const nodes = props.ticketDetail.details.nodes;
     renderGroupData.value = Object.keys(nodes).map((nodeName) => {
-      const nodeDataList = nodes[nodeName];
+      const nodeDataList = nodes[nodeName]!;
       const groupName = _.trim(nodeName.replace(/\d/g, '').split(/_+/).join('_'), '_');
-      if (nodeDataList[0].ip) {
+      if (nodeDataList[0]!.ip) {
         return {
-          count: nodes[nodeName].length,
+          count: nodes[nodeName]!.length,
           data: nodes[nodeName] as IResouce[],
           groupName,
           list: [],
@@ -108,7 +108,7 @@
       const multDataList = (nodeDataList as Record<string, IResouce>[]).map((item) => {
         return Object.keys(item).map((nodeKey) => ({
           tag: nodeKey,
-          ...item[nodeKey],
+          ...item[nodeKey]!,
         }));
       });
       return {
@@ -129,7 +129,7 @@
   };
 </script>
 <style lang="less">
-  .flow-resource-detail {
+  .ticket-detail-flow-resource-detail {
     position: relative;
     z-index: 0;
     display: block;
