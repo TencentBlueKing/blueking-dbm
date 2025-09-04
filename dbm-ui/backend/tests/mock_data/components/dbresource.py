@@ -32,8 +32,8 @@ MACHINE_RESOURCE_DATA = {
     "os_name": "linux 3.1",
     "os_type": "linux",
     "storage_device": {
-        "/data": {"min": 50, "max": 2147483647, "disk_id": "disk-ofkfne6j", "disk_type": "HDD", "file_type": "ext4"},
-        "/data1": {"min": 50, "max": 2147483647, "disk_id": "disk-ofkfne6j", "disk_type": "SSD", "file_type": "ext4"},
+        "/data": {"size": 50, "disk_id": "disk-ofkfne6j", "disk_type": "HDD", "file_type": "ext4"},
+        "/data1": {"size": 50, "disk_id": "disk-ofkfne6j", "disk_type": "SSD", "file_type": "ext4"},
     },
 }
 
