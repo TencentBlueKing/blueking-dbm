@@ -1358,16 +1358,17 @@ class ActKwargs:
                 cluster_id = info["mongo_config"][0]["instances"][0]["cluster_id"]
             elif info["mongodb"]:
                 cluster_id = info["mongodb"][0]["instances"][0]["cluster_id"]
-                seg_range = info["mongodb"][0]["instances"][0]["seg_range"]
             elif info["mongos"]:
                 cluster_id = info["mongos"][0]["instances"][0]["cluster_id"]
             cluster_info = MongoRepository().fetch_one_cluster(with_domain=False, id=cluster_id)
+            # mongos 获取主机
             for mongos in info["mongos"]:
                 # 源ip
                 hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
                 # 目标ip
                 hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
                 plugin_hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
+            # config 获取主机 config只有一个副本集
             for config in info["mongo_config"]:
                 # 源ip
                 for member in cluster_info.get_config().members:
@@ -1375,9 +1376,12 @@ class ActKwargs:
                 # 目标ip
                 hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
                 plugin_hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
+            # 分片获取主机 多个分片
+            shards = cluster_info.get_shards()
             for shard_by_ip in info["mongodb"]:
+                # 分片名
+                seg_range = shard_by_ip["instances"][0]["seg_range"]
                 # 源ip
-                shards = cluster_info.get_shards()
                 for shard in shards:
                     if shard.set_name == seg_range:
                         for member in shard.members:
