@@ -28,12 +28,12 @@
         @success="fetchData" />
       <span
         v-bk-tooltips="{
-          content: t('请选择xx', [t('规格')]),
-          disabled: hasSelected,
+          content: batchDeleteTooltips,
+          disabled: !batchDeleteTooltips,
         }">
         <BkButton
           class="w-88 mr-8"
-          :disabled="!hasSelected"
+          :disabled="!!batchDeleteTooltips"
           @click="handleBacthDelete">
           {{ t('删除') }}
         </BkButton>
@@ -66,7 +66,6 @@
     <DbTable
       ref="tableRef"
       :data-source="getResourceSpecList"
-      :disable-select-method="disableSelectMethod"
       primary-key="spec_id"
       releate-url-query
       :row-class="setRowClass"
@@ -206,7 +205,7 @@
           </AuthButton>
           <span
             v-if="data.is_refer"
-            v-bk-tooltips="t('该规格已被使用_无法删除')"
+            v-bk-tooltips="t('仅可删除“未使用”的规格')"
             class="inline-block;">
             <AuthButton
               action-id="spec_delete"
@@ -317,7 +316,6 @@
     searchType: 'resource_record',
   });
 
-  const disableSelectMethod = (row: ResourceSpecModel) => (row.is_refer ? t('该规格已被使用_无法删除') : false);
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
   const tableRef = ref();
@@ -328,8 +326,17 @@
   const specOperationData = shallowRef<ResourceSpecModel>();
   const selectedList = shallowRef<ResourceSpecModel[]>([]);
 
-  const hasSelected = computed(() => selectedList.value.length > 0);
   const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
+
+  const batchDeleteTooltips = computed(() => {
+    if (selectedList.value.length === 0) {
+      return t('请选择xx', [t('规格')]);
+    }
+    if (selectedList.value.some((selectItem) => selectItem.is_refer)) {
+      return t('仅可删除“未使用”的规格');
+    }
+    return '';
+  });
 
   const searchData = computed(() => [
     {
