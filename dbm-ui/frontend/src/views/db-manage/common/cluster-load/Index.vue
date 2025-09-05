@@ -8,8 +8,11 @@
       type="sync-pending" />
   </div>
   <template v-else>
+    <span v-if="type === 'text'">
+      {{ tagInfo?.text || '--' }}
+    </span>
     <BkTag
-      v-if="type === 'tag'"
+      v-else-if="tagInfo && tagInfo.status === ClusterLoad.HIGH"
       class="cluster-load-tag ml-4"
       :size="size"
       :theme="tagInfo.theme"
@@ -19,9 +22,6 @@
       </template>
       {{ tagInfo.tagText }}
     </BkTag>
-    <div v-else>
-      {{ tagInfo.text }}
-    </div>
   </template>
 </template>
 
@@ -33,11 +33,12 @@
 
   import { queryClusterLoad } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterLoad, ClusterTypes } from '@common/const';
 
   interface Props {
     clusterType: string;
     domain: string;
+    // eslint-disable-next-line vue/require-default-prop
     size?: ComponentProps<typeof BkTag>['size'];
     type?: 'tag' | 'text';
   }
@@ -50,22 +51,25 @@
   const { t } = useI18n();
 
   const tagInfoMap: Record<
-    string,
+    ClusterLoad,
     {
       icon: string;
+      status: ClusterLoad;
       tagText: string;
       text: string;
       theme: 'danger' | 'success';
     }
   > = {
-    high: {
+    [ClusterLoad.HIGH]: {
       icon: 'gaofuzai',
+      status: ClusterLoad.HIGH,
       tagText: t('高负载'),
-      text: t('高 '),
+      text: t('高'),
       theme: 'danger',
     },
-    low: {
+    [ClusterLoad.LOW]: {
       icon: 'difuzai',
+      status: ClusterLoad.LOW,
       tagText: t('低负载'),
       text: t('低'),
       theme: 'success',
@@ -74,12 +78,10 @@
 
   const tagInfo = computed(() => {
     if (clusterLoadData.value) {
-      const { high_load: highLoad } = clusterLoadData.value.cluster_load_status_map[props.domain];
-      if (highLoad) {
-        return tagInfoMap.high;
-      }
+      const { status } = clusterLoadData.value.cluster_load_status_map[props.domain];
+      return tagInfoMap[status];
     }
-    return tagInfoMap.low;
+    return;
   });
 
   const { data: clusterLoadData, loading: isLoading } = useRequest(
