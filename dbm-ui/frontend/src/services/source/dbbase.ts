@@ -13,7 +13,7 @@
 
 import type { InstanceInfos, ListBase, MachineInfos } from '@services/types';
 
-import { ClusterTypes, DBTypes } from '@common/const';
+import { ClusterLoad, ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -303,4 +303,42 @@ export function getGlobalCluster<
   offset?: number;
 }) {
   return http.get<T[]>(`${path}/filter_clusters_by_type/`, params);
+}
+
+/**
+ * 查询集群负载
+ */
+export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
+  return http.get<{
+    cluster_load_data_map: {
+      [domain: string]: {
+        [cluster_type: string]: {
+          connections: {
+            [ip: string]: number;
+          } & {
+            status: ClusterLoad;
+          };
+          cpu: {
+            [ip: string]: number;
+          } & {
+            status: ClusterLoad;
+          };
+          mem: {
+            [ip: string]: number;
+          } & {
+            status: ClusterLoad;
+          };
+        };
+      };
+    };
+    cluster_load_status_map: {
+      [domain: string]: {
+        [cluster_type: string]: {
+          status: ClusterLoad;
+        };
+      } & {
+        status: ClusterLoad;
+      };
+    };
+  }>(`${path}/query_cluster_load/`, params, payload);
 }
