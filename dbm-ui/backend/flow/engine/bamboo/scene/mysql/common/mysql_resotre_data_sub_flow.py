@@ -567,6 +567,7 @@ def tendbha_rollback_data_sub_flow(
                     )
                 )
             )
+    logger.info(_("回档的备份信息如下:  {}".format(backup_info)))
     cluster_info["backupinfo"] = copy.deepcopy(backup_info)
     cluster_info["backup_time"] = backup_info["backup_time"]
     backup_time = str2datetime(backup_info["backup_time"])

@@ -117,24 +117,28 @@ class TenDBRollBackDataFlow(object):
             )
 
             # 先查询恢复介质
+            backup_handler = MySQLBackupHandler(cluster_id=source_cluster.id, is_full_backup=True)
             if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
-                backup_info = self.data["backupinfo"]
+                backup_id = self.data.get("backupinfo", {}).get("backup_id", "")
+                if backup_id is None or backup_id.strip() == "":
+                    raise TendbGetBackupInfoFailedException(message="backup_id key is not exist")
+                backup_handler.backup_id = backup_id
+                backup_info = backup_handler.get_spider_rollback_backup_info(limit_one=True)
             else:
-                backup_handler = MySQLBackupHandler(cluster_id=source_cluster.id, is_full_backup=True)
                 rollback_time = str2datetime(self.data["rollback_time"])
                 backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time, limit_one=True)
-                if backup_info is None:
-                    logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
-                    raise TendbGetBackupInfoFailedException(
-                        message=_(
-                            "获取实例 {} 的备份信息失败 {} sql: {}".format(
-                                self.data["source_cluster_id"], backup_handler.errmsg, backup_handler.query
-                            )
+            if backup_info is None:
+                logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
+                raise TendbGetBackupInfoFailedException(
+                    message=_(
+                        "获取实例 {} 的备份信息失败 {} sql: {}".format(
+                            self.data["source_cluster_id"], backup_handler.errmsg, backup_handler.query
                         )
                     )
+                )
             # 将shard id 转换为int类型。字段入库后，后端存储是json字段，会自动把key为int --> str。
             backup_info["remote_node"] = {int(shard_id): info for shard_id, info in backup_info["remote_node"].items()}
-
+            logger.info(_("集群 {} 的备份信息如下:  {}".format(source_cluster.id, backup_info)))
             # 下发 actuator
             tendb_rollback_pipeline.add_act(
                 act_name=_("下发actuator工具 {}".format(clusters_info["ip_list"])),
@@ -254,7 +258,7 @@ class TenDBRollBackDataFlow(object):
                     uid=self.ticket_data["uid"],
                     cluster_model=source_cluster,
                     cluster_info=spd_cluster,
-                    backup_info=backup_info["spider_node"],
+                    backup_info=copy.deepcopy(backup_info["spider_node"]),
                 )
                 spd_sub_pipeline.add_sub_pipeline(sub_flow=spider_restore_sub_flow)
 
@@ -305,7 +309,7 @@ class TenDBRollBackDataFlow(object):
                         uid=self.ticket_data["uid"],
                         cluster_model=source_cluster,
                         cluster_info=ctl_cluster,
-                        backup_info=backup_info["tdbctl_node"],
+                        backup_info=copy.deepcopy(backup_info["tdbctl_node"]),
                     )
                     ctl_sub_pipeline.add_sub_pipeline(sub_flow=dbctl_restore_sub_flow)
                     ins_sub_pipeline_list.insert(
@@ -362,7 +366,7 @@ class TenDBRollBackDataFlow(object):
                 target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
                 target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
 
-                shard_backup_info = backup_info["remote_node"][int(shard_id)]
+                shard_backup_info = copy.deepcopy(backup_info["remote_node"][int(shard_id)])
                 ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster = {
                     "storage_status": InstanceStatus.RESTORING.value,
