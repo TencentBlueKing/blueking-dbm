@@ -33,6 +33,8 @@ from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_remote_address,
     get_cluster_storage_versions_for_upgrade,
     get_cluster_update_version,
+    get_proxy_version_by_ip,
+    get_redis_version_by_ip,
 )
 from backend.utils.basic import dictfetchall
 
@@ -179,6 +181,14 @@ class ToolboxHandler(ClusterServiceHandler):
             return [get_cluster_redis_version(cluster_id)]
         else:
             return get_cluster_proxy_version(cluster_id)
+
+    @classmethod
+    def get_online_cluster_version_by_ip(cls, cluster_id: int, node_type: str, ip: str):
+        """根据机器IP获取现存版本"""
+        if node_type == RedisVerUpdateNodeType.Backend.value:
+            return get_redis_version_by_ip(cluster_id, ip)
+        else:
+            return get_proxy_version_by_ip(cluster_id, ip)
 
     @classmethod
     def get_update_cluster_versions(cls, cluster_id: int, node_type: str):
