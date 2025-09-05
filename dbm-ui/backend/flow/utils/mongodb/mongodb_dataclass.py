@@ -826,8 +826,10 @@ class ActKwargs:
             script = script.replace(
                 "{{appmonitor_pwd}}", self.payload["passwords"][MongoDBManagerUser.AppMonitorUser.value]
             )
+            script_name = "create_extra_user"
         elif script_type == MongoDBTask.MongoDBInitSet:
             script = mongodb_script_template.mongo_init_set_js_script
+            script_name = "replicaset_init"
 
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
@@ -842,6 +844,7 @@ class ActKwargs:
                     "port": self.replicaset_info["port"],
                     "script": script,
                     "type": mongo_type,
+                    "scriptName": script_name,
                     "secondary": False,
                     "adminUsername": MongoDBManagerUser.DbaUser.value,
                     "adminPassword": self.payload["passwords"][MongoDBManagerUser.DbaUser.value],
