@@ -69,7 +69,7 @@
     <BkMenuGroup
       v-db-console="'platformManage.AlarmEvents'"
       :name="t('告警')">
-      <BkMenuItem key="AlarmEventsGlobal">
+      <BkMenuItem key="platformAlarmEvents">
         <template #icon>
           <DbIcon type="db-config" />
         </template>

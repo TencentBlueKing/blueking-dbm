@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+
 import { type RouteRecordRaw } from 'vue-router';
 
 import { registerBusinessModule, registerModule } from '@router';
@@ -19,29 +20,34 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 export default function getRoutes() {
-  const alarmGlobalRoutes: RouteRecordRaw[] = [
-    {
-      path: 'alarm-events-todo',
-      name: 'AlarmEventsTodo',
-      meta: {
-        fullscreen: true,
-        navName: t('告警事件待办'),
+  const alarmGlobalRoutes: RouteRecordRaw = {
+    path: 'platform-monitor-alarm',
+    name: 'platformMonitorAlarm',
+    component: () => import('@views/monitor-alarm/Index.vue'),
+    children: [
+      {
+        path: 'alarm-events-todo',
+        name: 'platformAlarmEventsTodo',
+        meta: {
+          fullscreen: true,
+          navName: t('告警事件待办'),
+        },
+        component: () => import('@views/monitor-alarm/alarm-events-todo/Index.vue'),
       },
-      component: () => import('@views/monitor-alarm/alarm-events-todo/Index.vue'),
-    },
-    {
-      path: 'alarm-events-global',
-      name: 'AlarmEventsGlobal',
-      meta: {
-        fullscreen: true,
-        navName: t('告警事件'),
+      {
+        path: 'alarm-events',
+        name: 'platformAlarmEvents',
+        meta: {
+          fullscreen: true,
+          navName: t('告警事件'),
+        },
+        component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
       },
-      component: () => import('@views/monitor-alarm/alarm-events/Index.vue'),
-    },
-  ];
+    ],
+  };
 
   if (checkDbConsole('globalConfigManage.monitorStrategy')) {
-    alarmGlobalRoutes.push({
+    alarmGlobalRoutes.children.push({
       path: 'global-strategy',
       name: 'PlatGlobalStrategy',
       meta: {
@@ -51,18 +57,18 @@ export default function getRoutes() {
       component: () => import('@views/monitor-alarm/global-strategy/Index.vue'),
     });
   }
-  registerModule(alarmGlobalRoutes);
+  registerModule([alarmGlobalRoutes]);
 
   const alarmManageBizRoute: RouteRecordRaw = {
-    path: 'alarm-manage',
-    name: 'AlarmManage',
+    path: 'monitor-alarm',
+    name: 'monitorAlarm',
     meta: {
       navName: t('告警'),
     },
     component: () => import('@views/monitor-alarm/Index.vue'),
     children: [
       {
-        path: 'list',
+        path: 'alarm-events',
         name: 'AlarmEvents',
         meta: {
           fullscreen: true,
@@ -83,9 +89,9 @@ export default function getRoutes() {
   };
 
   if (checkDbConsole('bizConfigManage.monitorStrategy')) {
-    alarmManageBizRoute.children!.push({
+    alarmManageBizRoute.children.push({
       path: 'monitor-strategy',
-      name: 'DBMonitorStrategy',
+      name: 'monitorStrategy',
       meta: {
         fullscreen: true,
         navName: t('监控策略'),
@@ -101,9 +107,9 @@ export default function getRoutes() {
   }
 
   if (checkDbConsole('bizConfigManage.alarmGroup')) {
-    alarmManageBizRoute.children!.push({
+    alarmManageBizRoute.children.push({
       path: 'alarm-group',
-      name: 'DBMonitorAlarmGroup',
+      name: 'alarmGroup',
       meta: {
         navName: t('告警组'),
       },
@@ -114,7 +120,7 @@ export default function getRoutes() {
   if (checkDbConsole('bizConfigManage.bussinessDashboard')) {
     alarmManageBizRoute.children!.push({
       path: 'bussiness-dashboard',
-      name: 'DBMonitorBussinessDashboard',
+      name: 'bussinessDashboard',
       meta: {
         fullscreen: true,
         navName: t('业务监控大盘'),
