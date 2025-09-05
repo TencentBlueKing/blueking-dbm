@@ -136,7 +136,7 @@
           Object.assign(params, { enable: props.isEnableSpec });
         }
         if (isBusiness) {
-          Object.assign(params, { biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}` });
+          Object.assign(params, { biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}` });
         }
         fetchResourceSpecList(params);
       }

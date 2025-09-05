@@ -32,37 +32,22 @@
         </EditableColumn>
         <EditableColumn
           :append-rules="minCapacityRules"
-          field="min"
-          :label="t('最小容量（G）')"
+          field="size"
+          :label="t('容量（G）')"
           required
-          :width="150">
+          :width="200">
           <EditableInput
-            ref="minCapacityRef"
-            v-model="item.min"
-            :max="2147483647"
-            :min="10"
-            type="number" />
-        </EditableColumn>
-        <EditableColumn
-          :append-rules="maxCapacityRules"
-          field="max"
-          :label="t('最大容量（G）')"
-          required
-          :width="150">
-          <EditableInput
-            ref="maxCapacityRef"
-            v-model="item.max"
-            :max="2147483647"
-            :min="10"
+            ref="sizeCapacityRef"
+            v-model="item.size"
+            :min="1"
             type="number" />
         </EditableColumn>
         <EditableColumn
           :append-rules="diskTypRules"
           field="type"
           :label="t('磁盘类型')"
-          :min-width="100"
           required
-          :width="120">
+          :width="200">
           <EditableSelect
             ref="diskTypeRef"
             v-model="item.type"
@@ -77,16 +62,14 @@
 </template>
 <script lang="tsx">
   export interface IStorageDeviceItem {
-    max: number;
-    min: number;
     mount_point: string;
+    size: number;
     type: string;
   }
 
   export const createRowData = (data = {} as IStorageDeviceItem) => ({
-    max: data.max || ('' as string | number),
-    min: data.min || ('' as string | number),
     mount_point: data.mount_point || '',
+    size: data.size || ('' as string | number),
     type: data.type || '',
   });
 </script>
@@ -126,10 +109,10 @@
       required: true,
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.max && !rowData.min && !rowData.type) {
+        if (!value && !rowData.size && !rowData.type) {
           return true;
         }
-        if ((rowData.max || rowData.min || rowData.type) && !value) {
+        if ((rowData.size || rowData.type) && !value) {
           return false;
         }
         if (!value) {
@@ -162,34 +145,15 @@
     },
   ];
 
-  const maxCapacityRules = [
-    {
-      message: t('不能为空'),
-      trigger: 'change',
-      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.min && !rowData.mount_point && !rowData.type) {
-          return true;
-        }
-        if ((rowData.min || rowData.mount_point || rowData.type) && !value) {
-          return false;
-        }
-        if (!value) {
-          return false;
-        }
-        return true;
-      },
-    },
-  ];
-
   const minCapacityRules = [
     {
       message: t('不能为空'),
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.max && !rowData.mount_point && !rowData.type) {
+        if (!value && !rowData.size && !rowData.mount_point && !rowData.type) {
           return true;
         }
-        if ((rowData.max || rowData.mount_point || rowData.type) && !value) {
+        if ((rowData.size || rowData.mount_point || rowData.type) && !value) {
           return false;
         }
         if (!value) {
@@ -205,10 +169,10 @@
       message: t('不能为空'),
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.mount_point && !rowData.max && !rowData.min) {
+        if (!value && !rowData.mount_point && !rowData.size) {
           return true;
         }
-        if ((rowData.mount_point || rowData.max || rowData.min) && !value) {
+        if ((rowData.mount_point || rowData.size) && !value) {
           return false;
         }
         if (!value) {
@@ -221,10 +185,12 @@
 
   useRequest(searchDeviceClass, {
     onSuccess(data) {
-      diskTypeList.value = data.map((item) => ({
-        label: deviceClassDisplayMap[item as DeviceClass],
-        value: item,
-      }));
+      diskTypeList.value = data
+        .map((item) => ({
+          label: deviceClassDisplayMap[item as DeviceClass],
+          value: item,
+        }))
+        .filter((item) => item.value !== 'ALL');
     },
   });
 
@@ -237,8 +203,7 @@
               ...result,
               [item.mount_point]: {
                 disk_type: item.type,
-                max: item.max,
-                min: item.min,
+                size: item.size,
               },
             }),
             {},

@@ -33,7 +33,7 @@
           </BkRadio>
         </BkRadioGroup>
         <BizSelector
-          v-if="bizScope === BizScopes.BIZ"
+          v-if="bizScope === BizScopes.BIZS"
           v-model="selectBizList"
           class="mt-12"
           :popover-options="{

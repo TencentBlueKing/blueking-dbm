@@ -20,8 +20,8 @@
         <DbIcon
           class="biz-icon"
           svg
-          :type="BizScopesInfoMap[BizScopes.BIZ].icon" />
-        <span class="ml-4">{{ BizScopesInfoMap[BizScopes.BIZ].label }}</span>
+          :type="BizScopesInfoMap[BizScopes.BIZS].icon" />
+        <span class="ml-4">{{ BizScopesInfoMap[BizScopes.BIZS].label }}</span>
         <div class="biz-name-list ml-4">
           （
           <span

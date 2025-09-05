@@ -4,8 +4,8 @@ import { t } from '@locales/index';
  * 应用范围
  */
 export enum BizScopes {
-  ALL = 'ALL',
-  BIZ = 'BIZ',
+  ALL = 'all',
+  BIZS = 'bizs',
 }
 
 export const BizScopesInfoMap = {
@@ -13,7 +13,7 @@ export const BizScopesInfoMap = {
     icon: 'quanbu',
     label: t('全部业务'),
   },
-  [BizScopes.BIZ]: {
+  [BizScopes.BIZS]: {
     icon: 'bufenkejian',
     label: t('指定业务'),
   },
