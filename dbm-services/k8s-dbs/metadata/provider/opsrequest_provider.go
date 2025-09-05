@@ -35,11 +35,33 @@ type K8sCrdOpsRequestProvider interface {
 	DeleteOpsRequestByID(id uint64) (uint64, error)
 	FindOpsRequestByID(id uint64) (*metaentity.K8sCrdOpsRequestEntity, error)
 	UpdateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (uint64, error)
+	FindOpsRequestByParams(entity *metaentity.OpsRequestQueryParams) ([]*metaentity.K8sCrdOpsRequestEntity, error)
 }
 
 // K8sCrdOpsRequestProviderImpl K8sCrdOpsRequestDbAccess 具体实现
 type K8sCrdOpsRequestProviderImpl struct {
 	dbAccess dbaccess.K8sCrdOpsRequestDbAccess
+}
+
+// FindOpsRequestByParams 根据参数查找接口实现
+func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByParams(params *metaentity.OpsRequestQueryParams) (
+	[]*metaentity.K8sCrdOpsRequestEntity,
+	error,
+) {
+	opsRequestModels, err := k.dbAccess.FindByParams(params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find opsRequest with params %+v", params)
+	}
+	if opsRequestModels == nil {
+		return nil, nil
+	}
+
+	var opsRequestEntities []*metaentity.K8sCrdOpsRequestEntity
+	if err = copier.Copy(&opsRequestEntities, opsRequestModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+
+	return opsRequestEntities, nil
 }
 
 // CreateOpsRequest 创建 opsRequest

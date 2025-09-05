@@ -37,11 +37,26 @@ type K8sClusterConfigProvider interface {
 	FindConfigByName(name string) (*metaentity.K8sClusterConfigEntity, error)
 	UpdateConfig(entity *metaentity.K8sClusterConfigEntity) (uint64, error)
 	GetRegionsByVisibility(public bool) ([]*metaentity.RegionEntity, error)
+	ListConfigsByLimit(limit int) ([]*metaentity.K8sClusterConfigEntity, error)
 }
 
 // K8sClusterConfigProviderImpl K8sClusterConfigProvider 具体实现
 type K8sClusterConfigProviderImpl struct {
 	dbAccess dbaccess.K8sClusterConfigDbAccess
+}
+
+// ListConfigsByLimit list 查询实现
+func (k *K8sClusterConfigProviderImpl) ListConfigsByLimit(limit int) ([]*metaentity.K8sClusterConfigEntity, error) {
+	configModels, err := k.dbAccess.ListByLimit(limit)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list k8s cluster config with limit %d", limit)
+	}
+	var configEntities []*metaentity.K8sClusterConfigEntity
+	if err = copier.Copy(&configEntities, configModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+
+	return configEntities, nil
 }
 
 // GetRegionsByVisibility 根据可访问性（公有/私有）筛选并返回符合条件的区域列表。

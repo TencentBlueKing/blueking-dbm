@@ -40,11 +40,21 @@ type K8sClusterConfigDbAccess interface {
 	Update(model *models.K8sClusterConfigModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sClusterConfigModel, int64, error)
 	FindRegionsByParams(params *metaentity.RegionQueryParams) ([]*models.RegionModel, error)
+	ListByLimit(limit int) ([]*models.K8sClusterConfigModel, error)
 }
 
 // K8sClusterConfigDbAccessImpl K8sClusterConfigDbAccess 的具体实现
 type K8sClusterConfigDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// ListByLimit limit 查询实现
+func (k *K8sClusterConfigDbAccessImpl) ListByLimit(limit int) ([]*models.K8sClusterConfigModel, error) {
+	var configModels []*models.K8sClusterConfigModel
+	if err := k.db.Limit(limit).Where("active = 1").Find(&configModels).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to list k8s cluster config with limit %d", limit)
+	}
+	return configModels, nil
 }
 
 // FindRegionsByParams 根据参数查找区域列表
