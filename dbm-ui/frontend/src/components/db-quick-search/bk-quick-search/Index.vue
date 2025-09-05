@@ -61,7 +61,7 @@
   import { Icon } from 'tdesign-vue-next';
   import { computed, type InjectionKey, provide, reactive, ref, shallowRef, watch } from 'vue';
 
-  import { hideAll } from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuPop';
+  import { hideAll } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
 
   import CalcRenderNum from './components/CalcRenderNum.vue';
   import CreateArea from './components/create-area/Index.vue';
@@ -115,15 +115,11 @@
       type?: `${comType}`;
       validator?: (value: string) => boolean | string;
     }[];
-    modelValue?: IValue[];
     pasteParseMethod?: (value: string) => string[];
     placeholder?: string;
   }
 
-  export interface Emits {
-    (event: 'update:modelValue', value: IValue[]): void;
-    (event: 'change', value: IValue[]): void;
-  }
+  export type Emits = (event: 'change', value: IValue[]) => void;
 
   export const BK_QUICK_SEARCH: InjectionKey<{
     isFouced: boolean;
@@ -134,15 +130,17 @@
   const props = withDefaults(defineProps<Props>(), {
     changeTrigger: 'change',
     clearable: true,
-    modelValue: () => [],
     pasteParseMethod: (text: string) =>
-      _.uniq(_.filter(text.split(/[\r\n\t,，;；|｜]/g), (item) => Boolean(_.trim(item)))),
+      _.uniq(_.filter(text.split(/[ \r\n\t,，;；|｜]/g), (item) => Boolean(_.trim(item)))),
     placeholder: '请选择搜索项',
   });
 
   const emits = defineEmits<Emits>();
   const slots = defineSlots<Slots>();
 
+  const modelValue = defineModel<IValue[]>({
+    default: () => [],
+  });
   const rootRef = ref<HTMLElement>();
   const isFouced = ref(false);
   // 获得焦点时是否开始选择。如果是点击已选择的 tag 进入编辑状态获得焦点，则不开始选择
@@ -179,8 +177,8 @@
       return;
     }
     lastSelectValueListMemo = localSelectValueList.value;
-    emits('update:modelValue', localSelectValueList.value);
-    emits('change', localSelectValueList.value);
+    modelValue.value = [...localSelectValueList.value];
+    emits('change', [...localSelectValueList.value]);
   };
 
   useOutSideClick(() => {
@@ -206,9 +204,9 @@
   );
 
   watch(
-    () => props.modelValue,
+    modelValue,
     () => {
-      localSelectValueList.value = [...props.modelValue];
+      localSelectValueList.value = [...modelValue.value];
       lastSelectValueListMemo = localSelectValueList.value;
     },
     {
@@ -328,7 +326,7 @@
 
   .bk-quick-search-error {
     display: flex;
-    padding-top: 3px;
+    padding: 3px 8px;
     font-size: 12px;
     line-height: 16px;
     color: #ea3636;

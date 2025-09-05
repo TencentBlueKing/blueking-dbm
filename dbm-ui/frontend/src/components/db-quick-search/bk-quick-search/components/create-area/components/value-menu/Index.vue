@@ -57,8 +57,8 @@
   import { Button } from 'tdesign-vue-next';
   import { computed } from 'vue';
 
-  import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
-  import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+  import { comType } from '@components/db-quick-search/bk-quick-search/constants';
+  import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   import 'element-plus/dist/index.css';
 
@@ -87,9 +87,15 @@
   const modelValue = defineModel<any[]>();
 
   const renderCom = computed(() => {
-    if (!props.config || !props.config.type) {
+    if (
+      !props.config ||
+      !props.config.type ||
+      props.config.type === comType.INPUT ||
+      props.config.type === comType.MULTIPLE_INPUT
+    ) {
       return null;
     }
+
     const defaultComMap = {
       [comType.CASCADER]: Cascader,
       [comType.DATE]: DatePicker,
