@@ -35,23 +35,22 @@
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="(item, index) in data.instances"
-          :key="index"
-          class="host-item">
-          <div class="host-tag host-tag-master">M</div>
-          <div>{{ item[0] }}</div>
-          ，
-          <div class="host-tag host-tag-slave">S</div>
-          <div>{{ item[1] }}</div>
+          :key="index">
+          <div class="domain-item">{{ item.domain }}</div>
+          <div class="instance-item">--{{ item.master_ins }}</div>
+          <div class="instance-item">--{{ item.slave_ins }}</div>
         </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
       field="spec_name"
-      :label="t('规格')">
+      :label="t('规格')"
+      :width="150">
     </BkTableColumn>
     <BkTableColumn
       field="db_version"
-      :label="t('版本')">
+      :label="t('版本')"
+      :width="200">
     </BkTableColumn>
   </BkTable>
 </template>
@@ -77,8 +76,8 @@
 
   const { t } = useI18n();
 
-  const { infos, specs } = props.ticketDetails.details;
-  const isDomain = infos[0].display_info?.migrate_type || infos[0].migrate_type === 'domain';
+  const { clusters, infos, specs } = props.ticketDetails.details;
+  const isDomain = (infos[0].display_info?.migrate_type || infos[0].migrate_type) === 'domain';
 
   const tableData = props.ticketDetails.details.infos.map((item) => {
     const primaryKey = isDomain
@@ -86,19 +85,28 @@
       : item.display_info?.ip || item.migrate_ip;
     const specName = specs[item.resource_spec.backend_group.spec_id].name;
 
-    const oldNodesItem = item?.display_info
-      ? item?.old_nodes || {
-          master: [],
-          slave: [],
-        }
-      : item.origin_old_nodes;
-    const masterItem = oldNodesItem.master[0];
-    const slaveItem = oldNodesItem.slave[0];
-    const instances = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
-
+    let instances: ({ domain: string } & Redis.MigrateSingle['infos'][number]['src_cluster'][number])[] = [];
+    if (item.display_info) {
+      const oldNodesItem = item.old_nodes!;
+      const masterItem = oldNodesItem.master[0];
+      const slaveItem = oldNodesItem.slave[0];
+      instances = [
+        {
+          cluster_id: item.cluster_id!,
+          domain: clusters[item.cluster_id!].immute_domain,
+          master_ins: `${masterItem.ip}:${masterItem.port}`,
+          slave_ins: `${slaveItem.ip}:${slaveItem.port}`,
+        },
+      ];
+    } else {
+      instances = item.src_cluster.map((srcClusterItem) => ({
+        domain: clusters[srcClusterItem.cluster_id].immute_domain,
+        ...srcClusterItem,
+      }));
+    }
     return {
       db_version: item.db_version,
-      instances: [instances],
+      instances,
       primary_key: primaryKey?.split(',') || '',
       spec_name: specName,
     };
@@ -107,31 +115,12 @@
 
 <style lang="less" scoped>
   .single-migrate-table {
-    .host-item {
-      display: flex;
-      align-items: center;
+    .domain-item {
+      color: #4d4f56;
+    }
 
-      .host-tag {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        font-size: @font-size-mini;
-        font-weight: bolder;
-        line-height: 16px;
-        text-align: center;
-      }
-
-      .host-tag-master {
-        flex-shrink: 0;
-        color: @primary-color;
-        background-color: #cad7eb;
-      }
-
-      .host-tag-slave {
-        flex-shrink: 0;
-        color: #2dcb56;
-        background-color: #c8e5cd;
-      }
+    .instance-item {
+      color: #979ba5;
     }
   }
 </style>
