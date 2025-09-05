@@ -2213,7 +2213,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],
@@ -2247,7 +2247,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],
@@ -2281,7 +2281,7 @@ class RedisActPayload(object):
         print(f"params:{params}")
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
-            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
             "payload": {
                 "src_node": params["src_node"],
                 "dst_node": params["dst_node"],

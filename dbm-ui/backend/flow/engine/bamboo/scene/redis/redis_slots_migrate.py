@@ -23,7 +23,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.util import is_twemproxy_proxy_type
+from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -41,6 +41,7 @@ logger = logging.getLogger("flow")
 
 class RedisSlotsMigrateFlow(object):
     """
+        指定源端、目标端、slot进行迁移
         ## redis slots migrate :tendisplus 扩缩容和解决热点key迁移
     {
         "bk_biz_id": 3,
@@ -141,36 +142,31 @@ class RedisSlotsMigrateFlow(object):
 
     def redis_migrate_4_expansion_flow(self):
         """
-            扩容：
-            部署redis -》 建立集群关系和做主从 -》 集群reblance（迁移slots扩容）-》 元数据加入集群 -》 刷新predixy配置文件
-            -> 写入扩缩容表
-            /apis/v1/flow/scene/redis_slots_migrate_for_expansion
-
-           {
-            "bk_biz_id": 3,
-            "uid": "2022051612120001",
-            "created_by":"admin",
-            "ticket_type":"REDIS_SLOTS_MIGRATE",
-            "infos": [
-                {
-                "cluster_id": 12,
-                "bk_cloud_id": 0,
-                "current_group_num": 1,
-                "target_group_num": 2,
-                "new_ip_group":[
-                    {
-                        "master":"aa.bb.cc.dd",
-                        "slave":"xx.bb.cc.dd"
-                    }
-
-                ],
-             "resource_spec": {
-                "redis": {
-                    "id": 1}}
-               }
-
-            ]
-        }
+         扩容：
+         部署redis -》 建立集群关系和做主从 -》 集群reblance（迁移slots扩容）-》 元数据加入集群 -》 刷新predixy配置文件
+         -> 写入扩缩容表
+         /apis/v1/flow/scene/redis_slots_migrate_for_expansion
+        #  参数先与容量变更保持一致，对外还是容量变更，但实际上update_mode是slot_migrate
+        # ticket_type是侧边栏，update_mode就相当于是标签栏
+        {
+             "bk_biz_id": "",
+             "ticket_type":"REDIS_SCALE_UPDOWN",
+             "infos":[
+                 "bk_cloud_id":",
+                 "update_mode": "slot_migrate",
+                 "online_switch_type":"",
+                 "cluster_id": "",
+                 "group_num": 4,  # 目标组数
+                 "shard_num": 40, # 目标分片数，实际上没用
+                 "backend_group":[
+                     {
+                         "master":"1.1.1.1",
+                         "slave":"2.2.2.1"
+                     }],
+                 "deploy_plan_id":3,
+                 "resource_spec":{}
+             }]
+         }
         """
 
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
@@ -179,13 +175,57 @@ class RedisSlotsMigrateFlow(object):
         # 支持多集群操作
         for info in self.data["infos"]:
             redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_SLOTS_MIGRATE"), info)
-            if act_kwargs.cluster["cluster_type"] != ClusterType.TendisPredixyTendisplusCluster.value:
+
+            # 支持缩容rediscluster协议的slot搬迁行为
+            if not is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
                 raise NotImplementedError("Not supported cluster type: %s" % act_kwargs.cluster["cluster_type"])
+
             flow_data = self.data
+
+            # 当前机器组数和目标机器组数
+            current_group_num = len(act_kwargs.cluster["master_ip"])
+            target_group_num = info["group_num"]
+
+            # 判断机器是否足够
+            if len(info["backend_group"]) != (target_group_num - current_group_num):
+                raise Exception(
+                    _(
+                        "传入机器组数[%d]与 预期增加组数[目标:%d - 当前:%d]不等",
+                        len(info["backend_group"]),
+                        target_group_num,
+                        current_group_num,
+                    )
+                )
+
+            # TODO:参数转化，等后面容量变更重构后，修改此部分参数构造即可
+            new_info = {
+                "cluster_id": act_kwargs.cluster["cluster_id"],
+                "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                "current_group_num": len(act_kwargs.cluster["master_ip"]),
+                "target_group_num": info["group_num"],
+                "resource_spec": {"redis": info["resource_spec"]["master"]},
+            }
+            new_ip_group = []
+            for group_info in info.get("backend_group", []):
+                new_ip_group.append({"master": group_info["master"]["ip"], "slave": group_info["slave"]["ip"]})
+            new_info["new_ip_group"] = new_ip_group
+            logger.info("cluster_protocal_shards_update_and_keep_machine_flow new_info:{}".format(new_info))
+
             # 扩容,传入的新ip组大于0,target_group_num大于current_group_num
-            if len(info["new_ip_group"]) > 0 and (info["target_group_num"] - info["current_group_num"]) > 0:
-                expansion_pipe = redis_rebalance_slots_4_expansion(self.root_id, flow_data, act_kwargs, info)
+            if (
+                len(new_info["new_ip_group"]) > 0
+                and (new_info["target_group_num"] - new_info["current_group_num"]) > 0
+            ):
+                expansion_pipe = redis_rebalance_slots_4_expansion(self.root_id, flow_data, act_kwargs, new_info)
                 redis_pipeline.add_sub_pipeline(expansion_pipe)
+            else:
+                raise Exception(
+                    _(
+                        "slot扩容流程：target_group_num[{}] <= current_group_num[{} ".format(
+                            new_info["target_group_num"], new_info["current_group_num"]
+                        )
+                    )
+                )
 
             sub_pipelines_multi_cluster.append(
                 redis_pipeline.build_sub_process(sub_name=_("{}slots迁移扩容").format(act_kwargs.cluster["immute_domain"]))
@@ -205,16 +245,20 @@ class RedisSlotsMigrateFlow(object):
              "bk_biz_id": 3,
              "uid": "2022051612120001",
              "created_by":"admin",
-             "ticket_type":"REDIS_SLOTS_MIGRATE",
-             "infos": [
-                 {
-                 "cluster_id": 12,
-                 "bk_cloud_id": 0,
-                 "is_delete_node":true,
-                 "current_group_num": 2,
-                 "target_group_num": 1
-                 }
-             ]
+             "ticket_type":"REDIS_SCALE_UPDOWN",
+             "infos":[
+                    "bk_cloud_id":",
+                    "online_switch_type":"",
+                    "cluster_id": "",
+                    "group_num": 1,  # 目标组数
+                    "shard_num": 1, # 目标分片数，实际上没用
+                    "backend_group":[],
+                     # 传入指定下架的主从实例对，用于机器流转和flow执行
+                     "old_machine_info": {
+                        "master": [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}],
+                        "slave":  [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}]
+                     }
+                }]
          }
         """
 
@@ -224,13 +268,33 @@ class RedisSlotsMigrateFlow(object):
         # 支持多集群操作
         for info in self.data["infos"]:
             redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_SLOTS_MIGRATE"), info)
-            if act_kwargs.cluster["cluster_type"] != ClusterType.TendisPredixyTendisplusCluster.value:
+            if not is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
                 raise NotImplementedError("Not supported cluster type: %s" % act_kwargs.cluster["cluster_type"])
             flow_data = self.data
-            # 缩容，删除node是true
-            if info["is_delete_node"] and (info["target_group_num"] - info["current_group_num"]) < 0:
-                contraction_pipe = redis_migrate_slots_4_contraction(self.root_id, flow_data, act_kwargs, info)
+
+            # TODO:参数转化，等后面容量变更重构后，修改此部分参数构造即可
+            new_info = {
+                "cluster_id": act_kwargs.cluster["cluster_id"],
+                "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                "current_group_num": len(act_kwargs.cluster["master_ip"]),
+                "target_group_num": info["group_num"],
+                "is_delete_node": True,
+            }
+            # 缩容，删除node
+            if new_info["target_group_num"] - new_info["current_group_num"] < 0:
+                # 通过前置函数获取到了指定的下架机器
+                new_info["shutdown_master_hosts"] = [item["ip"] for item in info["old_machine_info"]["master"]]
+                new_info["shutdown_slave_hosts"] = [item["ip"] for item in info["old_machine_info"]["slave"]]
+                contraction_pipe = redis_migrate_slots_4_contraction(self.root_id, flow_data, act_kwargs, new_info)
                 redis_pipeline.add_sub_pipeline(contraction_pipe)
+            else:
+                raise Exception(
+                    _(
+                        "slot缩容流程：target_group_num[{}] >= current_group_num[{}] ".format(
+                            new_info["target_group_num"], new_info["current_group_num"]
+                        )
+                    )
+                )
             sub_pipelines_multi_cluster.append(
                 redis_pipeline.build_sub_process(sub_name=_("{}slots 迁移").format(act_kwargs.cluster["immute_domain"]))
             )

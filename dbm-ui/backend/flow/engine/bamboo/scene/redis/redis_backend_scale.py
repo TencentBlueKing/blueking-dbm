@@ -99,7 +99,7 @@ class RedisBackendScaleFlow(object):
         # 如果是机器替换扩容，新机器组数 = 传入组数
         else:
             if len(master_ips) != group_num:
-                raise Exception("new machine num != group_num.")
+                raise Exception("new machine num[{}] != group_num[{}].".format(len(master_ips), group_num))
         # shard_num 必须大于 group_num
         if new_shard_num < group_num:
             raise Exception("shard_num:{} < group_num:{}".format(new_shard_num, group_num))
