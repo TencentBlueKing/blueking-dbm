@@ -219,3 +219,11 @@
     handleInputChange(list.map((item) => item.master_domain).join('\n'));
   };
 </script>
+
+<style lang="less" scoped>
+  .batch-host-select {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>

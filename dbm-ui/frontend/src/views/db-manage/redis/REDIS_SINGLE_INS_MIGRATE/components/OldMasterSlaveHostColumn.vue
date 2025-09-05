@@ -21,14 +21,12 @@
       class="old-master-slave-host"
       :placeholder="t('选择集群后自动生成')">
       <div
-        v-for="(item, index) in instanceList"
+        v-for="(item, index) in instanceInfo"
         :key="index"
         class="host-item">
-        <div class="host-tag host-tag-master">M</div>
-        <div>{{ item[0] }}</div>
-        ，
-        <div class="host-tag host-tag-slave">S</div>
-        <div>{{ item[1] }}</div>
+        <div class="domain-item">{{ item.domain }}</div>
+        <div class="instance-item">--{{ item.master.ip }}:{{ item.master.port }}</div>
+        <div class="instance-item">--{{ item.slave.ip }}:{{ item.slave.port }}</div>
       </div>
     </EditableBlock>
   </EditableColumn>
@@ -71,16 +69,13 @@
 
   const instanceInfo = shallowRef<
     {
+      domain: string;
       master: IHostData;
       slave: IHostData;
     }[]
   >([]);
 
   const loading = computed(() => queryMachineInstancePairLoading.value || getRedisInstancesLoading.value);
-
-  const instanceList = computed(() =>
-    instanceInfo.value.map((item) => [`${item.master.ip}:${item.master.port}`, `${item.slave.ip}:${item.slave.port}`]),
-  );
 
   const { loading: queryMachineInstancePairLoading, run: runQueryMachineInstancePair } = useRequest(
     queryMachineInstancePair,
@@ -105,6 +100,7 @@
           instanceInfo.value = Object.entries(masterMap).map(([masterInstance, masterInfo]) => {
             const slaveItem = instanceMap.instances![masterInstance];
             return {
+              domain: slaveItem.related_clusters[0].immute_domain,
               master: masterInfo,
               slave: {
                 bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -189,45 +185,12 @@
 
 <style lang="less" scoped>
   .old-master-slave-host {
-    :deep(.bk-editable-text-content-wrapper) {
-      padding: 0;
-      margin: 0;
-
-      .bk-editable-text-content-placeholder {
-        margin-left: 10px;
-      }
+    .domain-item {
+      color: #4d4f56;
     }
 
-    .host-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 16px;
-
-      &:not(:first-child) {
-        border-top: 1px solid #dcdee5;
-      }
-
-      .host-tag {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        font-size: @font-size-mini;
-        font-weight: bolder;
-        line-height: 16px;
-        text-align: center;
-      }
-
-      .host-tag-master {
-        flex-shrink: 0;
-        color: @primary-color;
-        background-color: #cad7eb;
-      }
-
-      .host-tag-slave {
-        flex-shrink: 0;
-        color: #2dcb56;
-        background-color: #c8e5cd;
-      }
+    .instance-item {
+      color: #979ba5;
     }
   }
 </style>

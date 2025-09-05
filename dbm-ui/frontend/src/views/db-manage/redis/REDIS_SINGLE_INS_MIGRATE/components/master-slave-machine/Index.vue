@@ -303,7 +303,7 @@
     getValue: () =>
       editableTableRef.value!.validate().then((validateResult) => {
         if (validateResult) {
-          return tableData.value.flatMap((tableItem) => ({
+          return tableData.value.map((tableItem) => ({
             ...tableItem.instance_data,
             db_version: tableItem.db_version,
             // migrate_domain: '',

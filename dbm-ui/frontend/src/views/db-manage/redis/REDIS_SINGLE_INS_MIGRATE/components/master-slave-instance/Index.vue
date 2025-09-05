@@ -139,7 +139,7 @@
         const rowItem = infoItem[0];
         return createRowData({
           batchCluster: {
-            renderText: rowItem.migrate_domain,
+            renderText: rowItem.migrate_domain?.replaceAll(',', '\n') || '',
           } as IDataRow['batchCluster'],
           db_version: rowItem.db_version,
           target_spec_id: rowItem.resource_spec.backend_group.spec_id,

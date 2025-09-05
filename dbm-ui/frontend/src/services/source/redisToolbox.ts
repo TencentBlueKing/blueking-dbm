@@ -12,7 +12,7 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import type { ListBase, MachineSpecConfig } from '@services/types';
+import type { InstanceRelatedCluster, ListBase, MachineRelatedCluster, MachineSpecConfig } from '@services/types';
 
 const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/redis/bizs/${bizId}/toolbox`;
 
@@ -28,6 +28,7 @@ interface MachineInstancePairItem {
   name: string;
   phase: string;
   port: number;
+  related_clusters: (InstanceRelatedCluster | MachineRelatedCluster)[];
   spec_config: MachineSpecConfig;
   status: string;
 }
