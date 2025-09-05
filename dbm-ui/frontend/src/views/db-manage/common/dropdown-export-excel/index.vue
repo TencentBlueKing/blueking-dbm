@@ -61,12 +61,10 @@
   import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
-  import type { ClusterTypes } from '@common/const';
 
   interface Props {
     exportType?: 'cluster' | 'instance';
     ids?: number[];
-    clusterTypes?: ClusterTypes[];
     type:
       | 'tendbsingle'
       | 'tendbha'
@@ -175,7 +173,6 @@
       // 导出集群
       const params = {
         cluster_ids: props.ids,
-        cluster_types: props.clusterTypes ? props.clusterTypes.join(',') : undefined,
       };
       if (type === 'all') {
         // 导出所有

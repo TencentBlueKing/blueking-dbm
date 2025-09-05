@@ -43,7 +43,6 @@
         v-db-console="'mongodb.replicaSetList.export'"
         :has-selected="hasSelected"
         :ids="selectedIds"
-        :cluster-types="[ClusterTypes.MONGO_REPLICA_SET]"
         type="mongodb" />
       <ClusterIpCopy
         v-db-console="'mongodb.replicaSetList.batchCopy'"

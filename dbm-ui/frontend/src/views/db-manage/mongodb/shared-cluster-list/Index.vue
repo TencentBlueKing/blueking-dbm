@@ -42,7 +42,6 @@
         v-db-console="'mongodb.sharedClusterList.export'"
         :has-selected="hasSelected"
         :ids="selectedIds"
-        :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
         type="mongodb" />
       <ClusterIpCopy
         v-db-console="'mongodb.sharedClusterList.batchCopy'"
