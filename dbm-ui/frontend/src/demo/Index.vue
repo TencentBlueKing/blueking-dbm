@@ -10,13 +10,20 @@
 <script setup lang="ts">
   import dayjs from 'dayjs';
 
-  import QuickSearch, { type Props } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+  import QuickSearch, { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   const data: Props['data'] = [
     {
       description: '测试一发',
       id: 'id',
       name: 'ID',
+      type: 'input',
+    },
+    {
+      description: '支持模糊搜索',
+      id: 'address',
+      name: '地址',
+      type: 'multiple-input',
     },
     {
       id: 'name',
