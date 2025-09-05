@@ -5,10 +5,7 @@ export default (callback: () => void) => {
     const eventPath = event.composedPath() as HTMLElement[];
 
     for (const target of eventPath) {
-      if (
-        /bk-quick-search/.test(target.className) ||
-        /bk-quick-search-type-popover/.test(target.dataset?.theme ?? '')
-      ) {
+      if (/bk-quick-search/.test(target.className) || /bk-quick-search-panel-theme/.test(target.dataset?.theme ?? '')) {
         return;
       }
     }

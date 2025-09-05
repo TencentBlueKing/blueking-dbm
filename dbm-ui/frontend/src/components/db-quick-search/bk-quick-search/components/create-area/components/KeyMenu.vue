@@ -1,20 +1,41 @@
 <template>
-  <div
-    ref="root"
-    class="bk-quick-search-key-menu">
+  <div>
     <div
-      v-for="(dataItem, index) in data"
-      :key="index"
-      class="key-item"
-      :class="{ active: activeIndex === index }"
-      @click="handleSelectKey(dataItem)">
-      <div>
-        {{ dataItem.name }}
-      </div>
+      ref="root"
+      class="bk-quick-search-key-panel">
       <div
-        v-if="dataItem.description"
-        class="key-description">
-        {{ dataItem.description }}
+        v-for="(dataItem, index) in data"
+        :key="index"
+        class="key-item"
+        :class="{ active: activeIndex === index }"
+        @click="handleSelectKey(dataItem)">
+        <div>
+          {{ dataItem.name }}
+        </div>
+        <div
+          v-if="dataItem.description"
+          class="key-description">
+          {{ dataItem.description }}
+        </div>
+      </div>
+    </div>
+    <div
+      key="submitTips"
+      class="bk-quick-search-panel-footer">
+      <div class="bk-quick-search-panel-submit-tips">
+        <div class="action-tips">
+          <div class="tag">
+            <DbIcon type="up-big" />
+          </div>
+          <div class="tag">
+            <DbIcon type="down-big" />
+          </div>
+          <span>移动光标</span>
+        </div>
+        <div class="action-tips">
+          <div class="tag">Enter</div>
+          <span>选中</span>
+        </div>
       </div>
     </div>
   </div>
@@ -50,11 +71,10 @@
   });
 </script>
 <style lang="less">
-  .bk-quick-search-key-menu {
+  .bk-quick-search-key-panel {
     min-width: 230px;
     min-height: 32px;
     padding: 8px 0;
-    margin: -5px -9px;
     overflow: hidden auto;
     font-size: 12px;
     pointer-events: all;

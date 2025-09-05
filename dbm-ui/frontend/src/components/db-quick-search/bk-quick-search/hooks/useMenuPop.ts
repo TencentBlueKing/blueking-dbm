@@ -92,7 +92,7 @@ export default (
         ],
         strategy: 'fixed',
       },
-      theme: 'light bk-quick-search-type-popover',
+      theme: 'light bk-quick-search-panel-theme',
       trigger: 'manual',
       zIndex: 9999,
     });

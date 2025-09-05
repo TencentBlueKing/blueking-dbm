@@ -187,6 +187,7 @@
     }
     isFouced.value = false;
     isFoucedStartSelect.value = false;
+    errorMessage.value = '';
     hideAll();
     if (props.changeTrigger === 'blur') {
       triggerChange();
@@ -349,6 +350,12 @@
 
     &:hover {
       color: #979ba5;
+    }
+  }
+
+  [data-tippy-root] .tippy-box[data-theme~='bk-quick-search-panel-theme'] {
+    .tippy-content {
+      padding: 0;
     }
   }
 </style>

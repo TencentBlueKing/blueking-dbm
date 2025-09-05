@@ -19,7 +19,7 @@ export default <T>(
 
   const handleKeyDown = (event: KeyboardEvent) => {
     // enter键直接触发选中
-    if (['Enter', 'NumpadEnter'].includes(event.code) && activeIndex.value > -1) {
+    if (['Enter', 'NumpadEnter'].includes(event.code) && activeIndex.value > -1 && !event.metaKey && !event.ctrlKey) {
       submitCallback(list.value[activeIndex.value]!, activeIndex.value);
       return;
     }
