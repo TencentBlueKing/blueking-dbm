@@ -102,7 +102,7 @@
 
   const getData = () => {
     fetchData({
-      biz_scope: `${props.bizId}`,
+      biz_ids: `${props.bizId}`,
       enable: true,
       limit: -1,
       spec_cluster_type: props.clusterType,

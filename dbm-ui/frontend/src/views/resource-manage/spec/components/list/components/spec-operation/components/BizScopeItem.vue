@@ -33,15 +33,15 @@
         </BkRadio>
         <BkRadio
           class="biz-scope-item"
-          :label="BizScopes.BIZ">
+          :label="BizScopes.BIZS">
           <DbIcon
             svg
-            :type="BizScopesInfoMap[BizScopes.BIZ].icon" />
-          <span class="ml-4">{{ BizScopesInfoMap[BizScopes.BIZ].label }}</span>
+            :type="BizScopesInfoMap[BizScopes.BIZS].icon" />
+          <span class="ml-4">{{ BizScopesInfoMap[BizScopes.BIZS].label }}</span>
         </BkRadio>
       </BkRadioGroup>
       <BizSelector
-        v-if="bizScope === BizScopes.BIZ"
+        v-if="bizScope === BizScopes.BIZS"
         v-model="selectedBiz"
         class="ml-44 mt-34"
         style="flex: 1"
@@ -76,7 +76,7 @@
       message: t('指定业务不能为空'),
       required: true,
       validator: () => {
-        if (bizScope.value === BizScopes.BIZ) {
+        if (bizScope.value === BizScopes.BIZS) {
           return selectedBiz.value.length > 0;
         }
         return true;
@@ -85,7 +85,7 @@
   ];
 
   const selectedBiz = ref(props.data);
-  const bizScope = ref(selectedBiz.value.length === 0 ? BizScopes.ALL : BizScopes.BIZ);
+  const bizScope = ref(selectedBiz.value.length === 0 ? BizScopes.ALL : BizScopes.BIZS);
 
   const handleBizScopeChange = () => {
     selectedBiz.value = [];

@@ -290,7 +290,7 @@
   import BizScopeColumn from './components/BizScopeColumn.vue';
   import ModelColumn from './components/ModelColumn.vue';
   import SpecOperaion from './components/spec-operation/Index.vue';
-  import { BizScopes, BizScopesInfoList } from './consts/bizScope';
+  import { BizScopesInfoList } from './consts/bizScope';
   import { useHasQPS } from './hooks/useHasQPS';
 
   type SpecOperationType = 'create' | 'edit' | 'clone';
@@ -350,10 +350,7 @@
         id: `${item.bk_biz_id}`,
         name: item.name,
       })),
-      disabled: !searchValue.value.some(
-        (item) => item.id === 'biz_scope' && item.values?.some((valueItem) => valueItem.id === BizScopes.BIZ),
-      ),
-      id: 'biz_id',
+      id: 'biz_ids',
       multiple: true,
       name: t('业务'),
     },
@@ -403,16 +400,10 @@
     const params = {
       spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
-      spec_name: searchSelectorParams.spec_name,
+      ...searchSelectorParams,
     };
     if (isEnableSpec.value) {
       Object.assign(params, { enable: isEnableSpec.value });
-    }
-
-    if (searchSelectorParams.biz_scope === BizScopes.ALL) {
-      Object.assign(params, { biz_scope: 'all' });
-    } else {
-      Object.assign(params, { biz_scope: searchSelectorParams.biz_id });
     }
 
     tableRef.value.fetchData({ ...params });

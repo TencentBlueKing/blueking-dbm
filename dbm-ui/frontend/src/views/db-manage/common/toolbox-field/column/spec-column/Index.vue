@@ -172,7 +172,7 @@
       };
       if (props.selectable) {
         Object.assign(params, {
-          biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}`,
+          biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
           enable: true,
         });
       }

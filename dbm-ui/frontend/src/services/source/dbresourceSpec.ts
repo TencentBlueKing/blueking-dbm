@@ -23,7 +23,8 @@ const path = '/apis/dbresource/spec';
  * 获取资源规格列表
  */
 export function getResourceSpecList(params: {
-  biz_scope?: string;
+  biz_ids?: string;
+  biz_scope?: string; // all | bizs
   desc?: string;
   enable?: boolean;
   limit: number;

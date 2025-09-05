@@ -207,7 +207,7 @@
     const params = {
       city: row.city,
       device_class: row.device_class,
-      disk: row.disk_summary?.[0].min ? `${row.disk_summary?.[0].min}-` : '',
+      disk: row.disk_summary?.[0].size ? `${row.disk_summary?.[0].size}-` : '',
       disk_type: row.disk_summary?.[0].disk_type,
       for_biz: row.dedicated_biz,
       mount_point: row.disk_summary?.[0].mount_point,

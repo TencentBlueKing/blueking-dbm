@@ -121,7 +121,7 @@
     (value) => {
       if (value) {
         fetchResourceSpecList({
-          biz_scope: `${window.PROJECT_CONFIG.BIZ_ID}`,
+          biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
           limit: -1,
           offset: 0,
           spec_cluster_type: 'mongodb',
