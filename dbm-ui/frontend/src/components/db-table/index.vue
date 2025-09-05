@@ -413,6 +413,7 @@
   let requestKey = 0;
   const fetchListData = (loading = true) => {
     requestKey = Date.now();
+    const latestRequestKey = requestKey;
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
@@ -436,7 +437,6 @@
         .dataSource(params, payload)
         .then((data) => {
           bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
-          const latestRequestKey = requestKey;
           if (data.results.length > 20) {
             setTimeout(() => {
               if (latestRequestKey !== requestKey) {

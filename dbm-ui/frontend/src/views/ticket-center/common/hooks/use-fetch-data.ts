@@ -64,6 +64,7 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
     requestKey = Date.now();
+    const latestRequestKey = requestKey;
     dataSource({
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
@@ -71,7 +72,6 @@ export default (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
       ...params,
     })
       .then((data) => {
-        const latestRequestKey = requestKey;
         dataList.value = data.results;
 
         tableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
