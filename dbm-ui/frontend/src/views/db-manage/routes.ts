@@ -38,7 +38,7 @@ export default function getRoutes() {
   const children = Object.values(modules).reduce((result, item) => {
     const routes = item.default(funControllerData);
     if (Array.isArray(routes) && routes.length > 0) {
-      result.push(routes[0]);
+      result.push(routes[0]!);
     }
     return result;
   }, [] as RouteRecordRaw[]);
