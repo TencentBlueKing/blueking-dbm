@@ -26,7 +26,7 @@
   interface Props {
     charset: string;
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
-    role: string;
+    role: keyof typeof roleDisplay;
     timezone: string;
   }
 
@@ -36,7 +36,12 @@
 
   const consoleInputRef = ref<typeof ConsoleInput>();
 
-  const placeholder = computed(() => `${props.cluster.immute_domain}[${props.role}] > `);
+  const roleDisplay = {
+    spider_master: 'Spider Master',
+    spider_slave: 'Spider Slave',
+  };
+
+  const placeholder = computed(() => `${props.cluster.immute_domain}[${roleDisplay[props.role]}] > `);
 
   const preCheck = (cmd: string) => {
     if (/^\s*use\s+.*$/.test(cmd)) {
