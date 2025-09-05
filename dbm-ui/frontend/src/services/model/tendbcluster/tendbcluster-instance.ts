@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster, MachineRelatedInstance } from '@services/types';
+import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
@@ -19,7 +19,6 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class TendbInstance {
-  bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cpu: number;
@@ -55,10 +54,8 @@ export default class TendbInstance {
   spec_config: InstanceListSpecConfig;
   status: 'running' | 'unavailable';
   version: string;
-  related_pair_instance: MachineRelatedInstance;
 
   constructor(payload = {} as TendbInstance) {
-    this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.bk_host_id = payload.bk_host_id || 0;
@@ -82,7 +79,6 @@ export default class TendbInstance {
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
     this.ip = payload.ip;
-    this.related_pair_instance = payload.related_pair_instance || {};
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.permission = payload.permission;

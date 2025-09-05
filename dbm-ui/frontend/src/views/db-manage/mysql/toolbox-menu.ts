@@ -180,7 +180,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.checksum',
-        id: TicketTypes.MYSQL_CHECKSUM,
+        id: 'MySQLChecksum',
         name: t('数据校验修复'),
         parentId: 'data',
       },

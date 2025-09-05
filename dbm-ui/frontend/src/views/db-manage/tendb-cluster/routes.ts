@@ -176,9 +176,15 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/db-clear/Index.vue'),
     },
-    createRouteItem(TicketTypes.TENDBCLUSTER_CHECKSUM, t('数据校验修复'), {
-      dbConsole: 'tendbCluster.toolbox.checksum',
-    }),
+    {
+      path: 'checksum/:page?',
+      name: 'spiderChecksum',
+      meta: {
+        dbConsole: 'tendbCluster.toolbox.checksum',
+        navName: t('数据校验修复'),
+      },
+      component: () => import('@views/db-manage/tendb-cluster/checksum/Index.vue'),
+    },
     {
       path: 'privilege-clone-client/:page?',
       name: 'spiderPrivilegeCloneClient',
