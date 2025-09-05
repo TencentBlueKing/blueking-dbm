@@ -21,6 +21,13 @@ import (
 
 // CheckBackupType check and fix backup type
 func (r *BackupRunner) CheckBackupType(cnf *config.BackupConfig, storageEngine string) (err error) {
+	if !cnf.Public.IfBackupData() {
+		// 如果备份不涉及数据，即备份 schema/grant，则直接使用逻辑备份
+		logger.Log.Infof("backup only schema use 'logical'")
+		cnf.Public.BackupType = cst.BackupLogical
+		cnf.LogicalBackup.UseMysqldump = cst.BackupTypeAuto
+		return nil
+	}
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
 		if strings.EqualFold(storageEngine, cst.StorageEngineTokudb) ||
 			strings.EqualFold(storageEngine, cst.StorageEngineRocksdb) {
@@ -42,11 +49,6 @@ func (r *BackupRunner) CheckBackupType(cnf *config.BackupConfig, storageEngine s
 			// 修复版本的 mydumper 已经支持 glibc < 2.14
 			cnf.Public.BackupType = cst.BackupLogical
 		}
-	}
-	if cnf.Public.IfBackupSchema() && !cnf.Public.IfBackupAll() {
-		logger.Log.Warnf("BackupType physical cannot backup schema only, change it to logical")
-		cnf.Public.BackupType = cst.BackupLogical
-		cnf.LogicalBackup.UseMysqldump = cst.BackupTypeAuto
 	}
 	return nil
 }

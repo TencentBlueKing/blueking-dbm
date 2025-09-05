@@ -35,6 +35,7 @@ type PackageFile struct {
 	cnf           *config.BackupConfig
 	indexFile     *dbareport.IndexContent
 	indexFilePath string
+	datadirSizeMB uint64
 }
 
 // LogicalTarParts Package multiple backup files
@@ -258,6 +259,11 @@ func (p *PackageFile) SkipTarball(cnfPublic *config.Public) error {
 func (p *PackageFile) tarAndSplit(cnfPublic *config.Public) (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, cnfPublic.IOLimitMBPerSec)
 
+	// 如果备份总大小大于 2TB, 增加单切片大小，提高切片速度
+	if p.datadirSizeMB > 2*1024*1024*1024*1024 {
+		cnfPublic.IOLimitMBPerSec *= 2
+		cnfPublic.TarSizeThreshold *= 2
+	}
 	var tarUtil = util.TarWriter{IOLimitMB: cnfPublic.IOLimitMBPerSec}
 	var dstTarName = fmt.Sprintf(`%s.tar`, p.dstDir) // full path
 	if cnfPublic.EncryptOpt.EncryptEnable {
@@ -406,6 +412,7 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		cnf:           cnf,
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
+		datadirSizeMB: metaInfo.DataDirSizeMB,
 	}
 	backupType := metaInfo.BackupType
 	if cnf.Public.SkipTarball {

@@ -97,6 +97,7 @@ func reportMycnfConfig(c *infoReport) error {
 		"innodb_io_capacity", "innodb_read_io_threads", "innodb_write_io_threads",
 		"thread_cache_size", "thread_handling",
 		"innodb_buffer_pool_size", "join_buffer_size", "sort_buffer_size", "slave_skip_errors",
+		"tc_admin", "dbm_allow_standalone_primary", "ddl_execute_by_ctl",
 	}
 	mergedItems := lo.Uniq[string](append(strings.Split(items, ","), spiderItems...))
 	res, err := configreport.QueryMycnfConfig(mergedItems, c.db)

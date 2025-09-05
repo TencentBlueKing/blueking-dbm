@@ -60,10 +60,10 @@ func CheckCharset(cnf *config.BackupConfig, mysqlVersion string, dbh *sql.DB) er
 			logger.Log.Infof("use charset 'binary' for %+v", serverCharset)
 			superCharset = "binary"
 		} else if lo.Contains(goodCharset, serverCharset[0]) {
-			logger.Log.Infof("use charset '%s' for good charset", serverCharset[0])
+			logger.Log.Infof("use charset '%s' for good charset", serverCharset)
 			superCharset = serverCharset[0]
 		} else {
-			logger.Log.Infof("use charset 'binary' for bad charset:%s", serverCharset[0])
+			logger.Log.Infof("use charset 'binary' for bad charset:%s", serverCharset)
 			superCharset = "binary"
 		}
 		cnf.Public.MysqlCharset = superCharset

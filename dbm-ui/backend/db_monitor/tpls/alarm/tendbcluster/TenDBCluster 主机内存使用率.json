@@ -64,7 +64,7 @@
                         [
                             {
                                 "method": "gte",
-                                "threshold": 92
+                                "threshold": 90
                             }
                         ]
                     ],
@@ -252,7 +252,7 @@
     "labels": [
         "DBM",
         "MySQL",
-        "DBM_MYSQL"
+        "DBM_TENDBCLUSTER"
     ],
     "app": "",
     "path": "",

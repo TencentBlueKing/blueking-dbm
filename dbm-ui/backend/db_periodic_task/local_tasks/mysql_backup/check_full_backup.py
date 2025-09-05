@@ -20,7 +20,7 @@ from django.utils import timezone
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MysqlBackupCheckSubType
-from backend.db_report.models import MysqlBackupCheckReport
+from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
 
 from .bklog_query import ClusterBackup
 
@@ -88,6 +88,28 @@ def is_consecutive_strings(str_list: list):
         return True
     else:
         return False
+
+
+def get_failed_backup_detail(cluster_domain: str, start_time: datetime, end_time: datetime):
+    start_ts = int(datetime.timestamp(start_time) * 1000 * 1000)
+    end_ts = int(datetime.timestamp(end_time) * 1000 * 1000)
+    status_failed = list(
+        MysqlBackupProgress.objects.filter(
+            cluster_domain=cluster_domain,
+            status="Failed",
+            event_create_timestamp__gte=start_ts,
+            event_create_timestamp__lte=end_ts,
+        ).all()
+    )
+    host_failed = []
+    detail_failed = {}
+    for i in status_failed:
+        host_failed.append(i.backup_host)
+        detail_failed[f"{i.backup_host}:{i.backup_port}"] = i.status_detail
+    host_failed = list(set(host_failed))
+    if not host_failed:
+        return [], ""
+    return host_failed, json.dumps(detail_failed)
 
 
 def check_full_backup(date_str: str):
@@ -177,6 +199,7 @@ def _check_tendbha_full_backup(date_str: str):
                         backup.success = True
                         break
             if not backup.success:
+                host_failed, detail_failed = get_failed_backup_detail(c.immute_domain, start_time, end_time)
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
@@ -185,6 +208,8 @@ def _check_tendbha_full_backup(date_str: str):
                     status=False,
                     msg="no success full backup found",
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    host=" | ".join(host_failed),
+                    status_detail=detail_failed,
                 )
             else:
                 MysqlBackupCheckReport.objects.create(
@@ -246,6 +271,7 @@ def _check_tendbcluster_full_backup(date_str: str):
 
             # 只记录失败的结果
             if not backup.success:
+                host_failed, detail_failed = get_failed_backup_detail(c.immute_domain, start_time, end_time)
                 MysqlBackupCheckReport.objects.create(
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
@@ -254,6 +280,8 @@ def _check_tendbcluster_full_backup(date_str: str):
                     status=False,
                     msg="no success full backup found:{}".format(message),
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    host=" | ".join(host_failed),
+                    status_detail=detail_failed,
                 )
             else:
                 MysqlBackupCheckReport.objects.create(

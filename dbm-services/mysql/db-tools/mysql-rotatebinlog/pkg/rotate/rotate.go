@@ -265,7 +265,8 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 		backupStatusInfo := ""
 		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 		fileName := filepath.Join(i.binlogDir, fileObj.Filename)
-		events, err := bp.GetTime(fileName, true, true)
+		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
+		// end time > start time TODO
 		if err != nil {
 			logger.Warn("binlog %s GetTime failed: %s,events:%+v. use stop_time use start_time",
 				fileName, err.Error(), events)

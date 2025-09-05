@@ -8,19 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from backend.db_meta.enums import ClusterType
-from backend.db_report.enums import MysqlBackupCheckSubType
-from backend.db_report.report_basemodel import BaseReportABS
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
-class MysqlBackupCheckReport(BaseReportABS):
-    cluster = models.CharField(max_length=255, default="")
-    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
-    subtype = models.CharField(
-        max_length=64, choices=MysqlBackupCheckSubType.get_choices(), default="", help_text=_("备份检查子项")
-    )
-    host = models.CharField(max_length=255, default="")
-    status_detail = models.TextField(default="")
+class MysqlBackupStatus(str, StructuredEnum):
+    Failed = EnumField("failed", _("失败"))
+    Success = EnumField("success", _("成功"))
+    Running = EnumField("running", _("备份中"))
+    Tarball = EnumField("tarball", _("打包中"))
+    Begin = EnumField("begin", _("开始"))

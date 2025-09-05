@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export PATH=/usr/local/mysql/bin:$PATH
 scriptDir=$(dirname "$0")
@@ -67,7 +67,7 @@ done
 
 get_config_files() {
   if [ -z "$Ports" ];then
-    configFiles=`find $scriptDir -maxdepth 1 -regex ".*dbbackup\.[0-9]+\.ini"`
+    configFiles=$(find $scriptDir -maxdepth 1 -regex ".*dbbackup\.[0-9]+\.ini")
   else
     for port in $Ports; do
       fname=dbbackup.${port}.ini
@@ -92,7 +92,11 @@ errPorts=""
 okPorts=""
 for conf_file in $configFiles
 do
-    port=`grep -Ei 'MysqlPort|\[Public\]' $conf_file |grep -v '^#' | grep -A1 'Public' |grep 'MysqlPort'`
+    iniFile=$(basename "$conf_file")
+    if [[ ! $iniFile == dbbackup.*.ini ]];then
+      continue
+    fi
+    port=$(grep -Ei 'MysqlPort|\[Public\]' $conf_file |grep -v '^#' | grep -A1 'Public' |grep 'MysqlPort')
     port=$(echo `echo $port |head -1 | cut -d= -f2`)
     echo "now doing dbbackup for config file=$conf_file port=$port"
     echo "${scriptDir}/dbbackup dumpbackup --config=$conf_file $dbbackupOpt 2>&1 >> $logfile"
