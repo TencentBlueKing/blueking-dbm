@@ -27,14 +27,6 @@ const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
   createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
-  {
-    path: 'privilege-clone-inst/:page?',
-    name: 'MySQLPrivilegeCloneInst',
-    meta: {
-      navName: t('DB实例权限克隆'),
-    },
-    component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
-  },
   createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
@@ -54,6 +46,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
+  createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',
