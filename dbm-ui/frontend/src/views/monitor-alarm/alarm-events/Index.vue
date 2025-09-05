@@ -301,8 +301,8 @@
     }, {}),
   );
   const isCurrentEventShielded = computed(() => currentEvent.value?.is_shielded);
-  const isTodoPage = computed(() => route.name === 'AlarmEventsTodo');
-  const isGlobalPage = computed(() => route.name === 'AlarmEventsGlobal');
+  const isTodoPage = computed(() => route.name === 'platformAlarmEventsTodo');
+  const isGlobalPage = computed(() => route.name === 'platformAlarmEvents');
 
   const statusFilterList = [
     {

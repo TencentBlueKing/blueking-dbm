@@ -14,16 +14,16 @@
 <template>
   <div
     ref="monitorRef"
-    class="cluster-monitor">
+    class="dbm-cluster-monitor">
     <BkLoading
       :loading="isLoading"
       style="height: 100%">
       <div
-        class="cluster-monitor-bar"
+        class="dbm-cluster-monitor-bar"
         @click.stop>
         <i
           v-bk-tooltips="screenIcon.text"
-          class="cluster-monitor-bar__icon"
+          class="dbm-cluster-monitor-btn"
           :class="[screenIcon.icon]"
           @click.stop="toggle" />
       </div>
@@ -32,9 +32,15 @@
         class="exception-wrap-item"
         :description="$t('监控组件初始化中_紧急情况请联系平台管理员')"
         type="building" />
-      <iframe
+      <div
         v-else
-        :src="url" />
+        ref="iframeContainer"
+        class="monitor-page">
+        <div class="iframe-page-navigation-mask" />
+        <iframe
+          :src="url"
+          @load="handleLoad" />
+      </div>
     </BkLoading>
   </div>
 </template>
@@ -53,46 +59,87 @@
   });
 
   const monitorRef = ref<HTMLIFrameElement>();
+  const iframeContainerRef = useTemplateRef('iframeContainer');
   const { t } = useI18n();
   const { isFullscreen, toggle } = useFullscreen(monitorRef);
 
-  const isLoading = ref(false);
+  const isLoading = ref(true);
+
+  const offsettop = ref('0px');
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
+
+  watch(isFullscreen, (val) => {
+    if (val) {
+      offsettop.value = '46px';
+    } else {
+      setTimeout(() => {
+        offsettop.value = `${iframeContainerRef.value?.getBoundingClientRect().top || 0}px`;
+      });
+    }
+  });
+
+  onMounted(() => {
+    setTimeout(() => {
+      offsettop.value = `${iframeContainerRef.value?.getBoundingClientRect().top || 0}px`;
+    });
+  });
+
+  const handleLoad = () => {
+    console.log('asdasdas');
+    isLoading.value = false;
+  };
 </script>
 
-<style lang="less" scoped>
-  .cluster-monitor {
+<style lang="less">
+  .dbm-cluster-monitor {
     width: 100%;
     height: 100%;
     padding: 14px 0;
     background-color: white;
 
-    &-bar {
+    .dbm-cluster-monitor-bar {
       display: flex;
+      padding-right: 16px;
+      padding-bottom: 16px;
       align-items: center;
       justify-content: flex-end;
-      padding-bottom: 16px;
+    }
 
-      &__icon {
-        display: block;
-        margin-left: 16px;
-        font-size: @font-size-large;
-        text-align: center;
-        cursor: pointer;
+    .dbm-cluster-monitor-btn {
+      display: block;
+      margin-left: 16px;
+      font-size: @font-size-large;
+      text-align: center;
+      cursor: pointer;
 
-        &:hover {
-          color: @primary-color;
-        }
+      &:hover {
+        color: @primary-color;
       }
+    }
+
+    .monitor-page {
+      position: relative;
+      display: flex;
+      border: 1px solid #24292e1f;
+      border-top: none;
+    }
+
+    .iframe-page-navigation-mask {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: calc(100% - 400px);
+      height: 50px;
+      background-color: transparent;
     }
 
     iframe {
       width: 100%;
-      height: calc(100% - 30px);
+      min-height: calc(100vh - v-bind(offsettop) - 20px);
       border: 0;
     }
   }

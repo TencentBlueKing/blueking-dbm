@@ -36,13 +36,13 @@
       <div
         v-else
         ref="iframeContainer"
-        style="display: flex; border: 1px solid #24292e1f">
+        style="position: relative; display: flex; border: 1px solid #24292e1f">
         <iframe :src="url" />
+        <div class="iframe-page-navigation-mask" />
       </div>
     </div>
   </BkLoading>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -108,6 +108,15 @@
       &:hover {
         color: @primary-color;
       }
+    }
+
+    .iframe-page-navigation-mask {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: calc(100% - 400px);
+      height: 50px;
+      background-color: transparent;
     }
 
     iframe {
