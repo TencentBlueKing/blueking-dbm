@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, MigrateStatus
+from backend.db_services.redis.util import is_redis_cluster_protocal, is_redis_instance_type
 from backend.flow.consts import DEFAULT_REDIS_START_PORT
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -35,6 +36,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cluster_info_by_cluster_id
+from backend.flow.utils.redis.redis_util import version_ge
 
 logger = logging.getLogger("flow")
 
@@ -163,7 +165,7 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
     )
 
     cluster_kwargs = deepcopy(act_kwargs)
-    if cluster_kwargs.cluster["cluster_type"] != ClusterType.TendisPredixyTendisplusCluster.value:
+    if not is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
         raise NotImplementedError("Not supported cluster type: %s" % cluster_kwargs.cluster["cluster_type"])
     if not info["is_delete_node"]:
         raise NotImplementedError("is_delete_node is not True")
@@ -182,7 +184,9 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
                 raise Exception(_("shutdown master hosts:[{}] 不属于集群[{}]".format(ip, info["cluster_id"])))
             slave_ip = cluster_info["master_ip_to_slave_ip"][ip]
             if slave_ip not in info["shutdown_slave_hosts"]:
-                raise Exception(_("shutdown slave hosts:[{}] 不属于集群[{}]".format(slave_ip, info["cluster_id"])))
+                raise Exception(
+                    _("存在 slave[{}] 不在shutdown_slave_hosts中{}".format(slave_ip, info["shutdown_slave_hosts"]))
+                )
 
             to_shutdown_master_ips.add(ip)
             for port in cluster_info["master_ports"][ip]:
@@ -383,8 +387,19 @@ def redis_rebalance_slots_4_expansion(root_id: str, flow_data: dict, act_kwargs:
     )
 
     cluster_kwargs = deepcopy(act_kwargs)
-    if cluster_kwargs.cluster["cluster_type"] != ClusterType.TendisPredixyTendisplusCluster.value:
+    if not is_redis_cluster_protocal(cluster_kwargs.cluster["cluster_type"]):
         raise NotImplementedError("Not supported cluster type: %s" % cluster_kwargs.cluster["cluster_type"])
+    # rediscluster必须要大于6.2才支持slot搬迁
+    if is_redis_instance_type(cluster_kwargs.cluster["cluster_type"]) and not version_ge(
+        cluster_info["major_version"], "6"
+    ):
+        raise Exception(
+            _(
+                "cluster type: {} version is {}, not supported reshard cmd".format(
+                    cluster_kwargs.cluster["cluster_type"], cluster_info["major_version"]
+                )
+            )
+        )
 
     # 获取第一个master机器的地址,来获取单台集群部署的节点数，新机器部署一样的节点数，保持一致
     src_first_machine = cluster_info["master_ips"][0]

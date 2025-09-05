@@ -286,3 +286,79 @@ def get_migrate_shutdown_hosts(src_ins_list: list, bk_biz_id: int):
             m_desc = s.machine.simple_desc
             shutdown_hosts_info.append({"bk_host_id": m_desc["bk_host_id"], "ip": m_desc["ip"]})
     return shutdown_hosts_info
+
+
+def get_cluster_capacity_shutdown_host(bk_biz_id, cluster_id, target_group_num: int, update_mode: str):
+    """
+    重构后的后端容量变更获取下架机器统一函数。
+     返回:
+    - err_msg 错误信息
+    - "old_machine_info": {
+                        "master": [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}],
+                        "slave":  [{"ip", "bk_biz_id", "bk_host_id", "bk_cloud_id"}]
+                     } 下架机器的信息
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+
+    master_ips = set()
+    slave_ips = set()
+    master_slave_dict = {}
+    for master_obj in cluster_masters:
+        master_ips.add(master_obj.machine.ip)
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            my_slave_obj = master_obj.as_ejector.get().receiver
+            slave_ips.add(my_slave_obj.machine.ip)
+            master_slave_dict[master_obj.machine.ip] = my_slave_obj.machine.ip
+
+    current_group_num = len(master_ips)
+    # 如果是扩容，没有需要下架的机器
+    if current_group_num <= target_group_num:
+        err_msg = _("slot 扩容时不需要获取下架机器。 当前机器组数[{}], 目标机器组数[{}]", len(cluster_masters), target_group_num)
+        return err_msg, {}
+
+    contraction_group = current_group_num - target_group_num
+    shutdown_master_hosts = []
+    shutdown_slave_hosts = []
+
+    # 整机替换方式扩缩容(总分片数不变，机器数变少 or 机型变)
+    # 扩缩容这里不再做隐式版本升级，如果有版本升级需求，需要走版本升级单显式去升级
+    if update_mode == RedisCapacityUpdateType.ALL_MACHINES_REPLACE:
+        shutdown_master_hosts = master_ips
+    elif update_mode == RedisCapacityUpdateType.SLOT_MIGRATE:
+        for master_ip in list(master_ips):
+            if contraction_group <= 0:
+                break
+            contraction_group -= 1
+            shutdown_master_hosts.append(master_ip)
+    else:
+        # 有可能是本地扩容，机器数变多
+        return _("{}变更类型不支持获取下架机器"), {}
+    for master_ip in shutdown_master_hosts:
+        shutdown_slave_hosts.append(master_slave_dict[master_ip])
+
+    shutdown_master_info = []
+    shutdown_slave_info = []
+    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_master_hosts)).filter(bk_biz_id=bk_biz_id)
+    for s in storages:
+        m_desc = s.machine.simple_desc
+        shutdown_master_info.append(
+            {
+                "bk_host_id": m_desc["bk_host_id"],
+                "ip": m_desc["ip"],
+                "bk_biz_id": m_desc["bk_biz_id"],
+                "bk_cloud_id": m_desc["bk_cloud_id"],
+            }
+        )
+    storages = StorageInstance.find_storage_instance_by_ip(list(shutdown_slave_info)).filter(bk_biz_id=bk_biz_id)
+    for s in storages:
+        m_desc = s.machine.simple_desc
+        shutdown_slave_info.append(
+            {
+                "bk_host_id": m_desc["bk_host_id"],
+                "ip": m_desc["ip"],
+                "bk_biz_id": m_desc["bk_biz_id"],
+                "bk_cloud_id": m_desc["bk_cloud_id"],
+            }
+        )
+    return "", {"master": shutdown_master_info, "slave": shutdown_slave_info}

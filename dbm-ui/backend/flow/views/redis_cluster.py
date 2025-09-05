@@ -708,6 +708,19 @@ class RedisSlotsMigrateForHotkeySceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisSlotsMigrateScaleSceneApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        # 扩容
+        if len(request.data["infos"][0].get("backend_group", [])) > 0:
+            RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_expansion()
+        # 缩容
+        else:
+            RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_contraction()
+        return Response({"root_id": root_id})
+
+
 class RedisReuploadOldBackupRecordsSceneApiView(FlowTestView):
     """
     api:   /apis/v1/flow/scene/redis_reupload_old_backup_records

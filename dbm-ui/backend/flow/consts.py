@@ -1153,6 +1153,7 @@ class RedisCapacityUpdateType(str, StructuredEnum):
 
     KEEP_CURRENT_MACHINES = EnumField("keep_current_machines", _("原地变更"))
     ALL_MACHINES_REPLACE = EnumField("all_machines_replace", _("全部机器替换"))
+    SLOT_MIGRATE = EnumField("slot_migrate", _("slot搬迁"))
 
 
 class RedisMaxmemoryConfigType(str, StructuredEnum):
