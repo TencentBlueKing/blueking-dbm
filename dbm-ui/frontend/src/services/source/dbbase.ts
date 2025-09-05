@@ -13,7 +13,7 @@
 
 import type { InstanceInfos, ListBase, MachineInfos } from '@services/types';
 
-import { ClusterTypes, DBTypes } from '@common/const';
+import { ClusterLoad, ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -313,31 +313,31 @@ export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: stri
     cluster_load_data_map: {
       [domain: string]: {
         [cluster_type: string]: {
+          connections: {
+            [ip: string]: number;
+          } & {
+            status: ClusterLoad;
+          };
           cpu: {
             [ip: string]: number;
           } & {
-            high_load: boolean;
-            low_load: boolean;
+            status: ClusterLoad;
           };
           mem: {
             [ip: string]: number;
           } & {
-            high_load: boolean;
-            low_load: boolean;
+            status: ClusterLoad;
           };
-          // connections: {};
         };
       };
     };
     cluster_load_status_map: {
       [domain: string]: {
         [cluster_type: string]: {
-          high_load: boolean;
-          low_load: boolean;
+          status: ClusterLoad;
         };
       } & {
-        high_load: boolean;
-        low_load: boolean;
+        status: ClusterLoad;
       };
     };
   }>(`${path}/query_cluster_load/`, params, payload);
