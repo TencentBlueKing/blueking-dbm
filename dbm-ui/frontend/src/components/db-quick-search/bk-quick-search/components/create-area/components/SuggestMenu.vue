@@ -28,12 +28,11 @@
   import _ from 'lodash';
   import { computed, useTemplateRef, watch } from 'vue';
 
-  import { comType } from '@components/db-quick-serach/bk-quick-search/constants';
-  import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-  import { BK_QUICK_SEARCH } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-
-  import useMenuKeyboard from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
-  import { calcNeedShowValueMenu, getValuesText } from '@/components/db-quick-serach/bk-quick-search/utils';
+  import { comType } from '@components/db-quick-search/bk-quick-search/constants';
+  import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
+  import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { calcNeedShowValueMenu, getValuesText } from '@components/db-quick-search/bk-quick-search/utils';
 
   interface Props {
     data: ContextProps['data'];
@@ -54,8 +53,12 @@
     const result: IValue[] = [];
 
     if (valueList.length === 1) {
-      const valueWord = valueList[0];
+      const valueWord = valueList[0]!;
       props.data.forEach((dataItem) => {
+        // 数据来自服务端，不支持自动匹配
+        if (dataItem.remoteSearch || _.isFunction(dataItem.remoteMethod)) {
+          return;
+        }
         // 从备选列表匹配
         if (_.isArray(dataItem.list)) {
           dataItem.list.forEach((childItem) => {

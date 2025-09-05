@@ -3,7 +3,7 @@
     ref="root"
     class="bk-quick-search-value-tag-edit"
     :class="{
-      'is-pop-menu-edit': isShowValueMenu,
+      'is-pop-menu-edit': isReadonly,
     }">
     <div style="position: absolute; z-index: -1; pointer-events: none; opacity: 0%">
       <!-- prettier-ignore -->
@@ -13,13 +13,12 @@
       <div :style="placeholderStyles">{{ placeholderText }}</div>
       <textarea
         ref="editTextarea"
-        v-model="searchKeyWord"
+        v-model="latestEditValue"
         autocomplete="false"
         :name="config.name"
-        :placeholder="lastValueText"
         spellcheck="false"
         :style="{
-          'padding-bottom': isShowValueMenu ? '' : withNullValueMenuPlaceholderHeight,
+          'padding-bottom': isReadonly ? '' : `${valueTextSingleLineHeight}px`,
         }"
         @focus="handleFocus"
         @keydown="handleKeydown"
@@ -27,13 +26,12 @@
       <div ref="valueMenuPopContent">
         <ValueMenu
           :config="config"
-          :keyword="searchKeyWord"
           :model-value="lastValue.values"
           @change="handleValueMenuChange" />
       </div>
     </div>
     <div
-      v-if="!isShowValueMenu"
+      v-if="isMultipleLintEdit || isSingleEdit"
       style="
         position: absolute;
         right: 0;
@@ -45,7 +43,8 @@
         pointer-events: none;
         background: #fafbfd;
       ">
-      输入多个值 ”Shift + Enter“ 换行，按”Enter“确认
+      <span v-if="isMultipleLintEdit">输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+      <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
     </div>
   </div>
 </template>
@@ -56,19 +55,18 @@
   import _ from 'lodash';
   import { computed, onMounted, ref, useTemplateRef } from 'vue';
 
-  import ValueMenu from '@components/db-quick-serach/bk-quick-search/components/create-area/components/value-menu/Index.vue';
-  import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-  import { BK_QUICK_SEARCH } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-
-  import useMenuPop, { hideAll } from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuPop';
-  import useOutSideClick from '@/components/db-quick-serach/bk-quick-search/hooks/useOutSideClick';
-  import { calcNeedShowValueMenu } from '@/components/db-quick-serach/bk-quick-search/utils';
+  import ValueMenu from '@components/db-quick-search/bk-quick-search/components/create-area/components/value-menu/Index.vue';
+  import { comType } from '@components/db-quick-search/bk-quick-search/constants';
+  import useMenuPop, { hideAll } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
+  import useOutSideClick from '@components/db-quick-search/bk-quick-search/hooks/useOutSideClick';
+  import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { calcNeedShowValueMenu } from '@components/db-quick-search/bk-quick-search/utils';
 
   interface Props {
     config: ContextProps['data'][number];
     lastValue: IValue;
     lastValueText: string;
-    readonly: boolean;
   }
 
   interface Emits {
@@ -81,33 +79,35 @@
 
   const context = inject(BK_QUICK_SEARCH);
 
-  const isShowValueMenu = calcNeedShowValueMenu(props.config);
-  const withNullValueMenuPlaceholderHeight = '22px';
+  const isReadonly = calcNeedShowValueMenu(props.config);
+  const isMultipleLintEdit = props.config.type === comType.MULTIPLE_INPUT;
+  const isSingleEdit = props.config.type === comType.INPUT;
+  const valueTextSingleLineHeight = 22;
 
   const rootRef = useTemplateRef<HTMLElement>('root');
   const calcTextWidthRef = useTemplateRef<HTMLElement>('calcTextWidth');
   const editTextareaRef = useTemplateRef<HTMLTextAreaElement>('editTextarea');
   const popContentRef = useTemplateRef<HTMLElement>('valueMenuPopContent');
 
-  const searchKeyWord = ref(isShowValueMenu ? '' : props.lastValue.values.map((item) => item.value).join('\n'));
+  const latestEditValue = ref(isReadonly ? '' : props.lastValue.values.map((item) => item.value).join('\n'));
   const inputStyles = ref({});
 
   const clacWidthText = computed(() =>
-    props.lastValueText.length > searchKeyWord.value.length ? props.lastValueText : searchKeyWord.value,
+    props.lastValueText.length > latestEditValue.value.length ? props.lastValueText : latestEditValue.value,
   );
   const placeholderText = computed(() => {
-    if (!isShowValueMenu) {
-      return `${searchKeyWord.value}\u200B`;
+    if (!isReadonly) {
+      return `${latestEditValue.value}\u200B`;
     }
-    return props.lastValueText.length > searchKeyWord.value.length ? props.lastValueText : searchKeyWord.value;
+    return props.lastValueText.length > latestEditValue.value.length ? props.lastValueText : latestEditValue.value;
   });
 
   const placeholderStyles = computed<any>(() => {
     return {
-      'max-height': props.readonly ? '220px' : 'unset',
-      'min-height': '22px',
+      'max-height': isReadonly ? `${10 * valueTextSingleLineHeight}px` : 'unset',
+      'min-height': `${valueTextSingleLineHeight}px`,
       overflow: 'hidden',
-      'padding-bottom': isShowValueMenu ? 0 : withNullValueMenuPlaceholderHeight,
+      'padding-bottom': isReadonly ? 0 : `${valueTextSingleLineHeight}px`,
       visibility: 'hidden',
       'white-space': 'pre-wrap',
       'word-break': 'break-all',
@@ -128,9 +128,8 @@
   const calcInputStyle = () => {
     setTimeout(() => {
       inputStyles.value = {
-        'padding-botom': isShowValueMenu ? 0 : withNullValueMenuPlaceholderHeight,
         position: 'relative',
-        width: isShowValueMenu ? `${calcTextWidthRef.value!.getBoundingClientRect().width}px` : '100%',
+        width: isReadonly ? `${calcTextWidthRef.value!.getBoundingClientRect().width}px` : '100%',
         'z-index': 1,
       };
     });
@@ -142,46 +141,73 @@
     if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
       return true;
     }
+    // 不响应方向键，Enter
     if (['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
     }
     // 需要通过选择面板选择值，textarea 不响应任何输入
-    if (isShowValueMenu) {
+    if (isReadonly) {
       event.preventDefault();
     }
   };
 
   const handleKeyup = (event: KeyboardEvent) => {
+    if (isReadonly) {
+      return;
+    }
     // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
     if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
       return true;
     }
-    // enter 提交
-    if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
-      event.preventDefault();
-      if (isShowValueMenu) {
-        return;
-      }
-      let errorMessage = '';
-      if (_.isFunction(props.config!.validator)) {
-        const result = props.config.validator(searchKeyWord.value);
-        if (_.isString(result)) {
-          errorMessage = result;
-        } else {
-          errorMessage = result ? '' : '格式不正确';
+    setTimeout(() => {
+      // enter 提交
+      if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
+        event.preventDefault();
+
+        // 输入值校验
+        let errorMessage = '';
+        if ((isMultipleLintEdit || isSingleEdit) && _.isFunction(props.config.validator)) {
+          let result: boolean | string = true;
+          if (isMultipleLintEdit) {
+            const valueList = context!.pasteParseMethod(latestEditValue.value);
+            result = _.every(valueList, (item) => props.config.validator!(item) === true);
+          } else if (isSingleEdit) {
+            result = props.config.validator(latestEditValue.value);
+          }
+
+          if (result && _.isString(result)) {
+            errorMessage = result;
+          } else {
+            errorMessage = result ? '' : '格式不正确';
+          }
+          emits('error', errorMessage);
         }
-        emits('error', errorMessage);
+
+        if (!errorMessage) {
+          let values: IValue['values'] = [];
+
+          if (latestEditValue.value) {
+            values = [
+              {
+                label: latestEditValue.value,
+                value: latestEditValue.value,
+              },
+            ];
+            if (isMultipleLintEdit) {
+              values = context!.pasteParseMethod(latestEditValue.value).map((item) => ({
+                label: item,
+                value: item,
+              }));
+            }
+          }
+
+          emits('change', {
+            ...props.lastValue,
+            values,
+          });
+        }
       }
-      if (!errorMessage) {
-        emits('change', {
-          ...props.lastValue,
-          values: context!.pasteParseMethod(searchKeyWord.value).map((item) => ({
-            label: item,
-            value: item,
-          })),
-        });
-      }
-    }
+    });
   };
 
   const handleValueMenuChange = (values: IValue['values']) => {
@@ -193,7 +219,7 @@
 
   const handleFocus = () => {
     hideAll();
-    if (isShowValueMenu) {
+    if (isReadonly) {
       showValueMenu();
     }
   };
@@ -218,7 +244,7 @@
     }
     singleEndEditCallback = endEditCallback;
 
-    if (!isShowValueMenu) {
+    if (!isReadonly) {
       editTextareaRef.value!.selectionStart = 0;
       editTextareaRef.value!.selectionEnd = props.lastValueText.length;
     }

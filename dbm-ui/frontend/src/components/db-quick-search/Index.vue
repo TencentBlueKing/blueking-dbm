@@ -9,17 +9,20 @@
   import _ from 'lodash';
   import { useRoute } from 'vue-router';
 
-  import BkQuickSearch, { type IValue, type Props } from './bk-quick-search/Index.vue';
+  import BkQuickSearch, {
+    type IValue,
+    type Props as QuickSearchProps,
+  } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   const props = defineProps<
     {
       parseUrl?: boolean;
-    } & Props
+    } & QuickSearchProps
   >();
 
   const emits = defineEmits<(e: 'change', value: Record<string, string>, payload: IValue[]) => void>();
 
-  const modelValue = defineModel<Record<string, string>>({});
+  const modelValue = defineModel<Record<string, any>>({});
 
   const route = useRoute();
 
@@ -27,7 +30,6 @@
 
   const inhertProps = computed(() => {
     const baseProps = { ...props };
-    delete baseProps['modelValue'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['parseUrl'];
     return baseProps;
