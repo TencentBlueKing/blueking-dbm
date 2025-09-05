@@ -131,3 +131,14 @@ type AddonTopologyQueryParams struct {
 	AddonVersion  string `gorm:"column:addon_version" json:"addonVersion"`
 	TopologyName  string `gorm:"column:topology_name" json:"topologyName"`
 }
+
+// OpsRequestQueryParams opsRequest 查询参数
+type OpsRequestQueryParams struct {
+	ID                 uint64 `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	CrdClusterID       uint64 `gorm:"not null;column:crd_cluster_id" json:"crdClusterId"`
+	K8sClusterConfigID uint64 `gorm:"not null;column:k8s_cluster_config_id" json:"k8sClusterConfigId"`
+	RequestID          string `gorm:"not null;column:request_id" json:"requestId"`
+	OpsRequestName     string `gorm:"size:32;not null;column:opsrequest_name" json:"opsrequestName"`
+	OpsRequestType     string `gorm:"size:32;column:opsrequest_type" json:"opsrequestType"`
+	Status             string `gorm:"size:100;column:status" json:"status"`
+}

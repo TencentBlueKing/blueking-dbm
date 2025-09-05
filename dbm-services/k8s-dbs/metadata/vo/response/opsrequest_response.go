@@ -32,6 +32,7 @@ type K8sCrdOpsResponse struct {
 	Metadata           string                 `json:"metadata"`
 	Spec               string                 `json:"spec"`
 	Status             string                 `json:"status"`
+	CompletedAt        commtypes.JSONDatetime `json:"completedAt"`
 	Description        string                 `json:"description"`
 	CreatedBy          string                 `json:"createdBy"`
 	CreatedAt          commtypes.JSONDatetime `json:"createdAt"`

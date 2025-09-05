@@ -21,7 +21,9 @@ package dbaccess
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 
 	"github.com/pkg/errors"
@@ -36,11 +38,32 @@ type K8sCrdOpsRequestDbAccess interface {
 	FindByID(id uint64) (*models.K8sCrdOpsRequestModel, error)
 	Update(model *models.K8sCrdOpsRequestModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sCrdOpsRequestModel, int64, error)
+	FindByParams(params *metaentity.OpsRequestQueryParams) ([]*models.K8sCrdOpsRequestModel, error)
 }
 
 // K8sCrdOpsRequestDbAccessImpl K8sCrdOpsRequestDbAccess 的具体实现
 type K8sCrdOpsRequestDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindByParams 按照参数查询接口实现
+func (k *K8sCrdOpsRequestDbAccessImpl) FindByParams(params *metaentity.OpsRequestQueryParams) (
+	[]*models.K8sCrdOpsRequestModel,
+	error,
+) {
+	var opsRequestModels []*models.K8sCrdOpsRequestModel
+	err := k.db.
+		Where(params).
+		Order("id desc").
+		Limit(commconst.MaxFetchSize).
+		Find(&opsRequestModels).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find opsRequest with params %+v", params)
+	}
+	return opsRequestModels, nil
 }
 
 // Create 创建元数据接口实现
@@ -74,7 +97,7 @@ func (k *K8sCrdOpsRequestDbAccessImpl) FindByID(id uint64) (*models.K8sCrdOpsReq
 
 // Update 更新元数据接口实现
 func (k *K8sCrdOpsRequestDbAccessImpl) Update(model *models.K8sCrdOpsRequestModel) (uint64, error) {
-	result := k.db.Omit("CreatedAt", "CreatedBy").Save(model)
+	result := k.db.Debug().Omit("CreatedAt", "CreatedBy").Save(model)
 	if result.Error != nil {
 		return 0, errors.Wrapf(result.Error, "failed to update opsRequest with model %+v", model)
 	}
