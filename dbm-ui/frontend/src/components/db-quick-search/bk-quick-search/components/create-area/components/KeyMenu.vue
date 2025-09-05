@@ -22,9 +22,8 @@
 <script setup lang="ts">
   import { toRef, useTemplateRef } from 'vue';
 
-  import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-
-  import useMenuKeyboard from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
+  import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
+  import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
   interface Props {
     data: ContextProps['data'];

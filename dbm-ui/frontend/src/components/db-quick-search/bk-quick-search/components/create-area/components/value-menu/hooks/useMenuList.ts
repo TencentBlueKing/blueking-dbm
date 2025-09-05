@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { computed, shallowRef } from 'vue';
 
-import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 export default <T extends { label: string; value: string | number }>(config: ContextProps['data'][number]) => {
   const filterKey = ref('');

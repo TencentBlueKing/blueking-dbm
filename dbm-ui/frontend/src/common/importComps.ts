@@ -27,7 +27,7 @@ import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
 import DbIcon from '@components/db-icon';
 import DbPopconfirm from '@components/db-popconfirm/index.vue';
-import DbQuickSearch from '@components/db-quick-serach/Index.vue';
+import DbQuickSearch from '@components/db-quick-search/Index.vue';
 import DbSearchSelect from '@components/db-search-select/index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';

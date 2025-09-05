@@ -22,7 +22,7 @@
             class="t-table__filter-pop-item">
             <Checkbox
               :label="item.label"
-              style="flex: 1"
+              style="display: flex; flex: 1; flex-wrap: nowrap; white-space: nowrap"
               :value="item.value" />
           </div>
         </CheckboxGroup>
@@ -39,7 +39,7 @@
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, CheckboxGroup, Input } from 'tdesign-vue-next';
-  import { nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
+  import { nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue';
 
   import { makeMap } from '@utils';
 
@@ -97,7 +97,7 @@
     return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
   });
 
-  watch(list, () => {
+  watch(filterKey, () => {
     nextTick(() => {
       contentMinWidth.value = Math.max(wrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
     });
@@ -125,8 +125,4 @@
   const handleChange = (value: any) => {
     emits('change', value);
   };
-
-  onMounted(() => {
-    contentMinWidth.value = wrapperRef.value!.getBoundingClientRect().width;
-  });
 </script>

@@ -8,6 +8,8 @@ import { getUserList } from '@services/source/user';
 
 import { useGlobalBizs } from '@stores';
 
+import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
 import { makeMap } from '@utils';
 
 const quickSearchValue = ref<Record<string, any>>({});
@@ -16,29 +18,15 @@ export default (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
-  const fetchUserList = (params: { defaultValue?: string; keyword?: string }) => {
-    const requestParams = {};
-    if (params.defaultValue) {
-      Object.assign(requestParams, { exact_lookups: params.defaultValue });
-    }
-    if (params.keyword) {
-      Object.assign(requestParams, { fuzzy_lookups: params.keyword });
-    }
-
-    return getUserList(requestParams).then((data) =>
-      data.results.map((item) => ({
-        label: `${item.display_name}(${item.username})`,
-        value: item.username,
-      })),
-    );
-  };
-
   const quickSearchData = computed(() => {
-    const serachList = [
+    const serachList: Props['data'] = [
       {
-        description: t('支持输入多个'),
         id: 'ids',
         name: t('单号'),
+        type: 'multiple-input',
+        validator: (value: string) => {
+          return !isNaN(Number(value));
+        },
       },
       {
         id: 'ticket_type__in',
@@ -47,9 +35,10 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'multiple-cascader',
       },
       {
-        description: t('支持输入多个'),
+        description: t('支持输入模糊搜索'),
         id: 'cluster',
         name: t('集群'),
+        type: 'multiple-input',
       },
       {
         id: 'bk_biz_ids',
@@ -75,11 +64,27 @@ export default (options = {} as { exclude: string[] }) => {
       {
         id: 'remark',
         name: t('备注'),
+        type: 'input',
       },
       {
         id: 'creator',
         name: t('申请人'),
-        remoteMethod: (params: Parameters<typeof fetchUserList>[0]) => fetchUserList(params),
+        remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+          const requestParams = {};
+          if (params.defaultValue) {
+            Object.assign(requestParams, { exact_lookups: params.defaultValue });
+          }
+          if (params.keyword) {
+            Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+          }
+
+          return getUserList(requestParams).then((data) =>
+            data.results.map((item) => ({
+              label: `${item.display_name} (${item.username})`,
+              value: item.username,
+            })),
+          );
+        },
         remoteSearch: true,
         type: 'multiple',
       },
@@ -120,7 +125,7 @@ export default (options = {} as { exclude: string[] }) => {
         },
         type: 'datetime-range',
       },
-    ];
+    ] as const;
 
     if (!options.exclude) {
       return serachList;

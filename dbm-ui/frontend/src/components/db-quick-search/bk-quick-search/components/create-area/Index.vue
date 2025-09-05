@@ -1,7 +1,10 @@
 <template>
   <div
     ref="root"
-    class="bk-quick-search-edit-area">
+    class="bk-quick-search-create-area"
+    :class="{
+      'is-focused': Boolean(currentDataConfig),
+    }">
     <div
       v-if="localValue.name"
       class="edit-area-input-name">
@@ -10,9 +13,7 @@
     <div
       v-if="data.length > 0"
       class="edit-area-input">
-      <div style="min-height: 22px; word-break: break-all; white-space: pre; visibility: hidden">
-        {{ inputValue }}
-      </div>
+      <div :style="inputValueBoxStyles">{{ inputValue }}\u200B</div>
       <textarea
         ref="textarea"
         name="search"
@@ -23,6 +24,22 @@
         @focus="handleFocus"
         @keydown="handleKeydown"
         @keyup="handleKeyup" />
+      <div
+        v-if="isMultipleLintEdit || isSingleEdit"
+        style="
+          position: absolute;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          padding-left: 4px;
+          margin-left: -4px;
+          color: #c4c6cc;
+          pointer-events: none;
+          background: #fafbfd;
+        ">
+        <span v-if="isMultipleLintEdit">输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+        <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+      </div>
     </div>
   </div>
   <div ref="keyMenu">
@@ -51,12 +68,13 @@
   import _ from 'lodash';
   import { onMounted, ref, shallowRef, useTemplateRef } from 'vue';
 
-  import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-  import { BK_QUICK_SEARCH } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+  import useMenuPop, { update as updateMenuPop } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
+  import useOutSideClick from '@components/db-quick-search/bk-quick-search/hooks/useOutSideClick';
+  import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { calcNeedShowValueMenu } from '@components/db-quick-search/bk-quick-search/utils';
 
-  import useMenuPop, { update as updateMenuPop } from '@/components/db-quick-serach/bk-quick-search/hooks/useMenuPop';
-  import useOutSideClick from '@/components/db-quick-serach/bk-quick-search/hooks/useOutSideClick';
-  import { calcNeedShowValueMenu } from '@/components/db-quick-serach/bk-quick-search/utils';
+  import { comType } from '../../constants';
 
   import KeyMenu from './components/KeyMenu.vue';
   import SuggestMenu from './components/SuggestMenu.vue';
@@ -114,12 +132,28 @@
     }
     return '请输入';
   });
-
-  const needShowValueMenu = computed(() => {
+  const isNeedShowValueMenu = computed(() => {
     if (!currentDataConfig.value || props.data.length < 1) {
       return false;
     }
     return calcNeedShowValueMenu(currentDataConfig.value);
+  });
+  const isMultipleLintEdit = computed(() => currentDataConfig.value?.type === comType.MULTIPLE_INPUT);
+  const isSingleEdit = computed(() => currentDataConfig.value?.type === comType.INPUT);
+  const inputValueBoxStyles = computed<any>(() => {
+    const baseStyles = {
+      minHeight: '22px',
+      visibility: 'hidden',
+      'white-space': 'pre',
+      wordBreak: 'break-all',
+    };
+    if (currentDataConfig.value) {
+      Object.assign(baseStyles, {
+        'padding-bottom': isNeedShowValueMenu.value ? 0 : `22px`,
+      });
+    }
+
+    return baseStyles;
   });
 
   const { hide: hideKeyMenu, isShow: isShowKeyMenu, show: showKeyMenu } = useMenuPop(textareaRef, keyMenuRef);
@@ -140,12 +174,12 @@
 
   const restartSelect = () => {
     hideMenuPop();
-    if (props.data.length > 0) {
-      showKeyMenu();
-    }
     localValue.value = genDefaultValue();
     inputValue.value = '';
     setTimeout(() => {
+      if (props.data.length > 0) {
+        showKeyMenu();
+      }
       currentDataConfig.value = undefined;
     }, 100);
   };
@@ -157,7 +191,7 @@
     }
     // 选中了 Key
     if (currentDataConfig.value) {
-      if (needShowValueMenu.value) {
+      if (isNeedShowValueMenu.value) {
         // value 需要通过下拉面板设置
         showValueMenu();
       }
@@ -178,8 +212,11 @@
 
   // 获得焦点自动弹框 key 选择面板
   const handleFocus = () => {
-    showCurrentPop();
     emits('focus');
+    // 聚焦时会整个输入框有高度变化，需要延迟显示面板
+    setTimeout(() => {
+      showCurrentPop();
+    }, 20);
   };
 
   // 失去焦点
@@ -212,10 +249,14 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
+    // 手动输入模式支持 Shfit + Enter 换行
+    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
+      return true;
+    }
     if (['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
     }
-    if (needShowValueMenu.value && !['Backspace'].includes(event.code)) {
+    if (isNeedShowValueMenu.value && !['Backspace'].includes(event.code)) {
       event.preventDefault();
     }
   };
@@ -225,10 +266,14 @@
     setTimeout(() => {
       inputValue.value = (event.target as HTMLInputElement).value;
 
+      // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
+      if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
+        return true;
+      }
+
       if (['ArrowDown', 'ArrowUp'].includes(event.code)) {
         event.preventDefault();
       } else if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
-        console.log('enter');
         event.preventDefault();
         // 没有选择 key
         if (isShowKeyMenu.value || !currentDataConfig.value) {
@@ -239,14 +284,21 @@
           return;
         }
         // 在选择面板中选择值，不想要输入框输入
-        if (needShowValueMenu.value) {
+        if (isNeedShowValueMenu.value) {
           return;
         }
         // value 使用 input 的值
         let errorMessage = '';
-        if (currentDataConfig.value!.validator) {
-          const result = currentDataConfig.value.validator(inputValue.value);
-          if (_.isString(result)) {
+        if ((isMultipleLintEdit || isSingleEdit) && _.isFunction(currentDataConfig.value.validator)) {
+          let result: boolean | string = true;
+          if (isMultipleLintEdit) {
+            const valueList = context!.pasteParseMethod(inputValue.value);
+            result = _.every(valueList, (item) => currentDataConfig.value!.validator!(item) === true);
+          } else if (isSingleEdit) {
+            result = currentDataConfig.value.validator(inputValue.value);
+          }
+
+          if (result && _.isString(result)) {
             errorMessage = result;
           } else {
             errorMessage = result ? '' : '格式不正确';
@@ -254,13 +306,23 @@
           emits('error', errorMessage);
         }
         if (!errorMessage) {
-          const values = context!.pasteParseMethod(inputValue.value);
-          handleValueMenuChange(
-            values.map((item) => ({
+          // 默认直接使用输入的值搜索
+          let values = [
+            {
+              label: inputValue.value,
+              value: inputValue.value,
+            },
+          ];
+
+          // 如果允许输入多个需要解析分隔符
+          if (currentDataConfig.value.type === comType.MULTIPLE_INPUT) {
+            values = context!.pasteParseMethod(inputValue.value).map((item) => ({
               label: item,
               value: item,
-            })),
-          );
+            }));
+          }
+
+          handleValueMenuChange(values);
         }
         return;
       } else if (['Backspace'].includes(event.code)) {
@@ -288,7 +350,7 @@
       } else if (!currentDataConfig.value) {
         inputValue.value && showSuggestMenu();
       } else if (currentDataConfig.value) {
-        needShowValueMenu.value && showValueMenu();
+        isNeedShowValueMenu.value && showValueMenu();
       }
       latestInputValue = inputValue.value;
     });
@@ -307,7 +369,7 @@
   });
 </script>
 <style lang="less">
-  .bk-quick-search-edit-area {
+  .bk-quick-search-create-area {
     position: relative;
     display: inline-flex;
     max-width: 100%;
@@ -318,6 +380,10 @@
     color: #63656e;
     flex: 1 0 auto;
     align-items: self-start;
+
+    &.is-focused {
+      flex: 0 0 100%;
+    }
 
     .edit-area-input-name {
       flex: 0 0 auto;

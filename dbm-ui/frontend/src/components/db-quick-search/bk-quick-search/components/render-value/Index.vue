@@ -2,7 +2,6 @@
   <ValueTag
     :class="{
       'is-custom-input': isFocused && isCustomInput,
-      'is-single-input': isFocused && !isReadonly,
     }"
     :focued="isFocused"
     role="search-value"
@@ -16,7 +15,6 @@
         :config="currentDataConfig"
         :last-value="value"
         :last-value-text="lastValueText"
-        :readonly="isReadonly"
         @change="handleChange"
         @error="handleEditError" />
     </template>
@@ -31,10 +29,9 @@
   import _ from 'lodash';
   import { computed, ref } from 'vue';
 
-  import ValueTag from '@components/db-quick-serach/bk-quick-search/components/ValueTag.vue';
-  import type { IValue, Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-
-  import { calcNeedShowValueMenu, getValuesText } from '@/components/db-quick-serach/bk-quick-search/utils';
+  import ValueTag from '@components/db-quick-search/bk-quick-search/components/ValueTag.vue';
+  import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { calcNeedShowValueMenu, getValuesText } from '@components/db-quick-search/bk-quick-search/utils';
 
   import TagEdit from './components/TagEdit.vue';
 
@@ -54,7 +51,6 @@
 
   const currentDataConfig = _.find(props.data, (item) => item.id === props.value.id) as Props['data'][number];
   const isCustomInput = !calcNeedShowValueMenu(currentDataConfig);
-  const isReadonly = Boolean(currentDataConfig.type) || Boolean(currentDataConfig.component);
 
   const isFocused = ref(false);
   const lastValueText = computed(() => getValuesText(props.value.values, currentDataConfig));

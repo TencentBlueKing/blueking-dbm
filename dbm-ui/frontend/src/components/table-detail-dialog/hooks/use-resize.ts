@@ -56,7 +56,7 @@ export default (rootRef: Ref<HTMLDivElement | null>, resizeHandleRef: Ref<HTMLDi
   });
 
   onBeforeUnmount(() => {
-    resizeHandleRef.value!.removeEventListener('mousedown', handleMousedown);
+    resizeHandleRef.value?.removeEventListener('mousedown', handleMousedown);
   });
 
   return {

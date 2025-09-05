@@ -1,6 +1,6 @@
 import { defineComponent, h, type PropType } from 'vue';
 
-import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
+import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 export default defineComponent({
   props: {

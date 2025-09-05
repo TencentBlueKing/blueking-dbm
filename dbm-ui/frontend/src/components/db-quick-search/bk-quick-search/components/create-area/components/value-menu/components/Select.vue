@@ -1,7 +1,7 @@
 <template>
   <div
     ref="root"
-    class="bk-quick-search-type-mult-select"
+    class="bk-quick-search-type-select"
     :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-type-menu-filter-box">
       <Input
@@ -22,14 +22,14 @@
           class="value-item"
           :class="{ active: activeIndex === index }"
           @click="handleChange(valueItem)">
-          <Checkbox
-            :checked="Boolean(checkedMap[valueItem.value])"
+          <Radio
+            :checked="valueItem.value === localValue"
             style="pointer-events: none" />
           {{ valueItem.label }}
         </div>
       </div>
       <div
-        v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
+        v-if="filterKey && renderList.length < 1"
         class="bk-quick-search-type-menu-filter-empty">
         <BkException
           description="搜索为空"
@@ -42,12 +42,12 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { SearchIcon } from 'tdesign-icons-vue-next';
-  import { Checkbox, Input } from 'tdesign-vue-next';
-  import { computed, onMounted, ref, useTemplateRef } from 'vue';
+  import { Input, Radio } from 'tdesign-vue-next';
+  import { onMounted, ref, useTemplateRef } from 'vue';
 
-  import useMenuKeyboard from '@components/db-quick-serach/bk-quick-search/hooks/useMenuKeyboard';
-  import type { Props as ContextProps } from '@components/db-quick-serach/bk-quick-search/Index.vue';
-  import { makeMap } from '@components/db-quick-serach/bk-quick-search/utils';
+  import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
+  import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { makeMap } from '@components/db-quick-search/bk-quick-search/utils';
 
   import useMenuList from '../hooks/useMenuList';
 
@@ -74,23 +74,13 @@
 
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
 
-  const rootRef = useTemplateRef('root');
+  const rootRef = useTemplateRef<HTMLElement>('root');
   const layoutRef = useTemplateRef('layout');
-  const localValue = ref<IResult[]>([]);
   const contentMinWidth = ref(0);
-
-  const checkedMap = computed(() =>
-    localValue.value.reduce(
-      (result, item) =>
-        Object.assign(result, {
-          [item.value]: true,
-        }),
-      {} as Record<string, boolean>,
-    ),
-  );
+  const localValue = ref<string | number>('');
 
   const renderList = computed(() => {
-    const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
+    const keyword = filterKey.value.trim().toLowerCase();
     if (!keyword) {
       const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
       return [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
@@ -99,46 +89,32 @@
     return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
   });
 
-  let isInnerSelfChange = false;
   watch(
     modelValue,
     () => {
-      if (isInnerSelfChange) {
-        isInnerSelfChange = false;
+      if (modelValue.value.length < 1) {
         return;
       }
 
-      localValue.value = [...modelValue.value];
+      localValue.value = modelValue.value[0]!.value;
     },
     {
       immediate: true,
     },
   );
 
-  watch(
-    list,
-    () => {
-      if (list.value.length < 1) {
-        return;
-      }
-      nextTick(() => {
-        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(list, () => {
+    if (list.value.length < 1) {
+      return;
+    }
+    nextTick(() => {
+      contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+    });
+  });
 
   const handleChange = (data: IResult) => {
-    if (checkedMap.value[data.value]) {
-      localValue.value = _.filter(localValue.value, (item) => item.value !== data.value);
-    } else {
-      localValue.value = [...localValue.value, data];
-    }
-
-    isInnerSelfChange = true;
-    emits('change', [...localValue.value]);
+    localValue.value = data.value;
+    emits('change', [data]);
   };
 
   const { activeIndex } = useMenuKeyboard(renderList, rootRef, (value) => {
@@ -150,7 +126,7 @@
   });
 </script>
 <style lang="less">
-  .bk-quick-search-type-mult-select {
+  .bk-quick-search-type-select {
     padding-bottom: 8px;
   }
 </style>

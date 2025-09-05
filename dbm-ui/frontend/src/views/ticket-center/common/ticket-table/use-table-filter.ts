@@ -126,7 +126,7 @@ export default () => {
             }
             return getUserList(requestParams).then((res) =>
               res.results.map((item) => ({
-                label: item.display_name,
+                label: `${item.display_name} (${item.username})`,
                 value: item.username,
               })),
             );
