@@ -20,8 +20,8 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
-        key="AlarmEventsTodo"
-        v-db-console="'personalWorkbench.AlarmEventsTodo'">
+        key="platformAlarmEventsTodo"
+        v-db-console="'personalWorkbench.platformAlarmEventsTodo'">
         <template #icon>
           <DbIcon type="warning" />
         </template>
