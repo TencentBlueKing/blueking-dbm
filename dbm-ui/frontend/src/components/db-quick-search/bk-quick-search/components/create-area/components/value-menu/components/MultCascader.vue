@@ -2,7 +2,7 @@
   <div
     class="bk-quick-search-type-mult-cascader"
     :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
-    <div class="bk-quick-search-type-menu-filter-box">
+    <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
         borderless
@@ -62,7 +62,7 @@
       </div>
       <div
         v-if="isSearching && renderSearchList.length < 1"
-        class="bk-quick-search-type-menu-filter-empty">
+        class="bk-quick-search-value-panel-filter-empty">
         <BkException
           description="搜索为空"
           scene="part"

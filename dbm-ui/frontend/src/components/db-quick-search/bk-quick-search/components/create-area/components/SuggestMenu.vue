@@ -1,7 +1,7 @@
 <template>
   <div
     ref="root"
-    class="bk-quick-search-suggest-menu">
+    class="bk-quick-search-suggest-panel">
     <div
       v-for="(item, index) in renderList"
       :key="index"
@@ -15,12 +15,31 @@
     </div>
     <div
       v-if="renderList.length < 1"
-      class="bk-quick-search-suggest-menu-empty">
+      class="bk-quick-search-suggest-panel-empty">
       不支持搜索 "
       <span>
         {{ keyword }}
       </span>
       " 相关数据
+    </div>
+  </div>
+  <div
+    key="submitTips"
+    class="bk-quick-search-panel-footer">
+    <div class="bk-quick-search-panel-submit-tips">
+      <div class="action-tips">
+        <div class="tag">
+          <DbIcon type="up-big" />
+        </div>
+        <div class="tag">
+          <DbIcon type="down-big" />
+        </div>
+        <span>移动光标</span>
+      </div>
+      <div class="action-tips">
+        <div class="tag">Enter</div>
+        <span>选中</span>
+      </div>
     </div>
   </div>
 </template>
@@ -175,12 +194,11 @@
   );
 </script>
 <style lang="less">
-  .bk-quick-search-suggest-menu {
+  .bk-quick-search-suggest-panel {
     max-height: 350px;
     min-width: 230px;
     min-height: 32px;
     padding: 8px 0;
-    margin: -5px -9px;
     overflow: hidden auto;
     font-size: 12px;
     pointer-events: all;
@@ -225,7 +243,7 @@
     }
   }
 
-  .bk-quick-search-suggest-menu-empty {
+  .bk-quick-search-suggest-panel-empty {
     display: flex;
     max-width: 30vw;
     padding: 8px 16px;

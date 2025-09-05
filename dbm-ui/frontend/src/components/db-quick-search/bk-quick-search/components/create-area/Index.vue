@@ -293,7 +293,13 @@
           let result: boolean | string = true;
           if (isMultipleLintEdit) {
             const valueList = context!.pasteParseMethod(inputValue.value);
-            result = _.every(valueList, (item) => currentDataConfig.value!.validator!(item) === true);
+            for (const valueItem of valueList) {
+              const valueItemResult = currentDataConfig.value!.validator!(valueItem);
+              if (valueItemResult !== true) {
+                result = valueItemResult;
+                break;
+              }
+            }
           } else if (isSingleEdit) {
             result = currentDataConfig.value.validator(inputValue.value);
           }
@@ -417,6 +423,42 @@
           color: #c4c6cc;
         }
       }
+    }
+  }
+
+  .bk-quick-search-panel-footer {
+    display: flex;
+    height: 40px;
+    padding: 8px 12px;
+    border-top: 1px solid #dcdee5;
+    user-select: none;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .bk-quick-search-panel-submit-tips {
+    display: flex;
+    margin-right: auto;
+    font-size: 12px;
+    color: #7a8599;
+
+    .action-tips {
+      margin-right: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      height: 16px;
+      padding: 0 2px;
+      margin-right: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #a3b1cc;
+      background: rgb(163 177 204 / 16.1%);
+      border: 1px solid rgb(163 177 204 / 30.2%);
+      border-radius: 2px;
+      align-items: center;
+      justify-content: center;
     }
   }
 </style>

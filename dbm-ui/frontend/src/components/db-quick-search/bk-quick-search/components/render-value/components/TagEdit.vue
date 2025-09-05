@@ -16,6 +16,7 @@
         v-model="latestEditValue"
         autocomplete="false"
         :name="config.name"
+        :placeholder="isReadonly ? lastValueText : ''"
         spellcheck="false"
         :style="{
           'padding-bottom': isReadonly ? '' : `${valueTextSingleLineHeight}px`,
@@ -127,9 +128,12 @@
   // 计算输入框宽度，优先撑满
   const calcInputStyle = () => {
     setTimeout(() => {
+      if (!calcTextWidthRef.value) {
+        return;
+      }
       inputStyles.value = {
         position: 'relative',
-        width: isReadonly ? `${calcTextWidthRef.value!.getBoundingClientRect().width}px` : '100%',
+        width: isReadonly ? `${calcTextWidthRef.value.getBoundingClientRect().width}px` : '100%',
         'z-index': 1,
       };
     });
@@ -170,7 +174,13 @@
           let result: boolean | string = true;
           if (isMultipleLintEdit) {
             const valueList = context!.pasteParseMethod(latestEditValue.value);
-            result = _.every(valueList, (item) => props.config.validator!(item) === true);
+            for (const valueItem of valueList) {
+              const valueItemResult = props.config.validator!(valueItem);
+              if (valueItemResult !== true) {
+                result = valueItemResult;
+                break;
+              }
+            }
           } else if (isSingleEdit) {
             result = props.config.validator(latestEditValue.value);
           }
@@ -230,7 +240,7 @@
     for (const target of eventPath) {
       // 如果点击的元素是已选择的 tag，则不开始选择
       // 已选择的 tag 的 role 属性为 search-value
-      if (target === rootRef.value || /bk-quick-search-type-popover/.test(target.dataset?.theme ?? '')) {
+      if (target === rootRef.value || /bk-quick-search-panel-theme/.test(target.dataset?.theme ?? '')) {
         return;
       }
     }

@@ -1,5 +1,5 @@
 <template>
-  <div class="bk-quick-search-type-menu">
+  <div class="bk-quick-search-value-panel">
     <ElConfigProvider :locale="zhCn">
       <component
         :is="renderCom"
@@ -10,9 +10,9 @@
     </ElConfigProvider>
     <div
       v-if="isNeedComfirmAndReset || isSupportQuickSelect"
-      class="bk-quick-search-type-menu-footer">
-      <div class="bk-quick-search-quick-submit-tips">
-        <!-- <template v-if="isSupportQuickSelect">
+      class="bk-quick-search-panel-footer">
+      <div class="bk-quick-search-panel-submit-tips">
+        <template v-if="isSupportQuickSelect">
           <div class="action-tips">
             <div class="tag">
               <DbIcon type="up-big" />
@@ -30,9 +30,18 @@
         <div
           v-if="isNeedComfirmAndReset"
           class="action-tips">
-          <div class="tag">Ctrl + Enter</div>
+          <div
+            v-if="isMacOs"
+            class="tag">
+            Cmd + Enter
+          </div>
+          <div
+            v-else
+            class="tag">
+            Ctrl + Enter
+          </div>
           <span>确定</span>
-        </div> -->
+        </div>
       </div>
       <template v-if="isNeedComfirmAndReset">
         <Button
@@ -55,7 +64,7 @@
   import { ElConfigProvider } from 'element-plus';
   import zhCn from 'element-plus/es/locale/lang/zh-cn';
   import { Button } from 'tdesign-vue-next';
-  import { computed } from 'vue';
+  import { computed, onMounted } from 'vue';
 
   import { comType } from '@components/db-quick-search/bk-quick-search/constants';
   import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -85,6 +94,8 @@
 
   // modelValue 类型支持所有值，由各个组件自行处理
   const modelValue = defineModel<any[]>();
+
+  const isMacOs = /Mac OS X ([\d_]+)/.test(navigator.userAgent);
 
   const renderCom = computed(() => {
     if (
@@ -157,11 +168,29 @@
   };
 
   const handleConfirm = () => {
-    emits('change', modelValue.value!);
+    emits('change', modelValue.value || []);
   };
+
+  onMounted(() => {
+    const handleQuickConfigm = (event: KeyboardEvent) => {
+      if (!isNeedComfirmAndReset.value) {
+        return;
+      }
+
+      if (event.code === 'Enter') {
+        if ((isMacOs && event.metaKey) || (!isMacOs && event.ctrlKey)) {
+          handleConfirm();
+        }
+      }
+    };
+    document.body.addEventListener('keydown', handleQuickConfigm);
+    onBeforeUnmount(() => {
+      document.body.removeEventListener('keydown', handleQuickConfigm);
+    });
+  });
 </script>
 <style lang="less">
-  .bk-quick-search-type-menu {
+  .bk-quick-search-value-panel {
     --td-brand-color: #3f87ff;
     --td-brand-color-hover: #5594fa;
     --el-datepicker-active-color: #3f87ff;
@@ -169,7 +198,6 @@
     --el-color-primary: #3f87ff;
 
     padding: 0;
-    margin: -5px -9px;
     font-size: 12px;
 
     .el-date-picker,
@@ -206,7 +234,7 @@
     }
   }
 
-  .bk-quick-search-type-menu-filter-box {
+  .bk-quick-search-value-panel-filter-box {
     padding: 8px 12px 0;
 
     .t-input {
@@ -222,7 +250,7 @@
   }
 
   .bk-quick-search-value-wrapper {
-    max-height: 350px;
+    max-height: 280px;
     min-width: 230px;
     min-height: 32px;
     margin-top: 8px;
@@ -231,46 +259,11 @@
     pointer-events: all;
   }
 
-  .bk-quick-search-type-menu-filter-empty {
+  .bk-quick-search-value-panel-filter-empty {
     padding: 8px 16px;
     margin-top: -30px;
     color: #63656e;
     text-align: center;
     flex: 1;
-  }
-
-  .bk-quick-search-type-menu-footer {
-    display: flex;
-    justify-content: flex-end;
-    padding: 8px 12px;
-    align-items: center;
-    border-top: 1px solid #dcdee5;
-    user-select: none;
-  }
-
-  .bk-quick-search-quick-submit-tips {
-    display: flex;
-    margin-right: auto;
-    font-size: 12px;
-    color: #7a8599;
-
-    .action-tips {
-      margin-right: 12px;
-    }
-
-    .tag {
-      display: inline-flex;
-      height: 16px;
-      padding: 0 2px;
-      margin-right: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #a3b1cc;
-      background: rgb(163 177 204 / 16.1%);
-      border: 1px solid rgb(163 177 204 / 30.2%);
-      border-radius: 2px;
-      align-items: center;
-      justify-content: center;
-    }
   }
 </style>

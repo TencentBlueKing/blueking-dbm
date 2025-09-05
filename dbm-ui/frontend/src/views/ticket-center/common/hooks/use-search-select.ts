@@ -25,7 +25,7 @@ export default (options = {} as { exclude: string[] }) => {
         name: t('单号'),
         type: 'multiple-input',
         validator: (value: string) => {
-          return !isNaN(Number(value));
+          return !isNaN(Number(value)) ? true : t('单号只支持数字');
         },
       },
       {
