@@ -44,7 +44,7 @@
         pointer-events: none;
         background: #fafbfd;
       ">
-      <span v-if="isMultipleLintEdit">输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+      <span v-if="isMultipleLintEdit">支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
       <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
     </div>
   </div>
@@ -140,9 +140,8 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
-    calcInputStyle();
     // 手动输入模式支持 Shfit + Enter 换行
-    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
+    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey && !isReadonly) {
       return true;
     }
     // 不响应方向键，Enter
@@ -153,6 +152,7 @@
     if (isReadonly) {
       event.preventDefault();
     }
+    calcInputStyle();
   };
 
   const handleKeyup = (event: KeyboardEvent) => {

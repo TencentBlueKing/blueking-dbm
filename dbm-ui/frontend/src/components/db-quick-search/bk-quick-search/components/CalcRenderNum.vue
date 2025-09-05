@@ -53,7 +53,7 @@
 
   const calcTagSize = _.throttle(
     () => {
-      if (!currentInstance?.proxy?.$el) {
+      if (!currentInstance?.proxy?.$el || !rootRef.value) {
         isShow.value = false;
         return;
       }
@@ -71,7 +71,7 @@
         isShow.value = false;
         return;
       }
-      const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
+      const { width: maxWidth } = rootRef.value.getBoundingClientRect();
 
       const spaceWidth = props.valueList.length > modelValue.value ? 180 : 150;
 
