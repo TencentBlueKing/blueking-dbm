@@ -614,6 +614,25 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
         return "redis-" + version_str
 
 
+def get_proxy_version_by_ip(cluster_id: int, ip: str) -> str:
+    """
+    根据提供的IP获取 proxy 版本信息
+    """
+    cluster = Cluster.objects.prefetch_related(
+        "proxyinstance_set",
+        "proxyinstance_set__machine",
+    ).get(id=cluster_id)
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    proxy = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, machine__ip=ip).first()
+    if not proxy:
+        raise Exception(_("Redis集群 {} 中没有找到IP为 {} 且运行中的Proxy机器").format(cluster.immute_domain, ip))
+    if is_predixy_proxy_type(cluster.cluster_type):
+        return get_online_predixy_version(ip, proxy.port, cluster.bk_cloud_id, passwd_ret.get("redis_proxy_password"))
+    elif is_twemproxy_proxy_type(cluster.cluster_type):
+        return get_online_twemproxy_version(ip, proxy.port, cluster.bk_cloud_id)
+    return "unknown cluster type"
+
+
 def get_cluster_proxy_version(cluster_id: int, target_ips: set = None) -> list:
     """
     获取redis cluster proxy版本列表
@@ -637,6 +656,18 @@ def get_cluster_proxy_version(cluster_id: int, target_ips: set = None) -> list:
             if not target_ips or proxy.machine.ip in target_ips:
                 versions.add(get_online_twemproxy_version(proxy.machine.ip, proxy.port, cluster.bk_cloud_id))
     return list(versions)
+
+
+def get_redis_version_by_ip(cluster_id: int, ip: str) -> str:
+    cluster = Cluster.objects.prefetch_related(
+        "storageinstance_set",
+        "storageinstance_set__machine",
+    ).get(id=cluster_id)
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    instance = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING, machine__ip=ip).first()
+    if not instance:
+        raise Exception(_("redis集群 {} 中没有找到IP为 {} 且运行中的Backend机器").format(cluster.immute_domain, ip))
+    return get_online_redis_version(ip, instance.port, cluster.bk_cloud_id, passwd_ret.get("redis_password"))
 
 
 def get_cluster_redis_version(cluster_id: int) -> str:
