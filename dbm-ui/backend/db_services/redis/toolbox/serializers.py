@@ -215,7 +215,7 @@ class QueryClusterIpsSerializer(serializers.Serializer):
 
 
 class GetClusterVersionSerializer(serializers.Serializer):
-    cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     node_type = serializers.ChoiceField(help_text=_("集群节点类型"), choices=RedisVerUpdateNodeType.get_choices())
     type = serializers.ChoiceField(help_text=_("请求版本类型"), choices=RedisVersionQueryType.get_choices())
 
