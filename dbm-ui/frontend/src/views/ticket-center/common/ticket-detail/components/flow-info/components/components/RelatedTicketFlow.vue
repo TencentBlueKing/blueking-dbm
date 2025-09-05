@@ -100,7 +100,7 @@
     }
 
     .db-time-line-icon {
-      background-color: #f5f7fa;
+      background-color: #ebf2ff;
     }
   }
 </style>

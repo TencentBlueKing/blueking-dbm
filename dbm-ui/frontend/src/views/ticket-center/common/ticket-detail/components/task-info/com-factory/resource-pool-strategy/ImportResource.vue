@@ -98,7 +98,7 @@
     <InfoItem
       :label="t('资源标签')"
       style="flex: 1 0 100%">
-      <TagBlock :data="ticketDetails.details.label_names || []" />
+      <TagBlock :data="ticketDetails.details.label_names" />
     </InfoItem>
   </InfoList>
 </template>

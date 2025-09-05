@@ -66,11 +66,7 @@
     <BkTableColumn
       field="bk_cpu"
       :label="t('CPU_核_')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
-        {{ rowData.bk_cpu || '--' }}
-      </template>
-    </BkTableColumn>
+      :min-width="100" />
     <BkTableColumn
       field="bk_mem"
       :label="t('内存G')"
@@ -82,11 +78,7 @@
     <BkTableColumn
       field="bk_disk"
       :label="t('磁盘G')"
-      :min-width="100">
-      <template #default="{ data: rowData }: { data: IResouce }">
-        {{ rowData.bk_disk || '--' }}
-      </template>
-    </BkTableColumn>
+      :min-width="100" />
   </BkTable>
 </template>
 <script setup lang="ts">
