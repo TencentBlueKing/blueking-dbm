@@ -19,11 +19,6 @@
       <DisplayBox
         cluster-detail-router-name="redisClusterHaDetail"
         :data="data">
-        <template #load>
-          <ClusterLoad
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            :domain="data.master_domain" />
-        </template>
         <OperationBtnStatusTips
           v-bk-tooltips="{
             content: t('暂不支持跨管控区域提取Key'),
@@ -223,12 +218,6 @@
                 :cluster-type="ClusterTypes.REDIS_INSTANCE"
                 :data="data.slaveEntryList" />
             </template>
-            <template #load>
-              <ClusterLoad
-                :cluster-type="ClusterTypes.REDIS_INSTANCE"
-                :domain="data.master_domain"
-                type="text" />
-            </template>
             <template #moduleNames>
               <TagBlock :data="data.module_names" />
             </template>
@@ -258,7 +247,6 @@
 
   import { ActionPanel, BaseInfo, DisplayBox, SlaveDomain } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
-  import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
   import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
