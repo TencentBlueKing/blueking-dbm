@@ -43,13 +43,13 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 // initClusterController 初始化 ClusterController
 func initClusterController(db *gorm.DB) *controller.ClusterController {
 	clusterProvider := routerutil.BuildClusterProvider(db)
-	k8sCrdClusterProvider := routerutil.BuildClusterMetaProvider(db)
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
 	opsRequestProvider := routerutil.BuildK8sCrdOpsRequestProvider(db)
 	clusterOpsProvider := core.BuildOpsRequestProvider(db, clusterProvider)
 
 	return controller.NewClusterController(
 		clusterProvider,
-		k8sCrdClusterProvider,
+		clusterMetaProvider,
 		opsRequestProvider,
 		clusterOpsProvider,
 	)
