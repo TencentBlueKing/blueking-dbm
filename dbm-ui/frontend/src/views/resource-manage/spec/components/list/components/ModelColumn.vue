@@ -33,7 +33,7 @@
                 </BkTag>
               </div>
             </template>
-            <strong>{{ t('磁盘') }}: </strong>
+            <strong>{{ t('数据盘') }}: </strong>
             <div class="resource-machine-info-values">
               <template v-if="data.storage_spec.length > 0">
                 <p
@@ -74,7 +74,7 @@
             </BkTag>
           </template>
           <BkTag class="machine-info-storage">
-            {{ t('磁盘') }} =
+            {{ t('数据盘') }} =
             <template v-if="data.storage_spec.length > 0">
               <span
                 v-for="(item, index) in data.storage_spec"

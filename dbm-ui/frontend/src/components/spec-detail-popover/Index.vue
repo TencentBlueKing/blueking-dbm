@@ -24,7 +24,7 @@
             <InfoItem label="CPU"> ({{ data.cpu.min }} ~ {{ data.cpu.max }}) {{ t('核') }} </InfoItem>
             <InfoItem :label="t('内存')"> ({{ data.mem.min }} ~ {{ data.mem.max }}) G </InfoItem>
           </template>
-          <InfoItem :label="t('磁盘')">
+          <InfoItem :label="t('数据盘')">
             <BkTable :data="data.storage_spec">
               <BkTableColumn
                 field="mount_point"

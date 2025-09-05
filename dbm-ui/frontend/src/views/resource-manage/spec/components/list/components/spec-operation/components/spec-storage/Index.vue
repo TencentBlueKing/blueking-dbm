@@ -18,7 +18,7 @@
       'not-required': !isRequired,
     }">
     <div class="spec-form-item-label">
-      {{ t('磁盘') }}
+      {{ t('数据盘') }}
     </div>
     <div class="spec-form-item-content">
       <BkButton
