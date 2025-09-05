@@ -35,7 +35,7 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'multiple-cascader',
       },
       {
-        description: t('支持输入模糊搜索'),
+        description: t('支持模糊搜索'),
         id: 'cluster',
         name: t('集群'),
         type: 'multiple-input',

@@ -37,7 +37,7 @@
           pointer-events: none;
           background: #fafbfd;
         ">
-        <span v-if="isMultipleLintEdit">输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
+        <span v-if="isMultipleLintEdit">支持输入多个值 ”Shift + Enter“ 换行，按”Enter“完成搜索</span>
         <span v-if="isSingleEdit">”Shift + Enter“ 换行，按”Enter“完成搜索</span>
       </div>
     </div>
@@ -250,12 +250,18 @@
 
   const handleKeydown = (event: KeyboardEvent) => {
     // 手动输入模式支持 Shfit + Enter 换行
-    if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
+    if (
+      ['Enter', 'NumpadEnter'].includes(event.code) &&
+      event.shiftKey &&
+      currentDataConfig.value &&
+      !isNeedShowValueMenu.value
+    ) {
       return true;
     }
     if (['ArrowDown', 'ArrowUp', 'Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
       event.preventDefault();
     }
+    // 通过选择面板选择值时只识别删除操作
     if (isNeedShowValueMenu.value && !['Backspace'].includes(event.code)) {
       event.preventDefault();
     }
@@ -276,7 +282,7 @@
       } else if (['Enter', 'NumpadEnter'].includes(event.code) && !event.isComposing) {
         event.preventDefault();
         // 没有选择 key
-        if (isShowKeyMenu.value || !currentDataConfig.value) {
+        if (isShowKeyMenu.value || isShowSuggestMenu.value || !currentDataConfig.value) {
           return;
         }
         // 没有输入任何值
