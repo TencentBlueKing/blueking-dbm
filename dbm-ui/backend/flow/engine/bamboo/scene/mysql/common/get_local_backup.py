@@ -12,13 +12,9 @@ import json
 import logging.config
 import os.path
 
-from django.utils import timezone
-from django.utils.translation import ugettext as _
-
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.utils.time import compare_time, str2datetime
 
 logger = logging.getLogger("root")
 
@@ -78,81 +74,6 @@ def get_local_backup_list(instances: list, cluster: Cluster, query_cmds: str = N
         one_backup["file_list"] = file_list
 
     return backups
-
-
-def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
-    """
-    查询集群的最近备份记录
-    @param instances:实例列表 ip:port
-    @param cluster: 集群
-    @param end_time: 备份最大时间，这里的时间需要转换成UTC时间，因为sql语句中是转换为0时区进行比较的
-    @return: dict
-    """
-    #  为了兼容 backup_time和backup_consistent_time是一样的
-    if end_time:
-        end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
-        cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
-        query_cmds = cmds.format(cond=cond, limit="limit 1")
-    else:
-        query_cmds = cmds.format(cond="true", limit="limit 1")
-
-    backups = get_local_backup_list(instances, cluster, query_cmds)
-    # 多份备份比较 backup map 列表....
-    backup_time = "1999-01-01T11:11:11+08:00"
-    if len(backups) > 0:
-        max_backup = backups[0]
-        for backup in backups:
-            if compare_time(backup["backup_consistent_time"], backup_time):
-                backup_time = backup["backup_consistent_time"]
-                max_backup = backup
-
-        logger.info(_("使用的备份信息: {}".format(max_backup)))
-        return max_backup
-    else:
-        return None
-
-
-def get_local_single_backup(instances: list, cluster: Cluster, backup_id, end_time: str = None):
-    """
-    查询集群的最近备份记录
-    @param instances:实例列表 ip:port
-    @param cluster: 集群
-    @param is_full_backup: 筛选条件
-    @param end_time: 备份最大时间，这里的时间需要转换成UTC时间，因为sql语句中是转换为0时区进行比较的
-    @return: dict
-    """
-    stmt_sql = """select backup_id, mysql_role, shard_value, backup_type,
-cluster_id, cluster_address, backup_host, backup_port,
-server_id, bill_id, bk_biz_id, mysql_version, data_schema_grant, is_full_backup,
-backup_status, backup_meta_file, binlog_info, file_list, extra_fields, backup_config_file,
-DATE_FORMAT(CONVERT_TZ(backup_begin_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_begin_time,
-DATE_FORMAT(CONVERT_TZ(backup_end_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')as backup_end_time,
-DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_consistent_time,
-DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_time
-from infodba_schema.local_backup_report
-where {cond} and server_id=@@server_id and backup_consistent_time>DATE_SUB(CURDATE(),INTERVAL 1 WEEK)
-and backup_id={backup_id} order by backup_consistent_time desc {limit}"""
-    if end_time:
-        end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
-        cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
-        query_cmds = stmt_sql.format(cond=cond, backup_id=backup_id, limit="limit 1")
-    else:
-        query_cmds = stmt_sql.format(cond="true", backup_id=backup_id, limit="limit 1")
-
-    backups = get_local_backup_list(instances, cluster, query_cmds)
-    # 多份备份比较 backup map 列表....
-    backup_time = "1999-01-01T11:11:11+08:00"
-    if len(backups) > 0:
-        max_backup = backups[0]
-        for backup in backups:
-            if compare_time(backup["backup_consistent_time"], backup_time):
-                backup_time = backup["backup_consistent_time"]
-                max_backup = backup
-
-        logger.info(_("使用的备份信息: {}".format(max_backup)))
-        return max_backup
-    else:
-        return None
 
 
 def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
