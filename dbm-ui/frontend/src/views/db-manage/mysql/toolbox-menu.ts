@@ -98,7 +98,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.dbInstancePermissionClone',
-        id: 'MySQLPrivilegeCloneInst',
+        id: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'privilege',
       },
