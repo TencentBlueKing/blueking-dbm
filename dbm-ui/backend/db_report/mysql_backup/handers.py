@@ -44,6 +44,7 @@ class MySQLBackupHandler:
         shard_id: int = None,
         filter_ips: list[str] = None,
         backup_method: list[str] = None,
+        is_standby: bool = True,
     ):
         """
         @param cluster_id: 集群ID
@@ -67,6 +68,7 @@ class MySQLBackupHandler:
         self.shard_id = shard_id
         self.filter_ips = filter_ips
         self.backup_method = backup_method
+        self.is_standby = is_standby
         self.query = ""
         self.errmsg = ""
 
@@ -142,9 +144,14 @@ class MySQLBackupHandler:
             if self.filter_ips is not None and len(self.filter_ips) > 0:
                 logger.info(_("指定备份实例的ip必须在指定ip里 {}".format(self.filter_ips)))
                 conditions &= Q(backup_host__in=self.filter_ips)
+
             if self.backup_method is not None and len(self.backup_method) > 0:
                 logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
                 conditions &= Q(backup_method__in=self.backup_method)
+            # 当前必须用is_standby备份来恢复数据。
+            if self.is_standby:
+                logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
+                conditions &= Q(is_standby="1") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
 
         backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
@@ -328,7 +335,7 @@ class MySQLBackupHandler:
         """
         获取指定备份信息的binlog备份信息
         """
-        conditions = Q(cluster_id=self.cluster.id, host=host, port=port)
+        conditions = Q(cluster_id=self.cluster.id, cluster_domain=self.cluster.immute_domain, host=host, port=port)
         if end_time is None:
             end_time = datetime.now().astimezone(timezone.utc)
         start_time = start_time.astimezone(timezone.utc)
