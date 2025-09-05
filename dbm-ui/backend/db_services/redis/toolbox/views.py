@@ -24,6 +24,7 @@ from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
     ExecuteClusterTcpCmdSerializer,
     GetClusterCapacityInfoSerializer,
+    GetClusterDelKeyRateSerializer,
     GetClusterModuleInfoSerializer,
     GetClusterTcpResultSerializer,
     GetClusterVersionByIpSerializer,
@@ -152,6 +153,17 @@ class ToolboxViewSet(BaseClusterViewSet):
         data = self.params_validate(self.get_serializer_class())
         cluster_id, version = data["cluster_id"], data["version"]
         return Response(ToolboxHandler.get_cluster_module_info(cluster_id, version))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取集群删除key速率信息"),
+        query_serializer=GetClusterDelKeyRateSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetClusterDelKeyRateSerializer, pagination_class=None)
+    def get_cluster_del_key_rate(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id = data["cluster_id"]
+        return Response(ToolboxHandler.get_cluster_del_key_rate(cluster_id))
 
     @common_swagger_auto_schema(
         operation_summary=_("执行集群来源指令"),
