@@ -32,7 +32,6 @@
         <SpecColumn
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
-          :machine-type="MachineTypes.MYSQL_BACKEND"
           :current-spec-id-list="[item.master.spec_id]"
           required
           selectable
@@ -82,7 +81,7 @@
   import type { Mysql } from '@services/model/ticket/ticket';
   import { SourceType } from '@services/types';
 
-  import { DBTypes, MachineTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
