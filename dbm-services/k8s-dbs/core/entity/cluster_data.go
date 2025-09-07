@@ -39,7 +39,7 @@ type ClusterResponseData struct {
 
 // Metadata the metadata of request and response
 type Metadata struct {
-	ClusterName         string            `json:"clusterName,omitempty" binding:"k8sReleaseName" msg:"集群名称格式不合法，只能包含小写字母、数字和连字符(-)，可以用点(.)分隔,且要求长度小于 53"` //nolint:lll
+	ClusterName         string            `json:"clusterName,omitempty" binding:"omitempty,k8sReleaseName" msg:"集群名称格式不合法，只能包含小写字母、数字和连字符(-)，可以用点(.)分隔,且要求长度小于 53"` //nolint:lll
 	ClusterAlias        string            `json:"clusterAlias,omitempty"`
 	ComponentName       string            `json:"componentName,omitempty"`
 	OpsRequestName      string            `json:"opsRequestName,omitempty"`
