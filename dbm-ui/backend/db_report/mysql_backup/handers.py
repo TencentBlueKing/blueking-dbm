@@ -19,12 +19,15 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.utils.translation import ugettext as _
 
+from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
+from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.utils.time import compare_time
 
 logger = logging.getLogger("flow")
 
@@ -45,6 +48,7 @@ class MySQLBackupHandler:
         filter_ips: list[str] = None,
         backup_method: list[str] = None,
         is_standby: bool = True,
+        backup_source: str = MySQLBackupSource.REMOTE.value,
     ):
         """
         @param cluster_id: 集群ID
@@ -52,6 +56,11 @@ class MySQLBackupHandler:
         @param check_instance_exist: 是否检查实例是否存在当前集群
         @param deadlines_days:检查获取截止时间为n天前
         @param backup_id: 指定backup_id,
+        @param shard_id: 分片ID。只有tendbCluster有。本地备份时不需要指定
+        @param filter_ips: 过滤ip列表。在指定本地备份时，filster_ips即指定在哪些实例查询
+        @param backup_method: 备份方法
+        @param is_standby: 是否为备机
+        @param backup_source: 是否从本地备份获取
         """
         self.cluster = Cluster.objects.get(id=cluster_id)
         # 是否为全备份
@@ -65,10 +74,12 @@ class MySQLBackupHandler:
         storages = self.cluster.storageinstance_set.all()
         self.instance_ips = [s.machine.ip for s in storages]
         self.instances = [s.ip_port for s in storages]
+        self.port = storages[0].port
         self.shard_id = shard_id
         self.filter_ips = filter_ips
         self.backup_method = backup_method
         self.is_standby = is_standby
+        self.backup_source = backup_source
         self.query = ""
         self.errmsg = ""
 
@@ -151,7 +162,7 @@ class MySQLBackupHandler:
             # 当前必须用is_standby备份来恢复数据。
             if self.is_standby:
                 logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
-                conditions &= Q(is_standby="1") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
+                conditions &= Q(is_standby="yes") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
 
         backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
@@ -166,6 +177,7 @@ class MySQLBackupHandler:
             backup_info.backup_begin_time = backup_info.backup_begin_time.isoformat()
             backup_info.backup_end_time = backup_info.backup_end_time.isoformat()
             backup_info_dict = model_to_dict(backup_info)
+            backup_info_dict["backup_source"] = MySQLBackupSource.REMOTE.value
             backup_info_dist.append(self._backup_info_format(backup_info_dict))
 
         return backup_info_dist
@@ -176,6 +188,8 @@ class MySQLBackupHandler:
         @param latest_time: 查询备份最迟时间
         @return: 返回一条远程备份记录
         """
+        if self.backup_source == MySQLBackupSource.LOCAL:
+            return self.get_local_latest_backup_info(latest_time)
         backup_infos = self.get_backup_infos(latest_time)
         if backup_infos is None:
             return None
@@ -424,3 +438,108 @@ class MySQLBackupHandler:
         # 可添加从binlog_start_file开始完后判断日志连续性...
         result["binlog_files"] = ",".join(binlog_files)
         return result
+
+    def get_local_backup_infos(self, latest_time: datetime = None, limit: str = "") -> list[dict]:
+        """
+        获取指定集群本地备份信息 本地查询不需要条件 check_instance_exist shard_id filter_ips is_standby
+        @param latest_time: 最迟时间
+        @param limit: 限制记录数
+        @return: 返回本地备份记录的列表
+        """
+        cmds = """select r.*,
+        DATE_FORMAT(CONVERT_TZ(backup_begin_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_begin_time,
+        DATE_FORMAT(CONVERT_TZ(backup_end_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')as backup_end_time,
+        DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_consistent_time
+        from infodba_schema.local_backup_report r
+        where server_id=@@server_id {condition} order by backup_consistent_time desc {limit}"""
+        conditions = f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
+
+        if self.backup_id is not None and self.backup_id != "":
+            logger.info(_("指定了backup_id {} 查询,其他条件失效".format(self.backup_id)))
+            conditions = f" {conditions} and backup_id='{self.backup_id}'"
+        else:
+            if self.is_full_backup:
+                # spider dbctl 节点只是备份权限。
+                logger.info(_("指定查询全备，spider_master/TDBCTL 除外"))
+                conditions = f" {conditions} and (is_full_backup=1 or mysql_role in ('spider_master', 'TDBCTL')) "
+
+            if self.deadlines_days > 0:
+                logger.info(_("指定备份最小时间 {} 天前").format(self.deadlines_days))
+                begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
+                begin_time_str = begin_time.isoformat()
+                conditions = (
+                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}',@@time_zone,'+00:00') "
+                )
+
+            if latest_time is not None:
+                logger.info(_("指定备份最迟时间 {} ").format(latest_time))
+                latest_time = latest_time.astimezone(timezone.utc)
+                latest_time_str = latest_time.isoformat()
+                conditions = f" {conditions} and backup_consistent_time <= CONVERT_TZ('{latest_time_str}',@@time_zone,'+00:00') "
+
+            if self.backup_method is not None and len(self.backup_method) > 0:
+                logger.info(_("指定备份方法 {} 查询").format(self.backup_method))
+                backup_method_str = "','".join(self.backup_method)
+                conditions = f" {conditions} and backup_method in ('{backup_method_str}') "
+        query_cmds = cmds.format(condition=conditions, limit=limit)
+        self.query = query_cmds
+        logger.info(query_cmds)
+        backup_infos = []
+
+        if self.filter_ips is not None and len(self.filter_ips) > 0:
+            this_instances = [f"{ip}{IP_PORT_DIVIDER}{self.port}" for ip in self.filter_ips]
+        else:
+            this_instances = copy.deepcopy(self.instances)
+
+        for addr in this_instances:
+            res = DRSApi.rpc(
+                {
+                    "addresses": [addr],
+                    "cmds": [query_cmds],
+                    "force": False,
+                    "bk_cloud_id": self.cluster.bk_cloud_id,
+                }
+            )
+
+            if res[0]["error_msg"]:
+                logging.error("{} get backup info error {}".format(addr, res[0]["error_msg"]))
+                continue
+            if (
+                isinstance(res[0]["cmd_results"][0]["table_data"], list)
+                and len(res[0]["cmd_results"][0]["table_data"]) > 0
+            ):
+                backup_tmps = res[0]["cmd_results"][0]["table_data"]
+                ip, port = addr.split(IP_PORT_DIVIDER)
+                backup_tmps = [{"instance_ip": ip, "instance_port": port, **info} for info in backup_tmps]
+                backup_infos.extend(backup_tmps)
+        if backup_infos is None or len(backup_infos) == 0:
+            logger.error("{} has no backup info".format(self.cluster.id))
+            return None
+        backup_info_dict = []
+        for backup_info in backup_infos:
+            # backup_info["backup_dir"] = os.path.dirname(backup_info["backup_meta_file"])
+            backup_info["index"] = {"file_name": os.path.basename(backup_info["backup_meta_file"]), "task_id": ""}
+            backup_info_format = self._backup_info_format(backup_info)
+            backup_info_format["backup_source"] = MySQLBackupSource.LOCAL.value
+            if backup_info["backup_meta_file"] not in backup_info_format["local_files"]:
+                backup_info_format["local_files"].append(backup_info["backup_meta_file"])
+            backup_info_dict.append(backup_info_format)
+        return backup_info_dict
+
+    def get_local_latest_backup_info(self, latest_time: datetime = None) -> dict:
+        """
+        查询tendbHa/tendbCluster集群指定多个实例列表下的最新一个本地备份
+        @param latest_time: 备份最大时间
+        @return: 返回一条本地备份记录
+        """
+        backup_infos = self.get_local_backup_infos(latest_time, " limit 1 ")
+        backup_time = "1999-01-01T11:11:11+08:00"
+        if backup_infos is None or len(backup_infos) == 0:
+            return None
+        max_backup = backup_infos[0]
+        for backup in backup_infos:
+            if compare_time(backup["backup_consistent_time"], backup_time):
+                backup_time = backup["backup_consistent_time"]
+                max_backup = backup
+        logger.info(_("使用的备份信息: {}".format(max_backup)))
+        return max_backup
