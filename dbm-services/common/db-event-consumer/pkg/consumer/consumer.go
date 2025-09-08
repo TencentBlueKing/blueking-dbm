@@ -65,6 +65,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 	}
 	BatchSize := 10
 	msgs := make([]*sarama.ConsumerMessage, 0, BatchSize)
+	// 写入失败分类 TODO
 	for {
 		select {
 		case <-time.After(time.Second * 1):

@@ -58,7 +58,7 @@ dependencies:
   version: 0.0.7
 - name: db-event-consumer
   repository: file://charts/db-event-consumer
-  version: 0.0.9
+  version: 0.0.10
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 1.0.0-alpha.3
-digest: sha256:9a59f47515dbcef685b5dd7aae1ec4035792ef674843e169577673681eda68f5
-generated: "2025-08-13T17:46:35.463695821+08:00"
+digest: sha256:05b46faefd4005624dc8d3a1979766ae7ef6dee4430bff6f7f641c8d88aa1e18
+generated: "2025-09-08T11:27:18.969208971+08:00"

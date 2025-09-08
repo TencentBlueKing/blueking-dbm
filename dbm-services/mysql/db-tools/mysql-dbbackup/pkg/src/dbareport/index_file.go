@@ -61,7 +61,8 @@ type BackupMetaFileBase struct {
 	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
 	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`
 	BackupMethod         string    `json:"backup_method" db:"backup_method"`
-	// IsStandby 是否是 standby, yes/no empty means unknown
+	// IsStandby 是否是 standby, yes/no empty means unknown.
+	// 因为这个信息是读取的配置文件，不用 true/false 是为了避免读取失败时上报 false
 	IsStandby string `json:"is_standby" db:"is_standby"`
 }
 
