@@ -121,7 +121,7 @@ class BaseTicketFlow(ABC):
         """确认flow是首次执行，用于避免重复执行"""
         flow = Flow.objects.select_for_update().get(id=self.flow_obj.id)
         if flow.context.get("ack"):
-            logger.warning(f"[{flow.ticket.id}] this flow {flow.flow_obj_id} already run, just skip...")
+            logger.error(f"[{flow.ticket.id}] flow[{flow.flow_obj_id}]-{flow.flow_alias} already run, skip...")
             return True
         flow.context["ack"] = True
         flow.save(update_fields=["context"])

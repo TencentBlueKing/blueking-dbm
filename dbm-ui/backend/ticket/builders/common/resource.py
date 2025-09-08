@@ -16,7 +16,7 @@ from rest_framework import serializers
 from backend.db_services.dbresource.serializers import ResourceImportSerializer as BaseResourceImportSerializer
 from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
-from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder
+from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
@@ -32,10 +32,12 @@ class ResourceImportFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.RESOURCE_IMPORT)
-class ResourceImportFlowBuilder(BaseDorisTicketFlowBuilder):
+class ResourceImportFlowBuilder(TicketFlowBuilder):
     serializer = ResourceImportSerializer
     inner_flow_builder = ResourceImportFlowParamBuilder
     inner_flow_name = _("资源导入")
+    # 此单据不属于任何db，暂定为common
+    group = "common"
     # 资源导入无需审批和确认
     default_need_itsm = False
     default_need_manual_confirm = False

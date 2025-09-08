@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from backend.core import notify
 from backend.ticket import constants
@@ -47,10 +48,6 @@ logger = logging.getLogger("root")
 class TicketFlowManager(object):
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
-        self.current_flow_obj = ticket.current_flow()
-        self.current_ticket_flow = self.get_ticket_flow_cls(flow_type=self.current_flow_obj.flow_type)(
-            ticket.current_flow()
-        )
 
     @staticmethod
     def get_ticket_flow_cls(flow_type):
@@ -61,15 +58,26 @@ class TicketFlowManager(object):
 
     def run_next_flow(self):
         next_flow = self.ticket.next_flow()
+        current_flow = self.ticket.current_flow()
+        is_init_flow = next_flow.id == self.ticket.flows.first().id
+
+        # 没有下一个节点，说明流程已结束
         if not next_flow:
-            # 没有下一个节点，说明流程已结束
+            logger.error(_("无可执行的下一流程"))
+            return
+
+        # 先取下一个流程，再取当前流程，可以根据流程的顺序保证并发的一致性
+        # 如果current_flow晚于next_flow，说明流程已经发起
+        if current_flow.id >= next_flow.id and not is_init_flow:
+            logger.error(_("流程非预期：当前流程晚于下一个流程"))
             return
 
         # 满足下面两种条件之一，则继续执行下一个流程
         # 1. 初始状态的任务流程
         # 2. 当前流程已完成
-        is_init_flow = next_flow.id == self.current_flow_obj.id
-        if is_init_flow or self.current_ticket_flow.status in FLOW_FINISHED_STATUS:
+        current_flow_status = self.get_ticket_flow_cls(flow_type=current_flow.flow_type)(current_flow).status
+        if is_init_flow or current_flow_status in FLOW_FINISHED_STATUS:
+            logger.info(_("[{}]流程已触发:{}").format(self.ticket.id, next_flow.flow_alias))
             self.get_ticket_flow_cls(flow_type=next_flow.flow_type)(next_flow).run()
 
     def update_ticket_status(self):

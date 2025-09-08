@@ -17,7 +17,7 @@ from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.signal.callback_map import call_ticket_handler
-from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
+from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
@@ -106,6 +106,6 @@ def callback_ticket(ticket_id, root_id):
     if current_flow.flow_type == FlowType.QUICK_INNER_FLOW:
         return
 
-    if current_flow and current_flow.flow_obj_id == root_id:
+    if current_flow.flow_obj_id == root_id and inner_flow_status in FLOW_FINISHED_STATUS:
         manager = TicketFlowManager(ticket=ticket)
         manager.run_next_flow()
