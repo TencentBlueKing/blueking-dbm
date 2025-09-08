@@ -140,7 +140,7 @@
     },
     storage_device: {
       content: StorageDevice,
-      label: t('磁盘'),
+      label: t('数据盘'),
       type: 'array',
     },
     sub_zone_meta: {

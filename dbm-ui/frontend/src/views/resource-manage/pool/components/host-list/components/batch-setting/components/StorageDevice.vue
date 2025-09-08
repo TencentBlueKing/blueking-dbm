@@ -45,7 +45,7 @@
         <EditableColumn
           :append-rules="diskTypRules"
           field="type"
-          :label="t('磁盘类型')"
+          :label="t('数据盘类型')"
           required
           :width="200">
           <EditableSelect

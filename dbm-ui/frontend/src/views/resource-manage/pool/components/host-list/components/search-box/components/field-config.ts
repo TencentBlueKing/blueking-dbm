@@ -78,7 +78,7 @@ export default {
   },
   disk: {
     component: 'disk',
-    label: t('磁盘(G)'),
+    label: t('数据盘(G)'),
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
       if (!value || value.length < 1) {
@@ -93,7 +93,7 @@ export default {
   },
   disk_type: {
     component: 'disk_type',
-    label: t('磁盘类型'),
+    label: t('数据盘类型'),
     type: 'string',
   },
   for_biz: {
@@ -146,7 +146,7 @@ export default {
   },
   mount_point: {
     component: 'mount_point',
-    label: t('磁盘挂载点'),
+    label: t('数据盘挂载点'),
     service: fetchMountPoints,
     type: 'string',
   },
