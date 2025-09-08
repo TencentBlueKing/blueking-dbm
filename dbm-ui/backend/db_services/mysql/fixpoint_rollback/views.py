@@ -19,9 +19,11 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.db_services.mysql.fixpoint_rollback.serializers import (
     BackupLocalLogMySQLResponseSerializer,
@@ -31,6 +33,7 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
     BackupLogRollbackTimeTendbResponseSerializer,
     BackupLogSerializer,
     BackupLogTendbResponseSerializer,
+    FilterBackupLogSerializer,
     QueryFixpointLogResponseSerializer,
     QueryFixpointLogSerializer,
 )
@@ -99,6 +102,35 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                 backup_method=validated_data.pop("backup_method"),
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("通过获取集群最迟时间的备份记录"),
+        query_serializer=FilterBackupLogSerializer(),
+        responses={
+            status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
+            status.HTTP_202_ACCEPTED: BackupLogMySQLResponseSerializer(),
+        },
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=FilterBackupLogSerializer)
+    def last_time_backup_log(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        cluster_id = validated_data["cluster_id"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        backup_method = validated_data["backup_method"].split(",")
+        last_time = validated_data.get("last_time", None)
+
+        # mysql / tendbcluster
+        handler = MySQLBackupHandler(cluster_id=cluster_id, backup_method=backup_method)
+
+        # 获取备份结果
+        result = {}
+        if db_type == DBType.MySQL.value:
+            result = handler.get_backup_infos(last_time)
+        elif db_type == DBType.TenDBCluster.value:
+            result = handler.get_spider_latest_backup_info(last_time)
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取定点构造记录"),
