@@ -135,20 +135,21 @@ def _version_compare(version1, version2):
             return 0
 
 
-def version_ge(version1, version2):
-    """
-    判断版本1是否大于等于版本2
-    """
-    result = _version_compare(version1, version2)
-    return result is not None and result >= 0
-
-
 def version_gt(version1, version2):
     """
     判断版本1是否大于版本2
     """
     result = _version_compare(version1, version2)
     return result is not None and result > 0
+
+
+def version_eq(version1, version2):
+    result = _version_compare(version1, version2)
+    return result is not None and result == 0
+
+
+def version_ge(version1, version2):
+    return version_eq(version1, version2) or version_gt(version1, version2)
 
 
 # 根据db_version 获取 redis 最新 Package
