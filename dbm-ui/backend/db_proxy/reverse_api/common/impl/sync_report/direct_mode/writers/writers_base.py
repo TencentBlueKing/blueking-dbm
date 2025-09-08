@@ -8,31 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
-import time
+from abc import ABC, abstractmethod
 from typing import List
 
-from kafka import KafkaProducer
+
+class DirectWriterABS(ABC):
+    @classmethod
+    @abstractmethod
+    def write_event(cls, bk_cloud_id: int, trace_id: str, ip: str, port_list: List[int], events: List):
+        pass
 
 
-def inject_fields(bk_cloud_id, ip, data: List) -> List:
-    res = []
-    for ev in data:
-        res.append(
-            {
-                **ev,
-                "event_source_ip": ip,
-                "event_receive_timestamp": int(time.time() * 1000 * 1000),  # us
-                "event_bk_cloud_id": bk_cloud_id,
-            }
-        )
-
-    return res
-
-
-def send_events(producer: KafkaProducer, bk_cloud_id, ip, data: List):
-    events = inject_fields(bk_cloud_id=bk_cloud_id, ip=ip, data=data)
-    for ev in events:
-        event_type = ev["event_type"]
-        topic = f"{event_type}"
-        producer.send(topic=topic, value=json.dumps(ev).encode("utf-8"))
+class EmptyDirectWriter(DirectWriterABS):
+    @classmethod
+    def write_event(cls, bk_cloud_id: int, trace_id: str, ip: str, port_list: List[int], events: List):
+        raise

@@ -8,21 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from typing import List
 
-from backend.exceptions import AppBaseException, ErrorCode
-
-
-class ReverseApiBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
+from backend.db_proxy.reverse_api.common.impl.sync_report.direct_mode.writers.get_writer import get_writer
 
 
-class SyncReportEventValidationException(ReverseApiBaseException):
-    MESSAGE = "event validate failed"
-    ERROR_CODE = "500"
-
-
-class SyncReportBadMode(ReverseApiBaseException):
-    MESSAGE = "bad reverse report mode"
-    ERROR_CODE = "501"
-    MESSAGE_TPL = _("bad mode: {mode}")
+def direct_report(bk_cloud_id: int, trace_id: str, ip: str, port_list: List[int], events: List):
+    event_type = events[0]["event_type"]
+    event_writer = get_writer(event_type)
+    event_writer.write_event(bk_cloud_id=bk_cloud_id, trace_id=trace_id, ip=ip, port_list=port_list, events=events)

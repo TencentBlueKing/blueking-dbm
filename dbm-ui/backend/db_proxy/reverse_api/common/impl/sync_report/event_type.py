@@ -8,21 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 
-from backend.exceptions import AppBaseException, ErrorCode
-
-
-class ReverseApiBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
-class SyncReportEventValidationException(ReverseApiBaseException):
-    MESSAGE = "event validate failed"
-    ERROR_CODE = "500"
-
-
-class SyncReportBadMode(ReverseApiBaseException):
-    MESSAGE = "bad reverse report mode"
-    ERROR_CODE = "501"
-    MESSAGE_TPL = _("bad mode: {mode}")
+class ReverseReportEventTypeEnum(str, StructuredEnum):
+    MySQLDbbackupResult = EnumField("mysql_dbbackup_result", _("mysql_dbbackup_result"))
+    MySQLDbbackupProgress = EnumField("mysql_dbbackup_progress", _("mysql_dbbackup_progress"))
+    MySQLBinlogResult = EnumField("mysql_binlog_result", _("mysql_binlog_result"))

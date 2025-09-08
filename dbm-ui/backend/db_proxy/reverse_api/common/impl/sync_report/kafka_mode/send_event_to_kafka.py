@@ -8,21 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+import json
+from typing import List
 
-from backend.exceptions import AppBaseException, ErrorCode
-
-
-class ReverseApiBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
+from kafka import KafkaProducer
 
 
-class SyncReportEventValidationException(ReverseApiBaseException):
-    MESSAGE = "event validate failed"
-    ERROR_CODE = "500"
-
-
-class SyncReportBadMode(ReverseApiBaseException):
-    MESSAGE = "bad reverse report mode"
-    ERROR_CODE = "501"
-    MESSAGE_TPL = _("bad mode: {mode}")
+def send_events_to_kafka(producer: KafkaProducer, bk_cloud_id, ip, events: List):
+    for ev in events:
+        event_type = ev["event_type"]
+        topic = f"{event_type}"
+        producer.send(topic=topic, value=json.dumps(ev).encode("utf-8"))
