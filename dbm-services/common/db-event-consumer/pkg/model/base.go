@@ -25,11 +25,11 @@ type BaseModel struct {
 	//EventClusterType string `json:"event_cluster_type"`
 	//EventType        string `json:"event_type"`
 	//ClusterType string `json:"cluster_type"`
-	//EventUuid string `json:"event_uuid"`
+	EventUuid string `json:"event_uuid"`
 }
 
 func (b BaseModel) OmitFields() []string {
-	return []string{"event_cluster_type", "event_type", "cluster_type", "event_uuid"}
+	return []string{"event_cluster_type", "event_type", "cluster_type"}
 }
 
 // StrictSchema use map[string]interface to unmarshal kafka msg, and save to db

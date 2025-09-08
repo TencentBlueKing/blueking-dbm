@@ -144,7 +144,9 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 		"binlog_info",
 		"extra_fields",
 		"file_list",
+		"event_create_timestamp",
 		"event_report_timestamp",
+		"event_uuid",
 	)
 
 	for _, kafkaObj := range kafkaObjs {
@@ -181,7 +183,9 @@ func (m *MysqlBackupResultModel) mysqlCreate(i interface{}, db *gorm.DB) error {
 			modelObj.BinlogInfo,
 			modelObj.ExtraFields,
 			modelObj.FileList,
+			modelObj.EventCreateTimestamp,
 			modelObj.EventReportTimestamp,
+			modelObj.EventUuid,
 		)
 	}
 

@@ -34,15 +34,15 @@ import (
 
 // DeleteOldBackup Delete expired backup file
 // expireDays =0  时表示删除所有备份，但依然会保留其它端口的 12h 内的备份
-func DeleteOldBackup(cnf *config.Public, expireDays int) error {
+func DeleteOldBackup(cnf *config.Public, expireDays int) ([]string, error) {
 	expireTime := time.Now().AddDate(0, 0, -1*expireDays)
 	logger.Log.Infof("try to remove old backup files before '%s'", expireTime)
 	dir, err := ioutil.ReadDir(cnf.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
-		return err
+		return nil, err
 	}
-
+	var backupIndexDeleted []string
 	for _, fi := range dir {
 		fileMatchHost := fmt.Sprintf("_%s_", cnf.MysqlHost)
 		fileMatchPort := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
@@ -61,6 +61,10 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 
 		if canRemove {
 			fileName := filepath.Join(cnf.BackupDir, fi.Name())
+			if strings.HasSuffix(fileName, ".index") {
+				// delete record from infodba_schema.local_backup_report
+				backupIndexDeleted = append(backupIndexDeleted, fi.Name())
+			}
 			if fi.Size() > 4*1024*1024*1024 {
 				// remove 速度适度放大一点
 				removeLimit := cnf.IOLimitMBPerSec + 300
@@ -82,7 +86,7 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 
 		}
 	}
-	return err
+	return backupIndexDeleted, err
 }
 
 // CheckAndCleanDiskSpace 如果空间不足，则会强制删除所有备份文件
@@ -93,7 +97,7 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sq
 		return nil
 	}
 	// 删除旧备份后，第二次检查
-	if err = DeleteOldBackup(cnf, 0); err != nil {
+	if _, err = DeleteOldBackup(cnf, 0); err != nil {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
@@ -143,6 +147,7 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sq
 	return nil
 }
 
+// GetLastBackupSize 获取上一个全备的大小
 func GetLastBackupSize(cnf *config.Public, db *sql.DB) (uint64, error) {
 	whereStr := fmt.Sprintf("backup_type = %s and  cluster_address = %s and backup_port = %d "+
 		" and is_full_backup = 1 and backup_begin_time > DATE_SUB(now(), INTERVAL 10 DAY) and backup_meta_file != ''",

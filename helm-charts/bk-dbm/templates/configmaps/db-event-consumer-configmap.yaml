@@ -34,7 +34,7 @@ data:
         address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
         user: "{{ $reportDB.user }}"
         password: "{{ $reportDB.password }}"
-        database: "bk_dbm_report"
+        database: "{{ $reportDB.name }}"
         charset: utf8
     - name: doris_bk_dbm_stats
       type: mysql
@@ -42,7 +42,7 @@ data:
         address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
         user: "{{ $statsDB.user }}"
         password: "{{ $statsDB.password }}"
-        database: "bk_dbm_stats"
+        database: "{{ $statsDB.name }}"
         charset: utf8
   data.sinkers.yaml: |
     {{- toYaml (index .Values "db-event-consumer").sinkers | nindent 4 }}

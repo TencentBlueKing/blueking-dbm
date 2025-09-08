@@ -28,7 +28,7 @@ func (m *FakeModelForNoStrictSchema) StrictSchema() bool {
 }
 
 func (m *FakeModelForNoStrictSchema) OmitFields() []string {
-	return []string{"event_cluster_type", "event_type", "cluster_type", "event_uuid"}
+	return []string{"event_cluster_type", "event_type", "cluster_type"}
 }
 
 func (m *FakeModelForNoStrictSchema) SetOmitFields(omitFields *[]string) {

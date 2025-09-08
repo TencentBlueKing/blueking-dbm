@@ -20,7 +20,7 @@ from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
-from .check_full_backup import find_discontinuous_numbers, get_query_date_time
+from .check_full_backup import find_discontinuous_numbers, get_backup_failed_duration, get_query_date_time
 
 logger = logging.getLogger("root")
 
@@ -98,6 +98,9 @@ def _check_binlog_backup(cluster_type, date_str):
                 shard_binlog_stat[inst] = [prefix + "." + str(s).zfill(suffix_len) for s in shard_binlog_stat[inst]]
 
         if not backup.success:
+            failed_days = get_backup_failed_duration(
+                c.immute_domain, MysqlBackupCheckSubType.BinlogSeq.value, start_time
+            )
             MysqlBackupCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,
                 bk_cloud_id=c.bk_cloud_id,
@@ -106,4 +109,5 @@ def _check_binlog_backup(cluster_type, date_str):
                 status=False,
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
+                failed_days=failed_days,
             )

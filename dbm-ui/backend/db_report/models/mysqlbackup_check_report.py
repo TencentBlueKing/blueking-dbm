@@ -24,3 +24,10 @@ class MysqlBackupCheckReport(BaseReportABS):
     )
     host = models.CharField(max_length=255, default="")
     status_detail = models.TextField(default="")
+    # 失败持续时间, days
+    failed_days = models.IntegerField(default=0)
+
+    class Meta:
+        managed = True
+        # 添加索引
+        index_together = ["cluster", "subtype"]
