@@ -6,7 +6,9 @@
     :min-width="180"
     :required="required"
     :rules="rules">
-    <template #headAppend>
+    <template
+      v-if="showEditIcon"
+      #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
         :title="label"
@@ -68,6 +70,7 @@
     field: string;
     label: string;
     required?: boolean;
+    showEditIcon?: boolean;
     single?: boolean;
   }
 
@@ -78,6 +81,7 @@
     checkExist: false,
     checkNotExist: false,
     required: true,
+    showEditIcon: true,
     single: false,
   });
 
