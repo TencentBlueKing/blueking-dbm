@@ -28,14 +28,13 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getClusterVersions } from '@services/source/redisToolbox';
 
   interface Props {
-    clusterIds: number[];
+    clusterId: number;
     nodeType: string;
   }
 
@@ -48,23 +47,16 @@
   const { loading, run: fetchCurrentClusterVersions } = useRequest(getClusterVersions, {
     manual: true,
     onSuccess(versions) {
-      modelValue.value = _.uniq(
-        Object.values(versions).flatMap((item) => {
-          return item;
-        }),
-      );
+      modelValue.value = versions;
     },
   });
 
   watch(
-    () => props.clusterIds,
-    (newClusterIds, oldClusterIds) => {
-      if (_.isEqual(newClusterIds, oldClusterIds)) {
-        return;
-      }
-      if (props.clusterIds.length > 0 && props.nodeType) {
+    () => props.clusterId,
+    () => {
+      if (props.clusterId && props.nodeType) {
         fetchCurrentClusterVersions({
-          cluster_ids: props.clusterIds.join(','),
+          cluster_id: props.clusterId,
           node_type: props.nodeType,
           type: 'online',
         });

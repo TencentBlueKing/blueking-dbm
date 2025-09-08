@@ -3,6 +3,7 @@
     :config="batchInputConfig"
     @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mt-16 mb-16"
     :model="tableData">
@@ -25,12 +26,14 @@
       </EditableColumn>
       <CurrentVersionColumn
         v-model="item.current_versions"
-        :cluster-ids="item.host.related_clusters.map((item) => item.id)"
+        :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
+        :ip="item.host.ip"
         :node-type="nodeType" />
       <TargetVersionColumn
         v-model="item.target_version"
-        :cluster-ids="item.host.related_clusters.map((item) => item.id)"
+        :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
         :current-versions="item.current_versions"
+        :ip="item.host.ip"
         :node-type="nodeType" />
       <OperationColumn
         :create-row-method="createRowData"
@@ -55,8 +58,10 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
 
-  import CurrentVersionColumn from '../common/CurrentVersionColumn.vue';
-  import TargetVersionColumn from '../common/TargetVersionColumn.vue';
+  import { random } from '@utils';
+
+  import CurrentVersionColumn from '../common/CurrentVersionByIpColumn.vue';
+  import TargetVersionColumn from '../common/TargetVersionByIpColumn.vue';
 
   interface Props {
     nodeType: string;
@@ -180,6 +185,7 @@
   } as unknown as Record<ClusterTypes, PanelListType>;
 
   const tableData = ref([createRowData()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
@@ -218,6 +224,7 @@
     }, []);
 
     if (isClear) {
+      tableKey.value = random();
       tableData.value = [...newList];
     } else {
       tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];

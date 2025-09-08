@@ -61,12 +61,19 @@ export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }
  * 查询集群版本信息
  */
 export function getClusterVersions(params: {
-  cluster_ids?: string;
+  cluster_id?: number;
   cluster_type?: string;
   node_type: string;
   type: string;
 }) {
-  return http.get<Record<number, string[]>>(`${getRootPath()}/get_cluster_versions/`, params);
+  return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}
+
+/**
+ * 查询主机版本信息
+ */
+export function getClusterVersionsByIp(params: { cluster_id?: number; ip: string; node_type: string; type: string }) {
+  return http.get<string[]>(`${getRootPath()}/get_cluster_version_by_ip/`, params);
 }
 
 /**
