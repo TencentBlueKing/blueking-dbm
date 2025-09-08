@@ -193,7 +193,7 @@ export default [
       },
       {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
-        id: 'MySQLDataMigrate',
+        id: TicketTypes.MYSQL_DATA_MIGRATE,
         name: t('DB克隆'),
         parentId: 'data',
       },

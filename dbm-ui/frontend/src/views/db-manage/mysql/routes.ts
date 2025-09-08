@@ -47,6 +47,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
+  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
   {
     path: 'openarea-template',
     name: 'MySQLOpenareaTemplate',
@@ -54,14 +55,6 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
       navName: t('开区模版'),
     },
     component: () => import('@views/db-manage/mysql/openarea/template/Index.vue'),
-  },
-  {
-    path: 'data-migrate/:page?',
-    name: 'MySQLDataMigrate',
-    meta: {
-      navName: t('DB克隆'),
-    },
-    component: () => import('@views/db-manage/mysql/data-migrate/Index.vue'),
   },
   {
     path: 'webconsole',

@@ -108,7 +108,7 @@
     [TicketTypes.MYSQL_CLB_UNBIND_DOMAIN]: 'DatabaseTendbha', // mysql 解绑主域名指向clb
     [TicketTypes.MYSQL_CLIENT_CLONE_RULES]: TicketTypes.MYSQL_CLIENT_CLONE_RULES, // Mysql 客户端权限克隆
     [TicketTypes.MYSQL_CLUSTER_STANDARDIZE]: TicketTypes.MYSQL_CLUSTER_STANDARDIZE, // mysql 集群标准化
-    [TicketTypes.MYSQL_DATA_MIGRATE]: 'MySQLDataMigrate', // Mysql DB克隆
+    [TicketTypes.MYSQL_DATA_MIGRATE]: TicketTypes.MYSQL_DATA_MIGRATE, // Mysql DB克隆
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
     [TicketTypes.MYSQL_FIXPOINT]: TicketTypes.MYSQL_FIXPOINT, // mysql 构造
     [TicketTypes.MYSQL_FLASHBACK]: TicketTypes.MYSQL_FLASHBACK, // Mysql 闪回

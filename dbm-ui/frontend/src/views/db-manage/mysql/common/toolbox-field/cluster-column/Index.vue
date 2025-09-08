@@ -19,8 +19,8 @@
     :label="t(label)"
     :loading="loading"
     :min-width="minWidth"
-    :rowspan="rowspan"
-    required>
+    required
+    :rowspan="rowspan">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -72,6 +72,7 @@
      * @default false
      */
     onlyOneType?: boolean;
+    rowspan?: number;
     selected: {
       cluster_type: ClusterTypes;
       id: number;
@@ -83,7 +84,6 @@
      */
     supportOfflineData?: boolean;
     tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
-    rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
@@ -94,8 +94,8 @@
     label: '目标集群',
     minWidth: 200,
     onlyOneType: false,
-    supportOfflineData: false,
     rowspan: 1,
+    supportOfflineData: false,
     tabListConfig: () =>
       ({
         [ClusterTypes.TENDBHA]: {
