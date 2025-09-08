@@ -10,41 +10,31 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import logging
-import random
 import uuid
 from typing import List
 
-from kafka import KafkaProducer
-
-import backend.db_proxy.reverse_api.common.impl.sync_report as sr
 from backend import env
+from backend.db_proxy.reverse_api.common.impl.sync_report.direct_mode.direct_report import direct_report
+from backend.db_proxy.reverse_api.common.impl.sync_report.inject_fields import inject_fields
+from backend.db_proxy.reverse_api.common.impl.sync_report.kafka_mode.kafka_report import kafka_report
 from backend.db_proxy.reverse_api.common.impl.sync_report.schema_validate import SyncReportEventSerializer
-from backend.db_proxy.reverse_api.common.impl.sync_report.send_event import send_events
-from backend.db_proxy.reverse_api.exceptions import SyncReportEventValidationException
+from backend.db_proxy.reverse_api.exceptions import SyncReportBadMode, SyncReportEventValidationException
 
 logger = logging.getLogger("root")
 
+# 避免热点
+reverse_report_mode = env.REVERSE_REPORT_MODE.upper()
+if reverse_report_mode == "KAFKA":
+    report_handler = kafka_report
+elif reverse_report_mode == "DIRECT":
+    report_handler = direct_report
+else:
+    raise SyncReportBadMode(mode=reverse_report_mode)
+
 
 def sync_report(bk_cloud_id: int, ip: str, port_list: List[int], data: List):
-    trace_id = uuid.uuid1()
+    trace_id = uuid.uuid1().__str__()
     logger.info("enter sync report. trace_id:{}, time:{}, data:{}".format(trace_id, datetime.datetime.now(), data))
-    kafka_opts = env.REVERSE_REPORT_KAFKA_OPTIONS
-    with sr.lock:
-        if sr.producers is None:
-            logger.info("sync report new kafka connect. time:{}".format(datetime.datetime.now()))
-            sr.producers = [
-                KafkaProducer(
-                    api_version=(0, 11),
-                    retries=5,
-                    request_timeout_ms=2000,
-                    reconnect_backoff_max_ms=2000,
-                    max_block_ms=2000,
-                    **kafka_opts
-                )
-                for i in range(5)
-            ]
-
-    logger.info("sync report release lock. trace_id:{}, time:{}".format(trace_id, datetime.datetime.now()))
 
     vd = SyncReportEventSerializer(data=data, many=True)
     logger.info("sync report slz created. trace_id:{}, time:{}".format(trace_id, datetime.datetime.now()))
@@ -54,7 +44,6 @@ def sync_report(bk_cloud_id: int, ip: str, port_list: List[int], data: List):
         )
     logger.info("sync report validate finish. trace_id:{}, time:{}".format(trace_id, datetime.datetime.now()))
 
-    producer = random.choice(tuple(sr.producers))
-    logger.info("sync report got producer. trace_id:{}, time:{}".format(trace_id, datetime.datetime.now()))
+    events = inject_fields(bk_cloud_id=bk_cloud_id, ip=ip, data=data)
 
-    send_events(producer=producer, bk_cloud_id=bk_cloud_id, ip=ip, data=data)
+    report_handler(bk_cloud_id=bk_cloud_id, trace_id=trace_id, ip=ip, port_list=port_list, events=events)

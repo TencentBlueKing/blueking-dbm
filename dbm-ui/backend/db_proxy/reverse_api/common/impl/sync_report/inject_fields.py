@@ -8,21 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
-
-from backend.exceptions import AppBaseException, ErrorCode
-
-
-class ReverseApiBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
+import time
+from typing import List
 
 
-class SyncReportEventValidationException(ReverseApiBaseException):
-    MESSAGE = "event validate failed"
-    ERROR_CODE = "500"
+def inject_fields(bk_cloud_id, ip, data: List) -> List:
+    res = []
+    for ev in data:
+        res.append(
+            {
+                **ev,
+                "event_source_ip": ip,
+                "event_receive_timestamp": int(time.time() * 1000 * 1000),  # us
+                "event_bk_cloud_id": bk_cloud_id,
+            }
+        )
 
-
-class SyncReportBadMode(ReverseApiBaseException):
-    MESSAGE = "bad reverse report mode"
-    ERROR_CODE = "501"
-    MESSAGE_TPL = _("bad mode: {mode}")
+    return res

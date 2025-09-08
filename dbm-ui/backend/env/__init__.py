@@ -205,6 +205,9 @@ INITIATIVE_DOWNLOAD = get_type_env(key="INITIATIVE_DOWNLOAD", _type=bool, defaul
 # 反向查询接口禁用安全检查
 DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=False)
 
+# 反向上报接口工作模式
+# 默认为kafka, 某些环境可以配置成 DIRECT
+REVERSE_REPORT_MODE = get_type_env(key="REVERSE_REPORT_MODE", _type=str, default="KAFKA")
 # 反向上报接口 kafka 参数
 # DBM 带鉴权的连接串
 # export REVERSE_REPORT_KAFKA_OPTIONS=bootstrap_servers=:9092, \

@@ -8,21 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext as _
+from typing import Dict
 
-from backend.exceptions import AppBaseException, ErrorCode
+from backend.db_proxy.reverse_api.common.impl.sync_report.direct_mode.writers.backup_report_result_writer import (
+    BackupReportResultWriter,
+)
+from backend.db_proxy.reverse_api.common.impl.sync_report.direct_mode.writers.writers_base import DirectWriterABS
+from backend.db_proxy.reverse_api.common.impl.sync_report.event_type import ReverseReportEventTypeEnum
 
-
-class ReverseApiBaseException(AppBaseException):
-    MODULE_CODE = ErrorCode.PROXY_PASS_REVERSE_API_CODE
-
-
-class SyncReportEventValidationException(ReverseApiBaseException):
-    MESSAGE = "event validate failed"
-    ERROR_CODE = "500"
-
-
-class SyncReportBadMode(ReverseApiBaseException):
-    MESSAGE = "bad reverse report mode"
-    ERROR_CODE = "501"
-    MESSAGE_TPL = _("bad mode: {mode}")
+writers_map: Dict[str, DirectWriterABS] = {
+    ReverseReportEventTypeEnum.MySQLDbbackupResult.value: BackupReportResultWriter()
+    # ToDo
+    # "mysql_dbbackup_progress", "mysql_binlog_result"
+}
