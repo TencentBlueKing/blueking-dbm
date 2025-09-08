@@ -31,6 +31,7 @@
         :model="formData"
         style="margin-top: 16px">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -136,6 +137,8 @@
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/table-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   // import DropIndexColumn, { DropIndex } from './components/DropIndexColumn.vue';
   // import DropTypeColumn from './components/DropTypeColumn.vue';
@@ -251,6 +254,8 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
+
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
@@ -291,6 +296,7 @@
     );
 
     if (isClear) {
+      tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
