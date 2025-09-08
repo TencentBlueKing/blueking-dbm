@@ -77,7 +77,7 @@ def mysql_restore_data_sub_flow(
     # 获取配置参数
     backup_id = cluster.get("backup_id", None)  # 指定备份ID，可选
     binlog_sync = cluster.get("binlog_sync", True)  # 是否同步binlog建立主从关系，默认True
-
+    backup_source = cluster.get("backup_source", MySQLBackupSource.REMOTE.value)
     # 初始化备份处理器，用于获取集群的最新备份信息
     backup_handler = MySQLBackupHandler(
         cluster_id=cluster_model.id,
@@ -85,6 +85,7 @@ def mysql_restore_data_sub_flow(
         check_instance_exist=True,
         filter_ips=filter_ips,
         backup_id=backup_id,
+        backup_source=backup_source,
     )
 
     # 如果是TenDB Single类型，设置为增量备份
@@ -265,10 +266,14 @@ def mysql_restore_master_slave_sub_flow(
     """
     # 创建子流程构建器
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-
+    backup_source = cluster.get("backup_source", MySQLBackupSource.REMOTE.value)
     # 初始化备份处理器，用于获取集群的最新备份信息
     backup_handler = MySQLBackupHandler(
-        cluster_id=cluster["cluster_id"], is_full_backup=True, check_instance_exist=True, filter_ips=filter_ips
+        cluster_id=cluster["cluster_id"],
+        is_full_backup=True,
+        check_instance_exist=True,
+        filter_ips=filter_ips,
+        backup_source=backup_source,
     )
 
     # 如果是TenDB Cluster类型，需要设置分片ID
@@ -548,6 +553,14 @@ def tendbha_rollback_data_sub_flow(
     ):
         check_instance_exist = True
 
+    backup_source = cluster_info.get("backup_source", MySQLBackupSource.REMOTE)
+
+    if (
+        cluster_info["rollback_type"] == RollbackType.LOCAL_AND_BACKUPID
+        or cluster_info["rollback_type"] == RollbackType.LOCAL_AND_TIME
+    ):
+        backup_source = MySQLBackupSource.LOCAL.value
+
     # 指定了backup_id,则查询只用backup_id作为条件
     backup_id = cluster_info.get("backup_id", None)
     backup_handler = MySQLBackupHandler(
@@ -555,6 +568,7 @@ def tendbha_rollback_data_sub_flow(
         is_full_backup=True,
         backup_id=backup_id,
         check_instance_exist=check_instance_exist,
+        backup_source=backup_source,
     )
     if backup_info is None:
         backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
