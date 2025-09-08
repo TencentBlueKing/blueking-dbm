@@ -41,7 +41,7 @@
                   :key="index">
                   <BkTag class="mb-4">
                     {{
-                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
+                      `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${t('最大容量')}: ${item.max} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                     }}
                   </BkTag>
                 </p>
@@ -80,7 +80,7 @@
                 v-for="(item, index) in data.storage_spec"
                 :key="index">
                 {{
-                  `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
+                  `(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.min} G, ${t('最大容量')}: ${item.max} G, ${deviceClassDisplayMap[item.type as DeviceClass]})`
                 }}
               </span>
             </template>

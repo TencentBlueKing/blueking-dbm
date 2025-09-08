@@ -17,7 +17,7 @@
     filterable
     :input-search="false"
     :model-value="defaultValue"
-    :placeholder="t('请选择磁盘挂载点')"
+    :placeholder="t('请选择数据盘挂载点')"
     @change="handleChange">
     <BkOption
       v-for="(item, index) in data"
@@ -39,17 +39,15 @@
     model: Record<string, any>;
   }
 
-  interface Emits {
-    (e: 'change', value: Props['defaultValue']): void;
-  }
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  type Emits = (e: 'change', value: Props['defaultValue']) => void;
 
   defineOptions({
     inheritAttrs: false,
   });
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 

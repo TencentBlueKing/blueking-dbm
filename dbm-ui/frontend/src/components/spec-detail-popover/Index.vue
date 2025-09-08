@@ -33,18 +33,18 @@
                 field="min"
                 :label="t('最小容量（G）')">
                 <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
-                  {{ rowData.size || rowData.min || '--' }}
+                  {{ rowData.min || rowData.size || '--' }}
                 </template>
               </BkTableColumn>
               <BkTableColumn
                 field="max"
                 :label="t('最大容量（G）')">
                 <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
-                  {{ rowData.size ? '--' : rowData.max }}
+                  {{ rowData.max || '--' }}
                 </template>
               </BkTableColumn>
               <BkTableColumn
-                :label="t('磁盘类型')"
+                :label="t('数据盘类型')"
                 :width="150">
                 <template #default="{ data: rowData }: { data: ResourceSpecModel['storage_spec'][number] }">
                   {{ deviceClassDisplayMap[rowData.type as DeviceClass] }}
