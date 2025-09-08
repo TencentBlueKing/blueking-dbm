@@ -52,12 +52,13 @@ from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_info_by_cluster_id,
     get_cluster_info_by_ip,
     get_major_version_by_version_name,
+    get_proxy_version_by_ip,
     get_proxy_version_names_by_cluster_type,
     get_redis_version_by_ip,
     get_storage_version_names_by_cluster_type,
     get_twemproxy_cluster_server_shards,
 )
-from backend.flow.utils.redis.redis_util import version_ge, version_gt
+from backend.flow.utils.redis.redis_util import version_eq, version_ge, version_gt
 
 logger = logging.getLogger("flow")
 
@@ -98,15 +99,6 @@ class RedisClusterVersionUpdateOnline(object):
 
         for input_item in self.data["infos"]:
             node_type = input_item["node_type"]
-            if node_type not in (RedisVerUpdateNodeType.Proxy, RedisVerUpdateNodeType.Backend):
-                raise Exception(
-                    _(
-                        "未知的结点类型: '{}' 必须是 '{}' 或 '{}'".format(
-                            node_type, RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value
-                        )
-                    )
-                )
-
             cluster_ids = []
             if "cluster_ids" in input_item and input_item["cluster_ids"]:
                 cluster_ids = input_item["cluster_ids"]
@@ -116,9 +108,9 @@ class RedisClusterVersionUpdateOnline(object):
             if not input_item.get("target_versions"):
                 raise Exception(_("redis集群 {} 目标版本为空?").format(cluster_ids))
 
-            # Map version to IPs.
-            version_ips = defaultdict(set)
             for cluster_id in cluster_ids:
+                # Map version to IPs.
+                version_ips = defaultdict(set)
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
 
                 # 检查版本是否合法
@@ -142,21 +134,18 @@ class RedisClusterVersionUpdateOnline(object):
                         )
                     version_ips[ver].add(ip)
 
-                def collect_ip_cur_ver(ips) -> dict:
-                    return {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
-
                 # 进一步检查各IP机器上的版本
                 if node_type == RedisVerUpdateNodeType.Proxy:
                     for target_version, ips in version_ips.items():
-                        ip_cur_ver = collect_ip_cur_ver(ips)
+                        ip_cur_ver = {ip: get_proxy_version_by_ip(cluster_id, ip) for ip in ips}
 
                         if all(target_version == ip_cur_ver[ip] for ip in ips):
                             raise Exception(
                                 _("集群 {} 所有proxy当前版本等于目标版本: {},无需升级").format(cluster.immute_domain, target_version)
                             )
-                else:
+                elif node_type == RedisVerUpdateNodeType.Backend:
                     for target_version, ips in version_ips.items():
-                        ip_cur_ver = collect_ip_cur_ver(ips)
+                        ip_cur_ver = {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
                         cluster_info = get_cluster_info_by_cluster_id(cluster_id)
                         master_ip_to_slave_ip = cluster_info.get("master_ip_to_slave_ip", {})
 
@@ -176,17 +165,23 @@ class RedisClusterVersionUpdateOnline(object):
                                         _("集群 {} Master {} 没有找到对应的 Slave").format(cluster.immute_domain, ip)
                                     )
                                 slave_upgrading_too = slave_ip in ips
-                                slave_already_upgraded = version_ge(
-                                    get_redis_version_by_ip(cluster_id, slave_ip), target_version
-                                )
+                                slave_already_upgraded = version_eq(ip_cur_ver[slave_ip], target_version)
                                 if not slave_upgrading_too and not slave_already_upgraded:
                                     raise Exception(
-                                        _("集群 {} 的Master {} 对应的 Slave {} 版本小于目标版本且不在升级列表中").format(
-                                            cluster.immute_domain, ip, slave_ip
+                                        _("集群 {} 的Master {} 对应的 Slave {} 版本为 {}: 不等于目标版本且不在升级列表中").format(
+                                            cluster.immute_domain, ip, ip_cur_ver[ip], slave_ip
                                         )
                                     )
                             elif ip not in cluster_info.get("slave_ports", {}):
                                 raise Exception(_("集群 {} IP {} 既不是master也不是slave").format(cluster.immute_domain, ip))
+                else:
+                    raise Exception(
+                        _(
+                            "未知的结点类型: '{}' 必须是 '{}' 或 '{}'".format(
+                                node_type, RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value
+                            )
+                        )
+                    )
 
     @staticmethod
     def get_cluster_ids_from_info_item(info_item: Dict) -> List[int]:
