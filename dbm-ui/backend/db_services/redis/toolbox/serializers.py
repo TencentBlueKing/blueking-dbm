@@ -219,11 +219,6 @@ class GetClusterVersionSerializer(serializers.Serializer):
     node_type = serializers.ChoiceField(help_text=_("集群节点类型"), choices=RedisVerUpdateNodeType.get_choices())
     type = serializers.ChoiceField(help_text=_("请求版本类型"), choices=RedisVersionQueryType.get_choices())
 
-    def validate(self, attrs):
-        cluster_ids = attrs["cluster_ids"].split(",")
-        attrs["cluster_ids"] = cluster_ids
-        return attrs
-
 
 class ListClusterBigVersionSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
