@@ -3,6 +3,7 @@
     :config="batchInputConfig"
     @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mt-16 mb-16"
     :model="tableData">
@@ -22,11 +23,11 @@
       </EditableColumn>
       <CurrentVersionColumn
         v-model="item.current_versions"
-        :cluster-ids="item.cluster.id ? [item.cluster.id] : []"
+        :cluster-id="item.cluster.id"
         :node-type="nodeType" />
       <TargetVersionColumn
         v-model="item.target_version"
-        :cluster-ids="item.cluster.id ? [item.cluster.id] : []"
+        :cluster-id="item.cluster.id"
         :current-versions="item.current_versions"
         :node-type="nodeType" />
       <OperationColumn
@@ -49,8 +50,10 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
 
-  import CurrentVersionColumn from '../common/CurrentVersionColumn.vue';
-  import TargetVersionColumn from '../common/TargetVersionColumn.vue';
+  import { random } from '@utils';
+
+  import CurrentVersionColumn from '../common/CurrentVersionByClusterColumn.vue';
+  import TargetVersionColumn from '../common/TargetVersionByClusterColumn.vue';
 
   interface Props {
     nodeType: string;
@@ -140,6 +143,7 @@
   ];
 
   const tableData = ref([createRowData()]);
+  const tableKey = ref(random());
 
   const selected = computed(() => tableData.value.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -180,6 +184,7 @@
     }, []);
 
     if (isClear) {
+      tableKey.value = random();
       tableData.value = [...newList];
     } else {
       tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];

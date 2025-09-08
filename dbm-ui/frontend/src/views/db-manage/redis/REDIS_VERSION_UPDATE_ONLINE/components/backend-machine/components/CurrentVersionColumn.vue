@@ -32,22 +32,18 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import { getClusterVersionsByIp } from '@services/source/redisToolbox';
 
   interface Props {
+    clusterId: number;
     host: {
+      ip: string;
       pair_machine: {
-        related_clusters: {
-          id: number;
-        }[];
+        ip: string;
       };
-      related_clusters: {
-        id: number;
-      }[];
     };
     nodeType: string;
   }
@@ -63,39 +59,27 @@
 
   const { t } = useI18n();
 
-  const { loading: versionLoading, run: fetchCurrentClusterVersions } = useRequest(getClusterVersions, {
+  const { loading: versionLoading, run: fetchCurrentClusterVersions } = useRequest(getClusterVersionsByIp, {
     manual: true,
-    onSuccess(versions) {
-      modelValue.value = _.uniq(
-        Object.values(versions).flatMap((item) => {
-          return item;
-        }),
-      );
+    onSuccess(version) {
+      modelValue.value = version;
     },
   });
 
-  const { loading: pairVersionLoading, run: fetchPairCurrentClusterVersions } = useRequest(getClusterVersions, {
+  const { loading: pairVersionLoading, run: fetchPairCurrentClusterVersions } = useRequest(getClusterVersionsByIp, {
     manual: true,
-    onSuccess(versions) {
-      slaveVersions.value = _.uniq(
-        Object.values(versions).flatMap((item) => {
-          return item;
-        }),
-      );
+    onSuccess(version) {
+      modelValue.value = version;
     },
   });
 
   watch(
-    () => props.host.related_clusters,
-    (newCluster, oldCluster) => {
-      const newClusterIds = newCluster.map((item) => item.id);
-      const oldClusterIds = oldCluster.map((item) => item.id);
-      if (_.isEqual(newClusterIds, oldClusterIds)) {
-        return;
-      }
-      if (newClusterIds.length > 0 && props.nodeType) {
+    () => [props.host.ip, props.clusterId],
+    () => {
+      if (props.host.ip && props.clusterId) {
         fetchCurrentClusterVersions({
-          cluster_ids: newClusterIds.join(','),
+          cluster_id: props.clusterId,
+          ip: props.host.ip,
           node_type: props.nodeType,
           type: 'online',
         });
@@ -105,16 +89,12 @@
   );
 
   watch(
-    () => props.host.pair_machine.related_clusters,
-    (newCluster, oldCluster) => {
-      const newClusterIds = newCluster.map((item) => item.id);
-      const oldClusterIds = oldCluster.map((item) => item.id);
-      if (_.isEqual(newClusterIds, oldClusterIds)) {
-        return;
-      }
-      if (newClusterIds.length > 0 && props.nodeType) {
+    () => [props.host.pair_machine.ip, props.clusterId],
+    () => {
+      if (props.host.pair_machine.ip && props.clusterId) {
         fetchPairCurrentClusterVersions({
-          cluster_ids: newClusterIds.join(','),
+          cluster_id: props.clusterId,
+          ip: props.host.pair_machine.ip,
           node_type: props.nodeType,
           type: 'online',
         });

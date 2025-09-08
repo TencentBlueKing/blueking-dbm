@@ -22,16 +22,15 @@
       v-model="modelValue"
       :clearable="false">
       <BkOption
-        v-for="(item, index) in selectList"
+        v-for="(item, index) in versions"
         :key="index"
-        :disabled="item.disabled"
-        :label="item.label"
-        :value="item.value">
+        :label="item"
+        :value="item">
         <TextOverflowLayout>
-          {{ item.label }}
+          {{ item }}
           <template #append>
             <BkTag
-              v-if="isCurrentVersion(item.label)"
+              v-if="isCurrentVersion(item)"
               class="ml-4"
               size="small"
               theme="info">
@@ -51,20 +50,17 @@
   </EditableColumn>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import { getClusterVersionsByIp } from '@services/source/redisToolbox';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { compareVersions } from '@utils';
-
-  import { versionRegex } from '@/common/regex';
-
   interface Props {
-    clusterIds: number[];
+    clusterId: number;
     currentVersions?: string[];
+    ip: string;
     nodeType: string;
   }
 
@@ -74,54 +70,24 @@
 
   const { t } = useI18n();
 
-  const loading = ref(false);
-  const targetVersionList = shallowRef<string[]>([]);
-
-  const selectList = computed(() => {
-    const currentVersionSorted = (props.currentVersions || [])
-      .map((item) => (item.match(versionRegex) ? item.match(versionRegex)![0] : ''))
-      .sort((a, b) => compareVersions(b, a));
-    return targetVersionList.value.map((item) => ({
-      disabled:
-        currentVersionSorted.length === 0
-          ? false
-          : compareVersions(item.match(versionRegex) ? item.match(versionRegex)![0] : '', currentVersionSorted[0]) !==
-            1,
-      label: item,
-      value: item,
-    }));
+  const {
+    data: versions,
+    loading,
+    run: runGetClusterVersionsByIp,
+  } = useRequest(getClusterVersionsByIp, {
+    manual: true,
   });
 
   watch(
-    () => props.clusterIds,
-    (newVal, oldVal) => {
-      if (_.isEqual(newVal[0], oldVal?.[0])) {
-        return;
-      }
-      if (props.clusterIds.length > 0 && props.nodeType) {
-        loading.value = true;
-        getClusterVersions({
-          cluster_ids: props.clusterIds.join(','),
+    () => [props.ip, props.clusterId],
+    () => {
+      if (props.ip && props.clusterId) {
+        runGetClusterVersionsByIp({
+          cluster_id: props.clusterId,
+          ip: props.ip,
           node_type: props.nodeType,
           type: 'update',
-        })
-          .then((versions) => {
-            if (oldVal && newVal[1] !== oldVal[1]) {
-              modelValue.value = '';
-            }
-            nextTick(() => {
-              const targetVersions = _.uniq(Object.values(versions).flatMap((item) => item));
-              if (targetVersions.length && !modelValue.value) {
-                [modelValue.value] = targetVersions;
-              }
-              targetVersionList.value = targetVersions;
-            });
-          })
-          .finally(() => {
-            loading.value = false;
-          });
-      } else {
-        targetVersionList.value = [];
+        });
       }
     },
     {

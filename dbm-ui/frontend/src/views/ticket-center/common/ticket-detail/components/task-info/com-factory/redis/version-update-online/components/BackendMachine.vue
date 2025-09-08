@@ -107,11 +107,16 @@
   const { t } = useI18n();
 
   const { infos } = props.ticketDetails.details;
-  const ipMap: Record<string, RowData> = {};
 
   // 集群维度转换成IP维度, 分主从
+  const ipMap: Record<string, RowData> = {};
+  const pairSlaveIpMap: Record<string, boolean> = {};
   infos.forEach((infoItem) => {
     infoItem.target_versions.forEach((targetItem) => {
+      if (pairSlaveIpMap[targetItem.ip]) {
+        return;
+      }
+
       ipMap[targetItem.ip] = {
         current_versions: infoItem.current_versions,
         instance_role: targetItem.instance_role || 'redis_master',
@@ -123,6 +128,9 @@
         related_clusters: targetItem.related_clusters,
         target_version: targetItem.version,
       };
+      if (targetItem.slave_ip) {
+        pairSlaveIpMap[targetItem.slave_ip] = true;
+      }
     });
   });
 

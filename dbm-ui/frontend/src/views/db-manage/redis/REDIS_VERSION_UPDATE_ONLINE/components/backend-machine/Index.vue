@@ -3,6 +3,7 @@
     :config="batchInputConfig"
     @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     class="mt-16 mb-16"
     :model="tableData">
@@ -24,12 +25,14 @@
       <CurrentVersionColumn
         v-model="item.current_versions"
         v-model:slave-versions="item.slave_current_versions"
+        :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
         :host="item.host"
         :node-type="nodeType" />
       <TargetVersionColumn
         v-model="item.target_version"
-        :cluster-ids="item.host.related_clusters.map((item) => item.id)"
+        :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
         :current-versions="item.current_versions"
+        :ip="item.host.ip"
         :node-type="nodeType" />
       <OperationColumn
         :create-row-method="createRowData"
@@ -52,7 +55,9 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
 
-  import TargetVersionColumn from '../common/TargetVersionColumn.vue';
+  import { random } from '@utils';
+
+  import TargetVersionColumn from '../common/TargetVersionByIpColumn.vue';
 
   import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
   import HostColumn from './components/HostColumn.vue';
@@ -120,8 +125,23 @@
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { infos } = details;
-      const targerVersionList = infos.flatMap((item) => item.target_versions);
-      tableData.value = targerVersionList.map((item) => {
+
+      const ipMap: Record<string, Redis.VersionUpdateOnline['infos'][number]['target_versions'][number]> = {};
+      const pairSlaveIpMap: Record<string, boolean> = {};
+      infos.forEach((infoItem) => {
+        infoItem.target_versions.forEach((targetItem) => {
+          if (pairSlaveIpMap[targetItem.ip]) {
+            return;
+          }
+
+          ipMap[targetItem.ip] = targetItem;
+          if (targetItem.slave_ip) {
+            pairSlaveIpMap[targetItem.slave_ip] = true;
+          }
+        });
+      });
+
+      tableData.value = Object.values(ipMap).map((item) => {
         return createRowData({
           host: {
             ip: item.ip,
@@ -146,6 +166,7 @@
   ];
 
   const tableData = ref([createRowData()]);
+  const tableKey = ref(random());
 
   const selected = computed(() =>
     tableData.value
@@ -190,6 +211,7 @@
     }, []);
 
     if (isClear) {
+      tableKey.value = random();
       tableData.value = [...newList];
     } else {
       tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
@@ -230,7 +252,6 @@
                 });
               }
             });
-
             if (tableItem.host.pair_machine.ip) {
               tableItem.host.pair_machine.related_clusters.forEach((pairClusterItem) => {
                 const clusterId = pairClusterItem.id;
@@ -243,7 +264,7 @@
                 };
                 if (clusterMap[clusterId]) {
                   clusterMap[clusterId].slave_current_versions = tableItem.slave_current_versions;
-                  clusterMap[clusterId].target_versions.concat(targetVersionItem);
+                  clusterMap[clusterId].target_versions.push(targetVersionItem);
                 } else {
                   Object.assign(clusterMap, {
                     [clusterId]: {
