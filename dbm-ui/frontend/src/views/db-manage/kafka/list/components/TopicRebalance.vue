@@ -260,6 +260,7 @@
         getInstanceList({
           cluster_id: props.data?.id,
           extra: 1,
+          limit: -1,
           role: 'broker',
         });
       }
@@ -276,6 +277,7 @@
       getInstanceList({
         cluster_id: props.data?.id,
         extra: 1,
+        limit: -1,
         role: 'broker',
       });
     }
