@@ -24,4 +24,9 @@ class Migration(migrations.Migration):
                 null=True,
             ),
         ),
+        migrations.AlterField(
+            model_name="deviceclass",
+            name="mem",
+            field=models.IntegerField(default=0, help_text="机型内存(单位GB)"),
+        ),
     ]
