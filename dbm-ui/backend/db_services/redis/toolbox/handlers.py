@@ -199,6 +199,14 @@ class ToolboxHandler(ClusterServiceHandler):
             return get_cluster_proxy_version_for_upgrade(cluster_id)
 
     @classmethod
+    def get_update_cluster_version_by_ip(cls, cluster_id: int, node_type: str, ip: str):
+        """根据IP获取可升/降级的版本"""
+        if node_type == RedisVerUpdateNodeType.Backend.value:
+            return get_cluster_storage_versions_for_upgrade(cluster_id, ip)
+        else:
+            return get_cluster_proxy_version_for_upgrade(cluster_id)
+
+    @classmethod
     def list_cluster_big_version(cls, cluster_id: int):
         """查询集群可更新的大版本"""
         return get_cluster_update_version(cluster_id)
