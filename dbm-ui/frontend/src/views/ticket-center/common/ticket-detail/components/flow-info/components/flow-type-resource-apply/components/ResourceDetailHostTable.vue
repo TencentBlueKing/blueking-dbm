@@ -16,6 +16,14 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
+      field="for_biz"
+      :label="t('资源归属')"
+      :min-width="300">
+      <template #default="{ data: rowData }: { data: IResouce }">
+        <ResourceHostOwner :data="getResourceHostOwnerData(rowData)" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
       field="city"
       :label="t('地域')"
       :min-width="100">
@@ -84,6 +92,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { useGlobalBizs } from '@stores';
+
+  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
+
   export interface IResouce {
     bk_cloud_id: number;
     bk_cpu: number;
@@ -91,10 +103,22 @@
     bk_mem: number;
     city: string;
     device_class: string;
+    // 历史单据类型为 number; 最新单据类型{  bk_biz_id: number; bk_biz_name: string; }
+    for_biz:
+      | number
+      | {
+          bk_biz_id: number;
+          bk_biz_name: string;
+        };
     ip: string;
+    labels: {
+      id: number;
+      name: string;
+    }[];
     os_name: string;
     os_type: string;
     rack_id: string;
+    resource_type: string;
     sub_zone: string;
   }
 
@@ -105,8 +129,30 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+  const biz = useGlobalBizs();
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';
+  };
+
+  const getResourceHostOwnerData = (data: IResouce) => {
+    const baseData = {
+      labels: data.labels,
+      resource_type: data.resource_type,
+    };
+    // 兼容历史单据数据结构
+    if (typeof data.for_biz === 'number') {
+      return {
+        ...baseData,
+        for_biz: {
+          bk_biz_id: data.for_biz,
+          bk_biz_name: biz.bizIdMap.get(data.for_biz)?.display_name || '--',
+        },
+      };
+    }
+    return {
+      ...baseData,
+      for_biz: data.for_biz,
+    };
   };
 </script>
