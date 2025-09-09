@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 # fast_execute_script接口固定参数
 fast_execute_script_common_kwargs = {
-    "timeout": 3600,
+    "timeout": 86400,
     "account_alias": "root",
     "is_param_sensitive": 0,
 }

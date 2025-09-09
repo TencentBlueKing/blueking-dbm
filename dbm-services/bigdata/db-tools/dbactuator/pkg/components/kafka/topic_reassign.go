@@ -50,11 +50,6 @@ type Topic struct {
 // Init initializes the TopicReassignComp
 func (t *TopicReassignComp) Init() error {
 	logger.Info("Initializing topic reassignment component")
-	// 写入 ThrottleRate 到文件
-	throttleFile := cst.ThrottleFile
-	if err := os.WriteFile(throttleFile, fmt.Appendf(nil, "%d", t.Params.ThrottleRate), 0644); err != nil {
-		return fmt.Errorf("failed to write throttle rate file: %w", err)
-	}
 	return nil
 }
 
@@ -62,6 +57,12 @@ func (t *TopicReassignComp) Init() error {
 func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	// 删除上次生成的文件
 	cleanFiles()
+	// 写入 ThrottleRate 到文件
+	throttleFile := cst.ThrottleFile
+	if err := os.WriteFile(throttleFile, fmt.Appendf(nil, "%d", t.Params.ThrottleRate), 0644); err != nil {
+		return fmt.Errorf("failed to write throttle rate file: %w", err)
+	}
+
 	// Get Zookeeper connection string
 	zkHost, zkPath, err := kafkautil.GetZookeeperConnect(cst.KafkaConfigFile)
 	if err != nil {
@@ -225,11 +226,6 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 	doneFile := cst.DoneFile
 	logger.Info("Total topics to reassign: %d", total)
 
-	// Create or clear done file
-	if err := os.WriteFile(doneFile, []byte{}, 0644); err != nil {
-		return fmt.Errorf("failed to create done file: %w", err)
-	}
-
 	for i, topic := range topicList {
 		if topic == "" {
 			continue
@@ -238,6 +234,7 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 		// Skip if already done
 		doneContent, _ := os.ReadFile(doneFile)
 		if strings.Contains(string(doneContent), topic) {
+			logger.Info("Skipping reassignment for topic %s (already done)", topic)
 			continue
 		}
 
@@ -282,7 +279,7 @@ func (t *TopicReassignComp) ExecuteReassignment() error {
 		}
 
 		// Mark as done
-		f, err := os.OpenFile(doneFile, os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(doneFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return fmt.Errorf("failed to open done file for append: %w", err)
 		}
