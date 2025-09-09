@@ -67,7 +67,6 @@ export default class Kafka extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -97,7 +96,6 @@ export default class Kafka extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  region: string;
   slave_domain: string;
   status: string;
   update_at: string;
@@ -110,7 +108,6 @@ export default class Kafka extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.broker = payload.broker;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
@@ -135,7 +132,6 @@ export default class Kafka extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;

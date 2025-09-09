@@ -56,7 +56,6 @@ export default class SqlServerHaCluster extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -77,7 +76,6 @@ export default class SqlServerHaCluster extends ClusterBase {
   };
   phase: string;
   phase_name: string;
-  region: string;
   slave_domain: string;
   slaves: ClusterListNode[];
   status: string;
@@ -91,7 +89,6 @@ export default class SqlServerHaCluster extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -114,7 +111,6 @@ export default class SqlServerHaCluster extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.slaves = payload.slaves || [];
     this.status = payload.status;

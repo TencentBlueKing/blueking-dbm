@@ -11,10 +11,10 @@
       {{ data.disasterToleranceLevelName }}
     </InfoItem>
     <InfoItem :label="t('地域')">
-      <div>{{ data.region || '--' }}</div>
+      <div>{{ data.regionDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('园区')">
-      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
+      <div>{{ data.clusterSubzonesDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('规格')">
       {{ data.cluster_spec.spec_name || '--' }}
@@ -48,12 +48,12 @@
       | 'cluster_name'
       | 'major_version'
       | 'disasterToleranceLevelName'
-      | 'region'
       | 'cluster_spec'
       | 'bk_cloud_name'
       | 'bk_cloud_id'
       | 'bk_biz_name'
-      | 'cluster_subzons'
+      | 'clusterSubzonesDisplay'
+      | 'regionDisplay'
       | 'creator'
       | 'createAtDisplay'
       | 'cluster_time_zone'
