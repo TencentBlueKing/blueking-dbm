@@ -152,15 +152,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES, t('客户端权限克隆'), {
       dbConsole: 'tendbCluster.toolbox.clientPermissionClone',
     }),
-    {
-      path: 'privilege-clone-inst/:page?',
-      name: 'spiderPrivilegeCloneInst',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        navName: t('DB 实例权限克隆'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/privilege-clone-inst/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, t('DB 实例权限克隆'), {
+      dbConsole: 'tendbCluster.toolbox.dbInstancePermissionClone',
+    }),
     {
       path: 'openarea-template',
       name: 'spiderOpenareaTemplate',
