@@ -112,15 +112,18 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         },
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=FilterBackupLogSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
     def last_time_backup_log(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_id = validated_data["cluster_id"]
         cluster = Cluster.objects.get(id=cluster_id)
         db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
-        backup_method = validated_data["backup_method"].split(",")
+        backup_method = validated_data.get("backup_method", "full_by_ticket,full_by_regular,partial_by_ticket").split(
+            ","
+        )
         last_time = validated_data.get("last_time", None)
-
+        if last_time:
+            last_time = str2datetime(last_time)
         # mysql / tendbcluster
         handler = MySQLBackupHandler(cluster_id=cluster_id, backup_method=backup_method)
 

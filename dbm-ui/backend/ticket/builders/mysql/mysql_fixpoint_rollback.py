@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -78,6 +79,16 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         rollback_time = str2datetime(info["rollback_time"])
         if rollback_time > now:
             raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
+
+        # 指定时间构造需要检查binlog是否完整
+        backup_handler = MySQLBackupHandler(cluster_id=info["cluster_id"])
+        backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
+        backup_time = str2datetime(backup_info["backup_time"])
+        binlog_result = backup_handler.get_binlog_for_rollback(backup_info, backup_time, rollback_time)
+        if "query_binlog_error" in binlog_result.keys():
+            raise serializers.ValidationError(
+                _("{} binlog sql: {}").format(binlog_result["query_binlog_error"], backup_handler.query)
+            )
 
     def validate(self, attrs):
         # 校验集群是否可用
