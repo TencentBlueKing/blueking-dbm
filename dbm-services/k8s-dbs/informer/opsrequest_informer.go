@@ -22,6 +22,7 @@ package informer
 import (
 	"context"
 	"fmt"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/types"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
@@ -150,7 +151,7 @@ func (o *OpsRequestInformer) OnUpdate(_, newObj interface{}) {
 		slog.Info("opsRequest entity status changed", "opsRequestName", opsRequestName,
 			"clusterName", clusterName, "oldPhase", opsRequestEntity.Status, "newPhase", status.Phase)
 		opsRequestEntity.Status = string(status.Phase)
-		opsRequestEntity.UpdatedBy = "admin"
+		opsRequestEntity.UpdatedBy = commconst.SystemUser
 		if !completionTime.IsZero() {
 			t := types.JSONDatetime(completionTime.Time)
 			opsRequestEntity.CompletedAt = &t
