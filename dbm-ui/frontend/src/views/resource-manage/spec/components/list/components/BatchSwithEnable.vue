@@ -53,7 +53,7 @@
 
   const disabled = computed(() => props.dataList.length === 0);
 
-  const { run: runBatchCommonUpdate } = useRequest(batchCommonUpdate, {
+  const { runAsync: runBatchCommonUpdate } = useRequest(batchCommonUpdate, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('操作成功'));
@@ -61,10 +61,9 @@
     },
   });
 
-  const handleBatchUpdate = () => {
+  const handleBatchUpdate = () =>
     runBatchCommonUpdate({
       enable: props.enable,
       spec_ids: props.dataList.map((item) => item.spec_id),
     });
-  };
 </script>

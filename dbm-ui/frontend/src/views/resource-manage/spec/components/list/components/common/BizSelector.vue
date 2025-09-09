@@ -29,13 +29,12 @@
 
   const attrs = useAttrs();
   const { t } = useI18n();
-  const { bizs } = useGlobalBizs();
+  const { bizNameMap, bizs } = useGlobalBizs();
 
   const bizList = bizs.map((item) => ({
     label: item.name,
     value: item.bk_biz_id,
   }));
-  const bizNameMap = Object.fromEntries(bizList.map((item) => [item.label, item.value]));
 
   const handleChange = (list: (number | string)[]) => {
     const bizNames: string[] = [];
