@@ -219,7 +219,6 @@
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         cluster_shard_num: details.cluster_shard_num,
-        db_module_id: details.db_module_id,
         disaster_tolerance_level: details.disaster_tolerance_level,
         ip_source: details.ip_source,
         remote_shard_num: details.remote_shard_num,

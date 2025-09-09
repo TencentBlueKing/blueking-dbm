@@ -420,7 +420,7 @@
 
       .config-detail-label {
         display: inline-block;
-        min-width: 112px;
+        min-width: 172px;
         padding-right: 8px;
         text-align: right;
       }
