@@ -41,7 +41,7 @@
         :filter="filterOption.status"
         :label="t('状态')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           <DbStatus
             v-if="data.related_instances[0]?.status === 'running'"
             theme="success">
@@ -57,14 +57,14 @@
       <BkTableColumn
         :label="t('所属业务')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
         :label="t('所属集群')"
         :min-width="220">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           {{ data.related_clusters[0]?.immute_domain || '--' }}
         </template>
       </BkTableColumn>

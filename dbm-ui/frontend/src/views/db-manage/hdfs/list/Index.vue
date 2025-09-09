@@ -57,7 +57,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.HDFS">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: HdfsModel }">
               <div v-db-console="'hdfs.clusterManage.manage'">
                 <a
                   :href="data.access_url"

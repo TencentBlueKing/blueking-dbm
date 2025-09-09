@@ -38,7 +38,7 @@
         field="instance_num"
         :label="t('每台主机实例数量')"
         :min-width="150">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: TExpansionNode['hostList'][number] }">
           <EditHostInstance
             :model-value="data.instance_num"
             @change="(value: number) => handleInstanceNumChange(value, data)" />
@@ -48,7 +48,7 @@
         field="agent_status"
         :label="t('Agent状态')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: TExpansionNode['hostList'][number] }">
           <HostAgentStatus :data="data.agent_status" />
         </template>
       </BkTableColumn>
@@ -60,7 +60,7 @@
         fixed="right"
         :label="t('操作')"
         :min-width="100">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: TExpansionNode['hostList'][number] }">
           <BkButton
             text
             theme="primary"

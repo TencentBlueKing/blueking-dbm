@@ -2,7 +2,7 @@
   <BaseRoleColumn
     v-bind="props"
     :min-width="280">
-    <template #default="{ data }">
+    <template #default="{ data }: { data: RedisModel['redis_slave'][number] }">
       {{ data.ip }}:{{ data.port }}
       <template v-if="data.seg_range">({{ data.seg_range }})</template>
     </template>

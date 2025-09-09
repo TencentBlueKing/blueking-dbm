@@ -31,7 +31,7 @@
   import { nextTick, ref } from 'vue';
 
   interface Props {
-    modelValue: number;
+    modelValue?: number;
   }
   type Emits = (e: 'change', value: number) => void;
 

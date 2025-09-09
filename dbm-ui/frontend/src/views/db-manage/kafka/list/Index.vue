@@ -56,7 +56,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.KAFKA">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: KafkaModel }">
             <div v-db-console="'kafka.clusterManage.manage'">
               <a
                 :href="data.access_url"

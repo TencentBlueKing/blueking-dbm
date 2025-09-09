@@ -27,7 +27,7 @@
           field="dbnames"
           :label="t('变更的 DB')"
           :width="200">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RowData }">
             <BkTag
               v-for="(tag, index) in data.dbnames"
               :key="index">
@@ -39,7 +39,7 @@
           field="ignore_dbnames"
           :label="t('忽略的 DB')"
           :width="200">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RowData }">
             <template v-if="data.ignore_dbnames.length > 0">
               <BkTag
                 v-for="(tag, index) in data.ignore_dbnames"
@@ -54,7 +54,7 @@
           field="status"
           :label="t('SQL 文件执行结果')"
           :width="200">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RowData }">
             <span v-if="data.status === 'Failed'">
               <DbIcon
                 svg
@@ -76,7 +76,7 @@
           </template>
         </BkTableColumn>
         <BkTableColumn :label="t('失败原因')">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RowData }">
             <div v-if="data.status === 'Failed'">
               <div style="font-size: 12px; font-weight: bold; line-height: 22px; color: #ea3636">
                 {{ getSQLFilename(data.file_name) }}
@@ -112,6 +112,8 @@
   import StatusPending from './components/render-status/Pending.vue';
   import StatusSuccess from './components/render-status/Success.vue';
   import useFlowStatus from './hooks/useFlowStatus';
+
+  type RowData = ServiceReturnType<typeof getSemanticExecuteResult>[number];
 
   const router = useRouter();
   const route = useRoute();

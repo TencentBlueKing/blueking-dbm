@@ -41,7 +41,7 @@
         :filter="filterOption.status"
         :label="t('状态')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           <DbStatus
             v-if="data.status === 'running'"
             theme="success">
@@ -57,7 +57,7 @@
       <BkTableColumn
         :label="t('所属业务')"
         :min-width="120">
-        <template #default="{ data }">
+        <template #default="{ data }: { data: IValue }">
           {{ getBizInfoById(data.bk_biz_id)?.name || '--' }}
         </template>
       </BkTableColumn>
