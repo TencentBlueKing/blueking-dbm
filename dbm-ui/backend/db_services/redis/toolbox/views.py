@@ -106,9 +106,13 @@ class ToolboxViewSet(BaseClusterViewSet):
         cluster_id, node_type, ip = data["cluster_id"], data["node_type"], data["ip"]
 
         if data["type"] == RedisVersionQueryType.ONLINE.value:
-            return Response(ToolboxHandler.get_online_cluster_version_by_ip(cluster_id, node_type, ip))
+            return Response(
+                [
+                    ToolboxHandler.get_online_cluster_version_by_ip(cluster_id, node_type, ip),
+                ]
+            )
         else:
-            return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))
+            return Response(ToolboxHandler.get_update_cluster_version_by_ip(cluster_id, node_type, ip))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群可更新大版本"),
