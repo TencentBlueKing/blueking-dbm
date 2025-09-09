@@ -201,7 +201,7 @@
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
     [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
     [TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE]: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, // spider 集群标准化
-    [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
+    [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, // Spider TenDBCluster 库表备份
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行

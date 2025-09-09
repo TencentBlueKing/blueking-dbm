@@ -140,7 +140,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbTableBackup',
-        id: 'spiderDbTableBackup',
+        id: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
         name: t('库表备份'),
         parentId: 'spider_copy',
       },
