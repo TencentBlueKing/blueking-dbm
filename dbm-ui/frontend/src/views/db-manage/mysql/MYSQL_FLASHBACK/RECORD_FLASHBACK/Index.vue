@@ -8,7 +8,7 @@
       ref="editableTableRef"
       class="mt-16 mb-20"
       :model="formData.tableData">
-      <EditableTableRow
+      <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
         <ClusterColumn
@@ -55,7 +55,7 @@
         <OperationColumn
           v-model:table-data="formData.tableData"
           :create-row-method="createTableRow" />
-      </EditableTableRow>
+      </EditableRow>
     </EditableTable>
     <BkFormItem class="mt-20">
       <BkCheckbox
@@ -89,7 +89,6 @@
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -99,18 +98,18 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
-  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+
+  import { random } from '@utils';
+
   import DatetimeColumn from '../components/DatetimeColumn.vue';
   import RecordColumn from '../components/RecordColumn.vue';
-  import { random } from '@utils';
 
   interface RowData {
     cluster: TendbhaModel;
@@ -159,8 +158,6 @@
   ];
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    direct_write_back: data.direct_write_back || false,
-    rows_filter: data.rows_filter || '',
     cluster: Object.assign(
       {
         id: 0,
@@ -169,9 +166,11 @@
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
-    tables: (data.tables || []) as string[],
-    start_time: data.start_time || '',
+    direct_write_back: data.direct_write_back || false,
     end_time: data.end_time || '',
+    rows_filter: data.rows_filter || '',
+    start_time: data.start_time || '',
+    tables: (data.tables || []) as string[],
   });
 
   const editableTableRef = useTemplateRef('editableTableRef');
@@ -268,11 +267,11 @@
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        tables: item.tables ? [item.tables] : [],
-        databases: item.databases ? [item.databases] : [],
-        start_time: item.start_time || '',
+        databases: item.databases ? item.databases.split(',') : [],
         end_time: item.end_time || '',
         rows_filter: item.rows_filter?.replaceAll('\\n', '\n') || '',
+        start_time: item.start_time || '',
+        tables: item.tables ? item.tables.split(',') : [],
       }),
     );
     if (isClear) {

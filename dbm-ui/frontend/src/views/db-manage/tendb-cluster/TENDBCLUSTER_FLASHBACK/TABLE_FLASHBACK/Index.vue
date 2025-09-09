@@ -8,7 +8,7 @@
       ref="editableTableRef"
       class="mt-16 mb-20"
       :model="formData.tableData">
-      <EditableTableRow
+      <EditableRow
         v-for="(item, index) in formData.tableData"
         :key="index">
         <ClusterColumn
@@ -63,7 +63,7 @@
         <OperationColumn
           v-model:table-data="formData.tableData"
           :create-row-method="createTableRow" />
-      </EditableTableRow>
+      </EditableRow>
     </EditableTable>
     <TicketPayload v-model="formData.payload" />
     <template #action>
@@ -89,42 +89,37 @@
 </template>
 <script setup lang="ts">
   import dayjs from 'dayjs';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
-  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/DbNameColumn.vue';
   import TableNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/TableNameColumn.vue';
-
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import DatetimeColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_FLASHBACK/components/DatetimeColumn.vue';
+
   import { random } from '@utils';
 
   interface RowData {
     cluster: TendbclusterModel;
     databases: string[];
-    tables: string[];
-    start_time: string;
-    end_time: string;
     databases_ignore: string[];
+    end_time: string;
+    start_time: string;
+    tables: string[];
     tables_ignore: string[];
   }
 
   const { t } = useI18n();
-  const router = useRouter();
-  const route = useRoute();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const batchInputConfig = [
@@ -174,10 +169,10 @@
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
-    tables: (data.tables || []) as string[],
-    start_time: data.start_time || '',
-    end_time: data.end_time || '',
     databases_ignore: (data.databases_ignore || []) as string[],
+    end_time: data.end_time || '',
+    start_time: data.start_time || '',
+    tables: (data.tables || []) as string[],
     tables_ignore: (data.tables_ignore || []) as string[],
   });
 
@@ -270,12 +265,12 @@
         cluster: {
           master_domain: item.master_domain,
         } as TendbclusterModel,
-        tables: item.tables ? [item.tables] : [],
-        databases: item.databases ? [item.databases] : [],
-        tables_ignore: item.tables_ignore ? [item.tables_ignore] : [],
-        databases_ignore: item.databases_ignore ? [item.databases_ignore] : [],
-        start_time: item.start_time || '',
+        databases: item.databases ? item.databases.split(',') : [],
+        databases_ignore: item.databases_ignore ? item.databases_ignore.split(',') : [],
         end_time: item.end_time || '',
+        start_time: item.start_time || '',
+        tables: item.tables ? item.tables.split(',') : [],
+        tables_ignore: item.tables_ignore ? item.tables_ignore.split(',') : [],
       }),
     );
     if (isClear) {

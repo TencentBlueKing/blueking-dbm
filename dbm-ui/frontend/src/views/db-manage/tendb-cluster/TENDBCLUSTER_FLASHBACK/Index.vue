@@ -36,8 +36,11 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
   import { type TendbCluster } from '@services/model/ticket/ticket';
+
   import { useTicketDetail } from '@hooks';
+
   import { TicketTypes } from '@common/const';
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
@@ -46,8 +49,8 @@
   import TABLE_FLASHBACK from './TABLE_FLASHBACK/Index.vue';
 
   const comMap = {
-    TABLE_FLASHBACK,
     RECORD_FLASHBACK,
+    TABLE_FLASHBACK,
   };
 
   const { t } = useI18n();

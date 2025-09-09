@@ -29,20 +29,20 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
             ref="clusterRef"
             v-model="item.cluster"
-            :cluster-types="[ClusterTypes.TENDBHA]"
             allow-repeat
-            :selected="selected"
+            :cluster-types="[ClusterTypes.TENDBHA]"
             :rowspan="item.rowspan"
+            :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <MasterSlaveColumn
-            v-model:slaves="item.slaves"
             v-model:master="item.master"
+            v-model:slaves="item.slaves"
             v-model:table-data="formData.tableData"
             :cluster="item.cluster"
             @change="handleRowMerge" />
@@ -69,13 +69,13 @@
             v-model="item.ignore_tables"
             :cluster-id="item.cluster?.id"
             field="ignore_tables"
-            :required="false"
             :label="t('忽略表名')"
+            :required="false"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BkFormItem
         :label="t('定时执行时间')"
@@ -170,8 +170,9 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
+  import dayjs from 'dayjs';
   import { reactive, useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -181,31 +182,30 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-  import { format } from 'date-fns';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
+
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
+  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+
   import { random } from '@utils';
 
   import MasterSlaveColumn from './components/MasterSlaveColumn.vue';
-  import type { ComponentProps } from 'vue-component-type-helpers';
-  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   interface RowData {
     cluster: TendbhaModel;
-    table_patterns: string[];
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
-    slaves: ComponentProps<typeof MasterSlaveColumn>['slaves'];
     master: ComponentProps<typeof MasterSlaveColumn>['master'];
     rowspan: number;
+    slaves: ComponentProps<typeof MasterSlaveColumn>['slaves'];
+    table_patterns: string[];
   }
 
   const { t } = useI18n();
@@ -262,24 +262,24 @@
       } as unknown as TendbhaModel,
       data.cluster,
     ),
-    table_patterns: data.table_patterns || ['*'],
     db_patterns: data.db_patterns || ['*'],
     ignore_dbs: data.ignore_dbs || [],
     ignore_tables: data.ignore_tables || [],
-    slaves: data.slaves || ([] as RowData['slaves']),
-    rowspan: data.rowspan || 1,
     master: Object.assign(
       {
-        instance_address: '',
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
         id: 0,
+        instance_address: '',
         ip: '',
         port: 0,
-        bk_cloud_id: 0,
-        bk_biz_id: 0,
-        bk_host_id: 0,
       } as ComponentProps<typeof MasterSlaveColumn>['master'],
       data.master,
     ),
+    rowspan: data.rowspan || 1,
+    slaves: data.slaves || ([] as RowData['slaves']),
+    table_patterns: data.table_patterns || ['*'],
   });
 
   const disabledDate = (date: Date | number) => {
@@ -297,14 +297,14 @@
   };
 
   const defaultData = () => ({
-    force: true,
-    payload: createTickePayload(),
-    tableData: [createTableRow()],
     data_repair: {
       is_repair: true,
       mode: 'manual',
     },
+    force: true,
+    payload: createTickePayload(),
     runtime_hour: 48,
+    tableData: [createTableRow()],
     timing: getCurrentDate(),
   });
 
@@ -342,26 +342,26 @@
           cluster: {
             master_domain: clusters[item.cluster_id].immute_domain || '',
           },
-          table_patterns: item.table_patterns ? [item.table_patterns] : [],
-          db_patterns: item.db_patterns ? [item.db_patterns] : [],
-          ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-          ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
+          db_patterns: item.db_patterns,
+          ignore_dbs: item.ignore_dbs,
+          ignore_tables: item.ignore_tables,
           master: {
+            bk_biz_id: item.master.bk_biz_id,
+            bk_cloud_id: item.master.bk_cloud_id,
+            bk_host_id: item.master.bk_host_id,
             instance_address: `${item.master.ip}:${item.master.port}`,
             ip: item.master.ip,
             port: item.master.port,
-            bk_cloud_id: item.master.bk_cloud_id,
-            bk_biz_id: item.master.bk_biz_id,
-            bk_host_id: item.master.bk_host_id,
           },
           slaves: item.slaves.map((slave) => ({
+            bk_biz_id: slave.bk_biz_id,
+            bk_cloud_id: slave.bk_cloud_id,
+            bk_host_id: slave.bk_host_id,
             instance_address: `${slave.ip}:${slave.port}`,
             ip: slave.ip,
             port: slave.port,
-            bk_cloud_id: slave.bk_cloud_id,
-            bk_biz_id: slave.bk_biz_id,
-            bk_host_id: slave.bk_host_id,
           })),
+          table_patterns: item.table_patterns,
         })),
       });
       handleRowMerge();
@@ -373,11 +373,11 @@
       is_repair: boolean;
       mode: string;
     };
-    remark: string;
-    runtime_hour: number;
-    timing: string;
     infos: {
       cluster_id: number;
+      db_patterns: string[];
+      ignore_dbs: string[];
+      ignore_tables: string[];
       master: {
         bk_biz_id: number;
         bk_cloud_id: number;
@@ -392,11 +392,11 @@
         ip: string;
         port: number;
       }[];
-      db_patterns: string[];
-      ignore_dbs: string[];
       table_patterns: string[];
-      ignore_tables: string[];
     }[];
+    remark: string;
+    runtime_hour: number;
+    timing: string;
   }>(TicketTypes.MYSQL_CHECKSUM);
 
   const handleSubmit = async () => {
@@ -407,18 +407,18 @@
     createTicketRun({
       details: {
         data_repair: formData.data_repair,
-        remark: formData.payload.remark,
-        runtime_hour: formData.runtime_hour,
-        timing: formatDateToUTC(format(new Date(formData.timing), 'yyyy-MM-dd HH:mm:ss')),
         infos: formData.tableData.map((item) => ({
           cluster_id: item.cluster.id,
-          table_patterns: item.table_patterns,
           db_patterns: item.db_patterns,
           ignore_dbs: item.ignore_dbs,
           ignore_tables: item.ignore_tables,
           master: item.master,
           slaves: item.slaves,
+          table_patterns: item.table_patterns,
         })),
+        remark: formData.payload.remark,
+        runtime_hour: formData.runtime_hour,
+        timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
       },
       ...formData.payload,
     });
@@ -456,15 +456,15 @@
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        table_patterns: item.table_patterns ? [item.table_patterns] : [],
-        db_patterns: item.db_patterns ? [item.db_patterns] : [],
-        ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-        ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
+        db_patterns: item.db_patterns ? item.db_patterns.split(',') : [],
+        ignore_dbs: item.ignore_dbs ? item.ignore_dbs.split(',') : [],
+        ignore_tables: item.ignore_tables ? item.ignore_tables.split(',') : [],
         slaves: item.slaves
           ? item.slaves.split(',')?.map((instance: string) => ({
               instance_address: instance,
             }))
           : [],
+        table_patterns: item.table_patterns ? item.table_patterns.split(',') : [],
       }),
     );
     if (isClear) {

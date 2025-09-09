@@ -73,7 +73,7 @@
         ref="editableTableRef"
         class="mt-16 mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -120,7 +120,7 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
@@ -161,7 +161,7 @@
   import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {

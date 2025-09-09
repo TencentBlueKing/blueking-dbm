@@ -13,15 +13,15 @@
 
 <template>
   <EditableColumn
-    :label="t('备份位置')"
     field="backup_local"
+    :label="t('备份位置')"
     :min-width="300"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
-        :title="t('备份位置')"
         :data-list="selectList"
+        :title="t('备份位置')"
         @change="handleBatchEdit">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -38,9 +38,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { ClusterTypes } from '@common/const';
-  import type TendbhaModel from '@services/model/mysql/tendbha';
   import { useI18n } from 'vue-i18n';
+
+  import type TendbhaModel from '@services/model/mysql/tendbha';
+
+  import { ClusterTypes } from '@common/const';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 

@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -44,7 +44,7 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BkFormItem
         :label="t('备份类型')"
@@ -102,7 +102,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -113,20 +112,20 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+
   import { random } from '@utils';
 
   import BackupLocalColumn from './components/BackupLocalColumn.vue';
 
   interface RowData {
-    cluster: TendbhaModel;
     backup_local: string;
+    cluster: TendbhaModel;
   }
 
   const { t } = useI18n();
@@ -148,6 +147,7 @@
   ];
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    backup_local: data.backup_local || '',
     cluster: Object.assign(
       {
         cluster_type: '',
@@ -156,7 +156,6 @@
       } as unknown as TendbhaModel,
       data.cluster,
     ),
-    backup_local: data.backup_local || '',
   });
 
   const defaultData = () => ({
@@ -178,15 +177,15 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
         backup_type: details.backup_type,
         file_tag: details.file_tag,
+        payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) =>
           createTableRow({
+            backup_local: item.backup_local,
             cluster: {
               master_domain: clusters[item.cluster_id].immute_domain || '',
             },
-            backup_local: item.backup_local,
           }),
         ),
       });
@@ -197,8 +196,8 @@
     backup_type: string;
     file_tag: string;
     infos: {
-      cluster_id: number;
       backup_local: string;
+      cluster_id: number;
     }[];
   }>(TicketTypes.MYSQL_HA_FULL_BACKUP);
 
@@ -212,8 +211,8 @@
         backup_type: formData.backup_type,
         file_tag: formData.file_tag,
         infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
           backup_local: item.backup_local,
+          cluster_id: item.cluster.id,
         })),
       },
       ...formData.payload,
@@ -249,10 +248,10 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
+        backup_local: item.backup_local || '',
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        backup_local: item.backup_local || '',
       }),
     );
     if (isClear) {
