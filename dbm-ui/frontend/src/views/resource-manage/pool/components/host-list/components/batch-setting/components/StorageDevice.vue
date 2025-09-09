@@ -31,7 +31,6 @@
           </EditableInput>
         </EditableColumn>
         <EditableColumn
-          :append-rules="minCapacityRules"
           field="size"
           :label="t('容量（G）')"
           required
@@ -43,7 +42,6 @@
             type="number" />
         </EditableColumn>
         <EditableColumn
-          :append-rules="diskTypRules"
           field="type"
           :label="t('数据盘类型')"
           required
@@ -105,23 +103,6 @@
 
   const mountPointRules = [
     {
-      message: t('不能为空'),
-      required: true,
-      trigger: 'change',
-      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.size && !rowData.type) {
-          return true;
-        }
-        if ((rowData.size || rowData.type) && !value) {
-          return false;
-        }
-        if (!value) {
-          return false;
-        }
-        return true;
-      },
-    },
-    {
       message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
       trigger: 'change',
       validator: (value: string) => {
@@ -141,44 +122,6 @@
         return mountPointList.value.filter((item) => item === value).length < 2
           ? true
           : t('挂载点name重复', { name: value });
-      },
-    },
-  ];
-
-  const minCapacityRules = [
-    {
-      message: t('不能为空'),
-      trigger: 'change',
-      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.size && !rowData.mount_point && !rowData.type) {
-          return true;
-        }
-        if ((rowData.size || rowData.mount_point || rowData.type) && !value) {
-          return false;
-        }
-        if (!value) {
-          return false;
-        }
-        return true;
-      },
-    },
-  ];
-
-  const diskTypRules = [
-    {
-      message: t('不能为空'),
-      trigger: 'change',
-      validator: (value: string, { rowData }: { rowData: IStorageDeviceItem }) => {
-        if (!value && !rowData.mount_point && !rowData.size) {
-          return true;
-        }
-        if ((rowData.mount_point || rowData.size) && !value) {
-          return false;
-        }
-        if (!value) {
-          return false;
-        }
-        return true;
       },
     },
   ];
