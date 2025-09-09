@@ -101,7 +101,7 @@
         <TableColumn
           v-if="!excludeColumn.includes('bk_biz_id')"
           col-key="bk_biz_ids"
-          :filter="tableFilter['bk_biz_ids']"
+          :filter="excludeFilterField.includes('bk_biz_ids') ? undefined : tableFilter['bk_biz_ids']"
           :min-width="150"
           :title="t('业务')">
           <template #default="{ row }: { row: IRowData }">
@@ -181,7 +181,7 @@
         </TableColumn>
         <TableColumn
           col-key="status"
-          :filter="tableFilter['status']"
+          :filter="excludeFilterField.includes('status') ? undefined : tableFilter['status']"
           :min-width="140"
           :title="t('单据状态')">
           <template #default="{ row }: { row: IRowData }">
@@ -327,11 +327,13 @@
   interface Props {
     dataSource: typeof getTickets;
     excludeColumn?: string[];
+    excludeFilterField?: string[];
     selectable?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     excludeColumn: () => [],
+    excludeFilterField: () => [],
     selectable: false,
   });
 
@@ -416,7 +418,9 @@
 
   watch([dataList, rowSelectMemo], () => {
     isCurrentPageAllSelected.value =
-      !isWholeChecked.value && dataList.value.every((item) => rowSelectMemo.value[item.id]);
+      !isWholeChecked.value &&
+      dataList.value.length > 0 &&
+      dataList.value.every((item) => rowSelectMemo.value[item.id]);
   });
 
   watch(dataList, () => {

@@ -26,8 +26,10 @@
         style="width: 550px; margin-left: auto" />
     </div>
     <TicketTable
+      :key="ticketStatus"
       ref="dataTable"
       :data-source="dataSource"
+      :exclude-filter-field="['status']"
       :selectable="isSelectable"
       @selection="handleSelection">
       <template #action>

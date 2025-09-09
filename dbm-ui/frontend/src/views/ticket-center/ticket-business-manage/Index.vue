@@ -47,7 +47,7 @@
   const { t } = useI18n();
 
   const { quickSearchData, quickSearchValue } = useSearchSelect({
-    exclude: ['bk_biz_id'],
+    exclude: ['bk_biz_ids'],
   });
 
   const isPreChecking = useDetailPreCheck({
