@@ -205,7 +205,7 @@
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: TicketTypes.TENDBCLUSTER_FULL_BACKUP, // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行
-    [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
+    [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障
     [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE]: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, // spider 原地升级
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换

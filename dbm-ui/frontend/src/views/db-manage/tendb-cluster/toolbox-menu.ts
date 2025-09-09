@@ -209,7 +209,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbInstancePermissionClone',
-        id: 'spiderPrivilegeCloneInst',
+        id: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
         name: t('DB实例权限克隆'),
         parentId: 'spider_privilege',
       },
