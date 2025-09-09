@@ -366,6 +366,16 @@ class RedisClusterVersionUpdateOnline(object):
                 target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, target_major_version, bk_biz_id
             )
 
+        # 更新 instance 版本
+        act_kwargs.cluster["update_all"] = True
+        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
+        act_kwargs.cluster["bk_biz_id"] = bk_biz_id
+        target_pipeline.add_act(
+            act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
         # 重装 dbmon
         self._add_dbmon_reinstall_act(target_pipeline, act_kwargs, cluster_meta_data, ips)
 
@@ -778,16 +788,6 @@ class RedisClusterVersionUpdateOnline(object):
             kwargs=asdict(act_kwargs),
         )
 
-        # 更新集群 集群 版本
-        act_kwargs.cluster["update_all"] = True
-        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
-        act_kwargs.cluster["bk_biz_id"] = bk_biz_id
-        target_pipeline.add_act(
-            act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
-            act_component_code=RedisUpdateVersionComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
     def _add_dbmon_reinstall_act(self, target_pipeline, act_kwargs, cluster_meta_data, ips):
         """添加重装dbmon的动作"""
         act_kwargs.cluster = {}
@@ -1084,16 +1084,16 @@ class RedisClusterVersionUpdateOnline(object):
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # 更新集群 集群 版本
-            act_kwargs.cluster["update_storage"] = True
-            act_kwargs.cluster["update_proxy"] = False
-            act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
-            act_kwargs.cluster["bk_biz_id"] = cluster.bk_biz_id
-            sub_pipeline.add_act(
-                act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
-                act_component_code=RedisUpdateVersionComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+        # 更新 集群 instance 版本
+        act_kwargs.cluster["update_storage"] = True
+        act_kwargs.cluster["update_proxy"] = False
+        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
+        act_kwargs.cluster["bk_biz_id"] = cluster.bk_biz_id
+        sub_pipeline.add_act(
+            act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
         # 重装 dbmon
         acts_list = []
