@@ -58,7 +58,6 @@ export default class Riak extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -86,7 +85,6 @@ export default class Riak extends ClusterBase {
   };
   phase: 'online' | 'offline';
   phase_name: string;
-  region: string;
   riak_node: ClusterListNode[];
   slave_domain: string;
   status: 'normal' | 'abnormal';
@@ -100,7 +98,6 @@ export default class Riak extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -123,7 +120,6 @@ export default class Riak extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
-    this.region = payload.region || '';
     this.riak_node = payload.riak_node || [];
     this.slave_domain = payload.slave_domain || '';
     this.status = payload.status || '';

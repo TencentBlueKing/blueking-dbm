@@ -28,11 +28,10 @@
       checked: columnCheckedMap.region,
     }"
     :label="t('地域园区')"
-    :min-width="100"
-    show-overflow>
+    :min-width="100">
     <template #default="{ data }: { data: IRowData }">
-      <div>{{ data.region || '--' }}</div>
-      <div>{{ data.cluster_subzons.join('，') || '--' }}</div>
+      <div>{{ data.regionDisplay }}</div>
+      <TextOverflowLayout>{{ data.clusterSubzonesDisplay }}</TextOverflowLayout>
     </template>
   </BkTableColumn>
   <BkTableColumn
@@ -94,6 +93,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import type { ClusterModel, ISupportClusterType } from './types';
 

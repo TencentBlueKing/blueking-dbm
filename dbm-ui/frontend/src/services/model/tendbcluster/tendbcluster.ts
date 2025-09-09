@@ -60,7 +60,6 @@ export default class TendbCluster extends ClusterBase {
   cluster_shard_num: number;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_subzons: string[];
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
@@ -116,7 +115,6 @@ export default class TendbCluster extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.cluster_subzons = payload.cluster_subzons || [];
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
@@ -142,7 +140,6 @@ export default class TendbCluster extends ClusterBase {
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
-    this.region = payload.region;
     this.remote_db = payload.remote_db;
     this.remote_dr = payload.remote_dr;
     this.remote_shard_num = payload.remote_shard_num;
