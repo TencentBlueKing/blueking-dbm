@@ -492,7 +492,6 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 		username)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("copy basedir failed, %s, %s", output, err.Error())
-		return err
 	}
 
 	extraCmd = fmt.Sprintf(
@@ -506,7 +505,6 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 	logger.Info(extraCmd)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("kafka-acls.sh failed, %s, %s", output, err.Error())
-		return err
 	}
 
 	return nil
