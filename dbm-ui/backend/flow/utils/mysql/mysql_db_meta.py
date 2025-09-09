@@ -1219,3 +1219,16 @@ class MySQLDBMeta(object):
         清理机器信息
         """
         api.machine.clear_info_for_machine(machines=self.ticket_data["clear_hosts"])
+
+    def mysql_single_destroy_for_revoke(self) -> bool:
+        """
+        mysql单节点版集群终止后，删除相关的集群原信息
+        """
+        try:
+            cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        except Cluster.DoesNotExist:
+            logger.info(f"the cluster [{self.cluster['domain']}] is not exist")
+            return True
+
+        TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True
