@@ -199,7 +199,7 @@
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: TicketTypes.TENDBCLUSTER_CHECKSUM, // Spider checksum
     [TicketTypes.TENDBCLUSTER_CLB_BIND_DOMAIN]: 'tendbClusterList', // tendbcluster 主域名指向CLB ip
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
-    [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
+    [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES, // Spider 客户端权限克隆
     [TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE]: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, // spider 集群标准化
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, // Spider TenDBCluster 库表备份
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回

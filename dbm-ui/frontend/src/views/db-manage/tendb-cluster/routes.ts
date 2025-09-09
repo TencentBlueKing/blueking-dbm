@@ -149,15 +149,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_CHECKSUM, t('数据校验修复'), {
       dbConsole: 'tendbCluster.toolbox.checksum',
     }),
-    {
-      path: 'privilege-clone-client/:page?',
-      name: 'spiderPrivilegeCloneClient',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.clientPermissionClone',
-        navName: t('客户端权限克隆'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/privilege-clone-client/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES, t('客户端权限克隆'), {
+      dbConsole: 'tendbCluster.toolbox.clientPermissionClone',
+    }),
     {
       path: 'privilege-clone-inst/:page?',
       name: 'spiderPrivilegeCloneInst',
