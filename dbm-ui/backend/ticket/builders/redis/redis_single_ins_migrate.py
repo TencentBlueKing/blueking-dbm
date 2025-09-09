@@ -34,7 +34,6 @@ class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serialize
         migrate_domain = serializers.CharField(help_text=_("迁移的域名"), required=False)
         migrate_ip = serializers.CharField(help_text=_("迁移的ip"), required=False)
         migrate_type = serializers.CharField(help_text=_("迁移的类型"), required=False)
-        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
         origin_old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
         src_cluster = serializers.ListField(child=serializers.JSONField(help_text=_("替换主机信息集合")))
 
@@ -42,6 +41,7 @@ class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serialize
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("实例迁移单据详情"), child=RedisSingleInsMigrateItemSerializer())
+    old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
 
     def validate(self, attrs):
         self.validate_cluster_can_access(attrs)
@@ -102,9 +102,11 @@ class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     need_patch_recycle_host_details = True
 
     def patch_ticket_detail(self):
+        instance_list = []
         for info in self.ticket.details["infos"]:
-            info["old_nodes"] = {}
             for role in info["origin_old_nodes"]:
-                src_ins_list = [f'{node["ip"]}:{node["port"]}' for node in info["origin_old_nodes"][role]]
-                info["old_nodes"][role] = get_migrate_shutdown_hosts(src_ins_list, self.ticket.bk_biz_id)
+                instance_list.extend([f'{node["ip"]}:{node["port"]}' for node in info["origin_old_nodes"][role]])
+        self.ticket.details["old_nodes"] = {
+            "instance": get_migrate_shutdown_hosts(instance_list, self.ticket.bk_biz_id)
+        }
         super().patch_ticket_detail()
