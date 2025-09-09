@@ -8,7 +8,7 @@
     :search-extension-method="searchExtensionMethod"
     :value="modelValue"
     @change="handleAppChange">
-    <template #value="{ data }">
+    <template #value="{ data }: { data: IAppItem }">
       <slot
         :data="data"
         name="value">
@@ -20,7 +20,7 @@
         </TextOverflowLayout>
       </slot>
     </template>
-    <template #default="{ data }">
+    <template #default="{ data }: { data: IAppItem }">
       <TextOverflowLayout class="db-select-no-permission-item">
         <span>{{ data.name }}</span>
         <span style="color: #979ba5">

@@ -48,7 +48,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.ORACLE_SINGLE_NONE">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: OracleSingleModel }">
               <div v-db-console="'oracle.toolbox.sqlExecute'">
                 <OperationBtnStatusTips :data="data">
                   <RouterLink

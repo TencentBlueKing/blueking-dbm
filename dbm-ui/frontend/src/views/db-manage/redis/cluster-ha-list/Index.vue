@@ -56,7 +56,7 @@
       @setting-change="updateTableSettings">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.REDIS_INSTANCE">
-          <template #default="{ data }">
+          <template #default="{ data }: { data: RedisModel }">
             <div v-db-console="'redis.haClusterManage.extractKey'">
               <OperationBtnStatusTips
                 v-bk-tooltips="{

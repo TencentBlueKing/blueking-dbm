@@ -69,7 +69,7 @@
         @setting-change="updateTableSettings">
         <template #operation>
           <OperationColumn :cluster-type="ClusterTypes.TENDBCLUSTER">
-            <template #default="{ data }">
+            <template #default="{ data }: { data: TendbClusterModel }">
               <div v-db-console="'mysql.haClusterList.authorize'">
                 <BkButton
                   :disabled="data.isOffline"
@@ -382,7 +382,9 @@
             :search-ip="searchIp"
             :selected-list="selected"
             @go-detail="handleToDetails">
-            <template #default="{ data }"> {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }}) </template>
+            <template #default="{ data }: { data: TendbClusterModel['remote_db'][number] }">
+              {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
+            </template>
           </RoleColumn>
           <RoleColumn
             :cluster-type="ClusterTypes.TENDBCLUSTER"
@@ -393,7 +395,9 @@
             :search-ip="searchIp"
             :selected-list="selected"
             @go-detail="handleToDetails">
-            <template #default="{ data }"> {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }}) </template>
+            <template #default="{ data }: { data: TendbClusterModel['remote_dr'][number] }">
+              {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
+            </template>
           </RoleColumn>
         </template>
         <template #moduleNames>
