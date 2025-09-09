@@ -17,7 +17,6 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_proxy_access_master,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.entry_bind import (
-    _cluster_entry_real_bind,
     _cluster_master_entry_on_proxy,
     _cluster_master_entry_on_storage,
 )
@@ -85,7 +84,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     # entry_bind.py
     res.extend(_cluster_master_entry_on_proxy(cluster_obj))
     res.extend(_cluster_master_entry_on_storage(cluster_obj))
-    res.extend(_cluster_entry_real_bind(cluster_obj))
+    # res.extend(_cluster_entry_real_bind(cluster_obj))
     # access_relate.py
     res.extend(_cluster_proxy_access_master(cluster_obj))
     # replicate.py
