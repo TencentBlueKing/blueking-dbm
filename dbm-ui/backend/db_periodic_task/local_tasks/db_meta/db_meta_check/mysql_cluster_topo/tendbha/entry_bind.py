@@ -25,7 +25,7 @@ def _cluster_master_entry_on_proxy(c: Cluster) -> List[CheckResponse]:
     主入口 bind 到 proxy 的数量必须和集群正常 proxy 相等
     """
     bad = []
-    for cme in c.clusterentry_set.all():
+    for cme in c.clusterentry_set.filter(forward_to__isnull=True):
         if cme.role == ClusterEntryRole.MASTER_ENTRY:
             cluster_proxy_cnt = 0
             for pi in c.proxyinstance_set.all():
@@ -49,7 +49,7 @@ def _cluster_master_entry_on_storage(c: Cluster) -> List[CheckResponse]:
     主入口不能 bind 到存储
     """
     bad = []
-    for cme in c.clusterentry_set.all():
+    for cme in c.clusterentry_set.filter(forward_to__isnull=True):
         if cme.role == ClusterEntryRole.MASTER_ENTRY:
             for si in cme.storageinstance_set.all():
                 bad.append(
