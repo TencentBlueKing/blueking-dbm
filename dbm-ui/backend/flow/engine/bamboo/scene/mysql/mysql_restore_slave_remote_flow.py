@@ -47,6 +47,7 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -586,6 +587,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
             tendb_migrate_pipeline.add_act(
                 act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
                 act_component_code=MySQLCheckBinlogDumpComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("检查数据库链接{}").format(target_slave.ip_port),
+                act_component_code=MySQLCheckProcesslistComponent.code,
                 kwargs=asdict(
                     ExecuteRdsKwargs(
                         bk_cloud_id=cluster_model.bk_cloud_id,

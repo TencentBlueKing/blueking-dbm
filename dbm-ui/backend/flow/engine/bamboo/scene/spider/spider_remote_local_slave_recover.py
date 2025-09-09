@@ -30,6 +30,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow impor
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -184,6 +185,17 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                 sync_data_sub_pipeline.add_act(
                     act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
                     act_component_code=MySQLCheckBinlogDumpComponent.code,
+                    kwargs=asdict(
+                        ExecuteRdsKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            instance_ip=target_slave.machine.ip,
+                            instance_port=target_slave.port,
+                        )
+                    ),
+                )
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("检查数据库连接{}").format(target_slave.ip_port),
+                    act_component_code=MySQLCheckProcesslistComponent.code,
                     kwargs=asdict(
                         ExecuteRdsKwargs(
                             bk_cloud_id=cluster_class.bk_cloud_id,
