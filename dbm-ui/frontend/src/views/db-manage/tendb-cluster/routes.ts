@@ -122,15 +122,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.spiderMigateUpgrade',
     }),
-    {
-      path: 'db-table-backup/:page?',
-      name: 'spiderDbTableBackup',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbTableBackup',
-        navName: t('库表备份'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-table-backup/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'), {
+      dbConsole: 'tendbCluster.toolbox.dbTableBackup',
+    }),
     {
       path: 'db-backup/:page?',
       name: 'spiderDbBackup',
