@@ -22,7 +22,7 @@ from backend.configuration.models import DBAdministrator
 from backend.core import notify
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
-from backend.db_meta.models import Spec
+from backend.db_meta.models import AppCache, Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_apply_hosts
@@ -129,7 +129,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
 
-    def _format_resource_hosts(self, hosts, spec):
+    def _format_resource_hosts(self, hosts, spec, biz_name_map):
         """格式化申请的主机参数"""
         default_spec = {
             "id": 0,
@@ -163,7 +163,10 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "rack_id": host.get("rack_id"),
                 "device_class": host.get("device_class"),
                 # 补充主机资源池原信息，可能用于重导入
-                "for_biz": host["dedicated_biz"],
+                "for_biz": {
+                    "bk_biz_id": host["dedicated_biz"],
+                    "bk_biz_name": biz_name_map.get(host["dedicated_biz"], None),
+                },
                 "labels": host["labels"],
                 "resource_type": host["rs_type"],
                 "spec": spec.get_spec_info() if isinstance(spec, Spec) else default_spec,
@@ -230,11 +233,14 @@ class ResourceApplyFlow(BaseTicketFlow):
         # 将资源池申请的主机信息转换为单据参数
         resource_request_id, apply_data = resp["request_id"], resp["data"]
         node_infos: Dict[str, List] = defaultdict(list)
+        # 获取业务名映射关系
+        for_biz_ids = [item["dedicated_biz"] for info in apply_data for item in info["data"]]
+        biz_name_map = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
         for info in apply_data:
             role = info["item"]
             group_name = role.rsplit("_", 1)[0]
             spec = self.get_spec(group_name, first_key_spec_id_map, spec_map)
-            host_infos = self._format_resource_hosts(info["data"], spec)
+            host_infos = self._format_resource_hosts(info["data"], spec, biz_name_map)
             # 如果是部署方案的分组，则用backend_group包裹。里面每一小组是一对master/slave;
             # 否则就按角色分组填入
             if "backend_group" in role:
