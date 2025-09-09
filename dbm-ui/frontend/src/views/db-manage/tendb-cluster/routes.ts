@@ -143,15 +143,9 @@ const spiderToolboxRoute = {
       },
       component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
     },
-    {
-      path: 'db-clear/:page?',
-      name: 'spiderDbClear',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbClear',
-        navName: t('清档'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-clear/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'), {
+      dbConsole: 'tendbCluster.toolbox.dbClear',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_CHECKSUM, t('数据校验修复'), {
       dbConsole: 'tendbCluster.toolbox.checksum',
     }),

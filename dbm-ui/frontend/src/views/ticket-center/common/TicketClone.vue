@@ -218,7 +218,7 @@
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
     [TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE]: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, // spider 迁移升级
-    [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
+    [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, // Spider tendbcluster 清档
   };
 
   const isSupported = computed(() => {
