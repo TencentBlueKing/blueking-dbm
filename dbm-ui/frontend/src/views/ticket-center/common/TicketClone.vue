@@ -203,7 +203,7 @@
     [TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE]: TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, // spider 集群标准化
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, // Spider TenDBCluster 库表备份
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: TicketTypes.TENDBCLUSTER_FLASHBACK, // Spider 闪回
-    [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
+    [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: TicketTypes.TENDBCLUSTER_FULL_BACKUP, // Spider TenDBCluster 全备单据
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障

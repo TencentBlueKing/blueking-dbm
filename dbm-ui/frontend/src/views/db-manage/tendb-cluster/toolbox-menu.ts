@@ -146,7 +146,7 @@ export default [
       },
       {
         dbConsoleValue: 'tendbCluster.toolbox.dbBackup',
-        id: 'spiderDbBackup',
+        id: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
         name: t('全库备份'),
         parentId: 'spider_copy',
       },

@@ -125,15 +125,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'), {
       dbConsole: 'tendbCluster.toolbox.dbTableBackup',
     }),
-    {
-      path: 'db-backup/:page?',
-      name: 'spiderDbBackup',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.dbBackup',
-        navName: t('全库备份'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_FULL_BACKUP, t('全库备份'), {
+      dbConsole: 'tendbCluster.toolbox.dbBackup',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'), {
       dbConsole: 'tendbCluster.toolbox.flashback',
     }),
