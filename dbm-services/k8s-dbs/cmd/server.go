@@ -22,21 +22,16 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	commconst "k8s-dbs/common/constant"
-	commutil "k8s-dbs/common/util"
 	_ "k8s-dbs/common/validator"
 	"k8s-dbs/core"
 	_ "k8s-dbs/core/checker/addonoperation"
 	"k8s-dbs/core/util"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaprovider "k8s-dbs/metadata/provider"
+	dbsinformer "k8s-dbs/informer"
 	"k8s-dbs/router"
 	_ "k8s-dbs/router/core"
 	_ "k8s-dbs/router/dataweb"
 	_ "k8s-dbs/router/metadata"
 	_ "k8s-dbs/router/terminal"
-	routerutil "k8s-dbs/router/util"
 	"log"
 	"log/slog"
 	"net/http"
@@ -45,11 +40,7 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/client-go/dynamic/dynamicinformer"
-
 	"github.com/gin-gonic/gin"
-
-	dbsinformer "k8s-dbs/informer"
 )
 
 // main 函数是程序的入口点，执行以下步骤：
@@ -58,60 +49,31 @@ import (
 // 3. 启动 HTTP 服务并监听终止信号
 // 4. 在接收到终止信号时优雅关闭服务器
 func main() {
-	slog.Info("Start initial configuration...")
-
+	slog.Info("Dbs server starting...")
+	// 初始化核心配置
 	if err := core.Init(); err != nil {
 		log.Fatalf("Failed to initialize core: %v", err)
 	}
-
-	r := router.NewRouter(util.Db.GormDb)
-
 	slog.Info("Finish initial configuration...")
 
-	go startInformer()
+	// 创建路由
+	r := router.NewRouter(util.Db.GormDb)
+	slog.Info("Finish initial router...")
 
-	startServer(r.Engine)
+	// 创建主上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-}
+	dbsinformer.StartInformer(ctx)
 
-func startInformer() {
-	k8sClusterConfigProvider := metaprovider.
-		NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(util.Db.GormDb))
-	opsMetaProvider := metaprovider.
-		NewK8sCrdOpsRequestProvider(metadbaccess.NewK8sCrdOpsRequestDbAccess(util.Db.GormDb))
-	clusterMetaProvider := routerutil.BuildClusterMetaProvider(util.Db.GormDb)
+	startServer(r.Engine, cancel)
 
-	k8sClusterConfigs, err := k8sClusterConfigProvider.ListConfigsByLimit(commconst.MaxFetchSize)
-	if err != nil || len(k8sClusterConfigs) == 0 {
-		slog.Error("Failed to find k8s cluster config", "error", err)
-		return
-	}
+	slog.Info("Dbs server stopped.")
 
-	ctx, cancelAll := context.WithCancel(context.Background())
-	defer cancelAll() // 确保函数退出时取消所有 Informer
-	for _, clusterConfig := range k8sClusterConfigs {
-		k8sClient, _ := commutil.NewK8sClient(clusterConfig)
-		factory := dynamicinformer.NewDynamicSharedInformerFactory(
-			k8sClient.DynamicClient,
-			time.Second*30,
-		)
-		ctxInformer, cancelInformer := context.WithCancel(ctx)
-		opsInformer := dbsinformer.NewOpsRequestInformer(clusterConfig, clusterMetaProvider, opsMetaProvider)
-		if err := opsInformer.Start(ctxInformer, factory); err != nil {
-			cancelInformer()
-			slog.Error("failed to start ops informer", "error", err)
-			continue
-		}
-		// 监控是否需要取消（例如通过 channel 信号）
-		go func() {
-			<-ctx.Done()
-			cancelInformer()
-		}()
-	}
 }
 
 // startServer 启动 HTTP 服务并处理优雅关闭
-func startServer(r *gin.Engine) {
+func startServer(r *gin.Engine, cancel context.CancelFunc) {
 	server := &http.Server{
 		Addr:    ":8000",
 		Handler: r,
@@ -126,16 +88,17 @@ func startServer(r *gin.Engine) {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	sig := <-quit
 
-	slog.Info("Shutdown Server ...")
+	slog.Info("Shutdown Server ...", "signal", sig)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	ctx, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelTimeout()
+
 	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
-		panic(fmt.Errorf("fatal error: %w", err)) // 触发 panic
 	}
 
+	cancel()
 	slog.Info("Server exited properly")
 }
