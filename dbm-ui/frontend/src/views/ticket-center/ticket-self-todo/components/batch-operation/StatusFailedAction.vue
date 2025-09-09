@@ -6,7 +6,6 @@
       label="TERMINATE"
       style="margin-left: 0">
       <BkTag
-        size="small"
         theme="danger"
         type="stroke">
         {{ t('终止单据') }}

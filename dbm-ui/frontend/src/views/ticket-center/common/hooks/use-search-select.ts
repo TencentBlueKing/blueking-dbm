@@ -62,6 +62,7 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'multiple',
       },
       {
+        description: t('支持模糊搜索'),
         id: 'remark',
         name: t('备注'),
         type: 'input',
