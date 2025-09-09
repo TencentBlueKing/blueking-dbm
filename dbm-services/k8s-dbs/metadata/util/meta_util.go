@@ -197,6 +197,8 @@ func CreateOpsRequestMetaData(
 	opsReqEntity.CrdClusterID = clusterEntity.ID
 	opsReqEntity.RequestID = requestID
 	opsReqEntity.K8sClusterConfigID = k8sClusterConfigID
+	opsReqEntity.CreatedBy = request.BkUserName
+	opsReqEntity.UpdatedBy = request.BkUserName
 
 	_, err = opsRequestProvider.CreateOpsRequest(opsReqEntity)
 	if err != nil {
