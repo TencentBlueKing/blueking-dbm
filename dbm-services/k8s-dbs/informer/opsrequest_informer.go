@@ -66,45 +66,57 @@ func (o *OpsRequestInformer) Start(
 ) error {
 	slog.Info("Starting informer...", "k8sClusterName", o.k8sClusterConfig.ClusterName)
 	genericOpsInformer := factory.ForResource(kbtypes.OpsGVR())
-
 	opsInformer := genericOpsInformer.Informer()
 	_, err := opsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: o.OnUpdate,
 	})
+
 	if err != nil {
 		return errors.Wrap(err, "failed to add OpsRequest handler")
 	}
 
+	// 启动 informer
 	go opsInformer.Run(ctx.Done())
 
+	// 设计缓存同步超时
+	syncCtx, syncCancel := context.WithTimeout(ctx, 60*time.Second)
+	defer syncCancel()
+
+	// 等待缓存同步
+	if !cache.WaitForCacheSync(syncCtx.Done(), opsInformer.HasSynced) {
+		if errors.Is(syncCtx.Err(), context.DeadlineExceeded) {
+			slog.Error("OpsInformer cache sync timed out",
+				"timeout", "60s",
+				"k8sClusterName", o.k8sClusterConfig.ClusterName,
+			)
+			return errors.New("OpsInformer cache sync timed out after 60 seconds")
+		}
+		return errors.Wrap(ctx.Err(), "context cancelled while waiting for cache sync")
+	}
+
+	slog.Info("OpsRequest Informer started and cache synced successfully",
+		"k8sClusterName", o.k8sClusterConfig.ClusterName)
+
+	// 健康检查 goroutine
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
-				slog.Info("waiting for cache sync... Synced", "synced", opsInformer.HasSynced())
+				if !opsInformer.HasSynced() {
+					slog.Warn("opsInformer cache lost sync", "k8sClusterName", o.k8sClusterConfig.ClusterName)
+				}
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
 
-	syncCtx, syncCancel := context.WithTimeout(ctx, 30*time.Second)
-	defer syncCancel()
-
-	if !cache.WaitForCacheSync(syncCtx.Done(), opsInformer.HasSynced) {
-		if errors.Is(syncCtx.Err(), context.DeadlineExceeded) {
-			slog.Error("OpsInformer cache sync timed out after 30 seconds")
-			return errors.New("OpsInformer cache sync timed out after 30 seconds")
-		}
-		return errors.New("timed out waiting for caches to sync")
-	}
-	slog.Info("OpsRequest Informer started and cache synced")
 	// 等待终止信号
 	<-ctx.Done()
-	slog.Info("Shutting down informer...")
+	slog.Info("Shutting down informer...", "k8sClusterName", o.k8sClusterConfig.ClusterName)
 	return nil
 }
 
