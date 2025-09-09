@@ -62,12 +62,11 @@ class BackupLogRollbackTimeSerializer(serializers.Serializer):
 class FilterBackupLogSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     days = serializers.IntegerField(help_text=_("查询时间间隔"), default=BACKUP_LOG_RANGE_DAYS, required=False)
-    last_time = DBTimezoneField(help_text=_("备份最迟的时间"), required=False)
+    last_time = serializers.DateTimeField(help_text=_("备份最迟的时间"), required=False)
     backup_method = serializers.ChoiceField(
         help_text=_("过滤备份类型"),
         choices=MySQLBackupType.get_choices(),
         required=False,
-        default="full_by_ticket,full_by_regular,partial_by_ticket",
     )
 
 
