@@ -17,8 +17,8 @@
     field="scope"
     :label="t('校验范围')"
     :min-width="120"
-    :rowspan="rowspan"
-    required>
+    required
+    :rowspan="rowspan">
     <EditableSelect
       v-model="scope"
       :list="scopeOptions"
@@ -45,8 +45,8 @@
           </p>
         </div>
         <div
-          class="bk-editable-text-content-placeholder"
           v-if="selected.length < 1 || selected.every((item) => !item)"
+          class="bk-editable-text-content-placeholder"
           @click="handleShowSelector">
           {{ t('请选择') }}
         </div>
@@ -77,46 +77,48 @@
   <InstanceSelector
     v-model:is-show="isShowInstanceSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-    :tab-list-config="tabListConfig"
     :selected="selectorSelected"
+    :tab-list-config="tabListConfig"
     @change="handleChange" />
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { useRequest } from 'vue-request';
   import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
-  import _ from 'lodash';
+
+  import { ClusterTypes } from '@common/const';
+
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
-  import { ClusterTypes } from '@common/const';
 
   type SlaveItem = ServiceReturnType<typeof getTendbclusterInstanceList>['results'][0];
   type MasterItem = SlaveItem['related_pair_instance'];
 
   interface InstanceInfo {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    instance_address: string;
     ip: string;
     port: number;
-    instance_address: string;
-    bk_cloud_id: number;
-    bk_biz_id: number;
-    bk_host_id: number;
   }
 
   interface RowData {
     cluster: TendbClusterModel;
-    table_patterns: string[];
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
-    scope: string;
     master: typeof master.value;
-    slaves: typeof slaves.value;
     rowspan: number;
+    scope: string;
+    slaves: typeof slaves.value;
+    table_patterns: string[];
   }
 
   interface Props {
@@ -124,9 +126,7 @@
     rowspan?: number;
   }
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const props = defineProps<Props>();
 
@@ -200,7 +200,6 @@
     manual: true,
     onSuccess(data) {
       if (slaves.value.length && data.results.length > 0) {
-        scope.value = 'partial';
         const slavesMap = Object.fromEntries(slaves.value.map((slave) => [slave.instance_address, true]));
         const instances = data.results.filter((item) => slavesMap[item.instance_address]);
         selected.value = instances.map((item) => item.instance_address);
@@ -224,24 +223,24 @@
    * 转换master数据
    */
   const generateMaster = (data: MasterItem) => ({
+    bk_biz_id: data.bk_biz_id,
+    bk_cloud_id: data.bk_cloud_id,
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance,
     ip: data.ip,
     port: data.port,
-    instance_address: data.instance,
-    bk_host_id: data.bk_host_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_biz_id: data.bk_biz_id,
   });
 
   /**
    * 转换slave单项数据
    */
   const generateSlave = (data: IValue) => ({
+    bk_biz_id: data.bk_biz_id,
+    bk_cloud_id: data.bk_cloud_id,
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance_address,
     ip: data.ip,
     port: data.port,
-    instance_address: data.instance_address,
-    bk_host_id: data.bk_host_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_biz_id: data.bk_biz_id,
   });
 
   const handleAppend = (data: { master: RowData['master']; slaves: RowData['slaves'] }) => {
@@ -269,12 +268,12 @@
     if (!selectedInstances.length) {
       slaves.value = [];
       master.value = {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        instance_address: '',
         ip: '',
         port: 0,
-        instance_address: '',
-        bk_host_id: 0,
-        bk_cloud_id: 0,
-        bk_biz_id: 0,
       };
       return;
     }
@@ -304,23 +303,23 @@
 
   const handleChangeScope = (value: string) => {
     if (value === 'all') {
-      const rowIndex = masterRowIndex[master.value.instance_address];
-      const rowspan = tableData.value[rowIndex].rowspan;
+      const rowIndex = columnRef.value!.getRowIndex();
+      const rowspan = tableData.value[rowIndex]?.rowspan;
       if (rowspan) {
+        tableData.value[rowIndex].rowspan = 1;
         tableData.value.splice(rowIndex + 1, rowspan - 1);
       }
-    } else {
-      selected.value = [];
-      slaves.value = [];
-      master.value = {
-        instance_address: '',
-        ip: '',
-        bk_biz_id: 0,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        port: 0,
-      };
     }
+    selected.value = [];
+    slaves.value = [];
+    master.value = {
+      bk_biz_id: 0,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      instance_address: '',
+      ip: '',
+      port: 0,
+    };
   };
 
   watch(

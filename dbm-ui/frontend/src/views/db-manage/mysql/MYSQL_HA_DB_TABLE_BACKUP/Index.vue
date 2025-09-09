@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -39,7 +39,7 @@
             @batch-edit="handleBatchEditCluster" />
           <EditableColumn
             :label="t('备份位置')"
-            :width="100">
+            :width="200">
             <EditableBlock :placeholder="t('自动生成')">
               {{ item.cluster.id ? (item.cluster.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master') : '' }}
             </EditableBlock>
@@ -67,13 +67,13 @@
             v-model="item.ignore_tables"
             :cluster-id="item.cluster?.id"
             field="ignore_tables"
-            :required="false"
             :label="t('忽略表名')"
+            :required="false"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
     </BkForm>
@@ -99,7 +99,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -110,23 +109,23 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
   import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
+  import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+
   import { random } from '@utils';
 
   interface RowData {
     cluster: TendbhaModel;
-    table_patterns: string[];
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
+    table_patterns: string[];
   }
 
   const { t } = useI18n();
@@ -171,10 +170,10 @@
       } as unknown as TendbhaModel,
       data.cluster,
     ),
-    table_patterns: data.table_patterns || ['*'],
     db_patterns: data.db_patterns || ['*'],
     ignore_dbs: data.ignore_dbs || [],
     ignore_tables: data.ignore_tables || [],
+    table_patterns: data.table_patterns || ['*'],
   });
 
   const defaultData = () => ({
@@ -199,10 +198,10 @@
           cluster: {
             master_domain: clusters[item.cluster_id].immute_domain || '',
           },
-          table_patterns: item.table_patterns ? [item.table_patterns] : [],
-          db_patterns: item.db_patterns ? [item.db_patterns] : [],
-          ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-          ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
+          db_patterns: item.db_patterns,
+          ignore_dbs: item.ignore_dbs,
+          ignore_tables: item.ignore_tables,
+          table_patterns: item.table_patterns,
         })),
       });
     },
@@ -213,8 +212,8 @@
       cluster_id: number;
       db_patterns: string[];
       ignore_dbs: string[];
-      table_patterns: string[];
       ignore_tables: string[];
+      table_patterns: string[];
     }[];
   }>(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP);
 
@@ -227,10 +226,10 @@
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_id: item.cluster.id,
-          table_patterns: item.table_patterns,
           db_patterns: item.db_patterns,
           ignore_dbs: item.ignore_dbs,
           ignore_tables: item.ignore_tables,
+          table_patterns: item.table_patterns,
         })),
       },
       ...formData.payload,
@@ -269,10 +268,10 @@
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        table_patterns: item.table_patterns ? [item.table_patterns] : [],
-        db_patterns: item.db_patterns ? [item.db_patterns] : [],
-        ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-        ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
+        db_patterns: item.db_patterns ? item.db_patterns.split(',') : [],
+        ignore_dbs: item.ignore_dbs ? item.ignore_dbs.split(',') : [],
+        ignore_tables: item.ignore_tables ? item.ignore_tables.split(',') : [],
+        table_patterns: item.table_patterns ? item.table_patterns.split(',') : [],
       }),
     );
     if (isClear) {

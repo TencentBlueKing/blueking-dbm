@@ -17,20 +17,20 @@
     :disabled-method="disabledMethod"
     field="slaves"
     :label="t('校验从库')"
-    :min-width="180"
     :loading="loading"
+    :min-width="180"
     required>
     <EditableSelect
+      v-model="selected"
       :class="{
         'mysql-checksum-select-not-empty': selected.length > 0,
       }"
-      v-model="selected"
       display-key="instance_address"
       id-key="instance_address"
       :list="allSlaveInstances"
       multiple
-      show-select-all
       :popover-min-width="240"
+      show-select-all
       @change="handleChange"
       @toggle="handleToggle">
       <template #option="{ item }">
@@ -46,8 +46,8 @@
             class="bk-editable-text-content-placeholder ml-8">
             {{ t('请选择') }}
             <DbIcon
-              size="small"
               class="angle-down render-slaves-icon"
+              size="small"
               type="bk-dbm-icon db-icon-down-big" />
           </div>
           <div
@@ -75,42 +75,40 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import { useRequest } from 'vue-request';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
-  import _ from 'lodash';
 
   type SlaveItem = ServiceReturnType<typeof getTendbhaInstanceList>['results'][0];
   type MasterItem = SlaveItem['related_pair_instance'];
 
   interface InstanceInfo {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    instance_address: string;
     ip: string;
     port: number;
-    instance_address: string;
-    bk_cloud_id: number;
-    bk_biz_id: number;
-    bk_host_id: number;
   }
 
   interface RowData {
     cluster: TendbhaModel;
-    table_patterns: string[];
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];
     master: typeof master.value;
     slaves: typeof slaves.value;
+    table_patterns: string[];
   }
 
   interface Props {
     cluster: TendbhaModel;
   }
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const props = defineProps<Props>();
 
@@ -134,7 +132,7 @@
   const allSlaveInstances = ref<SlaveItem[]>([]);
   const selected = ref<string[]>([]);
 
-  const { run: fetchData, loading } = useRequest(getTendbhaInstanceList, {
+  const { loading, run: fetchData } = useRequest(getTendbhaInstanceList, {
     manual: true,
     onSuccess(data) {
       allSlaveInstances.value = data.results;
@@ -166,24 +164,24 @@
    * 转换master数据
    */
   const generateMaster = (data: MasterItem) => ({
+    bk_biz_id: data.bk_biz_id,
+    bk_cloud_id: data.bk_cloud_id,
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance,
     ip: data.ip,
     port: data.port,
-    instance_address: data.instance,
-    bk_host_id: data.bk_host_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_biz_id: data.bk_biz_id,
   });
 
   /**
    * 转换slave单项数据
    */
   const generateSlave = (data: SlaveItem) => ({
+    bk_biz_id: data.bk_biz_id,
+    bk_cloud_id: data.bk_cloud_id,
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance_address,
     ip: data.ip,
     port: data.port,
-    instance_address: data.instance_address,
-    bk_host_id: data.bk_host_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_biz_id: data.bk_biz_id,
   });
 
   const handleChange = (values: string[]) => {
@@ -191,12 +189,12 @@
     if (!selectedInstances.length) {
       slaves.value = [];
       master.value = {
+        bk_biz_id: 0,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        instance_address: '',
         ip: '',
         port: 0,
-        instance_address: '',
-        bk_host_id: 0,
-        bk_cloud_id: 0,
-        bk_biz_id: 0,
       };
       return;
     }
@@ -224,15 +222,15 @@
       if (masterRow) {
         newDataList.push(
           Object.assign({}, masterRow, {
-            slaves: _.sortBy(_.uniqBy([...masterRow.slaves, ...slavesData], 'instance_address'), 'instance_address'),
             master: generateMaster(slaves[0].related_pair_instance),
+            slaves: _.sortBy(_.uniqBy([...masterRow.slaves, ...slavesData], 'instance_address'), 'instance_address'),
           }),
         );
       } else {
         newDataList.push(
           Object.assign({}, currentRow, {
-            slaves: slavesData,
             master: generateMaster(slaves[0].related_pair_instance),
+            slaves: slavesData,
           }),
         );
       }

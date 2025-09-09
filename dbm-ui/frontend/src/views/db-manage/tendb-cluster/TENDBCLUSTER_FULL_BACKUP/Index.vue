@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -44,7 +44,7 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BkFormItem
         :label="t('备份类型')"
@@ -111,8 +111,6 @@
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { TicketTypes } from '@common/const';
-
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';

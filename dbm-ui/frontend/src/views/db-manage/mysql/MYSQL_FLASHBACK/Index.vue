@@ -37,7 +37,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -53,8 +52,8 @@
   import TABLE_FLASHBACK from './TABLE_FLASHBACK/Index.vue';
 
   const comMap = {
-    TABLE_FLASHBACK,
     RECORD_FLASHBACK,
+    TABLE_FLASHBACK,
   };
 
   const { t } = useI18n();
@@ -73,7 +72,7 @@
   });
 
   const handleFlashbackTypeChange = (type: string) => {
-    if (['TABLE_FLASHBACK', 'RECORD_FLASHBACK'].includes(type)) {
+    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
       router.push({
         name: TicketTypes.MYSQL_FLASHBACK,
         query: {

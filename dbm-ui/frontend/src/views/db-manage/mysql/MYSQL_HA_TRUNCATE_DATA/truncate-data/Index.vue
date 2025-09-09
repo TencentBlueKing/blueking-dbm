@@ -29,7 +29,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -70,7 +70,7 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BkFormItem>
         <BkCheckbox
@@ -127,8 +127,6 @@
   import { useCreateTicket } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
@@ -317,10 +315,10 @@
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        db_patterns: item.db_patterns ? [item.db_patterns] : [],
-        ignore_dbs: item.ignore_dbs ? [item.ignore_dbs] : [],
-        ignore_tables: item.ignore_tables ? [item.ignore_tables] : [],
-        table_patterns: item.table_patterns ? [item.table_patterns] : [],
+        db_patterns: item.db_patterns ? item.db_patterns.split(',') : [],
+        ignore_dbs: item.ignore_dbs ? item.ignore_dbs.split(',') : [],
+        ignore_tables: item.ignore_tables ? item.ignore_tables.split(',') : [],
+        table_patterns: item.table_patterns ? item.table_patterns.split(',') : [],
         truncate_data_type: item.truncate_data_type || '',
       }),
     );
