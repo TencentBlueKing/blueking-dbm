@@ -19,8 +19,8 @@
     :label="t('目标集群')"
     :loading="loading"
     :min-width="200"
-    :rowspan="rowspan"
-    required>
+    required
+    :rowspan="rowspan">
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -60,6 +60,7 @@
      * @default false
      */
     allowRepeat?: boolean;
+    rowspan?: number;
     selected: TendbClusterModel[];
     /**
      * @description 是否支持离线数据
@@ -67,15 +68,14 @@
      */
     supportOfflineData?: boolean;
     tabListConfig?: Record<ClusterTypes.TENDBCLUSTER, TabConfig>;
-    rowspan?: number;
   }
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
-    supportOfflineData: false,
     rowspan: 1,
+    supportOfflineData: false,
     tabListConfig: () => ({}) as Record<ClusterTypes.TENDBCLUSTER, TabConfig>,
   });
 
@@ -131,7 +131,7 @@
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]!);
   };
 
   watch(
