@@ -7,7 +7,7 @@
     }">
     <div
       v-if="localValue.name"
-      class="edit-area-input-name">
+      class="create-area-name">
       {{ localValue.name }}:
     </div>
     <div
@@ -16,10 +16,10 @@
       <div :style="inputValueBoxStyles">{{ inputValue }}\u200B</div>
       <textarea
         ref="textarea"
+        v-model="inputValue"
         name="search"
         :placeholder="currentPlaceholder"
         spellcheck="false"
-        :value="inputValue"
         @blur="handleBlur"
         @focus="handleFocus"
         @keydown="handleKeydown"
@@ -142,10 +142,10 @@
   const isSingleEdit = computed(() => currentDataConfig.value?.type === comType.INPUT);
   const inputValueBoxStyles = computed<any>(() => {
     const baseStyles = {
-      minHeight: '22px',
+      'min-height': '22px',
       visibility: 'hidden',
-      'white-space': 'pre',
-      wordBreak: 'break-all',
+      'white-space': 'pre-wrap',
+      'word-break': 'break-all',
     };
     if (currentDataConfig.value) {
       Object.assign(baseStyles, {
@@ -270,8 +270,6 @@
   let latestInputValue = '';
   const handleKeyup = (event: KeyboardEvent) => {
     setTimeout(() => {
-      inputValue.value = (event.target as HTMLInputElement).value;
-
       // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
       if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
         return true;
@@ -397,7 +395,7 @@
       flex: 0 0 100%;
     }
 
-    .edit-area-input-name {
+    .create-area-name {
       flex: 0 0 auto;
       padding-right: 4px;
       word-break: keep-all;
@@ -407,6 +405,7 @@
       position: relative;
       min-height: 100%;
       flex: 1;
+      overflow: hidden;
 
       textarea {
         position: absolute;
@@ -419,7 +418,7 @@
         font-size: inherit;
         line-height: inherit;
         color: inherit;
-        white-space: nowrap;
+        white-space: pre-wrap;
         background: transparent;
         border: none;
         outline: none;

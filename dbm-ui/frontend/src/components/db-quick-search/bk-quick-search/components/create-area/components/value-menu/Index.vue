@@ -131,7 +131,6 @@
     if (!props.config) {
       return {};
     }
-    console.log('renderComProps = ', props.config);
     return {
       list: props.config.list || [],
       ...Object.assign({}, props.config.props || {}),
@@ -199,14 +198,6 @@
 
     padding: 0;
     font-size: 12px;
-
-    .el-date-picker,
-    .el-date-range-picker__time-picker-wrap {
-      .el-time-panel {
-        right: 0;
-        left: unset;
-      }
-    }
 
     .value-item {
       display: flex;
