@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import math
+from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
@@ -21,9 +23,13 @@ from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
-from backend.db_meta.models import AppCache, Spec, Tag
+from backend.db_meta.models import AppCache, Machine, Spec, Tag
 from backend.db_services.dbresource.exceptions import SpecOperateException
+from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
+from backend.utils.cache import func_cache_decorator
 
 
 class ClusterSpecFilter(object):
@@ -500,7 +506,7 @@ class ResourceHandler(object):
         return int(excepted_cost)
 
     @classmethod
-    def standardized_resource_host(cls, hosts):
+    def standardized_resource_host(cls, hosts: List[Dict]):
         """标准化主机信息，将cc字段统一成资源池字段"""
         host_ids = [host["bk_host_id"] for host in hosts]
         # 获取主机通用信息
@@ -524,3 +530,90 @@ class ResourceHandler(object):
                 bk_disk=host.get("bk_disk") or 0,
             )
         return hosts
+
+    @classmethod
+    def create_replenish(cls, username, bk_biz_id: int, infos: List[Dict], remark: str = ""):
+        """创建海磊资源池补货单"""
+        ticket_ids, details = [], defaultdict(lambda: 0)
+        # 海磊限制，每个单据最大申请数量不超过100
+        MAX_COUNT_PER_TICKET = 100
+
+        for info in infos:
+            count = info.get("count", 0)
+            # 当还有剩余数量时，继续创建单据
+            while count > 0:
+                resource_count = min(MAX_COUNT_PER_TICKET, count)
+                count -= resource_count
+                replenish_info = info.copy()
+                replenish_info["count"] = resource_count
+
+                # 创建补货单
+                ticket = Ticket.create_ticket(
+                    ticket_type=TicketType.RESOURCE_HCM_REPLENISH,
+                    creator=username,
+                    bk_biz_id=bk_biz_id,
+                    details=replenish_info,
+                    remark=remark,
+                )
+                # 填充补货记录信息
+                details[replenish_info["db_type"]] += replenish_info["count"]
+                ticket_ids.append(ticket.id)
+
+        # 创建补货记录
+        if ticket_ids:
+            ResourceReplenishRecord.objects.create(creator=username, ticket_ids=ticket_ids, details=details)
+
+    @classmethod
+    @func_cache_decorator(cache_time=60 * 10)
+    def calc_resource_water_level(cls):
+        """计算资源池水位(计算较慢，默认缓存10min)"""
+        # 按照规格 + 地域 + 园区 + 操作系统聚合主机
+        machine_water_level_map = defaultdict(
+            lambda: defaultdict(
+                lambda: defaultdict(lambda: defaultdict(lambda: {"machine_count": 0, "resource_count": 0}))
+            )
+        )
+        machines = Machine.objects.all().values("spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone")
+        for m in machines:
+            spec_id, city_name, subzone = m["spec_id"], m["bk_city__bk_idc_city_name"], m["bk_sub_zone"]
+            bk_os_name = (m["bk_os_name"] or "").strip().lower().replace(" ", "")
+            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["machine_count"] += 1
+
+        resource_water_level = DBResourceApi.water_level()["data"]
+        for info in resource_water_level:
+            spec_id, city_name, subzone = info["spec_id"], info["city"], info["sub_zone_id"]
+            bk_os_name = info["os_name_origin"].strip().lower().replace(" ", "")
+            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] = info["count"]
+
+        spec_map = {spec.spec_id: spec for spec in Spec.objects.all()}
+        update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 打平聚合信息，生成资源水位
+        replenish_ratio = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO, [])
+        spec__replenish_ratio_map = {info["spec_id"]: info["ratio"] for info in replenish_ratio}
+        default_ratio = spec__replenish_ratio_map.get(0, 0.05)
+        water_level: List[Dict] = [
+            {
+                "spec_id": spec_id,
+                "spec_machine_type": spec_map[spec_id].spec_machine_type if spec_id in spec_map else "",
+                "spec_name": spec_map[spec_id].spec_name if spec_id in spec_map else "",
+                "db_type": spec_map[spec_id].spec_cluster_type if spec_id in spec_map else "",
+                "os_name": bk_os_name,
+                "city": city_name,
+                "subzone": subzone,
+                "machine_count": subzone_info["machine_count"],
+                "resource_count": subzone_info["resource_count"],
+                "machine_refer_count": math.ceil(
+                    subzone_info["machine_count"] * spec__replenish_ratio_map.get(spec_id, default_ratio)
+                ),
+            }
+            for spec_id, spec_info in machine_water_level_map.items()
+            for bk_os_name, bk_os_info in spec_info.items()
+            for city_name, city_info in bk_os_info.items()
+            for subzone, subzone_info in city_info.items()
+        ]
+
+        # 补货固定显示时间上午九点
+        flush_time = "09:00:00"
+
+        return {"update_time": update_time, "water_level": water_level, "flush_time": flush_time}

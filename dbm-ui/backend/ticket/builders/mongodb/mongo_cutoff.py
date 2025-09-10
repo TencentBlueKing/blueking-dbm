@@ -21,7 +21,6 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -48,7 +47,6 @@ class MongoDBCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("整机替换信息"), child=ACutoffDetailSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

@@ -25,11 +25,18 @@ class TransferHostService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         bk_biz_id = kwargs["bk_biz_id"]
         bk_module_ids = kwargs["bk_module_ids"]
         bk_host_ids = kwargs["bk_host_ids"]
         update_host_properties = kwargs.get("update_host_properties", None)
         operate_collector_action = kwargs.get("operate_collector_action", None)
+
+        # 从上下文中获取主机列表
+        if isinstance(trans_data, dict) and trans_data.get("hosts"):
+            host_ids = [host["bk_host_id"] for host in trans_data["hosts"]]
+            bk_host_ids.extend(host_ids)
+
         try:
             cc_manage = CcManage(bk_biz_id=bk_biz_id, cluster_type="")
             cc_manage.transfer_host_module(

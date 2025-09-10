@@ -15,7 +15,6 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -38,7 +37,6 @@ class RedisClusterInstShutdownDetailSerializer(RedisBaseOperateDetailSerializer)
         need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class RedisClusterInstShutdownParamBuilder(builders.FlowParamBuilder):

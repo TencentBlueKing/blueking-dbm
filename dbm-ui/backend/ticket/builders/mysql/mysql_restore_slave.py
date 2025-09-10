@@ -16,12 +16,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import (
-    BaseOperateResourceParamBuilder,
-    HostInfoSerializer,
-    HostRecycleSerializer,
-    fetch_cluster_ids,
-)
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -45,7 +40,6 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     source_type = serializers.ChoiceField(
         help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
     def validate(self, attrs):

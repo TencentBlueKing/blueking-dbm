@@ -32,12 +32,18 @@ from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FO
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_to_pool import TransferHostToPoolComponent
 from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
-from backend.flow.utils.mysql.mysql_act_dataclass import ImportMachinePollKwargs, InitCheckForResourceKwargs
+from backend.flow.utils.common_act_dataclass import (
+    ImportMachinePollKwargs,
+    InitCheckForResourceKwargs,
+    ResourceHcmReplenishKwargs,
+    ResourceImportContext,
+)
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -50,37 +56,52 @@ def insert_host_event(params, data, kwargs, global_data):
     event_bk_biz_id = ticket.bk_biz_id if ticket else global_data["bk_biz_id"]
     event = MachineEventType.ReturnResource if params.get("return_resource") else MachineEventType.ImportResource
     hosts = [{"bk_host_id": host["host_id"], **host} for host in hosts]
+    # 记录主机事件
     MachineEvent.host_event_trigger(event_bk_biz_id, hosts, event=event, operator=operator, ticket=ticket)
+    # 资源导入记录
+    import_record = {"task_id": str(ticket_id), "operator": operator, "hosts": hosts}
+    DBResourceApi.import_operation_create(params=import_record)
+
+
+class HostOutputSerializer(BaseFlowOutputSerializer):
+    ip = serializers.CharField(help_text=_("IP"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("管控区域"))
+    city = serializers.CharField(help_text=_("地域"), allow_null=True, allow_blank=True, default="")
+    sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, default="")
+    rack_id = serializers.CharField(help_text=_("机架"), allow_null=True, allow_blank=True, default="")
+    os_name = serializers.CharField(help_text=_("操作系统"), allow_null=True, allow_blank=True, default="")
+    device_class = serializers.CharField(help_text=_("机型"), allow_null=True, allow_blank=True, default="")
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class RecycleOutputContext:
     """回收上下文序列化器"""
 
-    class RecycleOutputSerializer(BaseFlowOutputSerializer):
-        ip = serializers.CharField(help_text=_("IP"))
-        bk_cloud_id = serializers.IntegerField(help_text=_("管控区域"))
-        city = serializers.CharField(help_text=_("地域"), allow_null=True, allow_blank=True, default="")
-        sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, default="")
-        rack_id = serializers.CharField(help_text=_("机架"), allow_null=True, allow_blank=True, default="")
-        os_name = serializers.CharField(help_text=_("操作系统"), allow_null=True, allow_blank=True, default="")
-        device_class = serializers.CharField(help_text=_("机型"), allow_null=True, allow_blank=True, default="")
-        remark = serializers.CharField(help_text=_("备注"), required=False, default="")
-
-    class ToFailSerializer(RecycleOutputSerializer):
+    class ToFailSerializer(HostOutputSerializer):
         table_name = IpDest.Fault.value
         table_display_name = _("退回故障池")
 
-    class ToResourceSerializer(RecycleOutputSerializer):
+    class ToResourceSerializer(HostOutputSerializer):
         table_name = IpDest.Resource.value
         table_display_name = _("退回资源池")
 
-    class ToRecycleSerializer(RecycleOutputSerializer):
+    class ToRecycleSerializer(HostOutputSerializer):
         table_name = IpDest.Recycle.value
         table_display_name = _("退回待回收池")
 
-    class ToRecycledSerializer(RecycleOutputSerializer):
+    class ToRecycledSerializer(HostOutputSerializer):
         table_name = IpDest.Recycled.value
         table_display_name = _("退回CC待回收")
+
+
+class ResourceReplenishOutputSerializer(HostOutputSerializer):
+    """资源池补充流程"""
+
+    bk_cpu = serializers.CharField(help_text=_("cpu"), allow_null=True, allow_blank=True, default="")
+    bk_mem = serializers.CharField(help_text=_("内存"), allow_null=True, allow_blank=True, default="")
+    bk_disk = serializers.CharField(help_text=_("磁盘"), allow_null=True, allow_blank=True, default="")
+
+    table_name = _("交付结果")
 
 
 class ImportResourceInitStepFlow(object):
@@ -98,7 +119,9 @@ class ImportResourceInitStepFlow(object):
         host_ids = [host["host_id"] for host in host_list]
         bk_biz_id = data["bk_biz_id"]
 
-        os_type = BK_OS_CODE__TYPE[data.get("os_type", BkOsType.LINUX.value)]
+        os_type = str(data.get("os_type", BkOsType.LINUX.value))
+        if os_type.isdigit():
+            os_type = BK_OS_CODE__TYPE[os_type]
         if os_type == BkOsType.WINDOWS.value:
             # 如果是window类型机器，用administrator账号
             account_name = WINDOW_ADMIN_USER_FOR_CHECK
@@ -131,6 +154,12 @@ class ImportResourceInitStepFlow(object):
             )
 
         # 调用资源导入接口
+        resource_kwargs = {
+            "set_trans_data_dataclass": ResourceImportContext.__name__,
+            "api_import_path": DBResourceApi.__module__,
+            "api_import_module": "DBResourceApi",
+            "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
+        }
         if data.get("reimport"):
             # 对于重导入的机器，此时新机器仍然在DBA业务下，所以要更新bk_biz_id
             for host in data["hosts"]:
@@ -138,28 +167,13 @@ class ImportResourceInitStepFlow(object):
             p.add_act(
                 act_name=_("主机资源重导入"),
                 act_component_code=ExternalServiceComponent.code,
-                kwargs={
-                    "params": {"hosts": data["hosts"]},
-                    "api_import_path": DBResourceApi.__module__,
-                    "api_import_module": "DBResourceApi",
-                    "api_call_func": "resource_reimport",
-                    "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
-                },
+                kwargs={"params": {"hosts": data["hosts"]}, "api_call_func": "resource_reimport", **resource_kwargs},
             )
         else:
-            # 资源导入记录
-            import_record = {"task_id": self.root_id, "operator": data["operator"], "hosts": data["hosts"]}
-            DBResourceApi.import_operation_create(params=import_record)
             p.add_act(
                 act_name=_("资源池导入"),
                 act_component_code=ExternalServiceComponent.code,
-                kwargs={
-                    "params": data,
-                    "api_import_path": DBResourceApi.__module__,
-                    "api_import_module": "DBResourceApi",
-                    "api_call_func": "resource_import",
-                    "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
-                },
+                kwargs={"params": data, "api_call_func": "resource_import", **resource_kwargs},
             )
 
         # 转移模块到对应业务的资源池
@@ -340,4 +354,26 @@ class ImportResourceInitStepFlow(object):
             kwargs=asdict(kwargs),
         )
 
+        p.run_pipeline()
+
+    def resource_hcm_replenish_flow(self):
+        """海磊主机资源池补充"""
+
+        p = Builder(root_id=self.root_id, data=self.data)
+        # 海磊申请主机
+        p.add_act(
+            act_name=_("海磊申请主机"),
+            act_component_code=HCMResourceReplenishComponent.code,
+            kwargs=asdict(
+                ResourceHcmReplenishKwargs(
+                    subzone=self.data["subzone"],
+                    city=self.data["city"],
+                    count=self.data["count"],
+                    spec_id=self.data["spec_id"],
+                    os_name=self.data["os_name"],
+                )
+            ),
+        )
+        # 资源池导入
+        self.__build_machine_import_pipeline(p, self.data)
         p.run_pipeline()

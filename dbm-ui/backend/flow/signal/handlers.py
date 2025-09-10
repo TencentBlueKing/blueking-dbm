@@ -18,7 +18,6 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.signal.callback_map import call_ticket_handler
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowCallbackType, FlowType, TicketFlowStatus
-from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
 
@@ -84,12 +83,13 @@ def callback_ticket(ticket_id, root_id):
     """回调单据以进行后续的步骤"""
     try:
         ticket = Ticket.objects.get(id=ticket_id)
+        manager = TicketFlowManager(ticket=ticket)
     except (Ticket.DoesNotExist, ValueError):
         return
 
     # 初始化结束后，流转为当前流程
     current_flow = ticket.current_flow()
-    inner_flow_obj = InnerFlow(flow_obj=current_flow)
+    inner_flow_obj = manager.get_ticket_flow_cls(current_flow.flow_type)(flow_obj=current_flow)
     inner_flow_status = inner_flow_obj.status
 
     # 在inner flow执行成功的情况下，获取flow的缓存数据
@@ -107,5 +107,4 @@ def callback_ticket(ticket_id, root_id):
         return
 
     if current_flow.flow_obj_id == root_id and inner_flow_status in FLOW_FINISHED_STATUS:
-        manager = TicketFlowManager(ticket=ticket)
         manager.run_next_flow()

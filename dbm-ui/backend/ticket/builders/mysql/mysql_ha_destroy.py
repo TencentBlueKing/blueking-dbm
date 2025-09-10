@@ -18,7 +18,6 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.builders.tbinlogdumper.dumper_reduce_nodes import TbinlogdumperReduceNodesFlowParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
@@ -26,7 +25,7 @@ from backend.ticket.models import Flow
 
 
 class MysqlHADestroyDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    pass
 
 
 class MysqlHADestroyFlowParamBuilder(builders.FlowParamBuilder):

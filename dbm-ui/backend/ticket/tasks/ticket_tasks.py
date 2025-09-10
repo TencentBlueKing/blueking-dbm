@@ -20,12 +20,15 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
-from backend.configuration.models import DBAdministrator
+from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.core import notify
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_services.cmdb.biz import get_resource_biz
+from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
     FLOW_TASK_TYPES,
@@ -304,6 +307,38 @@ class TicketTask(object):
         # 终止单据
         remark = _("超时自动终止")
         TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER, remark=remark)
+
+    @classmethod
+    def auto_create_replenish_ticket(cls):
+        """自动创建补货单据"""
+
+        # 获取最新的资源水位数据
+        water_level_data = ResourceHandler.calc_resource_water_level()
+        water_level_infos = water_level_data["water_level"]
+        operator = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_REPLENISH_MAINTAINER) or DEFAULT_SYSTEM_USER
+
+        # 如果有正在进行的水位记录，则跳过
+        if water_level_data["running_replenish_record"]:
+            logger.info(_("有正在进行的水位记录，跳过自动补货"))
+            return
+
+        # 根据参考水位和资源水位计算补货数量
+        replenish_infos = []
+        for info in water_level_infos:
+            count = info["machine_refer_count"] - info["resource_count"]
+            if count <= 0:
+                continue
+
+            # 完善补货信息
+            info.update(count=count, operator=operator)
+            slz = ResourceHcmReplenishSerializer(data=info)
+            slz.is_valid()
+            replenish_infos.append(slz.data)
+
+        # 创建补货单据
+        bk_biz_id = get_resource_biz()
+        remark = _("资源池自动补货单")
+        ResourceHandler.create_replenish(operator, bk_biz_id, replenish_infos, remark)
 
 
 # ----------------------------- 异步执行任务函数 ----------------------------------------

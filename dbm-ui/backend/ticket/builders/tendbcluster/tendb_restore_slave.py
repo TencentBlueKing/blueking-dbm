@@ -16,7 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.mysql_restore_slave import (
     MysqlRestoreSlaveDetailSerializer,
@@ -39,7 +39,6 @@ class TendbClusterRestoreSlaveDetailSerializer(MysqlRestoreSlaveDetailSerializer
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("集群重建信息"), child=RestoreInfoSerializer())
     disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)

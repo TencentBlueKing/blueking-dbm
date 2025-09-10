@@ -19,7 +19,13 @@ from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
-from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow, SimpleTaskFlow
+from backend.ticket.flow_manager.inner import (
+    HCMReplenishResourceTaskFlow,
+    IgnoreResultInnerFlow,
+    InnerFlow,
+    QuickInnerFlow,
+    SimpleTaskFlow,
+)
 from backend.ticket.flow_manager.itsm import ItsmFlow
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
@@ -41,6 +47,7 @@ SUPPORTED_FLOW_MAP = {
     FlowType.RESOURCE_BATCH_DELIVERY: ResourceDeliveryFlow,
     FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
     FlowType.HOST_RECYCLE: SimpleTaskFlow,
+    FlowType.RESOURCE_HCM_REPLENISH: HCMReplenishResourceTaskFlow,
 }
 
 logger = logging.getLogger("root")

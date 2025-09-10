@@ -20,7 +20,7 @@ from backend.db_meta.models import Cluster, Machine
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer, HostRecycleSerializer
+from backend.ticket.builders.common.base import DisplayInfoSerializer
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     RedisBaseOperateDetailSerializer,
@@ -61,7 +61,6 @@ class RedisDataStructureTaskDeleteDetailSerializer(RedisBaseOperateDetailSeriali
             return attr
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     skip_connections_check = serializers.BooleanField(help_text=_("跳过请求检查"), default=False)
 
 

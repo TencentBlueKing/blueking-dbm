@@ -35,7 +35,8 @@ class TodoType(StrStructuredEnum):
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
-    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源池补货"))
+    RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
     TIMER = EnumField("TIMER", _("定时"))
 
 
@@ -662,6 +663,7 @@ class TicketType(StrStructuredEnum):
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
     RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
     RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
+    RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
     # fmt: on
 
     # VM
@@ -709,10 +711,12 @@ class FlowType(StrStructuredEnum):
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
     # 主机回收
     HOST_RECYCLE = EnumField("HOST_RECYCLE", _("主机回收"))
+    # 海磊资源池补货申请
+    RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
 
 
 # 任务流程类型合集
-FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE]
+FLOW_TASK_TYPES = [FlowType.INNER_FLOW, FlowType.HOST_RECYCLE, FlowType.RESOURCE_HCM_REPLENISH]
 
 
 class FlowContext(StrStructuredEnum):

@@ -17,7 +17,6 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -77,7 +76,6 @@ class RedisShardUpdateDetailSerializer(RedisBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer(), allow_empty=False)
 
 

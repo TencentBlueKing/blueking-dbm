@@ -24,7 +24,6 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
     HostInfoSerializer,
-    HostRecycleSerializer,
     fetch_cluster_ids,
 )
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -59,7 +58,6 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     source_type = serializers.ChoiceField(
         help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("添加信息"), child=InfoSerializer())
     is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)

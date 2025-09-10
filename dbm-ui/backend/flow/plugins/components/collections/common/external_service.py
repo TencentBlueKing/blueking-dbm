@@ -10,11 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 
 import importlib
+from dataclasses import asdict
 from typing import Any, Callable, Dict
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
+import backend.flow.utils.common_act_dataclass as flow_context
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -24,7 +26,9 @@ class ExternalService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
+
         # API接口请求路径和参数
         api_import_path: str = kwargs.get("api_import_path")
         api_import_module: str = kwargs.get("api_import_module")
@@ -32,6 +36,11 @@ class ExternalService(BaseService):
         params: Dict[str, Any] = kwargs.get("params")
         # 是否返回原始请求
         raw = kwargs.get("raw", False)
+        # 如果有上下文参数，则更新到params中
+        trans_data_class = kwargs.get("set_trans_data_dataclass")
+        if trans_data_class and isinstance(trans_data, dict) and trans_data:
+            trans_params = getattr(flow_context, kwargs["set_trans_data_dataclass"])(**trans_data)
+            params.update(asdict(trans_params))
 
         external_service: Callable = getattr(
             getattr(importlib.import_module(api_import_path), api_import_module), api_call_func

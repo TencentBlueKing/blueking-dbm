@@ -56,8 +56,8 @@ from backend.flow.plugins.components.collections.sqlserver.trans_files import Tr
 from backend.flow.plugins.components.collections.sqlserver.update_window_gse_config import (
     UpdateWindowGseConfigComponent,
 )
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
-from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs, UpdateDnsRecordKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InitCheckKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DownloadBackupFileKwargs,
     DownloadMediaKwargs,

@@ -122,6 +122,7 @@ class _DBResourceApi(BaseApi):
             url="/resource/append/labels",
             description=_("追加标签"),
         )
+        self.water_level = self.generate_data_api(method="POST", url="/statistic/water_level", description=_("资源水位"))
 
 
 DBResourceApi = _DBResourceApi()

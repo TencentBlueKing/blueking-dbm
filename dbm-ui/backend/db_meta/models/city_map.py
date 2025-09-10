@@ -55,6 +55,8 @@ class BKSubzone(AuditedModel):
     bk_sub_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("子 Zone"))
     bk_sub_zone_id = models.IntegerField(default=0, help_text=_("子 Zone ID"))
     bk_city = models.ForeignKey(BKCity, on_delete=models.PROTECT)
+    bk_cloud_region = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云地域"))
+    bk_cloud_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云可用区"))
 
     def __str__(self):
         return self.bk_sub_zone

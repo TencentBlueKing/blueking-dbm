@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+
 from django.db.models import Exists, OuterRef, Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
-from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus
+from backend.db_services.dbresource.models import ResourceReplenishRecord
+from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TodoType
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
@@ -27,6 +30,7 @@ class TicketListFilter(filters.FilterSet):
     is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
     bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
     db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
+    replenish = filters.CharFilter(field_name="replenish", method="filter_replenish", label=_("补货记录"))
 
     class Meta:
         model = Ticket
@@ -47,27 +51,26 @@ class TicketListFilter(filters.FilterSet):
         db_types = [db_type for db_type in value.split(",")]
         return queryset.filter(group__in=db_types)
 
+    def filter_replenish(self, queryset, name, value):
+        record_ids = value.split(",")
+        ticket_ids = ResourceReplenishRecord.objects.filter(id__in=record_ids).values_list("ticket_ids", flat=True)
+        ticket_ids = list(itertools.chain(*ticket_ids))
+        return queryset.filter(id__in=ticket_ids)
+
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))
         return queryset.filter(id__in=ids)
 
     def filter_todo(self, queryset, name, value):
         user = self.request.user.username
-
+        # 过滤我负责的代办/我的已办
         if value == "running":
-            # 筛选操作员/协助者+运行中状态
-            todo_subquery = Todo.objects.filter(
-                Q(operators__contains=user) | Q(helpers__contains=user), status__in=TODO_RUNNING_STATUS
-            )
+            user_filter = Q(operators__contains=user) | Q(helpers__contains=user)
+            todo_query = Todo.objects.filter(user_filter, status__in=TODO_RUNNING_STATUS)
         else:
-            # 筛选已完成的todo
-            todo_subquery = Todo.objects.filter(done_by=user)
-
+            todo_query = Todo.objects.filter(done_by=user)
         # 获取相关的ticket_id列表
-        ticket_ids = list(
-            todo_subquery.values_list("ticket_id", flat=True).distinct().order_by("-ticket_id").iterator()
-        )
-
+        ticket_ids = list(todo_query.values_list("ticket_id", flat=True).distinct().order_by("-ticket_id").iterator())
         return queryset.filter(id__in=ticket_ids).order_by("-id")
 
     def filter_is_assist(self, queryset, name, value):
@@ -83,9 +86,11 @@ class TicketListFilter(filters.FilterSet):
     def filter_status(self, queryset, name, value):
         status = value.split(",")
         status_filter = Q()
-        # 如果有待确认，则解析为：running + 包含正在运行的todo
+        # 如果有待确认，则解析为：running + 包含正在运行的todo(pipeline)
         if TicketStatus.INNER_TODO in status:
-            subquery = Todo.objects.filter(status__in=TODO_RUNNING_STATUS, ticket_id=OuterRef("id"))
+            subquery = Todo.objects.filter(
+                status__in=TODO_RUNNING_STATUS, type=TodoType.INNER_APPROVE, ticket_id=OuterRef("id")
+            )
             status_filter |= Q(status=TicketStatus.RUNNING) & Q(Exists(subquery))
             status.remove(TicketStatus.INNER_TODO.value)
         # 如果有待执行，则解析为：running + 不包含正在运行的todo

@@ -40,3 +40,7 @@ class BaseController:
     def machine_idle_check_flow(self):
         flow = ImportResourceInitStepFlow(root_id=self.root_id, data=self.ticket_data)
         flow.machine_idle_check_flow()
+
+    def resource_hcm_replenish_flow(self):
+        flow = ImportResourceInitStepFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.resource_hcm_replenish_flow()

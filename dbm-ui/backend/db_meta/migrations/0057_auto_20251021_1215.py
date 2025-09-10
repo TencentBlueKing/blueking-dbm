@@ -3,6 +3,8 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+from backend.db_meta.enums import VersionPhase
+
 
 class Migration(migrations.Migration):
 
@@ -150,7 +152,7 @@ class Migration(migrations.Migration):
                 ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
                 ("full_version", models.CharField(default="", help_text="完整版本", max_length=128)),
                 ("distribution_snapshot", models.JSONField(default=dict, help_text="发行版快照", null=True)),
-                ("phase", models.CharField(choices=[("alpha", "alpha")], help_text="版本阶段", max_length=128)),
+                ("phase", models.CharField(choices=VersionPhase.get_choices(), help_text="版本阶段", max_length=128)),
                 ("enable", models.BooleanField(default=True, help_text="版本启用")),
                 (
                     "version_series",

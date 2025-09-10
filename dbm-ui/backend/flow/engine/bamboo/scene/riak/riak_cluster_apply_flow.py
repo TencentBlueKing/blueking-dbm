@@ -28,8 +28,7 @@ from backend.flow.plugins.components.collections.riak.exec_actuator_script impor
 from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
 from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
-from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
-from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs
+from backend.flow.utils.common_act_dataclass import InitCheckKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargs
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
 from backend.flow.utils.riak.riak_context_dataclass import ApplyManualContext, RiakActKwargs

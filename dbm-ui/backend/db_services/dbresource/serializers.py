@@ -8,7 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+
 from django.db.models import Q
+from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -32,7 +35,8 @@ from backend.db_services.dbresource.mock import (
     RESOURCE_UPDATE_PARAMS,
     SPEC_DATA,
 )
-from backend.db_services.ipchooser.constants import BkOsTypeCode
+from backend.db_services.dbresource.models import ResourceReplenishRecord
+from backend.db_services.ipchooser.constants import BkOsType, BkOsTypeCode
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -572,3 +576,67 @@ class CheckFaultHostsSerializer(serializers.Serializer):
         bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
 
     hosts = serializers.ListField(help_text=_("主机信息"), child=CheckHostSerializer())
+
+
+class CalcResourceWaterLevelSerializer(serializers.Serializer):
+    cache = serializers.BooleanField(help_text=_("是否获取缓存"), required=True)
+
+
+class ResourceHcmReplenishSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    spec_id = serializers.IntegerField(help_text=_("规格ID"))
+    city = serializers.CharField(help_text=_("城市"))
+    subzone = serializers.CharField(help_text=_("园区名称"))
+    os_name = serializers.CharField(help_text=_("操作系统名称"))
+    count = serializers.IntegerField(help_text=_("申请数量"))
+    os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
+    operator = serializers.CharField(help_text=_("操作人"), required=False)
+    spec = serializers.JSONField(help_text=_("规格展示信息"), required=False)
+
+    def to_internal_value(self, data):
+        data = super().to_representation(data)
+        spec = Spec.objects.get(spec_id=data["spec_id"])
+        data["os_type"] = BkOsType.db_type_to_os_type(data["db_type"])
+        data["spec"] = model_to_dict(spec)
+        if self.context.get("request"):
+            data["operator"] = self.context["request"].user.username
+        return data
+
+    def validate(self, attrs):
+        if not env.HCM_APIGW_DOMAIN:
+            raise serializers.ValidationError(_("没有合法海磊域名，不支持主机资源补货"))
+        return attrs
+
+
+class CreateResourceReplenishSerializer(serializers.Serializer):
+    infos = serializers.ListSerializer(help_text=_("资源补货信息"), child=ResourceHcmReplenishSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
+
+
+class ReplenishRecordSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField(help_text=_("状态"))
+
+    class Meta:
+        model = ResourceReplenishRecord
+        fields = "__all__"
+
+    @property
+    def ticket_status_map(self):
+        if hasattr(self, "_ticket_status_map"):
+            return self._ticket_status_map
+
+        ticket_ids = itertools.chain(*[r.ticket_ids for r in self.instance])
+        status_list = Ticket.objects.filter(ticket_type=TicketType.RESOURCE_HCM_REPLENISH, id__in=ticket_ids).values(
+            "id", "status"
+        )
+        self._ticket_status_map = {status["id"]: status["status"] for status in status_list}
+        return self._ticket_status_map
+
+    def get_status(self, obj):
+        status_list = [self.ticket_status_map[ticket_id] for ticket_id in obj.ticket_ids]
+        return status_list
+
+
+class ListTicketApplyCountSerializer(serializers.Serializer):
+    ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分割)"))

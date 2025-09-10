@@ -17,7 +17,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, get_mongodb_cluster_tolerance
+from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -45,7 +45,6 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("集群容量变更申请信息"), child=ScaleUpDownDetailSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

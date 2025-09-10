@@ -13,6 +13,7 @@ from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -41,14 +42,15 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import ParamValidateSerializerMixin, fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
+    FLOW_TASK_TYPES,
     TICKET_FINISHED_STATUS_SET,
     TICKET_TODO_STATUS_SET,
     TODO_RUNNING_STATUS,
     CountType,
-    FlowType,
     TicketStatus,
     TicketType,
     TodoStatus,
+    TodoType,
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException, TicketParamsVerifyException
@@ -243,8 +245,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
         tickets = Ticket.objects.filter(id__in=ticket_ids)
         ticket_status_map = {ticket.id: ticket.status for ticket in tickets}
-        # 对于包含任务代办的单据，状态更新为待继续
-        todo_tickets = tickets.filter(status=TicketStatus.RUNNING, todo_of_ticket__status=TodoStatus.TODO)
+        # 对于包含内置任务代办的单据，状态更新为待继续
+        pipe_todo_q = Q(todo_of_ticket__type=TodoType.INNER_APPROVE, todo_of_ticket__status=TodoStatus.TODO)
+        todo_tickets = tickets.filter(pipe_todo_q, status=TicketStatus.RUNNING)
         for ticket in todo_tickets:
             ticket_status_map[ticket.id] = TicketStatus.INNER_TODO
         return Response(ticket_status_map)
@@ -668,7 +671,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         获取单据关联后台任务的信息
         """
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
-        inner_flows = Flow.objects.filter(flow_type=FlowType.INNER_FLOW, ticket_id__in=ticket_ids).values(
+        inner_flows = Flow.objects.filter(flow_type__in=FLOW_TASK_TYPES, ticket_id__in=ticket_ids).values(
             "ticket_id", "flow_obj_id", "flow_alias", "err_msg", "status"
         )
         ticket__inner_flow_map: Dict[int, List] = {int(t_id): [] for t_id in ticket_ids}

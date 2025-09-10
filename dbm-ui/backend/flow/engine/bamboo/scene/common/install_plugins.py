@@ -17,7 +17,6 @@ from django.utils.translation import gettext as _
 
 from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.engine.exceptions import PipelineError
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
@@ -38,9 +37,6 @@ def install_nodeman_plugins(
     @param bk_cloud_id: 云区域id
     @return: 安装节点管理子流程
     """
-    if not bk_host_ids and (not ips or not bk_cloud_id):
-        raise PipelineError(_("不存在主机，无法安装节点管理插件"))
-
     plugin_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
 
     acts_list = []

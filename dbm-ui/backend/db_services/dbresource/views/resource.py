@@ -34,6 +34,7 @@ from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
     AppendHostLabelSerializer,
+    CalcResourceWaterLevelSerializer,
     CheckFaultHostsSerializer,
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
@@ -495,3 +496,16 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     def append_labels(self, request):
         append_params = self.params_validate(self.get_serializer_class())
         return Response(DBResourceApi.resource_append_labels(append_params))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("计算资源池水位信息"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=CalcResourceWaterLevelSerializer)
+    def calc_resource_water_level(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        data = ResourceHandler.calc_resource_water_level(get_cache=params["cache"])
+        # 过滤掉无需补货的记录
+        water_level = [info for info in data["water_level"] if info["machine_refer_count"] > info["resource_count"]]
+        data["water_level"] = water_level
+        return Response(data)

@@ -16,7 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer, fetch_cluster_ids
+from backend.ticket.builders.common.base import HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import ShrinkType
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -39,7 +39,6 @@ class ProxyScaleDownDetailSerializer(RedisBaseOperateDetailSerializer):
         )
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     shrink_type = serializers.ChoiceField(
         help_text=_("缩容方式"), choices=ShrinkType.get_choices(), default=ShrinkType.QUANTITY.value
     )

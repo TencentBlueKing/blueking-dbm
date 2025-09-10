@@ -15,7 +15,6 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.vm import VmController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseVmTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -23,7 +22,7 @@ logger = logging.getLogger("root")
 
 
 class VmDestroyDetailSerializer(BigDataTakeDownDetailSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    pass
 
 
 class VmDestroyFlowParamBuilder(builders.FlowParamBuilder):

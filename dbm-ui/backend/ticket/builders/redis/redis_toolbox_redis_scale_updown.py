@@ -24,7 +24,6 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
     HostInfoSerializer,
-    HostRecycleSerializer,
 )
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -75,7 +74,6 @@ class RedisScaleUpDownDetailSerializer(RedisBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 

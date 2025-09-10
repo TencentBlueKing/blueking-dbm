@@ -19,7 +19,6 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
-    HostRecycleSerializer,
     InstanceInfoSerializer,
 )
 from backend.ticket.builders.common.constants import OperaObjType
@@ -47,7 +46,6 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     is_safe = serializers.BooleanField(help_text=_("是否安全模式"), required=False, default=True)
     infos = serializers.ListField(help_text=_("替换信息"), child=SwitchInfoSerializer())
     opera_object = serializers.ChoiceField(help_text=_("操作对象类型"), choices=OperaObjType.get_choices(), required=False)

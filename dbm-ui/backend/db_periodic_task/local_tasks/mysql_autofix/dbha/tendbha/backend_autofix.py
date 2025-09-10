@@ -16,7 +16,6 @@ from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.consts import InstanceStatus
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.constants import TicketType
 
@@ -162,7 +161,6 @@ def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: Lis
             "backup_source": MySQLBackupSource.REMOTE,
             "ip_source": IpSource.RESOURCE_POOL,
             "source_type": SourceType.RESOURCE_AUTO,
-            "ip_recycle": HostRecycleSerializer.DEFAULT,
             "disable_manual_confirm": True,
             "infos": infos,
         },
