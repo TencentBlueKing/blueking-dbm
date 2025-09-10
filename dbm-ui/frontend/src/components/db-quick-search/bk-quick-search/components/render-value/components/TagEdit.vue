@@ -157,6 +157,8 @@
 
   const handleKeyup = (event: KeyboardEvent) => {
     if (isReadonly) {
+      // 重置任何输入
+      latestEditValue.value = '';
       return;
     }
     // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
