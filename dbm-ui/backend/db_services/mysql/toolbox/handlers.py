@@ -8,12 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import MYSQL8_VER_PARSE_NUM, DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, Spec, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -25,6 +26,10 @@ from backend.flow.utils.mysql.mysql_version_parse import (
     tmysql_version_parse,
 )
 
+from .storage_upgrade_tool import get_storage_version_modules_api
+
+logger = logging.getLogger("root")
+
 
 class ToolboxHandler:
     """mysql工具箱查询接口封装"""
@@ -34,7 +39,12 @@ class ToolboxHandler:
 
     def query_higher_spider_ver_pkgs(self, cluster_id: int, higher_major_version: bool, higher_sub_version: bool):
         cluster = Cluster.objects.filter(id=cluster_id).get()
-        spiders = ProxyInstance.objects.filter(cluster=cluster)
+        spiders = ProxyInstance.objects.filter(cluster=cluster).exclude(
+            tendbclusterspiderext__spider_role__in=[
+                TenDBClusterSpiderRole.SPIDER_MNT,
+                TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+            ]
+        )
         uniq_spider_version_list = list(set(spider.version for spider in spiders))
         all_pkg_list = Package.objects.filter(pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, enable=True).all()
         # 如果版本统一,这是最好的情况
@@ -298,6 +308,34 @@ class ToolboxHandler:
             "machine_type": machine_type,
             "updated_machines": updated_count,
         }
+
+    def query_storage_version_modules(
+        self, cluster_id: int, bk_biz_id: int, higher_major_version: bool = False, higher_sub_version: bool = False
+    ):
+        """
+        查询存储层升级的可选模块和版本
+
+        @param cluster_id: 集群ID
+        @param bk_biz_id: 业务ID
+        @param higher_major_version: 是否查找更高主版本的模块
+        @param higher_sub_version: 是否查找同大版本但子版本更高的模块
+        @return: 包含模块列表的响应
+        """
+        logger.info(
+            _(
+                "Handler调用存储层版本模块查询 - cluster_id: {}, bk_biz_id: {}, higher_major_version: {}, higher_sub_version: {}"
+            ).format(cluster_id, bk_biz_id, higher_major_version, higher_sub_version)
+        )
+
+        result = get_storage_version_modules_api(cluster_id, bk_biz_id, higher_major_version, higher_sub_version)
+
+        logger.info(
+            _("Handler返回结果 - code: {}, result: {}, data数量: {}").format(
+                result.get("code"), result.get("result"), len(result.get("data", []))
+            )
+        )
+
+        return result
 
 
 def convert_mysql8_version_num(major_version: int) -> int:

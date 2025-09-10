@@ -248,3 +248,56 @@ def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
         bool: _description_
     """
     return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1
+
+
+def module_version_parse(mysql_version: str) -> int:
+    """
+    解析模块版本字符串，返回主版本号和子版本号（均为数字，便于比较）
+    MySQL模块版本字符串示例： MySQL-8.0,MySQL-5.7,TXSQL-8.0,MySQL-8.0-Community
+    @param mysql_version: 版本字符串，如 "MySQL-8.0" 或 "MySQL-5.7"
+    """
+    re_pattern = r"([\d]+)\.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+    billion, thousand = result[0]
+    return int(billion) * 1000000 + int(thousand) * 10000
+
+
+def calculate_tmysql_version_number(
+    mysql_major: int, mysql_minor: int, mysql_patch: int, tmysql_major: int, tmysql_minor: int, tmysql_patch: int
+) -> int:
+    """
+    计算TMySQL版本号（MySQL基础版本 + TMySQL扩展版本）
+
+    格式：MYSQL_MAJOR * 1000000 + MYSQL_MINOR * 10000 + MYSQL_PATCH * 1000 +
+          TMYSQL_MAJOR * 100 + TMYSQL_MINOR * 10 + TMYSQL_PATCH
+
+    @param mysql_major: MySQL主版本号
+    @param mysql_minor: MySQL次版本号
+    @param mysql_patch: MySQL补丁版本号
+    @param tmysql_major: TMySQL主版本号
+    @param tmysql_minor: TMySQL次版本号
+    @param tmysql_patch: TMySQL补丁版本号
+    @return: 数值版本号，用于比较
+    """
+    return (
+        mysql_major * 1000000
+        + mysql_minor * 10000
+        + mysql_patch * 1000
+        + tmysql_major * 100
+        + tmysql_minor * 10
+        + tmysql_patch
+    )
+
+
+def calculate_mysql_version_number(major: int, minor: int, patch: int) -> int:
+    """
+    计算标准MySQL版本号
+
+    格式：MAJOR * 1000000 + MINOR * 1000 + PATCH
+
+    @param major: 主版本号
+    @param minor: 次版本号
+    @param patch: 补丁版本号
+    @return: 数值版本号，用于比较
+    """
+    return major * 1000000 + minor * 10000 + patch * 1000

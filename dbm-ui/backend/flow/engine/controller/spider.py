@@ -262,7 +262,7 @@ class SpiderController(BaseController):
         tendbcluster backend 节点升级
         """
         flow = UpgradeRemoteFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.migrate_upgrade()
+        flow.run()
 
     @validates_with(TenDBClusterSwitchNodesFlowValidator)
     def tendbcluster_switch_nodes_scene(self):
