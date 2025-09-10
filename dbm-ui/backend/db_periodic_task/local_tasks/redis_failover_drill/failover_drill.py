@@ -24,6 +24,7 @@ from backend.utils.basic import generate_root_id
 from ..common.failover_drill_base import BaseFailoverDrill
 
 DBATEST_BIZ_NAME: str = "dbatest"
+DOMAIN_PREFIX: str = "cache"
 
 
 class RedisFailoverDrill(BaseFailoverDrill):
@@ -57,7 +58,7 @@ class RedisFailoverDrill(BaseFailoverDrill):
         集群域名
         """
         cluster_name = self.get_cluster_name()
-        return "failover.{}.{}.db".format(cluster_name, DBATEST_BIZ_NAME)
+        return "{}.{}.{}.db".format(DOMAIN_PREFIX, cluster_name, DBATEST_BIZ_NAME)
 
     def get_instance_info(self, cluster, instance_role) -> dict:
         """
