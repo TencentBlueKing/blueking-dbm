@@ -26,7 +26,8 @@
       <EditableColumn
         field="spider_reduced_host.role"
         :label="t('缩容节点类型')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock
           v-model="instanceRoleMap[item.spider_reduced_host.role as keyof typeof instanceRoleMap]"
           :placeholder="t('自动生成')" />
@@ -34,7 +35,8 @@
       <EditableColumn
         field="spider_reduced_host.master_domain"
         :label="t('关联集群')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock
           v-model="item.spider_reduced_host.master_domain"
           :placeholder="t('自动生成')" />
@@ -166,7 +168,7 @@
       }
       return acc;
     }, []);
-    tableData.value = [...(tableData.value[0].spider_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
+    tableData.value = [...(tableData.value[0]!.spider_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
   };
 
   defineExpose<Exposes>({
@@ -189,7 +191,7 @@
         Object.entries(groupByCluster).forEach(([clusterId, items]) => {
           if (validateRole) {
             // 只要有一个同集群下角色不一致就不允许缩容
-            validateRole = items.every((item) => item.spider_reduced_host.role === items[0].spider_reduced_host.role);
+            validateRole = items.every((item) => item.spider_reduced_host.role === items[0]!.spider_reduced_host.role);
           }
           infos.push({
             cluster_id: Number(clusterId),
@@ -201,7 +203,7 @@
                 ip: item.spider_reduced_host.ip,
               })),
             },
-            reduce_spider_role: items[0].spider_reduced_host.role,
+            reduce_spider_role: items[0]!.spider_reduced_host.role,
           });
         });
         if (!validateRole) {

@@ -50,8 +50,6 @@
 
   import { Column, useTable } from '@components/editable-table/Index.vue';
 
-  import { random } from '@utils';
-
   const props = defineProps<{
     createRowMethod?: () => T;
   }>();
@@ -92,7 +90,7 @@
     const newRowIndex = rowIndex + 1;
 
     if (newRowIndex > 0) {
-      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
+      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]!));
       editTableContext!.validateByRowIndex(newRowIndex);
     }
   };
@@ -100,7 +98,7 @@
 <style lang="less">
   .toolbox-operation-column {
     display: flex;
-    height: 42px;
+    min-height: 40px;
     padding: 0 10px;
     align-items: center;
 

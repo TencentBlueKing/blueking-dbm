@@ -16,6 +16,7 @@
     :field="field"
     :label="t(label)"
     :min-width="minWidth"
+    :readonly="!selectable"
     :required="required"
     :rules="rules">
     <template
