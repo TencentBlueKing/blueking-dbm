@@ -264,12 +264,18 @@
     // 通过选择面板选择值时只识别删除操作
     if (isNeedShowValueMenu.value && !['Backspace'].includes(event.code)) {
       event.preventDefault();
+      return false;
     }
   };
 
   let latestInputValue = '';
   const handleKeyup = (event: KeyboardEvent) => {
     setTimeout(() => {
+      // 在选择面板中选择值，不想要输入框输入
+      if (isNeedShowValueMenu.value) {
+        // 重置任何输入
+        inputValue.value = '';
+      }
       // 手动输入模式支持 Shfit + Enter 换行，默认换行行为
       if (['Enter', 'NumpadEnter'].includes(event.code) && event.shiftKey) {
         return true;
@@ -287,10 +293,11 @@
         if (!inputValue.value) {
           return;
         }
-        // 在选择面板中选择值，不想要输入框输入
+
         if (isNeedShowValueMenu.value) {
           return;
         }
+
         // value 使用 input 的值
         let errorMessage = '';
         if ((isMultipleLintEdit || isSingleEdit) && _.isFunction(currentDataConfig.value.validator)) {
