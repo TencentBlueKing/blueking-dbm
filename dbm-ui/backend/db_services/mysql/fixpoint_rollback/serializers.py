@@ -70,6 +70,9 @@ class FilterBackupLogSerializer(serializers.Serializer):
         required=False,
     )
     is_full_backup = serializers.BooleanField(help_text=_("是否为全备"), required=False, default=False)
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
+    )
 
     def validate(self, data):
         # 为备份方法提供默认值并将其转换为列表
