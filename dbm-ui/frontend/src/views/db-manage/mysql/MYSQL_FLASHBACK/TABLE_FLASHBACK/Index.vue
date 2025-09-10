@@ -15,7 +15,6 @@
           v-model="item.cluster"
           allow-repeat
           :cluster-types="[ClusterTypes.TENDBHA]"
-          :min-width="240"
           :selected="selected"
           @batch-edit="handleClusterBatchEdit" />
         <DatetimeColumn

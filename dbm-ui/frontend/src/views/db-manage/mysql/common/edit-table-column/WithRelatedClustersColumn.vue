@@ -101,12 +101,12 @@
     cluster_type: ClusterTypes;
     id: number;
     master_domain: string;
-    region: string;
+    region?: string;
     related_clusters: {
       id: number;
       master_domain: string;
     }[];
-    spec_id_list: number[];
+    spec_id_list?: number[];
   }>({
     required: true,
   });
