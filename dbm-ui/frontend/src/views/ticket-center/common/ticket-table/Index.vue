@@ -346,7 +346,7 @@
 
   type Emits = (e: 'selection', data: TicketModel<unknown>[]) => void;
 
-  const TABLE_SETTING_KEY = 'TICKET_TABLE_SETTINGS';
+  const TABLE_SETTING_KEY = 'TICKET_TABLE_SETTINGS_v1';
 
   const router = useRouter();
   const route = useRoute();
@@ -377,7 +377,7 @@
 
   const tableSettings = ref({
     checked: userProfileStore.profile[TABLE_SETTING_KEY]?.checked,
-    disabled: ['id', 'ticket_type__in'],
+    disabled: ['ids', 'ticket_type__in'],
     size: userProfileStore.profile[TABLE_SETTING_KEY]?.size || 'small',
   });
 

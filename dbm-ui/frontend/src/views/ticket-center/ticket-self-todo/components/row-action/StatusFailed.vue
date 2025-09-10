@@ -50,7 +50,7 @@
       ticket_ids: `${row.id}`,
     })
       .then((data) => {
-        if (data[row.id].length < 1) {
+        if (data[row.id]!.length < 1) {
           const { href } = router.resolve({
             name: 'ticketDetail',
             params: {
@@ -63,7 +63,7 @@
         const { href } = router.resolve({
           name: 'taskHistoryDetail',
           params: {
-            root_id: data[row.id][0].flow_id,
+            root_id: data[row.id]![0]!.flow_id,
           },
         });
         window.open(href);
