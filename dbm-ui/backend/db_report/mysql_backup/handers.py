@@ -21,7 +21,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
@@ -273,7 +273,10 @@ class MySQLBackupHandler:
         @param limit_one: 是否限制只返回一条备份记录
         @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
         """
-        backup_infos = self.get_backup_infos(latest_time)
+        if self.backup_source == MySQLBackupSource.LOCAL:
+            backup_infos = self.get_local_backup_infos(latest_time=latest_time, include_proxy=True)
+        else:
+            backup_infos = self.get_backup_infos(latest_time)
         if backup_infos is None:
             return None
         cluster_shards = self.cluster.tendbclusterstorageset_set.all()
@@ -301,7 +304,7 @@ class MySQLBackupHandler:
                 cluster_backup_info_map[backup_info["backup_id"]]["shard_list"] = copy.deepcopy(shard_list)
 
             if (
-                backup_info["shard_value"] in cluster_backup_info_map[backup_info["backup_id"]]["shard_list"]
+                int(backup_info["shard_value"]) in cluster_backup_info_map[backup_info["backup_id"]]["shard_list"]
                 and backup_info["mysql_role"] in ["master", "slave"]
                 # 此处判断data_schema_grant,避免在指定backup_id查询(不做其他条件过滤)的时候,通过这里保证shard有数据。
                 and (
@@ -312,9 +315,9 @@ class MySQLBackupHandler:
                     )
                 )
             ):
-                cluster_backup_info_map[backup_info["backup_id"]]["shard_list"].remove(backup_info["shard_value"])
+                cluster_backup_info_map[backup_info["backup_id"]]["shard_list"].remove(int(backup_info["shard_value"]))
                 cluster_backup_info_map[backup_info["backup_id"]]["remote_node"][
-                    str(backup_info["shard_value"])
+                    int(backup_info["shard_value"])
                 ] = backup_info
             elif (
                 len(cluster_backup_info_map[backup_info["backup_id"]]["spider_node"]) == 0
@@ -331,10 +334,17 @@ class MySQLBackupHandler:
         for backup_id, backup_map in cluster_backup_info_map_tmp.items():
             if (
                 len(backup_map["shard_list"]) > 0
-                or len(backup_map["tdbctl_node"]) == 0
-                or len(backup_map["spider_node"]) == 0
+                or len(backup_map.get("tdbctl_node", {})) == 0
+                or len(backup_map.get("spider_node", {})) == 0
             ):
-                logger.info("backup_id: {} not include all remote nodes".format(backup_id))
+                logger.info(
+                    "backup_id: {} not include all nodes: shards: {} spider_node: {} tdbctl_node: {}".format(
+                        backup_id,
+                        backup_map["shard_list"],
+                        len(backup_map.get("spider_node", {})),
+                        len(backup_map.get("tdbctl_node", {})),
+                    )
+                )
                 cluster_backup_id_list.remove(backup_id)
                 cluster_backup_info_map.pop(backup_id)
         if len(cluster_backup_info_map) == 0:
@@ -439,17 +449,21 @@ class MySQLBackupHandler:
         result["binlog_files"] = ",".join(binlog_files)
         return result
 
-    def get_local_backup_infos(self, latest_time: datetime = None, limit: str = "") -> list[dict]:
+    def get_local_backup_infos(
+        self, latest_time: datetime = None, limit: str = "", include_proxy: bool = False
+    ) -> list[dict]:
         """
         获取指定集群本地备份信息 本地查询不需要条件 check_instance_exist shard_id filter_ips is_standby
         @param latest_time: 最迟时间
         @param limit: 限制记录数
+        @param include_proxy: 是否包含spider层的备份,此参数针对生成回档任务使用
         @return: 返回本地备份记录的列表
         """
         cmds = """select r.*,
         DATE_FORMAT(CONVERT_TZ(backup_begin_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_begin_time,
         DATE_FORMAT(CONVERT_TZ(backup_end_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')as backup_end_time,
-        DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00') as backup_consistent_time
+        DATE_FORMAT(CONVERT_TZ(backup_consistent_time,@@time_zone,"+00:00"),'%Y-%m-%dT%H:%i:%s+00:00')
+        as backup_consistent_time
         from infodba_schema.local_backup_report r
         where server_id=@@server_id {condition} order by backup_consistent_time desc {limit}"""
         conditions = f" and r.cluster_id={self.cluster.id} and r.cluster_address='{self.cluster.immute_domain}' "
@@ -486,10 +500,25 @@ class MySQLBackupHandler:
         logger.info(query_cmds)
         backup_infos = []
 
+        # 获取实例信息
+        ins_conditions = Q()
         if self.filter_ips is not None and len(self.filter_ips) > 0:
-            this_instances = [f"{ip}{IP_PORT_DIVIDER}{self.port}" for ip in self.filter_ips]
-        else:
-            this_instances = copy.deepcopy(self.instances)
+            ins_conditions &= Q(machine__ip__in=self.filter_ips)
+        if self.shard_id is not None and self.cluster.cluster_type == ClusterType.TenDBCluster:
+            ins_conditions &= Q(as_ejector__tendbclusterstorageset__shard_id=self.shard_id) | Q(
+                as_receiver__tendbclusterstorageset__shard_id=self.shard_id
+            )
+        storages = self.cluster.storageinstance_set.filter(ins_conditions)
+        logger.info(str(storages.query))
+        this_instances = [s.ip_port for s in storages]
+        if include_proxy:
+            spider_masters = self.cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            )
+            this_instances.extend([p.ip_port for p in spider_masters])
+            primary_map = Cluster.get_cluster_id__primary_address_map([self.cluster.id])
+            this_instances.append(primary_map[self.cluster.id])
+        logger.info(this_instances)
 
         for addr in this_instances:
             res = DRSApi.rpc(
