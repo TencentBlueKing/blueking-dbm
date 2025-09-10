@@ -45,10 +45,6 @@
             v-if="selected.length === 0"
             class="bk-editable-text-content-placeholder ml-8">
             {{ t('请选择') }}
-            <DbIcon
-              class="angle-down render-slaves-icon"
-              size="small"
-              type="bk-dbm-icon db-icon-down-big" />
           </div>
           <div
             v-else
@@ -59,6 +55,10 @@
               {{ instance }}
             </p>
           </div>
+          <DbIcon
+            class="angle-down render-slaves-icon"
+            size="small"
+            type="bk-dbm-icon db-icon-down-big" />
         </div>
       </template>
     </EditableSelect>
