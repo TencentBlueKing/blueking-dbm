@@ -216,8 +216,8 @@ DATABASES = {
             "COLLATION": "utf8_general_ci",
         },
         "POOL_OPTIONS": {
-            "POOL_SIZE": os.environ.get("DB_POOL_SIZE", 5),
-            "MAX_OVERFLOW": os.environ.get("DB_POOL_MAX_OVERFLOW", 10),
+            "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
+            "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
             "RECYCLE": 60 * 60
         },
     },
@@ -234,8 +234,8 @@ DATABASES = {
             "COLLATION": "utf8_general_ci",
         },
         "POOL_OPTIONS": {
-            "POOL_SIZE": os.environ.get("DB_POOL_SIZE", 5),
-            "MAX_OVERFLOW": os.environ.get("DB_POOL_MAX_OVERFLOW", 10),
+            "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
+            "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
             "RECYCLE": 60 * 60
         },
     },
