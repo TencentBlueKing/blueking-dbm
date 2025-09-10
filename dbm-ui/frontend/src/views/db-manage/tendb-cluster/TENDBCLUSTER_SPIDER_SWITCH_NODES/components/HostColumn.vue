@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('关联实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       {{ modelValue.instance_address }}
     </EditableBlock>
@@ -44,7 +45,8 @@
   <EditableColumn
     :label="t('实例角色')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       {{ modelValue.role }}
     </EditableBlock>
@@ -52,7 +54,8 @@
   <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       {{ modelValue.master_domain }}
     </EditableBlock>
@@ -163,7 +166,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.SpiderHost);
+    emits('batch-edit', selected.SpiderHost!);
   };
 
   const handleInputChange = (value: string) => {

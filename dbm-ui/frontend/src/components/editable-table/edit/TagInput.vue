@@ -61,6 +61,18 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-tag-input {
+        .clear-icon,
+        .remove-tag {
+          display: none !important;
+        }
+      }
+    }
+  }
+
   .bk-editable-tag-input {
     &.bk-tag-input {
       width: 100%;

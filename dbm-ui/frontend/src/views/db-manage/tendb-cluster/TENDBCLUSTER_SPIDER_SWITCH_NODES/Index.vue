@@ -180,17 +180,17 @@
         payload: createTickePayload(ticketDetail),
         tableData: details.infos.map((item) => {
           const [host] = item.spider_old_ip_list;
-          const cluster = clusters[item.cluster_id];
+          const cluster = clusters[item.cluster_id]!;
           return createTableRow({
             host: {
               ...host,
               cluster_id: cluster.id,
-              instance_address: `${host.ip}:${host.port}`,
+              instance_address: `${host!.ip}:${host!.port}`,
               master_domain: cluster.immute_domain,
               role: item.switch_spider_role,
-              spec_id: item.resource_spec[`${item.switch_spider_role}_${host.ip}`].spec_id,
+              spec_id: item.resource_spec[`${item.switch_spider_role}_${host!.ip}`]!.spec_id,
             },
-            labels: (item.resource_spec[`${item.switch_spider_role}_${host.ip}`].labels || []).map((item) => ({
+            labels: (item.resource_spec[`${item.switch_spider_role}_${host!.ip}`]!.labels || []).map((item) => ({
               id: Number(item),
             })),
           });
@@ -315,7 +315,7 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].host.bk_host_id ? formData.tableData : []), ...dataList];
+      formData.tableData = [...(formData.tableData[0]!.host.bk_host_id ? formData.tableData : []), ...dataList];
     }
   };
 
