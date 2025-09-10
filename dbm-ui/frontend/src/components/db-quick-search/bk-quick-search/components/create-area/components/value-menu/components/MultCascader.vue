@@ -5,6 +5,7 @@
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
+        autofocus
         borderless
         clearable
         placeholder="请输入关键字">

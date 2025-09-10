@@ -6,6 +6,7 @@
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
+        autofocus
         borderless
         clearable
         placeholder="请输入关键字">
@@ -74,7 +75,6 @@
 
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
 
-  const rootRef = useTemplateRef('root');
   const layoutRef = useTemplateRef('layout');
   const localValue = ref<IResult[]>([]);
   const contentMinWidth = ref(0);
@@ -141,7 +141,7 @@
     emits('change', [...localValue.value]);
   };
 
-  const { activeIndex } = useMenuKeyboard(renderList, rootRef, (value) => {
+  const { activeIndex } = useMenuKeyboard(renderList, layoutRef, (value) => {
     handleChange(value);
   });
 
