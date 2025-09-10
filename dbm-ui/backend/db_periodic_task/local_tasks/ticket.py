@@ -26,6 +26,7 @@ def auto_create_data_repair_ticket():
     TicketTask.auto_create_data_repair_ticket()
 
 
+# 清理bamboo_engine过期数据
 @register_periodic_task(run_every=crontab(minute="*/1"))
 def clean_bamboo_engine_expired_data():
     TaskFlow.clean_bamboo_engine_expired_data()
@@ -34,3 +35,9 @@ def clean_bamboo_engine_expired_data():
 @register_periodic_task(run_every=crontab(hour="*/1", minute="0"))
 def auto_clear_expire_flow():
     TicketTask.auto_clear_expire_flow()
+
+
+# 每日12点执行自动补货流程 TODO: 暂时不注册
+# @register_periodic_task(run_every=crontab(hour=9, minute=0))
+def auto_create_replenish_ticket():
+    TicketTask.auto_create_replenish_ticket()

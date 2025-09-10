@@ -18,12 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import (
-    BaseOperateResourceParamBuilder,
-    HostInfoSerializer,
-    HostRecycleSerializer,
-    fetch_cluster_ids,
-)
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource, OperaObjType
 from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
@@ -46,7 +41,6 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
     source_type = serializers.ChoiceField(
         help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("迁移主从信息"), child=MigrateClusterInfoSerializer())
     backup_source = serializers.ChoiceField(
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE

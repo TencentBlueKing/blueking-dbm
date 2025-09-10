@@ -16,7 +16,6 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
@@ -45,7 +44,6 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"), default=True)
 
     def validate(self, attrs):

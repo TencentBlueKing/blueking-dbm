@@ -21,12 +21,12 @@ from django.forms.models import model_to_dict
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, PLAT_BIZ_ID, AffinityEnum
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.constants import DOMAIN_PATTERN
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
-from backend.db_services.dbbase.constants import IpDest, IpSource
+from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
@@ -196,16 +196,6 @@ class TicketBaseValidateSerializerMixin(object):
     def validate(self, attrs):
         attrs = self.validated_biz(attrs)
         return attrs
-
-
-class HostRecycleSerializer(serializers.Serializer):
-    """主机回收信息"""
-
-    DEFAULT = {"for_biz": PLAT_BIZ_ID, "ip_dest": IpDest.Resource.value}
-    FAULT_DEFAULT = {"for_biz": PLAT_BIZ_ID, "ip_dest": IpDest.Fault.value}
-
-    for_biz = serializers.IntegerField(help_text=_("目标业务"), required=False, default=PLAT_BIZ_ID)
-    ip_dest = serializers.ChoiceField(help_text=_("机器流向"), choices=IpDest.get_choices(), default=IpDest.Fault)
 
 
 class SkipToRepresentationMixin(object):

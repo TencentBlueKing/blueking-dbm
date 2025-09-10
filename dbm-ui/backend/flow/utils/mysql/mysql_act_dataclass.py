@@ -12,8 +12,6 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from backend import env
-from backend.db_dirty.constants import MachineEventType
 from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
 from backend.flow.consts import (
     BIGFILE_JOB_SCP_TIMEOUT,
@@ -533,42 +531,6 @@ class YumInstallPerlKwargs:
 
     bk_cloud_id: int
     exec_ip: list
-
-
-@dataclass
-class InitCheckKwargs:
-    """
-    定义空闲检查的私有变量结构体
-    """
-
-    bk_cloud_id: int
-    ips: list
-    account_name: str = "root"
-
-
-@dataclass
-class InitCheckForResourceKwargs:
-    """
-    定义导入资源池的场景下空闲检查的私有变量结构体
-    """
-
-    ips: list
-    bk_biz_id: int = env.DBA_APP_BK_BIZ_ID
-    account_name: str = "root"
-
-
-@dataclass
-class ImportMachinePollKwargs:
-    """
-    定义导入主机池的私有变量结构体
-    """
-
-    bk_biz_id: int
-    db_type: str
-    operator: str
-    ticket_id: int
-    event: MachineEventType = ""
-    hosts: list = None
 
 
 @dataclass()

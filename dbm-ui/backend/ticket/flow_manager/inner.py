@@ -299,3 +299,46 @@ class SimpleTaskFlow(InnerFlow):
 
     def _run(self) -> None:
         return super()._run()
+
+
+class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
+    """
+    海磊资源申请专属任务流程
+    """
+
+    @property
+    def _status(self) -> str:
+        if not self.flow_tree:
+            return self.flow_obj.status
+
+        status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status) or constants.TicketFlowStatus.RUNNING
+        if status != TicketFlowStatus.SUCCEEDED:
+            return self.flow_obj.update_status(status)
+
+        # 如果流程已完成，但是补货数量不及预期，则仍然失败
+        count = self.ticket.details["count"]
+        applied_count = len(self.flow_obj.output_data[0]["values"]) if self.flow_obj.output_data else 0
+        if count != applied_count:
+            status = TicketFlowStatus.FAILED
+
+        return self.flow_obj.update_status(status)
+
+    def _retry(self) -> Any:
+        # 把flow_obj_id置空，则每次重试就会重新发起任务
+        self.flow_obj.flow_obj_id = ""
+        self.flow_obj.save(update_fields=["flow_obj_id"])
+        super()._retry()
+
+    def _revoke(self, operator, remark="") -> Any:
+        from backend.components.hcm.client import HCMApi
+
+        # 终止海磊申请单
+        suborder_id = self.flow_obj.context.get("suborder_id")
+        bk_biz_id = self.ticket.bk_biz_id
+        if suborder_id:
+            try:
+                params = {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}
+                HCMApi.update_ticket_apply_terminate(params, use_admin=True)
+            except Exception as err:
+                logger.error(_("终止海磊申请单失败: {}").format(err))
+        super()._revoke(operator, remark)

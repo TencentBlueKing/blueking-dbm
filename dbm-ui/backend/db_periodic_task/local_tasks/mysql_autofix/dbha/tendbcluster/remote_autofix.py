@@ -15,7 +15,6 @@ from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Machine
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource, SourceType
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.constants import TicketType
 
@@ -68,7 +67,6 @@ def replace_remote(cluster_ids: List[int], machine_type: MachineType, events: Li
             "backup_source": MySQLBackupSource.REMOTE,
             "ip_source": IpSource.RESOURCE_POOL,
             "source_type": SourceType.RESOURCE_AUTO,
-            "ip_recycle": HostRecycleSerializer.DEFAULT,
             "disable_manual_confirm": True,
             "infos": infos,
         },

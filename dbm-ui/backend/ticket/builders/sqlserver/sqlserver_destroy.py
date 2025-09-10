@@ -14,13 +14,12 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerTakeDownDetailsSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class SQLServerDestroyDetailSerializer(SQLServerTakeDownDetailsSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.FAULT_DEFAULT)
+    pass
 
 
 class SQLServerDestroyFlowParamBuilder(builders.FlowParamBuilder):

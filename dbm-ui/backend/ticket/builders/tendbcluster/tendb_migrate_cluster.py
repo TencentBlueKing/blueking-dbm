@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.mysql_migrate_cluster import (
     MysqlMigrateClusterParamBuilder,
@@ -40,7 +40,6 @@ class TendbClusterMigrateClusterDetailSerializer(TendbBaseOperateDetailSerialize
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListSerializer(help_text=_("克隆主从信息"), child=MigrateClusterInfoSerializer())
     backup_source = serializers.ChoiceField(
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE

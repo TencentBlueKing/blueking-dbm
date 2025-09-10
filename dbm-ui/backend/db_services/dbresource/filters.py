@@ -17,6 +17,7 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
+from backend.db_services.dbresource.models import ResourceReplenishRecord
 
 
 class SpecListFilter(filters.FilterSet):
@@ -79,3 +80,18 @@ class DeviceClassFilter(filters.FilterSet):
     class Meta:
         model = DeviceClass
         fields = ["device_type"]
+
+
+class ReplenishRecordFilter(filters.FilterSet):
+    db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("DB类型"))
+
+    class Meta:
+        model = ResourceReplenishRecord
+        fields = {
+            "id": ["exact", "in"],
+            "creator": ["exact"],
+            "create_at": ["gte", "lte"],
+        }
+
+    def filter_db_type(self, queryset, name, value):
+        return queryset.filter(details__has_key=value)

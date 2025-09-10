@@ -22,7 +22,7 @@ from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
@@ -47,7 +47,6 @@ class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.FAULT_DEFAULT)
 
     def validate(self, attrs):
         # 校验实例的角色为slave

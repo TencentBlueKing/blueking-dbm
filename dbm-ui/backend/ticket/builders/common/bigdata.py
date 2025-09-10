@@ -27,7 +27,6 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
-    HostRecycleSerializer,
     InfluxdbTicketFlowBuilderPatchMixin,
     TicketBaseValidateSerializerMixin,
     format_bigdata_resource_spec,
@@ -217,7 +216,6 @@ class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

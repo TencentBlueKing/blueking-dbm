@@ -15,13 +15,12 @@ from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import TicketType
 
 
 class MysqlSingleDestroyDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    pass
 
 
 class MysqlSingleDestroyFlowParamBuilder(builders.FlowParamBuilder):

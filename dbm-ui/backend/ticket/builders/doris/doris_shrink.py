@@ -16,7 +16,6 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.doris import DorisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -31,7 +30,6 @@ class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         observer = serializers.ListField(help_text=_("observer信息列表"), child=serializers.DictField())
 
     old_nodes = NodesSerializer(help_text=_("nodes节点列表"))
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class DorisShrinkFlowParamBuilder(builders.FlowParamBuilder):

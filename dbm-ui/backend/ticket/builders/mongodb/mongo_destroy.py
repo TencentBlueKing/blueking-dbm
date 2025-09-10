@@ -15,14 +15,12 @@ from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
 class MongoDBDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class MongoDBDestroyFlowParamBuilder(builders.FlowParamBuilder):

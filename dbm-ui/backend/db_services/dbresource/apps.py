@@ -8,16 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from rest_framework.routers import DefaultRouter
+from django.apps import AppConfig
 
-from backend.db_services.dbresource.views.replenish import DBReplenishViewSet
-from backend.db_services.dbresource.views.resource import DBResourceViewSet
-from backend.db_services.dbresource.views.sepc import DBSpecViewSet
 
-routers = DefaultRouter(trailing_slash=True)
-
-routers.register("resource", DBResourceViewSet, basename="resource")
-routers.register("replenish", DBReplenishViewSet, basename="replenish")
-routers.register("spec", DBSpecViewSet, basename="spec")
-
-urlpatterns = routers.urls
+class DBResourceConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "backend.db_services.dbresource"

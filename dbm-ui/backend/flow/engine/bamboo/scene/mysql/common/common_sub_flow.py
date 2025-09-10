@@ -44,6 +44,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
+from backend.flow.utils.common_act_dataclass import InitCheckKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
@@ -52,7 +53,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
-    InitCheckKwargs,
     MySQLCheckVariableConsistencyKwargs,
     VerifyChecksumKwargs,
     YumInstallPerlKwargs,

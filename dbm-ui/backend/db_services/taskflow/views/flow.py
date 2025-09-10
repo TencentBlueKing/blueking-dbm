@@ -42,6 +42,7 @@ from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders.common.base import fetch_host_ids
 from backend.ticket.constants import TODO_RUNNING_STATUS, TodoType
+from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Todo
 from backend.ticket.serializers import TodoSerializer
 
@@ -121,8 +122,14 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def revoke_pipeline(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
         user = requests.user.username
-        # TODO: 如果存在flow，则利用flow的revoke
-        return Response(TaskFlowHandler(root_id=root_id).revoke_pipeline(user).result)
+        ticket_flow = Flow.objects.filter(flow_obj_id=root_id).first()
+        # 如果存在flow，则利用flow的revoke
+        if ticket_flow:
+            manager = TicketFlowManager(ticket=ticket_flow.ticket)
+            manager.get_ticket_flow_cls(ticket_flow.flow_type)(ticket_flow).revoke(user)
+        else:
+            TaskFlowHandler(root_id=root_id).revoke_pipeline(user)
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("重试节点"),

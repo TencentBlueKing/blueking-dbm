@@ -14,7 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisInstanceTicketFlowBuilder,
     BaseRedisTicketFlowBuilder,
@@ -25,7 +25,7 @@ from backend.ticket.constants import TicketType
 
 
 class RedisDestroyDetailSerializer(RedisSingleOpsBaseDetailSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    pass
 
 
 class RedisDestroyFlowParamBuilder(builders.FlowParamBuilder):

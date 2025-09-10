@@ -106,6 +106,11 @@ class Flow(models.Model):
             self.save(update_fields=["status", "update_at"])
         return status
 
+    def update_context(self, **kwargs):
+        self.context.update(kwargs)
+        self.save(update_fields=["context", "update_at"])
+        return self.context
+
 
 class FlowSummary(models.Model):
     """流程运行时摘要/交付结果"""

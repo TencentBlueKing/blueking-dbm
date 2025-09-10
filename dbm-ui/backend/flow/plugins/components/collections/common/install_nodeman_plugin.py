@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
+from pipeline.exceptions import PipelineError
 
 from backend import env
 from backend.components import CCApi
@@ -29,6 +30,7 @@ class InstallNodemanPluginService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
 
         # bk_cloud_id + ips 组合，在这里获取bk_host_id
         if kwargs.get("ips"):
@@ -50,7 +52,16 @@ class InstallNodemanPluginService(BaseService):
             )
             bk_host_ids = [host["bk_host_id"] for host in res["info"]]
         else:
-            bk_host_ids = kwargs["bk_host_ids"]
+            bk_host_ids = kwargs.get("bk_host_ids", [])
+
+        # 上下文有hosts
+        if isinstance(trans_data, dict) and trans_data.get("hosts"):
+            host_ids = [host["bk_host_id"] for host in trans_data["hosts"] if host.get("bk_host_id")]
+            bk_host_ids.extend(host_ids)
+
+        if not bk_host_ids:
+            raise PipelineError(_("不存在主机，无法安装节点管理插件"))
+
         plugin_name = kwargs["plugin_name"]
         self.log_info(f"start installing {plugin_name} plugin")
         job = BKNodeManApi.operate_plugin(

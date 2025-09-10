@@ -15,7 +15,7 @@ from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer, HostRecycleSerializer
+from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoOperateFlowParamBuilder,
@@ -35,7 +35,6 @@ class MongoDBReduceMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
     infos = serializers.ListSerializer(help_text=_("缩容接入层申请信息"), child=ReduceMongosDetailSerializer())
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

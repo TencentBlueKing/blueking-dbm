@@ -426,7 +426,7 @@ class DataAPI(object):
         bkapi_auth_headers = {
             "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
-            "bk_username": params.pop("bk_username", "Anonymous"),
+            "bk_username": params.get("bk_username", "Anonymous"),
         }
         if use_admin or self.is_backend_request(local_request):
             # 使用管理员/平台身份调用接口

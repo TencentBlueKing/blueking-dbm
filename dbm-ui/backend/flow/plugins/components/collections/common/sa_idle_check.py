@@ -44,7 +44,13 @@ class CheckMachineIdleCheck(BkSopsService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
+
         ips = kwargs["ips"]
+        # 从上下文中获取ip列表
+        if isinstance(trans_data, dict) and trans_data.get("hosts"):
+            ips = [host["ip"] for host in trans_data["hosts"]] + ips
+
         # 获取业务id
         if kwargs.get("bk_biz_id"):
             bk_biz_id = kwargs["bk_biz_id"]
