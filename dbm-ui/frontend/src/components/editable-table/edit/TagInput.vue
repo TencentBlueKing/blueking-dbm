@@ -92,6 +92,10 @@
         .tag-input {
           background: transparent;
         }
+
+        .tag-list {
+          max-height: unset !important;
+        }
       }
     }
   }

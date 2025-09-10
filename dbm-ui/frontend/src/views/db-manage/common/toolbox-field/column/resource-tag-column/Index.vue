@@ -26,7 +26,6 @@
         v-model="showBatchEdit"
         :all-option-id="DEFAULT_TAG_ID"
         :all-option-text="t('通用无标签')"
-        collapse-tags
         display-key="value"
         filterable
         id-key="id"
@@ -63,7 +62,6 @@
       v-model="ids"
       :all-option-id="DEFAULT_TAG_ID"
       :all-option-text="t('通用无标签')"
-      collapse-tags
       display-key="value"
       filterable
       id-key="id"
