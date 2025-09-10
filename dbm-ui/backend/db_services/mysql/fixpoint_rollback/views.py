@@ -104,7 +104,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         )
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过获取集群最迟时间的备份记录"),
+        operation_summary=_("通过获取集群最迟时间的最新一条备份记录"),
         query_serializer=FilterBackupLogSerializer(),
         responses={
             status.HTTP_200_OK: BackupLogTendbResponseSerializer(),
@@ -113,7 +113,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
-    def last_time_backup_log(self, request, *args, **kwargs):
+    def latest_time_backup_log(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_id = validated_data["cluster_id"]
         cluster = Cluster.objects.get(id=cluster_id)
@@ -125,7 +125,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         # 获取备份结果
         result = {}
         if db_type == DBType.MySQL.value:
-            result = handler.get_backup_infos(latest_time)
+            result = handler.get_tendb_latest_backup_info(latest_time)
         elif db_type == DBType.TenDBCluster.value:
             result = handler.get_spider_latest_backup_info(latest_time)
         return Response(result)
