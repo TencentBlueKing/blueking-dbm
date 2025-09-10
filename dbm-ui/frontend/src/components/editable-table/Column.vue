@@ -640,11 +640,18 @@
   });
 </script>
 <style lang="less">
-  @hover-z-index: 100;
+  @hover-z-index: 101;
   @focus-z-index: 102;
+  @error-z-index: 100;
+  @fixed-z-index: 111;
+  @fixed-hover-z-index: 112;
   @fixed-focus-z-index: 122;
-  @error-z-index: 101;
   @fixed-error-z-index: 121;
+
+  @column-hover-border-color: #a3c5fd;
+  @column-focus-border-color: #3a84ff;
+  @column-error-border-color: #ea3636;
+  @column-readonly-border-color: #dcdee5;
 
   @keyframes editable-table-column-loading {
     0% {
@@ -657,23 +664,11 @@
   }
 
   .bk-editable-table-body-column {
-    &:hover {
-      z-index: @hover-z-index;
-
-      &::before {
-        border-color: #979ba5;
-      }
-    }
-
     &.is-disabled {
+      background: #fafbfd;
+
       .bk-editable-table-field-cell {
-        background: #fafbfd;
-
         & > *:not(.bk-editable-table-column-disabled-mask) {
-          pointer-events: none;
-        }
-
-        * {
           pointer-events: none;
           background: #fafbfd;
         }
@@ -685,12 +680,19 @@
       background: #fff1f1;
 
       &::before {
-        border-color: #ea3636;
+        border-color: @column-error-border-color;
       }
 
       .bk-editable-table-field-cell {
         padding-right: 20px;
-        background: #fff1f1;
+      }
+    }
+
+    &:hover {
+      z-index: @hover-z-index;
+
+      &::before {
+        border-color: @column-hover-border-color;
       }
     }
 
@@ -698,13 +700,22 @@
       z-index: @focus-z-index;
 
       &::before {
-        border-color: #3a84ff;
+        border-color: @column-focus-border-color;
       }
     }
 
     &.is-readonly {
+      background: #fafbfd;
+
       &::before {
-        border-color: #dcdee5;
+        border-color: @column-readonly-border-color;
+      }
+
+      .bk-editable-table-field-cell {
+        & > * {
+          pointer-events: none;
+          background: #fafbfd;
+        }
       }
     }
 
@@ -715,6 +726,8 @@
     }
 
     &.is-fixed {
+      z-index: @fixed-z-index;
+
       &.is-error {
         z-index: @fixed-error-z-index;
       }
@@ -722,14 +735,19 @@
       &.is-focused {
         z-index: @fixed-focus-z-index;
       }
+
+      &:hover {
+        z-index: @fixed-hover-z-index;
+      }
     }
   }
 
   .bk-editable-table-field-cell {
     position: relative;
     display: flex;
-    height: 100%;
     min-height: 40px;
+    font-size: 12px;
+    line-height: 20px;
     align-items: center;
   }
 
@@ -768,6 +786,7 @@
   .bk-editable-table-column-disabled-mask {
     position: absolute;
     z-index: 1;
+    pointer-events: none;
     cursor: not-allowed;
     content: '';
     inset: 0;

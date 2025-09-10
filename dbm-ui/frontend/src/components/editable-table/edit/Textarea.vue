@@ -75,6 +75,17 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-textarea {
+        .bk-input--clear-icon {
+          display: none !important;
+        }
+      }
+    }
+  }
+
   .bk-editable-textarea {
     position: relative;
     display: flex;

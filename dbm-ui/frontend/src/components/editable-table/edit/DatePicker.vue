@@ -64,6 +64,17 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-date-picker {
+        .clear-action {
+          display: none !important;
+        }
+      }
+    }
+  }
+
   .bk-editable-date-picker {
     &.bk-date-picker {
       width: 100%;
