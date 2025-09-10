@@ -88,33 +88,29 @@
             v-model="item.backupRecord"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
-            @change="() => handleChangeRowData(item)"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleBatchEdit"
+            @change="() => handleChangeRowData(item)" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
             v-model:backup-record="item.backupRecord"
             v-model:backup-time="item.backupTime"
             :backup-source="formData.backupSource"
             :cluster="item.cluster"
-            @change="() => handleChangeRowData(item)"
-            @batch-edit="handleBatchEdit" />
+            @batch-edit="handleBatchEdit"
+            @change="() => handleChangeRowData(item)" />
           <DbNameColumn
             v-model="item.databases"
-            :clearable="!isOnlyRead(item)"
             :cluster-id="item.cluster?.id"
+            :disabled="diabledEdit(item)"
             field="databases"
-            :has-delete-icon="!isOnlyRead(item)"
             :label="t('源 DB')"
-            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
-            :clearable="!isOnlyRead(item)"
             :cluster-id="item.cluster?.id"
+            :disabled="diabledEdit(item)"
             field="tables"
-            :has-delete-icon="!isOnlyRead(item)"
             :label="t('源表')"
-            :disabled="isOnlyRead(item)"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
             v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
@@ -133,6 +129,7 @@
             }" />
           <ConflictDbColumn
             v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
+            :disabled="diabledEdit(item)"
             :row-data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -175,11 +172,11 @@
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
   import { DBTypes, TicketTypes } from '@common/const';
-  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -379,9 +376,9 @@
     },
   );
 
-  const isOnlyRead = (row: RowData) => {
+  const diabledEdit = (row: RowData) => {
     // 只要备份方式选择的是物理备份，则库，表字段默认填充*，且不可编辑
-    if (row.backupRecord.backup_type === 'physical') {
+    if (row.backupRecord?.backup_type === 'physical') {
       return true;
     }
     // 指定时间构造数据，库，表字段默认填充*，且不可编辑
@@ -400,14 +397,20 @@
     // 逻辑备份时，源 DB，源表 默认改成空，需要且需要必填
     // 指定时间构造数据，库，表字段默认填充*，且不可编辑
     if (formData.rollbackMethod === 'TIME') {
-      row.databases = ['*'];
-      row.tables = ['*'];
-    } else if (row.backupRecord.backup_type === 'physical') {
-      row.databases = ['*'];
-      row.tables = ['*'];
-    } else if (row.backupRecord.backup_type === 'logical') {
-      row.databases = [];
-      row.tables = [];
+      Object.assign(row, {
+        databases: ['*'],
+        tables: ['*'],
+      });
+    } else if (row.backupRecord?.backup_type === 'physical') {
+      Object.assign(row, {
+        databases: ['*'],
+        tables: ['*'],
+      });
+    } else if (row.backupRecord?.backup_type === 'logical') {
+      Object.assign(row, {
+        databases: [],
+        tables: [],
+      });
     }
   };
 
@@ -427,11 +430,10 @@
     formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 
-  const handleBatchEdit = (value: any, field: string, row?: RowData) => {
-    for (let i = 0; i < formData.tableData.length; i++) {
-      const row = formData.tableData[i];
+  const handleBatchEdit = (value: any, field: string) => {
+    for (const row of formData.tableData) {
       // 只读行不可通过表头修改
-      if (['databases', 'tables'].includes(field) && row && isOnlyRead(row)) {
+      if (['databases', 'tables'].includes(field) && row && diabledEdit(row)) {
         continue;
       }
       Object.assign(row, {
@@ -443,19 +445,19 @@
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.map((item) =>
       createTableRow({
+        backupRecord: item.backupRecord || ({} as RowData['backupRecord']),
+        backupTime: item.backupTime || '',
         cluster: {
           master_domain: item.master_domain,
         } as TendbhaModel,
-        tables: item.tables ? [item.tables] : [],
-        databases: item.databases ? [item.databases] : [],
-        backupRecord: item.backupRecord || ({} as RowData['backupRecord']),
-        backupTime: item.backupTime || '',
-        targetCluster: {
-          master_domain: item.targetCluster || '',
-        } as TendbhaModel,
+        databases: item.databases ? item.databases.split(',') : [],
         newHost: {
           ip: item.newHost || '',
         } as RowData['newHost'],
+        tables: item.tables ? item.tables.split(',') : [],
+        targetCluster: {
+          master_domain: item.targetCluster || '',
+        } as TendbhaModel,
       }),
     );
     if (isClear) {

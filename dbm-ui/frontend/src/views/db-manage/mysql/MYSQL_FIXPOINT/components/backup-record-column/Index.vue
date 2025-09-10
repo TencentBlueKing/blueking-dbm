@@ -16,14 +16,14 @@
     :disabled-method="disabledMethod"
     field="backupRecord"
     :label="t('备份记录')"
-    :min-width="300"
+    :min-width="370"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="isShowBatchEdit"
         :title="t('备份记录')"
-        :width="504"
         title-prefix-type="select"
+        :width="504"
         @change="handleBatchEdit">
         <template #content>
           <BkForm
@@ -74,16 +74,34 @@
       </span>
     </template>
     <EditableBlock
-      v-if="modelValue.backup_id"
+      v-if="modelValue?.backup_id"
       style="width: 100%"
       @click="handleShowSelector">
       <div class="content-block">
         <div class="content-label">{{ t('备份文件名：') }}</div>
         <div class="content-value">{{ `${modelValue.mysql_role} ${utcDisplayTime(modelValue.backup_time)}` }}</div>
-        <div class="content-label">{{ t('备份范围：') }}</div>
-        <div class="content-value">{{ backupMethodMap[modelValue.backup_method] || '--' }}</div>
+        <div class="content-label">{{ t('备份 ID：') }}</div>
+        <div class="content-value">
+          {{ modelValue.backup_id || '--' }}
+        </div>
         <div class="content-label">{{ t('备份类型：') }}</div>
-        <div class="content-value">{{ backupTypeMap[modelValue.backup_type] || '--' }}</div>
+        <div class="content-value">
+          <BkTag
+            v-if="backupTypeMap[modelValue.backup_type]"
+            :theme="backupTypeMap[modelValue.backup_type].theme">
+            {{ backupTypeMap[modelValue.backup_type].label }}
+          </BkTag>
+          <span v-else>--</span>
+        </div>
+        <div class="content-label">{{ t('备份范围：') }}</div>
+        <div class="content-value">
+          <span
+            :class="{
+              [`backup-method-sign-${modelValue.backup_method}`]: backupMethodMap[modelValue.backup_method],
+            }">
+            {{ backupMethodMap[modelValue.backup_method] || '--' }}
+          </span>
+        </div>
         <div class="content-label">{{ t('文件大小：') }}</div>
         <div class="content-value">{{ bytePretty(modelValue?.total_filesize ?? 0) }}</div>
         <div
@@ -108,6 +126,9 @@
           <span v-else>--</span>
         </div>
       </div>
+      <DbIcon
+        class="content-icon"
+        type="down-big" />
     </EditableBlock>
     <EditableSelect
       v-else
@@ -128,7 +149,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryLatesBackupLog } from '@services/source/fixpointRollback';
+  import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
@@ -159,28 +180,40 @@
   const isShowSelector = ref(false);
   const isShowBatchEdit = ref(false);
   enum BackupMethod {
-    non_full_by_regular = 'non_full_by_regular',
-    full_by_ticket = 'full_by_ticket',
-    partial_by_ticket = 'partial_by_ticket',
     full_by_regular = 'full_by_regular',
+    full_by_ticket = 'full_by_ticket',
+    non_full_by_regular = 'non_full_by_regular',
+    partial_by_ticket = 'partial_by_ticket',
   }
 
   const formData = ref({
-    backup_time: '',
     backup_method: 'all',
+    backup_time: '',
   });
 
   const backupMethodMap = {
-    full_by_ticket: t('全库备份（单据）'),
-    partial_by_ticket: t('库表备份（单据）'),
     full_by_regular: t('全库备份（例行）'),
+    full_by_ticket: t('全库备份（单据）'),
     non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+    partial_by_ticket: t('库表备份（单据）'),
   } as Record<string, string>;
 
   const backupTypeMap = {
-    logical: t('逻辑备份'),
-    physical: t('物理备份'),
-  } as Record<string, string>;
+    logical: {
+      label: t('逻辑备份'),
+      theme: 'info',
+    },
+    physical: {
+      label: t('物理备份'),
+      theme: 'warning',
+    },
+  } as Record<
+    string,
+    {
+      label: string;
+      theme: 'info' | 'warning';
+    }
+  >;
 
   const disabledMethod = () => (props.cluster.id ? false : t('请先选择集群'));
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
@@ -194,9 +227,9 @@
   };
 
   const handleBatchEdit = async () => {
-    const data = await queryLatesBackupLog({
-      backup_source: props.backupSource,
+    const data = await queryLatestTimeBackupLog({
       backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
+      backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
       rollback_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),
@@ -227,5 +260,39 @@
     .content-value {
       width: 200px;
     }
+
+    // 全库备份（例行）
+    .backup-method-sign-full_by_regular::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #3a84ff;
+      content: '';
+    }
+    // 全库备份（单据）
+    .backup-method-sign-full_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #2caf5e;
+      content: '';
+    }
+    //库表备份（单据）
+    .backup-method-sign-partial_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #f59500;
+      content: '';
+    }
+  }
+
+  .content-icon {
+    position: absolute;
+    top: 50%;
+    right: 0;
   }
 </style>

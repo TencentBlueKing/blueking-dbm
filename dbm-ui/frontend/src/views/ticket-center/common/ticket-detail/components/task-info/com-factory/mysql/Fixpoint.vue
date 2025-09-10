@@ -29,7 +29,7 @@
     <BkTableColumn
       fixed="left"
       :label="t('源集群')"
-      :min-width="180">
+      :min-width="300">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
@@ -44,21 +44,35 @@
     </BkTableColumn>
     <BkTableColumn
       :label="t('备份记录')"
-      :min-width="300">
+      :min-width="370">
       <template #default="{ data }: { data: RowData }">
         <div class="content-block">
           <div class="content-label">{{ t('备份文件名：') }}</div>
           <div class="content-value">
             {{ `${data.backupinfo.mysql_role} ${utcDisplayTime(data.backupinfo.backup_time)}` }}
           </div>
-          <div class="content-label">{{ t('备份范围：') }}</div>
-          <div class="content-value">{{ data.backupinfo.is_full_backup === '1' ? t('全库备份') : t('库表备份') }}</div>
+          <div class="content-label">{{ t('备份 ID：') }}</div>
+          <div class="content-value">
+            {{ data.backupinfo.backup_id || '--' }}
+          </div>
           <div class="content-label">{{ t('备份类型：') }}</div>
           <div class="content-value">
-            {{ data.backupinfo.backup_type === 'logical' ? t('逻辑备份') : t('物理备份') }}
+            <BkTag
+              v-if="backupTypeMap[data.backupinfo.backup_type]"
+              :theme="backupTypeMap[data.backupinfo.backup_type].theme">
+              {{ backupTypeMap[data.backupinfo.backup_type].label }}
+            </BkTag>
+            <span v-else>--</span>
           </div>
-          <div class="content-label">{{ t('发起方式：') }}</div>
-          <div class="content-value">{{ data.backupinfo.bill_id ? t('单据备份') : t('例行备份') }}</div>
+          <div class="content-label">{{ t('备份范围：') }}</div>
+          <div class="content-value">
+            <span
+              :class="{
+                [`backup-method-sign-${data.backupinfo.backup_method}`]: backupMethodMap[data.backupinfo.backup_method],
+              }">
+              {{ backupMethodMap[data.backupinfo.backup_method] || '--' }}
+            </span>
+          </div>
           <div class="content-label">{{ t('文件大小：') }}</div>
           <div class="content-value">{{ bytePretty(data.backupinfo?.total_filesize ?? 0) }}</div>
           <div
@@ -135,8 +149,9 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import { bytePretty, utcDisplayTime } from '@utils';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.RollbackCluster>;
@@ -157,6 +172,30 @@
     BUILD_INTO_EXIST_CLUSTER: t('在已有集群上构造数据'),
     BUILD_INTO_NEW_CLUSTER: t('在新集群上构造数据'),
   } as Record<string, string>;
+
+  const backupMethodMap = {
+    full_by_regular: t('全库备份（例行）'),
+    full_by_ticket: t('全库备份（单据）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+    partial_by_ticket: t('库表备份（单据）'),
+  } as Record<string, string>;
+
+  const backupTypeMap = {
+    logical: {
+      label: t('逻辑备份'),
+      theme: 'info',
+    },
+    physical: {
+      label: t('物理备份'),
+      theme: 'warning',
+    },
+  } as Record<
+    string,
+    {
+      label: string;
+      theme: 'info' | 'warning';
+    }
+  >;
 </script>
 <style lang="less" scoped>
   .content-block {
@@ -169,7 +208,35 @@
     }
 
     .content-value {
-      width: 200px;
+      width: 240px;
+    }
+
+    // 全库备份（例行）
+    .backup-method-sign-full_by_regular::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #3a84ff;
+      content: '';
+    }
+    // 全库备份（单据）
+    .backup-method-sign-full_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #2caf5e;
+      content: '';
+    }
+    //库表备份（单据）
+    .backup-method-sign-partial_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #f59500;
+      content: '';
     }
   }
 </style>

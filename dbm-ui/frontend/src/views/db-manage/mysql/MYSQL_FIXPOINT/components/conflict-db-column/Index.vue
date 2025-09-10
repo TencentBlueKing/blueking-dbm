@@ -47,23 +47,29 @@
     v-bind="props" />
 </template>
 <script lang="ts" setup>
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import { showDatabasesWithPatterns } from '@/services/source/remoteService';
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import { type BackupLogRecord } from '@services/source/fixpointRollback';
+  import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   import PriviewConflictDbs from './PriviewConflictDbs.vue';
-  import { type BackupLogRecord } from '@services/source/fixpointRollback';
 
   interface Props {
+    /**
+     * 指源库表是否可编辑
+     * true：默认*，不可编辑
+     * false: 可填
+     */
+    disabled: boolean;
     rowData: {
+      backupRecord: BackupLogRecord;
       cluster: TendbhaModel;
       databases: string[];
       tables: string[];
       targetCluster?: TendbhaModel;
-      backupRecord: BackupLogRecord;
     };
   }
 
@@ -81,16 +87,24 @@
   const { loading, run: fetchData } = useRequest(showDatabasesWithPatterns, {
     manual: true,
     onSuccess: (data) => {
-      conflictDbNum.value = data?.[0]?.databases?.length || 0;
+      let dataList = data?.[0]?.databases || [];
+      if (!props.disabled) {
+        // 可填时需根据备份记录的 database_list 与目标集群的 db 列表取交集
+        dataList = dataList.filter((item) => props.rowData.backupRecord.database_list?.includes(item));
+      }
+      conflictDbNum.value = dataList.length;
     },
   });
 
-  const disabledMethod = (rowData?: any, field?: string) => {
-    if (field === 'conflictDb' && rowData.databases?.length <= 0) {
+  const disabledMethod = (rowData?: any) => {
+    if (!rowData.backupRecord) {
+      return t('请先选择备份记录');
+    }
+    if (rowData.databases?.length <= 0) {
       return t('请先选择源 DB');
     }
     const targetCluster = rowData?.targetCluster || rowData?.cluster;
-    if (field === 'conflictDb' && !targetCluster?.id) {
+    if (!targetCluster?.id) {
       return t('请先选择目标集群');
     }
     return '';
@@ -106,20 +120,22 @@
 
   onMounted(() => {
     setTimeout(() => {
-      tippyIns = tippy(rootRef.value as SingleTarget, {
-        allowHTML: true,
-        appendTo: () => document.body,
-        arrow: true,
-        content: popRef.value,
-        hideOnClick: true,
-        interactive: true,
-        maxWidth: 'none',
-        offset: [0, 8],
-        placement: 'top',
-        theme: 'black',
-        trigger: 'mouseenter click',
-        zIndex: 999999,
-      });
+      if (rootRef.value && popRef.value) {
+        tippyIns = tippy(rootRef.value as SingleTarget, {
+          allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content: popRef.value,
+          hideOnClick: true,
+          interactive: true,
+          maxWidth: 'none',
+          offset: [0, 8],
+          placement: 'top',
+          theme: 'black',
+          trigger: 'mouseenter click',
+          zIndex: 999999,
+        });
+      }
     }, 60);
   });
 
@@ -135,7 +151,7 @@
   watch(
     () => [props.rowData.cluster.id, props.rowData.targetCluster?.id, props.rowData.databases],
     () => {
-      const clusterId = props.rowData.targetCluster?.id || props.rowData.cluster.id;
+      const clusterId = props.rowData.targetCluster?.id || props.rowData.cluster.id; // 回档的目标集群是源集群
       const dbs = props.rowData.databases || [];
       if (clusterId) {
         fetchData({

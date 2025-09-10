@@ -1,9 +1,11 @@
 <template>
   <EditableColumn
+    :disabled="disabled"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="180"
+    :readonly="readonly"
     :required="required"
     :rules="rules">
     <template
@@ -67,8 +69,10 @@
     checkExist?: boolean;
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
     showEditIcon?: boolean;
     single?: boolean;
@@ -80,6 +84,8 @@
     allowAsterisk: true,
     checkExist: false,
     checkNotExist: false,
+    disabled: false,
+    readonly: false,
     required: true,
     showEditIcon: true,
     single: false,

@@ -34,11 +34,13 @@
     <div class="priview-conflict-dbs">
       <BkAlert
         class="mb-16"
-        theme="warning"
-        closable>
+        closable
+        theme="warning">
         {{
-          t('当前的备份类型为backup_type，受影响的DB 在执行时将强制清空，请谨慎操作', {
-            backup_type: rowData.backupRecord.backup_type === 'logical' ? t('逻辑备份') : t('物理备份'),
+          t('当前备份记录为backup_method、backup_type。注意：tip', {
+            backup_method: backupMethodMap[rowData.backupRecord?.backup_method],
+            backup_type: rowData.backupRecord?.backup_type === 'logical' ? t('逻辑备份') : t('物理备份'),
+            tip: props.disabled ? t('受影响的DB在执行时将被强制清空，请谨慎操作！') : t('受影响的DB需在执行前手动清档'),
           })
         }}
       </BkAlert>
@@ -60,23 +62,30 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
-  import { showDatabasesWithPatterns } from '@/services/source/remoteService';
-  import TendbhaModel from '@services/model/mysql/tendbha';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { type BackupLogRecord } from '@services/source/fixpointRollback';
+  import { showDatabasesWithPatterns } from '@services/source/remoteService';
 
   interface RowData {
     dbname: string;
   }
 
   interface Props {
+    /**
+     * 指源库表是否可编辑
+     * true：默认*，不可编辑
+     * false: 可填
+     */
+    disabled: boolean;
     rowData: {
+      backupRecord: BackupLogRecord;
       cluster: TendbhaModel;
       databases: string[];
       tables: string[];
       targetCluster?: TendbhaModel;
-      backupRecord: BackupLogRecord;
     };
   }
 
@@ -90,11 +99,23 @@
 
   const tableData = shallowRef<RowData[]>([]);
 
+  const backupMethodMap = {
+    full_by_regular: t('全库备份（例行）'),
+    full_by_ticket: t('全库备份（单据）'),
+    non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+    partial_by_ticket: t('库表备份（单据）'),
+  } as Record<string, string>;
+
   const { loading, run: fetchData } = useRequest(showDatabasesWithPatterns, {
     manual: true,
     onSuccess: (data) => {
-      tableData.value = (data?.[0]?.databases || []).map((dbname) => ({
-        dbname,
+      let dataList = data?.[0]?.databases || [];
+      if (!props.disabled) {
+        // 可填时需根据备份记录的 database_list 与目标集群的 db 列表取交集
+        dataList = dataList.filter((item) => props.rowData.backupRecord?.database_list.includes(item));
+      }
+      tableData.value = dataList.map((item) => ({
+        dbname: item,
       }));
     },
   });

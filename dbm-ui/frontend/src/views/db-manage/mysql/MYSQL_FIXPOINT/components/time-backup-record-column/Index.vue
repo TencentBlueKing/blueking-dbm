@@ -61,21 +61,37 @@
   <EditableColumn
     field="backupRecord"
     :label="t('备份记录')"
-    :min-width="300"
+    :min-width="370"
     required>
     <EditableBlock
-      :placeholder="t('自动生成')"
+      v-if="backupRecord?.backup_id"
       style="width: 100%"
       @click="handleShowSelector">
-      <div
-        v-if="backupRecord.backup_id"
-        class="content-block">
+      <div class="content-block">
         <div class="content-label">{{ t('备份文件名：') }}</div>
         <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
-        <div class="content-label">{{ t('备份范围：') }}</div>
-        <div class="content-value">{{ backupMethodMap[backupRecord.backup_method] || '--' }}</div>
+        <div class="content-label">{{ t('备份 ID：') }}</div>
+        <div class="content-value">
+          {{ backupRecord.backup_id || '--' }}
+        </div>
         <div class="content-label">{{ t('备份类型：') }}</div>
-        <div class="content-value">{{ backupTypeMap[backupRecord.backup_type] || '--' }}</div>
+        <div class="content-value">
+          <BkTag
+            v-if="backupTypeMap[backupRecord.backup_type]"
+            :theme="backupTypeMap[backupRecord.backup_type].theme">
+            {{ backupTypeMap[backupRecord.backup_type].label }}
+          </BkTag>
+          <span v-else>--</span>
+        </div>
+        <div class="content-label">{{ t('备份范围：') }}</div>
+        <div class="content-value">
+          <span
+            :class="{
+              [`backup-method-sign-${backupRecord.backup_method}`]: backupMethodMap[backupRecord.backup_method],
+            }">
+            {{ backupMethodMap[backupRecord.backup_method] || '--' }}
+          </span>
+        </div>
         <div class="content-label">{{ t('文件大小：') }}</div>
         <div class="content-value">{{ bytePretty(backupRecord?.total_filesize ?? 0) }}</div>
         <div
@@ -100,7 +116,13 @@
           <span v-else>--</span>
         </div>
       </div>
+      <DbIcon
+        class="content-icon"
+        type="down-big" />
     </EditableBlock>
+    <EditableBlock
+      v-else
+      :placeholder="t('自动生成')" />
   </EditableColumn>
   <BackupRecordSelector
     v-model="backupRecord"
@@ -114,7 +136,7 @@
   import { useRequest } from 'vue-request';
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryLatesBackupLog } from '@services/source/fixpointRollback';
+  import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
@@ -153,18 +175,30 @@
   });
 
   const backupMethodMap = {
-    full_by_ticket: t('全库备份（单据）'),
-    partial_by_ticket: t('库表备份（单据）'),
     full_by_regular: t('全库备份（例行）'),
+    full_by_ticket: t('全库备份（单据）'),
     non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+    partial_by_ticket: t('库表备份（单据）'),
   } as Record<string, string>;
 
   const backupTypeMap = {
-    logical: t('逻辑备份'),
-    physical: t('物理备份'),
-  } as Record<string, string>;
+    logical: {
+      label: t('逻辑备份'),
+      theme: 'info',
+    },
+    physical: {
+      label: t('物理备份'),
+      theme: 'warning',
+    },
+  } as Record<
+    string,
+    {
+      label: string;
+      theme: 'info' | 'warning';
+    }
+  >;
 
-  const { run: fetchData } = useRequest(queryLatesBackupLog, {
+  const { run: fetchData } = useRequest(queryLatestTimeBackupLog, {
     manual: true,
     onSuccess(data) {
       backupRecord.value = data;
@@ -193,7 +227,7 @@
   };
 
   const handleBatchEdit = async () => {
-    const data = await queryLatesBackupLog({
+    const data = await queryLatestTimeBackupLog({
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
@@ -204,7 +238,10 @@
   };
 
   watch(backupRecord, () => {
-    emits('change');
+    if (backupRecord.value?.backup_id) {
+      backupTime.value = backupRecord.value.backup_time;
+      emits('change');
+    }
   });
 
   watch(
@@ -240,5 +277,39 @@
     .content-value {
       width: 200px;
     }
+
+    // 全库备份（例行）
+    .backup-method-sign-full_by_regular::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #3a84ff;
+      content: '';
+    }
+    // 全库备份（单据）
+    .backup-method-sign-full_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #2caf5e;
+      content: '';
+    }
+    //库表备份（单据）
+    .backup-method-sign-partial_by_ticket::before {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      background-color: #f59500;
+      content: '';
+    }
+  }
+
+  .content-icon {
+    position: absolute;
+    top: 50%;
+    right: 0;
   }
 </style>
