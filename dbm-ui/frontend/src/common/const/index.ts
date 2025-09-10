@@ -10,7 +10,6 @@ export * from './dbSysExclude';
 export * from './dbTypes';
 export * from './dbTypesInfos/index';
 export * from './deviceClass';
-export * from './localStorageKeys';
 export * from './machineTypes';
 export * from './messageTypes';
 export * from './occupiedInnerHeight';

@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<number>();
 
   const attrs = useAttrs();
 </script>
