@@ -113,26 +113,21 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=FilterBackupLogSerializer)
-    def last_time_backup_log(self, request):
+    def last_time_backup_log(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_id = validated_data["cluster_id"]
         cluster = Cluster.objects.get(id=cluster_id)
         db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
-        backup_method = validated_data.get("backup_method", "full_by_ticket,full_by_regular,partial_by_ticket").split(
-            ","
-        )
-        last_time = validated_data.get("last_time", None)
-        if last_time:
-            last_time = str2datetime(last_time)
-        # mysql / tendbcluster
-        handler = MySQLBackupHandler(cluster_id=cluster_id, backup_method=backup_method)
+        latest_time = validated_data.pop("latest_time")
+        # 初始化备份文件对象
+        handler = MySQLBackupHandler(**validated_data)
 
         # 获取备份结果
         result = {}
         if db_type == DBType.MySQL.value:
-            result = handler.get_backup_infos(last_time)
+            result = handler.get_backup_infos(latest_time)
         elif db_type == DBType.TenDBCluster.value:
-            result = handler.get_spider_latest_backup_info(last_time)
+            result = handler.get_spider_latest_backup_info(latest_time)
         return Response(result)
 
     @common_swagger_auto_schema(
