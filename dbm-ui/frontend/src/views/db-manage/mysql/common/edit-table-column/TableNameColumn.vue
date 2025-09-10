@@ -123,6 +123,12 @@
   };
 </script>
 <style lang="less">
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
   .mysql-table-name-tips {
     div {
       display: flex;
