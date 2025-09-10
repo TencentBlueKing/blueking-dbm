@@ -25,8 +25,8 @@
         :placeholder="t('请选择')"
         style="width: 100%"
         type="datetimerange"
-        @pick-success="handleDateChange"
-        @clear="handleDateClear" />
+        @clear="handleDateClear"
+        @pick-success="handleDateChange" />
     </div>
     <DbSearchSelect
       v-model="searchSelectValue"
@@ -64,27 +64,42 @@
       </BkTableColumn>
       <BkTableColumn
         field="backup_id"
-        :width="270"
-        :label="t('备份 ID')">
+        :label="t('备份 ID')"
+        :width="270">
         <template #default="{ row }: { row: BackupLogRecord }">
           {{ row.backup_id }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        field="backup_method"
-        :filter="filterOption.backup_method"
-        :width="140"
-        :label="t('备份范围')">
-        <template #default="{ row }: { row: BackupLogRecord & { backup_method_label: string } }">
-          {{ row?.backup_method_label || '--' }}
         </template>
       </BkTableColumn>
       <BkTableColumn
         field="backup_type_filter"
         :filter="filterOption.backup_type_filter"
         :label="t('备份类型')">
-        <template #default="{ row }: { row: BackupLogRecord & { backup_type_label: string } }">
-          {{ row?.backup_type_label || '--' }}
+        <template
+          #default="{
+            row,
+          }: {
+            row: BackupLogRecord & { backup_type_display: { label: string; theme: 'warning' | 'info' } };
+          }">
+          <BkTag
+            v-if="row?.backup_type_display?.theme"
+            :theme="row.backup_type_display.theme">
+            {{ row.backup_type_display.label }}
+          </BkTag>
+          <span v-else>--</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="backup_method"
+        :filter="filterOption.backup_method"
+        :label="t('备份范围')"
+        :width="150">
+        <template #default="{ row }: { row: BackupLogRecord & { backup_method_label: string } }">
+          <span
+            :class="{
+              [`backup-method-sign-${row.backup_method}`]: row?.backup_method_label,
+            }">
+            {{ row?.backup_method_label || '--' }}
+          </span>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -193,6 +208,24 @@
       }
     >
   >({
+    backup_method: {
+      checked: [],
+      key: 'backup_method',
+      list: [
+        {
+          text: t('全库备份（例行）'),
+          value: 'full_by_regular',
+        },
+        {
+          text: t('全库备份（单据）'),
+          value: 'full_by_ticket',
+        },
+        {
+          text: t('库表备份（单据）'),
+          value: 'partial_by_ticket',
+        },
+      ],
+    },
     backup_tool: {
       checked: [],
       key: 'backup_tool',
@@ -209,24 +242,6 @@
         {
           text: t('逻辑备份'),
           value: 'logical',
-        },
-      ],
-    },
-    backup_method: {
-      checked: [],
-      key: 'backup_method',
-      list: [
-        {
-          text: t('全库备份（例行）'),
-          value: 'full_by_regular',
-        },
-        {
-          text: t('全库备份（单据）'),
-          value: 'full_by_ticket',
-        },
-        {
-          text: t('库表备份（单据）'),
-          value: 'partial_by_ticket',
         },
       ],
     },
@@ -276,8 +291,29 @@
   });
 
   const generateRowData = (row: BackupLogRecord) => {
-    let backup_type_filter;
-    let backup_type_label = '--';
+    const defaultDisplay = {
+      backup_type_display: {
+        label: '--',
+        theme: '',
+      },
+    };
+    const backupTypeMap = {
+      logical: {
+        backup_type_display: {
+          label: t('逻辑备份'),
+          theme: 'info',
+        },
+        backup_type_filter: 'logical', // 用于表头过滤
+      },
+      physical: {
+        backup_type_display: {
+          label: t('物理备份'),
+          theme: 'warning',
+        },
+        backup_type_filter: 'physical',
+      },
+    };
+    let backupTypeFilter;
     /**
      * backup_method
       - full_by_ticket: 全库备份（单据）
@@ -291,30 +327,26 @@
      */
     if (row.backup_method === 'partial_by_ticket') {
       // 必然是逻辑备份
-      backup_type_filter = 'logical';
-      backup_type_label = t('逻辑备份');
+      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.logical);
     }
 
     if (row.backup_type === 'logical') {
-      backup_type_filter = 'logical';
-      backup_type_label = t('逻辑备份');
+      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.logical);
     } else if (row.backup_type === 'physical') {
-      backup_type_filter = 'physical';
-      backup_type_label = t('物理备份');
+      backupTypeFilter = Object.assign({}, defaultDisplay, backupTypeMap.physical);
     }
 
     const backupMethodMap = {
-      full_by_ticket: t('全库备份（单据）'),
-      partial_by_ticket: t('库表备份（单据）'),
       full_by_regular: t('全库备份（例行）'),
+      full_by_ticket: t('全库备份（单据）'),
       non_full_by_regular: t('非全库备份（例行）'), // 过滤掉，不展示
+      partial_by_ticket: t('库表备份（单据）'),
     } as Record<string, string>;
 
     return {
       ...row,
-      backup_type_filter,
-      backup_type_label,
       backup_method_label: backupMethodMap[row.backup_method] || '--',
+      ...backupTypeFilter,
     };
   };
 
@@ -408,3 +440,32 @@
     },
   });
 </script>
+<style lang="less" scoped>
+  // 全库备份（例行）
+  .backup-method-sign-full_by_regular::before {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    background-color: #3a84ff;
+    content: '';
+  }
+  // 全库备份（单据）
+  .backup-method-sign-full_by_ticket::before {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    background-color: #2caf5e;
+    content: '';
+  }
+  //库表备份（单据）
+  .backup-method-sign-partial_by_ticket::before {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    background-color: #f59500;
+    content: '';
+  }
+</style>

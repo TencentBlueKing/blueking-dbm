@@ -59,6 +59,7 @@ export interface BackupLogRecord {
   bk_biz_id: string;
   cluster_address: string;
   cluster_id: string;
+  database_list: string[];
   data_schema_grant: string;
   extra_fields: {
     backup_charset: string;
@@ -130,4 +131,18 @@ export function queryLatesBackupLog(params: {
   backup_method?: string;
 }) {
   return http.get<BackupLogRecord>(`${path}/query_latest_backup_log/`, params);
+}
+
+/**
+ * 获取最近备份记录
+ */
+export function queryLatestTimeBackupLog(params: {
+  bk_biz_id: number;
+  cluster_id: number;
+  job_instance_id?: number;
+  rollback_time: string;
+  backup_source?: string;
+  backup_method?: string;
+}) {
+  return http.get<BackupLogRecord>(`${path}/latest_time_backup_log/`, params);
 }

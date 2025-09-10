@@ -69,7 +69,7 @@
   import { useRequest } from 'vue-request';
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { type BackupLogRecord, queryLatesBackupLog } from '@services/source/fixpointRollback';
+  import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
   interface Props {
     backupSource: 'local' | 'remote';
@@ -87,21 +87,21 @@
   const { t } = useI18n();
 
   enum BackupMethod {
-    non_full_by_regular = 'non_full_by_regular',
-    full_by_ticket = 'full_by_ticket',
-    partial_by_ticket = 'partial_by_ticket',
     full_by_regular = 'full_by_regular',
+    full_by_ticket = 'full_by_ticket',
+    non_full_by_regular = 'non_full_by_regular',
+    partial_by_ticket = 'partial_by_ticket',
   }
 
   const formRef = ref();
   const formData = ref({
-    backup_time: '',
     backup_method: 'all',
+    backup_time: '',
   });
 
   const disableDate = (date?: Date | number) => dayjs(date).isAfter(dayjs(), 'day');
 
-  const { run: fetchData } = useRequest(queryLatesBackupLog, {
+  const { run: fetchData } = useRequest(queryLatestTimeBackupLog, {
     manual: true,
     onSuccess(data) {
       modelValue.value = data;
@@ -116,8 +116,8 @@
         return;
       }
       fetchData({
-        backup_source: props.backupSource,
         backup_method: formData.value.backup_method === 'all' ? undefined : formData.value.backup_method,
+        backup_source: props.backupSource,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.cluster.id,
         rollback_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),

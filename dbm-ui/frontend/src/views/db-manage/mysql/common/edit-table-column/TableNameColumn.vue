@@ -1,9 +1,11 @@
 <template>
   <EditableColumn
+    :disabled="disabled"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="180"
+    :readonly="readonly"
     :required="required"
     :rules="rules">
     <template #headAppend>
@@ -61,8 +63,10 @@
   interface Props {
     allowAsterisk?: boolean; // 是否允许单个 *
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
     single?: boolean;
   }
@@ -71,6 +75,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowAsterisk: true,
+    disabled: false,
+    readonly: false,
     required: true,
     single: false,
   });

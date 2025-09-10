@@ -71,7 +71,7 @@
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
 
-  import { createAlarmShield, EditAlarmShield } from '@/services/source/monitor';
+  import { createAlarmShield, EditAlarmShield } from '@services/source/monitor';
 
   import AlertShield from './components/AlertShield.vue';
   import DimensionShield from './components/dimension-shield/Index.vue';

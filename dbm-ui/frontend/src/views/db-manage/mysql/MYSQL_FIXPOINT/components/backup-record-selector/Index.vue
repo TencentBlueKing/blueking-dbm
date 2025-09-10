@@ -51,9 +51,7 @@
     </KeepAlive>
     <template #footer>
       <div class="mysql-backup-record-selector-footer">
-        <div
-          v-if="radioGroupValue === BACKUP_TYPE.MANUAL"
-          class="align-center">
+        <div class="align-center">
           <div class="footer-text">{{ t('已选择：') }}</div>
           <div
             v-if="localValue?.backup_id"
@@ -73,7 +71,6 @@
         <div class="align-center footer-btn">
           <BkButton
             class="cluster-selector-button mr-8"
-            :disabled="!localValue"
             theme="primary"
             @click="handleConfirm">
             {{ t('确定') }}
@@ -132,6 +129,7 @@
 
   const handeClear = () => {
     tableRef.value?.clear();
+    localValue.value = undefined;
   };
 
   const handleClose = () => {
