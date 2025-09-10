@@ -16,7 +16,7 @@
       :exclude-column="['bk_biz_id']">
       <template #action>
         <TableColumn
-          col-key="action"
+          col-key="row-operation"
           fixed="right"
           :title="t('操作')"
           width="80">
