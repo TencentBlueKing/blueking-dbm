@@ -55,6 +55,17 @@
   };
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-time-picker {
+        .clear-action {
+          display: none !important;
+        }
+      }
+    }
+  }
+
   .bk-editable-time-picker {
     &.bk-date-picker {
       width: 100%;

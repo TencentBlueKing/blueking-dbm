@@ -85,6 +85,17 @@
   });
 </script>
 <style lang="less">
+  .bk-editable-table-body-column {
+    &.is-readonly,
+    &.is-disabled {
+      .bk-editable-input {
+        .bk-input--clear-icon {
+          display: none !important;
+        }
+      }
+    }
+  }
+
   .bk-editable-input {
     position: relative;
     display: flex;
