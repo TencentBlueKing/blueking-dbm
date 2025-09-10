@@ -26,11 +26,13 @@ from backend.db_services.mysql.toolbox.handlers import ToolboxHandler
 from backend.db_services.mysql.toolbox.serializers import GetSpiderVersionModulesSerializer  # 新增
 from backend.db_services.mysql.toolbox.serializers import (
     ChangeClusterSpecSerializer,
+    GetStorageVersionModulesSerializer,
     QueryPkgListByCompareVersionSerializer,
     QuerySpiderPkgListByCompareVersionSerializer,
     TendbhaAddSlaveDomainSerializer,
     TendbhaTransferToOtherBizSerializer,
 )
+from backend.db_services.mysql.toolbox.storage_upgrade_tool import get_storage_version_modules_api
 from backend.db_services.mysql.toolbox.upgrade_tool import get_spider_version_modules_api
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -147,6 +149,59 @@ class ToolboxViewSet(viewsets.SystemViewSet):
             bk_biz_id=bk_biz_id,
             higher_major_version=higher_major_version,
             higher_sub_version=higher_sub_version,
+        )
+
+        return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取存储层版本模块列表"),
+        request_body=GetStorageVersionModulesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetStorageVersionModulesSerializer)
+    def get_storage_version_modules(self, request, **kwargs):
+        """
+        统一的API接口：获取存储层版本模块列表
+        通过 higher_major_version 和 higher_sub_version 参数来控制查找策略
+        """
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id = data["cluster_id"]
+        higher_major_version = data["higher_major_version"]
+        higher_sub_version = data["higher_sub_version"]
+
+        logger.info(
+            _("API请求获取存储层版本模块 - cluster_id: {}, higher_major_version: {}, higher_sub_version: {}").format(
+                cluster_id, higher_major_version, higher_sub_version
+            )
+        )
+
+        # 根据集群ID获取业务ID
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+            bk_biz_id = cluster.bk_biz_id
+            logger.info(_("获取到集群 {} 的业务ID: {}").format(cluster_id, bk_biz_id))
+        except Cluster.DoesNotExist:
+            logger.error(_("集群 {} 不存在").format(cluster_id))
+            return Response(
+                {
+                    "code": 1,
+                    "result": False,
+                    "message": _("集群 %(cluster_id)s 不存在") % {"cluster_id": cluster_id},
+                    "data": [],
+                }
+            )
+
+        result = get_storage_version_modules_api(
+            cluster_id=cluster_id,
+            bk_biz_id=bk_biz_id,
+            higher_major_version=higher_major_version,
+            higher_sub_version=higher_sub_version,
+        )
+
+        logger.info(
+            _("API响应结果 - code: {}, result: {}, data数量: {}").format(
+                result.get("code"), result.get("result"), len(result.get("data", []))
+            )
         )
 
         return Response(result)

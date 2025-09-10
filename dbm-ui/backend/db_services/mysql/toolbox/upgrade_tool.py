@@ -14,7 +14,7 @@ from typing import Dict, List
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
 from backend.db_services.cmdb.biz import list_modules_by_biz
@@ -40,8 +40,13 @@ def _get_current_cluster_info(cluster_id: int) -> tuple:
     """
     cluster = Cluster.objects.get(id=cluster_id)
 
-    # 获取当前集群的spider实例
-    spiders = ProxyInstance.objects.filter(cluster=cluster)
+    # 获取当前集群的spider实例，过滤掉运维节点
+    spiders = ProxyInstance.objects.filter(cluster=cluster).exclude(
+        tendbclusterspiderext__spider_role__in=[
+            TenDBClusterSpiderRole.SPIDER_MNT,
+            TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+        ]
+    )
     if not spiders.exists():
         logger.warning(_("集群 {} 没有找到spider实例").format(cluster_id))
         return None, [], None, None

@@ -102,3 +102,16 @@ class GetSpiderVersionModulesSerializer(serializers.Serializer):
             "higher_major_version": False,
             "higher_sub_version": False,
         }
+
+
+class GetStorageVersionModulesSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    higher_major_version = serializers.BooleanField(default=False, help_text=_("是否查找更高主版本的模块"))
+    higher_sub_version = serializers.BooleanField(default=False, help_text=_("是否查找同大版本但子版本更高的模块"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "cluster_id": 96,
+            "higher_major_version": True,
+            "higher_sub_version": False,
+        }
