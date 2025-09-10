@@ -151,10 +151,10 @@
     [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: TicketTypes.REDIS_CLUSTER_INS_MIGRATE, // Redis 集群迁移
     [TicketTypes.REDIS_CLUSTER_LOAD_MODULES]: TicketTypes.REDIS_CLUSTER_LOAD_MODULES, // 安装 Module
     [TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON]: TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, // Redis 集群标准化
-    [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
+    [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY, // Redis 以构造实例恢复
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, // Redis 集群分片变更
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更
-    [TicketTypes.REDIS_DATA_STRUCTURE]: 'RedisDBStructure', // Redis 定点构造
+    [TicketTypes.REDIS_DATA_STRUCTURE]: TicketTypes.REDIS_DATA_STRUCTURE, // Redis 定点构造
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, // Redis 数据校验修复
     [TicketTypes.REDIS_DESTROY]: 'DatabaseRedisList', // Redis 集群删除

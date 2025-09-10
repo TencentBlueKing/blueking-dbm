@@ -12,15 +12,48 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('写入类型') }}：</span>
-      <span class="ticket-details-item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
-    </div>
-  </div>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn
+      field="src_cluster"
+      fixed="left"
+      :label="t('构造产物访问入口')"
+      :min-width="220">
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('目标集群')"
+      :width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('架构版本')"
+      :width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.dst_cluster].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="recovery_time_point"
+      :label="t('构造到指定时间')" />
+    <BkTableColumn :label="t('包含 Key')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="generateSplitList(data.key_white_regex)" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('排除 Key')">
+      <template #default="{ data }: { data: RowData }">
+        <TagBlock :data="generateSplitList(data.key_black_regex)" />
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('写入类型')">
+      {{ writeTypesMap[ticketDetails.details.write_mode] }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -30,25 +63,25 @@
 
   import { TicketTypes } from '@common/const';
 
+  import TagBlock from '@components/tag-block/Index.vue';
+
   import { writeTypeList } from '@views/db-manage/redis/common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
+  type RowData = TicketModel<Redis.ClusterRollbackDataCopy>['details']['infos'][number];
 
   interface Props {
     ticketDetails: TicketModel<Redis.ClusterRollbackDataCopy>;
-  }
-
-  interface RowData {
-    entry: string;
-    excludeKeys: string[];
-    includeKeys: string[];
-    taregtClusterName: string;
-    time: string;
   }
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     inheritAttrs: false,
   });
-  const props = defineProps<Props>();
+
+  defineProps<Props>();
+
   const { t } = useI18n();
 
   const writeTypesMap = writeTypeList.reduce(
@@ -59,73 +92,5 @@
     {} as Record<string, string>,
   );
 
-  const columns = [
-    {
-      field: 'entry',
-      label: t('构造产物访问入口'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'taregtClusterName',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'clusterTypeName',
-      label: t('架构版本'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'time',
-      label: t('构造到指定时间'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'includeKeys',
-      label: t('包含 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.includeKeys.length > 0) {
-          return data.includeKeys.map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'excludeKeys',
-      label: t('排除 Key'),
-      render: ({ data }: { data: RowData }) => {
-        if (data.excludeKeys.length > 0) {
-          return data.excludeKeys.map((key, index) => (
-            <bk-tag
-              key={index}
-              type='stroke'>
-              {key}
-            </bk-tag>
-          ));
-        }
-        return <span>--</span>;
-      },
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const tableData = computed(() => {
-    const { clusters, infos } = props.ticketDetails.details;
-
-    return infos.map((item) => ({
-      clusterTypeName: clusters[item.dst_cluster].cluster_type_name,
-      entry: item.src_cluster,
-      excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      taregtClusterName: clusters[item.dst_cluster].immute_domain,
-      time: item.recovery_time_point,
-    }));
-  });
+  const generateSplitList = (str: string) => (str ? str.split('\n') : []);
 </script>
