@@ -83,6 +83,8 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 指定时间构造需要检查binlog是否完整
         backup_handler = MySQLBackupHandler(cluster_id=info["cluster_id"])
         backup_info = backup_handler.get_tendb_latest_backup_info(latest_time=rollback_time)
+        if backup_info is None:
+            raise serializers.ValidationError(_("最近一次备份时间：{}没有备份信息").format(rollback_time))
         backup_time = str2datetime(backup_info["backup_time"])
         binlog_result = backup_handler.get_binlog_for_rollback(backup_info, backup_time, rollback_time)
         if "query_binlog_error" in binlog_result.keys():
