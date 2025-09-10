@@ -1,11 +1,11 @@
 <template>
   <div
-    ref="root"
     class="bk-quick-search-type-select"
     :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
+        autofocus
         borderless
         clearable
         placeholder="请输入关键字">
@@ -74,7 +74,6 @@
 
   const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IResult>(props.config);
 
-  const rootRef = useTemplateRef<HTMLElement>('root');
   const layoutRef = useTemplateRef('layout');
   const contentMinWidth = ref(0);
   const localValue = ref<string | number>('');
@@ -117,7 +116,7 @@
     emits('change', [data]);
   };
 
-  const { activeIndex } = useMenuKeyboard(renderList, rootRef, (value) => {
+  const { activeIndex } = useMenuKeyboard(renderList, layoutRef, (value) => {
     handleChange(value);
   });
 
