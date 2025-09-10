@@ -70,8 +70,8 @@
             <SpecColumn
               v-model="item.specId"
               :cluster-type="DBTypes.MYSQL"
-              :machine-type="MachineTypes.MYSQL_BACKEND"
               :current-spec-id-list="[item.slave.spec_id]"
+              :machine-type="MachineTypes.MYSQL_BACKEND"
               required />
             <ResourceTagColumn
               v-model="item.labels"

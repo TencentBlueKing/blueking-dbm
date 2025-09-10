@@ -49,8 +49,8 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND"
             :current-spec-id-list="[item.oldMaster.spec_id]"
+            :machine-type="MachineTypes.TENDBCLUSTER_BACKEND"
             required />
           <ResourceTagColumn
             v-model="item.labels"

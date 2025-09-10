@@ -80,7 +80,6 @@
             v-model="item.cluster"
             allow-repeat
             label="源集群"
-            :min-width="240"
             :selected="selected"
             @batch-edit="handleClusterBatchEdit" />
           <BackupRecordColumn
