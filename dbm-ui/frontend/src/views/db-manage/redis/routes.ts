@@ -37,15 +37,11 @@ const redisClusterMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_M
 const redisSingleMigrateRoute = createRouteItem(TicketTypes.REDIS_SINGLE_INS_MIGRATE, t('迁移'));
 const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
-
-const redisDBStructureRoute = {
-  path: 'db-structure/:page?',
-  name: 'RedisDBStructure',
-  meta: {
-    navName: t('定点构造'),
-  },
-  component: () => import('@views/db-manage/redis/db-structure/Index.vue'),
-};
+const redisDataStructureRoute = createRouteItem(TicketTypes.REDIS_DATA_STRUCTURE, t('定点构造'));
+const redisClusterRollbackDataCopyRoute = createRouteItem(
+  TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+  t('以构造实例恢复'),
+);
 
 const redisStructureInstanceRoute = {
   path: 'structure-instance/:page?',
@@ -54,15 +50,6 @@ const redisStructureInstanceRoute = {
     navName: t('构造实例'),
   },
   component: () => import('@views/db-manage/redis/structure-instance/Index.vue'),
-};
-
-const redisRecoverFromInstanceRoute = {
-  path: 'recover-from-instance/:page?',
-  name: 'RedisRecoverFromInstance',
-  meta: {
-    navName: t('以构造实例恢复'),
-  },
-  component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
 };
 
 const redisDBDataCopyRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_DATA_COPY, t('数据复制'));
@@ -131,8 +118,8 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,
   'redis.toolbox.queryAccessSource': redisQueryAccessSourceRoute,
-  'redis.toolbox.recoverFromInstance': redisRecoverFromInstanceRoute,
-  'redis.toolbox.rollback': redisDBStructureRoute,
+  'redis.toolbox.recoverFromInstance': redisClusterRollbackDataCopyRoute,
+  'redis.toolbox.rollback': redisDataStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,
   'redis.toolbox.singleMigrate': redisSingleMigrateRoute,
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
