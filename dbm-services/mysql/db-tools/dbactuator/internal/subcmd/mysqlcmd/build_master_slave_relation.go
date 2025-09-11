@@ -96,10 +96,14 @@ func (b *BuildMsRelationAct) Run() (err error) {
 			FunName: "建立主从关系",
 			Func:    b.Payload.BuildMSRelation,
 		},
-		{
+	}
+	if !b.Payload.Params.NotCheckReplStatus {
+		steps = append(steps, subcmd.StepFunc{
 			FunName: "检查是否关系建立正常",
 			Func:    b.Payload.CheckBuildOk,
-		},
+		})
+	} else {
+		logger.Info("will not check repl status")
 	}
 	if err = steps.Run(); err != nil {
 		return err

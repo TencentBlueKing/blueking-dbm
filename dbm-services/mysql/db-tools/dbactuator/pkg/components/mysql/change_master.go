@@ -53,6 +53,8 @@ type BuildMSRelationParam struct {
 	NotStartIOThread bool `json:"not_start_io_thread" example:"false"`
 	// 不启动 sql_thread。默认false 表示启动 sql_thread
 	NotStartSQLThread bool `json:"not_start_sql_thread" example:"false"`
+	// 只change master,不检查主从状态
+	NotCheckReplStatus bool `json:"not_check_repl_status" example:"false"`
 }
 
 func (b *BuildMSRelationComp) Example() interface{} {
