@@ -17,6 +17,7 @@
     :label="t('从库主机')"
     :loading="loading"
     :min-width="150"
+    readonly
     required>
     <EditableBlock
       v-model="modelValue.ip"

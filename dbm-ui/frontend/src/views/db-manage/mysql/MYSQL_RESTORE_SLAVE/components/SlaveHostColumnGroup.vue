@@ -38,6 +38,7 @@
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="220"
+    readonly
     required>
     <EditableBlock :placeholder="t('自动生成')">
       <p

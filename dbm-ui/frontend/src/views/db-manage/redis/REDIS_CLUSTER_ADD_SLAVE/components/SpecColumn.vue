@@ -14,7 +14,8 @@
 <template>
   <EditableColumn
     :label="t('当前规格')"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <template #head>
       <div v-bk-tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')">
         <span class="spec-title">{{ t('规格需求') }}</span>

@@ -46,6 +46,7 @@
               field="instance.master_domain"
               :label="t('所属集群')"
               :min-width="300"
+              readonly
               :rowspan="item.rowspan">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 {{ item.instance.master_domain }}
@@ -53,6 +54,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('规格')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 {{ item.instance.spec_config.id ? item.instance.spec_config.name : '' }}

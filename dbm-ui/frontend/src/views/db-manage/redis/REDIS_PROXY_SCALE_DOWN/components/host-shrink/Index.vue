@@ -28,6 +28,7 @@
         field="proxy_reduced_host.master_domain"
         :label="t('关联集群')"
         :min-width="200"
+        readonly
         :rowspan="rowSpan[item.proxy_reduced_host.master_domain]">
         <EditableBlock
           v-model="item.proxy_reduced_host.master_domain"

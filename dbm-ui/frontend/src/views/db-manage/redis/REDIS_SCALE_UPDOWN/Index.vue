@@ -35,7 +35,8 @@
           <EditableColumn
             field="cluster.cluster_type_name"
             :label="t('架构版本')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.cluster.cluster_type_name"
               :placeholder="t('自动生成')" />
