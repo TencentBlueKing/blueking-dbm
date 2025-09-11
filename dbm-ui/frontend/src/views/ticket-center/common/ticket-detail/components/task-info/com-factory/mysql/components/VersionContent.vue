@@ -1,17 +1,15 @@
 <template>
   <div class="version-content">
     <div class="content-item">
-      <div class="item-title">{{ t('数据库版本') }}：</div>
+      <div class="item-title">{{ t('绑定模块') }}：</div>
       <div class="item-content">
-        {{ data.version }}
+        {{ data.moduleName }}
       </div>
     </div>
     <div class="content-item">
-      <div class="item-title">{{ t('版本包文件') }}：</div>
-      <div
-        v-overflow-tips
-        class="item-content">
-        {{ data.package }}
+      <div class="item-title">{{ t('数据库版本') }}：</div>
+      <div class="item-content">
+        {{ data.version }}
       </div>
     </div>
     <div class="content-item">
@@ -21,9 +19,11 @@
       </div>
     </div>
     <div class="content-item">
-      <div class="item-title">{{ t('绑定模块') }}：</div>
-      <div class="item-content">
-        {{ data.moduleName }}
+      <div class="item-title">{{ t('版本包文件') }}：</div>
+      <div
+        v-overflow-tips
+        class="item-content">
+        {{ data.package }}
       </div>
     </div>
   </div>

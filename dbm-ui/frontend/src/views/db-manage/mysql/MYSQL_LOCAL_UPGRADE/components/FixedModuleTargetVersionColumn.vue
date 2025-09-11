@@ -13,7 +13,6 @@
 
 <template>
   <EditableColumn
-    :disabled-method="() => (cluster.id ? false : t('请先选择集群'))"
     field="target_version"
     :label="t('目标版本')"
     :min-width="200"
@@ -26,49 +25,13 @@
         <div class="content-item">
           <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
-            <InnerSelect
-              is-plain
-              :list="moduleSelectList"
-              :model-value="newDbModuleId"
-              @change="(value) => handleModuleChange(value as number)">
-              <template #default="{ item }">
-                <div class="module-option-item">
-                  <div class="module-option-label">
-                    {{ item.name }}
-                  </div>
-                  <div class="module-opiton-info">
-                    {{ item.info }}
-                  </div>
-                </div>
-              </template>
-              <template #footer>
-                <div class="module-select-footer">
-                  <BkButton
-                    class="plus-button"
-                    text
-                    @click="handleCreateModule">
-                    <DbIcon
-                      class="footer-icon mr-4"
-                      type="plus-8" />
-                    {{ t('跳转新建模块') }}
-                  </BkButton>
-                  <BkButton
-                    class="refresh-button"
-                    text
-                    @click="handleRefreshModule">
-                    <DbIcon
-                      class="footer-icon"
-                      type="refresh-2" />
-                  </BkButton>
-                </div>
-              </template>
-            </InnerSelect>
+            {{ currentModule?.db_module_name || '' }}
           </div>
         </div>
         <div class="content-item">
           <div class="item-title">{{ t('数据库版本') }}：</div>
           <div class="item-content">
-            {{ currentModule?.spider_version || '' }}
+            {{ currentModule?.db_version || '' }}
           </div>
         </div>
         <div class="content-item">
@@ -114,29 +77,28 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getSpiderVersionModules } from '@services/source/mysqlToolbox';
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import { getVersionModules } from '@services/source/mysqlToolbox';
+
+  import { ClusterTypes } from '@common/const';
 
   import InnerSelect from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/InnerSelect.vue';
 
-  type ModulesInfo = ServiceReturnType<typeof getSpiderVersionModules>[0];
+  type ModulesInfo = ServiceReturnType<typeof getVersionModules>[0];
 
   interface Props {
-    cluster: TendbClusterModel;
-    /**
-     * 高于当前集群主版本, 默认false
-     */
-    higherMajorVersion?: boolean;
-    /**
-     * 高于当前集群子版本, 默认false
-     */
-    higherSubVersion?: boolean;
+    cluster: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+    } & TendbhaModel;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    higherMajorVersion: false,
-    higherSubVersion: false,
-  });
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<{
     charset: string;
@@ -156,9 +118,6 @@
   });
 
   const { t } = useI18n();
-
-  const route = useRoute();
-  const router = useRouter();
 
   const packageSelectList = ref<
     {
@@ -185,13 +144,13 @@
     },
   ];
 
-  const { run: fetchModuleList } = useRequest(getSpiderVersionModules, {
+  const { run: fetchModuleList } = useRequest(getVersionModules, {
     manual: true,
     onSuccess(data) {
       moduleSelectList.value = data.map((module) => ({
         ...module,
         id: module.db_module_id,
-        info: `${module.spider_version || ''}，${module.charset || ''}`,
+        info: `${module.db_version || ''}，${module.charset || ''}`,
         name: module.db_module_name,
       }));
 
@@ -226,8 +185,8 @@
       if (props.cluster.id) {
         fetchModuleList({
           cluster_id: props.cluster.id,
-          higher_major_version: props.higherMajorVersion,
-          higher_sub_version: props.higherSubVersion,
+          higher_major_version: false,
+          higher_sub_version: true,
         });
       }
     },
@@ -252,50 +211,6 @@
       pkgId.value = value;
       modelValue.value.pkg_name = findPackage.name;
     }
-  };
-
-  const handleModuleChange = (value: number) => {
-    newDbModuleId.value = value;
-    const findModule = moduleSelectList.value.find((item) => item.id === value) as unknown as ModulesInfo;
-    if (!findModule) return;
-    currentModule.value = findModule;
-    const pkgList = findModule.pkg_list.map((item) => ({
-      id: item.pkg_id,
-      name: item.pkg_name,
-    }));
-    packageSelectList.value = pkgList;
-    const [firstPackage] = pkgList;
-    if (firstPackage) {
-      pkgId.value = firstPackage.id;
-    }
-
-    modelValue.value = {
-      charset: findModule.charset,
-      db_module_name: findModule.db_module_name,
-      db_version: findModule.db_version,
-      pkg_name: firstPackage?.name || '',
-    };
-  };
-
-  const handleCreateModule = () => {
-    const url = router.resolve({
-      name: 'createSpiderModule',
-      params: {
-        bizId: window.PROJECT_CONFIG.BIZ_ID,
-      },
-      query: {
-        from: route.name as string,
-      },
-    });
-    window.open(url.href, '_blank');
-  };
-
-  const handleRefreshModule = () => {
-    fetchModuleList({
-      cluster_id: props.cluster.id,
-      higher_major_version: props.higherMajorVersion,
-      higher_sub_version: props.higherSubVersion,
-    });
   };
 </script>
 
@@ -331,46 +246,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-  }
-
-  .module-option-item {
-    display: flex;
-    width: 100%;
-
-    .module-option-label {
-      flex: 1;
-      width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .module-opiton-info {
-      margin-left: auto;
-      color: #979ba5;
-    }
-  }
-
-  .module-select-footer {
-    display: flex;
-    height: 100%;
-    color: #63656e;
-    align-items: center;
-    justify-content: center;
-
-    .plus-button {
-      flex: 1;
-      padding-left: 36px;
-    }
-
-    .refresh-button {
-      width: 42px;
-      border-left: 1px solid #dcdee5;
-    }
-
-    .footer-icon {
-      font-size: 16px;
     }
   }
 </style>

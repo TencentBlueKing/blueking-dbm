@@ -24,22 +24,30 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
-            role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            field="current_version"
-            :label="t('当前版本')"
-            :min-width="200"
-            readonly
-            required>
-            <EditableBlock
-              v-model="item.current_version"
-              :placeholder="t('自动生成')" />
-          </EditableColumn>
+          <ClusterHostColumn :cluster="item.cluster" />
+          <CurrentVersionColumn
+            v-model="item.current_version"
+            :cluster="item.cluster" />
           <TargetVersionColumn
             v-model="item.target_version"
-            :row-data="item" />
+            v-model:new-db-module-id="item.new_db_module_id"
+            v-model:pkg-id="item.pkg_id"
+            :cluster="item.cluster" />
+          <MultipleResourceHostColumn
+            v-model="item.new_master_slave_host"
+            field="new_master_slave_host"
+            :label="t('新主从主机')"
+            :limit="2"
+            :min-width="200"
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            }" />
+          <NewReadonlyHostColumn
+            v-model="item.new_readonly_host"
+            :cluster="item.cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -57,6 +65,7 @@
           </span>
         </BkCheckbox>
       </BkFormItem>
+      <BackupSource v-model="formData.backup_source" />
       <TicketPayload v-model="formData.payload" />
       <template #action>
         <BkButton
@@ -82,22 +91,36 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
+  import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
+  import CurrentVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
+  import TargetVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
   import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
-  import TargetVersionColumn from './components/TargetVersionColumn.vue';
+  import ClusterHostColumn from './components/ClusterHostColumn.vue';
+  import NewReadonlyHostColumn from './components/NewReadonlyHostColumn.vue';
+
+  interface IHostData {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
 
   interface RowData {
     cluster: {
@@ -108,39 +131,66 @@
         id: number;
         master_domain: string;
       }[];
-    };
-    current_version: string;
-    target_version: {
-      pkg_id: number;
-      target_package: string;
-    };
+    } & TendbhaModel;
+    current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
+    new_db_module_id: number;
+    new_master_slave_host: IHostData[];
+    new_readonly_host: IHostData[];
+    pkg_id: number;
+    readonly_host: IHostData[];
+    target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-      related_clusters: [],
-    },
-    current_version: data.current_version || '',
-    target_version: data.target_version || {
-      pkg_id: 0,
-      target_package: '',
-    },
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
+        id: 0,
+        master_domain: '',
+        related_clusters: [],
+      } as unknown as RowData['cluster'],
+      data.cluster,
+    ),
+    current_version: Object.assign(
+      {
+        charset: '',
+        db_module_name: '',
+        db_version: '',
+        pkg_name: '',
+      },
+      data.current_version,
+    ),
+    new_db_module_id: data.new_db_module_id || 0,
+    new_master_slave_host: (data.new_master_slave_host as IHostData[]) || [],
+    new_readonly_host: (data.new_readonly_host as IHostData[]) || [],
+    pkg_id: data.pkg_id || 0,
+    readonly_host: (data.readonly_host as IHostData[]) || [],
+    target_version: Object.assign(
+      {
+        charset: '',
+        db_module_name: '',
+        db_version: '',
+        pkg_name: '',
+      },
+      data.target_version,
+    ),
   });
 
   const defaultData = () => ({
+    backup_source: BackupSourceType.REMOTE,
     force: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
 
   const wrapperController = ref({
-    roleType: TicketTypes.MYSQL_PROXY_UPGRADE,
+    roleType: 'haStorageLayer',
+    updateType: TicketTypes.MYSQL_MIGRATE_UPGRADE,
   });
   const formData = reactive(defaultData());
 
@@ -175,7 +225,7 @@
     ],
   };
 
-  useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
+  useTicketDetail<Mysql.ResourcePool.MigrateUpgrade>(TicketTypes.MYSQL_MIGRATE_UPGRADE, {
     onSuccess(ticketDetails) {
       const { clusters, force, infos } = ticketDetails.details;
       if (infos.length > 0) {
@@ -184,15 +234,17 @@
           const clusterInfo = clusters[item.cluster_ids[0]];
           return createTableRow({
             cluster: {
-              cluster_type: clusterInfo.cluster_type,
-              id: clusterInfo.id,
               master_domain: clusterInfo.immute_domain,
-              related_clusters: [],
             },
-            current_version: item.display_info.current_version,
+            new_db_module_id: item.new_db_module_id,
+            new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
+            new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
+            pkg_id: item.pkg_id,
             target_version: {
-              pkg_id: item.pkg_id,
-              target_package: item.display_info.target_package,
+              charset: item.display_info.charset,
+              db_module_name: item.display_info.target_module_name,
+              db_version: item.display_info.target_version,
+              pkg_name: item.display_info.target_package,
             },
           });
         });
@@ -201,16 +253,40 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    backup_source: string;
     force: boolean;
     infos: {
       cluster_ids: number[];
       display_info: {
+        charset: string;
+        cluster_type: string;
+        current_module_name: string;
+        current_package: string;
         current_version: string;
+        old_master_slave: string[];
+        target_module_name: string;
         target_package: string;
+        target_version: string;
       };
+      new_db_module_id: number;
       pkg_id: number;
+      read_only_slaves: {
+        new_slave: IHostData;
+        old_slave: IHostData;
+      }[];
+      resource_spec: {
+        new_master: {
+          hosts: IHostData[];
+          spec_id: 0;
+        };
+        new_slave: {
+          hosts: IHostData[];
+          spec_id: 0;
+        };
+      };
     }[];
-  }>(TicketTypes.MYSQL_PROXY_UPGRADE);
+    ip_source: 'resource_pool';
+  }>(TicketTypes.MYSQL_MIGRATE_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
@@ -218,12 +294,8 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
               master_domain: item.master_domain,
-              related_clusters: [],
             },
-            current_version: item.proxies[0]?.version,
           }),
         );
       }
@@ -237,15 +309,44 @@
     if (result) {
       createTicketRun({
         details: {
+          backup_source: formData.backup_source,
           force: formData.force,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
-              current_version: item.current_version,
-              target_package: item.target_version.target_package,
+              charset: item.target_version.charset,
+              cluster_type: item.cluster.cluster_type,
+              current_module_name: item.cluster.db_module_name,
+              current_package: item.current_version.pkg_name,
+              current_version: item.current_version.db_version,
+              old_master_slave: [
+                item.cluster.masters?.[0]?.ip,
+                item.cluster.slaves.filter((slave) => slave.is_stand_by)?.[0]?.ip,
+              ],
+              target_module_name: item.target_version.db_module_name,
+              target_package: item.target_version.pkg_name,
+              target_version: item.target_version.db_version,
             },
-            pkg_id: item.target_version.pkg_id,
+            new_db_module_id: item.new_db_module_id,
+            pkg_id: item.pkg_id,
+            read_only_slaves: item.readonly_host.length
+              ? item.readonly_host.map((host, index) => ({
+                  new_slave: item.new_readonly_host[index],
+                  old_slave: host,
+                }))
+              : [],
+            resource_spec: {
+              new_master: {
+                hosts: [item.new_master_slave_host[0]],
+                spec_id: 0,
+              },
+              new_slave: {
+                hosts: [item.new_master_slave_host[1]],
+                spec_id: 0,
+              },
+            },
           })),
+          ip_source: 'resource_pool',
         },
         ...formData.payload,
       });

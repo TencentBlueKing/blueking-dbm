@@ -100,7 +100,11 @@ export default [
         parentId: 'spider_cluster_maintain',
       },
       {
-        bind: [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE],
+        bind: [
+          TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
+          TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
+          TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+        ],
         id: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
         name: t('版本升级'),
         parentId: 'spider_cluster_maintain',

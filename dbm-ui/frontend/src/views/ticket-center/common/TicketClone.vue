@@ -56,7 +56,7 @@
     [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongo 缩容接入层
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
-    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_MIGRATE_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
     [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
     [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_SLAVE, // Mysql 重建从库-新机重建
@@ -120,11 +120,11 @@
     [TicketTypes.MYSQL_IMPORT_SQLFILE]: TicketTypes.MYSQL_IMPORT_SQLFILE, // Mysql 变更SQL执行
     [TicketTypes.MYSQL_INSTANCE_CLONE_RULES]: TicketTypes.MYSQL_INSTANCE_CLONE_RULES, // Mysql DB实例权限克隆
     [TicketTypes.MYSQL_INSTANCE_FAIL_OVER]: TicketTypes.MYSQL_INSTANCE_FAIL_OVER, // Mysql主库实例故障切换
-    [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 原地升级
+    [TicketTypes.MYSQL_LOCAL_UPGRADE]: TicketTypes.MYSQL_LOCAL_UPGRADE, // MySQL 原地升级
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: TicketTypes.MYSQL_MASTER_FAIL_OVER, // Mysql 主库故障切换
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, // Mysql 主从互切
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
-    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_PROXY_UPGRADE, // MySQL 迁移升级
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_MIGRATE_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
     [TicketTypes.MYSQL_PROXY_REDUCE]: TicketTypes.MYSQL_PROXY_REDUCE, // mysql 缩容 proxy
@@ -204,17 +204,18 @@
     [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, // Spider SQL变更执行
     [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, // Spider DB 实例权限克隆
     [TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER]: TicketTypes.TENDBCLUSTER_INSTANCE_FAIL_OVER, // tendbcluster 主库实例故障
-    [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE]: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, // spider 原地升级
+    [TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE]: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, // spider 接入层 原地升级
     [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, // Spider remote主故障切换
     [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH, // Spider remote 主从切换
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: TicketTypes.TENDBCLUSTER_NODE_REBALANCE, // Spider 集群remote节点扩缩容
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
+    [TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE]: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, // spider 存储层remote 原地升级
     [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: TicketTypes.TENDBCLUSTER_RENAME_DATABASE, // Spider Tendbcluster 重命名
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, // spider 重建从库-原地重建
     [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, // Spider 定点回档
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, // Spider 添加运维节点
-    [TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE]: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, // spider 迁移升级
+    [TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE]: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, // spider 接入层 迁移升级
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, // Spider tendbcluster 清档
   };
 
