@@ -241,11 +241,11 @@
   defineExpose<Exposes>({
     setReEditValue(data: Mysql.ImportSqlFile['execute_objects']) {
       sqlFileCache = data.reduce<Record<string, SqlFileModel>[]>((prev, dataItem) => {
-        const sqlFileInfo = dataItem.sql_files.reduce<Record<string, SqlFileModel>>((prev, sqlFileName) => {
-          const localFileName = getSQLFilename(sqlFileName);
+        const sqlFileInfo = dataItem.sql_files.reduce<Record<string, SqlFileModel>>((prev, realFileName) => {
+          const localFileName = getSQLFilename(realFileName);
           const sqlFile = new SqlFileModel();
           sqlFile.grammarCheckStart();
-          sqlFile.grammarCheckSuccessed({ [localFileName]: new GrammarCheckModel() });
+          sqlFile.grammarCheckSuccessed({ [realFileName]: new GrammarCheckModel() });
           return Object.assign(prev, { [localFileName]: sqlFile });
         }, {});
         return prev.concat(sqlFileInfo);
