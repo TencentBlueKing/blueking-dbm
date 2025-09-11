@@ -20,7 +20,8 @@
     <BkRadioGroup
       v-model="tendbclusterType"
       style="width: 450px"
-      type="card">
+      type="card"
+      @change="handleChangeType">
       <BkRadioButton label="SPIDER">
         {{ t('接入层') }}
       </BkRadioButton>
@@ -131,10 +132,9 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
   import CurrentVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
+  import TargetVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
 
   import { random } from '@utils';
-
-  import TargetVersionColumn from '@/views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
 
   interface RowData {
     cluster: TendbClusterModel;
@@ -203,6 +203,9 @@
 
   useTicketDetail<TendbCluster.SpiderUpgrade>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, {
     onSuccess(ticketDetail) {
+      updateType.value = ticketDetail.details.upgrade_local
+        ? TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE
+        : TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE;
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
         tableData: ticketDetail.details.infos.map((item) =>
@@ -257,7 +260,9 @@
         pkg_name: string;
       };
     }[];
+    ip_source: 'resource_pool';
     is_safe: boolean;
+    upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE);
 
   watch(updateType, () => {
@@ -267,6 +272,18 @@
       });
     }
   });
+
+  const handleChangeType = (value: string) => {
+    if (value === 'REMOTE') {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+      });
+    } else {
+      router.push({
+        name: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
+      });
+    }
+  };
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
@@ -307,7 +324,9 @@
             },
             target_version: item.target_version,
           })),
+          ip_source: 'resource_pool',
           is_safe: formData.isSafe,
+          upgrade_local: false,
         },
         ...formData.payload,
       });

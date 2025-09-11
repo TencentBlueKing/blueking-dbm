@@ -20,4 +20,5 @@ export interface LocalUpgrade extends DetailBase {
     };
   }[];
   is_safe: boolean;
+  upgrade_local: boolean;
 }
