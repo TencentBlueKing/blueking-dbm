@@ -16,7 +16,8 @@
     field="instance_data"
     :label="t('关联的主从实例')"
     :loading="loading"
-    :min-width="300">
+    :min-width="300"
+    readonly>
     <EditableBlock
       class="old-master-slave-host"
       :placeholder="t('选择集群后自动生成')">

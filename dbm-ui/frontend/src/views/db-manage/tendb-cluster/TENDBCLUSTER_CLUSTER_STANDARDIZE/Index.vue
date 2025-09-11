@@ -40,6 +40,7 @@
           <EditableColumn
             :label="t('集群类型')"
             :min-width="150"
+            readonly
             required>
             <EditableBlock :placeholder="t('自动生成')">
               {{ item.cluster.cluster_type_name || '' }}

@@ -29,7 +29,8 @@
         @change="handleChange(item)" />
       <EditableColumn
         :label="t('当前数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{
             !item.cluster.id
@@ -49,7 +50,8 @@
         :append-rules="targetCountRules"
         field="spider_reduced_to_count"
         :label="t('剩余数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock
           v-model="item.spider_reduced_to_count"
           :placeholder="t('自动生成')" />

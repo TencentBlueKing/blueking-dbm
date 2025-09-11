@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('同机关联实例')"
     :loading="loading"
-    :min-width="200">
+    :min-width="200"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
@@ -48,7 +49,8 @@
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="240">
+    :min-width="240"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_clusters"

@@ -44,7 +44,8 @@
               @batch-edit="handleHostBatchEdit" />
             <EditableColumn
               :label="t('所属集群')"
-              :min-width="300">
+              :min-width="300"
+              readonly>
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 <div
                   v-for="(relatedClusterItem, relatedClusterIndex) in item.host.related_clusters"
@@ -55,6 +56,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('待切换的 Master 实例')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 <div
@@ -66,6 +68,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('待切换的从库主机')"
+              readonly
               :width="200">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 {{ item.host.slave_ip }}

@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
-    :min-width="300">
+    :min-width="300"
+    readonly>
     <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
