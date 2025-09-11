@@ -42,7 +42,7 @@
       <template #action>
         <BkButton
           class="w-88"
-          theme="primary"
+          :loading="isSubmitting"
           @click="handleSubmit">
           {{ t('模拟执行') }}
         </BkButton>
@@ -50,7 +50,9 @@
           :confirm-handler="handleReset"
           :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
           :title="t('确认重置页面')">
-          <BkButton class="ml-8 w-88">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
             {{ t('重置') }}
           </BkButton>
         </DbPopconfirm>
@@ -166,7 +168,7 @@
     },
   });
 
-  const { runAsync: runSemanticCheck } = useRequest(semanticCheck, {
+  const { loading: isSubmitting, run: runSemanticCheck } = useRequest(semanticCheck, {
     manual: true,
     onSuccess(data) {
       window.changeConfirm = false;
