@@ -14,7 +14,6 @@ from rest_framework.routers import DefaultRouter
 from .redis_cluster.views import RedisClusterViewSet
 from .views import ListResourceViewSet, ResourceTreeViewSet
 
-
 router = DefaultRouter(trailing_slash=True)
 
 router.register(r"redis_resources", RedisClusterViewSet, basename="redis_resources")

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from abc import abstractmethod
 from collections import defaultdict
 from typing import Dict, List, Union
+
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
