@@ -51,16 +51,20 @@
               :min-width="300"
               :rowspan="item.rowspan">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ Object.values(item.batchInstance.instances)?.[0]?.master_domain || '' }}
+                <div
+                  v-for="domainItem in _.uniq(
+                    Object.values(item.batchInstance.instances).map((item) => item.master_domain),
+                  )"
+                  :key="domainItem">
+                  {{ domainItem }}
+                </div>
               </EditableBlock>
             </EditableColumn>
-            <EditableColumn
-              :label="t('规格')"
-              :width="200">
-              <EditableBlock :placeholder="t('输入主机后自动生成')">
-                {{ Object.values(item.batchInstance.instances)?.[0]?.spec_config.name || '' }}
-              </EditableBlock>
-            </EditableColumn>
+            <SpecColumn
+              v-model="item.batchInstance.current_spec_id"
+              :cluster-type="DBTypes.REDIS"
+              field="batchInstance.current_spec_id"
+              label="规格" />
             <CurrentVersionColumn
               v-model="item.current_versions"
               :cluster-id="Object.values(item.batchInstance.instances)?.[0]?.cluster_id" />
@@ -95,6 +99,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -105,12 +110,13 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import ManualInputHostContent from '@components/instance-selector/components/common/manual-content/Index.vue';
   import { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

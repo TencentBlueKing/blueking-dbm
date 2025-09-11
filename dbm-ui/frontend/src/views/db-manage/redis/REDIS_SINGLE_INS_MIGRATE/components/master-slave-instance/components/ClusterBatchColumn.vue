@@ -151,10 +151,10 @@
 
   const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
     manual: true,
-    onSuccess: (data) => {
-      if (data.length) {
+    onSuccess: (clusterList) => {
+      if (clusterList.length > 0) {
         let clusters = {} as UnwrapRef<typeof modelValue>['clusters'];
-        data.forEach((item) => {
+        clusterList.forEach((item) => {
           clusters = {
             ...clusters,
             [item.master_domain]: {
