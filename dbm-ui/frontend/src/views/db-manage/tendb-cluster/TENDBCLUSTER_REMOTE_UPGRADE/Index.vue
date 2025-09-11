@@ -37,13 +37,13 @@
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
-            higher-major-version />
+            higher-sub-version />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem>
+      <BkFormItem class="mb-8">
         <BkCheckbox
           v-model="formData.is_check_process"
           :false-label="false"
@@ -52,6 +52,16 @@
             v-bk-tooltips="t('存在业务连接时需要人工确认')"
             class="safe-action-text">
             {{ t('检查业务连接') }}
+          </span>
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem>
+        <BkCheckbox
+          v-model="formData.is_verify_checksum"
+          :false-label="false"
+          true-label>
+          <span>
+            {{ t('检查主从数据校验结果') }}
           </span>
         </BkCheckbox>
       </BkFormItem>
@@ -94,11 +104,12 @@
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
-  import CurrentVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
-  import TargetVersionColumn from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
   import UpgradeWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
   import { random } from '@utils';
+
+  import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  import TargetVersionColumn from './components/TargetVersionColumn.vue';
 
   interface RowData {
     cluster: TendbClusterModel;
@@ -143,6 +154,7 @@
 
   const defaultData = () => ({
     is_check_process: true,
+    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -160,11 +172,12 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<TendbCluster.SpiderUpgrade>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, {
+  useTicketDetail<TendbCluster.RemoteUpgrade>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, {
     onSuccess(ticketDetail) {
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
         is_check_process: ticketDetail.details.is_check_process,
+        is_verify_checksum: ticketDetail.details.is_verify_checksum,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({
             // 集群信息现查，从而带出当前版本信息
@@ -190,26 +203,7 @@
         pkg_name: string;
       };
       new_db_module_id: number;
-      old_nodes: {
-        spider_master: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
-        spider_slave: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }[];
-      };
       pkg_id: number;
-      resource_spec: {
-        [key in string]: {
-          count: number;
-          labels?: string[];
-          spec_id: number;
-        };
-      };
       target_version: {
         charset: string;
         db_module_name: string;
@@ -217,53 +211,26 @@
         pkg_name: string;
       };
     }[];
-    ip_source: 'resource_pool';
     is_check_process: boolean;
+    is_verify_checksum: boolean;
     upgrade_local: boolean;
-  }>(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE);
+  }>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
     if (valid) {
-      const resourceSpec = (hostList: TendbClusterModel['spider_master'], role: 'spider_master' | 'spider_slave') => {
-        if (!hostList.length) {
-          return {};
-        }
-        return {
-          [role]: {
-            count: hostList.length,
-            spec_id: hostList?.[0]?.spec_config?.id,
-          },
-        };
-      };
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
             cluster_id: item.cluster.id,
             current_version: item.current_version,
             new_db_module_id: item.new_db_module_id,
-            old_nodes: {
-              spider_master: item.cluster.spider_master.map((host) => ({
-                bk_cloud_id: host.bk_cloud_id,
-                bk_host_id: host.bk_host_id,
-                ip: host.ip,
-              })),
-              spider_slave: item.cluster.spider_slave.map((host) => ({
-                bk_cloud_id: host.bk_cloud_id,
-                bk_host_id: host.bk_host_id,
-                ip: host.ip,
-              })),
-            },
             pkg_id: item.pkg_id,
-            resource_spec: {
-              ...resourceSpec(item.cluster.spider_master, 'spider_master'),
-              ...resourceSpec(item.cluster.spider_slave, 'spider_slave'),
-            },
             target_version: item.target_version,
           })),
-          ip_source: 'resource_pool',
           is_check_process: formData.is_check_process,
-          upgrade_local: false,
+          is_verify_checksum: formData.is_verify_checksum,
+          upgrade_local: true,
         },
         ...formData.payload,
       });

@@ -13,76 +13,92 @@
 
 <template>
   <EditableColumn
-    field="cluster.current_version"
+    field="current_version"
     :label="t('当前版本')"
+    :loading="loading"
     :min-width="200"
+    readonly
     required>
-    <EditableBlock v-if="cluster.id">
-      <div class="display-content">
+    <EditableBlock :placeholder="t('自动生成')">
+      <div
+        v-if="cluster.id"
+        class="display-content">
         <div class="content-item">
-          <div class="item-title">{{ t('数据库版本') }}：</div>
+          <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
-            {{ cluster.current_version }}
+            {{ modelValue.db_module_name }}
           </div>
         </div>
         <div class="content-item">
-          <div class="item-title">{{ t('版本包文件') }}：</div>
+          <div class="item-title">{{ t('数据库版本') }}：</div>
           <div class="item-content">
-            {{ cluster.package_version }}
+            {{ modelValue.db_version }}
           </div>
         </div>
         <div class="content-item">
           <div class="item-title">{{ t('字符集') }}：</div>
           <div class="item-content">
-            {{ charset }}
+            {{ modelValue.charset }}
           </div>
         </div>
         <div class="content-item">
-          <div class="item-title">{{ t('绑定模块') }}：</div>
+          <div class="item-title">{{ t('版本包文件') }}：</div>
           <div class="item-content">
-            {{ cluster.db_module_name }}
+            {{ modelValue.pkg_name }}
           </div>
         </div>
       </div>
     </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
 
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getModules } from '@services/source/cmdb';
+
+  import type { ClusterTypes } from '@common/const';
 
   interface Props {
     cluster: {
-      cluster_type: string;
-      current_version: string;
-      db_module_id: number;
-      db_module_name: string;
+      cluster_type: ClusterTypes;
       id: number;
-      package_version: string;
-    };
+      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+    } & TendbhaModel;
   }
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<{
+    charset: string;
+    db_module_name: string;
+    db_version: string;
+    pkg_name: string;
+  }>({
+    required: true,
+  });
+
   const { t } = useI18n();
 
-  const charset = ref('');
-
-  const { run: fetchModules } = useRequest(getModules, {
+  const { loading, run: fetchModules } = useRequest(getModules, {
     manual: true,
     onSuccess(modules) {
       const currentModule = modules.find((moduleItem) => moduleItem.db_module_id === props.cluster.db_module_id);
       if (currentModule) {
-        const currentCharset = currentModule.db_module_info.conf_items.find(
-          (confItem) => confItem.conf_name === 'charset',
-        )!.conf_value;
-        charset.value = currentCharset;
+        const confItems = _.keyBy(currentModule.db_module_info.conf_items, 'conf_name');
+        modelValue.value = {
+          charset: confItems.charset?.conf_value || '',
+          db_module_name: props.cluster.db_module_name,
+          db_version: confItems.db_version?.conf_value || '',
+          pkg_name: _.uniq(props.cluster.masters.map((item) => item.version)).join(' | '),
+        };
       }
     },
   });
@@ -122,30 +138,7 @@
         display: flex;
         align-items: center;
         overflow: hidden;
-
-        .percent {
-          margin-left: 4px;
-          font-size: 12px;
-          font-weight: bold;
-          color: #313238;
-        }
-
-        .spec {
-          margin-left: 2px;
-          font-size: 12px;
-          color: #979ba5;
-        }
-
-        :deep(.render-spec-box) {
-          height: 22px;
-          padding: 0;
-        }
       }
     }
-  }
-
-  .default-display {
-    cursor: not-allowed;
-    background: #fafbfd;
   }
 </style>
