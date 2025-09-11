@@ -79,15 +79,15 @@
       </BkFormItem>
       <BkFormItem :label="t('是否启用')">
         <BkPopConfirm
-          :confirm-text="formdata.enable ? t('不启用') : t('启用')"
+          :confirm-text="formdata.enable ? t('停用') : t('启用')"
           :content="
             formdata.enable
-              ? t('不启用：存量集群的变更操作不受影响，新增集群不可使用此规格')
+              ? t('停用：存量集群的变更操作不受影响，新增集群不可使用此规格')
               : t('启用：所有场景均可使用，如：部署、扩容、迁移规格')
           "
           :is-show="isShowSwitchTip"
           placement="bottom"
-          :title="formdata.enable ? t('确认不启用该规格？') : t('确认启用该规格？')"
+          :title="formdata.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
           trigger="manual"
           width="308"
           @cancel="handleCancelSwitch"
@@ -100,7 +100,7 @@
         </BkPopConfirm>
         <span class="enable-desc ml-4">
           {{
-            `（${t('启用：所有场景均可使用，如：部署、扩容、迁移规格')}；${t('不启用：存量集群的变更操作不受影响，新增集群不可使用此规格')}）`
+            `（${t('启用：所有场景均可使用，如：部署、扩容、迁移规格')}；${t('停用：存量集群的变更操作不受影响，新增集群不可使用此规格')}）`
           }}
         </span>
       </BkFormItem>
