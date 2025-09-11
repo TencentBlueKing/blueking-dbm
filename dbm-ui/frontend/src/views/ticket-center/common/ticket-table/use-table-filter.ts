@@ -72,6 +72,9 @@ export default () => {
       },
       cluster: {
         name: t('集群'),
+        props: {
+          autofocus: true,
+        },
         showConfirmAndReset: true,
         type: 'input',
       },
@@ -126,7 +129,7 @@ export default () => {
             }
             return getUserList(requestParams).then((res) =>
               res.results.map((item) => ({
-                label: `${item.display_name} (${item.username})`,
+                label: `${item.username} (${item.display_name})`,
                 value: item.username,
               })),
             );
@@ -137,11 +140,17 @@ export default () => {
       },
       ids: {
         name: t('单号'),
+        props: {
+          autofocus: true,
+        },
         showConfirmAndReset: true,
         type: 'input',
       },
       remark: {
         name: t('备注'),
+        props: {
+          autofocus: true,
+        },
         showConfirmAndReset: true,
         type: 'input',
       },
