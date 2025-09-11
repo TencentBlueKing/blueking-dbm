@@ -41,6 +41,7 @@
           <EditableColumn
             :label="t('同机关联的集群')"
             :min-width="150"
+            readonly
             required>
             <EditableBlock :placeholder="t('自动生成')">
               <p

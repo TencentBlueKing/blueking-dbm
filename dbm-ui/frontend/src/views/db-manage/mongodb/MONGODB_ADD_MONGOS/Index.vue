@@ -40,6 +40,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('扩容节点类型')"
+              readonly
               :width="200">
               <EditableBlock>mongos</EditableBlock>
             </EditableColumn>

@@ -18,7 +18,7 @@
     :min-width="200"
     required
     :rules="rules">
-    <EditableBlock :placeholder="t('自动生成')">
+    <EditableBlock>
       <div
         v-if="cluster.id"
         class="display-content">
