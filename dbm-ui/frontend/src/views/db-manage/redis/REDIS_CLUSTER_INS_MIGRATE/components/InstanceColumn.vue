@@ -88,6 +88,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    current_spec_id: number;
     instances: Record<
       string,
       {
@@ -199,7 +200,7 @@
           }),
         ])
           .then(([instanceCheckList, slaveInstanceMap]) => {
-            if (instanceCheckList.length) {
+            if (instanceCheckList.length > 0) {
               let instances = {} as UnwrapRef<typeof modelValue>['instances'];
               instanceCheckList.forEach((item) => {
                 const slaveItem = slaveInstanceMap.instances![item.instance_address];
@@ -229,6 +230,7 @@
                 }
               });
               modelValue.value.instances = instances;
+              modelValue.value.current_spec_id = instanceCheckList[0].spec_config.id;
             }
           })
           .finally(() => {
@@ -251,6 +253,7 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      current_spec_id: 0,
       instances: {},
       renderText: value
         .split(/\r?\n/)

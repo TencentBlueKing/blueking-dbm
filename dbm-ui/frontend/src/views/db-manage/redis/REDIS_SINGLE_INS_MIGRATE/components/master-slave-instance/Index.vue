@@ -31,15 +31,16 @@
       <OldMasterSlaveHostColumn
         v-model="item.instance_data"
         :data="Object.values(item.batchCluster.clusters).flatMap((item) => item.redis_master)" />
-      <SpecSelectColumn
+      <SpecColumn
         v-model="item.target_spec_id"
-        :bk-cloud-id="Object.values(item.batchCluster.clusters)?.[0]?.bk_cloud_id"
-        :cluster-type="ClusterTypes.REDIS"
-        :current-spec-ids="Object.values(item.batchCluster.clusters).flatMap((item) => item.cluster_spec.spec_id)"
+        :cluster-type="DBTypes.REDIS"
+        :current-spec-id-list="Object.values(item.batchCluster.clusters).map((item) => item.cluster_spec.spec_id)"
         field="target_spec_id"
-        :label="t('规格')"
-        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]">
-      </SpecSelectColumn>
+        label="规格"
+        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]"
+        required
+        selectable
+        @batch-edit="handleBatchEdit" />
       <TargetVersionSelectColumn
         v-model="item.db_version"
         :cluster-type="Object.values(item.batchCluster.clusters)?.[0]?.cluster_type"
@@ -58,13 +59,13 @@
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisList } from '@services/source/redis';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
-  import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
 
   import { useTicketDetail } from '@/hooks';
@@ -224,6 +225,13 @@
     setTimeout(() => {
       editableTableRef.value!.validate();
     }, 200);
+  };
+
+  const handleBatchEdit = (value: number, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({

@@ -34,15 +34,16 @@
       <OldMasterSlaveHostColumn
         v-model="item.instance_data"
         :data="item.host.related_instances" />
-      <SpecSelectColumn
+      <SpecColumn
         v-model="item.target_spec_id"
-        :bk-cloud-id="item.host.bk_cloud_id"
-        :cluster-type="ClusterTypes.REDIS"
-        :current-spec-ids="item.host.spec_config.id ? [item.host.spec_config.id] : []"
+        :cluster-type="DBTypes.REDIS"
+        :current-spec-id-list="item.host.spec_config.id ? [item.host.spec_config.id] : []"
         field="target_spec_id"
-        :label="t('规格')"
-        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]">
-      </SpecSelectColumn>
+        label="规格"
+        :machine-type="specClusterMachineMap[ClusterTypes.REDIS_INSTANCE]"
+        required
+        selectable
+        @batch-edit="handleBatchEdit" />
       <TargetVersionSelectColumn
         v-model="item.db_version"
         :cluster-type="item.host.cluster_type"
@@ -68,14 +69,14 @@
   import { type Redis } from '@services/model/ticket/ticket';
   import { getRedisMachineList } from '@services/source/redis';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
-  import SpecSelectColumn from '@views/db-manage/redis/common/toolbox-field/spec-select-column/Index.vue';
   import TargetVersionSelectColumn from '@views/db-manage/redis/common/toolbox-field/target-version-select-column/Index.vue';
 
   import { useTicketDetail } from '@/hooks';
@@ -297,6 +298,13 @@
     setTimeout(() => {
       editableTableRef.value!.validate();
     }, 200);
+  };
+
+  const handleBatchEdit = (value: number, field: string) => {
+    tableData.value.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
+    window.changeConfirm = true;
   };
 
   defineExpose<Exposes>({
