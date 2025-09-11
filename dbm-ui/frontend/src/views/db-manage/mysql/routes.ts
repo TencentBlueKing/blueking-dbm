@@ -63,7 +63,9 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
   },
-  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')), // 接入层升级
+  createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级
+  createRouteItem(TicketTypes.MYSQL_MIGRATE_UPGRADE, t('版本升级')), // 主从-存储层-迁移升级
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
 ];
 

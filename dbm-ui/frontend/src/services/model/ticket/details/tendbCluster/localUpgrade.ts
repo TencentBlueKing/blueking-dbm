@@ -19,5 +19,6 @@ export interface LocalUpgrade extends DetailBase {
       pkg_name: string;
     };
   }[];
-  is_safe: boolean;
+  is_check_process: boolean;
+  upgrade_local: boolean;
 }

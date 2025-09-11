@@ -73,3 +73,39 @@ export function getSpiderVersionModules(params: {
     }[]
   >(`/apis/mysql/toolbox/get_spider_version_modules/`, params);
 }
+
+/**
+ * 获取mysql、tendbcluster存储层版本模块列表
+ *  
+  tendbsingle
+  本地升级：
+    "higher_major_version": true,
+    "higher_sub_version": true
+
+  tendbha、tendbcluster
+  本地升级：
+    "higher_major_version": false,
+    "higher_sub_version": true
+
+  迁移升级：
+    "higher_major_version": true,
+    "higher_sub_version": true
+ */
+export function getVersionModules(params: {
+  cluster_id: number;
+  higher_major_version?: boolean; // 是否查找更高主版本的模块
+  higher_sub_version?: boolean; // 是否查找同大版本但子版本更高的模块
+}) {
+  return http.post<
+    {
+      db_module_id: number;
+      db_module_name: string;
+      db_version: string;
+      charset: string;
+      pkg_list: {
+        pkg_id: number;
+        pkg_name: string;
+      }[];
+    }[]
+  >(`/apis/mysql/toolbox/get_storage_version_modules/`, params);
+}
