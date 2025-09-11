@@ -276,7 +276,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
     MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)  # noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
-    MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"), register_iam=False)
+    MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"))
     MYSQL_RENAME_DATABASE = TicketEnumField("MYSQL_RENAME_DATABASE", _("MySQL DB重命名"))
 
     # mysql autofix
@@ -292,7 +292,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_ROLLBACK_EXERCISE = TicketEnumField("MYSQL_ROLLBACK_EXERCISE", _("MySQL 备份恢复演练"), register_iam=False)
 
     # mysql clb
-    MYSQL_CLUSTER_STANDARDIZE = TicketEnumField("MYSQL_CLUSTER_STANDARDIZE", _("MySQL 集群标准化"), register_iam=False)
+    MYSQL_CLUSTER_STANDARDIZE = TicketEnumField("MYSQL_CLUSTER_STANDARDIZE", _("MySQL 集群标准化"))
     MYSQL_ADD_CLB = TicketEnumField("MYSQL_ADD_CLB", _("MySQL 接入 CLB"))
     MYSQL_CLB_BIND_DOMAIN = TicketEnumField("MYSQL_CLB_BIND_DOMAIN", _("MySQL 主域名指向 CLB"))
     MYSQL_CLB_UNBIND_DOMAIN = TicketEnumField("MYSQL_CLB_UNBIND_DOMAIN", _("MySQL 主域名解绑 CLB"))
@@ -340,11 +340,11 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_INSTANCE_CLONE_RULES = TicketEnumField("TENDBCLUSTER_INSTANCE_CLONE_RULES", _("TenDB Cluster DB实例权限克隆"), _("权限管理"))  # noqa
     TENDBCLUSTER_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"), _("权限管理"))
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES", _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
-    TENDBCLUSTER_CLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_CLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"), register_iam=False)  # noqa
+    TENDBCLUSTER_CLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_CLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"))  # noqa
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"), register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster DB克隆"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))
-    TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE", _("TenDB Cluster 授权规则变更"), register_iam=False)  # noqa
+    TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE", _("TenDB Cluster 授权规则变更"))  # noqa
     TENDBCLUSTER_ADD_CLB = TicketEnumField("TENDBCLUSTER_ADD_CLB", _("TenDB Cluster 接入 CLB"))
     TENDBCLUSTER_CLB_BIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_BIND_DOMAIN", _("TenDB Cluster 主域名指向 CLB"))  # noqa
     TENDBCLUSTER_CLB_UNBIND_DOMAIN = TicketEnumField("TENDBCLUSTER_CLB_UNBIND_DOMAIN", _("TenDB Cluster 主域名解绑 CLB"))  # noqa
