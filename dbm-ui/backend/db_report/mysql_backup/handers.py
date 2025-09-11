@@ -233,39 +233,6 @@ class MySQLBackupHandler:
             logger.info("{} only part of storage instance get privilege file".format(self.cluster.id))
         return backup_priv_info
 
-    def get_spider_latest_backup_info(self, latest_time: datetime = None, shard_list: list = None) -> Dict[str, Any]:
-        """
-        tendbCluster 查询当前集群集群各个remote节点点的最新一份远程备份
-        @param latest_time: 查询备份最迟时间
-        @param shard_list: 分片列表，如果为空，则查询所有分片
-        @return: 返回集群的各个数据节点的备份记录
-        """
-        backup_infos = self.get_backup_infos(latest_time)
-        if backup_infos is None:
-            return None
-        cluster_shards = self.cluster.tendbclusterstorageset_set.all()
-        if shard_list is None:
-            shard_list = [shard.shard_id for shard in cluster_shards]
-        logger.info("get backup shards {}".format(shard_list))
-        cluster_backup_info = {
-            "cluster_id": self.cluster.id,
-            "bk_cloud_id": self.cluster.bk_cloud_id,
-            "bk_biz_id": self.cluster.bk_biz_id,
-            "cluster_address": self.cluster.immute_domain,
-            "spider_node": {},
-            "tdbctl_node": {},
-            "remote_node": {},
-        }
-        for backup_info in backup_infos:
-            if backup_info["shard_value"] in shard_list and backup_info["mysql_role"] in ["master", "slave"]:
-                shard_list.remove(backup_info["shard_value"])
-                cluster_backup_info["remote_node"][str(backup_info["shard_value"])] = backup_info
-        if len(shard_list) != 0:
-            self.errmsg = _("集群id {} 查询不到 {} shard 分片的备份").format(self.cluster.id, shard_list)
-            logger.error(self.errmsg)
-            return None
-        return cluster_backup_info
-
     def get_spider_rollback_backup_info(self, latest_time: datetime = None, limit_one: bool = False) -> Dict[str, Any]:
         """
         tendbCluster 查询当前集群集群各个remote节点点的最新一份远程备份,且要求所有的分片backup_id是一致的。
@@ -287,6 +254,13 @@ class MySQLBackupHandler:
             "bk_cloud_id": self.cluster.bk_cloud_id,
             "bk_biz_id": self.cluster.bk_biz_id,
             "cluster_address": self.cluster.immute_domain,
+            #  判断影响取 remote 并集? _xxx
+            "database_list": [],
+            "backup_method_list": [],
+            "backup_type_list": [],
+            "total_filesize": 0,
+            #  如果有多个就忽略
+            "backup_method": "",
             "spider_node": {},
             "tdbctl_node": {},
             "remote_node": {},
@@ -316,6 +290,19 @@ class MySQLBackupHandler:
                 )
             ):
                 cluster_backup_info_map[backup_info["backup_id"]]["shard_list"].remove(int(backup_info["shard_value"]))
+                cluster_backup_info_map[backup_info["backup_id"]]["backup_type_list"].append(
+                    backup_info["backup_type"]
+                )
+                cluster_backup_info_map[backup_info["backup_id"]]["backup_method_list"].append(
+                    backup_info["backup_method"]
+                )
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                shard_database_list = backup_info["extra_fields"].get("database_list", [])
+                for db in shard_database_list:
+                    shard_str = f"_{backup_info['shard_value']}"
+                    cluster_backup_info_map[backup_info["backup_id"]]["database_list"].append(
+                        str(db).rstrip(shard_str)
+                    )
                 cluster_backup_info_map[backup_info["backup_id"]]["remote_node"][
                     int(backup_info["shard_value"])
                 ] = backup_info
@@ -323,19 +310,34 @@ class MySQLBackupHandler:
                 len(cluster_backup_info_map[backup_info["backup_id"]]["spider_node"]) == 0
                 and backup_info["mysql_role"] == "spider_master"
             ):
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
+                    backup_info["extra_fields"].get("database_list", [])
+                )
                 cluster_backup_info_map[backup_info["backup_id"]]["spider_node"] = backup_info
             elif (
                 len(cluster_backup_info_map[backup_info["backup_id"]]["tdbctl_node"]) == 0
                 and backup_info["mysql_role"] == "TDBCTL"
             ):
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
+                    backup_info["extra_fields"].get("database_list", [])
+                )
                 cluster_backup_info_map[backup_info["backup_id"]]["tdbctl_node"] = backup_info
         # 检查cluster_backup_info_map是否完整
         cluster_backup_info_map_tmp = copy.deepcopy(cluster_backup_info_map)
         for backup_id, backup_map in cluster_backup_info_map_tmp.items():
+            cluster_backup_info_map[backup_id]["backup_method_list"] = list(set(backup_map["backup_method_list"]))
+            cluster_backup_info_map[backup_id]["backup_method"] = cluster_backup_info_map[backup_id][
+                "backup_method_list"
+            ][0]
+            cluster_backup_info_map[backup_id]["backup_type_list"] = list(set(backup_map["backup_type_list"]))
+            cluster_backup_info_map[backup_id]["database_list"] = list(set(backup_map["database_list"]))
             if (
                 len(backup_map["shard_list"]) > 0
                 or len(backup_map.get("tdbctl_node", {})) == 0
                 or len(backup_map.get("spider_node", {})) == 0
+                or len(cluster_backup_info_map[backup_id]["backup_method_list"]) != 1
             ):
                 logger.info(
                     "backup_id: {} not include all nodes: shards: {} spider_node: {} tdbctl_node: {}".format(

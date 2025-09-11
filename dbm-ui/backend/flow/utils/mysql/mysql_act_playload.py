@@ -1707,6 +1707,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             bin_position = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
         bin_file = bin_file.strip().strip("'")
         logger.info("CHANGE MASTER TO MASTER_LOG_FILE='{}', MASTER_LOG_POS={}".format(bin_file, bin_position))
+        not_check_repl_status = self.cluster.get("not_check_repl_status", True)
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ChangeMaster.value,
@@ -1722,6 +1723,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "force": self.cluster.get("change_master_force", False),
                     "bin_file": bin_file,
                     "bin_position": bin_position,
+                    "not_check_repl_status": not_check_repl_status,
                 },
             },
         }
