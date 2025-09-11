@@ -495,7 +495,7 @@ class ResourceHandler(object):
             # 合并计算总价
             excepted_cost += (cpu_per_cost + mem_per_cost + disk_per_cost) * count
 
-        return excepted_cost
+        return int(excepted_cost)
 
     @classmethod
     def standardized_resource_host(cls, hosts):
