@@ -37,6 +37,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('集群类型')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
@@ -44,11 +45,12 @@
             </EditableColumn>
             <EditableColumn
               :label="t('当前 Shard 的节点数')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')">
-                {{ item.cluster.shard_node_count }}
+                {{ item.cluster.id ? item.cluster.shard_node_count : '' }}
               </EditableBlock>
             </EditableColumn>
             <TargetNumColumn

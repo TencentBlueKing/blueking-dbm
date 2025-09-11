@@ -36,7 +36,8 @@
           <EditableColumn
             field="cluster.bk_cloud_name"
             :label="t('所属管控区域')"
-            :min-width="250">
+            :min-width="250"
+            readonly>
             <EditableBlock
               v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />

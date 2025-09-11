@@ -64,6 +64,7 @@
     field="master.instance_address"
     :label="t('校验主库')"
     :min-width="180"
+    readonly
     :required="scope !== 'all'">
     <EditableBlock :placeholder="t('自动生成')">
       <div v-if="scope === 'all'">

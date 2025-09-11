@@ -58,6 +58,7 @@
           <EditableColumn
             :label="t('所属集群')"
             :min-width="150"
+            readonly
             required>
             <EditableBlock
               v-model="item.master.master_domain"

@@ -47,7 +47,8 @@
               :slave-ip="item.host.ip" />
             <EditableColumn
               :label="t('所属集群')"
-              :min-width="200">
+              :min-width="200"
+              readonly>
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 <div
                   v-for="(relatedClusterItem, relatedClusterIndex) in item.host.related_clusters"
@@ -66,6 +67,7 @@
               :tooltips="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')" />
             <EditableColumn
               :label="t('故障从库实例数量')"
+              readonly
               :width="150">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 {{

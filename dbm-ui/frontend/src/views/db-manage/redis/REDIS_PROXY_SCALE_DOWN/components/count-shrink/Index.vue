@@ -26,7 +26,8 @@
       <EditableColumn
         field="cluster.cluster_type_name"
         :label="t('架构版本')"
-        :min-width="150">
+        :min-width="150"
+        readonly>
         <EditableBlock
           v-model="item.cluster.cluster_type_name"
           :placeholder="t('自动生成')" />
@@ -34,7 +35,8 @@
       <EditableColumn
         field="cluster.proxyCount"
         :label="t('当前数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{ item.cluster.id ? item.cluster.proxyCount : '' }}
         </EditableBlock>
@@ -49,7 +51,8 @@
         :append-rules="targetCountRules"
         field="target_proxy_count"
         :label="t('剩余数量（台）')"
-        :min-width="200">
+        :min-width="200"
+        readonly>
         <EditableBlock :placeholder="t('自动生成')">
           {{
             item.target_proxy_count

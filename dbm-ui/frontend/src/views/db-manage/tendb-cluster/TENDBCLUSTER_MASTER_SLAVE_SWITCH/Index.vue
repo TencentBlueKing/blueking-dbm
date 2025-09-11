@@ -41,7 +41,8 @@
             :master="item.master" />
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.master.master_domain"
               :placeholder="t('自动生成')" />

@@ -54,7 +54,8 @@
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('同机关联集群')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.slave.master_domain"
               :placeholder="t('自动生成')" />
