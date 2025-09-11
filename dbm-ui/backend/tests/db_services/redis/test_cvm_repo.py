@@ -9,7 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
-from db_services.redis.capacity_evaluate_service.repositories.cvm_repo import CvmSpec, CONST_NVME_SSD_DISK_SIZE_4X
+
+from db_services.redis.capacity_evaluate_service.repositories.cvm_repo import CONST_NVME_SSD_DISK_SIZE_4X, CvmSpec
 from django.utils.dateparse import parse_datetime
 
 

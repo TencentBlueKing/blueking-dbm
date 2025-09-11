@@ -12,11 +12,13 @@ specific language governing permissions and limitations under the License.
 import time
 import traceback
 from enum import Enum
+
+from django.utils.translation import ugettext as _
+
 from backend.db_services.redis.capacity_evaluate_service.models.tb_capacity_evaluate import CapacityEvaluateRecord
+from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_topo_repo import ClusterCapacityInfo
 from backend.db_services.redis.capacity_evaluate_service.repositories.evaluate_record_repo import EvaluateRecordRepo
 from backend.db_services.redis.capacity_evaluate_service.util import logger_debug
-from django.utils.translation import ugettext as _
-from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_topo_repo import ClusterCapacityInfo
 
 from .capacity_cal import CapacityCalculateService
 

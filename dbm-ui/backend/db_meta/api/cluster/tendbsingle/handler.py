@@ -14,7 +14,7 @@ from django.db import transaction
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, InstancePhase, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -107,6 +107,17 @@ class TenDBSingleClusterHandler(ClusterHandler):
         """「必须」提供集群关系拓扑图"""
         return api.cluster.tendbsingle.scan_cluster(self.cluster).to_dict()
 
-    def get_remote_address(self) -> StorageInstance:
+    def get_remote_address(self, role=None) -> StorageInstance:
         """查询DRS访问远程数据库的地址"""
-        return StorageInstance.objects.get(cluster=self.cluster).ip_port
+        if not role:
+            return StorageInstance.objects.get(cluster=self.cluster).ip_port
+
+        query_set = StorageInstance.objects.filter(
+            cluster=self.cluster,
+            instance_role=role,
+            status=InstanceStatus.RUNNING.value,
+            phase=InstancePhase.ONLINE.value,
+        )
+        if not query_set:
+            raise ValueError("not online host")
+        return query_set.first().ip_port
