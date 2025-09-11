@@ -5,6 +5,7 @@
     <div class="t-table__filter-pop-search">
       <Input
         v-model="serachKey"
+        autofocus
         borderless
         clearable
         placeholder="请输入关键字">

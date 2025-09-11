@@ -81,7 +81,7 @@ export default (options = {} as { exclude: string[] }) => {
 
           return getUserList(requestParams).then((data) =>
             data.results.map((item) => ({
-              label: `${item.display_name} (${item.username})`,
+              label: `${item.username} (${item.display_name})`,
               value: item.username,
             })),
           );
