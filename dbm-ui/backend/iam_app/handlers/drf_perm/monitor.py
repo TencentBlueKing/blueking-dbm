@@ -23,6 +23,7 @@ from backend.iam_app.exceptions import ActionNotExistError, ResourceNotExistErro
 from backend.iam_app.handlers.drf_perm.base import (
     BizOrGlobalResourceActionPermission,
     ResourceActionPermission,
+    get_alarm_shield_request_key_id,
     get_request_key_id,
 )
 
@@ -125,7 +126,7 @@ class AlertShieldPermission(ResourceActionPermission):
         # 创建动作 -- 告警屏蔽创建鉴权
         if view.action == "create":
             self.actions = [ActionEnum.ALERT_SHIELD_CREATE]
-            return [get_request_key_id(request, "bk_biz_id")]
+            return [get_alarm_shield_request_key_id(request, "bk_biz_id")]
 
         # 从监控获得告警屏蔽详情
         try:
