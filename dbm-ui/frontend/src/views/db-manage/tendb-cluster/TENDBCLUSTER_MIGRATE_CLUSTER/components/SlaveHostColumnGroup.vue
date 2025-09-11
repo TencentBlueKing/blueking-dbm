@@ -15,7 +15,8 @@
   <EditableColumn
     :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock
       v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
@@ -23,7 +24,8 @@
   <EditableColumn
     :label="t('从库主机关联实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"

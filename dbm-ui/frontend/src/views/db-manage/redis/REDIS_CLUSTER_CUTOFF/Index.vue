@@ -38,7 +38,8 @@
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <div style="flex: 1">
               <EditableBlock
                 v-model="item.host.role"
@@ -52,7 +53,8 @@
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.host.master_domain"
               :placeholder="t('自动生成')" />

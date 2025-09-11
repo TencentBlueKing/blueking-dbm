@@ -14,7 +14,8 @@
 <template>
   <EditableColumn
     :label="t('当前容量')"
-    :min-width="400">
+    :min-width="400"
+    readonly>
     <EditableBlock :placeholder="t('选择集群后自动生成')">
       <div
         v-if="modelValue.id"
