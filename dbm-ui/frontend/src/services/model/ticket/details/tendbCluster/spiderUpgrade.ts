@@ -38,5 +38,7 @@ export interface SpiderUpgrade extends DetailBase {
       pkg_name: string;
     };
   }[];
+  ip_source: 'resource_pool';
   is_safe: boolean;
+  upgrade_local: boolean;
 }

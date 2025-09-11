@@ -36,11 +36,12 @@
         :desc="t('适用于小版本升级，如 3.6.1 -> 3.6.3 或 3.6.1 -> 3.7.3')"
         icon="rebuild"
         :title="t('原地升级')"
-        :true-value="TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE" />
+        :true-value="TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE" />
       <CardCheckbox
         v-model="updateType"
         class="ml-8"
         :desc="t('适用于大版本升级，如 spider1.x -> spider3.x')"
+        disabled
         icon="clone"
         :title="t('迁移升级')"
         :true-value="TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE" />
@@ -191,20 +192,15 @@
     },
   ];
 
-  const tendbclusterType = ref<'SPIDER' | 'REMOTE'>('SPIDER');
-  const updateType = ref<TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE | TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE>(
-    TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
-  );
+  const tendbclusterType = ref<'SPIDER' | 'REMOTE'>('REMOTE');
+  const updateType = ref<TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<TendbCluster.LocalUpgrade>(TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE, {
+  useTicketDetail<TendbCluster.LocalUpgrade>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, {
     onSuccess(ticketDetail) {
-      updateType.value = ticketDetail.details.upgrade_local
-        ? TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE
-        : TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE;
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
         tableData: ticketDetail.details.infos.map((item) =>
@@ -242,15 +238,7 @@
     }[];
     is_safe: boolean;
     upgrade_local: boolean;
-  }>(TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE);
-
-  watch(updateType, () => {
-    if (updateType.value === TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE) {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE,
-      });
-    }
-  });
+  }>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
 
   const handleChangeType = (value: string) => {
     if (value === 'REMOTE') {
