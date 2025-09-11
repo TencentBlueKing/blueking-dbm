@@ -921,6 +921,18 @@ class RedisClusterDataCopyFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
+            # 交换源集群、目标集群的CC信息
+            act_kwargs.cluster = {
+                "src_cluster_id": src_cluster_info["cluster_id"],
+                "dst_cluster_id": dst_cluster_info["cluster_id"],
+                "meta_func_name": RedisDBMeta.dts_online_switch_swap_cc.__name__,
+            }
+            redis_pipeline.add_act(
+                act_name=_("交换源集群、目标集群的storageinstance CC数据"),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
             # 更新源集群、目标集群的 cluster nodes 域名
             act_kwargs.cluster = {
                 "src_cluster_id": src_cluster_info["cluster_id"],
