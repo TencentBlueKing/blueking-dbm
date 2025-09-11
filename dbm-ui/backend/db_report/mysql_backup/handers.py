@@ -257,6 +257,7 @@ class MySQLBackupHandler:
             #  判断影响取 remote 并集? _xxx
             "database_list": [],
             "backup_method_list": [],
+            "backup_tool_list": [],
             "backup_type_list": [],
             "total_filesize": 0,
             #  如果有多个就忽略
@@ -293,10 +294,15 @@ class MySQLBackupHandler:
                 cluster_backup_info_map[backup_info["backup_id"]]["backup_type_list"].append(
                     backup_info["backup_type"]
                 )
+                cluster_backup_info_map[backup_info["backup_id"]]["backup_tool_list"].append(
+                    backup_info["extra_fields"]["backup_tool"]
+                )
                 cluster_backup_info_map[backup_info["backup_id"]]["backup_method_list"].append(
                     backup_info["backup_method"]
                 )
-                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
+                    "extra_fields", {}
+                ).get("total_filesize", 0)
                 shard_database_list = backup_info["extra_fields"].get("database_list", [])
                 for db in shard_database_list:
                     shard_str = f"_{backup_info['shard_value']}"
@@ -310,7 +316,9 @@ class MySQLBackupHandler:
                 len(cluster_backup_info_map[backup_info["backup_id"]]["spider_node"]) == 0
                 and backup_info["mysql_role"] == "spider_master"
             ):
-                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
+                    "extra_fields", {}
+                ).get("total_filesize", 0)
                 cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
                     backup_info["extra_fields"].get("database_list", [])
                 )
@@ -319,7 +327,9 @@ class MySQLBackupHandler:
                 len(cluster_backup_info_map[backup_info["backup_id"]]["tdbctl_node"]) == 0
                 and backup_info["mysql_role"] == "TDBCTL"
             ):
-                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info["total_filesize"]
+                cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
+                    "extra_fields", {}
+                ).get("total_filesize", 0)
                 cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
                     backup_info["extra_fields"].get("database_list", [])
                 )
@@ -332,7 +342,15 @@ class MySQLBackupHandler:
                 "backup_method_list"
             ][0]
             cluster_backup_info_map[backup_id]["backup_type_list"] = list(set(backup_map["backup_type_list"]))
+            cluster_backup_info_map[backup_id]["backup_type"] = ",".join(
+                cluster_backup_info_map[backup_id]["backup_type_list"]
+            )
             cluster_backup_info_map[backup_id]["database_list"] = list(set(backup_map["database_list"]))
+            cluster_backup_info_map[backup_id]["backup_tool_list"] = list(set(backup_map["backup_tool_list"]))
+            cluster_backup_info_map[backup_id]["backup_tool"] = ",".join(
+                cluster_backup_info_map[backup_id]["backup_tool_list"]
+            )
+
             if (
                 len(backup_map["shard_list"]) > 0
                 or len(backup_map.get("tdbctl_node", {})) == 0
