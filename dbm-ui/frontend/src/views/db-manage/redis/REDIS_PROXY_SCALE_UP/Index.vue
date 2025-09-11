@@ -41,6 +41,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
+              readonly
               :width="180">
               <EditableBlock :placeholder="t('选择集群后自动生成')">
                 {{ item.cluster.cluster_type_name }}

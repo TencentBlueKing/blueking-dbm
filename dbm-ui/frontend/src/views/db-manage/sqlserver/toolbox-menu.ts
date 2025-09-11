@@ -93,6 +93,7 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.SQLSERVER_FULL_MIGRATE, TicketTypes.SQLSERVER_INCR_MIGRATE],
         id: TicketTypes.SQLSERVER_FULL_MIGRATE,
         name: t('数据迁移'),
         parentId: 'data',

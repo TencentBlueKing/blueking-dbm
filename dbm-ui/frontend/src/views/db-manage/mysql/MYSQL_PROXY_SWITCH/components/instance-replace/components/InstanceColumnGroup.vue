@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
-    :min-width="240">
+    :min-width="240"
+    readonly>
     <EditableBlock
       v-model="modelValue.master_domain"
       :placeholder="t('自动生成')" />

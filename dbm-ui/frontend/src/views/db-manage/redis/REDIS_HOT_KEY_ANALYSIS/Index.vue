@@ -36,14 +36,16 @@
             @batch-edit="handleInstanceBatchEdit" />
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.instance.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
             :label="t('架构版本')"
-            :min-width="150">
+            :min-width="150"
+            readonly>
             <EditableBlock
               v-model="item.instance.cluster_type_name"
               :placeholder="t('自动生成')" />

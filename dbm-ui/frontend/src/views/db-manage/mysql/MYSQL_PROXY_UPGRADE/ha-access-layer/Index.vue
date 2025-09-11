@@ -30,6 +30,7 @@
           field="current_version"
           :label="t('当前版本')"
           :min-width="200"
+          readonly
           required>
           <EditableBlock
             v-model="item.current_version"

@@ -49,12 +49,14 @@
         <EditableColumn
           field="cluster.master_domain"
           :label="t('集群')"
+          readonly
           required>
           <EditableBlock v-model="item.cluster.master_domain" />
         </EditableColumn>
         <EditableColumn
           field="cluster.major_version"
           :label="t('版本')"
+          readonly
           :width="150">
           <EditableBlock v-model="item.cluster.major_version" />
         </EditableColumn>

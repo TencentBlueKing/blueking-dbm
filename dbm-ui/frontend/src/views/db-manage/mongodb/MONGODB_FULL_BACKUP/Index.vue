@@ -37,6 +37,7 @@
             <EditableColumn
               field="cluster.cluster_type_name"
               :label="t('集群类型')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"

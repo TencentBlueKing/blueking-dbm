@@ -38,6 +38,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('架构版本')"
+              readonly
               :width="150">
               <EditableBlock
                 v-model="rowData.cluster.cluster_type_name"

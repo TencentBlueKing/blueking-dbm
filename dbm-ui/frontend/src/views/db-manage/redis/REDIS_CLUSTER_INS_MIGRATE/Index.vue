@@ -49,6 +49,7 @@
               field="batchInstance.renderText"
               :label="t('所属集群')"
               :min-width="300"
+              readonly
               :rowspan="item.rowspan">
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 <div

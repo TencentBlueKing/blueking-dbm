@@ -36,7 +36,8 @@
   <EditableColumn
     :label="t('主库主机关联实例')"
     :loading="loading"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
       <p
         v-for="item in modelValue.related_instances"
