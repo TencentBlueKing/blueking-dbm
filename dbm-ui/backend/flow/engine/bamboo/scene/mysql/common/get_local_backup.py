@@ -12,8 +12,11 @@ import json
 import logging.config
 import os.path
 
+from django.db.models import Q
+
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 
 logger = logging.getLogger("root")
@@ -93,6 +96,65 @@ def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
             "cmds": [query_cmds],
             "force": False,
             "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if res[0]["error_msg"]:
+        logging.error("get databases  error {}".format(res[0]["error_msg"]))
+        return False
+    if isinstance(res[0]["cmd_results"][0]["table_data"], list) and len(res[0]["cmd_results"][0]["table_data"]) == 0:
+        logging.info(res[0]["cmd_results"])
+        return True
+    else:
+        return False
+
+
+def check_rollback_databases(cluster_id: int, database_list: list[str], shard_id: int = None) -> bool:
+    """
+    检查回档的数据库是否在源集群存在
+    @param cluster_id: 目标集群id
+    @param database_list: 逻辑备份数据库列表
+    """
+    target_cluster = Cluster.objects.get(id=cluster_id)
+    if target_cluster.cluster_type == ClusterType.TenDBCluster.value:
+        if shard_id is None:
+            spider_master = target_cluster.proxyinstance_set.filter(
+                status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            ).first()
+            rds_instance = spider_master.ip_port
+        else:
+            remote_master = target_cluster.storageinstance_set.filter(
+                status=InstanceStatus.RUNNING, as_ejector__tendbclusterstorageset__shard_id=shard_id
+            ).first()
+            rds_instance = remote_master.ip_port
+    else:
+        filters = Q(
+            cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+        ) | Q(cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value)
+        master = target_cluster.storageinstance_set.get(filters)
+        rds_instance = master.ip_port
+    ignore_database_list = [
+        "information_schema",
+        "db_infobase",
+        "infodba_schema",
+        "mysql",
+        "test",
+        "sys",
+        "performance_schema",
+        "__cdb_recycle_bin__",
+    ]
+    ignore_database_list_str = "','".join(ignore_database_list)
+    database_list_str = "','".join(database_list)
+    query_cmds = """select SCHEMA_NAME from information_schema.schemata where
+    SCHEMA_NAME not in ('{}') and SCHEMA_NAME in ('{}')""".format(
+        ignore_database_list_str, database_list_str
+    )
+    logger.info(query_cmds)
+    res = DRSApi.rpc(
+        {
+            "addresses": [rds_instance],
+            "cmds": [query_cmds],
+            "force": False,
+            "bk_cloud_id": target_cluster.bk_cloud_id,
         }
     )
     if res[0]["error_msg"]:
