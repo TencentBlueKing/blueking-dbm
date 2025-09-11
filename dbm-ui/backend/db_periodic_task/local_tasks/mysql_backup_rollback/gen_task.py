@@ -181,9 +181,10 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
     ) | Q(
         cluster_id=cluster_id,
         cluster_address=cluster.immute_domain,
-        mysql_role__in=["spider_master", "TDBCTL"],  # spider dbctl 节点只是备份权限
         backup_consistent_time__range=(start_time, end_time),
-    )
+    ) & ~Q(
+        mysql_role__in=["spider_master", "TDBCTL"]
+    )  # 排除 spider_master 和 TDBCTL 角色
 
     # 查询备份记录，直接排除已回档的备份ID
     backup_records = (
@@ -222,24 +223,25 @@ def gen_rollback_task():
             ).values_list("backup_id", flat=True)
         )
 
-        # 构建查询条件
-        conditions = Q(
+        # 构建查询条件：基础条件
+        base_conditions = Q(
             cluster_id=cluster.id,
             cluster_address=cluster.immute_domain,
-            is_full_backup=1,  # 全备
-            backup_consistent_time__range=(start_time, end_time),  # 在时间范围内
-        ) | Q(
-            cluster_id=cluster.id,
-            cluster_address=cluster.immute_domain,
-            mysql_role__in=["spider_master", "TDBCTL"],  # spider dbctl 节点只是备份权限
             backup_consistent_time__range=(start_time, end_time),
+            is_full_backup=1,  # 全备
         )
+
+        # 排除特殊角色的条件
+        exclude_special_roles = ~Q(mysql_role__in=["spider_master", "TDBCTL", "spider_mnt"])
+
+        # 最终条件：基础条件 AND 排除特殊角色
+        conditions = base_conditions & exclude_special_roles
 
         # 查询备份记录，直接排除已回档的备份ID
         backup_results = (
             MysqlBackupResult.objects.filter(conditions)
             .exclude(backup_id__in=exercised_backup_ids)
-            .order_by("backup_consistent_time")
+            .order_by("backup_consistent_time")[:10]
         )
 
         if not backup_results.exists():
