@@ -111,9 +111,10 @@ def redis_dst_cluster_backup_and_flush(root_id, ticket_data, act_kwargs: ActKwar
     act_kwargs.cluster = backup_flush_cluster
     import time
 
-    act_kwargs.cluster["backup_identify"] = (
-        "DTS{}-{}".format(ticket_data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))),
-    )  # 集群DTS的备份标识
+    act_kwargs.cluster["backup_identify"] = "DTS{}-{}".format(
+        ticket_data.get("uid"), time.strftime("%Y%m%d%H", time.localtime(time.time()))
+    )
+    # 集群DTS的备份标识
 
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_base()
