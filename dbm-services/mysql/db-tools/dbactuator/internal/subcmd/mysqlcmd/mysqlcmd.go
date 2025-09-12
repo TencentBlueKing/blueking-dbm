@@ -12,11 +12,11 @@
 package mysqlcmd
 
 import (
+	"github.com/spf13/cobra"
+
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	v2 "dbm-services/mysql/db-tools/dbactuator/internal/subcmd/mysqlcmd/v2"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
-
-	"github.com/spf13/cobra"
 )
 
 // NewMysqlCommand mysql子命令
@@ -45,7 +45,7 @@ func NewMysqlCommand() *cobra.Command {
 				ParseBinlogTimeCommand(),
 				FlashbackBinlogCommand(),
 				NewPtTableChecksumCommand(),
-				NewInstallNewDbBackupCommand(), //回档备份在用
+				NewInstallNewDbBackupCommand(), // 回档备份在用
 				ClearInstanceConfigCommand(),
 				NewExecPartitionSQLCommand(),
 				NewBackupDemandCommand(),
@@ -90,6 +90,17 @@ func NewMysqlCommand() *cobra.Command {
 				NewBuildMsRelatioCommand(),
 				RestoreDRCommand(),
 				RecoverBinlogCommand(),
+			},
+		},
+		{
+			Message: "mysql upgrade operation sets",
+			Commands: []*cobra.Command{
+				NewUpgradeRelinkMySQLCommand(),
+				NewUpgradePrepareMySQLCommand(),
+				NewUpgradeRestartMySQLCommand(),
+				NewUpgradeStartMySQLCommand(),
+				NewUpgradeCheckMySQLCommand(),
+				NewUpgradeExecMySQLCommand(),
 			},
 		},
 	}

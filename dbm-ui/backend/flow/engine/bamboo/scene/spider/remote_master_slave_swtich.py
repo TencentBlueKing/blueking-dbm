@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
@@ -53,12 +53,43 @@ class RemoteMasterSlaveSwitchFlow(object):
     2.3：建立新的复制关系
     2.3：断开newMaster同步
     3: 修改元数据
+
+    入参数据结构说明：
+    data = {
+        "bk_biz_id": 100000,  # 业务ID
+        "infos": [  # 集群信息列表
+            {
+                "cluster_id": 1,  # 集群ID
+                "switch_tuples": [  # 切换元组列表，定义需要切换的master-slave对
+                    {
+                        "master": {  # 当前master实例信息
+                            "ip": "192.168.1.100",  # master实例IP地址
+                            "bk_biz_id": 100000,  # 业务ID
+                            "bk_host_id": 10001,  # 主机ID
+                            "bk_cloud_id": 0  # 云区域ID
+                        },
+                        "slave": {  # 当前slave实例信息
+                            "ip": "192.168.1.101",  # slave实例IP地址
+                            "bk_biz_id": 100000,  # 业务ID
+                            "bk_host_id": 10002,  # 主机ID
+                            "bk_cloud_id": 0  # 云区域ID
+                        }
+                    }
+                ]
+            }
+        ],
+        "is_check_process": True,  # 是否检查进程连接
+        "is_verify_checksum": False,  # 是否验证数据校验和
+        "force": False  # 是否强制切换（可选）
+    }
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
-        @param root_id : 任务流程定义的root_id
-        @param data : 单据传递参数
+        初始化TenDB Cluster集群remote存储对互切流程
+
+        @param root_id: 任务流程定义的root_id，用于标识整个流程实例
+        @param data: 单据传递参数，包含集群信息和切换配置，具体结构见类文档字符串
         """
         self.root_id = root_id
         self.data = data
@@ -92,6 +123,21 @@ class RemoteMasterSlaveSwitchFlow(object):
         cluster_switch_map = defaultdict(list)
         for info in self.data["infos"]:
             cluster_switch_map[info["cluster_id"]].extend(info["switch_tuples"])
+
+        # 对每个集群的switch_tuples进行去重处理
+        for cluster_id in cluster_switch_map:
+            switch_tuples = cluster_switch_map[cluster_id]
+            seen = set()
+            unique_switch_tuples = []
+            for switch_tuple in switch_tuples:
+                master_ip = switch_tuple["master"]["ip"]
+                slave_ip = switch_tuple["slave"]["ip"]
+                key = f"{master_ip}-{slave_ip}"
+                if key not in seen:
+                    seen.add(key)
+                    unique_switch_tuples.append(switch_tuple)
+            cluster_switch_map[cluster_id] = unique_switch_tuples
+
         return cluster_switch_map
 
     def get_cluster_and_validate(self, cluster_id):
@@ -108,6 +154,10 @@ class RemoteMasterSlaveSwitchFlow(object):
         spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING)
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
         return spiders, ctl_primary
+
+    def get_ctl_primary_ip(self, ctl_primary):
+        """从ctl_primary地址中提取IP地址"""
+        return ctl_primary.split(":")[0]
 
     def calculate_check_parameters(self, sub_flow_context, cluster, switch_tuples, spiders):
         """计算预检测需要的参数"""
@@ -169,7 +219,7 @@ class RemoteMasterSlaveSwitchFlow(object):
             kwargs=asdict(
                 DownloadMediaKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
-                    exec_ip=ctl_primary.split(":")[0],
+                    exec_ip=self.get_ctl_primary_ip(ctl_primary),
                     file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                 )
             ),
@@ -184,7 +234,7 @@ class RemoteMasterSlaveSwitchFlow(object):
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     get_mysql_payload_func=MysqlActPayload.tendb_cluster_remote_switch.__name__,
-                    exec_ip=ctl_primary.split(":")[0],
+                    exec_ip=self.get_ctl_primary_ip(ctl_primary),
                     cluster={"cluster_id": cluster_id, "switch_tuples": switch_tuples, "batch_id": batch_idx},
                 )
             ),
@@ -200,7 +250,7 @@ class RemoteMasterSlaveSwitchFlow(object):
                 ExecActuatorKwargs(
                     bk_cloud_id=cluster.bk_cloud_id,
                     get_mysql_payload_func=MysqlActPayload.tendb_cluster_slave_spt_switch.__name__,
-                    exec_ip=ctl_primary.split(":")[0],
+                    exec_ip=self.get_ctl_primary_ip(ctl_primary),
                     cluster={"cluster_id": cluster_id, "switch_tuples": switch_tuples, "batch_id": batch_idx},
                 )
             ),
@@ -322,5 +372,81 @@ class RemoteMasterSlaveSwitchFlow(object):
 
         # 新增解除告警屏蔽步骤
         self.add_disable_alarm_shield_act(sub_pipeline)
+
+        return sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name)))
+
+    def build_cluster_switch_all_pipeline(self, parent_global_data, cluster_id, batch_idx):
+        """
+        构建整个集群全部切换的子流程
+
+        @param parent_global_data: 父流程的全局数据，必须包含以下字段：
+            {
+                # 必传参数
+                "uid": str,                    # 流程单据的uid，用于标识流程
+                "bk_biz_id": int,              # 业务ID，用于权限控制
+                "is_check_process": bool,      # 是否检查客户端连接情况
+                "is_verify_checksum": bool,    # 是否验证checksum结果
+                "is_check_delay": bool,        # 是否检查主从延迟
+
+                # 可选参数
+                "created_by": str,             # 创建者，用于审计（可选）
+                "ticket_type": str,            # 单据类型，如 "TENDBCLUSTER_REMOTE_SWITCH"（可选）
+                "force": bool,                 # 是否强制操作，默认False（可选）
+            }
+            注意：此方法不包含标准化流程，因此不需要标准化相关参数
+        @param cluster_id: 集群ID
+        @param batch_idx: 批次索引，用于区分不同的切换批次
+        """
+        # 准备子流程上下文
+        sub_flow_context = copy.deepcopy(parent_global_data)
+        sub_flow_context.pop("infos")
+        sub_flow_context["force"] = False
+        # 获取集群相关信息
+        cluster = self.get_cluster_and_validate(cluster_id)
+        spiders, ctl_primary = self.get_cluster_components(cluster)
+        switch_tuples = []
+        shards = cluster.tendbclusterstorageset_set.filter()
+        for shard in shards:
+            remote_master = StorageInstance.objects.get(id=shard.storage_instance_tuple.ejector_id)
+            remote_slave = StorageInstance.objects.get(id=shard.storage_instance_tuple.receiver_id)
+            switch_tuples.append(
+                {
+                    "master": {
+                        "ip": remote_master.machine.ip,
+                        "bk_cloud_id": cluster.bk_cloud_id,
+                    },
+                    "slave": {
+                        "ip": remote_slave.machine.ip,
+                        "bk_cloud_id": cluster.bk_cloud_id,
+                    },
+                }
+            )
+
+        # 去重处理：基于master和slave的IP组合去重
+        seen = set()
+        unique_switch_tuples = []
+        for switch_tuple in switch_tuples:
+            master_ip = switch_tuple["master"]["ip"]
+            slave_ip = switch_tuple["slave"]["ip"]
+            key = f"{master_ip}-{slave_ip}"
+            if key not in seen:
+                seen.add(key)
+                unique_switch_tuples.append(switch_tuple)
+        switch_tuples = unique_switch_tuples
+        # 计算检测参数
+        check_client_conn_inst, verify_checksum_tuples, slave_addr_tuples = self.calculate_check_parameters(
+            sub_flow_context, cluster, switch_tuples, spiders
+        )
+
+        # 创建子流水线
+        sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+        # 添加各个步骤
+        self.add_pre_check_sub_flow(
+            sub_pipeline, sub_flow_context, cluster, check_client_conn_inst, verify_checksum_tuples, slave_addr_tuples
+        )
+        self.add_master_switch_act(sub_pipeline, cluster, ctl_primary, cluster_id, switch_tuples, batch_idx)
+        self.add_slave_switch_act(sub_pipeline, cluster, ctl_primary, cluster_id, switch_tuples, batch_idx)
+        self.add_meta_update_act(sub_pipeline, cluster_id, switch_tuples, False)
 
         return sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name)))

@@ -31,6 +31,7 @@ class MysqlLocalUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlLocalUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_local_upgrade_scene
+    validator = MySQLController.mysql_local_upgrade_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_LOCAL_UPGRADE)

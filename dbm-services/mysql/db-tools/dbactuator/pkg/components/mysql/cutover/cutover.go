@@ -373,6 +373,7 @@ func (m *CutOverToSlaveComp) GrantRepl() (err error) {
 				ReplHosts: []string{host},
 			},
 		}
+		logger.Info("在 [%s:%d] 对 [%s] 授权Repl账户", m.cluster.AltSlaveIns.Host, m.cluster.AltSlaveIns.Port, host)
 		if err = g.Init(); err != nil {
 			logger.Error("%s:grant repl,init db conn failed:%s", host, err.Error())
 			return

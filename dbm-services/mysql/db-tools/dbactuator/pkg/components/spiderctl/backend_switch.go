@@ -170,6 +170,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	if err = r.initRollbackRouteFile(); err != nil {
 		return err
 	}
+
 	logger.Info("connect backend instance ...")
 	r.mastersConn = make(map[string]*native.DbWorker)
 	r.slavesConn = make(map[string]*native.DbWorker)
@@ -328,6 +329,11 @@ func readPort(text string) string {
 
 // PreCheck pre-check
 func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
+	// 检查 SwitchPairs 中是否有重复的 SwitchUnit
+	logger.Info("检查 SwitchPairs 中是否有重复的 SwitchUnit")
+	if err = r.validateSwitchPairs(); err != nil {
+		return err
+	}
 	// verify whether the instance relationship in the parameters is consistent with tdbctl servers
 	logger.Info("verify whether the instance relationship in the parameters is consistent with tdbctl servers")
 	if err = r.validateServers(); err != nil {
@@ -342,7 +348,8 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 		return err
 	}
 	// 主从延迟检查
-	if r.Params.SlaveDelayCheck {
+	logger.Info("开始第一次前置的主从延迟的检查,如果是非强制切换,在真正切换还会进行一次检查 ...")
+	if r.Params.SlaveDelayCheck && !r.Params.Force {
 		for addr, conn := range r.slavesConn {
 			logger.Info("check replicate status...")
 			slaveStatus, serr := conn.ShowSlaveStatus()
@@ -524,6 +531,35 @@ func transServersToMap(servers []native.Server) (map[IPPORT]native.Server, map[S
 	return m, sm
 }
 
+// validateSwitchPairs 检查 SwitchPairs 中是否有重复的 SwitchUnit
+func (r *SpiderClusterBackendSwitchComp) validateSwitchPairs() (err error) {
+	// 使用 map 来跟踪已见过的 SwitchUnit
+	seenUnits := make(map[string]bool)
+
+	for i, switchUnit := range r.Params.SwitchPairs {
+		// 创建 SwitchUnit 的唯一标识符，基于 ShardID、Master 和 Slave 的组合
+		unitKey := fmt.Sprintf("shard_%d_master_%s_slave_%s",
+			switchUnit.ShardID,
+			switchUnit.Master.IpPort(),
+			switchUnit.Slave.IpPort())
+
+		// 检查是否已经存在相同的 SwitchUnit
+		if seenUnits[unitKey] {
+			return fmt.Errorf("发现重复的 SwitchUnit: ShardID=%d, Master=%s, Slave=%s (索引: %d)",
+				switchUnit.ShardID,
+				switchUnit.Master.IpPort(),
+				switchUnit.Slave.IpPort(),
+				i)
+		}
+
+		// 标记这个 SwitchUnit 为已见过
+		seenUnits[unitKey] = true
+	}
+
+	logger.Info("SwitchPairs 重复检查通过，共 %d 个 SwitchUnit", len(r.Params.SwitchPairs))
+	return nil
+}
+
 func (r *SpiderClusterBackendSwitchComp) validateServers() (err error) {
 	svrmap := r.ipPortServersMap
 	for _, ms := range r.Params.SwitchPairs {
@@ -616,7 +652,11 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	// check the replication status again
 	if !r.Params.Force {
 		// lock all spider write
-		defer r.Unlock()
+		defer func() {
+			if uerr := r.Unlock(); uerr != nil {
+				logger.Error("unlock failed: %v", uerr)
+			}
+		}()
 		logger.Info("start locking the spider node")
 		if err = r.lockaAllSpidersWrite(); err != nil {
 			return err

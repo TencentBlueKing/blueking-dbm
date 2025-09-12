@@ -235,6 +235,8 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
         return ""
 
     return resp[0]["cmd_results"][0]["table_data"][0].get("version")
+    # mock data
+    # return "5.6.24-tmysql-2.2.2"
 
 
 def spider_cross_major_version(current_version_num, refer_version_num) -> bool:

@@ -352,3 +352,41 @@ class MysqlDataMigrateContext:
     @staticmethod
     def get_file_list_var_name() -> str:
         return "file_list_info"
+
+
+@dataclass()
+class MySQLUpgradeContext:
+    """
+    定义MySQL升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    master_ip_sync_info: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
+
+    @staticmethod
+    def get_new_master_bin_pos_var_name() -> str:
+        return "master_ip_sync_info"
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"
+
+
+@dataclass()
+class TendbClusterStorageUpgradeContext:
+    """
+    定义TenDBClusterStorage升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    alarm_shield_id: int = None
+    masters_bin_pos_map: dict = field(default_factory=dict)  # 代表新master的位点信息
+
+    @staticmethod
+    def get_new_masters_bin_pos_var_name() -> str:
+        return "masters_bin_pos_map"
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"
