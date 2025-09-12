@@ -112,9 +112,17 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-select {
-        .bk-tag-close,
-        .clear-icon {
-          display: none !important;
+        &.bk-select {
+          pointer-events: none;
+
+          .bk-tag-close,
+          .clear-icon {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
         }
       }
     }
@@ -135,6 +143,8 @@
       }
 
       .bk-select-trigger {
+        display: flex;
+        align-items: center;
         height: 40px !important;
 
         .bk-select-tag {

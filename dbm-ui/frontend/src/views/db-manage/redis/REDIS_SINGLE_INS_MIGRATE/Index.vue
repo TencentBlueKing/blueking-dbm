@@ -82,7 +82,7 @@
   // 单据克隆
   useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
-      if (ticketDetail.details.infos[0].migrate_type === 'machine') {
+      if (ticketDetail.details.infos[0]!.migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
       }
       formData.payload = createTickePayload(ticketDetail);

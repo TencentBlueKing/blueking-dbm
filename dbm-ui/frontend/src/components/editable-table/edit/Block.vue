@@ -1,15 +1,15 @@
 <template>
   <div
-    class="bk-editable-text"
+    class="bk-editable-block"
     @blur="handleBlur"
     @focus="handleFocus">
     <div
       v-if="slots.prepend"
-      class="bk-editable-text-prepend-wrapper">
+      class="bk-editable-block-prepend-wrapper">
       <slot name="prepend" />
     </div>
     <div
-      class="bk-editable-text-content-wrapper"
+      class="bk-editable-block-content-wrapper"
       :class="{
         'is-show-prepend': Boolean(slots.prepend),
         'is-show-append': Boolean(slots.append),
@@ -21,13 +21,13 @@
       </span>
       <div
         v-if="isShowPlacehoder"
-        class="bk-editable-text-content-placeholder">
+        class="bk-editable-block-content-placeholder">
         {{ placeholder }}
       </div>
     </div>
     <div
       v-if="slots.append"
-      class="bk-editable-text-append-wrapper">
+      class="bk-editable-block-append-wrapper">
       <slot name="append" />
     </div>
   </div>
@@ -86,7 +86,7 @@
   });
 </script>
 <style lang="less">
-  .bk-editable-text {
+  .bk-editable-block {
     position: relative;
     display: flex;
     width: 100%;
@@ -95,8 +95,8 @@
     overflow: hidden;
   }
 
-  .bk-editable-text-prepend-wrapper,
-  .bk-editable-text-append-wrapper {
+  .bk-editable-block-prepend-wrapper,
+  .bk-editable-block-append-wrapper {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -105,16 +105,16 @@
     user-select: none;
   }
 
-  .bk-editable-text-prepend-wrapper {
+  .bk-editable-block-prepend-wrapper {
     padding-left: 10px;
   }
 
-  .bk-editable-text-append-wrapper {
+  .bk-editable-block-append-wrapper {
     padding-right: 10px;
     margin-left: auto;
   }
 
-  .bk-editable-text-content-wrapper {
+  .bk-editable-block-content-wrapper {
     position: relative;
     width: 100%;
     min-height: 40px;
@@ -135,7 +135,7 @@
     }
   }
 
-  .bk-editable-text-content-placeholder {
+  .bk-editable-block-content-placeholder {
     position: absolute;
     display: flex;
     height: 40px;

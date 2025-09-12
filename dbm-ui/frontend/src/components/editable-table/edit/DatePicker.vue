@@ -68,8 +68,10 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-date-picker {
-        .clear-action {
-          display: none !important;
+        &.bk-date-picker {
+          .clear-action {
+            display: none !important;
+          }
         }
       }
     }
