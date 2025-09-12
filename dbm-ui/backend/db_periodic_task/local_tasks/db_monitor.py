@@ -137,8 +137,11 @@ def sync_custom_monitor_policy():
             plat_group = plat_groups.get(db_type)
             expected_group = expected_groups.get(db_type, plat_group)
 
-            logger.info("sync_custom_monitor_policy: %s, %s, %s", bk_biz_id, expected_group, db_type)
-            update_app_policy(bk_biz_id, expected_group, db_type)
+            try:
+                logger.info("sync_custom_monitor_policy: %s, %s, %s", bk_biz_id, expected_group, db_type)
+                update_app_policy(bk_biz_id, expected_group, db_type)
+            except Exception as e:
+                logger.error("sync_custom_monitor_policy error: %s", e)
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
