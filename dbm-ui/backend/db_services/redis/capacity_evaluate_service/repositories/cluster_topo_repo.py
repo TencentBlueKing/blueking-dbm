@@ -12,7 +12,9 @@ specific language governing permissions and limitations under the License.
 import copy
 import datetime
 from collections import defaultdict
+import logging
 
+from backend import env
 from backend.components.bkmonitorv3.client import BKMonitorV3Api
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
@@ -21,9 +23,10 @@ from backend.db_services.redis.capacity_evaluate_service.repositories.cvm_repo i
 from backend.db_services.redis.capacity_evaluate_service.repositories.redis_cluster_repo import DbmClusterRepository
 from backend.db_services.redis.capacity_evaluate_service.util import is_dev, logger_debug
 
+logger = logging.getLogger("root")
 # UNIFY_QUERY_PARAMS is used to query prometheus
 UNIFY_QUERY_PARAMS = {
-    "bk_biz_id": 3,
+    "bk_biz_id": 0,
     "query_configs": [
         {
             "data_source_label": "prometheus",
@@ -297,13 +300,15 @@ class ClusterCapacityInfo:
         sql = f"""avg by (cluster_domain,instance,instance_role) (
         bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes
         {{bk_target_ip =~ "{instance_address_str}"}})"""
+        logger.info(f"generate_capacity_info sql: {sql}")
         end_time = datetime.datetime.now()
         start_time = end_time - datetime.timedelta(minutes=5)
         tsdb_result = exec_promql_instant(sql, bk_biz_id, start_time, end_time)
         query_result = tsdb_result_to_map(tsdb_result, "instance")
+        logger.info(f"generate_capacity_info query_result: {query_result}")
 
         # test, set query_result
-        if is_dev():
+        if False and is_dev():
             logger_debug("is_dev, set query_result for test")
             for shard in self.topo_info.shard_list:
                 first_member = shard["members"][0]
@@ -361,7 +366,7 @@ def exec_promql_instant(promql: str, bk_biz_id: int, start_time, end_time):
     execute promql
     """
     params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-    params["bk_biz_id"] = bk_biz_id
+    params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     params["start_time"] = int(start_time.timestamp())
     params["end_time"] = int(end_time.timestamp())
     params["query_configs"][0]["promql"] = promql

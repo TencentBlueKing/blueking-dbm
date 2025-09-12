@@ -13,6 +13,9 @@ from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_to
     ClusterCapacityInfo,
     ClusterTopoInfo,
 )
+import logging
+
+logger = logging.getLogger("root")
 
 
 class CapacityCalculateService:
@@ -42,15 +45,11 @@ class CapacityCalculateService:
             topo_info.fetch_data()
             topo_info.generate_spec_info()
         except Exception as e:
-            raise Exception(f"get_cluster_info error: {e}")
+            raise e
 
-        try:
-            capacity_info = ClusterCapacityInfo(topo_info)
-            query_errors = capacity_info.generate_capacity_info(bk_biz_id)
-            if len(query_errors) > 0:
-                raise Exception(f"generate_capacity_info errors: {query_errors}")
-
-        except Exception as e:
-            raise Exception(f"generate_capacity_info error: {e}")
+        capacity_info = ClusterCapacityInfo(topo_info)
+        query_errors = capacity_info.generate_capacity_info(bk_biz_id)
+        if len(query_errors) > 0:
+            raise Exception(f"generate_capacity_info errors: {query_errors}")
 
         return capacity_info
