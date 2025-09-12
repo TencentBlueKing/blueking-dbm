@@ -20,14 +20,13 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
-    SkipToRepresentationMixin,
     fetch_cluster_ids,
 )
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisSingleInsMigrateDetailSerializer(RedisBaseOperateDetailSerializer):
     class RedisSingleInsMigrateItemSerializer(DisplayInfoSerializer):
         db_version = serializers.CharField(help_text=_("Redis版本"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
@@ -45,6 +44,7 @@ class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serialize
 
     def validate(self, attrs):
         self.validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs=attrs)
         return attrs
 
     def validate_cluster_can_access(self, attrs):
