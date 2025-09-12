@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import heapq
 import json
 import logging
+import os
 import random
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -30,6 +31,7 @@ from backend.env import MYSQL_BACKUPRECOVER_BIZ_ID, MYSQL_BACKUPRECOVER_MCH_LABE
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import MySQLRollbackExerciseFlow
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.constants import ResourceApplyErrCode, TicketType
 from backend.utils.basic import generate_root_id
 
@@ -105,6 +107,39 @@ def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version:
     }
 
 
+def backup_info_format(backup_info: dict) -> Dict[str, Any]:
+    """
+    备份信息格式化，兼容从es获取的备份信息
+    @param backup_info:一条备份记录
+    @return: 返回格式化后的备份信息
+    """
+    backup_info["binlog_info"] = json.loads(backup_info["binlog_info"])
+    backup_info["file_list"] = json.loads(backup_info["file_list"])
+    backup_info["extra_fields"] = json.loads(backup_info["extra_fields"])
+    backup_info["consistent_backup_time"] = backup_info["backup_consistent_time"]
+    backup_info["backup_time"] = backup_info["backup_consistent_time"]
+    backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+    backup_info["encrypt_enable"] = backup_info["extra_fields"]["encrypt_enable"]
+    backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
+    backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
+    backup_info["backup_tool"] = backup_info["extra_fields"]["backup_tool"]
+    backup_info["file_list_details"] = backup_info["file_list"]
+    task_ids = []
+    local_files = []
+    for file in backup_info["file_list_details"]:
+        task_ids.append(file["task_id"])
+        local_files.append(os.path.join(backup_info["extra_fields"].get("original_backup_dir", ""), file["file_name"]))
+        if file["file_type"] == "priv":
+            file["mysql_role"] = backup_info["mysql_role"]
+            file["backup_consistent_time"] = backup_info["backup_consistent_time"]
+            backup_info["priv"] = file
+        if file["file_type"] == "index":
+            backup_info["index"] = file
+    backup_info["task_ids"] = task_ids
+    backup_info["local_files"] = local_files
+    return backup_info
+
+
 def calculate_min_disk_size(total_filesize: int) -> int:
     """Calculate minimum disk size required for backup recovery
 
@@ -164,36 +199,38 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
     """
     start_time, end_time = get_last_week_range()
 
-    # 先查询出已经回档过的备份ID，直接在查询时排除
-    exercised_backup_ids = set(
-        MySQLBackupRecoverTask.objects.filter(
-            task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
-        ).values_list("backup_id", flat=True)
-    )
-
     # 构建查询条件
     cluster = Cluster.objects.get(id=cluster_id)
+
+    # 查询条件：只查询全备份记录，排除特定角色
     conditions = Q(
         cluster_id=cluster_id,
         cluster_address=cluster.immute_domain,
-        is_full_backup=1,  # 全备
-        backup_consistent_time__range=(start_time, end_time),  # 在时间范围内
-    ) | Q(
-        cluster_id=cluster_id,
-        cluster_address=cluster.immute_domain,
+        is_full_backup=1,  # 只查询全备
         backup_consistent_time__range=(start_time, end_time),
-    ) & ~Q(
-        mysql_role__in=["spider_master", "TDBCTL"]
-    )  # 排除 spider_master 和 TDBCTL 角色
+    ) & ~Q(mysql_role__in=["spider_master", "spider_mnt", "TDBCTL"])
 
-    # 查询备份记录，直接排除已回档的备份ID
-    backup_records = (
-        MysqlBackupResult.objects.filter(conditions)
-        .exclude(backup_id__in=exercised_backup_ids)
-        .order_by("-backup_consistent_time")
-    )
+    # 最高效实现：直接使用 NOT IN + LIMIT 1，一次查询解决
+    try:
+        # 获取已演练的备份ID列表
+        exercised_backup_ids = list(
+            MySQLBackupRecoverTask.objects.filter(
+                task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
+            ).values_list("backup_id", flat=True)
+        )
+    except Exception:
+        # 如果MySQLBackupRecoverTask表不存在，说明没有演练过任何备份
+        exercised_backup_ids = []
 
-    return backup_records.exists()
+    # 使用 NOT IN 查询未演练的备份记录，LIMIT 1 找到第一条就返回
+    query = MysqlBackupResult.objects.filter(conditions)
+
+    if exercised_backup_ids:
+        # 排除已演练的备份ID
+        query = query.exclude(backup_id__in=exercised_backup_ids)
+
+    # 只需要知道是否存在，exists() 比 count() 更高效
+    return query.exists()
 
 
 # 查询备份记录生成回档任务
@@ -249,47 +286,42 @@ def gen_rollback_task():
 
         # 选择第一个备份记录生成回档任务
         backup_result = backup_results.first()
-
-        # 格式化备份信息，保持与原有格式兼容
-        backup_record = model_to_dict(backup_result)
-
-        # 解析JSON字段
-        backup_record["binlog_info"] = json.loads(backup_record["binlog_info"])
-        backup_record["file_list"] = json.loads(backup_record["file_list"])
-        backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
-
-        # 添加兼容字段
-        backup_record["consistent_backup_time"] = backup_record["backup_consistent_time"]
-        backup_record["backup_time"] = backup_record["backup_consistent_time"]
-        backup_record["bk_cloud_id"] = backup_record["extra_fields"].get("bk_cloud_id")
-        backup_record["encrypt_enable"] = backup_record["extra_fields"].get("encrypt_enable")
-        backup_record["time_zone"] = backup_record["extra_fields"].get("time_zone", "")
-        backup_record["backup_charset"] = backup_record["extra_fields"].get("backup_charset", "")
-        backup_record["backup_tool"] = backup_record["extra_fields"].get("backup_tool", "")
-        backup_record["sql_mode"] = backup_record["extra_fields"].get("sql_mode", "")
-        data_dir_size_mb = backup_record["extra_fields"].get("data_dir_size_mb", 0)
-        # 格式化时间字段
-        if isinstance(backup_record["backup_consistent_time"], datetime):
-            backup_record["backup_consistent_time"] = backup_record["backup_consistent_time"].isoformat()
-        if isinstance(backup_record["backup_begin_time"], datetime):
-            backup_record["backup_begin_time"] = backup_record["backup_begin_time"].isoformat()
-        if isinstance(backup_record["backup_end_time"], datetime):
-            backup_record["backup_end_time"] = backup_record["backup_end_time"].isoformat()
-        if not backup_record:
+        if not backup_result:
             logger.info("no backup record found")
             continue
-        logger.info("exercise backup_record: {}".format(backup_record))
+
+        # 格式化备份信息，保持与原有格式兼容
+        backup_result.backup_consistent_time = backup_result.backup_consistent_time.isoformat()
+        backup_result.backup_begin_time = backup_result.backup_begin_time.isoformat()
+        backup_result.backup_end_time = backup_result.backup_end_time.isoformat()
+        backup_record = model_to_dict(backup_result)
+        backup_record["backup_source"] = MySQLBackupSource.REMOTE.value
+        # 解析JSON字段
+        tsk_backup_record = {}
+        tsk_backup_record["binlog_info"] = json.loads(backup_record["binlog_info"])
+        tsk_backup_record["file_list"] = json.loads(backup_record["file_list"])
+        tsk_backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
+
+        # task 需要填充的字段
+        time_zone = tsk_backup_record["extra_fields"].get("time_zone", "")
+        backup_charset = tsk_backup_record["extra_fields"].get("backup_charset", "")
+        backup_tool = tsk_backup_record["extra_fields"].get("backup_tool", "")
+        sql_mode = tsk_backup_record["extra_fields"].get("sql_mode", "")
+        data_dir_size_mb = tsk_backup_record["extra_fields"].get("data_dir_size_mb", 0)
         backup_id = backup_record["backup_id"]
         backup_file_size_gb = bytes_to_gb(backup_record["total_filesize"])
+
+        # 打印备份信息
+        logger.info("exercise backup_record: {}".format(backup_record))
         root_id = generate_root_id()
         task = MySQLBackupRecoverTask(
             bk_biz_id=backup_record["bk_biz_id"],
             cluster_id=cluster.id,
             cluster_domain=backup_record.get("cluster_address", ""),
             cluster_type=cluster.cluster_type,
-            charset=backup_record.get("backup_charset", ""),
+            charset=backup_charset,
             mysql_version=backup_record.get("mysql_version", ""),
-            sql_mode=backup_record.get("sql_mode", ""),
+            sql_mode=sql_mode,
             backup_id=backup_id,
             backup_begin_time=backup_record["backup_begin_time"],
             backup_end_time=backup_record["backup_end_time"],
@@ -297,8 +329,8 @@ def gen_rollback_task():
             backup_host=backup_record.get("backup_host", ""),
             backup_host_role=backup_record.get("mysql_role", ""),
             backup_type=backup_record.get("backup_type", ""),
-            backup_tool=backup_record.get("backup_tool", ""),
-            time_zone=backup_record.get("time_zone", ""),
+            backup_tool=backup_tool,
+            time_zone=time_zone,
             task_id=root_id,
             task_status=TaskStatus.GENERATED,
             creator="system",
@@ -352,7 +384,7 @@ def gen_rollback_task():
                 "backup_id": backup_id,
                 "rollback_host": rollback_host,
                 "bk_biz_id": MYSQL_BACKUPRECOVER_BIZ_ID,
-                "backupinfo": backup_record,
+                "backup_record": backup_info_format(backup_record),
                 "created_by": "system",
                 "labels": mch_info["labels"],
                 "rollback_type": RollbackType.REMOTE_AND_BACKUPID,
@@ -375,7 +407,7 @@ def gen_rollback_task():
                     "hosts": [
                         {
                             "ip": mch_info["ip"],
-                            "bk_host_id": mch_info["bk_host_id"],
+                            "host_id": mch_info["bk_host_id"],
                             "bk_cloud_id": mch_info["bk_cloud_id"],
                         }
                     ],
