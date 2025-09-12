@@ -21,32 +21,32 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 logger = logging.getLogger("root")
 
 
-class MySQLDBHAAutofixChangeMasterService(BaseService):
+class MySQLDBHAAFChangeMasterService(BaseService):
     @transaction.atomic
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
 
         bk_cloud_id = kwargs["bk_cloud_id"]
-        readonly_slave_ip = kwargs["readonly_slave_ip"]
-        readonly_slave_port = kwargs["readonly_slave_port"]
-        old_master_host = kwargs["old_master_host"]
-        old_master_port = kwargs["old_master_port"]
-        new_master_host = kwargs["new_master_host"]
-        new_master_port = kwargs["new_master_port"]
+        ro_slave_address = kwargs["ro_slave_address"]
+        old_master_address = kwargs["old_master_address"]
+        new_master_address = kwargs["new_master_address"]
         new_master_log_file = kwargs["new_master_log_file"]
         new_master_log_pos = kwargs["new_master_log_pos"]
 
         self.log_info(
-            f"read only slave {readonly_slave_ip}:{readonly_slave_port}\n"
-            + f"old master {old_master_host}:{old_master_port}\n"
-            + f"new master {new_master_host}:{new_master_port}"
+            f"read only slave {ro_slave_address}\n"
+            + f"old master {old_master_address}\n"
+            + f"new master {new_master_address}"
         )
 
-        address = f"{readonly_slave_ip}:{readonly_slave_port}"
+        # ToDo 这里是不是得检查下
+        # 1. slave 现在的同步配置
+        # 2. slave 现在的同步状态
+
         change_master_sql = (
             f"change master to "
-            f"master_host='{new_master_host}',"
-            f"master_port={new_master_port},"
+            f"master_host={new_master_address.split(':')[0]},"
+            f"master_port={new_master_address.split(':')[1]},"
             f"master_log_file='{new_master_log_file}',"
             f"master_log_pos={new_master_log_pos}"
         )
@@ -56,7 +56,7 @@ class MySQLDBHAAutofixChangeMasterService(BaseService):
         # 如果后续失败率太高, 可以考虑在条件分支添加幂等同步, 然后发个告警
         res = DRSApi.rpc(
             {
-                "addresses": [address],
+                "addresses": [ro_slave_address],
                 "cmds": ["stop slave", change_master_sql, "start slave"],
                 "force": False,
                 "bk_cloud_id": bk_cloud_id,
@@ -70,19 +70,25 @@ class MySQLDBHAAutofixChangeMasterService(BaseService):
             if cmdr["error_msg"]:
                 return False
 
-        old_master_instance = StorageInstance.objects.get(machine__ip=old_master_host, port=old_master_port)
-        new_master_instance = StorageInstance.objects.get(machine__ip=new_master_host, port=new_master_port)
-        readonly_slave_instance = StorageInstance.objects.get(machine__ip=readonly_slave_ip, port=readonly_slave_port)
+        old_master_instance = StorageInstance.objects.get(
+            machine__ip=old_master_address.split(":")[0], port=old_master_address.split[":"][1]
+        )
+        new_master_instance = StorageInstance.objects.get(
+            machine__ip=new_master_address.split(":")[0], port=new_master_address.split[":"][1]
+        )
+        ro_slave_instance = StorageInstance.objects.get(
+            machine__ip=ro_slave_address.split(":")[0], port=ro_slave_address.split(":")[1]
+        )
 
-        stp = StorageInstanceTuple.objects.get(ejector=old_master_instance, receiver=readonly_slave_instance)
+        stp = StorageInstanceTuple.objects.get(ejector=old_master_instance, receiver=ro_slave_instance)
         stp.ejector = new_master_instance
-        stp.save()
+        stp.save(update_fields=["ejector"])
 
         self.log_info(_("同步关系更新完成"))
         return True
 
 
-class MySQLDBHAAutofixChangeMasterComponent(Component):
+class MySQLDBHAAFChangeMasterComponent(Component):
     name = __name__
-    code = "mysql_dbha_autofix_change_master"
-    bound_service = MySQLDBHAAutofixChangeMasterService
+    code = "mysql_dbha_af_change_master"
+    bound_service = MySQLDBHAAFChangeMasterService

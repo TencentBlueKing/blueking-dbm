@@ -22,8 +22,8 @@ from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class MySQLDBHAAutofixRegisterDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
-    class MySQLDBHAAutofixRegisterInfoSerializer(serializers.Serializer):
+class MySQLDBHAAFRegisterDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+    class MySQLDBHAAFRegisterInfoSerializer(serializers.Serializer):
         bk_cloud_id = serializers.IntegerField()
         bk_biz_id = serializers.IntegerField()
         check_id = serializers.IntegerField()
@@ -83,7 +83,7 @@ class MySQLDBHAAutofixRegisterDetailSerializer(SkipToRepresentationMixin, serial
 
             return attrs
 
-    infos = serializers.ListField(help_text=_("详情"), child=MySQLDBHAAutofixRegisterInfoSerializer())
+    infos = serializers.ListField(help_text=_("详情"), child=MySQLDBHAAFRegisterInfoSerializer())
 
 
 class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
@@ -113,7 +113,7 @@ class MySQLDBHAAlarmTransformSerializer(AlarmCallBackDataSerializer):
         return ticket_detail
 
 
-class MySQLDBHAAutofixRegisterInnerFlowBuilder(builders.FlowParamBuilder):
+class MySQLDBHAAFRegisterInnerFlowBuilder(builders.FlowParamBuilder):
     controller = MySQLController.dbha_autofix_register_scene
 
     def format_ticket_data(self):
@@ -121,11 +121,11 @@ class MySQLDBHAAutofixRegisterInnerFlowBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_DBHA_AF_TODO_REGISTER, is_apply=True)
-class MySQLDBHAAutofixRegisterFlowBuilder(BaseMySQLTicketFlowBuilder):
-    serializer = MySQLDBHAAutofixRegisterDetailSerializer
+class MySQLDBHAAFRegisterFlowBuilder(BaseMySQLTicketFlowBuilder):
+    serializer = MySQLDBHAAFRegisterDetailSerializer
     alarm_transform_serializer = MySQLDBHAAlarmTransformSerializer
-    inner_flow_builder = MySQLDBHAAutofixRegisterInnerFlowBuilder
-    inner_flow_name = _("MySQL DBHA 故障自愈任务注册")
+    inner_flow_builder = MySQLDBHAAFRegisterInnerFlowBuilder
+    inner_flow_name = _("MySQL DBHA 故障自愈事件注册")
     default_need_itsm = False
     default_need_manual_confirm = False
 
