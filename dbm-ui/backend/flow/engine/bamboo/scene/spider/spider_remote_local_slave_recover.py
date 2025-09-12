@@ -153,22 +153,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     ),
                 )
 
-                cluster = {
-                    "stop_slave": True,
-                    "reset_slave": True,
-                    "restart": False,
-                    "force": self.data["force"],
-                    "drop_database": True,
-                    "new_slave_ip": target_slave.machine.ip,
-                    "new_slave_port": target_slave.port,
-                }
-                exec_act_kwargs = ExecActuatorKwargs(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    cluster_type=cluster_class.cluster_type,
-                    cluster=cluster,
-                    exec_ip=target_slave.machine.ip,
-                )
-
                 sync_data_sub_pipeline.add_act(
                     act_name=_("屏蔽监控 {}").format(target_slave.ip_port),
                     act_component_code=MysqlCrondMonitorControlComponent.code,
@@ -204,6 +188,20 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         )
                     ),
                 )
+
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("Master节点执行 reset slave {},防止故障切换后master的位点还没断开,slave恢复后导致覆盖。").format(master.ip_port),
+                    act_component_code=MySQLExecuteRdsComponent.code,
+                    kwargs=asdict(
+                        ExecuteRdsKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            instance_ip=master.machine.ip,
+                            instance_port=master.port,
+                            sqls=["stop slave", "reset slave all"],
+                        )
+                    ),
+                )
+
                 sync_data_sub_pipeline.add_act(
                     act_name=_("从库reset slave {}").format(target_slave.ip_port),
                     act_component_code=MySQLExecuteRdsComponent.code,
@@ -215,6 +213,22 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                             sqls=["stop slave", "reset slave all"],
                         )
                     ),
+                )
+
+                cluster = {
+                    "stop_slave": True,
+                    "reset_slave": True,
+                    "restart": False,
+                    "force": self.data["force"],
+                    "drop_database": True,
+                    "new_slave_ip": target_slave.machine.ip,
+                    "new_slave_port": target_slave.port,
+                }
+                exec_act_kwargs = ExecActuatorKwargs(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    cluster_type=cluster_class.cluster_type,
+                    cluster=cluster,
+                    exec_ip=target_slave.machine.ip,
                 )
 
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__

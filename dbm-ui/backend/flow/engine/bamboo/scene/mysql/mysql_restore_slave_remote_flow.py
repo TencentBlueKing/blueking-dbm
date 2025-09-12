@@ -51,7 +51,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_check_processlist i
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
-from backend.flow.plugins.components.collections.mysql.reset_slave_via_drs import ResetSlaveViaDRSComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
@@ -65,7 +64,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
-    ResetSlaveViaDRSKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -532,44 +530,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 ),
             )
 
-            tendb_migrate_pipeline.add_act(
-                act_name=_("Master节点执行 reset slave {},防止故障切换后master的位点还没断开,slave恢复后导致覆盖。".format(master.ip_port)),
-                act_component_code=ResetSlaveViaDRSComponent.code,
-                kwargs=asdict(
-                    ResetSlaveViaDRSKwargs(
-                        address=master.ip_port,
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                    )
-                ),
-            )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("删除从库{}关联的域名").format(target_slave.ip_port),
-                act_component_code=MySQLDnsManageComponent.code,
-                kwargs=asdict(
-                    RecycleDnsRecordKwargs(
-                        dns_op_exec_port=target_slave.port,
-                        exec_ip=target_slave.machine.ip,
-                        bk_cloud_id=cluster_model.bk_cloud_id,
-                    )
-                ),
-            )
-
-            cluster = {
-                "stop_slave": True,
-                "reset_slave": True,
-                "restart": False,
-                "force": self.data["force"],
-                "drop_database": True,
-                "new_slave_ip": target_slave.machine.ip,
-                "new_slave_port": target_slave.port,
-            }
-            exec_act_kwargs = ExecActuatorKwargs(
-                bk_cloud_id=cluster_model.bk_cloud_id,
-                cluster_type=cluster_model.cluster_type,
-                cluster=cluster,
-                exec_ip=target_slave.machine.ip,
-            )
             # 屏蔽
             tendb_migrate_pipeline.add_act(
                 act_name=_("数据恢复屏蔽监控 {}").format(target_slave.ip_port),
@@ -585,7 +545,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline.add_act(
-                act_name=_("检查实例是否存在从库{}").format(target_slave.ip_port),
+                act_name=_("检查重做节点是否存在从库{}").format(target_slave.ip_port),
                 act_component_code=MySQLCheckBinlogDumpComponent.code,
                 kwargs=asdict(
                     ExecuteRdsKwargs(
@@ -609,6 +569,31 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline.add_act(
+                act_name=_("删除从库{}关联的域名").format(target_slave.ip_port),
+                act_component_code=MySQLDnsManageComponent.code,
+                kwargs=asdict(
+                    RecycleDnsRecordKwargs(
+                        dns_op_exec_port=target_slave.port,
+                        exec_ip=target_slave.machine.ip,
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("Master节点执行 reset slave {},防止故障切换后master的位点还没断开,slave恢复后导致覆盖。").format(master.ip_port),
+                act_component_code=MySQLExecuteRdsComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=master.machine.ip,
+                        instance_port=master.port,
+                        sqls=["stop slave", "reset slave all"],
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
                 act_name=_("从库reset slave {}").format(target_slave.ip_port),
                 act_component_code=MySQLExecuteRdsComponent.code,
                 kwargs=asdict(
@@ -621,6 +606,21 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 ),
             )
 
+            cluster = {
+                "stop_slave": True,
+                "reset_slave": True,
+                "restart": False,
+                "force": self.data["force"],
+                "drop_database": True,
+                "new_slave_ip": target_slave.machine.ip,
+                "new_slave_port": target_slave.port,
+            }
+            exec_act_kwargs = ExecActuatorKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                cluster_type=cluster_model.cluster_type,
+                cluster=cluster,
+                exec_ip=target_slave.machine.ip,
+            )
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
             tendb_migrate_pipeline.add_act(
                 act_name=_("slave重建之清理从库{}").format(target_slave.ip_port),
