@@ -175,6 +175,8 @@ MYSQL_DATA_MIGRATE_DATA = {
                 "source_cluster": CLUSTER_ID,
                 "target_clusters": [99],
                 "data_schema_grant": "data,schema",
+                "clone_db_list": ["*"],
+                "ignore_db_list": [],
             }
         ]
     },
