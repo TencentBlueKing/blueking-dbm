@@ -50,7 +50,7 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import decode_cluster_nodes
-from backend.flow.utils.redis.redis_util import version_ge
+from backend.flow.utils.redis.redis_util import version_ge, version_gt
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
@@ -418,12 +418,12 @@ def get_storage_version_names_by_cluster_type(cluster_type: str, trimSuffix: boo
     return versions
 
 
-def get_cluster_storage_versions_for_upgrade(cluster_id: int) -> list:
+def get_cluster_storage_versions_for_upgrade(cluster_id: int, ip: str = None) -> list:
     """
     获取集群可升级到的存储版本
     """
     cluster = Cluster.objects.get(id=cluster_id)
-    online_redis_ver = get_cluster_redis_version(cluster_id=cluster_id)
+    online_redis_ver = get_cluster_redis_version(cluster_id, ip)
     versions = []
     if is_redis_instance_type(cluster.cluster_type):
         ret = (
@@ -614,6 +614,25 @@ def get_online_redis_version(ip: str, port: int, bk_cloud_id: int, redis_passwor
         return "redis-" + version_str
 
 
+def get_proxy_version_by_ip(cluster_id: int, ip: str) -> str:
+    """
+    根据提供的IP获取 proxy 版本信息
+    """
+    cluster = Cluster.objects.prefetch_related(
+        "proxyinstance_set",
+        "proxyinstance_set__machine",
+    ).get(id=cluster_id)
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    proxy = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, machine__ip=ip).first()
+    if not proxy:
+        raise Exception(_("Redis集群 {} 中没有找到IP为 {} 且运行中的Proxy机器").format(cluster.immute_domain, ip))
+    if is_predixy_proxy_type(cluster.cluster_type):
+        return get_online_predixy_version(ip, proxy.port, cluster.bk_cloud_id, passwd_ret.get("redis_proxy_password"))
+    elif is_twemproxy_proxy_type(cluster.cluster_type):
+        return get_online_twemproxy_version(ip, proxy.port, cluster.bk_cloud_id)
+    return "unknown cluster type"
+
+
 def get_cluster_proxy_version(cluster_id: int, target_ips: set = None) -> list:
     """
     获取redis cluster proxy版本列表
@@ -639,7 +658,19 @@ def get_cluster_proxy_version(cluster_id: int, target_ips: set = None) -> list:
     return list(versions)
 
 
-def get_cluster_redis_version(cluster_id: int) -> str:
+def get_redis_version_by_ip(cluster_id: int, ip: str) -> str:
+    cluster = Cluster.objects.prefetch_related(
+        "storageinstance_set",
+        "storageinstance_set__machine",
+    ).get(id=cluster_id)
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
+    instance = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING, machine__ip=ip).first()
+    if not instance:
+        raise Exception(_("redis集群 {} 中没有找到IP为 {} 且运行中的Backend机器").format(cluster.immute_domain, ip))
+    return get_online_redis_version(ip, instance.port, cluster.bk_cloud_id, passwd_ret.get("redis_password"))
+
+
+def get_cluster_redis_version(cluster_id: int, ip: str = None) -> str:
     """
     获取redis cluster redis版本
     """
@@ -648,14 +679,41 @@ def get_cluster_redis_version(cluster_id: int) -> str:
         "storageinstance_set__machine",
     ).get(id=cluster_id)
     passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
-    one_running_master = cluster.storageinstance_set.filter(
-        instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
-    ).first()
-    if not one_running_master:
-        raise Exception(_("redis集群 {} 没有running_master??").format(cluster.immute_domain))
-    return get_online_redis_version(
-        one_running_master.machine.ip, one_running_master.port, cluster.bk_cloud_id, passwd_ret.get("redis_password")
-    )
+    runnning_machines = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING)
+    if not runnning_machines:
+        raise Exception(_("redis集群 {} 没有running的机器??").format(cluster.immute_domain))
+
+    if ip:
+        target_machine = runnning_machines.filter(machine__ip=ip).first()
+        if not target_machine:
+            raise Exception(_("redis集群 {} 中没有找到IP为 {} 且运行中的机器").format(cluster.immute_domain, ip))
+
+        return get_online_redis_version(
+            target_machine.machine.ip, target_machine.port, cluster.bk_cloud_id, passwd_ret.get("redis_password")
+        )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(
+                get_online_redis_version,
+                machine.machine.ip,
+                machine.port,
+                cluster.bk_cloud_id,
+                passwd_ret.get("redis_password"),
+            )
+            for machine in runnning_machines
+        ]
+        versions = [future.result() for future in concurrent.futures.as_completed(futures)]
+
+    if not versions:
+        raise Exception(_("无法从集群 {} 的任何运行中的机器获取Redis版本").format(cluster.immute_domain))
+
+    highest_version = versions[0]
+    for version in versions[1:]:
+        if version_gt(version, highest_version):
+            highest_version = version
+
+    return highest_version
 
 
 def get_cluster_capacity_info(cluster_id: int) -> Tuple[str, int, str, int, int]:

@@ -107,23 +107,49 @@ def version_equal(version1, version2):
     return base_version1 == base_version2 and sub_version1 == sub_version2, None
 
 
-def version_ge(version1, version2):
+def _version_compare(version1, version2):
     """
-    判断版本1是否大于等于版本2
+    比较两个版本，返回比较结果
+    返回值: -1 (version1 < version2), 0 (version1 == version2), 1 (version1 > version2), None (解析错误)
     """
     if version1 is None or version2 is None:
-        return False
+        return None
+
     base_version1, sub_version1, err = version_parse(version1)
     if err:
-        return False
+        return None
     base_version2, sub_version2, err = version_parse(version2)
     if err:
-        return False
+        return None
+
     if base_version1 > base_version2:
-        return True
-    if base_version1 == base_version2 and sub_version1 >= sub_version2:
-        return True
-    return False
+        return 1
+    elif base_version1 < base_version2:
+        return -1
+    else:  # base_version1 == base_version2
+        if sub_version1 > sub_version2:
+            return 1
+        elif sub_version1 < sub_version2:
+            return -1
+        else:
+            return 0
+
+
+def version_gt(version1, version2):
+    """
+    判断版本1是否大于版本2
+    """
+    result = _version_compare(version1, version2)
+    return result is not None and result > 0
+
+
+def version_eq(version1, version2):
+    result = _version_compare(version1, version2)
+    return result is not None and result == 0
+
+
+def version_ge(version1, version2):
+    return version_eq(version1, version2) or version_gt(version1, version2)
 
 
 # 根据db_version 获取 redis 最新 Package
