@@ -169,6 +169,7 @@ def RedisFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             "ip":"1.1.1.x",
             "ports":[],
             "force_shutdown":False,
+            "need_manual_confirm":True,
         }
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -198,7 +199,8 @@ def RedisFaultShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     )
 
     # 在这里等着
-    sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+    if shutdown_param["need_manual_confirm"]:
+        sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()

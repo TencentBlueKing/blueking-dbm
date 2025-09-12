@@ -29,7 +29,7 @@ def failover_drill_unit(city: str, conf: dict):
     Redis 容灾演练单元
 
     步骤：
-    1. 屏蔽集群`failover.<cluster_name>.dbatest.db` [Proxy or Backend] 与DBHA服务的通信
+    1. 屏蔽集群`cache.<cluster_name>.<biz_name>.db` [Proxy or Backend] 与DBHA服务的通信
     2. 监测 Redis 自愈发生
     3. 通过 HADBAPI 获取切换队列，确认演练目标IP发生切换
     4. 记录演练结果

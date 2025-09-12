@@ -77,6 +77,7 @@ class RedisClusterAutoFixSceneFlow(object):
                  {"ip": "1.1.1.a","spec_id": 17,
                   "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
                  }],
+            "need_manual_confirm": True,
             }
         ]
     }
@@ -374,6 +375,7 @@ class RedisClusterAutoFixSceneFlow(object):
                             "immute_domain": act_kwargs.cluster["immute_domain"],
                             "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
                             "proxy": old_proxies,
+                            "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                         }
                     ],
                 },
@@ -561,6 +563,7 @@ class RedisClusterAutoFixSceneFlow(object):
                                 "immute_domain": sub_kwargs.cluster["immute_domain"],
                                 "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
                                 "redis_slave": old_slaves,
+                                "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                             }
                         ],
                     },
@@ -573,6 +576,7 @@ class RedisClusterAutoFixSceneFlow(object):
                     "immute_domain": sub_kwargs.cluster["immute_domain"],
                     "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
                     "redis_slave": old_slaves,
+                    "need_manaul_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                 }
             )
         # # #### 下架旧实例 ###################################################################### 完毕 ###
