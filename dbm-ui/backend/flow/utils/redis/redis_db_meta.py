@@ -1585,6 +1585,7 @@ class RedisDBMeta(object):
     def dts_online_switch_swap_cc(self):
         """
         将重操作挪cc的操作独立出来，避免元数据锁等待问题
+        到这一步的时候元数据已经被修改成预期的了
         """
         src_cluster_id: int = self.cluster["src_cluster_id"]
         dst_cluster_id: int = self.cluster["dst_cluster_id"]
@@ -1611,15 +1612,15 @@ class RedisDBMeta(object):
             logger.info(
                 _(
                     "dts_online_switch_swap_two_cluster_storage 3333 转移目标机器模块到源集群下,src_cluster:{} dst_inst_list:{}"
-                ).format(src_cluster.immute_domain, self.get_inst_list(dst_storageinstances))
+                ).format(src_cluster.immute_domain, self.get_inst_list(src_storageinstances))
             )
-            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(dst_storageinstances)
+            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(src_storageinstances)
             logger.info(
                 _(
                     "dts_online_switch_swap_two_cluster_storage 3333 转移源机器模块到目标集群下,dst_cluster:{} src_inst_list:{}"
-                ).format(dst_cluster.immute_domain, self.get_inst_list(src_storageinstances))
+                ).format(dst_cluster.immute_domain, self.get_inst_list(dst_storageinstances))
             )
-            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(src_storageinstances)
+            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(dst_storageinstances)
             # 两个集群的 proxy ip均是不变的,但类型变化后,模块信息需变化
             # 这一步默认会下发安装export的操作，但是没有卸载的操作
             RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(src_proxyinstances)
