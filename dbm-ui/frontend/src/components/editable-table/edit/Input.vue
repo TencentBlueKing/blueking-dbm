@@ -89,8 +89,14 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-input {
-        .bk-input--clear-icon {
-          display: none !important;
+        .bk-input {
+          .bk-input--clear-icon {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
         }
       }
     }

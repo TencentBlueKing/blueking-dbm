@@ -79,8 +79,16 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-textarea {
-        .bk-input--clear-icon {
-          display: none !important;
+        .bk-textarea {
+          pointer-events: none;
+
+          .bk-input--clear-icon {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
         }
       }
     }
@@ -90,11 +98,11 @@
     position: relative;
     display: flex;
     width: 100%;
+    padding-top: 6px;
+    padding-bottom: 6px;
     overflow: hidden;
 
     .bk-textarea {
-      min-height: 40px;
-      padding-top: 6px;
       background: transparent;
       border: none;
       border-radius: 0;
@@ -107,6 +115,12 @@
 
       .bk-textarea--suffix-icon {
         align-items: center;
+      }
+
+      .bk-textarea--clear-icon {
+        top: 7px;
+        right: 0;
+        height: 14px;
       }
     }
   }

@@ -59,8 +59,16 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-time-picker {
-        .clear-action {
-          display: none !important;
+        .bk-date-picker {
+          pointer-events: none;
+
+          .clear-action {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
         }
       }
     }
