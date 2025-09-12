@@ -23,7 +23,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, Spec, StorageInstance
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.cc import CCApiMock
-from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
+from backend.tests.mock_data.components.dbconfig import DBConfigApiMock, MySQLBackupHandlerMock
 from backend.tests.mock_data.components.drs import DRSApiMock
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
@@ -119,6 +119,9 @@ class TestMySQLTicket(BaseTicketTest):
         mock_drs_api_patch = patch(
             "backend.db_services.mysql.remote_service.handlers.DRSApi", new_callable=lambda: DRSApiMock()
         )
+        mock_backup_handler_patch = patch(
+            "backend.ticket.builders.mysql.mysql_fixpoint_rollback.MySQLBackupHandler", MySQLBackupHandlerMock
+        )
 
         cls.patches.extend(
             [
@@ -128,6 +131,7 @@ class TestMySQLTicket(BaseTicketTest):
                 mock_bamboo_api_patch,
                 mock_cc_api_patch,
                 mock_drs_api_patch,
+                mock_backup_handler_patch,
             ]
         )
         super().apply_patches()
