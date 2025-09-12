@@ -14,11 +14,12 @@ from rest_framework import serializers
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisVersionUpdateDetailSerializer(serializers.Serializer):
+class RedisVersionUpdateDetailSerializer(ParamValidateSerializerMixin, serializers.Serializer):
     class UpdateInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         slave_current_versions = serializers.ListField(
@@ -43,6 +44,7 @@ class RedisVersionUpdateDetailSerializer(serializers.Serializer):
     def validate(self, attrs):
         # 暂时去掉对版本校验，允许同版本升级
         # self.validate_version_update(attrs)
+        attrs = super().validated_params(attrs=attrs)
         return attrs
 
 

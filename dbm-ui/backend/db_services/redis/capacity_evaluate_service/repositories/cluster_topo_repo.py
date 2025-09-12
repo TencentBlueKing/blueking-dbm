@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import datetime
-from collections import defaultdict
 import logging
+from collections import defaultdict
 
 from backend import env
 from backend.components.bkmonitorv3.client import BKMonitorV3Api

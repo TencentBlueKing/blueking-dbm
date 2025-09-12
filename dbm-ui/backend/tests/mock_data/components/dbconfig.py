@@ -179,3 +179,14 @@ class DBConfigApiMock(object):
     def get_instance_config(cls, *args, **kwargs):
         instance_config_data = cls.query_conf_item(*args, **kwargs)
         return instance_config_data
+
+
+class MySQLBackupHandlerMock:
+    def __init__(self, cluster_id):
+        self.cluster_id = cluster_id
+
+    def get_tendb_latest_backup_info(self, latest_time):
+        return {"backup_time": "2024-06-10 10:12:12+08:00"}
+
+    def get_binlog_for_rollback(self, backup_info, start_time, end_time=None, minute_range=30):
+        return {}
