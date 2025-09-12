@@ -22,3 +22,21 @@ class ProxySpecFailedException(FlowValidateBaseException):
     ERROR_CODE = "35002"
     MESSAGE = _("出现两个以后的proxy规格")
     MESSAGE_TPL = _("{message}")
+
+
+class MySQLStorageVersionFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35003"
+    MESSAGE = _("MySQL存储节点版本一致性检查失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class MySQLUpgradeVersionFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35004"
+    MESSAGE = _("MySQL升级版本检查失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class MySQLMasterSlaveVersionFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35005"
+    MESSAGE = _("MySQL主从实例版本不一致")
+    MESSAGE_TPL = _("{message}")

@@ -45,8 +45,6 @@ type MysqlUpgradeParam struct {
 	Host  string `json:"host"  validate:"required,ip"`
 	Ports []int  `json:"ports"`
 	components.Medium
-	// 是否强制升级
-	IsForce bool `json:"is_force"`
 	// 只做升级检查
 	Run bool `json:"run"`
 }

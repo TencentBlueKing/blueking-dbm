@@ -83,11 +83,13 @@ func (d *CutOverToSlaveAct) Run() (err error) {
 			FunName: "[已切换成功] 剩余操作",
 			Func: func() error {
 				if d.Service.Params.GrantRepl {
+					logger.Info("授权Repl账户")
 					if err := d.Service.GrantRepl(); err != nil {
 						logger.Error("授权Repl账户失败", err.Error())
 					}
 				}
 				if d.Service.Params.LockedSwitch {
+					logger.Info("删除临时用户")
 					switchUser := d.Service.Params.Cluster.MasterIns.SwitchTmpAccount.User
 					host := d.Service.Params.Host
 					if err := d.Service.Params.Cluster.MasterIns.DropSwitchUser(

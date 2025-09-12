@@ -159,7 +159,6 @@ from backend.flow.views.mysql_single_destroy import (
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
 from backend.flow.views.mysql_upgrade import (
-    MigrateUpgradeMySQLSceneApiView,
     NonStanbySlavesDestorySceneApiView,
     NonStanbySlavesUpgradeMySQLSceneApiView,
     TendbHaMigrateUpgradeSceneApiView,
@@ -390,7 +389,6 @@ urlpatterns = [
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/upgrade_mysql$", UpgradeMySQLSceneApiView.as_view()),
-    url(r"^scene/migrate_upgrade_mysql$", MigrateUpgradeMySQLSceneApiView.as_view()),
     url(r"^scene/migrate_upgrade_tendbha_cluster$", TendbHaMigrateUpgradeSceneApiView.as_view()),
     url(r"^scene/non_stanby_slave_upgrade_mysql$", NonStanbySlavesUpgradeMySQLSceneApiView.as_view()),
     url(r"^scene/uninstall_non_standby_slave$", NonStanbySlavesDestorySceneApiView.as_view()),

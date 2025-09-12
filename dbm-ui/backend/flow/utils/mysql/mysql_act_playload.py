@@ -1565,7 +1565,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": c.proxyinstance_set.first().admin_port,
-                    "slave_delay_check": self.ticket_data["is_check_delay"],
+                    "slave_delay_check": False,
                     "force": self.ticket_data["force"],
                     "switch_paris": switch_paris,
                     "batch_id": self.cluster["batch_id"],
@@ -2015,6 +2015,105 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "pkg": mysql_pkg.name,
                     "pkg_md5": mysql_pkg.md5,
                     "run": self.cluster["run"],
+                },
+            },
+        }
+
+    def _get_mysql_upgrade_base_payload(self, action_enum, include_ports: bool = True, **kwargs) -> dict:
+        """
+        MySQL升级操作的通用payload构建方法
+
+        @param action_enum: DBActuatorActionEnum中的升级操作类型
+        @param include_ports: 是否包含端口参数（机器级别操作如relink不需要端口）
+        @param kwargs: 其他参数
+        @return: 构建好的payload
+        """
+        mysql_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQL)
+
+        extend_params = {
+            "host": kwargs["ip"],
+            "pkg": mysql_pkg.name,
+            "pkg_md5": mysql_pkg.md5,
+        }
+
+        # 实例级别操作需要端口，机器级别操作(如relink)不需要
+        if include_ports:
+            extend_params["port"] = self.cluster["port"]
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": action_enum.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": extend_params,
+            },
+        }
+
+    def get_mysql_upgrade_check_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级检查 (upgrade-check)
+        """
+        mysql_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQL)
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.UpgradeCheck.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "pkg": mysql_pkg.name,
+                    "pkg_md5": mysql_pkg.md5,
+                },
+            },
+        }
+
+    def get_mysql_upgrade_prepare_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级准备 (upgrade-prepare)
+        """
+        return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradePrepare, **kwargs)
+
+    def get_mysql_upgrade_exec_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级执行 (upgrade-exec)
+        """
+        return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeExec, **kwargs)
+
+    def get_mysql_upgrade_start_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级启动 (upgrade-start)
+        """
+        return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeStart, **kwargs)
+
+    def get_mysql_upgrade_restart_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级重启 (upgrade-restart)
+        """
+        return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeRestart, **kwargs)
+
+    def get_mysql_upgrade_relink_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级重新链接 (upgrade-relink)
+        机器级别操作，不依赖具体端口
+        """
+        return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeRelink, include_ports=False, **kwargs)
+
+    def get_mysql_master_slave_switch_payload(self, **kwargs) -> dict:
+        """
+        MySQL主从切换 (master-slave-switch)
+        用于TenDBCluster升级时的主从角色切换
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeMaster.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "switch_pairs": self.cluster.get("switch_pairs", []),
+                    "force": self.cluster.get("force", False),
                 },
             },
         }
