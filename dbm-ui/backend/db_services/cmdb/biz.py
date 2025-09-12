@@ -55,7 +55,7 @@ def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
             is_allowed = biz.bk_biz_id in permission
             biz.permission[action.id] = is_allowed
 
-    return sorted(biz_list, key=lambda biz: biz.permission[ActionEnum.DB_MANAGE.id], reverse=True)
+    return sorted(biz_list, key=lambda biz: (-biz.permission[ActionEnum.DB_MANAGE.id], biz.bk_biz_id))
 
 
 def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[Dict]:
