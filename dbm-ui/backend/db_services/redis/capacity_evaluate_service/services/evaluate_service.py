@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 import time
 import traceback
 from enum import Enum
@@ -21,6 +22,8 @@ from backend.db_services.redis.capacity_evaluate_service.repositories.evaluate_r
 from backend.db_services.redis.capacity_evaluate_service.util import logger_debug
 
 from .capacity_cal import CapacityCalculateService
+
+logger = logging.getLogger("root")
 
 
 class Response:
@@ -42,7 +45,21 @@ class Response:
     time_elapsed_ms: int
 
     def __init__(self):
-        pass
+        """init response"""
+        self.debug_info = {}
+        self.time_elapsed_ms = 0
+        self.status = ""
+        self.message = ""
+        self.approved_user = ""
+        self.cluster_domain = ""
+        self.proxy_approve_ok = False
+        self.proxy_approve_info = ""
+        self.backend_approve_ok = False
+        self.backend_approve_info = ""
+        self.capacity_approve_ok = False
+        self.capacity_approve_info = ""
+        self.related_records_info = ""
+        self.related_records = {}
 
     def __dict__(self):
         """转换为字典"""
@@ -102,7 +119,7 @@ class CapacityEvaluateService:
     def evaluate_one(cls, action_info: dict, req: dict, bk_biz_id: int, cluster_id: int) -> Response:
         """评估单个集群"""
         start_time = time.time()
-
+        capacity_info = {}
         try:
             capacity_info = cls._calculate_capacity(bk_biz_id, cluster_id)
             model = {
@@ -118,18 +135,12 @@ class CapacityEvaluateService:
         except Exception as e:
             resp = cls._create_error_response(capacity_info, e)
             resp.time_elapsed_ms = cls._calculate_elapsed_time(start_time)
-            traceback.print_exc()
             return resp
 
     @classmethod
     def _calculate_capacity(cls, bk_biz_id: int, cluster_id: int):
         """计算容量信息"""
-        try:
-            return CapacityCalculateService.calculate(bk_biz_id, cluster_id)
-        except Exception as e:
-            raise Exception(
-                f"calculate capacity failed for cluster_id: {cluster_id}, bk_biz_id: {bk_biz_id}, error: {e}"
-            )
+        return CapacityCalculateService.calculate(bk_biz_id, cluster_id)
 
     @classmethod
     def _calculate_elapsed_time(cls, start_time: float) -> int:
@@ -138,11 +149,12 @@ class CapacityEvaluateService:
 
     @classmethod
     def _create_error_response(cls, capacity_info, error: Exception) -> Response:
-        """创建错误响应"""
+        """打印错误堆栈到日志，返回简要的错误信息"""
         resp = Response()
-        resp.debug_info = capacity_info.__dict__()
+        resp.debug_info = None
         resp.status = ResultStatus.ERROR.value
-        resp.message = traceback.format_exc() + " " + str(error)
+        resp.message = "CapacityEvaluateService_create_error_response"
+        logger.error(f"CapacityEvaluateService._create_error_response error: {error} {traceback.format_exc()} end")
         return resp
 
     @classmethod
@@ -150,33 +162,29 @@ class CapacityEvaluateService:
         cls, capacity_info: ClusterCapacityInfo, action_info: dict, req: dict, model: dict, start_time: float
     ):
         """评估单个实例"""
-        try:
-            record = cls._save_evaluate_record(action_info, req, capacity_info)
-            total_req_capacity_m, total_req_qps_k, not_finished_records = EvaluateRecordRepo().get_not_finished_record(
-                capacity_info.topo_info.cluster_id, action_info.get("start_time")
-            )
+        record = cls._save_evaluate_record(action_info, req, capacity_info)
+        total_req_capacity_m, total_req_qps_k, not_finished_records = EvaluateRecordRepo().get_not_finished_record(
+            capacity_info.topo_info.cluster_id, action_info.get("start_time")
+        )
 
-            if not not_finished_records:
-                raise Exception("no not finished record, bad request")
+        if not not_finished_records:
+            raise Exception("no not finished record, bad request")
 
-            resp = cls._evaluate_capacity(
-                capacity_info, model, action_info, total_req_capacity_m, total_req_qps_k, not_finished_records
-            )
-            resp.time_elapsed_ms = cls._calculate_elapsed_time(start_time)
-            cls._save_evaluate_history(
-                action_info,
-                req,
-                capacity_info,
-                resp.to_dict(),
-                total_req_capacity_m,
-                total_req_qps_k,
-                not_finished_records,
-            )
-            cls._save_evaluate_record_end(record, resp.to_dict())
-            return resp
-        except Exception as e:
-            traceback.print_exc()
-            raise Exception(f"save record error: {e}")
+        resp = cls._evaluate_capacity(
+            capacity_info, model, action_info, total_req_capacity_m, total_req_qps_k, not_finished_records
+        )
+        resp.time_elapsed_ms = cls._calculate_elapsed_time(start_time)
+        cls._save_evaluate_history(
+            action_info,
+            req,
+            capacity_info,
+            resp.to_dict(),
+            total_req_capacity_m,
+            total_req_qps_k,
+            not_finished_records,
+        )
+        cls._save_evaluate_record_end(record, resp.to_dict())
+        return resp
 
     @classmethod
     def _save_evaluate_history(

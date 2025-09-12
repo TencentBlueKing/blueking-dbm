@@ -21,6 +21,9 @@ from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.db_services.redis.capacity_evaluate_service.api.evaluate_api import EvaluateAPI
 from backend.db_services.redis.capacity_evaluate_service.services import capacity_cal
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+import logging
+
+logger = logging.getLogger("root")
 
 
 # viewsets.GenericViewSet require data
@@ -45,9 +48,10 @@ class CapacityEvaluateViewSet(BaseOpenAPIViewSet):
         try:
             self.serializer_class(data=request.data).is_valid(raise_exception=True)
             out = EvaluateAPI().do_evaluate(request)
-        except Exception as e:
-            traceback.print_exc()
-            out.update({"result_code": 3, "result_status": "error", "result_msg": "%s" % str(e)})
+        except Exception:
+            err = traceback.format_exc()
+            logger.error(f"CapacityEvaluateViewSet v1 return error: {err}")
+            out.update({"result_code": 3, "result_status": "error", "result_msg": "CapacityEvaluateViewSet.v1 error"})
         return JsonResponse(out)
 
     @common_swagger_auto_schema(

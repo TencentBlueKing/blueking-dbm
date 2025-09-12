@@ -31,10 +31,8 @@ class ReqSLZ(serializers.Serializer):
     """Request requirements serializer"""
 
     cluster_domain = serializers.CharField(max_length=200, help_text="Redis cluster domain")
-
     req_capacity_m = serializers.IntegerField(min_value=0, default=0, help_text="Required capacity size in MB")
     req_capacity_g = serializers.IntegerField(min_value=0, default=0, help_text="Required capacity size in GB")
-
     req_qps_k = serializers.IntegerField(min_value=0, help_text="Required QPS in thousands")
     req_flag_no_big_key_with_a_lot_of_member = serializers.IntegerField(
         min_value=0, max_value=1, help_text="Flag for no big key with lots of members"
@@ -42,6 +40,7 @@ class ReqSLZ(serializers.Serializer):
     req_flag_no_big_value = serializers.IntegerField(min_value=0, max_value=1, help_text="Flag for no big value")
     req_flag_no_big_result = serializers.IntegerField(min_value=0, max_value=1, help_text="Flag for no big result")
     req_flag_no_hot_key = serializers.IntegerField(min_value=0, max_value=1, help_text="Flag for no hot key")
+    req_flag_no_use_dns = serializers.IntegerField(min_value=0, max_value=1, help_text="Flag for no use DNS")
     key_pattern = serializers.ListField(
         child=serializers.CharField(max_length=100), help_text="Key patterns to evaluate"
     )
