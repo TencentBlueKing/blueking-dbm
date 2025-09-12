@@ -487,7 +487,7 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         return cls.fields
 
 
-class ListRetrieveResource(BaseListRetrieveResource):
+class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMixin):
     """集群基础视图接口的封装类实现，组件的相关视图接口一般继承此类实现"""
 
     @classmethod
