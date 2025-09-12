@@ -18,16 +18,12 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_util import get_migrate_shutdown_hosts
 from backend.ticket import builders
-from backend.ticket.builders.common.base import (
-    BaseOperateResourceParamBuilder,
-    DisplayInfoSerializer,
-    SkipToRepresentationMixin,
-)
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, DisplayInfoSerializer
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterInsMigrateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterInsMigrateDetailSerializer(RedisBaseOperateDetailSerializer):
     class RedisClusterInsMigrateItemSerializer(DisplayInfoSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
@@ -42,6 +38,7 @@ class RedisClusterInsMigrateDetailSerializer(SkipToRepresentationMixin, serializ
     old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs=attrs)
         return attrs
 
 

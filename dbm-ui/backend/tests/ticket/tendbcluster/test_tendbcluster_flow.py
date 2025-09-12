@@ -32,6 +32,7 @@ from backend.tests.mock_data.ticket.tendbcluster_flow import (
     TENDBCLUSTER_SPIDER_SWITCH_NODES_DATA,
     TENDBCLUSTER_SPIDEREXT_DATA,
     TENDBCLUSTER_STORAGE_INSTANCE,
+    MySQLFixPointRollbackDetailSerializerMock,
 )
 from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
@@ -83,6 +84,10 @@ class TestTenDBClusterFlow(BaseTicketTest):
                 patch("backend.db_services.mysql.remote_service.handlers.DRSApi", DRSApiMock),
                 patch("backend.flow.utils.spider.spider_bk_config.DBConfigApi", DBConfigApiMock),
                 patch("backend.ticket.builders.tendbcluster.tendb_apply.DBConfigApi", DBConfigApiMock),
+                patch(
+                    "backend.ticket.builders.tendbcluster.tendb_fixpoint_rollback.MySQLFixPointRollbackDetailSerializer",
+                    MySQLFixPointRollbackDetailSerializerMock,
+                ),
             ]
         )
         super().apply_patches()

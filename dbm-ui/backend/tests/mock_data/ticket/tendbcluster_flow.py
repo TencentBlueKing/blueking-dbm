@@ -13,10 +13,22 @@ specific language governing permissions and limitations under the License.
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.tests.mock_data import constant
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 
 BK_USERNAME = "admin"
 BK_BIZ_ID = constant.BK_BIZ_ID
 CLUSTER_ID = 177
+
+
+class MySQLFixPointRollbackDetailSerializerMock(MySQLBaseOperateDetailSerializer):
+    pass
+
+    @classmethod
+    def validate_rollback_info(cls, rollback_cluster_type, info, now):
+        return
+
+    def validate(self, attrs):
+        return attrs
 
 
 TENDBCLUSTER_FULL_BACKUP_DATA = {
