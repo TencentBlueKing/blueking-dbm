@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.db.models import Q
@@ -30,6 +30,8 @@ from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import tendbha_rollback_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -172,6 +174,23 @@ class MySQLRollbackExerciseFlow(object):
                 origin_cluster_domain=cluster_class.immute_domain
             )
         )
+        # 屏蔽告警
+        pipeline.add_act(
+            act_name=_("屏蔽集群 {} 告警12小时").format(cluster_class.name),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "end_time": (datetime.now() + timedelta(hours=12)).strftime("%Y-%m-%d %H:%M:%S"),
+                "description": _("集群 {} MySQL回档演练操作").format(cluster_class.immute_domain),
+                "dimensions": [
+                    {
+                        "name": "instance_host",
+                        "values": [self.rollback_host["ip"]],
+                    }
+                ],
+            },
+            is_remote_rewritable=True,
+        )
         # 更新任务状态
         pipeline.add_act(
             act_name=_("更新演练任务状态"),
@@ -211,16 +230,16 @@ class MySQLRollbackExerciseFlow(object):
             kwargs=asdict(exec_act_kwargs),
             is_remote_rewritable=True,
         )
-        #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
         backup_id = self.data.get("backup_id", None)
         if backup_id is None or backup_id == "":
-            backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
+            backup_id = self.data.get("backup_record", {}).get("backup_id", None)
         mycluster["backup_id"] = backup_id
         backup_info, rollback_sub_flow = tendbha_rollback_data_sub_flow(
             root_id=self.root_id,
             uid=self.ticket_data["uid"],
             cluster_model=cluster_class,
             cluster_info=mycluster,
+            backup_info=self.data.get("backup_record", {}),
         )
         pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
         mycluster["backupinfo"] = backup_info
@@ -235,6 +254,7 @@ class MySQLRollbackExerciseFlow(object):
             },
             is_remote_rewritable=True,
         )
+
         # 回档成功,回收资源
         uninstall_data = copy.deepcopy(self.data)
         uninstall_data["force"] = True
@@ -296,6 +316,13 @@ class MySQLRollbackExerciseFlow(object):
                 "bk_cloud_id": self.rollback_host["bk_cloud_id"],
                 "exec_ip": self.rollback_host["ip"],
             },
+            is_remote_rewritable=True,
+        )
+        # 解除告警屏蔽
+        pipeline.add_act(
+            act_name=_("解除告警屏蔽"),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs={},
             is_remote_rewritable=True,
         )
         # 更新任务状态
