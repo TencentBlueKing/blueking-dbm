@@ -8,4 +8,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .autofix import autofix
+import datetime
+from typing import List
+
+from django.utils import timezone
+
+from backend.db_monitor.models import MySQLDBHAEvent
+
+
+def validate_event_wait_timeout(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
+    """
+    校验等待超时
+    """
+    timeout_line = timezone.now() - datetime.timedelta(minutes=15)
+    res = []
+    for ev in events:
+        if ev.event_create_time >= timeout_line:
+            res.append(ev)
+        else:
+            ev.failed_validate_it("wait timeout")
+
+    return res

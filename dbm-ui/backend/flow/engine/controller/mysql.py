@@ -16,11 +16,11 @@ from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDba
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.failover_drill_flow import FailoverDrillFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_repair_replicate import (
-    MySQLDBHAAutofixRepairReplicateFlow,
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_af_event_register_flow import (
+    MySQLDBHAAFEventRegisterFlow,
 )
-from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_autofix_todo_register_flow import (
-    MySQLDBHAAutofixTodoRegisterFlow,
+from backend.flow.engine.bamboo.scene.mysql.autofix.mysql_dbha_af_repair_replicate import (
+    MySQLDBHAAFRepairROSlaveReplicateFlow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.flow import MySQLStandardizeFlow
@@ -713,12 +713,17 @@ class MySQLController(BaseController):
         mysql 自愈
         只是把自愈信息入库
         """
-        flow = MySQLDBHAAutofixTodoRegisterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLDBHAAFEventRegisterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.autofix_register()
 
     def dbha_autofix_repair_replicate_scene(self):
-        flow = MySQLDBHAAutofixRepairReplicateFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.repair_slave_replicate()
+        flow = MySQLDBHAAFRepairROSlaveReplicateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.do_repair()
+
+    def dbha_autofix_schedule_scene(self):
+        pass
+        # flow = MySQLDBHAAFScheduleFlow(root_id=self.root_id, data=self.ticket_data)
+        # flow.schedule()
 
     def mysql_rename_database_scene(self):
         """

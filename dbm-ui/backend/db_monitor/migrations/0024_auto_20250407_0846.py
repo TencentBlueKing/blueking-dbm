@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-from backend.db_monitor.models import MySQLAutofixTicketStatus
+from backend.ticket.constants import TicketFlowStatus
 
 
 class Migration(migrations.Migration):
@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="mysqlautofixtodo",
             name="inplace_ticket_status",
             field=models.CharField(
-                choices=MySQLAutofixTicketStatus.get_choices(),
+                choices=TicketFlowStatus.get_choices(),
                 default="UNSUBMITTED",
                 max_length=64,
             ),
@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
             model_name="mysqlautofixtodo",
             name="replace_ticket_status",
             field=models.CharField(
-                choices=MySQLAutofixTicketStatus.get_choices(),
+                choices=TicketFlowStatus.get_choices(),
                 default="UNSUBMITTED",
                 max_length=64,
             ),

@@ -287,6 +287,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_DBHA_AF_BACKEND_REPLACE = TicketEnumField("MYSQL_DBHA_AF_BACKEND_REPLACE", _("MySQL BACKEND DBHA 自愈替换"))
     MYSQL_DBHA_AF_REMOTE_REPLACE = TicketEnumField("MYSQL_DBHA_AF_REMOTE_REPLACE", _("MySQL REMOTE DBHA 自愈替换"))
     MYSQL_DBHA_AF_REPAIR_REPLICATE = TicketEnumField("MYSQL_DBHA_AF_REPAIR_REPLICATE", _("MySQL SLAVE 同步自愈修复"))
+    MYSQL_DBHA_AF_SCHEDULE = TicketEnumField("MYSQL_DBHA_AF_SCHEDULE", _("MySQL DBHA 自愈调度"))
 
     # mysql backup recover task
     MYSQL_ROLLBACK_EXERCISE = TicketEnumField("MYSQL_ROLLBACK_EXERCISE", _("MySQL 备份恢复演练"), register_iam=False)

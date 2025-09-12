@@ -16,7 +16,7 @@ from backend.components import DRSApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
-class MySQLDBHAAutofixCheckReplicateService(BaseService):
+class MySQLDBHAAFCheckReplicateService(BaseService):
     __need_schedule__ = True
     interval = StaticIntervalGenerator(10)
 
@@ -34,8 +34,9 @@ class MySQLDBHAAutofixCheckReplicateService(BaseService):
 
         bk_cloud_id = kwargs["bk_cloud_id"]
         address = kwargs["address"]
-        master_host = kwargs["master_host"]
-        master_port = kwargs["master_port"]
+        master_address = kwargs["master_address"]
+        # master_host = kwargs["master_host"]
+        # master_port = kwargs["master_port"]
 
         self.log_info(f"show slave status on {address}")
 
@@ -72,8 +73,11 @@ class MySQLDBHAAutofixCheckReplicateService(BaseService):
             status_master_host = slave_status["Master_Host"]
             status_master_port = int(slave_status["Master_Port"])
 
-            if not (status_master_host == master_host and status_master_port == master_port):
-                self.log_error(f"bad master {status_master_host}:{status_master_port}!={master_port}:{master_port}")
+            if not (
+                status_master_host == master_address.split(":")[0]
+                and status_master_port == master_address.split(":")[1]
+            ):
+                self.log_error(f"bad master {status_master_host}:{status_master_port}!={master_address}")
                 self.finish_schedule()
                 return False
 
@@ -98,7 +102,7 @@ class MySQLDBHAAutofixCheckReplicateService(BaseService):
             return True
 
 
-class MySQLDBHAAutofixCheckReplicateComponent(Component):
+class MySQLDBHAAFCheckReplicateComponent(Component):
     name = __name__
-    code = "mysql_dbha_autofix_check_replicate"
-    bound_service = MySQLDBHAAutofixCheckReplicateService
+    code = "mysql_dbha_af_check_replicate"
+    bound_service = MySQLDBHAAFCheckReplicateService
