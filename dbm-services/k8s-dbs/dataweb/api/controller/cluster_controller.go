@@ -26,7 +26,6 @@ import (
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
-	"k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	webreq "k8s-dbs/dataweb/vo/request"
 	"k8s-dbs/dataweb/vo/response"
@@ -193,21 +192,12 @@ func (c *ClusterController) processingClusterOpsStatus(ctx *gin.Context, data *r
 	if len(entities) > 0 {
 		ops := entities[0]
 		opsRequestType := ops.OpsRequestType
-		opsRequest := entity.Request{}
-		opsRequest.K8sClusterName = data.K8sClusterConfig.ClusterName
-		opsRequest.Metadata.OpsRequestName = ops.OpsRequestName
-		opsRequest.Metadata.Namespace = data.Namespace
-		opsRequestData, err := c.opsRequestProvider.DescribeOpsRequest(&opsRequest)
-		if err != nil {
-			data.ClusterOpsStatus = data.Status
-			slog.Warn("failed to describe ops request", "err", err)
-		} else {
-			data.ClusterOpsStatus = commutil.GetClusterOpsStatus(
-				opsRequestType,
-				string(opsRequestData.OpsRequestStatus.Phase),
-				data.Status,
-			)
-		}
+		status := ops.Status
+		data.ClusterOpsStatus = commutil.GetClusterOpsStatus(
+			opsRequestType,
+			status,
+			data.Status,
+		)
 	} else {
 		data.ClusterOpsStatus = data.Status
 	}
