@@ -82,7 +82,7 @@ class RedisFlushDataFlow(object):
         for rule in self.data["rules"]:
             cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], rule["cluster_id"])
             rule["backup_type"] = RedisBackupEnum.NORMAL_BACKUP.value
-            rule["backup_identify"] = ("FLUSH{}-{}".format(self.data.get("uid"), dateF),)  # 集群清档的备份标识
+            rule["backup_identify"] = "FLUSH{}-{}".format(self.data.get("uid"), dateF)  # 集群清档的备份标识
             cluster = {
                 **rule,
                 **cluster_info["master_redis_map"],
