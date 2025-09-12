@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 import time
 
 from django.utils.translation import ugettext as _
@@ -18,12 +17,10 @@ from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
-logger = logging.getLogger("flow")
-
 
 class MySQLCheckProcesslistService(BaseService):
     """
-    检查 show processlist 进程
+    检查slave当前30秒内是否检测到有链接
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -31,6 +28,7 @@ class MySQLCheckProcesslistService(BaseService):
         self.log_info(_("传入参数:{}").format(kwargs))
         self.log_info(_("如果检查不通过,根据您实际需求来选择跳过此节点。"))
         instance = "{}{}{}".format(kwargs["instance_ip"], IP_PORT_DIVIDER, kwargs["instance_port"])
+
         rpc_info = {
             "addresses": [instance],
             "cmds": [
@@ -41,38 +39,71 @@ DB not in ('mysql', 'sys', 'information_schema','performance_schema','test', 'in
             "force": False,
             "bk_cloud_id": kwargs["bk_cloud_id"],
         }
-
-        res = DRSApi.rpc(rpc_info)
-        if res[0]["error_msg"]:
-            self.log_info("execute sql error {}".format(res[0]["error_msg"]))
-            return False
-        else:
-            if res[0]["cmd_results"][0]["table_data"] is None or len(res[0]["cmd_results"][0]["table_data"]) == 0:
-                rpc_info["cmds"] = ["flush tables"]
-                res = DRSApi.rpc(rpc_info)
-                if res[0]["error_msg"]:
-                    self.log_info("execute sql error {}".format(res[0]["error_msg"]))
-                    return False
-                time.sleep(31)
-                rpc_info["cmds"] = [
-                    """show open tables where `Database`  not in ('mysql', 'sys', 'information_schema',
-'performance_schema', 'test', 'infodba_schema', 'db_infobase')"""
-                ]
-                res = DRSApi.rpc(rpc_info)
-                if res[0]["error_msg"]:
-                    self.log_info("execute sql error {}".format(res[0]["error_msg"]))
-                    return False
-                if res[0]["cmd_results"][0]["table_data"] is None or len(res[0]["cmd_results"][0]["table_data"]) == 0:
-                    return True
-                else:
-                    self.log_error(
-                        _("实例: {},存在open table {}".format(instance, res[0]["cmd_results"][0]["table_data"]))
-                    )
-                    return False
-
-            else:
-                self.log_error(_("实例: {},存在链接 {}".format(instance, res[0]["cmd_results"][0]["table_data"])))
+        self.log_info(
+            _(
+                """
+    检查slave当前30秒内是否检测到有链接,步骤:
+    1. 检查 show processlist 进程。
+    2. 先 stop slave ,避免复制进程打开表
+    3. flush tables
+    4. 检查 show open tables
+    5. 程序退出前 start slave。
+        """
+            )
+        )
+        check_flag = False
+        try:
+            res = DRSApi.rpc(rpc_info)
+            if res[0]["error_msg"]:
+                self.log_info("execute sql error {}".format(res[0]["error_msg"]))
                 return False
+            else:
+                if res[0]["cmd_results"][0]["table_data"] is None or len(res[0]["cmd_results"][0]["table_data"]) == 0:
+                    #  flush tables 前先 stop slave
+                    rpc_info["cmds"] = ["stop slave"]
+                    res = DRSApi.rpc(rpc_info)
+                    if res[0]["error_msg"]:
+                        self.log_info("execute sql error {}".format(res[0]["error_msg"]))
+                        return False
+                    time.sleep(10)
+                    rpc_info["cmds"] = ["flush tables"]
+                    res = DRSApi.rpc(rpc_info)
+                    if res[0]["error_msg"]:
+                        self.log_info("execute sql error {}".format(res[0]["error_msg"]))
+                        return False
+                    time.sleep(31)
+                    rpc_info["cmds"] = [
+                        """show open tables where `Database`  not in ('mysql', 'sys', 'information_schema',
+    'performance_schema', 'test', 'infodba_schema', 'db_infobase')"""
+                    ]
+                    res = DRSApi.rpc(rpc_info)
+                    if res[0]["error_msg"]:
+                        self.log_info("execute sql error {}".format(res[0]["error_msg"]))
+                        return False
+                    if (
+                        res[0]["cmd_results"][0]["table_data"] is None
+                        or len(res[0]["cmd_results"][0]["table_data"]) == 0
+                    ):
+                        check_flag = True
+                        return True
+                    else:
+                        self.log_error(
+                            _("实例: {},存在open table {}".format(instance, res[0]["cmd_results"][0]["table_data"]))
+                        )
+                        return False
+
+                else:
+                    self.log_error(_("实例: {},存在链接 {}".format(instance, res[0]["cmd_results"][0]["table_data"])))
+                    return False
+        finally:
+            if not check_flag:
+                rpc_info["cmds"] = ["start slave"]
+                res = DRSApi.rpc(rpc_info)
+                if res[0]["error_msg"]:
+                    self.log_info("execute sql error {}".format(res[0]["error_msg"]))
+                    self.log_info(_("检查不通过,且重新 start slave 失败,请手动介入处理"))
+                    return False
+            self.log_info("check finish")
 
 
 class MySQLCheckProcesslistComponent(Component):
