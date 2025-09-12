@@ -177,7 +177,7 @@ func (suite *OpsrequestProviderTestSuite) TestFindOpsRequestByParam() {
 
 	requestParams := metaenitty.OpsRequestQueryParams{}
 	requestParams.RequestID = "request_id_01"
-	entities, err := suite.clusterProvider.FindOpsRequestByParam(&requestParams)
+	entities, err := suite.clusterProvider.FindOpsRequestByParams(&requestParams)
 	assert.NoError(t, err)
 	assert.Len(t, entities, 2)
 
