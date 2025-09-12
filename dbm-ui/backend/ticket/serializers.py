@@ -312,7 +312,7 @@ class OpRecordSerializer(serializers.Serializer):
     def to_representation(self, instance):
         return {
             "create_at": instance.create_at,
-            "op_type": instance.ticket.ticket_type,
+            "op_type": TicketType.get_choice_label(instance.ticket.ticket_type),
             "op_status": instance.ticket.status,
             "ticket_id": instance.ticket.id,
             "creator": instance.creator,
