@@ -65,9 +65,17 @@
     &.is-readonly,
     &.is-disabled {
       .bk-editable-tag-input {
-        .clear-icon,
-        .remove-tag {
-          display: none !important;
+        &.bk-tag-input {
+          pointer-events: none;
+
+          .clear-icon,
+          .remove-tag {
+            display: none !important;
+          }
+
+          * {
+            pointer-events: none;
+          }
         }
       }
     }

@@ -60,7 +60,7 @@ export default function (
       let totalWidth = 0;
       pxColumn.forEach((column) => {
         if (columnSizeConfigCache[column.key]) {
-          totalWidth += columnSizeConfigCache[column.key].renderWidth;
+          totalWidth += columnSizeConfigCache[column.key]!.renderWidth;
           return;
         }
         columnSizeConfigCache[column.key] = {
@@ -71,7 +71,7 @@ export default function (
       });
       minColumn.forEach((column) => {
         if (columnSizeConfigCache[column.key]) {
-          totalWidth += columnSizeConfigCache[column.key].renderWidth;
+          totalWidth += columnSizeConfigCache[column.key]!.renderWidth;
           return;
         }
         columnSizeConfigCache[column.key] = {
@@ -103,8 +103,8 @@ export default function (
       });
       meanWidth += Math.floor(extraWidth / (autoColumn.length + minColumn.length));
       minColumn.forEach((column) => {
-        Object.assign(columnSizeConfigCache[column.key], {
-          renderWidth: columnSizeConfigCache[column.key].renderWidth + meanWidth,
+        Object.assign(columnSizeConfigCache[column.key]!, {
+          renderWidth: columnSizeConfigCache[column.key]!.renderWidth + meanWidth,
         });
       });
       autoColumn.forEach((column) => {
@@ -120,14 +120,14 @@ export default function (
       if (renderColumnWidthTotal < tableWidth) {
         const fixWidth = tableWidth - renderColumnWidthTotal;
         if (minColumn.length > 0) {
-          columnSizeConfigCache[minColumn[0].key].renderWidth =
-            columnSizeConfigCache[minColumn[0].key].renderWidth + fixWidth;
+          columnSizeConfigCache[minColumn[0]!.key]!.renderWidth =
+            columnSizeConfigCache[minColumn[0]!.key]!.renderWidth + fixWidth;
         } else if (autoColumn.length > 0) {
-          columnSizeConfigCache[autoColumn[0].key].renderWidth =
-            columnSizeConfigCache[autoColumn[0].key].renderWidth + fixWidth;
+          columnSizeConfigCache[autoColumn[0]!.key]!.renderWidth =
+            columnSizeConfigCache[autoColumn[0]!.key]!.renderWidth + fixWidth;
         } else if (maxColumn.length > 0) {
-          columnSizeConfigCache[maxColumn[0].key].renderWidth =
-            columnSizeConfigCache[maxColumn[0].key].renderWidth + fixWidth;
+          columnSizeConfigCache[maxColumn[0]!.key]!.renderWidth =
+            columnSizeConfigCache[maxColumn[0]!.key]!.renderWidth + fixWidth;
         }
       }
 
@@ -194,8 +194,8 @@ export default function (
         dragging.value = false;
 
         const realWidth = Math.max(
-          columnSizeConfig.value[columnKey].minWidth || 60,
-          Math.min(latestColumnWidth, columnSizeConfig.value[columnKey].maxWidth || 1000000),
+          columnSizeConfig.value[columnKey]!.minWidth || 60,
+          Math.min(latestColumnWidth, columnSizeConfig.value[columnKey]!.maxWidth || 1000000),
         );
         const renderColumWidthTotal = Array.from(columnEl.parentElement!.children).reduce((result, element) => {
           if (element === columnEl) {
@@ -207,9 +207,9 @@ export default function (
         const tableWidth = tableRef.value!.getBoundingClientRect().width;
 
         if (renderColumWidthTotal + realWidth < tableWidth) {
-          columnSizeConfig.value[columnKey].renderWidth = tableWidth - renderColumWidthTotal;
+          columnSizeConfig.value[columnKey]!.renderWidth = tableWidth - renderColumWidthTotal;
         } else {
-          columnSizeConfig.value[columnKey].renderWidth = realWidth;
+          columnSizeConfig.value[columnKey]!.renderWidth = realWidth;
         }
       }
 
