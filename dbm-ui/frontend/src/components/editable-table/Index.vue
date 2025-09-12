@@ -177,7 +177,7 @@
 
   const updateRow = _.throttle(() => {
     columnList.value = rowList.value.length > 0 ? [...rowList.value[0]!] : [];
-  }, 60);
+  }, 20);
 
   const unregisterRow = (rowColumnList: IColumnContext[]) => {
     rowList.value = rowList.value.filter((row) => row !== rowColumnList);
