@@ -45,7 +45,9 @@ def get_alarm_shield_request_key_id(request, key, default=None):
         (
             int(cond["value"][0])
             for cond in dimension_conditions
-            if cond["key"] == "tags.appid" and isinstance(cond["value"], list) and len(cond["value"]) > 0
+            if (cond["key"] == "appid" or cond["key"] == "tags.appid")
+            and isinstance(cond["value"], list)
+            and len(cond["value"]) > 0
         ),
         None,
     )
