@@ -668,8 +668,14 @@
       background: #fafbfd;
 
       .bk-editable-table-field-cell {
-        & > *:not(.bk-editable-table-column-disabled-mask) {
+        > *:not(.bk-editable-table-column-disabled-mask) {
+          position: relative;
+          z-index: 0;
+        }
+
+        *:not(.bk-editable-table-column-disabled-mask) {
           pointer-events: none;
+          cursor: not-allowed;
           background: #fafbfd;
         }
       }
@@ -713,7 +719,6 @@
 
       .bk-editable-table-field-cell {
         & > * {
-          pointer-events: none;
           background: #fafbfd;
         }
       }
@@ -786,7 +791,6 @@
   .bk-editable-table-column-disabled-mask {
     position: absolute;
     z-index: 1;
-    pointer-events: none;
     cursor: not-allowed;
     content: '';
     inset: 0;
