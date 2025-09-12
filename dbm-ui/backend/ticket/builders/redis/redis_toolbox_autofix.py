@@ -38,6 +38,7 @@ class RedisClusterAutofixDetailSerializer(SkipToRepresentationMixin, serializers
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
+        need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value

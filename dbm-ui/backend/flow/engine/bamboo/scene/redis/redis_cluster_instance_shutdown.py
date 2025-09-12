@@ -41,6 +41,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
             "cluster_id": 1,
             "proxy": ["1.1.1.a"],
             "redis_slave": ["1.1.1.a"],
+            "need_manual_confirm": True,
             }
         ]
     }
@@ -139,6 +140,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
                     "ip": shutdown_ip,
                     "force_shutdown": True,
                     "ports": sub_kwargs.cluster["slave_ports"][shutdown_ip],
+                    "need_manual_confirm": shutdown_params.get("need_manual_confirm", True),
                 },
             )
             sub_pipelines.append(sub_builder)
@@ -153,7 +155,11 @@ class RedisClusterInstanceShutdownSceneFlow(object):
                 self.root_id,
                 self.data,
                 deepcopy(sub_kwargs),
-                {"ip": proxy_ip, "proxy_port": sub_kwargs.cluster["proxy_port"]},
+                {
+                    "ip": proxy_ip,
+                    "proxy_port": sub_kwargs.cluster["proxy_port"],
+                    "need_manual_confirm": shutdown_params.get("need_manual_confirm", True),
+                },
             )
             sub_pipelines.append(sub_builder)
         if len(sub_pipelines) > 0:

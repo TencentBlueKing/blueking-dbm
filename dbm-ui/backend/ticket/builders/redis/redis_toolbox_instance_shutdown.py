@@ -35,6 +35,7 @@ class RedisClusterInstShutdownDetailSerializer(SkipToRepresentationMixin, serial
         redis_slave = serializers.ListField(
             help_text=_("slave列表"), allow_empty=True, child=serializers.IPAddressField(), required=False
         )
+        need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)

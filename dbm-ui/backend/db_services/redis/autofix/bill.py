@@ -36,6 +36,8 @@ from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
 logger = logging.getLogger("root")
 
+FAILOVER_DRILL_DOMAIN_PREFIX: str = "cache.failover-drill-"
+
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
     """自愈创建单据"""
@@ -194,6 +196,7 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
 
 def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
     """redis自愈创建单据"""
+    is_failover_drill_cluster = cluster.immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX)
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [
@@ -204,6 +207,7 @@ def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: l
                 "bk_biz_id": cluster.bk_biz_id,
                 "proxy": redis_proxies,
                 "redis_slave": redis_slaves,
+                "need_manual_confirm": not is_failover_drill_cluster,
             }
         ],
     }

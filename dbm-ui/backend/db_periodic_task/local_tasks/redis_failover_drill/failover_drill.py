@@ -23,7 +23,7 @@ from backend.utils.basic import generate_root_id
 
 from ..common.failover_drill_base import BaseFailoverDrill
 
-DBATEST_BIZ_NAME: str = "dbatest"
+DBATEST_BIZ_NAME: str = "k8stest"
 DOMAIN_PREFIX: str = "cache"
 
 
