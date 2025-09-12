@@ -21,7 +21,11 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
-from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import (
+    ParamValidateSerializerMixin,
+    RedisTicketFlowBuilderPatchMixin,
+    SkipToRepresentationMixin,
+)
 from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles/{biz}"
@@ -167,3 +171,11 @@ class ClusterValidateMixin(object):
 
     def validate_cluster_id(self, cluster_id):
         return self.check_cluster_phase(cluster_id)
+
+
+class RedisBaseOperateDetailSerializer(
+    ParamValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
+    def validate(self, attrs):
+        attrs = super().validated_params(attrs=attrs)
+        return attrs

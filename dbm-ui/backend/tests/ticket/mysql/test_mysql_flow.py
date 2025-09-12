@@ -119,6 +119,7 @@ class TestMySQLTicket(BaseTicketTest):
         mock_drs_api_patch = patch(
             "backend.db_services.mysql.remote_service.handlers.DRSApi", new_callable=lambda: DRSApiMock()
         )
+
         cls.patches.extend(
             [
                 mock_list_account_rules_patch,
