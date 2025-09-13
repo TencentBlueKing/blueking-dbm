@@ -49,7 +49,7 @@ class BaseFailoverDrill:
             cluster_domain=self.get_immute_domain(),
             cluster_type=self.cluster_type(),
             city=self.city,
-            dhha_status=DBHASwitchResult.FAIL.value,
+            dbha_status=DBHASwitchResult.FAIL.value,
         )
 
     def get_city_abbr(self) -> str:
@@ -87,4 +87,4 @@ class BaseFailoverDrill:
         report.status = status
         report.dbha_status = dbha_status
         report.dbha_info = dbha_info
-        report.save(update_fields=["task_info", "status", "dhha_status", "dbha_info"])
+        report.save(update_fields=["task_info", "status", "dbha_status", "dbha_info"])

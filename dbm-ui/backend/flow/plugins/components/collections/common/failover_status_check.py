@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from django.utils.translation import ugettext as _
@@ -21,7 +22,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 
 logger = logging.getLogger("flow")
 
-# Timeout = 30 min
+# Timeout = 3 min
 SCHEDULE_INTERVAL = 6  # sec
 MAX_SCHEDULE_COUNT = 30
 
@@ -46,6 +47,10 @@ class FailoverStatusCheckService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        finished_time = datetime.now().astimezone(timezone.utc)
+        start_time = finished_time - timedelta(minutes=10)
+        kwargs["switch_start_time"] = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+        kwargs["switch_finished_time"] = finished_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         loop_count = data.get_one_of_outputs("loop_count")
         if not loop_count:

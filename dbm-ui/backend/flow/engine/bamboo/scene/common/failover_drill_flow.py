@@ -14,6 +14,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.components.hadb.client import HADBApi
+from backend.db_report.models import FailoverDrillReport
 from backend.exceptions import AppBaseException
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.plugins.components.collections.common.check_resolv_conf import ExecuteShellScriptComponent
@@ -95,6 +96,13 @@ class FailoverDrillFlow:
             "logical_city_id": drill_info.get(instance_role).get("logical_city_id"),
         }
 
+    def report_trigger_time(self, main_task_id, instance_type):
+        utc8_timezone = timezone(timedelta(hours=8))
+        trigger_time = datetime.now().astimezone(utc8_timezone)
+        FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
+            trigger_dbha_time=trigger_time
+        )
+
     def failover_drill(self):
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
@@ -129,8 +137,9 @@ class FailoverDrillFlow:
             },
         )
 
-        finished_time = datetime.now().astimezone(timezone.utc)
-        start_time = finished_time - timedelta(minutes=10)
+        if "main_task_id" in drill_info:
+            self.report_trigger_time(drill_info["main_task_id"], instance_role)
+
         sub_pipeline.add_act(
             act_name=_("监测DBHA切换状态"),
             act_component_code=FailoverStatusCheckComponent.code,
@@ -139,8 +148,6 @@ class FailoverDrillFlow:
                 "cloud_id": exec_info.get("bk_cloud_id"),
                 "app": str(self.data.get("bk_biz_id")),
                 "ip": exec_info.get("ip"),
-                "switch_start_time": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "switch_finished_time": finished_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             },
         )
 

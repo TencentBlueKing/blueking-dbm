@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
+from django.db.models import F, Value
+from django.db.models.functions import Concat
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
@@ -21,7 +23,6 @@ from backend.db_services.dbresource.exceptions import (
     ResourceApplyInsufficientException,
     ResourceReturnException,
 )
-from backend.db_services.redis.autofix.enums import DBHASwitchResult
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket.constants import ResourceApplyErrCode, TicketType
@@ -68,6 +69,22 @@ class MysqlFailoverDrill(BaseFailoverDrill):
     def cluster_type() -> str:
         return ClusterType.TenDBHA.value
 
+    def init_report(self):
+        report = {
+            "bk_biz_id": self.bk_biz_id,
+            "bk_cloud_id": self.bk_cloud_id,
+            "status": False,
+            "main_task_id": self.main_task_id,
+            "cluster_domain": self.get_immute_domain(),
+            "cluster_type": self.cluster_type(),
+            "city": self.city,
+            "instance_type": "proxy",
+        }
+        FailoverDrillReport.objects.create(**report)
+        # dbha中 Tendbha集群类型的db类型是backend  Tendbcluster 的是remote
+        report["instance_type"] = "backend"
+        FailoverDrillReport.objects.create(**report)
+
     def get_immute_domain(self):
         """
         @return:主从域名
@@ -106,11 +123,11 @@ class MysqlFailoverDrill(BaseFailoverDrill):
         resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             info = _("资源不足申请失败，请前往补货后重试{}").format(resp.get("message"))
-            self.update_drill_report(info)
+            self.update_drill_task_report(info)
             raise ResourceApplyInsufficientException(info)
         elif resp["code"] != 0:
             info = _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"], resp.get("message"))
-            self.update_drill_report(info)
+            self.update_drill_task_report(info)
             raise ResourceApplyException(info)
 
         # 资源参数，用于后面集群搭建
@@ -238,12 +255,13 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             {
                 "drill_infos": [
                     {
+                        "main_task_id": self.main_task_id,
                         "cluster_id": cluster.id,
                         "bk_cloud_id": cluster.bk_cloud_id,
                         "cluster_type": cluster.cluster_type,
-                        "remote_master": self.get_instance_info(cluster, "remote_master"),
+                        "backend": self.get_instance_info(cluster, "remote_master"),
                         "proxy": self.get_instance_info(cluster, "proxy"),
-                        "types": ["remote_master", "proxy"],
+                        "types": ["backend", "proxy"],
                     }
                 ],
             }
@@ -255,9 +273,9 @@ class MysqlFailoverDrill(BaseFailoverDrill):
         @return:
         """
         self.get_failover_drill_data()
-        drill_report = FailoverDrillReport.objects.get(main_task_id=self.main_task_id)
-        drill_report.drill_info = _("dbha演练执行信息：{}".format(self.failover_drill_info))
-        drill_report.save()
+        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
+            drill_info=_("dbha演练执行信息：{}".format(self.failover_drill_info)),
+        )
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_FAILOVER_DRILL,
             creator="dba",
@@ -394,22 +412,47 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             resp = DBResourceApi.resource_import(params=self.reimport_resource_info, raw=True)
             if resp["code"] != 0:
                 info = _("资源退回异常，请查看服务日志处理！错误信息: [{}]{}".format(resp["code"], resp.get["message"]))
-                self.update_drill_report(info)
+                self.update_drill_task_report(info)
                 raise ResourceReturnException(info)
         except Exception as e:
             info = _("资源服务请求异常，请查看服务日志处理！错误信息: {}".format(e))
-            self.update_drill_report(info)
+            self.update_drill_task_report(info)
             raise ResourceReturnException(info)
 
-    def update_drill_report(
-        self, info: str, dbha_info: str = "", status: bool = False, dbha_status: str = DBHASwitchResult.FAIL.value
-    ):
-        drill_report = FailoverDrillReport.objects.get(main_task_id=self.main_task_id)
-        drill_report.task_info = "{}\n{}".format(drill_report.task_info, info)
-        drill_report.status = status
-        drill_report.dbha_status = dbha_status
-        drill_report.dbha_info = dbha_info
-        drill_report.save()
+    def update_drill_task_report(self, info: str, status: bool = False, task_status: str = "failed"):
+        """
+        用来更新于容灾演练任务有关的信息，不涉及dbha相关信息
+        @param task_status:
+        @param info:
+        @param status:
+        @return:
+        """
+        # 拼接字符串时 使用Concat 与 Value
+        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
+            status=status, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
+        )
+
+    def update_dbha_report(self, dbha_infos, status):
+        """
+        用于更新dbha相关信息
+        @return:
+        """
+        qs = FailoverDrillReport.objects.filter(main_task_id=self.main_task_id)
+
+        for q in qs:
+            instance_type = q.instance_type
+            if instance_type in dbha_infos:
+                dbha_info = dbha_infos["instance_type"]
+                q.dbha_info = dbha_info
+                q.dbha_status = getattr(dbha_info, "status", "failed")
+                q.switch_start_time = getattr(dbha_info, "switch_start_time", None)
+                q.switch_finished_time = getattr(dbha_info, "switch_finished_time", None)
+
+            else:
+                q.dbha_info = dbha_infos["error"]
+            # status 表示整个dbha触发的状态，如果有一个类型失败 都算失败
+            q.status = status
+            q.save()
 
     def get_drill_ip(self):
         drill_ip = []
@@ -422,8 +465,10 @@ class MysqlFailoverDrill(BaseFailoverDrill):
         # 此处获取的是切换后的集群信息，主库ip已经切换成旧从库的，因此不会获取到旧master的切换信息
         # 所以后面过滤的时候加上slave_ip
         drill_ip = self.get_drill_ip()
-        dbha_info = ""
-        dbha_status = DBHASwitchResult.FAIL.value
+        dbha_infos = {
+            "error": "",
+        }
+        status = False
         flag = 0
         try:
             resp = self.get_dbha_switch_data()
@@ -436,14 +481,14 @@ class MysqlFailoverDrill(BaseFailoverDrill):
                     for ip in drill_ip:
                         # 因为主库可能已经发生切换，此处获取的是切换后的主库ip，但dbha的结果信息里是之前的角色slave_ip
                         if d["ip"] == ip or d["slave_ip"] == ip:
-                            dbha_info += "{}\n".format(d)
+                            dbha_infos[d["instance_type"]] = d
                             flag += 1
             else:
-                dbha_info += "HADB service query failed. code:{} msg:{}\n".format(code, msg)
+                dbha_infos["error"] += "HADB service query failed. code:{} msg:{}\n".format(code, msg)
         except Exception as e:
-            dbha_info += "HADB service query error:{}\n".format(e)
+            dbha_infos["error"] += "HADB service query error:{}\n".format(e)
 
         if flag == 2:
-            dbha_status = DBHASwitchResult.SUCC.value
+            status = True
 
-        return dbha_info, dbha_status
+        return dbha_infos, status

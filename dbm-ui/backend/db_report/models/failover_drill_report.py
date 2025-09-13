@@ -16,15 +16,24 @@ from backend.db_services.redis.autofix.enums import DBHASwitchResult
 
 
 class FailoverDrillReport(BaseReportABS):
-    main_task_id = models.CharField(max_length=64, help_text=_("主任务ID"), unique=True, default="")
+    main_task_id = models.CharField(max_length=64, help_text=_("主任务ID"), default="")
     cluster_domain = models.CharField(max_length=255, help_text=_("集群域名"), default="")
-    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices())
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), help_text=_("集群类型"))
     city = models.CharField(max_length=128, help_text=_("城市"), default="")
     drill_info = models.TextField(default="", help_text=_("演练执行信息"))
     drill_start_time = models.DateTimeField(help_text=_("演练开始时间"), auto_now_add=True)
     drill_end_time = models.DateTimeField(help_text=_("演练结束始时间"), auto_now=True)
     task_info = models.TextField(help_text=_("演练任务执行信息"), default="")
-    dhha_status = models.CharField(
+    dbha_status = models.CharField(
         max_length=255, help_text=_("dbha切换状态"), choices=DBHASwitchResult.get_choices(), default=""
     )
     dbha_info = models.TextField(help_text=_("dbha切换信息"), default="")
+
+    instance_type = models.CharField(max_length=64, help_text=_("实例类型"), default="")
+    trigger_dbha_time = models.DateTimeField(help_text=_("开始触发dbha时间"), null=True)
+    switch_start_time = models.DateTimeField(help_text=_("开始切换时间"), null=True)
+    switch_finished_time = models.DateTimeField(help_text=_("结束切换时间"), null=True)
+    task_status = models.CharField(max_length=255, help_text=_("容灾任务执行状态"), default="")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["main_task_id", "instance_type"], name="unique_main_type")]
