@@ -1,5 +1,5 @@
 # 引用的addon版本
-addonVersion: 1.0.0
+addonVersion: 2.0.0
 
 # 元数据
 clusterName: risingwave-cluster
@@ -14,7 +14,7 @@ terminationPolicy: Delete
 topoName: risingwave
 componentList:
   - componentName: frontend
-    serviceVersion: "2.2.1"
+    serviceVersion: "2.2.1-2.0.0"
     services:
       - name: frontend
         serviceType: ClusterIP
@@ -30,7 +30,7 @@ componentList:
         memory: 1Gi
 
   - componentName: meta
-    serviceVersion: "2.2.1"
+    serviceVersion: "2.2.1-2.0.0"
     services:
       - name: meta
         serviceType: ClusterIP
@@ -46,7 +46,7 @@ componentList:
         memory: 1Gi
 
   - componentName: compute
-    serviceVersion: "2.2.1"
+    serviceVersion: "2.2.1-2.0.0"
     services:
       - name: compute
         serviceType: ClusterIP
@@ -62,7 +62,7 @@ componentList:
         memory: 1Gi
 
   - componentName: compactor
-    serviceVersion: "2.2.1"
+    serviceVersion: "2.2.1-2.0.0"
     services:
       - name: compactor
         serviceType: ClusterIP
