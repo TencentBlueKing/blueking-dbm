@@ -147,6 +147,13 @@ class MySQLBackupRecoverTask(BaseReportABS):
     phase = models.CharField(_("阶段"), max_length=constants.LEN_SHORT, default="")
     status = models.BooleanField(default=False, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["bk_biz_id", "task_status"], name="idx_biz_task_status"),
+            models.Index(fields=["cluster_id", "task_status"], name="idx_cluster_task_status"),
+            models.Index(fields=["backup_id", "task_status"], name="idx_backup_task_status"),
+        ]
+
     @classmethod
     def get_all_practiced_biz_ids(cls):
         """
@@ -191,12 +198,29 @@ class MySQLBackupRecoverTask(BaseReportABS):
             return list(
                 MySQLBackupRecoverTask.objects.filter(
                     create_at__gte=recent_time,
+                    # 排除所有状态的任务，不仅仅是创建时间
                 )
                 .values_list("cluster_id", flat=True)
                 .distinct()
             )
         except Exception as e:
             logger.warning(gettext("获取最近24小时任务集群ID列表时发生数据库连接错误: {}").format(str(e)))
+            return []
+
+    @classmethod
+    def get_running_task_cluster_ids(cls):
+        """
+        获取正在执行中的任务集群ID列表，避免并发执行
+        """
+        try:
+            # 过滤正在执行中的任务
+            return list(
+                MySQLBackupRecoverTask.objects.filter(phase=TaskPhase.RUNNING)
+                .values_list("cluster_id", flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            logger.warning(gettext("获取正在执行任务集群ID列表时发生数据库连接错误: {}").format(str(e)))
             return []
 
     @classmethod

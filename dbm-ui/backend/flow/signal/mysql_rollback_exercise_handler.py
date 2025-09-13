@@ -69,15 +69,20 @@ def mysql_rollback_exercise_callback_handler(root_id: str, node_id: str, status:
         update_fields = ["update_at", "phase"]
         task.phase = task_phase
 
-        # 如果是恢复成功状态，更新恢复结束时间
+        # 根据flow状态同时更新task_status字段
+        from backend.db_periodic_task.models import TaskStatus
+
         if status == StateType.FINISHED:
+            # 关键修复：流程完成时更新task_status为RECOVER_SUCCESS
+            task.task_status = TaskStatus.RECOVER_SUCCESS
             task.status = True  # 设置巡检结果状态为正常
             task.phase = TaskPhase.DONE
-            update_fields.extend(["status"])
-            logger.info(_("MySQL备份恢复演练成功完成，task_id={}").format(root_id))
+            update_fields.extend(["status", "task_status"])
+            logger.info(_("MySQL备份恢复演练成功完成，task_id={}，更新task_status为RECOVER_SUCCESS").format(root_id))
 
-        # 如果是失败状态，记录错误信息
         elif status in [StateType.FAILED, StateType.REVOKED]:
+            # 失败时也要更新task_status
+            task.task_status = TaskStatus.COMMIT_FAILED
             # 尝试从flow engine获取错误信息
             try:
                 engine = BambooEngine(root_id=root_id)
@@ -90,13 +95,17 @@ def mysql_rollback_exercise_callback_handler(root_id: str, node_id: str, status:
 
             task.status = False  # 设置巡检结果状态为异常
             task.phase = TaskPhase.DONE
-            update_fields.append("status")
-            logger.warning(_("MySQL备份恢复演练失败，task_id={}, status={}").format(root_id, status))
+            update_fields.extend(["status", "task_status"])
+            logger.warning(
+                _("MySQL备份恢复演练失败，task_id={}, status={}, 更新task_status为COMMIT_FAILED").format(root_id, status)
+            )
 
         # 保存更新
         task.save(update_fields=update_fields)
         logger.info(
-            _("MySQLBackupRecoverTask状态更新成功，task_id={}, 原状态={}, 新状态={}").format(root_id, task.phase, task_phase)
+            _("MySQLBackupRecoverTask状态更新成功，task_id={}, phase={}, task_status={}").format(
+                root_id, task.phase, task.task_status
+            )
         )
 
     except Exception as e:
