@@ -172,35 +172,19 @@ def get_last_week_range():
     return start_time, end_time
 
 
-def should_ignore_cluster_for_exercise(cluster) -> tuple:
-    """
-    检查集群是否应该被忽略演练
-
-    Args:
-        cluster: 集群对象
-
-    Returns:
-        tuple: (should_ignore: bool, reason: str)
-    """
-    # 检查业务级别忽略
-    if ExerciseIgnoreConfig.is_biz_ignored(cluster.bk_biz_id):
-        return True, _("业务 {} 被忽略配置排除").format(cluster.bk_biz_id)
-
-    # 检查集群级别忽略
-    if ExerciseIgnoreConfig.is_cluster_ignored(cluster.id):
-        return True, _("集群 {} 被忽略配置排除").format(cluster.immute_domain)
-
-    return False, ""
-
-
 def cluster_has_backup_record(cluster_id: int) -> bool:
     """
     查询集群是否存在备份记录
     """
+    import time
+
+    func_start = time.time()
     start_time, end_time = get_last_week_range()
 
     # 构建查询条件
+    cluster_query_start = time.time()
     cluster = Cluster.objects.get(id=cluster_id)
+    cluster_query_time = time.time() - cluster_query_start
 
     # 查询条件：只查询全备份记录，排除特定角色
     conditions = Q(
@@ -213,16 +197,20 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
     # 最高效实现：直接使用 NOT IN + LIMIT 1，一次查询解决
     try:
         # 获取已演练的备份ID列表
+        exercised_query_start = time.time()
         exercised_backup_ids = list(
             MySQLBackupRecoverTask.objects.filter(
                 task_status__in=[TaskStatus.COMMIT_SUCCESS, TaskStatus.RECOVER_SUCCESS]
             ).values_list("backup_id", flat=True)
         )
+        exercised_query_time = time.time() - exercised_query_start
     except Exception:
         # 如果MySQLBackupRecoverTask表不存在，说明没有演练过任何备份
         exercised_backup_ids = []
+        exercised_query_time = 0
 
     # 使用 NOT IN 查询未演练的备份记录，LIMIT 1 找到第一条就返回
+    backup_query_start = time.time()
     query = MysqlBackupResult.objects.filter(conditions)
 
     if exercised_backup_ids:
@@ -230,7 +218,25 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
         query = query.exclude(backup_id__in=exercised_backup_ids)
 
     # 只需要知道是否存在，exists() 比 count() 更高效
-    return query.exists()
+    result = query.exists()
+    backup_query_time = time.time() - backup_query_start
+
+    total_time = time.time() - func_start
+
+    # 如果查询耗时超过0.1秒，输出详细的性能日志
+    if total_time > 0.1:
+        logger.debug(
+            _("集群 {} 备份检查耗时: {:.3f}秒 (集群查询:{:.3f}s, 已演练备份查询:{:.3f}s, 备份记录查询:{:.3f}s, 已演练备份数:{})").format(
+                cluster.immute_domain,
+                total_time,
+                cluster_query_time,
+                exercised_query_time,
+                backup_query_time,
+                len(exercised_backup_ids),
+            )
+        )
+
+    return result
 
 
 # 查询备份记录生成回档任务
@@ -245,11 +251,7 @@ def gen_rollback_task():
         return
     clusters = get_exercise_clusters(rs_count)
     for cluster in clusters:
-        # 再次检查集群是否被忽略配置排除（双重保险）
-        should_ignore, ignore_reason = should_ignore_cluster_for_exercise(cluster)
-        if should_ignore:
-            logger.info(_("跳过演练: {}").format(ignore_reason))
-            continue
+        # 注意：忽略检查已在 get_exercise_clusters 中完成，这里不需要重复检查
         # 查询备份记录
         start_time, end_time = get_last_week_range()
 
@@ -556,7 +558,12 @@ def _prepare_cluster_data(num: int):
     exclude_biz_ids = MySQLBackupRecoverTask.get_all_practiced_biz_ids()
     exclude_cluster_id = MySQLBackupRecoverTask.get_all_practiced_cluster_ids()
     recent_task_cluster_ids = MySQLBackupRecoverTask.get_recent_24h_task_cluster_ids()
+    running_task_cluster_ids = MySQLBackupRecoverTask.get_running_task_cluster_ids()
+
     exclude_cluster_id.extend(recent_task_cluster_ids)
+    exclude_cluster_id.extend(running_task_cluster_ids)
+
+    logger.info(_("并发控制: 排除正在执行的任务集群 {} 个").format(len(running_task_cluster_ids)))
 
     # 添加演练忽略配置的业务和集群
     ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
@@ -591,75 +598,114 @@ def _prepare_cluster_data(num: int):
 
 
 def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, cluster_biz_map):
-    """收集未演练的集群"""
+    """收集从未演练过的业务的集群 - 最高优先级"""
     count = 0
-    clusters = Cluster.objects.exclude(
-        bk_biz_id__in=exclude_biz_ids,
-        id__in=exclude_cluster_id,
-    ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
+    unpracticed_biz_clusters = 0
+
+    # 使用 Q 对象实现 OR 逻辑：排除业务ID在列表中 OR 集群ID在列表中的集群
+    exclude_condition = Q()
+    if exclude_biz_ids:
+        exclude_condition |= Q(bk_biz_id__in=exclude_biz_ids)
+    if exclude_cluster_id:
+        exclude_condition |= Q(id__in=exclude_cluster_id)
+
+    clusters = Cluster.objects.exclude(exclude_condition).filter(
+        cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA]
+    )
+
+    # 按业务分组统计
+    unpracticed_biz_ids = set()
 
     for cluster in clusters:
-        # 未演练过的集群权重最高
-        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(1000, cluster))
+        # 从未演练过的业务的集群获得绝对最高优先级
+        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(10000, cluster))
+        unpracticed_biz_ids.add(cluster.bk_biz_id)
+        unpracticed_biz_clusters += 1
         count += 1
+
+    if unpracticed_biz_ids:
+        logger.info(_("发现 {} 个从未演练过的业务，包含 {} 个集群，将获得最高优先级").format(len(unpracticed_biz_ids), unpracticed_biz_clusters))
+        logger.info(_("从未演练过的业务ID列表: {}").format(sorted(list(unpracticed_biz_ids))))
+    else:
+        logger.info(_("未发现从未演练过的业务"))
 
     return count
 
 
 def _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_success_map, count, num):
-    """收集已演练的集群"""
+    """收集已演练的集群 - 中等优先级"""
     if count <= num * 3:
-        # 如果都演练过的话,则选择没有演练过的集群
+        # 只排除集群ID，不排除业务ID（因为这些是已演练过的集群）
         clusters = Cluster.objects.exclude(
             id__in=exclude_cluster_id,
         ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
+        practiced_clusters = 0
         for cluster in clusters:
             recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-            # 根据演练成功次数调整优先级，演练次数越多优先级越低
-            priority = max(500 - recover_success_cnt * 50, 100)
+            # 降低已演练集群的优先级，与从未演练集群拉开更大差距
+            priority = max(1000 - recover_success_cnt * 100, 200)  # 优先级范围 200-1000
             heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+            practiced_clusters += 1
             count += 1
+
+        if practiced_clusters > 0:
+            logger.info(_("收集了 {} 个已演练过的集群作为候补").format(practiced_clusters))
 
     return count
 
 
 def _collect_all_clusters(cluster_biz_map, recover_success_map, count, num):
-    """收集所有集群"""
+    """收集所有集群 - 最低优先级兜底"""
     if count <= num * 3:
         clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
+        fallback_clusters = 0
+
         for cluster in clusters:
             recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-            # 根据演练成功次数调整优先级，演练次数越多优先级越低
-            priority = max(200 - recover_success_cnt * 20, 50)
+            # 兜底集群使用最低优先级
+            priority = max(500 - recover_success_cnt * 50, 100)  # 优先级范围 100-500
             heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+            fallback_clusters += 1
             count += 1
             if count >= num * 3:
                 break
+
+        if fallback_clusters > 0:
+            logger.info(_("添加了 {} 个兜底集群").format(fallback_clusters))
 
     return count
 
 
 def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendbha):
     """收集有效的候选集群"""
+    import time
+
+    start_time = time.time()
     all_candidates = []
     tendbcluster_count = 0
     tendbha_count = 0
+
+    # 性能统计变量
+    total_clusters_checked = 0
+    backup_check_time = 0
+    no_backup_clusters = 0
 
     # 计算需要的最大集群数量（预留一些余量以防部分集群没有有效备份）
     max_needed_tendbcluster = target_tendbcluster * 2  # 2倍余量
     max_needed_tendbha = target_tendbha * 2  # 2倍余量
 
+    # 统计待检查的集群总数
+    total_candidate_clusters = sum(len(pq) for pq in cluster_biz_map.values())
+    logger.info(_("开始检查候选集群，总计 {} 个集群待检查").format(total_candidate_clusters))
+
     for bk_biz_id, pq in cluster_biz_map.items():
         while pq:
             task = heapq.heappop(pq)
             cluster = task.cluster
+            total_clusters_checked += 1
 
-            # 检查集群是否被忽略配置排除
-            should_ignore, ignore_reason = should_ignore_cluster_for_exercise(cluster)
-            if should_ignore:
-                logger.debug(_("候选集群筛选: {}").format(ignore_reason))
-                continue
+            # 注意：忽略检查已在数据准备阶段完成，这里不需要重复检查
 
             # 根据集群类型检查是否已收集足够数量
             if cluster.cluster_type == ClusterType.TenDBCluster:
@@ -670,19 +716,53 @@ def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendb
                     continue
 
             # 检查集群是否有有效的备份记录
+            backup_start = time.time()
             logger.debug(_("检查集群{}:{} 是否有备份记录").format(cluster.immute_domain, cluster.id))
-            if cluster_has_backup_record(cluster.id):
+            has_backup = cluster_has_backup_record(cluster.id)
+            backup_check_time += time.time() - backup_start
+
+            if has_backup:
                 all_candidates.append(cluster)
                 if cluster.cluster_type == ClusterType.TenDBCluster:
                     tendbcluster_count += 1
                 elif cluster.cluster_type == ClusterType.TenDBHA:
                     tendbha_count += 1
+                logger.debug(_("集群 {} 有备份记录，已添加到候选列表").format(cluster.immute_domain))
+            else:
+                no_backup_clusters += 1
+                logger.debug(_("集群 {} 无有效备份记录，跳过").format(cluster.immute_domain))
 
             # 如果两种类型都收集够了，提前退出
             if tendbcluster_count >= max_needed_tendbcluster and tendbha_count >= max_needed_tendbha:
+                logger.info(_("已收集足够数量的候选集群，提前退出检查"))
                 break
 
-    logger.info(_("检查了集群备份记录，收集到 TenDBCluster {} 个，TenDBHA {} 个有效候选集群").format(tendbcluster_count, tendbha_count))
+        # 每处理完一个业务的集群就输出进度
+        if total_clusters_checked % 50 == 0:  # 每50个集群输出一次进度
+            logger.info(
+                _("集群检查进度: {}/{}, 已找到有效候选 {} 个").format(
+                    total_clusters_checked, total_candidate_clusters, len(all_candidates)
+                )
+            )
+
+    total_time = time.time() - start_time
+
+    # 输出详细的性能统计
+    logger.info(_("集群候选筛选完成统计:"))
+    logger.info(_("- 总耗时: {:.2f}秒").format(total_time))
+    logger.info(_("- 检查集群总数: {}").format(total_clusters_checked))
+    logger.info(
+        _("- 备份检查耗时: {:.2f}秒 (平均 {:.3f}秒/集群)").format(
+            backup_check_time, backup_check_time / max(total_clusters_checked, 1)
+        )
+    )
+    logger.info(_("- 无备份集群数: {}").format(no_backup_clusters))
+    logger.info(
+        _("- 有效候选集群: TenDBCluster {} 个, TenDBHA {} 个, 总计 {} 个").format(
+            tendbcluster_count, tendbha_count, len(all_candidates)
+        )
+    )
+    logger.info(_("- 注意: 忽略配置检查已在数据准备阶段完成，无需重复检查"))
 
     return all_candidates
 
@@ -739,10 +819,18 @@ def _supplement_selection(all_candidates, current_selection, num, recover_succes
 
 def get_exercise_clusters(num: int) -> list:
     """
-    获取待演练的集群，根据最近2小时演练情况动态调整集群类型分配
-    已演练成功的集群被选中的概率更低
+    获取待演练的集群，优先级策略：
+    1. 绝对优先：从未演练过的业务的集群 (优先级: 10000)
+    2. 中等优先：已演练过的集群，按演练次数递减 (优先级: 200-1000)
+    3. 最低优先：所有集群作为兜底 (优先级: 100-500)
     """
+    import time
+
+    total_start_time = time.time()
+    logger.info(_("开始集群选择，目标数量: {}，策略: 从未演练过的业务绝对优先").format(num))
+
     # 准备基础数据
+    data_prep_start = time.time()
     (
         exclude_biz_ids,
         exclude_cluster_id,
@@ -750,17 +838,26 @@ def get_exercise_clusters(num: int) -> list:
         target_tendbha,
         recover_success_map,
     ) = _prepare_cluster_data(num)
+    data_prep_time = time.time() - data_prep_start
+
+    logger.info(_("已演练过的业务数量: {}").format(len(exclude_biz_ids)))
+    logger.info(_("演练策略 - TenDBCluster目标: {}, TenDBHA目标: {}").format(target_tendbcluster, target_tendbha))
 
     # 收集候选集群
+    collect_start = time.time()
     cluster_biz_map = defaultdict(list)
     count = _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, cluster_biz_map)
     count = _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_success_map, count, num)
     _collect_all_clusters(cluster_biz_map, recover_success_map, count, num)
+    collect_time = time.time() - collect_start
 
-    # 收集有效候选集群
+    # 收集有效候选集群（这是最耗时的步骤）
+    validation_start = time.time()
     all_candidates = _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendbha)
+    validation_time = time.time() - validation_start
 
     # 按集群类型分组
+    selection_start = time.time()
     tendbcluster_candidates = [c for c in all_candidates if c.cluster_type == ClusterType.TenDBCluster]
     tendbha_candidates = [c for c in all_candidates if c.cluster_type == ClusterType.TenDBHA]
 
@@ -783,10 +880,21 @@ def get_exercise_clusters(num: int) -> list:
 
     # 如果还没达到目标数量，从剩余候选中补充
     rs = _supplement_selection(all_candidates, rs, num, recover_success_map)
+    selection_time = time.time() - selection_start
 
     # 统计最终结果
     tendbcluster_final_count = sum(1 for c in rs if c.cluster_type == ClusterType.TenDBCluster)
     tendbha_final_count = sum(1 for c in rs if c.cluster_type == ClusterType.TenDBHA)
+
+    total_time = time.time() - total_start_time
+
+    # 输出详细的性能统计
+    logger.info(_("集群选择流程完成，性能统计:"))
+    logger.info(_("- 总耗时: {:.2f}秒").format(total_time))
+    logger.info(_("- 数据准备耗时: {:.2f}秒 ({:.1%})").format(data_prep_time, data_prep_time / total_time))
+    logger.info(_("- 候选收集耗时: {:.2f}秒 ({:.1%})").format(collect_time, collect_time / total_time))
+    logger.info(_("- 备份验证耗时: {:.2f}秒 ({:.1%})").format(validation_time, validation_time / total_time))
+    logger.info(_("- 最终选择耗时: {:.2f}秒 ({:.1%})").format(selection_time, selection_time / total_time))
 
     logger.info(
         _("最终选择的集群: TenDBCluster {} 个, TenDBHA {} 个, 总计 {} 个").format(
@@ -813,7 +921,7 @@ def return_resource(params: Dict[str, Any]) -> None:
             "hosts": [
                 {
                     "ip": mch_info["ip"],
-                    "bk_host_id": mch_info["bk_host_id"],
+                    "host_id": mch_info["bk_host_id"],
                     "bk_cloud_id": mch_info["bk_cloud_id"],
                 }
             ],
