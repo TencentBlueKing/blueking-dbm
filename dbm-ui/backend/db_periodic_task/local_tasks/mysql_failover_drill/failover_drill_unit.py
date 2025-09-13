@@ -65,20 +65,20 @@ def ha_failover_drill_unit(city: str):
         # 先打印日志，后续记录到表里
         info = _("Failover drill failed when applying the cluster! root_id: {}".format(mfod.apply_root_id))
         logger.error(info)
-        mfod.update_drill_report(info)
+        mfod.update_drill_task_report(info)
         return
 
     if not cluster_status_polling(mfod.get_immute_domain()[0], max_retry, interval):
         info = _("集群状态没变，dbha切换可能没成功，请检查！")
         logger.info(info)
-        mfod.update_drill_report(info)
+        mfod.update_drill_task_report(info)
 
     logger.info(_("开始禁用集群"))
     mfod.ha_cluster_disable()
     if not flow_status_polling(mfod.disable_root_id, max_retry=max_retry, interval=interval):
         info = _("集群禁用失败，请检查！")
         logger.info(info)
-        mfod.update_drill_report(info)
+        mfod.update_drill_task_report(info)
         return
 
     logger.info(_("集群禁用单据成功执行！开始下架集群"))
@@ -86,15 +86,18 @@ def ha_failover_drill_unit(city: str):
     if not flow_status_polling(mfod.destroy_root_id, max_retry=max_retry, interval=interval):
         info = _("集群下架失败，请检查！")
         logger.info(info)
-        mfod.update_drill_report(info)
+        mfod.update_drill_task_report(info)
         return
 
     logger.info(_("集群下架单据成功执行！开始资源重新导进资源池！"))
     mfod.reimport_ha_resource()
-    info = _("容灾演练执行成功！")
+
+    # 更新dbha信息
+    dbha_infos, status = mfod.get_dbha_info()
+    mfod.update_dbha_report(dbha_infos, status)
+    info = _("容灾演练任务流程执行成功！dbha切换信息请查看容灾演练报告")
     logger.info(info)
-    dbha_info, dbha_status = mfod.get_dbha_info()
-    mfod.update_drill_report(info, dbha_info, True, dbha_status)
+    mfod.update_drill_task_report(info, task_status="succeeded")
 
 
 @app.task
@@ -144,20 +147,20 @@ def spider_failover_drill_unit(city: str):
         # 先打印日志，后续记录到表里
         info = _("Failover drill failed when applying the cluster! root_id: {}".format(sfod.apply_root_id))
         logger.error(info)
-        sfod.update_drill_report(info)
+        sfod.update_drill_task_report((info))
         return
 
     if not cluster_status_polling(sfod.get_immute_domain()[0], max_retry, interval):
         info = _("集群状态没变，dbha切换可能没成功，请检查！")
         logger.info(info)
-        sfod.update_drill_report(info)
+        sfod.update_drill_task_report(info)
 
     logger.info(_("开始禁用集群"))
     sfod.tendbcluster_cluster_disable()
     if not flow_status_polling(sfod.disable_root_id, max_retry=max_retry, interval=interval):
         info = _("集群禁用失败，请检查！")
         logger.info(info)
-        sfod.update_drill_report(info)
+        sfod.update_drill_task_report(info)
         return
 
     logger.info(_("集群禁用单据成功执行！开始下架集群"))
@@ -165,12 +168,14 @@ def spider_failover_drill_unit(city: str):
     if not flow_status_polling(sfod.destroy_root_id, max_retry=max_retry, interval=interval):
         info = _("集群下架失败，请检查！")
         logger.info(info)
-        sfod.update_drill_report(info)
+        sfod.update_drill_task_report(info)
         return
 
     logger.info(_("集群下架单据成功执行！开始资源重新导进资源池！"))
     sfod.reimport_ha_resource()
-    info = _("容灾演练执行成功！")
+
+    dbha_infos, status = sfod.get_dbha_info()
+    sfod.update_dbha_report(dbha_infos, status)
+    info = _("容灾演练任务流程执行成功！dbha切换信息请查看容灾演练报告")
     logger.info(info)
-    dbha_info, dbha_status = sfod.get_dbha_info()
-    sfod.update_drill_report(info, dbha_info, True, dbha_status)
+    sfod.update_drill_task_report(info, task_status="succeeded")

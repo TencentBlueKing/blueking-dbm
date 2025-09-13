@@ -14,7 +14,6 @@ from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.mysql_failover_drill.failover_drill import MysqlFailoverDrill
 from backend.db_report.models import FailoverDrillReport
-from backend.db_services.redis.autofix.enums import DBHASwitchResult
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -30,18 +29,26 @@ class TendbclusterFailoverDrill(MysqlFailoverDrill):
     6、资源退回资源池
     """
 
+    @staticmethod
+    def cluster_type() -> str:
+        return ClusterType.TenDBCluster.value
+
     def init_report(self):
         # 默认任务是失败的，只有跑到最后才确认状态为True
-        FailoverDrillReport.objects.create(
-            bk_biz_id=self.bk_biz_id,
-            bk_cloud_id=self.bk_cloud_id,
-            status=False,
-            main_task_id=self.main_task_id,
-            cluster_domain=self.get_immute_domain(),
-            cluster_type=ClusterType.TenDBCluster.value,
-            city=self.city,
-            dhha_status=DBHASwitchResult.FAIL.value,
-        )
+        report = {
+            "bk_biz_id": self.bk_biz_id,
+            "bk_cloud_id": self.bk_cloud_id,
+            "status": False,
+            "main_task_id": self.main_task_id,
+            "cluster_domain": self.get_immute_domain(),
+            "cluster_type": self.cluster_type(),
+            "city": self.city,
+            "instance_type": "spider",
+        }
+        FailoverDrillReport.objects.create(**report)
+        # dbha中 Tendbha集群类型的db类型是backend  Tendbcluster 的是remote
+        report["instance_type"] = "remote"
+        FailoverDrillReport.objects.create(**report)
 
     def get_immute_domain(self):
         """
@@ -137,12 +144,13 @@ class TendbclusterFailoverDrill(MysqlFailoverDrill):
             {
                 "drill_infos": [
                     {
+                        "main_task_id": self.main_task_id,
                         "cluster_id": cluster.id,
                         "bk_cloud_id": cluster.bk_cloud_id,
                         "cluster_type": cluster.cluster_type,
-                        "remote_master": self.get_instance_info(cluster, "remote_master"),
+                        "remote": self.get_instance_info(cluster, "remote_master"),
                         "spider": self.get_instance_info(cluster, "spider"),
-                        "types": ["remote_master", "spider"],
+                        "types": ["remote", "spider"],
                     }
                 ],
             }
@@ -154,9 +162,9 @@ class TendbclusterFailoverDrill(MysqlFailoverDrill):
         @return:
         """
         self.get_failover_drill_data()
-        drill_report = FailoverDrillReport.objects.get(main_task_id=self.main_task_id)
-        drill_report.drill_info = _("dbha演练执行信息：{}".format(self.failover_drill_info))
-        drill_report.save()
+        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
+            drill_info=_("dbha演练执行信息：{}".format(self.failover_drill_info))
+        )
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_FAILOVER_DRILL,
             creator="dba",
