@@ -237,3 +237,39 @@ Meta service vars.
       optional: false
       host: Required
 {{- end }}
+
+
+{{/*
+Define risingwave cluster definition name
+*/}}
+{{- define "risingwave-cdName" -}}
+risingwave-{{ .Chart.Version}}
+{{- end -}}
+
+{{/*
+Define compactor cmpv name
+*/}}
+{{- define "risingwave-compactor.cmpvName" -}}
+risingwave-compactor-{{ .Chart.Version}}
+{{- end -}}
+
+{{/*
+Define compute cmpv name
+*/}}
+{{- define "risingwave-compute.cmpvName" -}}
+risingwave-compute-{{ .Chart.Version}}
+{{- end -}}
+
+{{/*
+Define frontend cmpv name
+*/}}
+{{- define "risingwave-frontend.cmpvName" -}}
+risingwave-frontend-{{ .Chart.Version}}
+{{- end -}}
+
+{{/*
+Define meta cmpv name
+*/}}
+{{- define "risingwave-meta.cmpvName" -}}
+risingwave-meta-{{ .Chart.Version}}
+{{- end -}}

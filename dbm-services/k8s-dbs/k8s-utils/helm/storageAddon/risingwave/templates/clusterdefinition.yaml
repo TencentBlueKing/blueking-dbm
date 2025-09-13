@@ -1,17 +1,17 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ClusterDefinition
 metadata:
-  name: risingwave-{{ .Chart.Version}}
+  name: {{ include "risingwave-cdName" . }}
 spec:
   topologies:
     - components:
-        - compDef: rw-compactor-{{ .Chart.Version}}
+        - compDef: {{ include "risingwave-compactor.cmpdRegexpPattern" . }}
           name: compactor
-        - compDef: rw-compute-{{ .Chart.Version}}
+        - compDef: {{ include "risingwave-compute.cmpdRegexpPattern" . }}
           name: compute
-        - compDef: rw-frontend-{{ .Chart.Version}}
+        - compDef: {{ include "risingwave-frontend.cmpdRegexpPattern" . }}
           name: frontend
-        - compDef: rw-meta-{{ .Chart.Version}}
+        - compDef: {{ include "risingwave-meta.cmpdRegexpPattern" . }}
           name: meta
       default: true
       name: risingwave

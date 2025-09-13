@@ -1,5 +1,5 @@
 {{/*
-Define victoriametrics insert component definition name
+Define victoriametrics cluster definition name
 */}}
 {{- define "victoriametrics-cdName" -}}
 victoriametrics-{{ .Chart.Version}}
