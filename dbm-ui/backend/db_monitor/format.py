@@ -15,6 +15,7 @@ from backend import env
 from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_meta.models import AppMonitorTopo
+from backend.db_services.cmdb.biz import get_resource_biz
 from backend.utils.basic import distinct_dict_list
 
 
@@ -62,13 +63,15 @@ class JsonConfigFormat:
     @classmethod
     def format_dbm_dbactuator(cls):
         # 如 dbm_dbactuator 这类需要对 DBM 管理的所有机器进行日志采集
+        # DBM 业务
         target_nodes = [{"bk_obj_id": "biz", "bk_inst_id": env.DBA_APP_BK_BIZ_ID}]
+        # 管控业务(排除sqlserver)
+        app_topos = AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID).exclude(db_type=DBType.Sqlserver)
         target_nodes.extend(
-            [
-                {"bk_obj_id": "set", "bk_inst_id": topo.bk_set_id, "bk_biz_id": topo.bk_biz_id}
-                for topo in AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
-            ]
+            [{"bk_obj_id": "set", "bk_inst_id": topo.bk_set_id, "bk_biz_id": topo.bk_biz_id} for topo in app_topos]
         )
+        # 资源池业务
+        target_nodes.append({"bk_inst_id": get_resource_biz(), "bk_obj_id": "biz"})
         return {
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "target_nodes": distinct_dict_list(target_nodes),
@@ -77,6 +80,7 @@ class JsonConfigFormat:
     @classmethod
     def format_dbm_win_dbactuator(cls):
         """windows 机器采集格式化目标，目前需要支持空闲机，资源池和 sqlserver set"""
+        # sqlserver set
         target_nodes = [
             {
                 "bk_biz_id": bk_set["bk_biz_id"],
@@ -84,8 +88,9 @@ class JsonConfigFormat:
                 "bk_obj_id": "set",
             }
             for bk_set in AppMonitorTopo.get_set_by_dbtype(DBType.Sqlserver.value)
-            + AppMonitorTopo.get_set_by_dbtype(DBType.Cloud.value)
         ]
+        # 资源池业务
+        target_nodes.append({"bk_inst_id": get_resource_biz(), "bk_obj_id": "biz"})
         # 空闲机
         internal_set_info = CCApi.get_biz_internal_module({"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True)
         target_nodes.append(

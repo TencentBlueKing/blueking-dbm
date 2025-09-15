@@ -229,6 +229,7 @@ INSTANCE_BKLOG_PLUGINS = {
         },
     },
 }
+SERVICE_INSTANCE_BKLOG_PLUGINS = ["redis_slowlog", "mysql_slowlog"]
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
 
