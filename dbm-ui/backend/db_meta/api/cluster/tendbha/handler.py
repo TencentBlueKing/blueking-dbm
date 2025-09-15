@@ -276,6 +276,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         proxy_ports: list,
         cluster_ids: list,
         created_by: str,
+        target_proxy_pkg_id: int,
         template_proxy_ip: str = None,
     ):
         """
@@ -286,6 +287,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         @param proxy_ports: 待关联的proxy端口
         @param cluster_ids: 待关联的集群id列表
         @param created_by: 操作者
+        @param target_proxy_pkg_id: 安装的proxy介质包ID
         @param template_proxy_ip: 模板proxy的ip
         """
 
@@ -299,7 +301,7 @@ class TenDBHAClusterHandler(ClusterHandler):
             }
         ]
 
-        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
+        proxy_pkg = Package.objects.get(id=target_proxy_pkg_id)
         proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
         proxies = [{"ip": proxy["ip"], "port": proxy_port, "version": proxy_real_ver} for proxy_port in proxy_ports]
 

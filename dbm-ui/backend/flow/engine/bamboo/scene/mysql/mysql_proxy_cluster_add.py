@@ -18,11 +18,14 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.exceptions import ProxyFlowFailedException
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.plugins.components.collections.mysql.clone_proxy_client_in_backend import (
@@ -64,10 +67,12 @@ class MySQLProxyClusterAddFlow(object):
             {
                 "cluster_ids": [1,2],
                 "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
+                "target_proxy_pkg_id":1,
             },
             {
                 "cluster_ids": [3,4],
                 "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
+                "target_proxy_pkg_id":1,
             }
         ]
     }
@@ -81,6 +86,37 @@ class MySQLProxyClusterAddFlow(object):
         """
         self.root_id = root_id
         self.data = data
+
+    @staticmethod
+    def get_proxy_pkg_id_for_cluster(cluster_id: int) -> int:
+        """
+        根据已存在的proxy机器，获取待添加proxy节点版本介质包
+        @param cluster_id: 集群ID
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        all_proxys = cluster.proxyinstance_set.all()
+
+        no_version_proxys = []
+        for proxy in all_proxys:
+            if not proxy.version:
+                # 有没有写入版本信息proxy实例，收集起来，统一返回
+                no_version_proxys.append(proxy.machine.ip)
+        if no_version_proxys:
+            raise ProxyFlowFailedException(_("检查到以下的proxy机器没有录入到版本信息:{}，请检查".format(no_version_proxys)))
+
+        # 判断版本是否统一
+        cluster_proxy_version_set = {p.version for p in all_proxys}
+        if len(cluster_proxy_version_set) > 1:
+            # 如果返回集合长度大于，则说明集群的proxy的版本存在多个，也需要人为介入
+            raise ProxyFlowFailedException(
+                _("检查到集群所有的proxy录入多个版本信息:{}，请检查".format([p.machine.ip for p in all_proxys]))
+            )
+
+        # 根据参考proxy节点
+        # 返回对应的 package id
+        return Package.get_package_for_version_no(
+            db_type=DBType.MySQL, pkg_type=PackageType.MySQLProxy, version_no=str(cluster_proxy_version_set.pop())
+        ).id
 
     @staticmethod
     def __get_proxy_instance_info(cluster_id: int, proxy_ip: str) -> dict:
@@ -140,6 +176,9 @@ class MySQLProxyClusterAddFlow(object):
         # 多集群操作时循环加入集群proxy下架子流程
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数
+            # 获取第一个集群信息，作为按照介质包的依据，因为校验通过后 info["cluster_ids"] 属于同组共享集群，理论上版本都一致
+            info["target_proxy_pkg_id"] = self.get_proxy_pkg_id_for_cluster(info["cluster_ids"][0])
+
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
@@ -167,6 +206,8 @@ class MySQLProxyClusterAddFlow(object):
             )
 
             # 阶段1 已机器维度，安装先上架的proxy实例
+            # 获取第一个集群信息，作为按照介质包的依据，因为校验通过后 info["cluster_ids"] 属于同组共享集群，理论上版本都一致
+            info["target_proxy_pkg_id"] = self.get_proxy_pkg_id_for_cluster(info["cluster_ids"][0])
             sub_pipeline.add_act(
                 act_name=_("下发proxy安装介质"),
                 act_component_code=TransFileComponent.code,
@@ -174,12 +215,15 @@ class MySQLProxyClusterAddFlow(object):
                     DownloadMediaKwargs(
                         bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
                         exec_ip=info["proxy_ip"]["ip"],
-                        file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_install_package(),
+                        file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(
+                            info["target_proxy_pkg_id"]
+                        ),
                     )
                 ),
             )
 
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_add_payload.__name__
+            exec_act_kwargs.custom_params = {"pkg_id": info["target_proxy_pkg_id"]}
             sub_pipeline.add_act(
                 act_name=_("部署proxy实例"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,

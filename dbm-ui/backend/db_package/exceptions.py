@@ -22,3 +22,9 @@ class PackageNotExistException(DBPackageBaseException):
     ERROR_CODE = "001"
     MESSAGE = _("介质包不存在")
     MESSAGE_TPL = _("{version}-{pkg_type}-{db_type}介质包不存在")
+
+
+class VersionNoNotExistException(DBPackageBaseException):
+    ERROR_CODE = "002"
+    MESSAGE = _("根据版本号去找介质包不存在")
+    MESSAGE_TPL = _("{version_no}-{pkg_type}-{db_type}介质包不存在")

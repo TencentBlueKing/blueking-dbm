@@ -14,8 +14,11 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import add_spider_slaves_sub_flow
@@ -68,17 +71,18 @@ class TenDBSlaveClusterApplyFlow(object):
                     cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
                 )
 
-            # 根据集群去bk-config获取对应spider版本和字符集
-            spider_charset, spider_version = get_spider_version_and_charset(
+            # 根据集群去bk-config获取对应spider版本
+            __, spider_major_version = get_spider_version_and_charset(
                 bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
             )
 
-            # 补充这次单据需要的隐形参数，spider版本以及字符集
-            sub_flow_context["spider_charset"] = spider_charset
-            sub_flow_context["spider_version"] = spider_version
-
             # spider slave 不安装备份程序，只解压
             sub_flow_context["untar_only"] = True
+
+            # 第一次安装，获取db模块的推荐版本，作为这边安装介质包
+            sub_flow_context["global_pkg_id"] = Package.get_latest_package(
+                version=spider_major_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
+            ).id
 
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -93,6 +97,7 @@ class TenDBSlaveClusterApplyFlow(object):
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     slave_domain=info["slave_domain"],
                     is_clone_user=False,
+                    global_pkg_id=sub_flow_context["global_pkg_id"],
                 )
             )
 

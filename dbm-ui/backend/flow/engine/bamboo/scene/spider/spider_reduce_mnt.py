@@ -18,7 +18,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spiders_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -80,18 +80,6 @@ class TenDBClusterReduceMNTFlow(object):
                     ),
                 )
 
-            # 删除spider的路由关系
-            sub_pipeline.add_act(
-                act_name=_("删除spider的路由关系"),
-                act_component_code=DropSpiderRoutingComponent.code,
-                kwargs=asdict(
-                    DropSpiderRoutingKwargs(
-                        cluster_id=cluster.id,
-                        reduce_spiders=reduce_spiders,
-                    )
-                ),
-            )
-
             # 回收对应的域名关系
             sub_pipeline.add_act(
                 act_name=_("回收对应spider集群映射"),
@@ -108,9 +96,21 @@ class TenDBClusterReduceMNTFlow(object):
             # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
+            # 删除spider的路由关系
+            sub_pipeline.add_act(
+                act_name=_("删除spider的路由关系"),
+                act_component_code=DropSpiderRoutingComponent.code,
+                kwargs=asdict(
+                    DropSpiderRoutingKwargs(
+                        cluster_id=cluster.id,
+                        reduce_spiders=reduce_spiders,
+                    )
+                ),
+            )
+
             # 根据场景执行下架spider子流程
             sub_pipeline.add_sub_pipeline(
-                sub_flow=reduce_spider_slaves_flow(
+                sub_flow=reduce_spiders_flow(
                     cluster=cluster,
                     reduce_spiders=reduce_spiders,
                     root_id=self.root_id,

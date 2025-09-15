@@ -93,6 +93,7 @@ class SpiderDBMeta(object):
             "spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE,
             "is_slave_cluster_create": True,
             "new_slave_domain": self.global_data["slave_domain"],
+            "global_pkg_id": self.global_data["global_pkg_id"],
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True
@@ -107,7 +108,7 @@ class SpiderDBMeta(object):
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
             "is_slave_cluster_create": False,
-            "new_db_module_id": self.global_data.get("new_db_module_id", 0),
+            "global_pkg_id": self.global_data["global_pkg_id"],
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)
         return True

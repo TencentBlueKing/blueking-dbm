@@ -26,6 +26,9 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 添加 Proxy 时，往往是由于原本 Proxy 所处的机器性能不足，因此添加时直接新增一台机器，把原机器上的 Proxy 一并部署到新机器上
         new_proxy = HostInfoSerializer(help_text=_("Proxy IP + 云区域"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
+        target_proxy_pkg_id = serializers.IntegerField(
+            help_text=_("新机器部署的介质包ID，暂时在FLow计算赋值"), required=False, default=0
+        )
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 
     ip_source = serializers.ChoiceField(

@@ -19,7 +19,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spiders_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -125,7 +125,7 @@ class TenDBSlaveClusterDestroyFlow(object):
 
             # 根据场景执行下架spider子流程
             sub_pipeline.add_sub_pipeline(
-                sub_flow=reduce_spider_slaves_flow(
+                sub_flow=reduce_spiders_flow(
                     cluster=Cluster.objects.get(id=slave_cluster["cluster_id"]),
                     reduce_spiders=sub_flow_context["reduce_spiders"],
                     root_id=self.root_id,

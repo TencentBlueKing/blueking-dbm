@@ -15,14 +15,18 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import add_spider_masters_sub_flow
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
+from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 
 logger = logging.getLogger("flow")
@@ -56,6 +60,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
             sub_flow_context.pop("infos")
             # 加入info，info中包含实例的私有信息
             sub_flow_context.update(info)
+
             # 通过cluster_id获取对应集群对象
             try:
                 cluster = Cluster.objects.get(id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]))
@@ -63,6 +68,16 @@ class TenDBClusterAddSpiderMNTFlow(object):
                 raise ClusterNotExistException(
                     cluster_id=info["cluster_id"], bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
                 )
+
+            # 根据集群去bk-config获取对应spider版本
+            __, spider_major_version = get_spider_version_and_charset(
+                bk_biz_id=cluster.bk_biz_id, db_module_id=cluster.db_module_id
+            )
+
+            # spider_mnt角色获取db模块的推荐版本，作为这边安装介质包
+            sub_flow_context["global_pkg_id"] = Package.get_latest_package(
+                version=spider_major_version, pkg_type=MediumEnum.Spider, db_type=DBType.MySQL
+            ).id
 
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -75,6 +90,7 @@ class TenDBClusterAddSpiderMNTFlow(object):
                     uid=sub_flow_context["uid"],
                     parent_global_data=sub_flow_context,
                     is_add_spider_mnt=True,
+                    global_pkg_id=sub_flow_context["global_pkg_id"],
                 )
             )
 
