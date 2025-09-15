@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.mixcoord.cmpvName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - mixcoord-v2.6.0
+      compDefs:
+        - mixcoord-2.0.0
+  releases:
+    - name: mixcoord-v2.6.0
+      serviceVersion: 2.6.0
+      images:
+        mixcoord: milvusdb/milvus:v2.6.0
