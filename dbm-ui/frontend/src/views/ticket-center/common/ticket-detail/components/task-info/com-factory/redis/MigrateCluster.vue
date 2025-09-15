@@ -44,7 +44,7 @@
         {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
       </template>
     </BkTableColumn>
-    <BkTableColumn
+    <!-- <BkTableColumn
       field="data.db_version"
       :label="t('版本')">
       <template #default="{ data }: { data: RowData }">
@@ -55,7 +55,7 @@
           {{ version }}
         </div>
       </template>
-    </BkTableColumn>
+    </BkTableColumn> -->
   </BkTable>
 </template>
 <script setup lang="ts">

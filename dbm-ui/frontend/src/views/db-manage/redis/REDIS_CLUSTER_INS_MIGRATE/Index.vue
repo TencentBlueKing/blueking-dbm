@@ -66,9 +66,9 @@
               :cluster-type="DBTypes.REDIS"
               field="batchInstance.current_spec_id"
               label="规格" />
-            <CurrentVersionColumn
+            <!-- <CurrentVersionColumn
               v-model="item.current_versions"
-              :cluster-id="Object.values(item.batchInstance.instances)?.[0]?.cluster_id" />
+              :cluster-id="Object.values(item.batchInstance.instances)?.[0]?.cluster_id" /> -->
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -126,7 +126,7 @@
     MigrateType,
   } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
 
-  import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  // import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
   import InstanceColumn from './components/InstanceColumn.vue';
 
   interface IHostData {
