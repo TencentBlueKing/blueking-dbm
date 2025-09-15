@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import traceback
 
 from django.http import JsonResponse
@@ -21,7 +22,6 @@ from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.db_services.redis.capacity_evaluate_service.api.evaluate_api import EvaluateAPI
 from backend.db_services.redis.capacity_evaluate_service.services import capacity_cal
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-import logging
 
 logger = logging.getLogger("root")
 
