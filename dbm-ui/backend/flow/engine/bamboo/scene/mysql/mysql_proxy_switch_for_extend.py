@@ -21,7 +21,7 @@ class ProxySwitchForExtendFlow(MySQLProxyClusterSwitchFlow):
     兼容跨云区域的场景支持
     {
         "uid": "2022051612120001",
-        "created_by": "jokersitu",
+        "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "MYSQL_PROXY_SWITCH_FOR_MIGRATE",
         "is_safe": true/false # 是否安全模式，默认True,
