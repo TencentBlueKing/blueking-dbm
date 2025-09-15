@@ -90,6 +90,7 @@
     [TicketTypes.INFLUXDB_APPLY]: 'SelfServiceApplyInfluxDB',
     [TicketTypes.KAFKA_APPLY]: 'KafkaApply',
     [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
+    [TicketTypes.MONGODB_ADD_SHARD]: TicketTypes.MONGODB_ADD_SHARD, // 分片集群增加分片数
     [TicketTypes.MONGODB_ADD_SHARD_NODES]: TicketTypes.MONGODB_ADD_SHARD_NODES, // 扩容 Shard 节点数
     [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
     [TicketTypes.MONGODB_EXEC_SCRIPT_APPLY]: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, // mongo 脚本执行

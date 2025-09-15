@@ -38,6 +38,12 @@ export default [
   {
     children: [
       {
+        dbConsoleValue: 'mongodb.toolbox.addShard',
+        id: TicketTypes.MONGODB_ADD_SHARD,
+        name: t('分片集群增加分片数'),
+        parentId: 'mongo_manage',
+      },
+      {
         dbConsoleValue: 'mongodb.toolbox.shardScaleUp',
         id: TicketTypes.MONGODB_ADD_SHARD_NODES,
         name: t('扩容Shard节点数'),
