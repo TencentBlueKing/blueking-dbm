@@ -17,6 +17,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
+from backend.db_services.dbbase.resources.query import CommonQueryResourceMixin
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
@@ -53,3 +54,33 @@ class ESListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "clb", "name": _("clb")},
+            {"id": "polaris", "name": _("北极星")},
+            {"id": "es_master", "name": _("Master 节点")},
+            {"id": "es_client", "name": _("Client 节点")},
+            {"id": "es_datanode_hot", "name": _("热节点")},
+            {"id": "es_datanode_cold", "name": _("冷节点")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
+
+    @classmethod
+    def update_cluster_info(cls, cluster, cluster_info, **kwargs):
+        """
+        补充额外的集群列表数据
+        """
+
+        # 补充clb/北极星
+        clb_entry, polaris_entry = CommonQueryResourceMixin.get_cluster_clb_polaris_entries(cluster)
+        cluster_info.update(
+            {
+                "clb": clb_entry,
+                "polaris": polaris_entry,
+            }
+        )
+        return cluster_info

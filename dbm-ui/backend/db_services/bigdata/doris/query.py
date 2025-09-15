@@ -53,3 +53,16 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "doris_backend_hot", "name": _("热节点")},
+            {"id": "doris_backend_warm", "name": _("温节点")},
+            {"id": "doris_backend_cold", "name": _("冷节点")},
+            {"id": "doris_follower", "name": _("Follower")},
+            {"id": "doris_observer", "name": _("Observer")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)

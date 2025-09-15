@@ -35,3 +35,14 @@ class PulsarListRetrieveResource(BigDataBaseListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "pulsar_bookkeeper", "name": _("Bookkeeper")},
+            {"id": "pulsar_zookeeper", "name": _("Zookeeper")},
+            {"id": "pulsar_broker", "name": _("Broker")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)

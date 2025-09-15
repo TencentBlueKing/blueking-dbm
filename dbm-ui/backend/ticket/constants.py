@@ -36,6 +36,7 @@ class TodoType(str, StructuredEnum):
     INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
+    TIMER = EnumField("TIMER", _("定时"))
 
 
 class CountType(str, StructuredEnum):
@@ -115,6 +116,7 @@ TICKET_TODO_STATUS_SET = [
 ]
 # 单据[失败]的状态合集
 TICKET_FAILED_STATUS_SET = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
+TICKET_FINISHED_STATUS_SET = [TicketStatus.SUCCEEDED, TicketStatus.REVOKED, TicketStatus.TERMINATED]
 
 
 class TicketFlowStatus(str, StructuredEnum):
@@ -225,7 +227,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_RESTORE_LOCAL_SLAVE = TicketEnumField("MYSQL_RESTORE_LOCAL_SLAVE", _("MySQL Slave原地重建"), _("集群维护"))
     MYSQL_MIGRATE_CLUSTER = TicketEnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 主从迁移"), _("集群维护"))
     MYSQL_MASTER_SLAVE_SWITCH = TicketEnumField("MYSQL_MASTER_SLAVE_SWITCH", _("MySQL 主从互换"), _("集群维护"))
-    MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库故障切换"), _("集群维护"))
+    MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库主机故障切换"), _("集群维护"))
+    MYSQL_INSTANCE_FAIL_OVER = TicketEnumField("MYSQL_INSTANCE_FAIL_OVER", _("MySQL 主库实例故障切换"), _("集群维护"))
     MYSQL_HA_APPLY = TicketEnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"), register_iam=False)
     MYSQL_IMPORT_SQLFILE = TicketEnumField("MYSQL_IMPORT_SQLFILE", _("MySQL 变更SQL执行"), _("SQL 任务"))
     MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE", _("MySQL 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
@@ -243,6 +246,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_EXCEL_AUTHORIZE_RULES = TicketEnumField("MYSQL_EXCEL_AUTHORIZE_RULES", _("MySQL EXCEL授权"), _("权限管理"))
     MYSQL_CLIENT_CLONE_RULES = TicketEnumField("MYSQL_CLIENT_CLONE_RULES", _("MySQL 客户端权限克隆"), register_iam=False)
     MYSQL_INSTANCE_CLONE_RULES = TicketEnumField("MYSQL_INSTANCE_CLONE_RULES", _("MySQL DB实例权限克隆"), _("权限管理"))
+    # deprecated
     MYSQL_HA_RENAME_DATABASE = TicketEnumField("MYSQL_HA_RENAME_DATABASE", _("MySQL 高可用DB重命名"), _("集群维护"))
     MYSQL_HA_TRUNCATE_DATA = TicketEnumField("MYSQL_HA_TRUNCATE_DATA", _("MySQL 高可用清档"), _("数据处理"))
     MYSQL_HA_DB_TABLE_BACKUP = TicketEnumField("MYSQL_HA_DB_TABLE_BACKUP", _("MySQL 库表备份"), _("备份"))
@@ -254,6 +258,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
+    # deprecated
     MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), _("集群维护"))  # noqa
     MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
@@ -267,7 +272,11 @@ class TicketType(str, StructuredEnum):
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
     MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)  # noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
+    MYSQL_AUTOFIX_TODO_REGISTER = TicketEnumField("MYSQL_AUTOFIX_TODO_REGISTER", _("MySQL DBHA 故障自愈任务注册"))
+    MYSQL_STORAGE_STANDARDIZE_AUTOFIX = TicketEnumField(
+        "MYSQL_STORAGE_STANDARDIZE_AUTOFIX", _("MySQL 存储自愈自动重标准化"), register_iam=False)
     MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"), register_iam=False)
+    MYSQL_RENAME_DATABASE = TicketEnumField("MYSQL_RENAME_DATABASE", _("MySQL DB重命名"))
 
     # MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"),
     #                                                register_iam=False)
@@ -283,7 +292,8 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_DB_TABLE_BACKUP = TicketEnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"), _("备份"))
     TENDBCLUSTER_RENAME_DATABASE = TicketEnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"), _("SQL 任务"))  # noqa
     TENDBCLUSTER_TRUNCATE_DATABASE = TicketEnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"), _("数据处理"))
-    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库故障切换"), _("集群维护"))  # noqa
+    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库主机故障切换"), _("集群维护"))  # noqa
+    TENDBCLUSTER_INSTANCE_FAIL_OVER = TicketEnumField("TENDBCLUSTER_INSTANCE_FAIL_OVER", _("TenDB Cluster 主库实例故障切换"), _("集群维护"))  # noqa
     TENDBCLUSTER_MASTER_SLAVE_SWITCH = TicketEnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"), _("集群维护"))  # noqa
     TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))  # noqa
     TENDBCLUSTER_FORCE_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_FORCE_IMPORT_SQLFILE", _("TenDB Cluster 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
@@ -404,6 +414,7 @@ class TicketType(str, StructuredEnum):
     REDIS_TENDISPLUS_LIGHTNING_DATA = TicketEnumField("REDIS_TENDISPLUS_LIGHTNING_DATA", _("Tendisplus闪电导入数据"), _("集群维护"))  # noqa
     REDIS_CLUSTER_INS_MIGRATE = TicketEnumField("REDIS_CLUSTER_INS_MIGRATE", _("Redis 集群指定实例迁移"), _("集群管理"))
     REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
+    REDIS_HOT_KEY_ANALYSIS = TicketEnumField("REDIS_HOT_KEY_ANALYSIS", _("Redis 热key分析"), _("集群管理"))
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
@@ -492,6 +503,7 @@ class TicketType(str, StructuredEnum):
     MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"), _("权限管理"))  # noqa
     MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"))
     MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"))
+    MONGODB_PITR_RESTORE = TicketEnumField("MONGODB_PITR_RESTORE", _("MongoDB Pitr回档"), _("集群维护"))
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"))
     MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"))
     MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"))
@@ -524,6 +536,8 @@ class TicketType(str, StructuredEnum):
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
+    RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
+    RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
     # fmt: on
 
     # VM
@@ -535,6 +549,9 @@ class TicketType(str, StructuredEnum):
     VM_ENABLE = TicketEnumField("VM_ENABLE", _("VM 集群启用"), register_iam=False)
     VM_DISABLE = TicketEnumField("VM_DISABLE", _("VM 集群禁用"), register_iam=False)
     VM_DESTROY = TicketEnumField("VM_DESTROY", _("VM 集群删除"), _("集群管理"))
+
+    # ORACLE
+    ORACLE_EXEC_SCRIPT_APPLY = TicketEnumField("ORACLE_EXEC_SCRIPT_APPLY", _("ORACLE 变更SQL执行"), _("脚本任务"))
 
     # 测试
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"), register_iam=False)
@@ -561,12 +578,13 @@ class FlowType(str, StructuredEnum):
     TIMER = EnumField("TIMER", _("定时"))
     # 资源申请节点，用于根据资源规格申请对应机器
     RESOURCE_APPLY = EnumField("RESOURCE_APPLY", _("资源申请"))
-    # 资源交付节点，用于机器部署成功后通过资源池服务
+    # 资源交付节点，用于机器部署成功后通过资源池服务. TODO: 已废弃，保留仅因为历史单据展示
     RESOURCE_DELIVERY = EnumField("RESOURCE_DELIVERY", _("资源交付"))
+    RESOURCE_BATCH_DELIVERY = EnumField("RESOURCE_BATCH_DELIVERY", _("资源批量交付"))
     # 资源批量申请节点
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
-    # 资源批量交付节点
-    RESOURCE_BATCH_DELIVERY = EnumField("RESOURCE_BATCH_DELIVERY", _("资源批量交付"))
+    # 主机回收
+    HOST_RECYCLE = EnumField("HOST_RECYCLE", _("主机回收"))
 
 
 class FlowContext(str, StructuredEnum):

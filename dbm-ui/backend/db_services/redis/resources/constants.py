@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_meta.enums import ClusterType
+
 RESOURCE_TAG = "db_services/resources/redis"
 
 SQL_QUERY_STORAGE_INSTANCES = (
@@ -54,3 +56,16 @@ SQL_QUERY_MASTER_SLAVE_STATUS = (
     "{where} "
     "group by mim.ip"
 )
+
+
+REDIS_LIST_CLUSTER_TYPE = [
+    ClusterType.TendisPredixyRedisCluster.value,
+    ClusterType.TendisPredixyTendisplusCluster.value,
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TwemproxyTendisSSDInstance.value,
+    ClusterType.TendisTwemproxyTendisplusIns.value,
+    ClusterType.TendisRedisInstance.value,
+    ClusterType.TendisTendisplusInsance.value,
+    ClusterType.TendisRedisCluster.value,
+    ClusterType.TendisTendisplusCluster.value,
+]

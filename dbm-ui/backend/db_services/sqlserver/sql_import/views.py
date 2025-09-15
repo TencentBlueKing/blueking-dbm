@@ -16,12 +16,12 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.dbbase.serializers import SQLUploadSerializer
 from backend.db_services.mysql.sql_import.serializers import (
     SQLGrammarCheckResponseSerializer,
     SQLGrammarCheckSerializer,
 )
 from backend.db_services.sqlserver.sql_import.handlers import SQLHandler
-from backend.db_services.sqlserver.sql_import.serializers import SQLUploadSerializer
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/sqlserver/sql_import"

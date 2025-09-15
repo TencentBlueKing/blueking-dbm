@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -19,10 +18,23 @@ from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import ResourceType
-from backend.db_services.dbbase.resources.serializers import ListClusterEntriesSLZ, ListResourceSLZ
+from backend.db_services.dbbase.resources.serializers import (
+    ListClusterEntriesSLZ,
+    ListMongoDBResourceSLZ,
+    ListMySQLResourceSLZ,
+    ListRedisMachineResourceSLZ,
+    ListSQLServerResourceSLZ,
+    ListTendbClusterMachineResourceSLZ,
+    ListTendbClusterResourceSLZ,
+    MongoDBListInstancesSerializer,
+    SqlserverListInstanceSerializer,
+)
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.mysql.sql_import import mock_data
+from backend.db_services.mysql.sql_import.constants import SQLCharset
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
 
@@ -77,19 +89,28 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": []}
 
 
-class ClusterFilterSerializer(ListResourceSLZ):
+class ClusterFilterSerializer(ListMySQLResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ):
     # 基础的集群过滤条件
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
     cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False, default="")
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=-1)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
     def validate(self, attrs):
         # 获取集群基础过滤条件用作第一轮过滤
-        filters = Q(bk_biz_id=attrs["bk_biz_id"])
+        filters = Q()
+        attrs["bk_biz_id"] = attrs.get("bk_biz_id", None)
+        if attrs["bk_biz_id"]:
+            filters &= Q(bk_biz_id=attrs["bk_biz_id"])
         if attrs["cluster_ids"]:
             filters &= Q(id__in=attrs["cluster_ids"].split(","))
         if attrs["cluster_type"]:
             filters &= Q(cluster_type__in=attrs["cluster_type"].split(","))
+        if attrs["db_type"]:
+            cluster_types = ClusterType.db_type_to_cluster_types(attrs["db_type"])
+            filters &= Q(cluster_type__in=cluster_types)
         attrs["filters"] = filters
         # 补充list resource过滤条件
         query_params = {field: attrs[field] for field in self.fields.keys() if field in attrs}
@@ -183,11 +204,19 @@ class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
 
 
 class WebConsoleSerializer(serializers.Serializer):
+    class OptionsSerializer(serializers.Serializer):
+        # redis 额外参数
+        db_num = serializers.IntegerField(help_text=_("数据库编号(redis 额外参数)"), required=False)
+        raw = serializers.BooleanField(help_text=_("源编码(redis 额外参数)"), required=False)
+        # mongodb 额外参数
+        session_time = DBTimezoneField(help_text=_("会话创建时间(mongodb 额外参数)"), required=False)
+        # mysql 额外参数
+        charset = serializers.ChoiceField(help_text=_("字符集"), choices=SQLCharset.get_choices(), required=False)
+        timezone = serializers.CharField(help_text=_("时区"), required=False)
+
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     cmd = serializers.CharField(help_text=_("sql语句"))
-    # redis 额外参数
-    db_num = serializers.IntegerField(help_text=_("数据库编号(redis 额外参数)"), required=False)
-    raw = serializers.BooleanField(help_text=_("源编码(redis 额外参数)"), required=False)
+    options = OptionsSerializer(help_text=_("额外操作项合集"), required=False, default={})
 
 
 class DBConsoleSerializer(serializers.Serializer):
@@ -198,6 +227,23 @@ class DBConsoleSerializer(serializers.Serializer):
     instances = serializers.ListSerializer(help_text=_("实例列表信息"), child=DBInstanceSerializer())
     cmd = serializers.CharField(help_text=_("sql语句"))
     db_type = serializers.ChoiceField(help_text=_("组件类型"), choices=DBType.get_choices())
+
+    # mysql 额外参数
+    is_proxy = serializers.BooleanField(help_text=_("是否是proxy类型"), default=False, required=False)
+
+    def validate(self, attrs):
+        # 如果是proxy类型，则将端口号加1000
+        if attrs["is_proxy"]:
+            updated_instances = []
+            for instance_data in attrs["instances"]:
+                instance_str = instance_data["instance"]
+                ip, port = instance_str.split(":")
+                port = int(port) + 1000
+                instance_data["instance"] = f"{ip}:{port}"
+                updated_instances.append(instance_data)
+
+            attrs["instances"] = updated_instances
+        return attrs
 
 
 class WebConsoleResponseSerializer(serializers.Serializer):
@@ -242,5 +288,79 @@ class UpdateClusterAliasSerializer(serializers.Serializer):
         # 验证新别名不能与原集群名相同
         if cluster.alias == new_alias:
             raise serializers.ValidationError(_("The new alias cannot be the same as the current alias."))
+
+        return attrs
+
+
+class UpdateClusterTagsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+
+
+class RemoveClusterTagKeysSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
+    keys = serializers.ListField(child=serializers.CharField(), help_text=_("标签键列表"))
+
+
+class AddClusterTagKeysSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID列表"))
+    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+
+
+class QueryGlobalSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    db_type = serializers.CharField(help_text=_("DB类型"), required=False)
+    db_module_id = serializers.CharField(help_text=_("所属DB模块(逗号分割)"), required=False)
+
+    def validate(self, attrs):
+        cluster_type = attrs.get("cluster_type")
+        db_type = attrs.get("db_type")
+
+        # cluster_type和db_type不能同时为空
+        if not cluster_type and not db_type:
+            raise serializers.ValidationError(_("cluster_type or db_type must be provided."))
+
+        return attrs
+
+
+class QueryGlobalMachineSerializer(
+    ListRedisMachineResourceSLZ, ListTendbClusterMachineResourceSLZ, QueryGlobalSerializer
+):
+    pass
+
+
+class QueryGlobalInstanceSerializer(
+    MongoDBListInstancesSerializer, SqlserverListInstanceSerializer, QueryGlobalSerializer
+):
+    # influxdb过滤
+    group_id = serializers.CharField(help_text=_("分组ID"), required=False)
+
+
+class QueryGlobalClusterSerializer(
+    ListTendbClusterResourceSLZ, ListSQLServerResourceSLZ, ListMongoDBResourceSLZ, QueryGlobalSerializer
+):
+    pass
+
+
+class SQLUploadSerializer(serializers.Serializer):
+    sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
+    sql_files = serializers.ListField(
+        help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
+    )
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
+
+    def validate(self, attrs):
+        if not (attrs.get("sql_content") or attrs.get("sql_files")):
+            raise serializers.ValidationError(_("不允许语法检查的sql的内容为空！"))
+
+        for file in attrs.get("sql_files", []):
+            if file.name.rsplit(".")[-1].lower() != "sql":
+                raise serializers.ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
 
         return attrs

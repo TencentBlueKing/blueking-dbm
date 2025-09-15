@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import inspect
 from collections import Counter
 from typing import Dict, List
 
@@ -22,7 +23,6 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.configuration.constants import DBType
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -35,18 +35,20 @@ from backend.iam_app.handlers.drf_perm.ticket import (
 )
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin, fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
-    TICKET_RUNNING_STATUS_SET,
+    TICKET_FINISHED_STATUS_SET,
     TICKET_TODO_STATUS_SET,
     TODO_RUNNING_STATUS,
     CountType,
     FlowType,
+    TicketStatus,
     TicketType,
+    TodoStatus,
 )
 from backend.ticket.contexts import TicketContext
-from backend.ticket.exceptions import TicketDuplicationException
+from backend.ticket.exceptions import TicketDuplicationException, TicketParamsVerifyException
 from backend.ticket.filters import ClusterOpRecordListFilter, InstanceOpRecordListFilter, TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
@@ -95,6 +97,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
+        if self.action == "batch_create_ticket":
+            return create_ticket_permission(self.request.data["tickets"][0]["ticket_type"], batch=True)
         if self.action == "batch_approval":
             return [BatchApprovalPermission()]
         # 创建敏感单据，只允许通过jwt校验的用户访问(warning: 这个网关接口授权需谨慎)
@@ -152,29 +156,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             context["ticket_ctx"] = TicketContext()
         return context
 
-    @staticmethod
-    def _verify_influxdb_duplicate_ticket(ticket_type, details, user, active_tickets):
-        current_instances = InfluxdbTicketFlowBuilderPatchMixin.get_instances(ticket_type, details)
-        for ticket in active_tickets:
-            active_instances = ticket.details["instances"]
-            duplicate_ids = list(set(active_instances).intersection(current_instances))
-            if duplicate_ids:
-                raise TicketDuplicationException(
-                    context=_("实例{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
-                    data={"duplicate_instance_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
-                )
-
-    def verify_duplicate_ticket(self, ticket_type, details, user):
+    def verify_duplicate_ticket(self, ticket_type, details):
         """校验是否重复提交"""
-        active_tickets = self.get_queryset().filter(
-            ticket_type=ticket_type, status__in=TICKET_RUNNING_STATUS_SET, creator=user
-        )
 
-        # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
-        # TODO: 后续这段逻辑待删除，influxdb已经弃用
-        if ticket_type in TicketType.get_ticket_type_by_db(DBType.InfluxDB):
-            self._verify_influxdb_duplicate_ticket(ticket_type, details, user, active_tickets)
-            return
+        active_tickets = (
+            self.get_queryset().filter(ticket_type=ticket_type).exclude(status__in=TICKET_FINISHED_STATUS_SET)
+        )
 
         cluster_ids = fetch_cluster_ids(details=details)
         for ticket in active_tickets:
@@ -182,7 +169,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             duplicate_ids = list(set(active_cluster_ids).intersection(cluster_ids))
             if duplicate_ids:
                 raise TicketDuplicationException(
-                    context=_("集群{}已存在相同类型的单据[{}]正在运行，请确认是否重复提交").format(duplicate_ids, ticket.id),
+                    context=_("系统检测到已提交过包含相同集群的同类单据[{}]，是否继续?").format(ticket.id),
                     data={"duplicate_cluster_ids": duplicate_ids, "duplicate_ticket_id": ticket.id},
                 )
 
@@ -191,7 +178,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ignore_duplication = self.request.data.get("ignore_duplication") or False
         # 如果不允许忽略重复提交，则进行校验
         if not ignore_duplication:
-            self.verify_duplicate_ticket(ticket_type, self.request.data["details"], self.request.user.username)
+            self.verify_duplicate_ticket(ticket_type, self.request.data["details"])
 
         with transaction.atomic():
             # 设置单据类别 TODO: 这里会请求两次数据库，是否考虑group参数让前端传递
@@ -248,7 +235,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_class=None)
     def list_ticket_status(self, request, *args, **kwargs):
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
-        ticket_status_map = {ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)}
+        tickets = Ticket.objects.filter(id__in=ticket_ids)
+        ticket_status_map = {ticket.id: ticket.status for ticket in tickets}
+        # 对于包含任务代办的单据，状态更新为待继续
+        todo_tickets = tickets.filter(status=TicketStatus.RUNNING, todo_of_ticket__status=TodoStatus.TODO)
+        for ticket in todo_tickets:
+            ticket_status_map[ticket.id] = TicketStatus.INNER_TODO
         return Response(ticket_status_map)
 
     @common_swagger_auto_schema(
@@ -258,6 +250,47 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary=_("批量创建单据"),
+        responses={status.HTTP_200_OK: TicketSerializer(label=_("批量创建单据"))},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False)
+    def batch_create_ticket(self, request, *args, **kwargs):
+        tickets = request.data.get("tickets", [])
+
+        # 校验单据
+        errors = []
+        for ticket in tickets:
+            try:
+                mixin_instance = ParamValidateSerializerMixin()
+                mixin_instance.context = {"ticket_type": ticket["ticket_type"]}
+                mixin_instance.validated_params(ticket["details"])
+            except TicketParamsVerifyException as e:
+                errors.extend(e.errors)
+
+        if errors:
+            raise TicketParamsVerifyException(errors=errors, ticket_type=tickets[0]["ticket_type"])
+
+        # 批量创建单据
+        ticket_datas = []
+        for ticket in tickets:
+            try:
+                # 获取 create_ticket 方法需要的参数名
+                create_ticket_params = inspect.signature(Ticket.create_ticket).parameters
+                # 使用字典表达式过滤掉不在方法参数中的键
+                filtered_ticket = {k: v for k, v in ticket.items() if k in create_ticket_params}
+
+                filtered_ticket["creator"] = request.user.username
+                obj = Ticket.create_ticket(**filtered_ticket)
+                serializer = self.get_serializer(instance=obj)
+                ticket_datas.append(serializer.data)
+
+            except Exception as e:
+                errors.append(e)
+                raise TicketParamsVerifyException(errors=errors, ticket_type=tickets[0]["ticket_type"])
+        return Response(ticket_datas)
 
     @common_swagger_auto_schema(
         operation_summary=_("创建单据(允许创建敏感单据)"),
@@ -437,8 +470,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 我的申请
         results[CountType.MY_APPROVE] = tickets.filter(creator=user).count()
         # 我的已办
-        results[CountType.DONE] = tickets.filter(todo_of_ticket__done_by=user).distinct().count()
-
+        results[CountType.DONE] = tickets.filter(todo_of_ticket__done_by=user).values("pk").distinct().count()
+        # 定时timer
+        results[CountType.TIMER] = tickets.filter(status=TicketStatus.TIMER).count()
         return Response(results)
 
     @common_swagger_auto_schema(

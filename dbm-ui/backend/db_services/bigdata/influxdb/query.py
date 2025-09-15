@@ -18,7 +18,6 @@ from backend.db_meta.models import Machine
 from backend.db_meta.models.group import Group, GroupInstance
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_services.bigdata.resources.query import BigDataBaseListRetrieveResource
-from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -129,6 +128,7 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
         cls, instance: dict, restart_map: dict, group_id_map: dict, group_name_map: dict, host_id__host_map: dict
     ) -> dict:
         """实例序列化"""
+        from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
         instance_id = instance["id"]
         restart_at = restart_map.get(instance_id, "")
@@ -159,3 +159,12 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
             "restart_at": datetime2str(restart_at) if restart_at else restart_at,
             "operations": InstanceOperateRecord.objects.get_locking_operations(instance["id"]),
         }
+
+    @classmethod
+    def update_headers(cls, headers, **kwargs):
+        # 补充实例为空未展示的字段
+        extra_headers = [
+            {"id": "influxdb", "name": _("influxdb")},
+        ]
+
+        return super().update_headers(headers, extra_headers=extra_headers)
