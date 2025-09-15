@@ -164,7 +164,7 @@ class MySQLRollbackDataFlow(object):
                 root_id=self.root_id,
                 uid=self.ticket_data["uid"],
                 cluster_model=cluster_class,
-                cluster_info=cluster_info,
+                cluster_info=copy.deepcopy(cluster_info),
             )
             cluster_info["backupinfo"] = copy.deepcopy(backup_info)
             sub_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
@@ -239,6 +239,10 @@ class MySQLRollbackDataFlow(object):
                     raise NormalSpiderFlowException(
                         message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(rollback_class.id))
                     )
+                #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
+                backup_id = self.data.get("backup_id", None)
+                if backup_id is None or backup_id == "":
+                    backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
                 cluster_info = {
                     "name": cluster_class.name,
                     "cluster_id": cluster_class.id,
@@ -256,6 +260,7 @@ class MySQLRollbackDataFlow(object):
                     "skip_local_exists": True,
                     "name_regex": "^.+{}\\.\\d+(\\..*)*$".format(master.port),
                     "rollback_time": self.data["rollback_time"],
+                    "backup_id": backup_id,
                     "rollback_type": self.data["rollback_type"],
                     "rollback_ip": rollback_storage.machine.ip,
                     "rollback_port": rollback_storage.port,
@@ -266,7 +271,7 @@ class MySQLRollbackDataFlow(object):
                 exec_act_kwargs = ExecActuatorKwargs(
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     cluster_type=ClusterType.TenDBHA,
-                    cluster=cluster_info,
+                    cluster=copy.deepcopy(cluster_info),
                 )
 
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
@@ -331,7 +336,7 @@ class MySQLRollbackDataFlow(object):
                     root_id=self.root_id,
                     uid=self.ticket_data["uid"],
                     cluster_model=cluster_class,
-                    cluster_info=cluster_info,
+                    cluster_info=copy.deepcopy(cluster_info),
                 )
                 cluster_info["backupinfo"] = copy.deepcopy(backup_info)
                 rollback_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
