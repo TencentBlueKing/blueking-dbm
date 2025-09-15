@@ -49,9 +49,15 @@
 
   import { Column, useTable } from '@components/editable-table/Index.vue';
 
-  const props = defineProps<{
-    createRowMethod?: () => T;
-  }>();
+  export interface Props<IRow> {
+    // eslint-disable-next-line vue/require-default-prop
+    createRowMethod?: () => IRow;
+    minRow?: number;
+  }
+
+  const props = withDefaults(defineProps<Props<T>>(), {
+    minRow: 1,
+  });
 
   const tableData = defineModel<T[]>('tableData', {
     required: true,
@@ -62,7 +68,7 @@
   const editTableContext = useTable();
   const columnRef = useTemplateRef('column');
 
-  const isRemoveable = computed(() => tableData.value.length > 1);
+  const isRemoveable = computed(() => tableData.value.length > props.minRow);
 
   const handleAppend = () => {
     const rowIndex = columnRef.value!.getRowIndex();
