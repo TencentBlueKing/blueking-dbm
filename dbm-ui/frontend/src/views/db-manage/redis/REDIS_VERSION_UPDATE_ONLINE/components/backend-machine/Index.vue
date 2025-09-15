@@ -17,6 +17,7 @@
       <RoleColumn :host="item.host" />
       <EditableColumn
         :label="t('所属集群')"
+        readonly
         :width="200">
         <EditableBlock :placeholder="t('输入集群后自动生成')">
           {{ item.host.related_clusters?.[0]?.immute_domain }}

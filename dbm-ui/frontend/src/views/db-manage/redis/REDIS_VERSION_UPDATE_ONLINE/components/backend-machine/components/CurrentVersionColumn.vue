@@ -16,6 +16,7 @@
     ref="editableTableColumn"
     class="current-version-column"
     :label="t('当前版本')"
+    readonly
     :width="240">
     <EditableBlock :placeholder="t('输入集群后自动生成')">
       <BkLoading :loading="versionLoading || pairVersionLoading">
@@ -106,11 +107,11 @@
 
 <style lang="less" scoped>
   .current-version-column {
-    :deep(.bk-editable-text-content-wrapper) {
+    :deep(.bk-editable-block-content-wrapper) {
       padding: 0;
       margin: 0;
 
-      .bk-editable-text-content-placeholder {
+      .bk-editable-block-content-placeholder {
         padding: 0 10px;
       }
     }

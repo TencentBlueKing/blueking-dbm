@@ -2,6 +2,7 @@
   <EditableColumn
     class="role-column"
     :label="t('角色类型')"
+    readonly
     :width="200">
     <EditableBlock :placeholder="t('输入主机后自动生成')">
       <div class="role-item">
@@ -36,11 +37,11 @@
 
 <style lang="less" scoped>
   .role-column {
-    :deep(.bk-editable-text-content-wrapper) {
+    :deep(.bk-editable-block-content-wrapper) {
       padding: 0;
       margin: 0;
 
-      .bk-editable-text-content-placeholder {
+      .bk-editable-block-content-placeholder {
         padding: 0 10px;
       }
     }

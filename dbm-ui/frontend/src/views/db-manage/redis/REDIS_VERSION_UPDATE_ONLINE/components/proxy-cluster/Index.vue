@@ -17,6 +17,7 @@
         @batch-edit="handleClusterBatchEdit" />
       <EditableColumn
         :label="t('架构版本')"
+        readonly
         :width="200">
         <EditableBlock :placeholder="t('输入集群后自动生成')">
           {{ item.cluster.cluster_type_name }}
