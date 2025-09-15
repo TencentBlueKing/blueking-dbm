@@ -159,8 +159,8 @@ class EvaluateRecordRepo:
         history.cluster_id = capacity_info.topo_info.cluster_id
         history.cluster_domain = capacity_info.topo_info.cluster_domain
         history.cluster_type = capacity_info.topo_info.cluster_type
-        history.free_size_mb = int(capacity_info.get_mem_free_m())
-        history.total_size_mb = int(capacity_info.get_mem_total_m())
+        history.free_size_mb = int(capacity_info.get_free_capacity_m())
+        history.total_size_mb = int(capacity_info.get_total_capacity_m())
         history.proxy_count = capacity_info.topo_info.proxy_num
         # 本次评估的简要信息
         history.is_force = action_info.get("is_force", 0)

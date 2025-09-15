@@ -17,7 +17,10 @@ from enum import Enum
 from django.utils.translation import ugettext as _
 
 from backend.db_services.redis.capacity_evaluate_service.models.tb_capacity_evaluate import CapacityEvaluateRecord
-from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_topo_repo import ClusterCapacityInfo
+from backend.db_services.redis.capacity_evaluate_service.repositories.cluster_topo_repo import (
+    ClusterCapacityInfo,
+    ClusterTopoInfo,
+)
 from backend.db_services.redis.capacity_evaluate_service.repositories.evaluate_record_repo import EvaluateRecordRepo
 from backend.db_services.redis.capacity_evaluate_service.util import logger_debug
 
@@ -300,12 +303,22 @@ class CapacityEvaluateService:
         response.proxy_approve_ok = req_qps_k <= proxy_qps_k_total
 
     @classmethod
-    def _evaluate_backend_qps(cls, response: Response, topo_info, model: dict, req_qps_k: float):
+    def _evaluate_backend_qps(cls, response: Response, topo_info: ClusterTopoInfo, model: dict, req_qps_k: float):
         """评估后端QPS"""
-        shard_qps_per_core = model.get("shard_qps_per_core")
+        if topo_info.is_tendis_ssd() or topo_info.is_tendisplus():
+            shard_qps_per_core = model.get("ssd_shard_qps_per_core")
+        elif topo_info.is_memory_redis():
+            shard_qps_per_core = model.get("shard_qps_per_core")
+        else:
+            shard_qps_per_core = model.get("shard_qps_per_core")
         shard_cpu_core_m = min(topo_info.shard_cpu_core_m, topo_info.get_shard_cpu_core_limit())
         shard_qps_k = shard_qps_per_core * (shard_cpu_core_m / 1000) / 1000
         shard_qps_k_total = shard_qps_k * topo_info.shard_num
+
+        logger_debug(
+            f"shard_qps_per_core: {shard_qps_per_core}, shard_cpu_core_m: {shard_cpu_core_m}, "
+            "shard_qps_k: {shard_qps_k}, shard_qps_k_total: {shard_qps_k_total}"
+        )
 
         response.backend_approve_info = _("后端规格:[%s]x%d,每分片可支持Qps:%dK, 总共可支持Qps:%dK; 总qps需求:%dK") % (
             topo_info.shard_spec,
@@ -319,12 +332,22 @@ class CapacityEvaluateService:
     @classmethod
     def _evaluate_capacity_usage(cls, response: Response, capacity_info: ClusterCapacityInfo, req_capacity_m: float):
         """评估容量使用"""
-        response.capacity_approve_info = _("总容量:%dG,剩余容量:%dG; 总容量需求:%0.1fG") % (
-            capacity_info.get_mem_total_m() / 1024,
-            capacity_info.get_mem_free_m() / 1024,
-            req_capacity_m / 1024,
-        )
-        response.capacity_approve_ok = req_capacity_m <= capacity_info.get_mem_free_m()
+        # 如果是memory_redis，检查内存容量是否足够
+        if capacity_info.topo_info.is_memory_redis():
+            response.capacity_approve_info = _("总容量(内存):%dG,剩余容量:%dG; 总容量需求:%0.1fG") % (
+                capacity_info.get_total_capacity_m() / 1024,
+                capacity_info.get_free_capacity_m() / 1024,
+                req_capacity_m / 1024,
+            )
+            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
+        else:
+            # 如果是ssd_redis或tendisplus，检查磁盘容量是否足够
+            response.capacity_approve_info = _("总容量(磁盘):%dG,剩余容量:%dG; 总容量需求:%0.1fG") % (
+                capacity_info.get_total_capacity_m() / 1024,
+                capacity_info.get_free_capacity_m() / 1024,
+                req_capacity_m / 1024,
+            )
+            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
 
     @classmethod
     def _determine_final_status(cls, response: Response) -> str:

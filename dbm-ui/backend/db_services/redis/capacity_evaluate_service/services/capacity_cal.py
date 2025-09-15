@@ -48,8 +48,8 @@ class CapacityCalculateService:
             raise e
 
         capacity_info = ClusterCapacityInfo(topo_info)
-        query_errors = capacity_info.generate_capacity_info(bk_biz_id)
+        query_errors = capacity_info.generate_used_capacity_info(bk_biz_id)
         if len(query_errors) > 0:
-            raise Exception(f"generate_capacity_info errors: {query_errors}")
+            raise Exception(f"generate_used_capacity_info errors: {query_errors}")
 
         return capacity_info
