@@ -33,15 +33,12 @@ class TestConfigViewSet:
     ConfigViewSet的相关api测试类
     """
 
-    def __init__(self):
-        patch.object(settings, "MIDDLEWARE", [])
-
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
-    @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    def test_list_config_names(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_list_config_names(self, *args):
         client.login(username="admin")
 
         url = reverse("config-list-config-names")
@@ -49,22 +46,22 @@ class TestConfigViewSet:
         print(response)
         assert list(response.data)[0]["info"] == "dbconf-tendbsingle-1.0"
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_list_platform_configs(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_list_platform_configs(self, *args):
         client.login(username="admin")
 
         url = "/apis/configs/list_platform_configs/"
         response = client.get(url, data={"meta_cluster_type": "tendbsingle", "conf_type": "dbconf"})
         assert len(list(response.data)) == 3
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_get_platform_config(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_get_platform_config(self, *args):
         client.login(username="admin")
 
         url = "/apis/configs/get_platform_config/"
@@ -73,22 +70,22 @@ class TestConfigViewSet:
         )
         assert response.data["version"] == "MySQL-5.7"
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_list_biz_configs(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_list_biz_configs(self, *args):
         client.login(username="admin")
 
         url = "/apis/configs/list_biz_configs/"
         response = client.get(url, data={"meta_cluster_type": "tendbsingle", "conf_type": "dbconf", "bk_biz_id": 1})
         assert len(list(response.data)) == 3
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_get_level_config(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_get_level_config(self, *args):
         client.login(username="admin")
 
         url = "/apis/configs/get_level_config/"
@@ -103,11 +100,11 @@ class TestConfigViewSet:
         response = client.post(url, data=db_config_level_request)
         assert response.data["version"] == "MySQL-6.5"
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_list_config_version_history(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_list_config_version_history(self, *args):
         client.login(username="admin")
 
         config_version_history_request = {
@@ -122,11 +119,11 @@ class TestConfigViewSet:
         response = client.get(url, data=config_version_history_request)
         assert response.data["conf_file"] == "MySQL-6.5"
 
-    @patch.object(ConfigViewSet, "permission_classes")
-    @patch.object(ConfigViewSet, "get_permissions", lambda x: [])
+    @patch.object(settings, "MIDDLEWARE", new=[])
     @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
-    def test_get_config_version_detail(self, mocked_permission_classes):
-        mocked_permission_classes.return_value = [AllowAny]
+    @patch.object(ConfigViewSet, "get_permissions", return_value=[])
+    @patch.object(ConfigViewSet, "permission_classes", new=[AllowAny])
+    def test_get_config_version_detail(self, *args):
         client.login(username="admin")
 
         version_detail_request = {

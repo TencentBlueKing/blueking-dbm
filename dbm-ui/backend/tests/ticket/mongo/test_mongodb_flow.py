@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from unittest.mock import patch
 
 import pytest
 
@@ -24,6 +25,7 @@ from backend.tests.mock_data.ticket.mongodb_flow import (
     MONGODB_PROXYINSTANCE_DATA,
     MONGODB_REDUCE_MONGOS_DATA,
     MONGODB_REMOVE_NS_TICKET_DATA,
+    MONGODB_SCALE_UPDOWN_DATA,
 )
 from backend.tests.ticket.decorator import use_pipeline_mock
 from backend.tests.ticket.server_base import BaseTicketTest
@@ -56,6 +58,12 @@ class TestMangodbFlow(BaseTicketTest):
 
     @classmethod
     def apply_patches(cls):
+        # Mock备份记录获取，避免回档单据的备份验证
+        mock_fetch_backup_patch = patch(
+            "backend.flow.engine.bamboo.scene.mongodb.sub_task.fetch_backup_record_subtask.FetchBackupRecordSubTask.fetch_backup_record",  # noqa
+            return_value={"backup_id": "test_backup", "size": 1024},
+        )
+        cls.patches.extend([mock_fetch_backup_patch])
         super().apply_patches()
 
     @use_pipeline_mock
@@ -83,3 +91,8 @@ class TestMangodbFlow(BaseTicketTest):
     def test_mongo_remove_ns(self):
         # start --> itsm --> PAUSE --> INNER_FLOW --> end
         self.flow_test(MONGODB_REMOVE_NS_TICKET_DATA)
+
+    @use_pipeline_mock
+    def test_mongo_scale_updown_flow(self):
+        # MongoDB 容量变更: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+        self.flow_test(MONGODB_SCALE_UPDOWN_DATA)

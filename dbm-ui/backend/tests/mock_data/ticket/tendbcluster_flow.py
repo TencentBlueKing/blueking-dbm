@@ -353,6 +353,37 @@ TENDBCLUSTER_MACHINE_DATA = [
         "spec_id": 236,
         "bk_agent_id": "",
     },
+    {
+        "creator": BK_USERNAME,
+        "create_at": "2024-03-13 11:14:48.433116",
+        "updater": "",
+        "update_at": "2024-03-13 11:14:48.433116",
+        "ip": "5.5.5.7",
+        "bk_biz_id": BK_BIZ_ID,
+        "db_module_id": 0,
+        "access_layer": "proxy",
+        "machine_type": MachineType.SPIDER.value,
+        "cluster_type": ClusterType.TenDBCluster,
+        "bk_host_id": 9999,
+        "bk_os_name": "linux centos",
+        "bk_idc_area": "",
+        "bk_idc_area_id": 0,
+        "bk_sub_zone": "",
+        "bk_sub_zone_id": 0,
+        "bk_rack": "",
+        "bk_rack_id": 0,
+        "bk_svr_device_cls_name": "",
+        "bk_idc_name": "",
+        "bk_idc_id": 0,
+        "bk_cloud_id": 0,
+        "net_device_id": "",
+        "bk_city_id": 0,
+        "spec_config": '{"id": 236, "cpu": {"max": 256, "min": 1}, "mem": {"max": 256, "min": 1}, '
+        '"qps": {"max": 0, "min": 0}, "name": "1核_1G_10G", "count": 1, "device_class": [],'
+        ' "storage_spec": [{"min": 10, "max": 2147483647, "type": "ALL", "mount_point": "/data"}]}',
+        "spec_id": 236,
+        "bk_agent_id": "",
+    },
 ]
 
 TENDBCLUSTER_PROXYINSTANCE_DATA = [
@@ -396,6 +427,27 @@ TENDBCLUSTER_PROXYINSTANCE_DATA = [
         "time_zone": "+08:00",
         "bk_instance_id": 11553,
         "machine_id": 124,
+        "phase": "online",
+    },
+    {
+        "id": 276,
+        "creator": "admin",
+        "create_at": "2025-02-10 12:28:23.315607",
+        "updater": "",
+        "update_at": "2025-02-10 12:28:23.315633",
+        "version": "3.7.8",
+        "port": 20001,
+        "admin_port": 26000,
+        "db_module_id": 42,
+        "bk_biz_id": BK_BIZ_ID,
+        "access_layer": "proxy",
+        "machine_type": "spider",
+        "cluster_type": "tendbcluster",
+        "status": "running",
+        "name": "",
+        "time_zone": "+08:00",
+        "bk_instance_id": 11554,
+        "machine_id": 9999,
         "phase": "online",
     },
 ]
@@ -460,4 +512,44 @@ TENDBCLUSTER_SPEC_DATA = [
 TENDBCLUSTER_SPIDEREXT_DATA = [
     {"spider_role": "spider_master", "instance_id": 274},
     {"spider_role": "spider_master", "instance_id": 275},
+    {"spider_role": "spider_master", "instance_id": 276},
 ]
+
+# TBinlogDumper 部署单据
+TBINLOGDUMPER_APPLY_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "TBINLOGDUMPER_INSTALL",
+    "details": {
+        "name": "test_dumper_subscription",
+        "add_type": "full_sync",
+        "repl_tables": [{"db_name": "test_db", "table_names": ["test_table"]}],
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID,
+                "db_module_id": 42,
+                "dumper_id": 1,
+                "protocol_type": "TCP/IP",
+                "target_address": "1.1.1.1",
+                "target_port": 3306,
+            }
+        ],
+    },
+}
+# TenDB Spider 接入层缩容单据
+TENDB_SPIDER_REDUCE_NODES_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "TENDBCLUSTER_SPIDER_REDUCE_NODES",
+    "details": {
+        "is_safe": True,
+        "shrink_type": "QUANTITY",  # 使用大写的enum值
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID,
+                # 缩容后的 spider master 数量按照最小要求保持 >= 2
+                "spider_reduced_to_count": 2,
+                "reduce_spider_role": "spider_master",
+                "old_nodes": {"spider_reduced_hosts": []},  # 添加old_nodes字段
+            }
+        ],
+    },
+}

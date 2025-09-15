@@ -344,3 +344,41 @@ MONGODB_MACHINE_DATA = [
         "bk_agent_id": "",
     },
 ]
+# MongoDB 回档单据
+MONGODB_RESTORE_TICKET_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.MONGODB_PITR_RESTORE,
+    "details": {
+        "cluster_ids": [CLUSTER_ID],
+        "cluster_type": ClusterType.MongoReplicaSet,
+        "rollback_time": {},  # 空dict表示不指定回档时间
+        "backupinfo": {str(CLUSTER_ID): {"backup_id": "test_backup_id", "size": 1024}},
+        "ns_filter": {
+            "db_patterns": ["test_db"],
+            "ignore_dbs": [],
+            "table_patterns": ["test_table"],
+            "ignore_tables": [],
+        },
+        "city_code": "default",
+        "instance_per_host": 1,
+        "resource_spec": {"mongodb": {"spec_id": 3, "count": 1}},
+    },
+}
+
+# MongoDB 容量变更单据
+MONGODB_SCALE_UPDOWN_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": TicketType.MONGODB_SCALE_UPDOWN,
+    "details": {
+        "ip_source": "resource_pool",
+        "infos": [
+            {
+                "cluster_id": CLUSTER_ID,
+                "shards_num": 2,
+                "shard_machine_group": 1,
+                "shard_node_count": 2,
+                "resource_spec": {"mongodb": {"spec_id": 3, "count": 2}},
+            }
+        ],
+    },
+}

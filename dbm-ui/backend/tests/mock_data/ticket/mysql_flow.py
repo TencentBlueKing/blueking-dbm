@@ -817,3 +817,45 @@ MYSQL_CLB_UNBIND_DOMAIN = {
     "ticket_type": "MYSQL_CLB_BIND_DOMAIN",
     "remark": "",
 }
+
+# MySQL 迁移升级单据
+MYSQL_MIGRATE_UPGRADE_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "MYSQL_MIGRATE_UPGRADE",
+    "details": {
+        "ip_source": "resource_pool",
+        "source_type": "resource_auto",
+        "backup_source": "remote",
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID],
+                "pkg_id": 1,
+                "new_db_module_id": 1,
+                "resource_spec": {"backend": {"spec_id": 444, "count": 2}},
+                "read_only_slaves": [],  # 添加read_only_slaves字段
+            }
+        ],
+        "is_check_process": True,
+        "is_verify_checksum": True,
+        "need_checksum": True,
+    },
+}
+
+# MySQL 迁移主从单据
+MYSQL_MIGRATE_CLUSTER_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "ticket_type": "MYSQL_MIGRATE_CLUSTER",
+    "details": {
+        "ip_source": "resource_pool",
+        "source_type": "resource_auto",
+        "backup_source": "remote",
+        "infos": [
+            {
+                "cluster_ids": [CLUSTER_ID],
+                "resource_spec": {"backend": {"spec_id": 444, "count": 2}},
+            }
+        ],
+        "is_safe": True,
+        "need_checksum": True,
+    },
+}
