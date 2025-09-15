@@ -41,6 +41,7 @@
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
               :label="t('目标集群')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="rowData.cluster.prod_cluster"
@@ -49,6 +50,7 @@
             </EditableColumn>
             <EditableColumn
               :label="t('构造到指定时间')"
+              readonly
               :width="200">
               <EditableBlock
                 v-model="rowData.cluster.recovery_time_point"
