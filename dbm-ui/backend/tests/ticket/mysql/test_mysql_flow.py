@@ -21,6 +21,8 @@ from django.core.cache import cache
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, Spec, StorageInstance
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
@@ -44,6 +46,8 @@ from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_ITSM_AUTHORIZE_TICKET_DATA,
     MYSQL_MACHINE_DATA,
     MYSQL_MASTER_SLAVE_SWITCH_DATA,
+    MYSQL_MIGRATE_CLUSTER_DATA,
+    MYSQL_MIGRATE_UPGRADE_DATA,
     MYSQL_PROXY_ADD_DATA,
     MYSQL_PROXY_SWITCH_DATA,
     MYSQL_PROXYINSTANCE_DATA,
@@ -119,6 +123,11 @@ class TestMySQLTicket(BaseTicketTest):
         mock_drs_api_patch = patch(
             "backend.db_services.mysql.remote_service.handlers.DRSApi", new_callable=lambda: DRSApiMock()
         )
+        # Mock备份记录验证，避免MySQL迁移单据查询不存在的备份表
+        mock_validate_backup_patch = patch(
+            "backend.ticket.builders.mysql.base.MySQLBaseOperateDetailSerializer.validated_cluster_latest_backup",
+            return_value=None,
+        )
 
         cls.patches.extend(
             [
@@ -128,6 +137,7 @@ class TestMySQLTicket(BaseTicketTest):
                 mock_bamboo_api_patch,
                 mock_cc_api_patch,
                 mock_drs_api_patch,
+                mock_validate_backup_patch,
             ]
         )
         super().apply_patches()
@@ -216,3 +226,18 @@ class TestMySQLTicket(BaseTicketTest):
         self.flow_test(
             MYSQL_CLB_UNBIND_DOMAIN,
         )
+
+    @use_pipeline_mock
+    def test_mysql_migrate_upgrade_flow(self):
+        # MySQL 迁移升级: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+        mysql_pkg = Package.objects.filter(pkg_type=PackageType.MySQL, db_type=DBType.MySQL).first()
+        assert mysql_pkg is not None, "缺少 MySQL 类型安装包，无法执行迁移升级流程"
+
+        ticket_data = copy.deepcopy(MYSQL_MIGRATE_UPGRADE_DATA)
+        ticket_data["details"]["infos"][0]["pkg_id"] = mysql_pkg.id
+        self.flow_test(ticket_data)
+
+    @use_pipeline_mock
+    def test_mysql_migrate_cluster_flow(self):
+        # MySQL 迁移主从: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
+        self.flow_test(MYSQL_MIGRATE_CLUSTER_DATA)

@@ -9,6 +9,33 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+"""
+Job API Mock数据
+用于测试作业平台相关功能
+"""
+
+# Job API 快速传输文件成功响应
+JOB_FAST_TRANSFER_FILE_SUCCESS_RESPONSE = {
+    "result": True,
+    "code": 0,
+    "message": "success",
+    "data": {"job_instance_id": 12345},
+}
+
+# Job API 快速传输文件失败响应
+JOB_FAST_TRANSFER_FILE_FAILURE_RESPONSE = {"result": False, "code": 1, "message": "传输失败", "data": None}
+
+# Job API 快速推送配置文件成功响应
+JOB_FAST_PUSH_CONFIG_FILE_SUCCESS_RESPONSE = {
+    "result": True,
+    "code": 0,
+    "message": "success",
+    "data": {"job_instance_id": 12346},
+}
+
+# Job API 快速推送配置文件失败响应
+JOB_FAST_PUSH_CONFIG_FILE_FAILURE_RESPONSE = {"result": False, "code": 1, "message": "推送失败", "data": None}
+
 JOB_INSTANCE_ID = 10000
 STEP_INSTANCE_ID = 10001
 JOB_SUCCESS_STATUS = 3
