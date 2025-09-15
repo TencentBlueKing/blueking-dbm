@@ -81,29 +81,32 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getVersionModules } from '@services/source/mysqlToolbox';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
 
   type ModulesInfo = ServiceReturnType<typeof getVersionModules>[0];
 
   interface Props {
-    cluster: TendbClusterModel;
-    /**
-     * 高于当前集群主版本, 默认false
-     */
-    higherMajorVersion?: boolean;
-    /**
-     * 高于当前集群子版本, 默认false
-     */
-    higherSubVersion?: boolean;
+    cluster: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
+      }[];
+    } & TendbhaModel;
+    currentTab: {
+      roleType: 'haStorageLayer' | 'singleStorageLayer' | string; // 主从/单节点 存储层
+      updateType: TicketTypes; // TicketTypes.MYSQL_LOCAL_UPGRADE | TicketTypes.MYSQL_MIGRATE_UPGRADE; // 本地/迁移
+    };
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    higherMajorVersion: false,
-    higherSubVersion: false,
-  });
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<{
     charset: string;
@@ -127,6 +130,37 @@
   const packageSelectList = ref<IListItem[]>([]);
   const moduleSelectList = ref<IListItem[]>([]);
   const currentModule = ref<ModulesInfo>();
+
+  const higherVersionParams = computed(() => {
+    /*
+      tendbsingle
+      本地升级：
+        "higher_major_version": true,
+        "higher_sub_version": true
+
+      tendbha、tendbcluster
+      本地升级：
+        "higher_major_version": false,
+        "higher_sub_version": true
+
+      迁移升级：
+        "higher_major_version": true,
+        "higher_sub_version": true
+    */
+    if (
+      props.currentTab.roleType === 'singleStorageLayer' ||
+      props.currentTab.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE
+    ) {
+      return {
+        higher_major_version: true,
+        higher_sub_version: true,
+      };
+    }
+    return {
+      higher_major_version: false,
+      higher_sub_version: true,
+    };
+  });
 
   const packageRules = [
     {
@@ -179,8 +213,7 @@
       if (props.cluster.id) {
         fetchModuleList({
           cluster_id: props.cluster.id,
-          higher_major_version: props.higherMajorVersion,
-          higher_sub_version: props.higherSubVersion,
+          ...higherVersionParams.value,
         });
       }
     },

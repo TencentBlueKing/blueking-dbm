@@ -160,6 +160,7 @@ export default [
         parentId: 'migrate',
       },
       {
+        bind: [TicketTypes.MYSQL_LOCAL_UPGRADE, TicketTypes.MYSQL_MIGRATE_UPGRADE, TicketTypes.MYSQL_PROXY_UPGRADE],
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
         id: TicketTypes.MYSQL_PROXY_UPGRADE,
         name: t('版本升级'),

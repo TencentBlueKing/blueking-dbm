@@ -13,307 +13,119 @@
 
 <template>
   <EditableColumn
-    field="cluster.master_domain"
+    field="target_version.target_package"
     :label="t('目标版本')"
+    :loading="loading"
     :min-width="200"
     required>
-    <EditableBlock v-if="cluster.id">
-      <div class="display-content">
-        <div class="content-item">
-          <div class="item-title">{{ t('数据库版本') }}：</div>
-          <div class="item-content">
-            <TableEditSelect
-              ref="versionSelectRef"
-              is-plain
-              :list="versionSelectList"
-              :model-value="modelValue.target_version"
-              :placeholder="t('请选择')"
-              :pop-width="240"
-              :rules="versionRules"
-              @change="(value) => handleVersionChange(value as string)">
-            </TableEditSelect>
+    <EditableSelect
+      v-model="modelValue.pkg_id"
+      :list="versionList"
+      @change="handleChange">
+      <template #option="{ item }">
+        <div class="target-version-select-option">
+          <div
+            v-overflow-tips
+            class="option-name">
+            {{ item.label }}
           </div>
+          <BkTag
+            v-if="item.value === suggestVersion"
+            class="ml-4"
+            size="small"
+            theme="info">
+            {{ t('推荐') }}
+          </BkTag>
         </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('版本包文件') }}：</div>
-          <div class="item-content">
-            <TableEditSelect
-              ref="packageSelectRef"
-              is-plain
-              :list="packageSelectList"
-              :model-value="modelValue.pkg_id"
-              :placeholder="t('请选择')"
-              :pop-width="240"
-              :rules="packageRules"
-              @change="(value) => handlePackageChange(value as number)">
-              <template #default="{ item, index }">
-                <div class="target-version-select-option">
-                  <div
-                    v-overflow-tips
-                    class="option-name">
-                    {{ item.name }}
-                  </div>
-                  <BkTag
-                    v-if="index === 0"
-                    class="ml-4"
-                    size="small"
-                    theme="info">
-                    {{ t('推荐') }}
-                  </BkTag>
-                </div>
-              </template>
-            </TableEditSelect>
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('字符集') }}：</div>
-          <div class="item-content">
-            {{ modelValue.charset }}
-          </div>
-        </div>
-        <div class="content-item">
-          <div class="item-title">{{ t('绑定模块') }}：</div>
-          <div class="item-content">
-            <span v-if="cluster.current_version === modelValue.target_version">{{ cluster.db_module_name }}</span>
-            <TableEditSelect
-              v-else
-              ref="moduleSelectRef"
-              is-plain
-              :list="moduleSelectList"
-              :model-value="modelValue.new_db_module_id"
-              :placeholder="t('请选择')"
-              :pop-width="240"
-              :rules="moduleRules"
-              @change="(value) => handleModuleChange(value as number)">
-              <template #default="{ item }: { item: (typeof moduleSelectList.value)[0] }">
-                <AuthTemplate
-                  action-id="dbconfig_view"
-                  :biz-id="item.bk_biz_id"
-                  :permission="item.permission.dbconfig_view"
-                  resource="mysql"
-                  style="flex: 1">
-                  <template #default="{ permission }">
-                    <div class="module-option-item">
-                      <div
-                        class="module-option-label"
-                        :class="{ 'not-permission': !permission }"
-                        data-id="dbconfig_view">
-                        {{ item.name }}
-                      </div>
-                      <div class="module-opiton-info">
-                        {{ item.info }}
-                      </div>
-                    </div>
-                  </template>
-                </AuthTemplate>
-              </template>
-              <template #footer>
-                <div class="module-select-footer">
-                  <AuthButton
-                    action-id="dbconfig_edit"
-                    :biz-id="bizId"
-                    class="plus-button"
-                    resource="mysql"
-                    text
-                    @click="handleCreateModule">
-                    <DbIcon
-                      class="footer-icon mr-4"
-                      type="plus-8" />
-                    {{ t('跳转新建模块') }}
-                  </AuthButton>
-                  <BkButton
-                    class="refresh-button"
-                    text
-                    @click="handleRefreshModule">
-                    <DbIcon
-                      class="footer-icon"
-                      type="refresh-2" />
-                  </BkButton>
-                </div>
-              </template>
-            </TableEditSelect>
-          </div>
-        </div>
-      </div>
-    </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
+      </template>
+    </EditableSelect>
   </EditableColumn>
 </template>
-
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getModules } from '@services/source/cmdb';
-  import { queryMysqlHigherVersionPkgList } from '@services/source/mysqlToolbox';
+  import { getPackages } from '@services/source/package';
 
-  import { TicketTypes } from '@common/const';
+  import { versionRegex } from '@common/regex';
 
-  import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
+  import { compareVersions } from '@utils';
 
   interface Props {
-    cluster: {
-      bk_cloud_id: number;
-      cluster_type: string;
-      current_version: string;
-      db_module_id: number;
-      db_module_name: string;
-      id: number;
-      master_domain: string;
-      package_version: string;
-      related_clusters: {
+    rowData: {
+      cluster: {
         id: number;
-        master_domain: string;
-      }[];
+      };
+      current_version: string;
     };
-    /**
-     * 代表是否跨版本升级, 默认false
-     */
-    higherMajorVersion?: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    higherMajorVersion: false,
-  });
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    charset: string;
-    new_db_module_id: string | number;
     pkg_id: number;
-    target_module_name: string;
     target_package: string;
-    target_version: string;
   }>({
     default: () => ({
-      charset: '',
-      new_db_module_id: '',
       pkg_id: 0,
-      target_module_name: '',
       target_package: '',
-      target_version: '',
     }),
   });
 
   const { t } = useI18n();
 
-  const route = useRoute();
-  const router = useRouter();
-
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
-
-  const versionSelectList = ref<IListItem[]>([]);
-  const packageSelectList = ref<IListItem[]>([]);
-  const moduleSelectList = ref<
+  const suggestVersion = ref(0);
+  const versionList = ref<
     {
-      bk_biz_id: number;
-      disabled?: boolean;
-      id: string | number;
-      info: string;
-      name: string;
-      permission: {
-        dbconfig_view: boolean;
-      };
+      label: string;
+      value: number;
     }[]
   >([]);
 
-  const versionRules = [
-    {
-      message: t('数据库版本不能为空'),
-      validator: (value: string) => Boolean(value),
-    },
-  ];
-  const packageRules = [
-    {
-      message: t('版本包文件不能为空'),
-      validator: (value: string) => Boolean(value),
-    },
-  ];
-  const moduleRules = [
-    {
-      message: t('绑定模块不能为空'),
-      validator: (value: string) => Boolean(value),
-    },
-  ];
-
-  function fetchModuleList() {
-    if (props.cluster.cluster_type) {
-      fetchModules({
-        bk_biz_id: bizId,
-        cluster_type: props.cluster.cluster_type,
-      });
-    }
-  }
-
-  const { run: queryMysqlHigherVersionPkgListRun } = useRequest(queryMysqlHigherVersionPkgList, {
+  const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      versionSelectList.value = versions.map((item) => ({
-        id: item.version,
-        name: item.version,
-      }));
-      packageSelectList.value = versions.map((packageItem) => ({
-        id: packageItem.pkg_id,
-        name: packageItem.pkg_name,
-      }));
-      if (versions.length) {
-        const [lastestVersion] = versions;
+      const currentVersion = props.rowData.current_version?.match(versionRegex)![0] || '';
+      versionList.value = versions.results
+        .reduce(
+          (prevList, versionItem) => {
+            const version = versionItem.name.match(versionRegex);
+            if (version && compareVersions(version[0], currentVersion) === 1) {
+              prevList.push({
+                label: versionItem.name,
+                value: versionItem.id,
+              });
+              return prevList;
+            }
+            return prevList;
+          },
+          [] as {
+            label: string;
+            value: number;
+          }[],
+        )
+        .sort((a, b) => {
+          return compareVersions(b.label, a.label);
+        });
+
+      if (versionList.value.length) {
+        const [lastestVersion] = versionList.value;
+        suggestVersion.value = lastestVersion.value;
         modelValue.value = {
-          charset: '',
-          new_db_module_id: '',
-          pkg_id: lastestVersion.pkg_id,
-          target_module_name: '',
-          target_package: lastestVersion.pkg_name,
-          target_version: lastestVersion.version,
+          pkg_id: lastestVersion.value,
+          target_package: lastestVersion.label,
         };
-
-        fetchModuleList();
       }
-    },
-  });
-
-  const { run: fetchModules } = useRequest(getModules, {
-    manual: true,
-    onSuccess(modules) {
-      const current = modules.find((m) => m.db_module_id === props.cluster.db_module_id);
-      if (!current) return;
-
-      const charset = current.db_module_info.conf_items.find((c) => c.conf_name === 'charset')?.conf_value || '';
-      modelValue.value.charset = charset;
-
-      const filtered = [];
-      for (const module of modules) {
-        const conf = Object.fromEntries(
-          module.db_module_info.conf_items.map(({ conf_name, conf_value }) => [conf_name, conf_value]),
-        );
-        if (conf.charset === charset && conf.db_version === modelValue.value.target_version) {
-          filtered.push({
-            bk_biz_id: module.bk_biz_id,
-            disabled: false,
-            id: module.db_module_id,
-            info: `${conf.db_version || ''}，${charset}`,
-            name: module.alias_name,
-            permission: module.permission,
-          });
-        }
-      }
-
-      moduleSelectList.value = filtered;
-
-      const first = filtered[0] || {};
-      modelValue.value.new_db_module_id = first.id || '';
-      modelValue.value.target_module_name = first.name || '';
     },
   });
 
   watch(
-    () => props.cluster.id,
-    () => {
-      if (props.cluster.id) {
-        queryMysqlHigherVersionPkgListRun({
-          cluster_id: props.cluster.id,
-          higher_major_version: props.higherMajorVersion,
+    () => props.rowData.cluster.id,
+    (value) => {
+      if (value) {
+        fetchClusterVersions({
+          db_type: 'mysql',
+          pkg_type: 'mysql-proxy',
         });
       }
     },
@@ -322,93 +134,11 @@
     },
   );
 
-  const handleVersionChange = (value: string) => {
-    modelValue.value.target_version = value;
-    fetchModuleList();
-  };
-
-  const handlePackageChange = (value: number) => {
-    const findVersion = packageSelectList.value.find((item) => item.id === value);
-    if (findVersion) {
-      modelValue.value = {
-        ...modelValue.value,
-        pkg_id: findVersion.id as number,
-        target_package: findVersion.name,
-      };
-    }
-  };
-
-  const handleModuleChange = (value: number) => {
-    modelValue.value.new_db_module_id = value;
-    modelValue.value.target_module_name = moduleSelectList.value.find((item) => item.id === value)?.name || '';
-  };
-
-  const handleCreateModule = () => {
-    const url = router.resolve({
-      name: 'SelfServiceCreateDbModule',
-      params: {
-        bk_biz_id: bizId,
-        type: TicketTypes.MYSQL_SINGLE_APPLY,
-      },
-      query: {
-        from: route.name as string,
-      },
-    });
-    window.open(url.href, '_blank');
-  };
-
-  const handleRefreshModule = () => {
-    fetchModuleList();
+  const handleChange = (value: number) => {
+    modelValue.value.target_package = versionList.value.filter((item) => item.value === value)[0].label;
   };
 </script>
-
 <style lang="less" scoped>
-  .display-content {
-    display: flex;
-    flex-direction: column;
-
-    .content-item {
-      display: flex;
-      width: 100%;
-
-      .item-title {
-        width: 72px;
-        text-align: right;
-      }
-
-      .item-content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        overflow: hidden;
-
-        .percent {
-          margin-left: 4px;
-          font-size: 12px;
-          font-weight: bold;
-          color: #313238;
-        }
-
-        .spec {
-          margin-left: 2px;
-          font-size: 12px;
-          color: #979ba5;
-        }
-
-        :deep(.render-spec-box) {
-          height: 22px;
-          padding: 0;
-        }
-      }
-    }
-  }
-
-  .default-display {
-    cursor: not-allowed;
-    background: #fafbfd;
-  }
-</style>
-<style lang="less">
   .target-version-select-option {
     display: flex;
     align-items: center;
@@ -417,52 +147,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-  }
-
-  .module-option-item {
-    display: flex;
-    width: 100%;
-
-    .module-option-label {
-      flex: 1;
-      width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .module-opiton-info {
-      margin-left: auto;
-      color: #979ba5;
-    }
-
-    .not-permission {
-      * {
-        color: #70737a !important;
-      }
-    }
-  }
-
-  .module-select-footer {
-    display: flex;
-    height: 100%;
-    color: #63656e;
-    align-items: center;
-    justify-content: center;
-
-    .plus-button {
-      flex: 1;
-      padding-left: 36px;
-    }
-
-    .refresh-button {
-      width: 42px;
-      border-left: 1px solid #dcdee5;
-    }
-
-    .footer-icon {
-      font-size: 16px;
     }
   }
 </style>
