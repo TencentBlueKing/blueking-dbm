@@ -81,11 +81,37 @@ class ClusterTopoInfo:
             "storage_cpu_total": self.storage_cpu_total,
             "storage_mem_total_m": self.storage_mem_total_m,
             "storage_disk_total": self.storage_disk_total,
+            "shard_cpu_core_m": self.shard_cpu_core_m,
         }
 
     def __init__(self, cluster_id: int, bk_biz_id: int):
         self.cluster_id = cluster_id
         self.bk_biz_id = bk_biz_id
+        self.cluster_type = ""  # init to empty string, will be set in fetch_instance_data
+
+    @property
+    def storage_type(self):
+        """storage_type: memory, ssd, tendisplus"""
+        if self.is_memory_redis():
+            return "memory"
+        elif self.is_tendis_ssd() or self.is_tendisplus():
+            return "ssd"
+        elif self.is_mongodb():
+            return "memory"  # for test
+        else:
+            raise Exception(f"not support cluster_type: {self.cluster_type}")
+
+    def is_tendis_ssd(self) -> bool:
+        return self.cluster_type in [ClusterType.TwemproxyTendisSSDInstance.value]
+
+    def is_memory_redis(self) -> bool:
+        return ClusterType.is_memory_redis(self.cluster_type)
+
+    def is_tendisplus(self) -> bool:
+        return self.cluster_type in [
+            ClusterType.TendisPredixyTendisplusCluster.value,
+            ClusterType.TendisTwemproxyTendisplusIns.value,
+        ]
 
     @property
     def proxy_num(self):
@@ -99,6 +125,7 @@ class ClusterTopoInfo:
         master_ip_list = []
         for shard in self.shard_list:
             master_ip_list.append(shard["members"][0]["ip"])
+        master_ip_list = list(set(master_ip_list))
         return master_ip_list
 
     def fetch_data(self):
@@ -193,18 +220,21 @@ class ClusterTopoInfo:
         # calculate shard spec, save to shard_spec_map
         storage_cpu_total, storage_mem_total_m, storage_disk_total = 0, 0, 0
         shard_spec_map = defaultdict(int)
+        min_shard_cpu_core_m = 0
         for ip, num in _shard_num_in_cluster.items():
             if ip not in host_infos_map:
                 raise Exception(f"ip {ip} not found in host_infos_map")
             inst_num_total = inst_num_by_ip[ip]
             cvm_spec = host_infos_map[ip]["cvm_spec"]
             shard_cpu_core_m = cvm_spec.cpu_core_m * 1 / inst_num_total
-            shard_mem_m = cvm_spec.mem_total_m * 1 / inst_num_total
-            shard_disk_m = cvm_spec.disk_size_total_m * 1 / inst_num_total
+            shard_mem_m = self.get_work_mem(cvm_spec.mem_total_m) * 1 / inst_num_total
+            shard_disk_m = self.get_work_disk(cvm_spec.disk_size_total_m) * 1 / inst_num_total
             storage_cpu_total += shard_cpu_core_m
             storage_mem_total_m += shard_mem_m
             storage_disk_total += shard_disk_m
             shard_spec_map[self.format_spec(shard_cpu_core_m, shard_mem_m, shard_disk_m, "", False)] += num
+            if min_shard_cpu_core_m == 0 or shard_cpu_core_m < min_shard_cpu_core_m:
+                min_shard_cpu_core_m = shard_cpu_core_m
 
         # generate proxy spec and shard spec string
         proxy_spec = ";".join(f"{spec}x{num}" for spec, num in proxy_spec_map.items())
@@ -218,7 +248,7 @@ class ClusterTopoInfo:
         self.storage_cpu_total = storage_cpu_total
         self.storage_mem_total_m = storage_mem_total_m
         self.storage_disk_total = storage_disk_total
-        self.shard_cpu_core_m = storage_cpu_total
+        self.shard_cpu_core_m = min_shard_cpu_core_m
 
     @classmethod
     def format_spec(cls, cpu_core_m: int, mem_total_m: int, disk_total_m: int, disk_type: str, no_disk: bool = False):
@@ -226,23 +256,10 @@ class ClusterTopoInfo:
         cpu_core = cpu_core_m / 1000
         mem_total_g = mem_total_m / 1024
         disk_total_g = disk_total_m / 1024
-        if cpu_core == 0:
-            cpu_core = 0
-        if mem_total_g == 0:
-            mem_total_g = 0
-        if disk_total_m == 0:
-            disk_total_m = 0
-
         # 将cpu_core转为字串，保留1位小数，如果小数位为0，则去掉小数位
-        cpu_core_str = f"{cpu_core:.1f}"
-        if cpu_core_str.endswith(".0"):
-            cpu_core_str = cpu_core_str[:-2]
-        mem_total_g_str = f"{mem_total_g:.1f}"
-        if mem_total_g_str.endswith(".0"):
-            mem_total_g_str = mem_total_g_str[:-2]
-        disk_total_g_str = f"{disk_total_g:.1f}"
-        if disk_total_g_str.endswith(".0"):
-            disk_total_g_str = disk_total_g_str[:-2]
+        cpu_core_str = cls._format_spec_value(cpu_core)
+        mem_total_g_str = cls._format_spec_value(mem_total_g)
+        disk_total_g_str = cls._format_spec_value(disk_total_g)
         if no_disk:
             return f"{cpu_core_str}c{mem_total_g_str}g"
         elif disk_type != "":
@@ -250,17 +267,45 @@ class ClusterTopoInfo:
         else:
             return f"{cpu_core_str}c{mem_total_g_str}g{disk_total_g_str}g"
 
+    @classmethod
+    def _format_spec_value(cls, value: float):
+        """format spec value"""
+        value_str = f"{value:.1f}"
+        if value_str.endswith(".0"):
+            value_str = value_str[:-2]
+        return value_str
+
+    @classmethod
+    def get_work_disk(cls, size_m: int):
+        """80% of the disk is used by Redis"""
+        return size_m * 0.8
+
+    @classmethod
+    def get_work_mem(cls, size_m: int):
+        """分配给Redis使用的内存. dbmon.redismaxmemory.go中定义的"""
+        steps = [
+            [4 * 1024, 0.50],
+            [8 * 1024, 0.75],
+            [16 * 1024, 0.81],
+            [32 * 1024, 0.85],
+            [64 * 1024, 0.85],
+            [128 * 1024, 0.90],
+        ]
+        for step in steps:
+            if size_m <= step[0]:
+                return int(size_m * step[1])
+        return int(size_m * steps[-1][1])
+
     def get_shard_cpu_core_limit(self):
         """the limit of cpu core used by each shard"""
-        if ClusterType.is_memory_redis(self.cluster_type):
+        if self.is_memory_redis():
             return 1000  # 1000m=1c
-        elif ClusterType.is_ssd_redis(self.cluster_type):
-            if self.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-                return 1000  # 1000m=1c
-            else:
-                return 1000 * 1000  # 1000c, No Limit
-        elif ClusterType.is_mongodb(self.cluster_type):
+        elif self.is_tendis_ssd():
+            return 1000  # 1000m=1c
+        elif self.is_tendisplus():
             return 1000 * 1000  # 1000c, No Limit
+        elif ClusterType.is_mongodb(self.cluster_type):
+            return 1000  # 1000m=1c for test, the same as memory_redis
         else:
             raise Exception(f"not support cluster_type: {self.cluster_type}")
 
@@ -269,50 +314,86 @@ class ClusterCapacityInfo:
     """cluster capacity info"""
 
     topo_info: ClusterTopoInfo
-    mem_total_m: int
-    mem_free_m: int
-    mem_used_m: int
-    mem_used_max_shard_m: int
+    used_capacity_m: int
+    used_capacity_max_shard_m: int
     debug_info: dict = {}
 
     def __init__(self, topo_info: ClusterTopoInfo):
         self.topo_info = topo_info
 
+    def set_used_capacity_m(self, used_capacity_m: int):
+        self.used_capacity_m = used_capacity_m
+
+    def set_used_capacity_max_shard_m(self, used_capacity_max_shard_m: int):
+        self.used_capacity_max_shard_m = used_capacity_max_shard_m
+
+    def get_total_capacity_m(self):
+        if self.topo_info.is_memory_redis():
+            return self.get_mem_total_m()
+        elif self.topo_info.is_tendisplus():
+            return self.get_disk_total_m()
+        elif self.topo_info.is_tendis_ssd():
+            return self.get_disk_total_m()
+        else:
+            return self.get_mem_total_m()  # for test
+
+    @property
+    def storage_type(self):
+        return self.topo_info.storage_type
+
+    def get_free_capacity_m(self):
+        return self.get_total_capacity_m() - self.used_capacity_m
+
+    def get_max_shard_capacity_m(self):
+        return self.used_capacity_max_shard_m
+
     def get_mem_total_m(self):
         return self.topo_info.storage_mem_total_m
 
-    def get_mem_free_m(self):
-        return self.get_mem_total_m() - self.mem_used_m
+    def get_disk_total_m(self):
+        return self.topo_info.storage_disk_total
 
     def __dict__(self):
         return {
-            "mem_total_m": self.get_mem_total_m(),
-            "mem_free_m": self.get_mem_free_m(),
-            "mem_used_m": self.mem_used_m,
+            "used_capacity_m": self.used_capacity_m,
+            "used_capacity_max_shard_m": self.used_capacity_max_shard_m,
+            "total_capacity_m": self.get_total_capacity_m(),
+            "free_capacity_m": self.get_free_capacity_m(),
+            "storage_type": self.storage_type,
             "topo_info": self.topo_info.__dict__(),
             "debug_info": self.debug_info,
         }
 
-    def generate_capacity_info(self, bk_biz_id: int):
-        """fetch memory used from tsdb, if there are missing instances, return error info"""
+    def generate_used_capacity_info(self, bk_biz_id: int):
+        """fetch used capacity from tsdb, if there are missing instances, return error info"""
         query_errors = []
-        instance_address_str = "|".join(self.topo_info.get_master_ip_list())
-        sql = f"""avg by (cluster_domain,instance,instance_role) (
-        bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes
-        {{bk_target_ip =~ "{instance_address_str}"}})"""
-        logger.info(f"generate_capacity_info sql: {sql}")
+        if self.topo_info.is_memory_redis():
+            used_capacity_sql = (
+                "avg by (cluster_domain,instance,instance_role)"
+                "(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes"
+                "{bk_target_ip =~ _instance_address_str_})"
+            )
+        else:
+            used_capacity_sql = (
+                "avg by (cluster_domain,instance,instance_role)"
+                "(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_rocksdb_datadir_size_kb"
+                "{bk_target_ip =~ _instance_address_str_} * 1024) "
+            )
+
+        used_capacity_sql = replace_instance_address_str(used_capacity_sql, self.topo_info.get_master_ip_list())
+        logger.info(f"generate_used_capacity_info sql: {used_capacity_sql}")
         end_time = datetime.datetime.now()
         start_time = end_time - datetime.timedelta(minutes=5)
-        tsdb_result = exec_promql_instant(sql, bk_biz_id, start_time, end_time)
+        tsdb_result = exec_promql_instant(used_capacity_sql, bk_biz_id, start_time, end_time)
         query_result = tsdb_result_to_map(tsdb_result, "instance")
-        logger.info(f"generate_capacity_info query_result: {query_result}")
+        logger.info(f"generate_used_capacity_info query_result: {query_result}")
 
         # test, set query_result
-        if False and is_dev():
+        if is_dev():
             logger_debug("is_dev, set query_result for test")
             for shard in self.topo_info.shard_list:
                 first_member = shard["members"][0]
-                instance = first_member["ip"] + ":" + str(first_member["port"])
+                instance = first_member["ip"] + "-" + str(first_member["port"])
                 query_result[instance] = 1024 * 1024 * 1024
 
         miss_instances = []
@@ -326,7 +407,7 @@ class ClusterCapacityInfo:
 
         for shard in self.topo_info.shard_list:
             first_member = shard["members"][0]
-            instance = first_member["ip"] + ":" + str(first_member["port"])
+            instance = first_member["ip"] + "-" + str(first_member["port"])
             if instance not in query_result:
                 miss_instances.append(instance)
                 continue
@@ -336,10 +417,10 @@ class ClusterCapacityInfo:
                 max_result = v
             count += 1
 
-        self.mem_used_m = total_result
-        self.mem_used_max_shard_m = max_result / 1024 / 1024
+        self.set_used_capacity_m(total_result)
+        self.set_used_capacity_max_shard_m(max_result / 1024 / 1024)
 
-        self.debug_info.update({"query_sql": sql})
+        self.debug_info.update({"query_sql": used_capacity_sql})
         self.debug_info.update({"query_result": query_result})
         self.debug_info.update({"sum": total_result})
         self.debug_info.update({"max": max_result})
@@ -349,6 +430,14 @@ class ClusterCapacityInfo:
         if len(miss_instances) > 0:
             query_errors.append(f"miss_instances: {miss_instances}")
         return query_errors
+
+
+def replace_instance_address_str(sql: str, ip_list: list):
+    """build sql"""
+    ip_list = list(set(ip_list))
+    instance_address_str = "'^(" + "|".join(list(set(ip_list))) + ")$'"
+    sql = sql.replace("_instance_address_str_", instance_address_str)
+    return sql
 
 
 def tsdb_result_to_map(tsdb_result: dict, key_name: str):
