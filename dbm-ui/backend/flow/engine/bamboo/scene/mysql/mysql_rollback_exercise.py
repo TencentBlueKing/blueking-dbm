@@ -31,7 +31,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
-from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -43,6 +42,8 @@ from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_c
 from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyManualContext
+
+# from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 
 
 class MySQLRollbackExerciseFlow(object):
@@ -318,13 +319,13 @@ class MySQLRollbackExerciseFlow(object):
             },
             is_remote_rewritable=True,
         )
-        # 解除告警屏蔽
-        pipeline.add_act(
-            act_name=_("解除告警屏蔽"),
-            act_component_code=DisableAlarmShieldComponent.code,
-            kwargs={},
-            is_remote_rewritable=True,
-        )
+        # # 解除告警屏蔽
+        # pipeline.add_act(
+        #     act_name=_("解除告警屏蔽"),
+        #     act_component_code=DisableAlarmShieldComponent.code,
+        #     kwargs={},
+        #     is_remote_rewritable=True,
+        # )
         # 更新任务状态
         pipeline.add_act(
             act_name=_("更新演练任务状态"),
