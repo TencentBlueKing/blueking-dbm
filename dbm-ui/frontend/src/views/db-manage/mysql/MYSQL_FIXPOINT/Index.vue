@@ -338,9 +338,11 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      backup_id: string;
       backup_source: BackupSourceType;
-      backupinfo?: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
+      backupinfo: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
       cluster_id: number;
+      database_list: BackupLogRecord['database_list'];
       databases: string[];
       databases_ignore: string[];
       // 回档到新主机，指定机器需要填这个
@@ -475,9 +477,11 @@
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
+            backup_id: item.backupRecord.backup_id,
             backup_source: formData.backupSource,
             backupinfo: item.backupRecord,
             cluster_id: item.cluster.id,
+            database_list: item.backupRecord.database_list,
             databases: item.databases,
             databases_ignore: [],
             resource_spec: item.newHost.ip
