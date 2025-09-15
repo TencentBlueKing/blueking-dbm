@@ -1,0 +1,109 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: {{ include "milvus.mixcoord.cmpdName" . }}
+spec:
+  serviceKind: milvus
+  serviceVersion: {{ .Values.image.all.tag }}
+  services:
+  - name: mixcoord
+    serviceName: mixcoord
+    spec:
+      ports:
+      - name: mixcoord
+        port: 53100
+        protocol: TCP
+        targetPort: mixcoord
+      - name: metrics
+        protocol: TCP
+        port: 9091
+        targetPort: metrics
+  runtime:
+    initContainers:
+      - name: config-generator
+        image: "{{ .Values.image.python.repository}}:{{.Values.image.python.tag}}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            pip install PyYAML
+            /usr/local/bin/python /scripts/config-generator.py
+        env:
+          {{- range $key, $value := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+        volumeMounts:
+          - name: milvus-config
+            mountPath: /milvus/configs
+            readOnly: true
+          - name: shared-config
+            mountPath: /shared-config
+          - name: scripts
+            mountPath: /scripts
+            readOnly: true
+    containers:
+      - name: mixcoord
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - milvus
+        - run
+        - mixcoord
+        ports:
+          - name: mixcoord
+            containerPort: 53100
+            protocol: TCP
+          - name: metrics
+            containerPort: 9091
+            protocol: TCP
+        env:
+          {{- range $key, $value := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: metrics
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+        {{- end }}
+        volumeMounts:
+          - name: milvus-config
+            mountPath: /milvus/configs/default.yaml
+            subPath: default.yaml
+            readOnly: true
+          - name: shared-config
+            mountPath: /milvus/configs/user.yaml
+            subPath: user.yaml
+            readOnly: true
+          - mountPath: /milvus/tools
+            name: tools
+    volumes:
+      - name: milvus-config
+        configMap:
+          name: milvus-config
+      - name: shared-config
+        emptyDir: {}
+      - name: scripts
+        configMap:
+          name: milvus-scripts
+          defaultMode: 0755
+      - name: tools
+        emptyDir: {}

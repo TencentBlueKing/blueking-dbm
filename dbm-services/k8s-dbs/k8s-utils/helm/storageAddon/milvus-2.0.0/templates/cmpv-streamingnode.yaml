@@ -1,0 +1,15 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: {{ include "milvus.streamingnode.cmpvName" . }}
+spec:
+  compatibilityRules:
+    - releases:
+        - streamingnode-v2.6.0
+      compDefs:
+        - streamingnode-2.0.0
+  releases:
+    - name: streamingnode-v2.6.0
+      serviceVersion: 2.6.0
+      images:
+        streamingnode: milvusdb/milvus:v2.6.0
