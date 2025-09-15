@@ -15,16 +15,23 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_masters_sub_flow,
     add_spider_slaves_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
+    NormalSpiderFlowException,
+    NoSpiderVersionException,
+)
+from backend.flow.engine.bamboo.scene.spider.validate.exception import SpiderCountFailedException
 from backend.flow.engine.validate.base_validate import BaseValidator
 from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -50,6 +57,38 @@ class TenDBClusterAddNodesFlow(object):
         self.root_id = root_id
         self.data = data
 
+    @staticmethod
+    def get_spider_pkg_id_for_cluster(cluster_id: int, add_spider_role: TenDBClusterSpiderRole):
+        """
+        根据传入的集群ID，推断出扩容接入层需要安装的版本介质包
+        这里是推算，是按照不同角色进行聚合计算得出的
+        @param cluster_id 集群ID
+        @param add_spider_role: 这次添加的spider角色
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        all_spiders = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=add_spider_role)
+
+        no_version_spiders = []
+        for spider in all_spiders:
+            if not spider.version:
+                # 有没有写入版本信息proxy实例，收集起来，统一返回
+                no_version_spiders.append(spider.machine.ip)
+        if no_version_spiders:
+            raise NoSpiderVersionException(_("检查到以下的{}机器没有录入到版本信息:{}，请检查".format(add_spider_role, no_version_spiders)))
+
+        # 判断版本是否统一
+        cluster_proxy_version_set = {p.version for p in all_spiders}
+        if len(cluster_proxy_version_set) > 1:
+            # 如果返回集合长度大于，则说明集群的proxy的版本存在多个，也需要人为介入
+            raise SpiderCountFailedException(
+                _("检查到集群所有的{}录入多个版本信息:{}，请检查".format(add_spider_role, [p.machine.ip for p in all_spiders]))
+            )
+
+        # 返回对应的 package id
+        return Package.get_package_for_version_no(
+            db_type=DBType.MySQL, pkg_type=PackageType.Spider, version_no=str(cluster_proxy_version_set.pop())
+        ).id
+
     def add_spider_nodes(self):
         """
         定义TenDB Cluster扩容接入层的后端流程
@@ -58,11 +97,13 @@ class TenDBClusterAddNodesFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         for info in self.data["infos"]:
+            spider_pkg_id = self.get_spider_pkg_id_for_cluster(int(info["cluster_id"]), info["add_spider_role"])
             sub_pipelines.append(
                 self.add_spider_nodes_with_cluster(
                     cluster_id=info["cluster_id"],
                     add_spider_role=info["add_spider_role"],
                     add_spider_hosts=info["spider_ip_list"],
+                    global_pkg_id=spider_pkg_id,
                 )
             )
 
@@ -75,7 +116,7 @@ class TenDBClusterAddNodesFlow(object):
         add_spider_role: TenDBClusterSpiderRole,
         add_spider_hosts: list,
         new_db_module_id: int = 0,
-        new_pkg_id: int = 0,
+        global_pkg_id: int = 0,
         is_check_disaster_tolerance_level: bool = True,
     ):
         """
@@ -118,17 +159,18 @@ class TenDBClusterAddNodesFlow(object):
             "ticket_type": self.data["ticket_type"],
             "spider_ip_list": add_spider_hosts,
             "new_db_module_id": new_db_module_id,
+            "global_pkg_id": global_pkg_id,
         }
 
         if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
 
             # 加入spider-master 子流程
-            return self.add_spider_master_notes(sub_flow_context, cluster, new_db_module_id, new_pkg_id)
+            return self.add_spider_master_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id)
 
         elif add_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
             # 加入spider-slave 子流程
-            return self.add_spider_slave_notes(sub_flow_context, cluster, new_db_module_id, new_pkg_id)
+            return self.add_spider_slave_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id)
 
         else:
             # 理论上不会出现，出现就中断这次流程构造
@@ -137,7 +179,7 @@ class TenDBClusterAddNodesFlow(object):
             )
 
     def add_spider_master_notes(
-        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, new_pkg_id: int = 0
+        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, global_pkg_id: int = 0
     ):
         """
         定义spider master集群部署子流程
@@ -157,7 +199,7 @@ class TenDBClusterAddNodesFlow(object):
                 parent_global_data=sub_flow_context,
                 is_add_spider_mnt=False,
                 new_db_module_id=new_db_module_id,
-                new_pkg_id=new_pkg_id,
+                global_pkg_id=global_pkg_id,
             )
         )
 
@@ -185,7 +227,7 @@ class TenDBClusterAddNodesFlow(object):
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
 
     def add_spider_slave_notes(
-        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, new_pkg_id: int = 0
+        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, global_pkg_id: int = 0
     ):
         """
         添加spider-slave节点的子流程流程逻辑
@@ -203,7 +245,7 @@ class TenDBClusterAddNodesFlow(object):
                 uid=sub_flow_context["uid"],
                 parent_global_data=copy.deepcopy(sub_flow_context),
                 new_db_module_id=new_db_module_id,
-                new_pkg_id=new_pkg_id,
+                global_pkg_id=global_pkg_id,
             )
         )
         # 阶段2 变更db_meta数据

@@ -63,3 +63,15 @@ class TendbGetClusterInfoFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("获取集群信息失败")
     MESSAGE_TPL = _("{message}")
+
+
+class NoSpiderVersionException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("存在spider元数据没有版本信息")
+    MESSAGE_TPL = _("{message}")
+
+
+class SpiderVersionInconsistentException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("集群spider版本不一致")
+    MESSAGE_TPL = _("{message}")

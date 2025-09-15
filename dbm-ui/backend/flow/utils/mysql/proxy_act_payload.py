@@ -58,11 +58,31 @@ class ProxyActPayload(object):
         )
         return data["content"]
 
-    def get_install_proxy_payload(self, **kwargs) -> dict:
+    def get_install_proxy_for_deploy_payload(self, **kwargs) -> dict:
         """
-        拼接安装proxy的payload参数
+        拼接安装proxy的payload参数, 集群部署专属
         """
         proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.MySQLProxy)
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.Deploy.value,
+            "payload": {
+                "general": {"runtime_account": self.proxy_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "pkg": proxy_pkg.name,
+                    "pkg_md5": proxy_pkg.md5,
+                    "ports": self.ticket_data.get("proxy_ports", []),
+                    "proxy_configs": {"mysql-proxy": self.__get_proxy_config()},
+                },
+            },
+        }
+
+    def get_install_proxy_for_add_payload(self, **kwargs) -> dict:
+        """
+        拼接安装proxy的payload参数, 扩容或者替换proxy专属，指定介质包处理
+        """
+        proxy_pkg = Package.objects.get(id=kwargs["custom_params"]["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorActionEnum.Deploy.value,

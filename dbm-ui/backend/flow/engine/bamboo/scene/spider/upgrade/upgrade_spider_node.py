@@ -332,7 +332,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                 add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
                 add_spider_hosts=spider_master_ip_list,
                 new_db_module_id=new_db_module_id,
-                new_pkg_id=new_pkg_id,
+                global_pkg_id=new_pkg_id,
             )
         )
 
@@ -344,7 +344,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                     add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
                     add_spider_hosts=spider_slave_ip_list,
                     new_db_module_id=new_db_module_id,
-                    new_pkg_id=new_pkg_id,
+                    global_pkg_id=new_pkg_id,
                 )
             )
 

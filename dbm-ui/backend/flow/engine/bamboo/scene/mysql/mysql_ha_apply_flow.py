@@ -175,7 +175,7 @@ class MySQLHAApplyFlow(object):
             acts_list = []
             for proxy_ip in info["proxy_ip_list"]:
                 exec_act_kwargs.exec_ip = proxy_ip["ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_deploy_payload.__name__
                 acts_list.append(
                     {
                         "act_name": _("安装proxy实例"),

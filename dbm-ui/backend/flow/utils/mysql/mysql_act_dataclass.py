@@ -42,12 +42,13 @@ class ExecActuatorBaseKwargs:
 
     bk_cloud_id: int  # 对应的云区域ID
     run_as_system_user: str = None  # 表示执行job的api的操作用户, None 默认是用root用户
-    payload_class: str = None
+    payload_class: str = None  # 可以指定哪个payload类
     get_mysql_payload_func: str = None  # 上下文中MysqlActPayload类的获取参数方法名称。空则传入None
     cluster_type: str = None  # 表示操作的集群类型,如果过程中不需要这个变量，则可以传None
-    cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
-    job_timeout: int = DEFAULT_JOB_TIMEOUT
-    write_op: str = None
+    cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等, 后续需要废弃，尽量不要用这个属性，用custom_params属性
+    job_timeout: int = DEFAULT_JOB_TIMEOUT  # 执行job单据的超时时间，默认是7200s
+    write_op: str = None  # 控制上下文写方式，WriteContextOpType类型，有REWRITE和APPEND模式，如果不填默认是采用REWRITE模式
+    custom_params: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -57,15 +58,6 @@ class ExecActuatorKwargs(ExecActuatorBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
-
-
-@dataclass()
-class ExecActuatorKwargsForPool(ExecActuatorBaseKwargs):
-    """
-    针对资源池获取IP的场景
-    """
-
-    get_trans_data_ip_var: str = None  # 表示在上下文获取ip信息的变量名称。空则传入None, 针对资源池获取ip场景
 
 
 @dataclass()

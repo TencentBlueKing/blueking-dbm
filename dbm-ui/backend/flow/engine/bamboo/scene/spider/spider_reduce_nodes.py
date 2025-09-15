@@ -22,7 +22,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spiders_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.engine.validate.base_validate import BaseValidator
 from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
@@ -238,7 +238,7 @@ class TenDBClusterReduceNodesFlow(object):
 
         # 根据场景执行下架spider子流程
         sub_pipeline.add_sub_pipeline(
-            sub_flow=reduce_spider_slaves_flow(
+            sub_flow=reduce_spiders_flow(
                 cluster=cluster,
                 reduce_spiders=reduce_spiders,
                 root_id=self.root_id,

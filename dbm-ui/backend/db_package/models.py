@@ -19,7 +19,7 @@ from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_package.constants import PackageMode, PackageType
-from backend.db_package.exceptions import PackageNotExistException
+from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
 from backend.flow.consts import MediumEnum
 
 
@@ -75,6 +75,22 @@ class Package(AuditedModel):
 
         if not packages:
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)
+
+        # 取最新的版本
+        return packages.latest("update_at")
+
+    @classmethod
+    def get_package_for_version_no(cls, db_type: DBType, pkg_type: PackageType, version_no: str):
+        """
+        根据当前版本类型，和db_meta记录的版本号信息，找到对应的介质包
+        @param db_type: 包的对应的组件类型
+        @param pkg_type: 包类型
+        @param version_no: 实例版本号（0.0.0）
+        """
+        packages = cls.objects.filter(db_type=db_type, pkg_type=pkg_type, name__icontains=version_no, enable=True)
+
+        if not packages:
+            raise VersionNoNotExistException(version_no=version_no, pkg_type=pkg_type, db_type=db_type)
 
         # 取最新的版本
         return packages.latest("update_at")

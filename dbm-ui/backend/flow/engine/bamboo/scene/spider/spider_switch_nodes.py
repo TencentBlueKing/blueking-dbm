@@ -14,9 +14,12 @@ from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
@@ -78,6 +81,38 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         # 分别初始化父类的init方法
         super().__init__(root_id=root_id, data=data)
         super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
+        # 计算每个待加入节点的安装介质包
+        self.calc_install_version_for_each_node()
+
+    def get_spider_pkg_id_for_tmp_spider_ip(self, cluster_id: int, tmp_spider_ip: str):
+        """
+        根据已存在的spider机器，获取待添加spider节点版本介质包
+        @param cluster_id: 参考集群ID
+        @param tmp_spider_ip: 参考spider ip, 必须参数
+        """
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(
+                cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+            )
+
+        # 根据参考spider节点
+        # 返回对应的 package id
+        version_no = cluster.proxyinstance_set.get(machine__ip=tmp_spider_ip).version
+        return Package.get_package_for_version_no(
+            db_type=DBType.MySQL, pkg_type=PackageType.Spider, version_no=version_no
+        ).id
+
+    def calc_install_version_for_each_node(self):
+        """
+        计算每个待加入的spider节点，需要安装的版本介质包信息
+        """
+        for info in self.data["infos"]:
+            for index, new_spider in enumerate(info["spider_new_ip_list"]):
+                new_spider["pkg_id"] = self.get_spider_pkg_id_for_tmp_spider_ip(
+                    cluster_id=info["cluster_id"], tmp_spider_ip=info["spider_old_ip_list"][index]["ip"]
+                )
 
     def trans_ticket_data(self) -> Dict[str, Any]:
         """

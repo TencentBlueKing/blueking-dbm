@@ -137,6 +137,7 @@ class MySQLDBMeta(object):
             proxy_ports=self.ticket_data["proxy_ports"],
             cluster_ids=self.cluster["cluster_ids"],
             created_by=self.ticket_data["created_by"],
+            target_proxy_pkg_id=self.cluster["target_proxy_pkg_id"],
         )
         return True
 
@@ -153,6 +154,7 @@ class MySQLDBMeta(object):
             cluster_ids=self.cluster["cluster_ids"],
             created_by=self.ticket_data["created_by"],
             template_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
+            target_proxy_pkg_id=self.cluster["target_proxy_pkg_id"],
         )
         return True
 

@@ -18,6 +18,8 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
 from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
@@ -92,6 +94,23 @@ class MySQLProxyClusterSwitchFlow(object):
         """
         self.root_id = root_id
         self.data = data
+
+    @staticmethod
+    def get_proxy_pkg_id_for_origin_proxy(origin_proxy_ip: str, bk_cloud_id: int):
+        """
+        根据已存在的proxy机器，获取待添加proxy节点版本介质包
+        @param origin_proxy_ip: 参考proxy ip, 必须参数
+        @param bk_cloud_id: 云区域ID
+        """
+
+        # 根据参考proxy节点
+        # 返回对应的 package id
+        version_no = (
+            ProxyInstance.objects.filter(machine__ip=origin_proxy_ip, machine__bk_cloud_id=bk_cloud_id).first().version
+        )
+        return Package.get_package_for_version_no(
+            db_type=DBType.MySQL, pkg_type=PackageType.MySQLProxy, version_no=version_no
+        ).id
 
     @staticmethod
     def __get_switch_cluster_info(cluster_id: int, origin_proxy_ip: str, target_proxy_ip: str) -> dict:
@@ -193,6 +212,10 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
             # 阶段1 已机器维度，安装先上架的proxy实例
+            # 计算出新机器所需要安装的介质包ID，并赋值到info结构体
+            info["target_proxy_pkg_id"] = self.get_proxy_pkg_id_for_origin_proxy(
+                info["origin_proxy_ip"]["ip"], int(info["origin_proxy_ip"]["bk_cloud_id"])
+            )
             sub_pipeline.add_act(
                 act_name=_("下发proxy安装介质"),
                 act_component_code=TransFileComponent.code,
@@ -200,12 +223,15 @@ class MySQLProxyClusterSwitchFlow(object):
                     DownloadMediaKwargs(
                         bk_cloud_id=info["target_proxy_ip"]["bk_cloud_id"],
                         exec_ip=info["target_proxy_ip"]["ip"],
-                        file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_install_package(),
+                        file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(
+                            pkg_id=info["target_proxy_pkg_id"]
+                        ),
                     )
                 ),
             )
 
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_payload.__name__
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_add_payload.__name__
+            exec_act_kwargs.custom_params = {"pkg_id": info["target_proxy_pkg_id"]}
             sub_pipeline.add_act(
                 act_name=_("部署proxy实例"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -302,7 +328,9 @@ class MySQLProxyClusterSwitchFlow(object):
                 switch_proxy_sub_pipeline.add_sub_pipeline(recycle_entrysub_process)
 
                 switch_proxy_sub_list.append(
-                    switch_proxy_sub_pipeline.build_sub_process(sub_name=_("{}集群替换proxy实例").format(cluster["name"]))
+                    switch_proxy_sub_pipeline.build_sub_process(
+                        sub_name=_("{}集群替换proxy实例").format(cluster["immute_domain"])
+                    )
                 )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_proxy_sub_list)

@@ -38,6 +38,7 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         old_nodes = OldProxySerializer(help_text=_("旧Proxy实例信息"))
+        target_proxy_pkg_id = serializers.IntegerField(help_text=_("新机器部署的介质包ID，在FLow计算赋值"), required=False, default=0)
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
 
     ip_source = serializers.ChoiceField(
