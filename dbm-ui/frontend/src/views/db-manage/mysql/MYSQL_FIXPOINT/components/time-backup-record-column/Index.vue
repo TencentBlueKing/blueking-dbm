@@ -243,20 +243,6 @@
       emits('change');
     }
   });
-
-  watch(
-    () => [backupTime.value, props.cluster.id],
-    () => {
-      if (backupTime.value && props.cluster.id) {
-        fetchData({
-          backup_source: props.backupSource,
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.cluster.id,
-          rollback_time: backupTime.value,
-        });
-      }
-    },
-  );
 </script>
 <style lang="less" scoped>
   .batch-select {
