@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import json
 import logging
 from collections import defaultdict
@@ -26,6 +27,7 @@ from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, 
 from backend.db_meta.models.cluster_monitor import (
     INSTANCE_BKLOG_PLUGINS,
     INSTANCE_MONITOR_PLUGINS,
+    SERVICE_INSTANCE_BKLOG_PLUGINS,
     get_monitor_set_name,
 )
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
@@ -627,6 +629,9 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         for parts in [id_str.split("-", maxsplit=1)]
     ]
     scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
+    # 获取主机下发nodes
+    bk_host_ids = list(set([node["bk_host_id"] for node in nodes if node["bk_host_id"]]))
+    host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]
 
     # --- 下发监控采集器 ---
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
@@ -659,6 +664,10 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         # 忽略不存在的采集项
         if not collect:
             continue
+        # 如果是主机维度的采集项，则维度为HOST
+        bklog_scope = copy.deepcopy(scope)
+        if plugin_id not in SERVICE_INSTANCE_BKLOG_PLUGINS:
+            bklog_scope.update(object_type="HOST", nodes=host_nodes)
         # 下发采集器
         collect_id = collect["collector_config_id"]
         try:
@@ -666,7 +675,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
                 {
                     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                     "collector_config_id": collect_id,
-                    "scope": scope,
+                    "scope": bklog_scope,
                     "action": action,
                 },
                 use_admin=True,
