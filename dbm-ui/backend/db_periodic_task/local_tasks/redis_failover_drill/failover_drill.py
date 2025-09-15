@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
+from backend.db_meta.models import AppCache, BKCity, Cluster, Machine, ProxyInstance
 from backend.db_report.models import FailoverDrillReport
 from backend.db_services.redis.autofix.enums import DBHASwitchResult
 from backend.ticket.constants import TicketType
@@ -23,7 +23,6 @@ from backend.utils.basic import generate_root_id
 
 from ..common.failover_drill_base import BaseFailoverDrill
 
-DBATEST_BIZ_NAME: str = "k8stest"
 DOMAIN_PREFIX: str = "cache"
 
 
@@ -57,8 +56,10 @@ class RedisFailoverDrill(BaseFailoverDrill):
         """
         集群域名
         """
+        app_cache = AppCache.objects.get(bk_biz_id=self.bk_biz_id)
+        biz_name = app_cache.db_app_abbr
         cluster_name = self.get_cluster_name()
-        return "{}.{}.{}.db".format(DOMAIN_PREFIX, cluster_name, DBATEST_BIZ_NAME)
+        return "{}.{}.{}.db".format(DOMAIN_PREFIX, cluster_name, biz_name)
 
     def get_instance_info(self, cluster, instance_role) -> dict:
         """
