@@ -38,7 +38,7 @@
           <EditableInput
             ref="sizeCapacityRef"
             v-model="item.size"
-            :min="1"
+            :min="0"
             type="number" />
         </EditableColumn>
         <EditableColumn
