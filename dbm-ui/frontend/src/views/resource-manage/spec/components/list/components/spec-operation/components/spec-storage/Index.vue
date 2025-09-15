@@ -72,7 +72,7 @@
               }"
               :disabled="!editable"
               :max="2147483647"
-              :min="10"
+              :min="0"
               type="number"
               @change="handleRowValueChange" />
           </EditableColumn>
@@ -91,7 +91,7 @@
               }"
               :disabled="!editable"
               :max="2147483647"
-              :min="10"
+              :min="0"
               type="number"
               @change="handleRowValueChange" />
           </EditableColumn>
@@ -116,7 +116,8 @@
           <OperationColumn
             v-if="editable"
             v-model:table-data="tableData"
-            :create-row-method="createRowData" />
+            :create-row-method="createRowData"
+            :min-row="0" />
         </EditableRow>
       </EditableTable>
     </div>
@@ -278,7 +279,7 @@
           }
         }
 
-        if (props.isRequired && !value) {
+        if (props.isRequired && !_.isNumber(value) && !value) {
           return false;
         }
 
