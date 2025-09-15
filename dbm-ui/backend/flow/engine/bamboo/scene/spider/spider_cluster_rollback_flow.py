@@ -116,17 +116,19 @@ class TenDBRollBackDataFlow(object):
                 cluster_type=source_cluster.cluster_type,
             )
 
-            # 先查询恢复介质
+            # 如果指定了backup_id,则使用backup_id去查询备份信息
             backup_handler = MySQLBackupHandler(cluster_id=source_cluster.id, is_full_backup=True)
+            backup_id = self.data.get("backup_id", None)
+            if backup_id is None or backup_id == "":
+                backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
+            backup_handler.backup_id = backup_id
+            rollback_time = None
             if self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
-                backup_id = self.data.get("backupinfo", {}).get("backup_id", "")
                 if backup_id is None or backup_id.strip() == "":
                     raise TendbGetBackupInfoFailedException(message="backup_id key is not exist")
-                backup_handler.backup_id = backup_id
-                backup_info = backup_handler.get_spider_rollback_backup_info(limit_one=True)
             else:
                 rollback_time = str2datetime(self.data["rollback_time"])
-                backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time, limit_one=True)
+            backup_info = backup_handler.get_spider_rollback_backup_info(latest_time=rollback_time, limit_one=True)
             if backup_info is None:
                 logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
                 raise TendbGetBackupInfoFailedException(
