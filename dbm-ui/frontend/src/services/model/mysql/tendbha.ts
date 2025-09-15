@@ -249,4 +249,18 @@ export default class Tendbha extends ClusterBase {
   get slaveList() {
     return this.slaves;
   }
+
+  /**
+   * is_stand_by: true
+   */
+  get standbySlaveList() {
+    return this.slaves.filter((item) => item.is_stand_by);
+  }
+
+  /**
+   * is_stand_by: false
+   */
+  get readonlySlaveList() {
+    return this.slaves.filter((item) => !item.is_stand_by);
+  }
 }

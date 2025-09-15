@@ -12,9 +12,12 @@
 -->
 
 <template>
-  <UpgradeWrapper v-model="wrapperController">
+  <UpgradeWrapper
+    v-model="wrapperController"
+    @change="handleReset">
     <SmartAction class="db-toolbox">
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData"
@@ -24,22 +27,20 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
-            role="proxy"
+            :cluster-types="
+              wrapperController.roleType === 'singleStorageLayer' ? [ClusterTypes.TENDBSINGLE] : [ClusterTypes.TENDBHA]
+            "
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            field="current_version"
-            :label="t('当前版本')"
-            :min-width="200"
-            readonly
-            required>
-            <EditableBlock
-              v-model="item.current_version"
-              :placeholder="t('自动生成')" />
-          </EditableColumn>
+          <CurrentVersionColumn
+            v-model="item.current_version"
+            :cluster="item.cluster" />
           <TargetVersionColumn
             v-model="item.target_version"
-            :row-data="item" />
+            v-model:new-db-module-id="item.new_db_module_id"
+            v-model:pkg-id="item.pkg_id"
+            :cluster="item.cluster"
+            :current-tab="wrapperController" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -82,6 +83,7 @@
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -97,6 +99,9 @@
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
   import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
+  import { random } from '@utils';
+
+  import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
   import TargetVersionColumn from './components/TargetVersionColumn.vue';
 
   interface RowData {
@@ -108,29 +113,47 @@
         id: number;
         master_domain: string;
       }[];
-    };
-    current_version: string;
-    target_version: {
-      pkg_id: number;
-      target_package: string;
-    };
+    } & TendbhaModel;
+    current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
+    new_db_module_id: number;
+    pkg_id: number;
+    target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
 
   const { t } = useI18n();
+  const route = useRoute();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-      related_clusters: [],
-    },
-    current_version: data.current_version || '',
-    target_version: data.target_version || {
-      pkg_id: 0,
-      target_package: '',
-    },
+  const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
+        id: 0,
+        master_domain: '',
+        related_clusters: [],
+      } as unknown as RowData['cluster'],
+      data.cluster,
+    ),
+    current_version: Object.assign(
+      {
+        charset: '',
+        db_module_name: '',
+        db_version: '',
+        pkg_name: '',
+      },
+      data.current_version,
+    ),
+    new_db_module_id: data.new_db_module_id || 0,
+    pkg_id: data.pkg_id || 0,
+    target_version: Object.assign(
+      {
+        charset: '',
+        db_module_name: '',
+        db_version: '',
+        pkg_name: '',
+      },
+      data.target_version,
+    ),
   });
 
   const defaultData = () => ({
@@ -140,9 +163,11 @@
   });
 
   const wrapperController = ref({
-    roleType: TicketTypes.MYSQL_PROXY_UPGRADE,
+    roleType: (route.query.roleType as string) || 'haStorageLayer',
+    updateType: TicketTypes.MYSQL_LOCAL_UPGRADE,
   });
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const clusterMap = computed(() => {
@@ -175,25 +200,20 @@
     ],
   };
 
-  useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
+  useTicketDetail<Mysql.LocalUpgrade>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
     onSuccess(ticketDetails) {
       const { clusters, force, infos } = ticketDetails.details;
+      const isSingle = clusters[infos[0].cluster_ids[0]].cluster_type === (ClusterTypes.TENDBSINGLE as string);
+      wrapperController.value.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
       if (infos.length > 0) {
         formData.force = force;
         formData.tableData = infos.map((item) => {
           const clusterInfo = clusters[item.cluster_ids[0]];
           return createTableRow({
             cluster: {
-              cluster_type: clusterInfo.cluster_type,
-              id: clusterInfo.id,
               master_domain: clusterInfo.immute_domain,
-              related_clusters: [],
             },
-            current_version: item.display_info.current_version,
-            target_version: {
-              pkg_id: item.pkg_id,
-              target_package: item.display_info.target_package,
-            },
+            pkg_id: item.pkg_id,
           });
         });
       }
@@ -205,12 +225,18 @@
     infos: {
       cluster_ids: number[];
       display_info: {
+        charset: string;
+        cluster_type: string;
+        current_module_name: string;
+        current_package: string;
         current_version: string;
         target_package: string;
+        target_version: string;
       };
+      new_db_module_id: number;
       pkg_id: number;
     }[];
-  }>(TicketTypes.MYSQL_PROXY_UPGRADE);
+  }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
@@ -218,12 +244,8 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
               master_domain: item.master_domain,
-              related_clusters: [],
             },
-            current_version: item.proxies[0]?.version,
           }),
         );
       }
@@ -241,10 +263,16 @@
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
-              current_version: item.current_version,
-              target_package: item.target_version.target_package,
+              charset: item.target_version.charset,
+              cluster_type: item.cluster.cluster_type,
+              current_module_name: item.cluster.db_module_name,
+              current_package: item.current_version.pkg_name,
+              current_version: item.current_version.db_version,
+              target_package: item.target_version.pkg_name,
+              target_version: item.target_version.db_version,
             },
-            pkg_id: item.target_version.pkg_id,
+            new_db_module_id: item.new_db_module_id,
+            pkg_id: item.pkg_id,
           })),
         },
         ...formData.payload,
@@ -254,5 +282,6 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+    tableKey.value = random();
   };
 </script>

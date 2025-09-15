@@ -14,13 +14,14 @@
 <template>
   <EditableColumn
     :append-rules="rules"
+    :disabled-method="disabledMethod"
     field="new_readonly_host"
     :label="t('新只读主机')"
     :loading="loading"
     :min-width="200">
     <template #headAppend> <span class="required-icon" /> </template>
     <EditableBlock
-      v-if="cluster.id && !cluster.readonly_host.length"
+      v-if="cluster.id && !hostLimit"
       :placeholder="t('无只读主机')" />
     <EditableInput
       v-else
@@ -50,46 +51,37 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { fetchList } from '@services/source/dbresourceResource';
 
-  import { DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
   import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
+  interface HostInfo {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
+
   interface Props {
     cluster: {
+      cluster_type: ClusterTypes;
       id: number;
-      readonly_host: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      master_domain: string;
+      related_clusters: {
+        id: number;
+        master_domain: string;
       }[];
-    };
+    } & TendbhaModel;
   }
 
   const props = defineProps<Props>();
 
-  /**
-   * 绑定的modelValue须包含ip
-   */
-  const modelValue = defineModel<
-    {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
-      ip: string;
-    }[]
-  >({
-    default: () => [
-      {
-        bk_biz_id: undefined,
-        bk_cloud_id: undefined,
-        bk_host_id: undefined,
-        ip: '',
-      },
-    ],
+  const modelValue = defineModel<HostInfo[]>({
+    required: true,
   });
 
   const { t } = useI18n();
@@ -99,7 +91,8 @@
   const inputIps = ref('');
   const showSelector = ref(false);
 
-  const hostLimit = computed(() => props.cluster.readonly_host.length);
+  // is_stand_by === false 为原只读主机
+  const hostLimit = computed(() => props.cluster.slaves?.filter((item) => !item.is_stand_by)?.length || 0);
   const selected = computed(() =>
     modelValue.value.filter((item) => !!item.ip).length ? (modelValue.value as IValue[]) : ([] as IValue[]),
   );
@@ -108,17 +101,17 @@
     {
       message: t('新只读主机不能为空'),
       trigger: 'change',
-      validator: (value: Props['cluster']['readonly_host']) => value.every((item) => !!item.ip),
+      validator: (value: HostInfo[]) => value.every((item) => !!item.ip),
     },
     {
       message: t('IP格式有误，请输入合法IP'),
       trigger: 'change',
-      validator: (value: Props['cluster']['readonly_host']) => value.every((item) => ipv4.test(item.ip)),
+      validator: (value: HostInfo[]) => value.every((item) => ipv4.test(item.ip)),
     },
     {
       message: t('新只读主机数与旧只读主机数不一致'),
       trigger: 'change',
-      validator: (value: Props['cluster']['readonly_host']) => value.length === hostLimit.value,
+      validator: (value: HostInfo[]) => value.length === hostLimit.value,
     },
     {
       message: t('目标主机不存在'),
@@ -139,19 +132,19 @@
     },
   });
 
+  const disabledMethod = (rowData?: any) => {
+    if (!rowData.cluster.id) {
+      return t('请先选择集群');
+    }
+    return '';
+  };
+
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
   const handleInputChange = (value: string) => {
-    modelValue.value = [
-      {
-        bk_biz_id: undefined,
-        bk_cloud_id: undefined,
-        bk_host_id: undefined,
-        ip: value,
-      },
-    ];
+    modelValue.value = [];
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

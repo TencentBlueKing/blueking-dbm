@@ -75,9 +75,9 @@ export function getSpiderVersionModules(params: {
 }
 
 /**
- * 获取tendbcluster版本模块列表
+ * 获取mysql、tendbcluster存储层版本模块列表
  */
-export function getTendbclusterVersionModules(params: {
+export function getVersionModules(params: {
   cluster_id: number;
   higher_major_version?: boolean; // 是否查找更高主版本的模块
   higher_sub_version?: boolean; // 是否查找同大版本但子版本更高的模块
