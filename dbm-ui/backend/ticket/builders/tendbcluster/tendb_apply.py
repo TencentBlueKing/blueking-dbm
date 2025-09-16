@@ -30,6 +30,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     cluster_name = serializers.CharField(help_text=_("集群名"))
+    cluster_alias = serializers.CharField(help_text=_("集群别名（一般为中文别名）"), required=False, allow_blank=True)
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
     )
@@ -91,6 +92,11 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         TendbBaseOperateDetailSerializer.validate_spider_count_for_apply(self.context["bk_biz_id"], attrs)
 
         return attrs
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["bk_cloud_name"] = self.get_bk_cloud_name(instance)
+        return representation
 
 
 class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
