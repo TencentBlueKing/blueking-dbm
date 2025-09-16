@@ -1130,12 +1130,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         tendbcluster flashback
         """
         shard_id = self.cluster["shard_id"]
-
-        databases = self.cluster["databases"]
         tables = self.cluster["tables"]
-
-        databases = ["{}_{}".format(ele, shard_id) for ele in databases]
-
+        databases = []
+        for db in self.cluster["databases"]:
+            if db == "*":
+                databases.append("*")
+            else:
+                databases.append("{}_{}".format(db, shard_id))
         return self.__flashback_payload(databases, tables, **kwargs)
 
     def __flashback_payload(self, databases: List, tables: List, **kwargs) -> dict:
