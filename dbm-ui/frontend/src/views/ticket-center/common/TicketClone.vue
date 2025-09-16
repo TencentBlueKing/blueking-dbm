@@ -58,6 +58,7 @@
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_MIGRATE_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
+    [TicketTypes.MYSQL_PROXY_CONF_CHANGE]: TicketTypes.MYSQL_PROXY_CONF_CHANGE, // mysql proxy 升降配
     [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy
     [TicketTypes.MYSQL_RESTORE_SLAVE]: TicketTypes.MYSQL_RESTORE_SLAVE, // Mysql 重建从库-新机重建
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: TicketTypes.MYSQL_ROLLBACK_CLUSTER, // Mysql 定点构造

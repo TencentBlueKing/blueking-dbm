@@ -103,9 +103,9 @@
   const props = withDefaults(defineProps<Props>(), {
     currentSpecIdList: () => [],
     field: 'specId',
-    label: '规格',
+    label: '目标规格',
     machineType: undefined,
-    minWidth: 150,
+    minWidth: 200,
     required: false,
     selectable: false,
     showTag: true,

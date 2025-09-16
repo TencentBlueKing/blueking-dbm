@@ -10,79 +10,61 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('关联实例')"
+      :label="t('关联集群实例')"
       :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        <template
-          v-if="ticketDetails.details.machine_infos?.[data.old_nodes.origin_proxy?.[0]?.ip]?.related_instances?.length">
-          <p
-            v-for="item in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy?.[0]?.ip].related_instances"
-            :key="item.instance">
-            {{ item.instance }}
-          </p>
+        <template v-if="data?.related_instances">
+          <div
+            v-for="item in data?.related_instances"
+            :key="item.instance_address">
+            <p>
+              {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
+            </p>
+            <p style="color: #979ba5">--{{ item.instance_address }}</p>
+          </div>
         </template>
-        <template v-else> -- </template>
+        <template v-else>
+          <div
+            v-for="clusterId in data.cluster_ids"
+            :key="clusterId">
+            <p>
+              {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+            </p>
+          </div>
+        </template>
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('关联集群')"
-      :min-width="300">
+      :label="t('目标规格')"
+      :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <template
-          v-if="ticketDetails.details.machine_infos?.[data.old_nodes.origin_proxy?.[0]?.ip]?.related_clusters?.length">
-          <p
-            v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.origin_proxy?.[0]?.ip]
-              .related_clusters"
-            :key="clusterId">
-            {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
-          </p>
-        </template>
-        <template v-else> -- </template>
+        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
       </template>
     </BkTableColumn>
-    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <BkTableColumn
-        :label="t('规格')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          {{ ticketDetails.details.specs?.[data.resource_spec.target_proxy.spec_id]?.name || '--' }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('资源标签')"
-        :min-width="200">
-        <template #default="{ data }: { data: RowData }">
-          <template v-if="data.resource_spec.target_proxy?.label_names?.length">
-            <BkTag
-              v-for="item in data.resource_spec.target_proxy.label_names"
-              :key="item">
-              {{ item }}
-            </BkTag>
-          </template>
+    <BkTableColumn
+      :label="t('资源标签')"
+      :min-width="200">
+      <template #default="{ data }: { data: RowData }">
+        <template v-if="data.resource_spec.target_proxy?.label_names?.length">
           <BkTag
-            v-else
-            theme="success">
-            {{ t('通用无标签') }}
+            v-for="item in data.resource_spec.target_proxy.label_names"
+            :key="item">
+            {{ item }}
           </BkTag>
         </template>
-      </BkTableColumn>
-    </template>
-    <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <BkTableColumn
-        :label="t('新Proxy主机')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.resource_spec.target_proxy.hosts?.[0]?.ip || '--' }}
-        </template>
-      </BkTableColumn>
-    </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
   </BkTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { SourceType } from '@services/types';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;

@@ -26,7 +26,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('规格')"
+      :label="t('目标规格')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.spider_ip_list.spec_id]?.name || '--' }}

@@ -34,17 +34,19 @@
       @change="handleChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('同机关联集群')"
+    :label="t('关联集群实例')"
     :loading="loading"
     :min-width="150"
-    readonly
-    required>
+    readonly>
     <EditableBlock :placeholder="t('自动生成')">
-      <p
-        v-for="item in modelValue.related_clusters"
-        :key="item.id">
-        {{ item.master_domain }}
-      </p>
+      <div
+        v-for="item in modelValue.related_instances"
+        :key="item.instance_address">
+        <p>
+          {{ item.master_domain }}
+        </p>
+        <p style="color: #979ba5">--{{ item.instance_address }}</p>
+      </div>
     </EditableBlock>
   </EditableColumn>
   <InstanceSelector
@@ -59,6 +61,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -87,11 +90,9 @@
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    related_clusters: {
-      id: number;
-      master_domain: string;
-    }[];
+    related_instances: ServiceReturnType<typeof checkInstance>;
     role: string;
+    spec_config: TendbhaModel['masters'][number]['spec_config'];
   }>({
     required: true,
   });
@@ -108,6 +109,11 @@
             field: 'ip',
             label: t('Proxy 主机'),
             role: 'proxy',
+          },
+        },
+        topoConfig: {
+          countFunc: (cluster: TendbhaModel) => {
+            return cluster.proxies.length;
           },
         },
       },
@@ -156,18 +162,17 @@
   const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [currentHost] = data;
-      if (currentHost) {
+      if (data.length) {
+        const relatedInstances = data;
+        const [hostInfo] = data;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: currentHost.bk_cloud_id,
-          bk_host_id: currentHost.bk_host_id,
-          ip: currentHost.ip,
-          related_clusters: currentHost.related_clusters.map((item) => ({
-            id: item.id,
-            master_domain: item.master_domain,
-          })),
-          role: currentHost.role,
+          bk_cloud_id: hostInfo.bk_cloud_id,
+          bk_host_id: hostInfo.bk_host_id,
+          ip: hostInfo.ip,
+          related_instances: relatedInstances,
+          role: hostInfo.role,
+          spec_config: hostInfo.spec_config,
         };
       }
     },
@@ -178,14 +183,18 @@
   };
 
   const handleChange = (value: string) => {
-    modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: value,
-      related_clusters: [],
-      role: '',
-    };
+    modelValue.value = Object.assign(
+      {},
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: value,
+        related_instances: [],
+        role: '',
+        spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
+      },
+    );
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

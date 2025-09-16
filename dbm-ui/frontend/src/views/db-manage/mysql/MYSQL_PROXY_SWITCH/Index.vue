@@ -12,14 +12,11 @@
 -->
 
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('对集群的Proxy实例进行替换')" />
-    <div>
-      <div class="title-spot mt-12 mb-10">{{ t('替换类型') }}<span class="required" /></div>
-      <div class="mt-8 mb-20">
+  <ProxyWrapper>
+    <SmartAction>
+      <BkFormItem
+        :label="t('替换类型')"
+        required>
         <CardCheckbox
           v-model="operaObjectType"
           :desc="t('主机关联的所有实例一并替换')"
@@ -33,31 +30,11 @@
           icon="rebuild"
           :title="t('实例替换')"
           :true-value="OperaObejctType.INSTANCE" />
-      </div>
-    </div>
-    <BkForm
-      class="mb-20"
-      form-type="vertical"
-      :model="formData">
-      <!-- <div class="title-spot mt-12 mb-10">{{ t('主机选择方式') }}<span class="required" /></div>
-      <BkRadioGroup
-        v-model="sourceType"
-        class="mb-16"
-        style="width: 450px"
-        type="card"
-        @change="handleChangeMode">
-        <BkRadioButton :label="SourceType.RESOURCE_AUTO">
-          {{ t('资源池自动匹配') }}
-        </BkRadioButton>
-        <BkRadioButton :label="SourceType.RESOURCE_MANUAL">
-          {{ t('资源池手动选择') }}
-        </BkRadioButton>
-      </BkRadioGroup> -->
+      </BkFormItem>
       <Component
         :is="comMap[operaObjectType]"
         :key="comKey"
         ref="table"
-        :source-type="sourceType"
         :ticket-details="ticketDetails" />
       <BkFormItem>
         <BkCheckbox
@@ -72,34 +49,35 @@
         </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </ProxyWrapper>
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { OperaObejctType, SourceType } from '@services/types';
+  import { OperaObejctType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -110,6 +88,7 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
 
   import { random } from '@utils';
 
@@ -130,7 +109,6 @@
   };
 
   const operaObjectType = ref<keyof typeof comMap>(OperaObejctType.MACHINE);
-  const sourceType = ref(SourceType.RESOURCE_AUTO);
   const comKey = ref(random());
   const formData = reactive(defaultData());
   const ticketDetails = ref<Mysql.ResourcePool.ProxySwitch>();
@@ -145,7 +123,6 @@
       });
       comKey.value = random();
       operaObjectType.value = operaObject;
-      sourceType.value = details.source_type;
       nextTick(() => {
         ticketDetails.value = details;
       });
@@ -164,31 +141,32 @@
           instance_address?: string;
           ip: string;
           port?: number;
+          spec: TendbhaModel['masters'][number]['spec_config'];
         }[];
       };
+      origin_proxy_ip: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        spec: TendbhaModel['masters'][number]['spec_config'];
+      };
+      related_instances?: {
+        cluster_id: number;
+        instance_address: string;
+      }[];
       resource_spec: {
         target_proxy: {
           count: number;
-          hosts?: {
-            bk_biz_id: number;
-            bk_cloud_id: number;
-            bk_host_id: number;
-            ip: string;
-          }[];
-          label_names?: string[]; // 标签名称列表，单据详情回显用
-          labels?: string[]; // 标签id列表
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
     }[];
     ip_source: 'resource_pool';
     opera_object: OperaObejctType;
-    source_type: SourceType;
   }>(TicketTypes.MYSQL_PROXY_SWITCH);
-
-  // const handleChangeMode = () => {
-  //   comKey.value = random();
-  // };
 
   const handleSubmit = async () => {
     const infos = await tableRef.value!.getValue();
@@ -199,7 +177,6 @@
           infos,
           ip_source: 'resource_pool',
           opera_object: operaObjectType.value,
-          source_type: sourceType.value,
         },
         ...formData.payload,
       });
