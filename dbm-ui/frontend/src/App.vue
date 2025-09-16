@@ -103,7 +103,7 @@
   watch(
     locale,
     () => {
-      document.title = documentTitles[locale.value];
+      document.title = documentTitles[locale.value]!;
     },
     { immediate: true },
   );

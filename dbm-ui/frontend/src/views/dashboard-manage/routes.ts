@@ -24,7 +24,7 @@ export default () => {
           path: 'view/:versionId?',
           name: 'DashboradView',
           meta: {
-            navName: t('仪表盘'),
+            navName: '',
           },
           component: () => import('@views/dashboard-manage/view/Index.vue'),
         },
