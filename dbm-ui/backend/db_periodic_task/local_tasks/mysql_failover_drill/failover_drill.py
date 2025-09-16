@@ -442,7 +442,7 @@ class MysqlFailoverDrill(BaseFailoverDrill):
         for q in qs:
             instance_type = q.instance_type
             if instance_type in dbha_infos:
-                dbha_info = dbha_infos["instance_type"]
+                dbha_info = dbha_infos[instance_type]
                 q.dbha_info = dbha_info
                 q.dbha_status = getattr(dbha_info, "status", "failed")
                 q.switch_start_time = getattr(dbha_info, "switch_start_time", None)
@@ -481,7 +481,7 @@ class MysqlFailoverDrill(BaseFailoverDrill):
                     for ip in drill_ip:
                         # 因为主库可能已经发生切换，此处获取的是切换后的主库ip，但dbha的结果信息里是之前的角色slave_ip
                         if d["ip"] == ip or d["slave_ip"] == ip:
-                            dbha_infos[d["instance_type"]] = d
+                            dbha_infos[d["db_type"]] = d
                             flag += 1
             else:
                 dbha_infos["error"] += "HADB service query failed. code:{} msg:{}\n".format(code, msg)
