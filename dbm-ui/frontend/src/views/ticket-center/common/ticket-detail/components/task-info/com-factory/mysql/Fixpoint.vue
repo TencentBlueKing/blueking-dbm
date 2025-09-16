@@ -47,15 +47,15 @@
       :min-width="370">
       <template #default="{ data }: { data: RowData }">
         <div class="content-block">
-          <div class="content-label">{{ t('备份文件名：') }}</div>
+          <div class="content-label">{{ t('备份记录 ：') }}</div>
           <div class="content-value">
             {{ `${data.backupinfo.mysql_role} ${utcDisplayTime(data.backupinfo.backup_time)}` }}
           </div>
-          <div class="content-label">{{ t('备份 ID：') }}</div>
+          <div class="content-label">{{ t('备份 ID ：') }}</div>
           <div class="content-value">
             {{ data.backupinfo.backup_id || '--' }}
           </div>
-          <div class="content-label">{{ t('备份类型：') }}</div>
+          <div class="content-label">{{ t('备份类型 ：') }}</div>
           <div class="content-value">
             <BkTag
               v-if="backupTypeMap[data.backupinfo.backup_type]"
@@ -64,7 +64,7 @@
             </BkTag>
             <span v-else>--</span>
           </div>
-          <div class="content-label">{{ t('备份范围：') }}</div>
+          <div class="content-label">{{ t('备份范围 ：') }}</div>
           <div class="content-value">
             <span
               :class="{
@@ -73,12 +73,12 @@
               {{ backupMethodMap[data.backupinfo.backup_method] || '--' }}
             </span>
           </div>
-          <div class="content-label">{{ t('文件大小：') }}</div>
+          <div class="content-label">{{ t('文件大小 ：') }}</div>
           <div class="content-value">{{ bytePretty(data.backupinfo?.total_filesize ?? 0) }}</div>
           <div
             v-if="data.backupinfo.bill_id"
             class="content-label">
-            {{ t('关联单据：') }}
+            {{ t('关联单据 ：') }}
           </div>
           <div
             v-if="data.backupinfo.bill_id"
@@ -201,6 +201,8 @@
   .content-block {
     display: grid;
     grid-template-columns: 0fr 1fr;
+    font-family: MicrosoftYaHei, sans-serif;
+    line-height: 24px;
 
     .content-label {
       width: 80px;

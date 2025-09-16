@@ -68,13 +68,13 @@
       style="width: 100%"
       @click="handleShowSelector">
       <div class="content-block">
-        <div class="content-label">{{ t('备份文件名：') }}</div>
+        <div class="content-label">{{ t('备份记录 ：') }}</div>
         <div class="content-value">{{ `${backupRecord.mysql_role} ${utcDisplayTime(backupRecord.backup_time)}` }}</div>
-        <div class="content-label">{{ t('备份 ID：') }}</div>
+        <div class="content-label">{{ t('备份 ID ：') }}</div>
         <div class="content-value">
           {{ backupRecord.backup_id || '--' }}
         </div>
-        <div class="content-label">{{ t('备份类型：') }}</div>
+        <div class="content-label">{{ t('备份类型 ：') }}</div>
         <div class="content-value">
           <BkTag
             v-if="backupTypeMap[backupRecord.backup_type]"
@@ -83,7 +83,7 @@
           </BkTag>
           <span v-else>--</span>
         </div>
-        <div class="content-label">{{ t('备份范围：') }}</div>
+        <div class="content-label">{{ t('备份范围 ：') }}</div>
         <div class="content-value">
           <span
             :class="{
@@ -92,12 +92,12 @@
             {{ backupMethodMap[backupRecord.backup_method] || '--' }}
           </span>
         </div>
-        <div class="content-label">{{ t('文件大小：') }}</div>
+        <div class="content-label">{{ t('文件大小 ：') }}</div>
         <div class="content-value">{{ bytePretty(backupRecord?.total_filesize ?? 0) }}</div>
         <div
           v-if="backupRecord.bill_id"
           class="content-label">
-          {{ t('关联单据：') }}
+          {{ t('关联单据 ：') }}
         </div>
         <div
           v-if="backupRecord.bill_id"
@@ -128,7 +128,8 @@
     v-model="backupRecord"
     v-model:is-show="isShowSelector"
     v-bind="props"
-    only-full />
+    only-full
+    @change="handleChange" />
 </template>
 <script lang="ts" setup>
   import dayjs from 'dayjs';
@@ -137,6 +138,8 @@
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
   import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
+
+  import { useTimeZoneFormat } from '@hooks';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
@@ -167,6 +170,7 @@
   });
 
   const { t } = useI18n();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const isShowSelector = ref(false);
   const isShowBatchEdit = ref(false);
@@ -222,7 +226,7 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
-      latest_time: date,
+      latest_time: formatDateToUTC(date),
     });
   };
 
@@ -231,18 +235,18 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
-      latest_time: formData.value.backup_time,
+      latest_time: formatDateToUTC(formData.value.backup_time),
     });
     emits('batch-edit', formData.value.backup_time, 'backupTime');
     emits('batch-edit', data, 'backupRecord');
   };
 
-  watch(backupRecord, () => {
-    if (backupRecord.value?.backup_id) {
-      backupTime.value = backupRecord.value.backup_time;
+  const handleChange = (data?: BackupLogRecord) => {
+    if (data?.backup_id) {
+      backupTime.value = data.backup_time;
       emits('change');
     }
-  });
+  };
 </script>
 <style lang="less" scoped>
   .batch-select {
@@ -253,6 +257,8 @@
 
   .content-block {
     display: grid;
+    font-family: MicrosoftYaHei, sans-serif;
+    line-height: 24px;
     grid-template-columns: 0fr 1fr;
 
     .content-label {
