@@ -108,7 +108,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { getAppShareList } from '@services/source/bk-version';
+  import { getAppShareList } from '@services/source/bkVersion';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
