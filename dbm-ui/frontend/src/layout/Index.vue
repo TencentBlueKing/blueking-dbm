@@ -192,6 +192,7 @@
       'DbaManage',
       'platformAlarmEvents',
       'ServiceStatus',
+      'DashboradManage',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;

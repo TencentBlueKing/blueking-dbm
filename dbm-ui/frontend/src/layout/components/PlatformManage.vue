@@ -88,21 +88,60 @@
         {{ t('服务状态') }}
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup
+      v-if="dashboardList && dashboardList.length > 0"
+      :name="t('运营数据')">
+      <BkMenuItem
+        v-for="dashboardItem in dashboardList"
+        :key="`DashboradView#${dashboardItem.uid}`">
+        <template #icon>
+          <DbIcon type="ticket" />
+        </template>
+        {{ dashboardItem.name }}
+      </BkMenuItem>
+    </BkMenuGroup>
   </BkMenu>
 </template>
 <script setup lang="ts">
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
+
+  import { getAppShareList } from '@services/source/bk-version';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
 
   const menuRef = ref<InstanceType<typeof Menu>>();
 
-  const {
-    key: currentActiveKey,
-    parentKey,
-    routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'ticketPlatformManage');
+  const { data: dashboardList } = useRequest(getAppShareList);
+
+  const { key: currentActiveKey, parentKey } = useActiveKey(
+    menuRef as Ref<InstanceType<typeof Menu>>,
+    'ticketPlatformManage',
+  );
+
+  if (route.name === 'DashboradView') {
+    currentActiveKey.value = `DashboradView#${route.params.versionId}`;
+  }
+
+  const handleMenuChange = (params: { key: string }) => {
+    if (params.key.startsWith('DashboradView')) {
+      const [, versionId] = params.key.split('#');
+      router.push({
+        name: 'DashboradView',
+        params: {
+          versionId,
+        },
+      });
+      return;
+    }
+    router.push({
+      name: params.key,
+    });
+  };
 </script>
