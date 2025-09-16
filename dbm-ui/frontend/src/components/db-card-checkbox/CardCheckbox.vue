@@ -25,7 +25,17 @@
     </div>
     <div class="card-checkbox__content">
       <strong class="card-checkbox__title">{{ title }}</strong>
-      <p class="card-checkbox__desc">
+      <template v-if="descList.length">
+        <p
+          v-for="item in descList"
+          :key="item"
+          class="card-checkbox__desc">
+          {{ item }}
+        </p>
+      </template>
+      <p
+        v-else
+        class="card-checkbox__desc">
         {{ desc }}
       </p>
     </div>
@@ -36,6 +46,7 @@
   interface Props {
     checked?: boolean;
     desc?: string;
+    descList?: string[];
     disabled?: boolean;
     disabledTooltips?: string;
     falseValue?: boolean | string;
@@ -50,6 +61,7 @@
   const props = withDefaults(defineProps<Props>(), {
     checked: false,
     desc: 'desc',
+    descList: () => [],
     disabled: false,
     disabledTooltips: '',
     falseValue: false,
@@ -64,6 +76,7 @@
   const statusClass = computed(() => ({
     'card-checkbox--disabled': props.disabled,
     'card-checkbox--selected': props.modelValue === props.trueValue || props.checked,
+    'card-checkbox-initial-height': props.descList.length > 0,
   }));
 
   const handleChange = () => {
@@ -87,12 +100,15 @@
     border-radius: 2px;
 
     &__icon {
+      display: flex;
       width: 56px;
       font-size: 32px;
       line-height: 62px;
       text-align: center;
       background-color: #fafbfd;
       flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
     }
 
     &__content {
@@ -170,5 +186,9 @@
         transform: rotate(-135deg);
       }
     }
+  }
+
+  .card-checkbox-initial-height {
+    height: initial;
   }
 </style>

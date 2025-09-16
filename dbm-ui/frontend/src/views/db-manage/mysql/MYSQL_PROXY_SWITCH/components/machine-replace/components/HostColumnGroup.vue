@@ -34,29 +34,19 @@
       @change="handleChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('同机关联实例')"
+    :label="t('关联集群实例')"
     :loading="loading"
     :min-width="200"
     readonly>
     <EditableBlock :placeholder="t('自动生成')">
-      <p
+      <div
         v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
-      </p>
-    </EditableBlock>
-  </EditableColumn>
-  <EditableColumn
-    :label="t('同机关联集群')"
-    :loading="loading"
-    :min-width="240"
-    readonly>
-    <EditableBlock :placeholder="t('自动生成')">
-      <p
-        v-for="item in modelValue.related_clusters"
-        :key="item">
-        {{ item }}
-      </p>
+        :key="item.instance_address">
+        <p>
+          {{ item.master_domain }}
+        </p>
+        <p style="color: #979ba5">--{{ item.instance_address }}</p>
+      </div>
     </EditableBlock>
   </EditableColumn>
   <InstanceSelector
@@ -71,6 +61,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -85,9 +76,7 @@
   export type SelectorItem = IValue;
 
   interface Props {
-    selected: {
-      ip: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -103,11 +92,10 @@
     bk_sub_zone: string;
     cluster_ids: number[];
     ip: string;
-    port: number;
-    related_clusters: string[];
-    related_instances: string[];
+    related_instances: ServiceReturnType<typeof checkInstance>;
     role: string;
-    spec_id: number;
+    spec_config: TendbhaModel['masters'][number]['spec_config'];
+    spec_id_list: number[];
   }>({
     required: true,
   });
@@ -175,28 +163,20 @@
   const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data;
-      if (item) {
-        const clusterIds: number[] = [];
-        const relatedInstances: string[] = [];
-        const relatedClusters: string[] = [];
-        data.forEach((item) => {
-          clusterIds.push(item.cluster_id);
-          relatedInstances.push(item.instance_address);
-          relatedClusters.push(item.master_domain);
-        });
+      if (data.length) {
+        const relatedInstances = data;
+        const [hostInfo] = data;
         modelValue.value = {
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          bk_idc_city_name: item.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: item.host_info?.bk_sub_zone || '',
-          cluster_ids: clusterIds,
-          ip: item.ip,
-          port: item.port,
-          related_clusters: relatedClusters,
+          bk_cloud_id: hostInfo.bk_cloud_id,
+          bk_host_id: hostInfo.bk_host_id,
+          bk_idc_city_name: hostInfo.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: hostInfo.host_info?.bk_sub_zone || '',
+          cluster_ids: relatedInstances.map((item) => item.cluster_id),
+          ip: hostInfo.ip,
           related_instances: relatedInstances,
-          role: item.role,
-          spec_id: item.spec_config?.id || 0,
+          role: hostInfo.role,
+          spec_config: hostInfo.spec_config,
+          spec_id_list: relatedInstances.map((item) => item.spec_config.id),
         };
       }
     },
@@ -207,19 +187,21 @@
   };
 
   const handleChange = (value: string) => {
-    modelValue.value = {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      bk_idc_city_name: '',
-      bk_sub_zone: '',
-      cluster_ids: [],
-      ip: value,
-      port: 0,
-      related_clusters: [],
-      related_instances: [],
-      role: '',
-      spec_id: 0,
-    };
+    modelValue.value = Object.assign(
+      {},
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
+        cluster_ids: [],
+        ip: value,
+        related_instances: [],
+        role: '',
+        spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
+        spec_id_list: [],
+      },
+    );
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

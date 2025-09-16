@@ -21,38 +21,20 @@
         :key="tableKey"
         ref="table"
         class="mt-16 mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClustersColumn
-            v-model="item.cluster"
-            role="proxy"
+          <ClusterColumn
+            v-model="item.batchCluster"
             :selected="selected"
+            :selected-map="selectedMap"
             @batch-edit="handleBatchEdit" />
-          <EditableColumn
-            :label="t('当前数量（台）')"
-            :min-width="150"
-            readonly>
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ item.cluster.id ? item.cluster.proxies?.length : '' }}
-            </EditableBlock>
-          </EditableColumn>
-          <AddCountColumn v-model="item.count" />
-          <EditableColumn
-            :label="t('最终数量（台）')"
-            :min-width="150"
-            readonly>
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ item.cluster.id && item.count ? (item.cluster.proxies?.length || 0) + Number(item.count) : '' }}
-            </EditableBlock>
-          </EditableColumn>
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id-list="item.cluster.spec_id_list"
-            :machine-type="MachineTypes.MYSQL_PROXY"
+            :current-spec-id-list="item.batchCluster.spec_id_list"
+            :machine-type="MachineTypes.MYSQL_BACKEND"
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
@@ -61,7 +43,7 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.cluster.region,
+              city: item.batchCluster.cities.join(','),
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -105,7 +87,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -114,16 +96,14 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
   import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
 
   import { random } from '@utils';
 
-  import AddCountColumn from './components/AddCountColumn.vue';
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
-    count: string;
+    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
   }
@@ -134,17 +114,14 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    cluster: Object.assign(
+    batchCluster: Object.assign(
       {
-        cluster_type: ClusterTypes.TENDBHA,
-        id: 0,
-        master_domain: '',
-        related_clusters: [],
+        cities: [],
+        clusters: [],
         spec_id_list: [],
-      } as RowData['cluster'],
-      data.cluster,
+      } as RowData['batchCluster'],
+      data.batchCluster,
     ),
-    count: data.count || '',
     labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
   });
@@ -175,36 +152,8 @@
     },
   ];
 
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const clusterMap = computed(() => {
-    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
-      Object.assign(acc, {
-        [cur.cluster.master_domain]: cur.cluster.master_domain,
-      });
-      cur.cluster.related_clusters.forEach((item) => {
-        Object.assign(acc, {
-          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
-        });
-      });
-      return acc;
-    }, {});
-  });
-
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: '',
-        trigger: 'blur',
-        validator: (value: string) => {
-          const target = clusterMap.value[value];
-          if (target && target !== value) {
-            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
-          }
-          return true;
-        },
-      },
-    ],
-  };
+  const selected = computed(() => formData.tableData.flatMap((item) => Object.values(item.batchCluster.clusters)));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   useTicketDetail<Mysql.ResourcePool.ProxyAdd>(TicketTypes.MYSQL_PROXY_ADD, {
     onSuccess(ticketDetail) {
@@ -215,8 +164,10 @@
         ...createTickePayload(ticketDetail),
         tableData: infos.map((item) => {
           return createTableRow({
-            cluster: {
-              master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
+            batchCluster: {
+              clusters: item.cluster_ids.map((clusterId) => ({
+                master_domain: clusters[clusterId].immute_domain,
+              })),
             },
             labels: (item.resource_spec.new_proxy.labels || []).map((item) => ({ id: Number(item) })),
             specId: item.resource_spec.new_proxy.spec_id,
@@ -229,9 +180,19 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
-      current_proxy_num: number;
+      origin_proxy_ips: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        spec: TendbhaModel['proxies'][0]['spec_config'];
+      }[];
+      related_instances: {
+        cluster_id: number;
+        instance_address: string;
+      }[];
       resource_spec: {
-        new_proxy: {
+        target_proxy: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -240,21 +201,45 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.MYSQL_PROXY_ADD);
+  }>(TicketTypes.MYSQL_PROXY_MIGRATE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
+    const clusters: TendbhaModel[] = [];
+    const masters: Array<{ cluster_id: number } & TendbhaModel['masters'][number]> = [];
+    formData.tableData.forEach((row) => {
+      row.batchCluster.clusters.forEach((cluster) => {
+        clusters.push(cluster);
+        cluster.masters.forEach((master) => {
+          masters.push({
+            ...master,
+            cluster_id: cluster.id,
+          });
+        });
+      });
+    });
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          current_proxy_num: item.cluster.proxies!.length,
+          cluster_ids: clusters.map((cluster) => cluster.id),
+          origin_proxy_ips: masters.map((instance) => ({
+            bk_biz_id: instance.bk_biz_id,
+            bk_cloud_id: instance.bk_cloud_id,
+            bk_host_id: instance.bk_host_id,
+            cluster_id: instance.cluster_id,
+            ip: instance.ip,
+            spec: instance.spec_config,
+          })),
+          related_instances: masters.map((instance) => ({
+            cluster_id: instance.cluster_id,
+            instance_address: instance.instance,
+          })),
           resource_spec: {
-            new_proxy: {
-              count: Number(item.count),
+            target_proxy: {
+              count: masters.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
@@ -273,42 +258,53 @@
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            cluster: {
-              master_domain: item.master_domain,
+            batchCluster: {
+              clusters: [
+                {
+                  master_domain: item.master_domain,
+                },
+              ],
             },
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    formData.tableData = [
+      ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
+      ...dataList,
+    ];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
-    const dataList = data.reduce<RowData[]>((acc, item) => {
-      acc.push(
-        createTableRow({
-          cluster: {
-            master_domain: item.master_domain,
-          },
-          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
-          specId: item.spec_name,
-        }),
-      );
-      return acc;
-    }, []);
-    if (isClear) {
-      tableKey.value = random();
-      formData.tableData = [...dataList];
-    } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
-    }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
+    // const dataList = data.reduce<RowData[]>((acc, item) => {
+    //   acc
+    //     .push
+    //     // createTableRow({
+    //     //   cluster: {
+    //     //     master_domain: item.master_domain,
+    //     //   },
+    //     //   labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+    //     //   specId: item.spec_name,
+    //     // }),
+    //     ();
+    //   return acc;
+    // }, []);
+    // if (isClear) {
+    //   tableKey.value = random();
+    //   formData.tableData = [...dataList];
+    // } else {
+    //   formData.tableData = [
+    //     ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
+    //     ...dataList,
+    //   ]; // 追加
+    // }
+    // setTimeout(() => {
+    //   tableRef.value?.validate();
+    // }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {
@@ -319,8 +315,3 @@
     });
   };
 </script>
-<style lang="less" scoped>
-  :deep(.is-error .related-clusters) {
-    background: initial;
-  }
-</style>

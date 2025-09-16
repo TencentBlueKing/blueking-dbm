@@ -54,6 +54,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -68,9 +69,7 @@
   export type SelectorItem = IValue;
 
   interface Props {
-    selected: {
-      instance_address: string;
-    }[];
+    selected: Array<typeof modelValue.value>;
   }
 
   type Emits = (e: 'batch-edit', list: IValue[]) => void;
@@ -90,7 +89,7 @@
     master_domain: string;
     port: number;
     role: string;
-    spec_id: number;
+    spec_config: TendbhaModel['masters'][number]['spec_config'];
   }>({
     required: true,
   });
@@ -161,20 +160,20 @@
   const { loading, run: queryInstance } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [item] = data;
-      if (item) {
+      if (data.length) {
+        const [instanceInfo] = data;
         modelValue.value = {
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          bk_idc_city_name: item.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: item.host_info?.bk_sub_zone || '',
-          cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
-          ip: item.ip,
-          master_domain: item.master_domain,
-          port: item.port,
-          role: item.role,
-          spec_id: item.spec_config?.id || 0,
+          bk_cloud_id: instanceInfo.bk_cloud_id,
+          bk_host_id: instanceInfo.bk_host_id,
+          bk_idc_city_name: instanceInfo.host_info?.bk_idc_city_name || '',
+          bk_sub_zone: instanceInfo.host_info?.bk_sub_zone || '',
+          cluster_id: instanceInfo.cluster_id,
+          instance_address: instanceInfo.instance_address,
+          ip: instanceInfo.ip,
+          master_domain: instanceInfo.master_domain,
+          port: instanceInfo.port,
+          role: instanceInfo.role,
+          spec_config: instanceInfo.spec_config,
         };
       }
     },
@@ -185,19 +184,22 @@
   };
 
   const handleChange = (value: string) => {
-    modelValue.value = {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      bk_idc_city_name: '',
-      bk_sub_zone: '',
-      cluster_id: 0,
-      instance_address: value,
-      ip: '',
-      master_domain: '',
-      port: 0,
-      role: '',
-      spec_id: 0,
-    };
+    modelValue.value = Object.assign(
+      {},
+      {
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        bk_idc_city_name: '',
+        bk_sub_zone: '',
+        cluster_id: 0,
+        instance_address: value,
+        ip: '',
+        master_domain: '',
+        port: 0,
+        role: '',
+        spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
+      },
+    );
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

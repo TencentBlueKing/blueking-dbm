@@ -794,3 +794,27 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-difuzai:before {
 	content: "\e232";
 }
+.db-icon-bushushenqing:before {
+	content: "\e23d";
+}
+.db-icon-fenpianjiqun:before {
+	content: "\e23f";
+}
+.db-icon-fubenji:before {
+	content: "\e23c";
+}
+.db-icon-zhucong:before {
+	content: "\e23e";
+}
+.db-icon-xunjiandaiban:before {
+	content: "\e23b";
+}
+.db-icon-yibandanju:before {
+	content: "\e23a";
+}
+.db-icon-shengji:before {
+	content: "\e240";
+}
+.db-icon-yibiaopan:before {
+	content: "\e241";
+}

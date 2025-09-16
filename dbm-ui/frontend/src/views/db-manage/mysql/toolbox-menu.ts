@@ -128,21 +128,16 @@ export default [
         parentId: 'migrate',
       },
       {
-        dbConsoleValue: 'mysql.toolbox.proxyReplace',
-        id: TicketTypes.MYSQL_PROXY_SWITCH,
-        name: t('替换Proxy'),
-        parentId: 'migrate',
-      },
-      {
-        dbConsoleValue: 'mysql.toolbox.proxyReduce',
-        id: TicketTypes.MYSQL_PROXY_REDUCE,
-        name: t('缩容Proxy'),
-        parentId: 'migrate',
-      },
-      {
+        bind: [
+          TicketTypes.MYSQL_PROXY_ADD,
+          TicketTypes.MYSQL_PROXY_REDUCE,
+          TicketTypes.MYSQL_PROXY_SWITCH,
+          TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+          TicketTypes.MYSQL_PROXY_MIGRATE,
+        ],
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
-        name: t('添加Proxy'),
+        name: t('接入层变更'),
         parentId: 'migrate',
       },
       {
