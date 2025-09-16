@@ -100,4 +100,18 @@ declare interface Window {
     VITE_PUBLIC_PATH: string;
     VITE_ROUTER_PERFIX: string;
   };
+  BkVisionSDK: {
+    init: (
+      dom: HTMLElement,
+      versionId: string,
+      options?: {
+        apiPrefix: string;
+        waterMark?: {
+          content?: string;
+        };
+      },
+    ) => Promise<{
+      unmount: () => void;
+    }>;
+  };
 }
