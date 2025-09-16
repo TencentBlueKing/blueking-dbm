@@ -224,6 +224,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
         mongodb_machine_num = len(set([m.machine.bk_host_id for m in mongodb_insts]))
         mongodb_machine_pair = mongodb_machine_num // shard_node_count
 
+        # 获取单机分片数
+        single_host_shard_num = shard_num / mongodb_machine_pair
+
         # 获取shard分片规格
         mongodb_spec = mongodb_insts[0].machine.spec_config
         mount_point__size = {
@@ -271,8 +274,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "mongos": mongos,
             "mongodb": mongodb,
             "mongo_config": mongo_config,
-            "shard_num": shard_num,
-            "shard_node_count": shard_node_count,
+            "shard_num": shard_num,  # 集群分片数
+            "shard_node_count": shard_node_count,  # 每分片节点数
+            "single_host_shard_num": single_host_shard_num,  # 获取单机分片数
             "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.MONGODB_PITR_RESTORE),
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
         }
