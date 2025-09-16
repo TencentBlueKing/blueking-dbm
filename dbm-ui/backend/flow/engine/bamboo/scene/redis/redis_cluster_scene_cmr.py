@@ -310,12 +310,12 @@ class RedisClusterCMRSceneFlow(object):
 
     def proxy_replacement(self, sub_pipeline, proxy_kwargs, proxy_replace_info):
         act_kwargs = copy.deepcopy(proxy_kwargs)
-        del act_kwargs["slave_ports"]
-        del act_kwargs["master_ports"]
-        del act_kwargs["ins_pair_map"]
-        del act_kwargs["slave_ins_map"]
-        del act_kwargs["slave_master_map"]
-        del act_kwargs["master_slave_map"]
+        del act_kwargs.cluster["slave_ports"]
+        del act_kwargs.cluster["master_ports"]
+        del act_kwargs.cluster["ins_pair_map"]
+        del act_kwargs.cluster["slave_ins_map"]
+        del act_kwargs.cluster["slave_master_map"]
+        del act_kwargs.cluster["master_slave_map"]
 
         old_proxies, new_proxies = [], []
         proxy_replace_details = proxy_replace_info["proxy"]
