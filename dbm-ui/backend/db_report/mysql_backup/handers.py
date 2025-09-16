@@ -304,11 +304,12 @@ class MySQLBackupHandler:
                     "extra_fields", {}
                 ).get("total_filesize", 0)
                 shard_database_list = backup_info["extra_fields"].get("database_list", [])
-                for db in shard_database_list:
-                    shard_str = f"_{backup_info['shard_value']}"
-                    cluster_backup_info_map[backup_info["backup_id"]]["database_list"].append(
-                        str(db).rstrip(shard_str)
-                    )
+                if shard_database_list is not None:
+                    for db in shard_database_list:
+                        shard_str = f"_{backup_info['shard_value']}"
+                        cluster_backup_info_map[backup_info["backup_id"]]["database_list"].append(
+                            str(db).rstrip(shard_str)
+                        )
                 cluster_backup_info_map[backup_info["backup_id"]]["remote_node"][
                     int(backup_info["shard_value"])
                 ] = backup_info
@@ -338,9 +339,10 @@ class MySQLBackupHandler:
         cluster_backup_info_map_tmp = copy.deepcopy(cluster_backup_info_map)
         for backup_id, backup_map in cluster_backup_info_map_tmp.items():
             cluster_backup_info_map[backup_id]["backup_method_list"] = list(set(backup_map["backup_method_list"]))
-            cluster_backup_info_map[backup_id]["backup_method"] = cluster_backup_info_map[backup_id][
-                "backup_method_list"
-            ][0]
+            if len(cluster_backup_info_map[backup_id]["backup_method_list"]) > 0:
+                cluster_backup_info_map[backup_id]["backup_method"] = cluster_backup_info_map[backup_id][
+                    "backup_method_list"
+                ][0]
             cluster_backup_info_map[backup_id]["backup_type_list"] = list(set(backup_map["backup_type_list"]))
             cluster_backup_info_map[backup_id]["backup_type"] = ",".join(
                 cluster_backup_info_map[backup_id]["backup_type_list"]
