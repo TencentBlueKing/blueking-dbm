@@ -140,7 +140,7 @@ export function queryLatestTimeBackupLog(params: {
   bk_biz_id: number;
   cluster_id: number;
   job_instance_id?: number;
-  rollback_time: string;
+  latest_time?: string;
   backup_source?: string;
   backup_method?: string;
 }) {

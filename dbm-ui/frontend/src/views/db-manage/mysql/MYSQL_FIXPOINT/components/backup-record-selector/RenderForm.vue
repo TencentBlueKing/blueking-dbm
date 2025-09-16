@@ -120,7 +120,7 @@
         backup_source: props.backupSource,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.cluster.id,
-        rollback_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),
+        latest_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),
       });
     },
     {

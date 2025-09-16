@@ -222,7 +222,7 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
-      rollback_time: date,
+      latest_time: date,
     });
   };
 
@@ -231,7 +231,7 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
-      rollback_time: formData.value.backup_time,
+      latest_time: formData.value.backup_time,
     });
     emits('batch-edit', formData.value.backup_time, 'backupTime');
     emits('batch-edit', data, 'backupRecord');
