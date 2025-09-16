@@ -183,7 +183,7 @@
     {
       case: t('无限制'),
       key: 'spec_name',
-      label: t('规格'),
+      label: t('目标规格'),
     },
     {
       case: 'Redis-6',

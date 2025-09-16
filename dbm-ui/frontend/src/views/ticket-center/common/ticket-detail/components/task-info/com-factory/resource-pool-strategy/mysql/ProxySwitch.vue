@@ -12,35 +12,49 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
+      :label="t('目标Proxy主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        <span v-if="!data.old_nodes?.proxy.length">--</span>
+        <p
+          v-for="item in data.old_nodes.proxy"
+          v-else
+          :key="item.ip">
+          {{ item.ip }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('关联集群')"
+      :min-width="250">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId">
+          <p>
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </p>
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('目标规格')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.spider_slave_ip_list.spec_id]?.name || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('部署台数')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.spider_slave_ip_list.count }}
+        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxys?.spec_id]?.name || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('资源标签')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="data.resource_spec.spider_slave_ip_list?.label_names?.length">
+        <template v-if="data.resource_spec.target_proxys?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.spider_slave_ip_list.label_names"
+            v-for="item in data.resource_spec.target_proxys.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -53,22 +67,29 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务连接')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderSlaveApply>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
+    name: TicketTypes.MYSQL_PROXY_SWITCH,
     inheritAttrs: false,
   });
 

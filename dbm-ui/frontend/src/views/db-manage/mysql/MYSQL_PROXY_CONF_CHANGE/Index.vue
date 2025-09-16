@@ -32,26 +32,23 @@
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
-            :label="t('当前数量（台）')"
-            :min-width="150"
+            :label="t('当前规格')"
+            :min-width="250"
             readonly>
             <EditableBlock :placeholder="t('自动生成')">
-              {{ item.cluster.id ? item.cluster.proxies?.length : '' }}
-            </EditableBlock>
-          </EditableColumn>
-          <AddCountColumn v-model="item.count" />
-          <EditableColumn
-            :label="t('最终数量（台）')"
-            :min-width="150"
-            readonly>
-            <EditableBlock :placeholder="t('自动生成')">
-              {{ item.cluster.id && item.count ? (item.cluster.proxies?.length || 0) + Number(item.count) : '' }}
+              <p
+                v-for="proxy in item.cluster.proxies"
+                :key="proxy.ip">
+                {{ proxy.ip }}
+                {{ proxy.spec_config?.name ? ` ( ${proxy.spec_config?.name} )` : '' }}
+              </p>
             </EditableBlock>
           </EditableColumn>
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
             :current-spec-id-list="item.cluster.spec_id_list"
+            disabled-current-spec
             :machine-type="MachineTypes.MYSQL_PROXY"
             required
             selectable
@@ -119,11 +116,8 @@
 
   import { random } from '@utils';
 
-  import AddCountColumn from './components/AddCountColumn.vue';
-
   interface RowData {
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
-    count: string;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
   }
@@ -144,7 +138,6 @@
       } as RowData['cluster'],
       data.cluster,
     ),
-    count: data.count || '',
     labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
   });
@@ -206,7 +199,7 @@
     ],
   };
 
-  useTicketDetail<Mysql.ResourcePool.ProxyAdd>(TicketTypes.MYSQL_PROXY_ADD, {
+  useTicketDetail<Mysql.ResourcePool.ProxyConfChange>(TicketTypes.MYSQL_PROXY_CONF_CHANGE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -218,8 +211,8 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.new_proxys?.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.new_proxys?.spec_id,
+            labels: (item.resource_spec.target_proxys.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxys.spec_id,
           });
         }),
       });
@@ -229,10 +222,27 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
-      current_proxy_num: number;
+      old_nodes: {
+        proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+          spec: TendbhaModel['proxies'][0]['spec_config'];
+        }[];
+      };
+      origin_proxys: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port: number;
+        spec: TendbhaModel['masters'][number]['spec_config'];
+      }[];
       resource_spec: {
-        new_proxys: {
-          count: number;
+        target_proxys: {
+          count: number; // proxy 数量
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
           spec_id: number;
@@ -240,21 +250,32 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.MYSQL_PROXY_ADD);
+  }>(TicketTypes.MYSQL_PROXY_CONF_CHANGE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
+    const generateProxies = (proxy: TendbhaModel['proxies'][0]) => ({
+      bk_biz_id: proxy.bk_biz_id,
+      bk_cloud_id: proxy.bk_cloud_id,
+      bk_host_id: proxy.bk_host_id,
+      ip: proxy.ip,
+      port: proxy.port,
+      spec: proxy.spec_config,
+    });
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          current_proxy_num: item.cluster.proxies!.length,
+          old_nodes: {
+            proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+          },
+          origin_proxys: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           resource_spec: {
-            new_proxys: {
-              count: Number(item.count),
+            target_proxys: {
+              count: item.cluster.proxies!.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
