@@ -50,7 +50,9 @@ export const useActiveKey = (
           {} as Record<string, string | undefined>,
         );
 
-        currentRouteName.value = '';
+        if (currentRouteName.value) {
+          return;
+        }
         _.forEachRight(route.matched, (routeItem) => {
           if (currentRouteName.value) {
             return;
@@ -61,14 +63,12 @@ export const useActiveKey = (
             parentKey.value = allMunuRouteNameMap[routeName];
           }
         });
-        if (!currentRouteName.value) {
-          if (options.handleDefaultRouteChange) {
-            options.handleDefaultRouteChange();
-          } else {
-            router.push({
-              name: defaultKey,
-            });
-          }
+        if (options.handleDefaultRouteChange) {
+          options.handleDefaultRouteChange();
+        } else {
+          router.push({
+            name: defaultKey,
+          });
         }
       });
     },
