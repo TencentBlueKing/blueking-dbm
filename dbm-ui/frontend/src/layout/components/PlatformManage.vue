@@ -102,7 +102,7 @@
     </BkMenuGroup>
   </BkMenu>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" async>
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -118,16 +118,24 @@
 
   const menuRef = ref<InstanceType<typeof Menu>>();
 
-  const { data: dashboardList } = useRequest(getAppShareList);
+  const { data: dashboardList, runAsync: fetchAppShareList } = useRequest(getAppShareList, {
+    manual: true,
+  });
+
+  await fetchAppShareList();
 
   const { key: currentActiveKey, parentKey } = useActiveKey(
     menuRef as Ref<InstanceType<typeof Menu>>,
     'ticketPlatformManage',
+    {
+      checkMethod: (routerName: string) => {
+        if (routerName === 'DashboradView') {
+          return `DashboradView#${route.params.versionId}`;
+        }
+        return routerName;
+      },
+    },
   );
-
-  if (route.name === 'DashboradView') {
-    currentActiveKey.value = `DashboradView#${route.params.versionId}`;
-  }
 
   const handleMenuChange = (params: { key: string }) => {
     if (params.key.startsWith('DashboradView')) {

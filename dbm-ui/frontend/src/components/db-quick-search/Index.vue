@@ -94,8 +94,6 @@
           return;
         }
 
-        console.log('from watch modelVale ', latestValue);
-
         const taskQueue = props.data.map((searchItemConfig) => {
           // 解析时间
           if (
@@ -167,7 +165,6 @@
             });
         });
         Promise.all(taskQueue).then((data) => {
-          console.log('defaultValue = ', data);
           defaultValue.value = _.filter(data, (item) => Boolean(item)) as IValue[];
           handleChange(defaultValue.value);
         });
@@ -186,7 +183,6 @@
   const handleChange = (value: IValue[]) => {
     isInnerSelfChange = true;
     const result = formatResult(value);
-    console.log('handleChange ==== ', value, result);
 
     modelValue.value = result;
     emits('change', result, value);

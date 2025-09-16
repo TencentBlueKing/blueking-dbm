@@ -86,7 +86,7 @@
     </ScrollFaker>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" async>
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
@@ -98,33 +98,34 @@
 
   import ModuleGroup from './components/module-group/Index.vue';
 
-  const router = useRouter();
   const { t } = useI18n();
-  const { isError: isModuleError, isLoading: isModuleLoading, tabList } = useBizDbDisplay();
+  const {
+    fetchClusterInstanceCount,
+    isError: isModuleError,
+    isLoading: isModuleLoading,
+    tabList,
+  } = useBizDbDisplay({
+    manual: true,
+  });
 
   const menuBoxRef = ref<HTMLElement>();
   const menuRef = ref<InstanceType<typeof Menu>>();
 
   const renderModuleList = computed(() => tabList.value.map((tabItem) => tabItem.id));
 
+  await fetchClusterInstanceCount();
+
+  const defaultRouterName =
+    tabList.value.length === 0 || isModuleError.value ? 'BussinessServiceApply' : tabList.value[0]!.routeIndexName;
+
   const {
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'BussinessServiceApply', isModuleLoading, {
-    handleDefaultRouteChange() {
-      // isModuleLoading 为 false，且经过内部的nextTick，代表已获取到 tabList 的值
-      if (tabList.value.length === 0 || isModuleError.value) {
-        router.replace({ name: 'BussinessServiceApply' });
-      } else {
-        router.replace({ name: `${tabList.value[0].routeIndexName}` });
-      }
-    },
-  });
+  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, defaultRouterName);
 
   const styles = useMenuStyles(menuBoxRef);
 </script>
-
 <style lang="less">
   .rende-db-module-move {
     transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
