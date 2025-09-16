@@ -308,15 +308,7 @@ class RedisClusterCMRSceneFlow(object):
 
         return sub_pipeline.build_sub_process(sub_name=_("整机替换-{}").format(act_kwargs.cluster["immute_domain"]))
 
-    def proxy_replacement(self, sub_pipeline, proxy_kwargs, proxy_replace_info):
-        act_kwargs = copy.deepcopy(proxy_kwargs)
-        del act_kwargs["slave_ports"]
-        del act_kwargs["master_ports"]
-        del act_kwargs["ins_pair_map"]
-        del act_kwargs["slave_ins_map"]
-        del act_kwargs["slave_master_map"]
-        del act_kwargs["master_slave_map"]
-
+    def proxy_replacement(self, sub_pipeline, act_kwargs, proxy_replace_info):
         old_proxies, new_proxies = [], []
         proxy_replace_details = proxy_replace_info["proxy"]
         for replace_link in proxy_replace_details:
