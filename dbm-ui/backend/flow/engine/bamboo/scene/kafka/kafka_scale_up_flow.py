@@ -36,6 +36,7 @@ from backend.flow.plugins.components.collections.kafka.dns_manage import KafkaDn
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.get_kafka_resource import GetKafkaResourceComponent
 from backend.flow.plugins.components.collections.kafka.kafka_db_meta import KafkaDBMetaComponent
+from backend.flow.plugins.components.collections.kafka.kafka_rebalance_ticket import KafkaRebalanceTicketComponent
 from backend.flow.plugins.components.collections.kafka.trans_flies import TransFileComponent
 from backend.flow.utils.kafka.kafka_act_playload import KafkaActPayload
 from backend.flow.utils.kafka.kafka_context_dataclass import ActKwargs, ApplyContext, DnsKwargs
@@ -120,6 +121,20 @@ class KafkaScaleUpFlow(object):
         for role in self.data["nodes"]:
             exec_ip.extend(self.__get_node_ips_by_role(role))
         return exec_ip
+
+    def __get_dbmeta_brokers(self) -> list:
+        """
+        获取DBMeta中的broker节点
+        """
+        cluster = Cluster.objects.get(id=self.data["cluster_id"])
+        brokers = list(
+            set(
+                StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.BROKER).values_list(
+                    "machine__ip", flat=True
+                )
+            )
+        )
+        return brokers
 
     def scale_up_kafka_flow(self):
         """
@@ -207,6 +222,28 @@ class KafkaScaleUpFlow(object):
 
         kafka_pipeline.add_act(
             act_name=_("更新DBMeta元信息"), act_component_code=KafkaDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 生成rebalance单据
+        all_ips = list(set(all_new_ips + self.__get_dbmeta_brokers()))
+        instance_list = [
+            {"ip": ip, "port": self.data["port"], "bk_cloud_id": self.data["bk_cloud_id"]} for ip in all_ips
+        ]
+        details = {
+            "cluster_id": self.data["cluster_id"],
+            "throttle_rate": 50000000,
+            "topics": ["*"],
+            "instance_list": instance_list,
+        }
+        kafka_pipeline.add_act(
+            act_name=_("生成rebalance单据"),
+            act_component_code=KafkaRebalanceTicketComponent.code,
+            kwargs={
+                "bk_biz_id": self.data["bk_biz_id"],
+                "created_by": self.data["created_by"],
+                "uid": self.data["uid"],
+                "details": details,
+            },
         )
 
         kafka_pipeline.run_pipeline()
