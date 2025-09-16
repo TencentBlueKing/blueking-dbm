@@ -18,6 +18,7 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
+import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes, { getDbaManageRoutes } from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
@@ -106,6 +107,7 @@ export default () => {
   getDbaManageRoutes();
   getMonitorAlarmRoutes();
   getBizResourcePoolRoute();
+  getDashborderRoutes();
 
   const routes = [
     {
