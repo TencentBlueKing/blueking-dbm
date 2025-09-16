@@ -71,6 +71,8 @@
   import type TendbhaModel from '@services/model/mysql/tendbha';
   import { type BackupLogRecord, queryLatestTimeBackupLog } from '@services/source/fixpointRollback';
 
+  import { useTimeZoneFormat } from '@hooks';
+
   interface Props {
     backupSource: 'local' | 'remote';
     cluster: TendbhaModel;
@@ -85,6 +87,7 @@
   const modelValue = defineModel<BackupLogRecord>();
 
   const { t } = useI18n();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   enum BackupMethod {
     full_by_regular = 'full_by_regular',
@@ -120,7 +123,7 @@
         backup_source: props.backupSource,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_id: props.cluster.id,
-        latest_time: dayjs(new Date(formData.value.backup_time)).format('YYYY-MM-DD HH:mm:ss'),
+        latest_time: formatDateToUTC(formData.value.backup_time),
       });
     },
     {

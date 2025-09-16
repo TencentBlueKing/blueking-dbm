@@ -107,7 +107,11 @@
     onlyFull?: boolean;
   }
 
+  type Emits = (e: 'change', data?: BackupLogRecord) => void;
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -138,6 +142,7 @@
 
   const handleConfirm = () => {
     modelValue.value = localValue.value;
+    emits('change', localValue.value);
     handleClose();
   };
 
