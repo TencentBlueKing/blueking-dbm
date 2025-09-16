@@ -326,6 +326,10 @@ class CleanDataBakDirSvr(BkJobService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         script_content = """ 
+        echo "clean mysqllog bak dir"
+        find /data/ -type d -name "mysqllog_2*_bak_*"  -exec rm -rf {} + || true
+        find /data/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
+        find /data1/mysqldata/ -mindepth 1 -maxdepth 1 -type d   ! -regex '.*/200[0-9][0-9]$' -exec rm -rf {} + || true
         rm -rf /data/dbbak || true
         rm -rf /data1/dbbak || true
         ps -ef | grep 'db.*exporter' | grep -v grep | awk '{print $2}' | while read PID

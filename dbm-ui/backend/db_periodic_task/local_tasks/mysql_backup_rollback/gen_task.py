@@ -310,6 +310,7 @@ def gen_rollback_task():
         backup_tool = tsk_backup_record["extra_fields"].get("backup_tool", "")
         sql_mode = tsk_backup_record["extra_fields"].get("sql_mode", "")
         data_dir_size_mb = tsk_backup_record["extra_fields"].get("data_dir_size_mb", 0)
+        storage_engine = tsk_backup_record["extra_fields"].get("storage_engine", "innodb")
         backup_id = backup_record["backup_id"]
         backup_file_size_gb = bytes_to_gb(backup_record["total_filesize"])
 
@@ -341,8 +342,13 @@ def gen_rollback_task():
         # Calculate minimum disk size required
         if data_dir_size_mb > 0:
             # 扩大1.5倍并转换为GB (MB转GB需要除以1024)
-            logger.info("data_dir_size_mb: {}".format(data_dir_size_mb))
-            min_disk_size = int((data_dir_size_mb * 1.5) / 1024)
+            if storage_engine == "innodb":
+                data_dir_size_mb = data_dir_size_mb * 1.3
+            else:
+                data_dir_size_mb = data_dir_size_mb * 2.3
+            logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
+            min_disk_size = int(data_dir_size_mb / 1024)
+            logger.info(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
         else:
             min_disk_size = calculate_min_disk_size(backup_record["total_filesize"])
         # 申请资源
