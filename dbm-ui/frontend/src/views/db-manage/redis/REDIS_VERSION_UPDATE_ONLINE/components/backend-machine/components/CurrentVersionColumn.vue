@@ -70,7 +70,7 @@
   const { loading: pairVersionLoading, run: fetchPairCurrentClusterVersions } = useRequest(getClusterVersionsByIp, {
     manual: true,
     onSuccess(version) {
-      modelValue.value = version;
+      slaveVersions.value = version;
     },
   });
 
@@ -84,7 +84,6 @@
           node_type: props.nodeType,
           type: 'online',
         });
-      } else {
       }
     },
   );
@@ -99,7 +98,6 @@
           node_type: props.nodeType,
           type: 'online',
         });
-      } else {
       }
     },
   );
