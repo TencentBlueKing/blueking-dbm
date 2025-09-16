@@ -34,8 +34,7 @@
             v-model="item.target_version"
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
-            :cluster="item.cluster"
-            :current-tab="wrapperController" />
+            :cluster="item.cluster" />
           <MultipleResourceHostColumn
             v-model="item.new_master_slave_host"
             field="new_master_slave_host"

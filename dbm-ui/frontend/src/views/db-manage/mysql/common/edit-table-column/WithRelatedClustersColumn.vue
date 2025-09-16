@@ -177,7 +177,7 @@
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],
-          role: props.role,
+          role: currentCluster.cluster_type === ClusterTypes.TENDBSINGLE ? 'orphan' : props.role,
         });
       }
     },

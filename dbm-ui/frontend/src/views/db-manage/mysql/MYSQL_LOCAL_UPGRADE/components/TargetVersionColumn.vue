@@ -25,7 +25,47 @@
         <div class="content-item">
           <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
-            {{ currentModule?.db_module_name || '' }}
+            <TableEditSelect
+              ref="moduleSelectRef"
+              is-plain
+              :list="moduleSelectList"
+              :model-value="newDbModuleId"
+              :placeholder="t('请选择')"
+              :pop-width="240"
+              :rules="moduleRules"
+              @change="(value) => handleModuleChange(value as number)">
+              <template #default="{ item }">
+                <div class="module-option-item">
+                  <div class="module-option-label">
+                    {{ item.name }}
+                  </div>
+                  <div class="module-opiton-info">
+                    {{ item.info }}
+                  </div>
+                </div>
+              </template>
+              <template #footer>
+                <div class="module-select-footer">
+                  <BkButton
+                    class="plus-button"
+                    text
+                    @click="handleCreateModule">
+                    <DbIcon
+                      class="footer-icon mr-4"
+                      type="plus-8" />
+                    {{ t('跳转新建模块') }}
+                  </BkButton>
+                  <BkButton
+                    class="refresh-button"
+                    text
+                    @click="handleRefreshModule">
+                    <DbIcon
+                      class="footer-icon"
+                      type="refresh-2" />
+                  </BkButton>
+                </div>
+              </template>
+            </TableEditSelect>
           </div>
         </div>
         <div class="content-item">
@@ -86,7 +126,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@views/db-manage/mysql/common/edit/Select.vue';
 
   type ModulesInfo = ServiceReturnType<typeof getVersionModules>[0];
 
@@ -100,10 +140,6 @@
         master_domain: string;
       }[];
     } & TendbhaModel;
-    currentTab: {
-      roleType: 'haStorageLayer' | 'singleStorageLayer' | string; // 主从/单节点 存储层
-      updateType: TicketTypes; // TicketTypes.MYSQL_LOCAL_UPGRADE | TicketTypes.MYSQL_MIGRATE_UPGRADE; // 本地/迁移
-    };
   }
 
   const props = defineProps<Props>();
@@ -127,41 +163,32 @@
 
   const { t } = useI18n();
 
-  const packageSelectList = ref<IListItem[]>([]);
-  const moduleSelectList = ref<IListItem[]>([]);
+  const route = useRoute();
+  const router = useRouter();
+
+  const packageSelectList = ref<
+    {
+      id: number;
+      name: string;
+    }[]
+  >([]);
+  const moduleSelectList = ref<
+    Array<
+      {
+        id: number;
+        info: string;
+        name: string;
+      } & ModulesInfo
+    >
+  >([]);
   const currentModule = ref<ModulesInfo>();
 
-  const higherVersionParams = computed(() => {
-    /*
-      tendbsingle
-      本地升级：
-        "higher_major_version": true,
-        "higher_sub_version": true
-
-      tendbha、tendbcluster
-      本地升级：
-        "higher_major_version": false,
-        "higher_sub_version": true
-
-      迁移升级：
-        "higher_major_version": true,
-        "higher_sub_version": true
-    */
-    if (
-      props.currentTab.roleType === 'singleStorageLayer' ||
-      props.currentTab.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE
-    ) {
-      return {
-        higher_major_version: true,
-        higher_sub_version: true,
-      };
-    }
-    return {
-      higher_major_version: false,
-      higher_sub_version: true,
-    };
-  });
-
+  const moduleRules = [
+    {
+      message: t('绑定模块不能为空'),
+      validator: (value: string) => Boolean(value),
+    },
+  ];
   const packageRules = [
     {
       message: t('版本包文件不能为空'),
@@ -172,37 +199,41 @@
     {
       message: t('请确保选填完整'),
       trigger: 'blur',
-      validator: () => {
-        return new Promise((resolve) => {
-          // 整理提单参数一并抛出
-          modelValue.value = {
-            charset: currentModule.value?.charset || '',
-            db_module_name: currentModule.value?.db_module_name || '',
-            db_version: currentModule.value?.db_version || '',
-            pkg_name: _.get(_.find(packageSelectList.value, { id: pkgId.value }), 'name', ''),
-          };
-          resolve(modelValue.value);
-        }).then(() => {
-          return _.every(modelValue.value, _.identity);
-        });
-      },
+      validator: () => _.every(modelValue.value, _.identity),
     },
   ];
 
   const { run: fetchModuleList } = useRequest(getVersionModules, {
     manual: true,
     onSuccess(data) {
-      const options = data.map((module) => ({
+      moduleSelectList.value = data.map((module) => ({
         ...module,
-        disabled: false,
         id: module.db_module_id,
         info: `${module.db_version || ''}，${module.charset || ''}`,
         name: module.db_module_name,
       }));
-      moduleSelectList.value = options;
-      const [first] = options;
-      if (first) {
-        handleModuleChange(first.id);
+
+      const [firstModule] = moduleSelectList.value;
+      if (firstModule) {
+        newDbModuleId.value = firstModule.id;
+        currentModule.value = firstModule;
+
+        packageSelectList.value = firstModule.pkg_list.map((item) => ({
+          id: item.pkg_id,
+          name: item.pkg_name,
+        }));
+
+        const [firstPackage] = packageSelectList.value;
+        if (firstPackage) {
+          pkgId.value = firstPackage.id;
+        }
+
+        modelValue.value = {
+          charset: firstModule.charset,
+          db_module_name: firstModule.db_module_name,
+          db_version: firstModule.db_version,
+          pkg_name: firstPackage?.name || '',
+        };
       }
     },
   });
@@ -213,7 +244,8 @@
       if (props.cluster.id) {
         fetchModuleList({
           cluster_id: props.cluster.id,
-          ...higherVersionParams.value,
+          higher_major_version: true,
+          higher_sub_version: true,
         });
       }
     },
@@ -233,26 +265,59 @@
   });
 
   const handlePackageChange = (value: number) => {
-    const findVersion = packageSelectList.value.find((item) => item.id === value);
-    if (findVersion) {
+    const findPackage = packageSelectList.value.find((item) => item.id === value);
+    if (findPackage) {
       pkgId.value = value;
+      modelValue.value.pkg_name = findPackage.name;
     }
   };
 
   const handleModuleChange = (value: number) => {
     newDbModuleId.value = value;
-    const findModule = moduleSelectList.value.find((item) => item.id === value) as unknown as ModulesInfo;
+    const findModule = moduleSelectList.value.find((item) => item.id === value);
     if (!findModule) return;
     currentModule.value = findModule;
-    const options = findModule.pkg_list.map((item) => ({
+    const pkgList = findModule.pkg_list.map((item) => ({
       id: item.pkg_id,
       name: item.pkg_name,
     }));
-    packageSelectList.value = options;
-    const [first] = options;
-    if (first) {
-      pkgId.value = first.id;
+    packageSelectList.value = pkgList;
+    const [firstPackage] = pkgList;
+    if (firstPackage) {
+      pkgId.value = firstPackage.id;
     }
+
+    modelValue.value = {
+      charset: findModule.charset,
+      db_module_name: findModule.db_module_name,
+      db_version: findModule.db_version,
+      pkg_name: firstPackage?.name || '',
+    };
+  };
+
+  const handleCreateModule = () => {
+    const url = router.resolve({
+      name: 'SelfServiceCreateDbModule',
+      params: {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        type:
+          props.cluster.cluster_type === ClusterTypes.TENDBSINGLE
+            ? TicketTypes.MYSQL_SINGLE_APPLY
+            : TicketTypes.MYSQL_HA_APPLY,
+      },
+      query: {
+        from: route.name as string,
+      },
+    });
+    window.open(url.href, '_blank');
+  };
+
+  const handleRefreshModule = () => {
+    fetchModuleList({
+      cluster_id: props.cluster.id,
+      higher_major_version: true,
+      higher_sub_version: true,
+    });
   };
 </script>
 
@@ -288,6 +353,46 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+  }
+
+  .module-option-item {
+    display: flex;
+    width: 100%;
+
+    .module-option-label {
+      flex: 1;
+      width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .module-opiton-info {
+      margin-left: auto;
+      color: #979ba5;
+    }
+  }
+
+  .module-select-footer {
+    display: flex;
+    height: 100%;
+    color: #63656e;
+    align-items: center;
+    justify-content: center;
+
+    .plus-button {
+      flex: 1;
+      padding-left: 36px;
+    }
+
+    .refresh-button {
+      width: 42px;
+      border-left: 1px solid #dcdee5;
+    }
+
+    .footer-icon {
+      font-size: 16px;
     }
   }
 </style>
