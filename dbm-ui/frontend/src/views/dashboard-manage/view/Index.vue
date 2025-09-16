@@ -5,11 +5,12 @@
   <Teleport
     v-if="currentViewName"
     to="#dbContentTitleAppend">
-    ——{{ currentViewName }}
+    {{ currentViewName }}
   </Teleport>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import urlJoin from 'url-join';
   import { useTemplateRef } from 'vue';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -38,8 +39,10 @@
       versionId.value = route.params.versionId as string;
       nextTick(async () => {
         app = await window.BkVisionSDK.init(rootRef.value!, versionId.value, {
-          apiPrefix: `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/bkvision/`,
-          waterMark: { content: 'bk-vision' }, // 水印设置
+          apiPrefix: urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, `/bkvision/`),
+          waterMark: {
+            content: 'bk-vision',
+          },
         });
       });
     },
