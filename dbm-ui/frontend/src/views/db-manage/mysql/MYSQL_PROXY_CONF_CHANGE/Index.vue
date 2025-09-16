@@ -12,54 +12,47 @@
 -->
 
 <template>
-  <SmartAction>
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('扩容接入层：增加集群的Proxy数量')" />
-    <BatchInput
-      :config="batchInputConfig"
-      @change="handleBatchInput" />
-    <BkForm
-      class="mt-16 mb-20"
-      form-type="vertical"
-      :model="formData">
+  <ProxyWrapper>
+    <SmartAction>
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
         :key="tableKey"
         ref="table"
-        class="mb-20"
-        :model="formData.tableData">
+        class="mt-16 mb-20"
+        :model="formData.tableData"
+        :rules="rules">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <ClusterColumn
+          <WithRelatedClustersColumn
             v-model="item.cluster"
+            role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <RoleColumn
-            v-model="item.role"
-            :cluster="item.cluster" />
+          <EditableColumn
+            :label="t('当前规格')"
+            :min-width="250"
+            readonly>
+            <EditableBlock :placeholder="t('自动生成')">
+              <p
+                v-for="proxy in item.cluster.proxies"
+                :key="proxy.ip">
+                {{ proxy.ip }}
+                {{ proxy.spec_config?.name ? ` ( ${proxy.spec_config?.name} )` : '' }}
+              </p>
+            </EditableBlock>
+          </EditableColumn>
           <SpecColumn
             v-model="item.specId"
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :current-spec-id-list="
-              item.role === 'spider_slave' ? item.cluster.spider_slave_spec_list : item.cluster.spider_master_spec_list
-            "
-            :machine-type="MachineTypes.TENDBCLUSTER_PROXY"
+            :cluster-type="DBTypes.MYSQL"
+            :current-spec-id-list="item.cluster.spec_id_list"
+            disabled-current-spec
+            :machine-type="MachineTypes.MYSQL_PROXY"
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
-          <EditableColumn
-            field="count"
-            :label="t('扩容数量（台）')"
-            :min-width="150"
-            required>
-            <EditableInput
-              v-model="item.count"
-              :max="37 - item.cluster.mnt_count"
-              :min="1"
-              type="number" />
-          </EditableColumn>
           <ResourceTagColumn
             v-model="item.labels"
             @batch-edit="handleBatchEditColumn" />
@@ -67,7 +60,7 @@
             :params="{
               city: item.cluster.region,
               for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
               labels: item.labels.map((item) => item.id).join(','),
             }" />
@@ -77,35 +70,35 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </ProxyWrapper>
 </template>
 <script lang="ts" setup>
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import type { TendbCluster } from '@services/model/ticket/ticket';
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import type { Mysql } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -113,76 +106,39 @@
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
+  import ProxyWrapper from '@views/db-manage/mysql/MYSQL_PROXY_ADD/components/ProxyWrapper.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-  import RoleColumn from './components/RoleColumn.vue';
-
   interface RowData {
-    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
-    count: string;
+    cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    role: string;
     specId: number;
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const batchInputConfig = [
-    {
-      case: 'spider.tendb-test.1.db',
-      key: 'master_domain',
-      label: t('目标集群'),
-    },
-    {
-      case: 'spider_slave',
-      key: 'role',
-      label: t('扩容节点类型'),
-    },
-    {
-      case: '通用proxy配置',
-      key: 'spec_name',
-      label: t('目标规格'),
-    },
-    {
-      case: '1',
-      key: 'count',
-      label: t('扩容数量（台）'),
-    },
-    {
-      case: '标签1,标签2',
-      key: 'labels',
-      label: t('资源标签'),
-    },
-  ];
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
-        bk_cloud_id: 0,
+        cluster_type: ClusterTypes.TENDBHA,
         id: 0,
         master_domain: '',
-        mnt_count: 0,
-        region: '',
-        spider_master: [] as TendbClusterModel['spider_master'],
-        spider_master_spec_list: [] as number[],
-        spider_slave: [] as TendbClusterModel['spider_slave'],
-        spider_slave_spec_list: [] as number[],
-      },
+        related_clusters: [],
+        spec_id_list: [],
+      } as RowData['cluster'],
       data.cluster,
     ),
-    count: data.count || '',
     labels: (data.labels || []) as RowData['labels'],
-    role: data.role || '',
     specId: data.specId || 0,
   });
 
@@ -194,36 +150,99 @@
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+  const batchInputConfig = [
+    {
+      case: 'tendbha.test.dba.db',
+      key: 'master_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: '2核_4G_50G',
+      key: 'spec_name',
+      label: t('目标规格'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
 
-  useTicketDetail<TendbCluster.ResourcePool.SpiderAddNodes>(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, {
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const clusterMap = computed(() => {
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
+        Object.assign(acc, {
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
+        });
+      });
+      return acc;
+    }, {});
+  });
+
+  const rules = {
+    'cluster.master_domain': [
+      {
+        message: '',
+        trigger: 'blur',
+        validator: (value: string) => {
+          const target = clusterMap.value[value];
+          if (target && target !== value) {
+            return t('目标集群是集群target的关联集群_请勿重复添加', { target });
+          }
+          return true;
+        },
+      },
+    ],
+  };
+
+  useTicketDetail<Mysql.ResourcePool.ProxyConfChange>(TicketTypes.MYSQL_PROXY_CONF_CHANGE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+      const { clusters, infos } = details;
+      tableKey.value = random();
       Object.assign(formData, {
-        payload: createTickePayload(ticketDetail),
-        tableData: details.infos.map((item) =>
-          createTableRow({
+        ...createTickePayload(ticketDetail),
+        tableData: infos.map((item) => {
+          return createTableRow({
             cluster: {
-              master_domain: details.clusters[item.cluster_id]?.immute_domain || '',
+              master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            count: String(item.resource_spec.spider_ip_list.count),
-            labels: (item.resource_spec.spider_ip_list.labels || []).map((item) => ({ id: Number(item) })),
-            role: item.add_spider_role,
-            specId: item.resource_spec.spider_ip_list.spec_id,
-          }),
-        ),
+            labels: (item.resource_spec.target_proxies.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxies.spec_id,
+          });
+        }),
       });
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
-      add_spider_role: string;
-      cluster_id: number;
+      cluster_ids: number[];
+      old_nodes: {
+        proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+          spec: TendbhaModel['proxies'][0]['spec_config'];
+        }[];
+      };
+      origin_proxies: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port: number;
+        spec: TendbhaModel['masters'][number]['spec_config'];
+      }[];
       resource_spec: {
-        spider_ip_list: {
-          count: number;
+        target_proxies: {
+          count: number; // proxy 数量
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
           spec_id: number;
@@ -231,21 +250,32 @@
       };
     }[];
     ip_source: 'resource_pool';
-  }>(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES);
+  }>(TicketTypes.MYSQL_PROXY_CONF_CHANGE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
+    const generateProxies = (proxy: TendbhaModel['proxies'][0]) => ({
+      bk_biz_id: proxy.bk_biz_id,
+      bk_cloud_id: proxy.bk_cloud_id,
+      bk_host_id: proxy.bk_host_id,
+      ip: proxy.ip,
+      port: proxy.port,
+      spec: proxy.spec_config,
+    });
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
-          add_spider_role: item.role,
-          cluster_id: item.cluster.id,
+          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
+          old_nodes: {
+            proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+          },
+          origin_proxies: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           resource_spec: {
-            spider_ip_list: {
-              count: Number(item.count),
+            target_proxies: {
+              count: item.cluster.proxies!.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
@@ -262,9 +292,9 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbClusterModel[]) => {
+  const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.master_domain]) {
+      if (!clusterMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
@@ -275,7 +305,7 @@
       }
       return acc;
     }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -285,9 +315,7 @@
           cluster: {
             master_domain: item.master_domain,
           },
-          count: item.count,
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
-          role: (item.role as string).toLocaleLowerCase(),
           specId: item.spec_name,
         }),
       );
@@ -297,7 +325,7 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList]; // 追加
     }
     setTimeout(() => {
       tableRef.value?.validate();
@@ -312,3 +340,8 @@
     });
   };
 </script>
+<style lang="less" scoped>
+  :deep(.is-error .related-clusters) {
+    background: initial;
+  }
+</style>

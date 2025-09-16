@@ -328,6 +328,8 @@
 
   // 行合并
   const handleRowMerge = () => {
+    formData.tableData = [..._.sortBy(formData.tableData, (item) => item.cluster.id)];
+
     const clusterMap: Record<string, RowData[]> = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });

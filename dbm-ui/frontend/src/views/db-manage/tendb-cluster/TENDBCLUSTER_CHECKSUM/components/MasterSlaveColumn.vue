@@ -335,7 +335,9 @@
     tableData.value.splice(rowIndex, 1, ...list);
 
     // 触发行合并
-    props.handleRowMerge();
+    setTimeout(() => {
+      props.handleRowMerge();
+    });
   };
 
   const handleChangeScope = (value: string) => {

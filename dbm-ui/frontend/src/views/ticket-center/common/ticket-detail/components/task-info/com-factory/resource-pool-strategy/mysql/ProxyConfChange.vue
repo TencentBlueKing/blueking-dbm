@@ -17,9 +17,6 @@
     row-key="cluster_ids">
     <InfoTableColumn
       col-key="cluster_ids"
-      :get-copy-value="
-        (item: RowData) => item.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
-      "
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -31,49 +28,34 @@
       </template>
     </InfoTableColumn>
     <InfoTableColumn
-      col-key="current_proxy_num"
-      :min-width="120"
-      :title="t('当前数量（台）')">
+      col-key="old_nodes.proxy"
+      :min-width="200"
+      :title="t('当前规格')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data?.current_proxy_num || '--' }}
+        <p
+          v-for="proxy in data.old_nodes.proxy"
+          :key="proxy.ip">
+          {{ proxy.ip }}
+          {{ proxy.spec?.name ? ` ( ${proxy.spec?.name} )` : '' }}
+        </p>
       </template>
     </InfoTableColumn>
     <InfoTableColumn
-      col-key="resource_spec.new_proxies.count"
+      col-key="resource_spec.target_proxies.spec_id"
       :min-width="120"
-      :title="t('扩容数量（台）')">
+      :title="t('目标规格')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.resource_spec.new_proxies?.count || '--' }}
+        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxies?.spec_id]?.name || '--' }}
       </template>
     </InfoTableColumn>
     <InfoTableColumn
-      col-key="current_proxy_num"
-      :min-width="120"
-      :title="t('最终数量（台）')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{
-          data?.current_proxy_num && data.resource_spec.new_proxies?.count
-            ? data.current_proxy_num + data.resource_spec.new_proxies.count
-            : '--'
-        }}
-      </template>
-    </InfoTableColumn>
-    <InfoTableColumn
-      col-key="spec_id"
-      :min-width="120"
-      :title="t('规格')">
-      <template #default="{ row: data }: { row: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.new_proxies.spec_id]?.name || '--' }}
-      </template>
-    </InfoTableColumn>
-    <InfoTableColumn
-      col-key="label_names"
+      col-key="resource_spec.target_proxies.label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
-        <template v-if="data.resource_spec.new_proxies?.label_names?.length">
+        <template v-if="data.resource_spec.target_proxies?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.new_proxies.label_names"
+            v-for="item in data.resource_spec.target_proxies.label_names"
             :key="item">
             {{ item }}
           </BkTag>
@@ -97,13 +79,13 @@
   import InfoTable, { InfoTableColumn } from '../../components/info-table/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyAdd>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyConfChange>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_ADD,
+    name: TicketTypes.MYSQL_PROXY_CONF_CHANGE,
     inheritAttrs: false,
   });
 
