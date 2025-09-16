@@ -20,7 +20,7 @@ import { useFunController, useUserProfile } from '@stores';
 
 import { ClusterTypes, type DBInfoItem, DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
-export function useBizDbDisplay() {
+export function useBizDbDisplay(options?: { manual?: boolean }) {
   const funControllerStore = useFunController();
   const userProfileStore = useUserProfile();
 
@@ -33,12 +33,9 @@ export function useBizDbDisplay() {
     data: clusterInstanceCount,
     error: clusterInstanceError,
     loading: isLoading,
+    runAsync: runQueryClusterInstanceCount,
   } = useRequest(queryClusterInstanceCount, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      },
-    ],
+    manual: true,
   });
 
   watch(
@@ -75,7 +72,7 @@ export function useBizDbDisplay() {
               }
             } else {
               const controllerData = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-              const clusterCount = countKeyMap[dbTypeInfo.id as string].reduce(
+              const clusterCount = countKeyMap[dbTypeInfo.id as string]!.reduce(
                 (prevCount, key) => prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
                 0,
               );
@@ -115,7 +112,18 @@ export function useBizDbDisplay() {
     },
   );
 
+  const fetchClusterInstanceCount = () => {
+    return runQueryClusterInstanceCount({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    });
+  };
+
+  if (!options || !options.manual) {
+    fetchClusterInstanceCount();
+  }
+
   return {
+    fetchClusterInstanceCount,
     isError,
     isLoading,
     tabList,

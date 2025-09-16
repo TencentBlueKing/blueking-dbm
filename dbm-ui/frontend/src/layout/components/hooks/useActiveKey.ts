@@ -6,9 +6,8 @@ import { useRoute, useRouter } from 'vue-router';
 export const useActiveKey = (
   menuRef: Ref<InstanceType<typeof Menu>>,
   defaultKey: string,
-  peending = ref(false),
   options = {} as {
-    handleDefaultRouteChange?: () => void;
+    checkMethod?: (routerName: string) => string;
   },
 ) => {
   const route = useRoute();
@@ -24,10 +23,10 @@ export const useActiveKey = (
   };
 
   watch(
-    [menuRef, route, peending],
+    [menuRef, route],
     () => {
       nextTick(() => {
-        if (!menuRef.value || peending.value) {
+        if (!menuRef.value) {
           return;
         }
         const allMenuItems = (
@@ -50,22 +49,21 @@ export const useActiveKey = (
           {} as Record<string, string | undefined>,
         );
 
-        if (currentRouteName.value) {
-          return;
-        }
+        currentRouteName.value = '';
         _.forEachRight(route.matched, (routeItem) => {
           if (currentRouteName.value) {
             return;
           }
+
           const routeName = routeItem.name as string;
-          if (routeName && _.has(allMunuRouteNameMap, routeName)) {
-            currentRouteName.value = routeName;
-            parentKey.value = allMunuRouteNameMap[routeName];
+
+          const currentActiveKey = _.isFunction(options.checkMethod) ? options.checkMethod(routeName) : routeName;
+          if (currentActiveKey && _.has(allMunuRouteNameMap, currentActiveKey)) {
+            currentRouteName.value = currentActiveKey;
+            parentKey.value = allMunuRouteNameMap[currentActiveKey];
           }
         });
-        if (options.handleDefaultRouteChange) {
-          options.handleDefaultRouteChange();
-        } else {
+        if (!currentRouteName.value) {
           router.push({
             name: defaultKey,
           });

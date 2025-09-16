@@ -34,7 +34,9 @@
     </template>
     <template #menu>
       <div class="db-navigation-side-menu">
-        <component :is="renderMenuCom" />
+        <Suspense>
+          <component :is="renderMenuCom" />
+        </Suspense>
       </div>
     </template>
     <div class="db-navigation-content-header">
@@ -227,7 +229,7 @@
 
       const routeGroupMap = Object.keys(routeGroup).reduce(
         (result, key) => {
-          routeGroup[key].forEach((item) => {
+          routeGroup[key]!.forEach((item) => {
             Object.assign(result, {
               [item]: key,
             });
