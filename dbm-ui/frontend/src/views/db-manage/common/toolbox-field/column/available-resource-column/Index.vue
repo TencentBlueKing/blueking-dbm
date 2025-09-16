@@ -16,7 +16,8 @@
     field="available_resource"
     :label="t('可用资源')"
     :min-width="150"
-    readonly>
+    readonly
+    :rowspan="rowspan">
     <EditableBlock>
       <BkButton
         text
@@ -38,9 +39,12 @@
 
   interface Props {
     params: ComponentProps<typeof ResourcePreview>['params'];
+    rowspan?: number;
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    rowspan: 1,
+  });
 
   const { t } = useI18n();
 

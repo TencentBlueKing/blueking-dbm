@@ -24,15 +24,28 @@
       </template>
     </InfoTableColumn>
     <InfoTableColumn
-      col-key="cluster_ids"
-      :title="t('同机关联集群')">
+      col-key="related_instances"
+      :title="t('关联集群实例')">
       <template #default="{ row: data }: { row: RowData }">
-        <div
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+        <template v-if="data?.related_instances">
+          <div
+            v-for="item in data.related_instances"
+            :key="item.instance_address">
+            <p>
+              {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
+            </p>
+            <p style="color: #979ba5">--{{ item.instance_address }}</p>
+          </div>
+        </template>
+        <template v-else>
+          <div
+            v-for="clusterId in data.cluster_ids"
+            :key="clusterId">
+            <p>
+              {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+            </p>
+          </div>
+        </template>
       </template>
     </InfoTableColumn>
   </InfoTable>

@@ -16,6 +16,7 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
+    :rowspan="rowspan"
     :rules="rules">
     <template #head>
       <span class="mr-4">{{ t('资源标签') }}</span>
@@ -95,7 +96,15 @@
 
   type IValue = ServiceReturnType<typeof listTag>['results'][0];
 
+  interface Props {
+    rowspan?: number;
+  }
+
   type Emits = (e: 'batch-edit', value: any, field: string) => void;
+
+  withDefaults(defineProps<Props>(), {
+    rowspan: 1,
+  });
 
   const emits = defineEmits<Emits>();
 
