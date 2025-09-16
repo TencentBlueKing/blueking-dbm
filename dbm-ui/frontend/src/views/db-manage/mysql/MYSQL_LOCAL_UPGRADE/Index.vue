@@ -36,11 +36,17 @@
             v-model="item.current_version"
             :cluster="item.cluster" />
           <TargetVersionColumn
+            v-if="isMajorVersion"
             v-model="item.target_version"
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
-            :cluster="item.cluster"
-            :current-tab="wrapperController" />
+            :cluster="item.cluster" />
+          <FixedModuleTargetVersionColumn
+            v-else
+            v-model="item.target_version"
+            v-model:new-db-module-id="item.new_db_module_id"
+            v-model:pkg-id="item.pkg_id"
+            :cluster="item.cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -102,6 +108,7 @@
   import { random } from '@utils';
 
   import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
+  import FixedModuleTargetVersionColumn from './components/FixedModuleTargetVersionColumn.vue';
   import TargetVersionColumn from './components/TargetVersionColumn.vue';
 
   interface RowData {
@@ -169,6 +176,20 @@
   const formData = reactive(defaultData());
   const tableKey = ref(random());
 
+  /*
+    是否跨版本升级、主从存储层迁移、单节点原地
+
+      1.存储层原地升级：模块不可变、仅包文件可变
+
+      2.存储层迁移升级：模块可变、包文件可变
+
+      3.单节点原地升级：模块可变、包文件可变
+  */
+  const isMajorVersion = computed(
+    () =>
+      wrapperController.value.roleType === 'singleStorageLayer' ||
+      wrapperController.value.updateType === TicketTypes.MYSQL_MIGRATE_UPGRADE,
+  );
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const clusterMap = computed(() => {
     return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
@@ -213,7 +234,14 @@
             cluster: {
               master_domain: clusterInfo.immute_domain,
             },
+            new_db_module_id: item.new_db_module_id,
             pkg_id: item.pkg_id,
+            target_version: {
+              charset: item.display_info.charset,
+              db_module_name: item.display_info.target_module_name,
+              db_version: item.display_info.target_version,
+              pkg_name: item.display_info.target_package,
+            },
           });
         });
       }

@@ -84,7 +84,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getVersionModules } from '@services/source/mysqlToolbox';
 
-  import TableEditSelect, { type IListItem } from '@views/db-manage/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@views/db-manage/mysql/common/edit/Select.vue';
 
   type ModulesInfo = ServiceReturnType<typeof getVersionModules>[0];
 
@@ -124,8 +124,21 @@
 
   const { t } = useI18n();
 
-  const packageSelectList = ref<IListItem[]>([]);
-  const moduleSelectList = ref<IListItem[]>([]);
+  const packageSelectList = ref<
+    {
+      id: number;
+      name: string;
+    }[]
+  >([]);
+  const moduleSelectList = ref<
+    Array<
+      {
+        id: number;
+        info: string;
+        name: string;
+      } & ModulesInfo
+    >
+  >([]);
   const currentModule = ref<ModulesInfo>();
 
   const packageRules = [
@@ -138,37 +151,41 @@
     {
       message: t('请确保选填完整'),
       trigger: 'blur',
-      validator: () => {
-        return new Promise((resolve) => {
-          // 整理提单参数一并抛出
-          modelValue.value = {
-            charset: currentModule.value?.charset || '',
-            db_module_name: currentModule.value?.db_module_name || '',
-            db_version: currentModule.value?.db_version || '',
-            pkg_name: _.get(_.find(packageSelectList.value, { id: pkgId.value }), 'name', ''),
-          };
-          resolve(modelValue.value);
-        }).then(() => {
-          return _.every(modelValue.value, _.identity);
-        });
-      },
+      validator: () => _.every(modelValue.value, _.identity),
     },
   ];
 
   const { run: fetchModuleList } = useRequest(getVersionModules, {
     manual: true,
     onSuccess(data) {
-      const options = data.map((module) => ({
+      moduleSelectList.value = data.map((module) => ({
         ...module,
-        disabled: false,
         id: module.db_module_id,
         info: `${module.db_version || ''}，${module.charset || ''}`,
         name: module.db_module_name,
       }));
-      moduleSelectList.value = options;
-      const [first] = options;
-      if (first) {
-        handleModuleChange(first.id);
+
+      const [firstModule] = moduleSelectList.value;
+      if (firstModule) {
+        newDbModuleId.value = firstModule.id;
+        currentModule.value = firstModule;
+
+        packageSelectList.value = firstModule.pkg_list.map((item) => ({
+          id: item.pkg_id,
+          name: item.pkg_name,
+        }));
+
+        const [firstPackage] = packageSelectList.value;
+        if (firstPackage) {
+          pkgId.value = firstPackage.id;
+        }
+
+        modelValue.value = {
+          charset: firstModule.charset,
+          db_module_name: firstModule.db_module_name,
+          db_version: firstModule.db_version,
+          pkg_name: firstPackage?.name || '',
+        };
       }
     },
   });
@@ -200,25 +217,10 @@
   });
 
   const handlePackageChange = (value: number) => {
-    const findVersion = packageSelectList.value.find((item) => item.id === value);
-    if (findVersion) {
+    const findPackage = packageSelectList.value.find((item) => item.id === value);
+    if (findPackage) {
       pkgId.value = value;
-    }
-  };
-
-  const handleModuleChange = (value: number) => {
-    newDbModuleId.value = value;
-    const findModule = moduleSelectList.value.find((item) => item.id === value) as unknown as ModulesInfo;
-    if (!findModule) return;
-    currentModule.value = findModule;
-    const options = findModule.pkg_list.map((item) => ({
-      id: item.pkg_id,
-      name: item.pkg_name,
-    }));
-    packageSelectList.value = options;
-    const [first] = options;
-    if (first) {
-      pkgId.value = first.id;
+      modelValue.value.pkg_name = findPackage.name;
     }
   };
 </script>

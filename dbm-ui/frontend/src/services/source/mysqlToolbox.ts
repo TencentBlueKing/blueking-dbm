@@ -76,6 +76,20 @@ export function getSpiderVersionModules(params: {
 
 /**
  * 获取mysql、tendbcluster存储层版本模块列表
+ *  
+  tendbsingle
+  本地升级：
+    "higher_major_version": true,
+    "higher_sub_version": true
+
+  tendbha、tendbcluster
+  本地升级：
+    "higher_major_version": false,
+    "higher_sub_version": true
+
+  迁移升级：
+    "higher_major_version": true,
+    "higher_sub_version": true
  */
 export function getVersionModules(params: {
   cluster_id: number;

@@ -12,44 +12,8 @@
 -->
 
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('版本升级：小版本可直接升级，跨版本需通过迁移升级，迁修升级需要相应版本的模块')" />
-    <BkRadioGroup
-      v-model="tendbclusterType"
-      style="width: 450px"
-      type="card"
-      @change="handleChangeType">
-      <BkRadioButton label="SPIDER">
-        {{ t('接入层') }}
-      </BkRadioButton>
-      <BkRadioButton label="REMOTE">
-        {{ t('存储层') }}
-      </BkRadioButton>
-    </BkRadioGroup>
-    <div class="title-spot mt-12 mb-10">{{ t('升级类型') }}<span class="required" /></div>
-    <div class="mt-8 mb-20">
-      <CardCheckbox
-        v-model="updateType"
-        :desc="t('适用于小版本升级，如 3.6.1 -> 3.6.3 或 3.6.1 -> 3.7.3')"
-        icon="rebuild"
-        :title="t('原地升级')"
-        :true-value="TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE" />
-      <CardCheckbox
-        v-model="updateType"
-        class="ml-8"
-        :desc="t('适用于大版本升级，如 spider1.x -> spider3.x')"
-        disabled
-        icon="clone"
-        :title="t('迁移升级')"
-        :true-value="TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE" />
-    </div>
-    <BkForm
-      class="mb-20"
-      form-type="vertical"
-      :model="formData">
+  <UpgradeWrapper>
+    <SmartAction class="db-toolbox">
       <BatchInput
         :config="batchInputConfig"
         @change="handleBatchInput" />
@@ -79,38 +43,40 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem
-        v-bk-tooltips="t('存在业务连接时需要人工确认')"
-        class="fit-content">
+      <BkFormItem>
         <BkCheckbox
           v-model="formData.isSafe"
           :false-label="false"
           true-label>
-          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+          <span
+            v-bk-tooltips="t('存在业务连接时需要人工确认')"
+            class="safe-action-text">
+            {{ t('检查业务连接') }}
+          </span>
         </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </UpgradeWrapper>
 </template>
 <script lang="ts" setup>
   import type { ComponentProps } from 'vue-component-type-helpers';
@@ -123,13 +89,12 @@
 
   import { TicketTypes } from '@common/const';
 
-  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
+  import UpgradeWrapper from '@views/db-manage/tendb-cluster/TENDBCLUSTER_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
   import { random } from '@utils';
 
@@ -146,7 +111,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const router = useRouter();
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
@@ -192,8 +156,6 @@
     },
   ];
 
-  const tendbclusterType = ref<'SPIDER' | 'REMOTE'>('REMOTE');
-  const updateType = ref<TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
   const formData = reactive(defaultData());
   const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
@@ -239,18 +201,6 @@
     is_safe: boolean;
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
-
-  const handleChangeType = (value: string) => {
-    if (value === 'REMOTE') {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
-      });
-    } else {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE,
-      });
-    }
-  };
 
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
