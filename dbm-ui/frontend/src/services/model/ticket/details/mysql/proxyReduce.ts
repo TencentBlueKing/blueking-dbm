@@ -15,6 +15,10 @@ export interface ProxyReduce extends DetailBase {
         ip: string;
       }[];
     };
+    related_instances?: {
+      cluster_id: number;
+      instance_address: string;
+    }[];
     origin_proxy_ip: {
       bk_biz_id: number;
       bk_cloud_id: number;

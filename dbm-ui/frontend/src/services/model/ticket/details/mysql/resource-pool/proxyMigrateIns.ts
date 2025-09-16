@@ -3,10 +3,10 @@ import TendbhaModel from '@services/model/mysql/tendbha';
 import type { DetailMachines, ResourcePoolDetailBase } from '../../common';
 
 /**
- * MySQL 替换Proxy
+ * MySQL 迁移Proxy（按实例）
  */
 
-export interface ProxySwitch extends ResourcePoolDetailBase {
+export interface ProxyMigrateIns extends ResourcePoolDetailBase {
   is_safe: boolean;
   infos: {
     cluster_ids: number[];
@@ -16,13 +16,10 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
+        port: number;
         spec: TendbhaModel['masters'][number]['spec_config'];
       }[];
     };
-    related_instances?: {
-      cluster_id: number;
-      instance_address: string;
-    }[];
     origin_proxys: {
       bk_biz_id: number;
       bk_cloud_id: number;
@@ -31,6 +28,16 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
       port: number;
       spec: TendbhaModel['masters'][number]['spec_config'];
     }[];
+    related_instances?: {
+      cluster_id: number;
+      instance_address: string;
+    }[];
+    origin_proxy_ip: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
     resource_spec: {
       target_proxys: {
         count: number;

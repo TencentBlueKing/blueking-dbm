@@ -18,7 +18,7 @@
     :min-width="minWidth"
     :readonly="!selectable"
     :required="required"
-    :rules="rules">
+    :rowspan="rowspan">
     <template
       v-if="tooltips"
       #head>
@@ -55,14 +55,22 @@
       id-key="spec_id"
       :list="sortedSpecList">
       <template #option="{ item }">
-        {{ item.spec_name }}
-        <BkTag
-          v-if="showTag && currentSpecIdList?.includes(item.spec_id)"
-          class="ml-4"
-          size="small"
-          theme="success">
-          {{ t('当前规格') }}
-        </BkTag>
+        <div
+          v-bk-tooltips="{
+            content: t('规格是集群已存在的'),
+            disabled: !item.disabled,
+            placement: 'right',
+          }"
+          class="spec-column-option">
+          {{ item.spec_name }}
+          <BkTag
+            v-if="showTag && currentSpecIdList?.includes(item.spec_id)"
+            class="ml-4"
+            size="small"
+            theme="success">
+            {{ t('当前规格') }}
+          </BkTag>
+        </div>
       </template>
     </EditableSelect>
   </EditableColumn>
@@ -84,6 +92,10 @@
      * 多个【当前规格】
      */
     currentSpecIdList?: number[];
+    /**
+     * 是否禁用当前规格选项
+     */
+    disabledCurrentSpec?: boolean;
     field?: string;
     label?: string;
     /**
@@ -93,6 +105,7 @@
     machineType?: MachineTypes;
     minWidth?: number;
     required?: boolean;
+    rowspan?: number;
     selectable?: boolean;
     showTag?: boolean;
     tooltips?: string;
@@ -102,11 +115,13 @@
 
   const props = withDefaults(defineProps<Props>(), {
     currentSpecIdList: () => [],
+    disabledCurrentSpec: false,
     field: 'specId',
-    label: '规格',
+    label: '目标规格',
     machineType: undefined,
-    minWidth: 150,
+    minWidth: 200,
     required: false,
+    rowspan: 1,
     selectable: false,
     showTag: true,
     tooltips: '',
@@ -123,14 +138,6 @@
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      message: t('规格不能为空'),
-      trigger: 'change',
-      validator: (value: number) => Boolean(value),
-    },
-  ];
-
   const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
   const showBatchEdit = ref(false);
 
@@ -144,15 +151,16 @@
     () => specList.value.find((item) => item.spec_id === modelValue.value)?.spec_name || '',
   );
   const sortedSpecList = computed(() => {
-    if (!props.currentSpecIdList?.length) {
-      return specList.value;
-    }
+    const list = specList.value.map((item) =>
+      Object.assign({}, item, {
+        disabled: props.currentSpecIdList?.includes(item.spec_id) && props.disabledCurrentSpec,
+        isCurrent: props.currentSpecIdList?.includes(item.spec_id),
+      }),
+    );
     // 当前规格排在前面
-    const currentSpecSet = new Set(props.currentSpecIdList);
-    return specList.value.sort((a, b) => {
-      const aIsCurrent = currentSpecSet.has(a.spec_id);
-      const bIsCurrent = currentSpecSet.has(b.spec_id);
-      return aIsCurrent === bIsCurrent ? 0 : aIsCurrent ? -1 : 1;
+    return list.sort((a, b) => {
+      if (a.isCurrent === b.isCurrent) return 0;
+      return a.isCurrent ? -1 : 1;
     });
   });
 
@@ -193,7 +201,7 @@
       }
       if (props.selectable && modelValue.value) {
         const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
-        if (!isExist) {
+        if (!isExist && specList.value.length) {
           modelValue.value = 0;
           return;
         }
@@ -202,7 +210,7 @@
       const isSame = currentSpecIdList.length === 1;
       const [currentSpecId] = currentSpecIdList;
       // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
-      if (!modelValue.value && isSame && currentSpecId) {
+      if (!modelValue.value && isSame && currentSpecId && !props.disabledCurrentSpec) {
         modelValue.value = currentSpecId;
       }
 
@@ -238,5 +246,11 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .spec-column-option {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
   }
 </style>
