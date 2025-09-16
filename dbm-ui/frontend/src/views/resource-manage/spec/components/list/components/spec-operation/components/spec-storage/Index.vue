@@ -117,7 +117,7 @@
             v-if="editable"
             v-model:table-data="tableData"
             :create-row-method="createRowData"
-            :min-row="0" />
+            :min-row="isRequired ? 1 : 0" />
         </EditableRow>
       </EditableTable>
     </div>
@@ -170,8 +170,8 @@
 
   const createRowData = (data = {} as InfoItem) => {
     const rowData = {
-      max: data.max || ('' as string | number),
-      min: data.min || ('' as string | number),
+      max: data.max ?? ('' as string | number),
+      min: data.min ?? ('' as string | number),
       mount_point: data.mount_point || '',
       type: data.type || '',
     };
@@ -190,6 +190,16 @@
   const mountPointList = computed(() => tableData.value.map((item) => item.mount_point));
   const mountPointPlaceholder = computed(() => (isSqlserver.value ? 'X:\\' : '/data123'));
 
+  const isCapacityTruthy = (value: number | string) => {
+    if (value === 0) {
+      return true;
+    }
+    if (value === '') {
+      return false;
+    }
+    return !!value && !_.isNaN(value);
+  };
+
   const mountPointRules = [
     {
       message: t('不能为空'),
@@ -198,10 +208,10 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.max && !rowData.min && !rowData.type) {
+          if (!value && !isCapacityTruthy(rowData.max) && !isCapacityTruthy(rowData.min) && !rowData.type) {
             return true;
           }
-          if ((rowData.max || rowData.min || rowData.type) && !value) {
+          if ((isCapacityTruthy(rowData.max) || isCapacityTruthy(rowData.min) || rowData.type) && !value) {
             return false;
           }
         }
@@ -247,15 +257,15 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.min && !rowData.mount_point && !rowData.type) {
+          if (!isCapacityTruthy(value) && !isCapacityTruthy(rowData.min) && !rowData.mount_point && !rowData.type) {
             return true;
           }
-          if ((rowData.min || rowData.mount_point || rowData.type) && !value) {
+          if ((isCapacityTruthy(rowData.min) || rowData.mount_point || rowData.type) && !isCapacityTruthy(value)) {
             return false;
           }
         }
 
-        if (props.isRequired && !value) {
+        if (props.isRequired && !isCapacityTruthy(value)) {
           return false;
         }
 
@@ -271,15 +281,15 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.max && !rowData.mount_point && !rowData.type) {
+          if (!isCapacityTruthy(value) && !isCapacityTruthy(rowData.max) && !rowData.mount_point && !rowData.type) {
             return true;
           }
-          if ((rowData.max || rowData.mount_point || rowData.type) && !value) {
+          if ((isCapacityTruthy(rowData.max) || rowData.mount_point || rowData.type) && !isCapacityTruthy(value)) {
             return false;
           }
         }
 
-        if (props.isRequired && !_.isNumber(value) && !value) {
+        if (props.isRequired && !isCapacityTruthy(value)) {
           return false;
         }
 
@@ -295,10 +305,10 @@
       validator: (value: string, { rowData }: { rowData: IDataRow }) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
-          if (!value && !rowData.mount_point && !rowData.max && !rowData.min) {
+          if (!value && !rowData.mount_point && !isCapacityTruthy(rowData.max) && !isCapacityTruthy(rowData.min)) {
             return true;
           }
-          if ((rowData.mount_point || rowData.max || rowData.min) && !value) {
+          if ((rowData.mount_point || isCapacityTruthy(rowData.max) || isCapacityTruthy(rowData.min)) && !value) {
             return false;
           }
         }
@@ -348,7 +358,7 @@
         : editableTableRef.value!.validate().then((validateResult) => {
             if (validateResult) {
               return tableData.value.reduce<InfoItem[]>((prevList, row) => {
-                if (row.mount_point && row.max && row.min && row.type) {
+                if (row.mount_point && isCapacityTruthy(row.min) && isCapacityTruthy(row.max) && row.type) {
                   const item = {
                     max: row.max,
                     min: row.min,
