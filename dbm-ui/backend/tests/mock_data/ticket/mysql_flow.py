@@ -109,6 +109,7 @@ MYSQL_ADD_SLAVE_DATA = {
         "backup_source": "remote",
         "infos": [
             {
+                "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
                 "resource_spec": {
                     "new_slave": {
@@ -366,6 +367,7 @@ MYSQL_PROXY_ADD_DATA = {
     "details": {
         "infos": [
             {
+                "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
                 "resource_spec": {
                     "new_proxy": {
@@ -405,6 +407,7 @@ MYSQL_PROXY_SWITCH_DATA = {
         "force": True,
         "infos": [
             {
+                "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
                 "old_nodes": {
                     "origin_proxy": [
