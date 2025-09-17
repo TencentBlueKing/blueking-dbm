@@ -17,6 +17,8 @@ import DutyRuleModel from '@services/model/monitor/duty-rule';
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 import type { ListBase } from '@services/types';
 
+import type { DBTypes } from '@common/const';
+
 interface UpdatePolicyParams {
   custom_conditions: {
     condition: string;
@@ -70,26 +72,6 @@ interface CreateCustomDutyRuleParams extends Omit<CreateCycleDutyRuleParams, 'du
     members: string[];
     work_times: string[];
   }[];
-}
-
-interface DutyNoticeConfig {
-  person_duty: {
-    enable: boolean;
-    send_at: {
-      num: number;
-      unit: string;
-    };
-  };
-  schedule_table: {
-    enable: boolean;
-    qywx_id: string;
-    send_at: {
-      freq: string;
-      freq_values: number[];
-      time: string;
-    };
-    send_day: number;
-  };
 }
 
 interface AlarmGroupItem {
@@ -251,15 +233,33 @@ export const updatePartialDutyRule = (
 // 删除轮值规则
 export const deleteDutyRule = (params: { id: number }) => http.delete<void>(`${path}/duty_rule/${params.id}/`);
 
-// 查询轮值通知配置
-export const getDutyNoticeConfig = () => http.get<DutyNoticeConfig>('/apis/conf/system_settings/duty_notice_config/');
-
-// 更新轮值通知配置
-export const updateDutyNoticeConfig = (params: DutyNoticeConfig) =>
-  http.post<DutyNoticeConfig>('/apis/conf/system_settings/update_duty_notice_config/', params);
-
 // 查询轮值优先级列表
 export const getPriorityDistinct = () => http.get<number[]>(`${path}/duty_rule/priority_distinct/`);
+
+interface DutyNoticeConfig {
+  after: number;
+  channels: Record<string, boolean | string>;
+  cron: {
+    day_of_month: string;
+    day_of_week: string;
+    hour: string;
+    minute: string;
+  };
+  enabled: boolean;
+}
+
+export const getDutyNoticeConfig = () =>
+  http.get<{
+    [dbType: string]: DutyNoticeConfig;
+  }>(`${path}/duty_rule/duty_notice_config/`);
+
+// 更新轮值排班表
+export const updateDutyNoticeConfig = (params: { db_type: DBTypes } & DutyNoticeConfig) =>
+  http.post(`${path}/duty_rule/update_duty_notice_config/`, params);
+
+// 立即发送轮值排班表
+export const sendDutyNoticeSchedule = (params: { db_type: DBTypes }) =>
+  http.post(`${path}/duty_rule/send_duty_notice_schedule/`, params);
 
 // 新增告警屏蔽
 export const createAlarmShield = (params: {

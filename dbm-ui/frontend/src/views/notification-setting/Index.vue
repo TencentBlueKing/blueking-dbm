@@ -12,178 +12,117 @@
 -->
 
 <template>
-  <div class="notification-setting-box">
-    <div class="switch-box">
-      <div class="title">
-        {{ t('排班表发送') }}
-      </div>
-      <BkSwitcher
-        v-model="formData.schedule_table.enable"
-        size="small"
-        theme="primary" />
-    </div>
-    <template v-if="formData.schedule_table.enable">
-      <div class="item-box">
-        <div class="title">
-          {{ t('发送时间') }}
-        </div>
-        <div class="content">
-          <BkSelect
-            v-model="formData.schedule_table.send_at.freq"
-            :clearable="false"
-            style="width: 86px">
-            <BkOption
-              v-for="(item, index) in dateList"
-              :key="index"
-              :label="item.label"
-              :value="item.value" />
-          </BkSelect>
-          <BkSelect
-            v-if="formData.schedule_table.send_at.freq === 'w'"
-            v-model="formData.schedule_table.send_at.freq_values"
-            :clearable="false"
-            multiple
-            style="width: 180px">
-            <BkOption
-              v-for="(item, index) in weekdayList"
-              :key="index"
-              :label="item.label"
-              :value="item.value" />
-          </BkSelect>
-          <SingleMonthDateRange
-            v-else
-            @change="handleSingleMonthDateRangeChange" />
-          <BkTimePicker
-            v-model="formData.schedule_table.send_at.time"
-            class="time-pick"
-            :clearable="false" />
-        </div>
-      </div>
-      <div class="item-box">
-        <div class="title">
-          {{ t('发送内容') }}
-        </div>
-        <div class="content">
-          <BkInput
-            v-model="formData.schedule_table.send_day"
-            :clearable="false"
-            :max="100"
-            :min="1"
-            style="width: 135px"
-            type="number">
-            <template #prefix>
-              <div class="prefix-box">
-                {{ t('近') }}
-              </div>
-            </template>
-          </BkInput>
-          <span>{{ t('天的排班结果') }}</span>
-        </div>
-      </div>
-      <div class="item-box mb-24">
-        <div class="title">
-          {{ t('企业微信群 ID') }}
-        </div>
-        <div class="content">
-          <BkInput
-            v-model="formData.schedule_table.qywx_id"
-            style="width: 300px" />
-          <!-- <DbIcon
-            class="icon"
-            type="attention-fill" /> -->
-        </div>
-      </div>
-    </template>
-    <div class="switch-box">
-      <div class="title">
-        {{ t('个人轮值通知') }}
-      </div>
-      <BkSwitcher
-        v-model="formData.person_duty.enable"
-        size="small"
-        theme="primary" />
-    </div>
-    <template v-if="formData.person_duty.enable">
-      <div class="item-box">
-        <div class="title">
-          {{ t('值班开始前') }}
-        </div>
-        <div class="content">
-          <BkInput
-            v-model="formData.person_duty.send_at.num"
-            :clearable="false"
-            :max="14"
-            :min="1"
-            style="width: 178px"
-            type="number" />
-          <div class="suffix-box">
-            <BkSelect
-              v-model="formData.person_duty.send_at.unit"
+  <BkLoading
+    class="notification-setting-box"
+    :loading="getLoading">
+    <DbTab v-model:active="dbType" />
+    <SmartAction :offset-target="getSmartActionOffsetTarget">
+      <div class="notification-setting-content">
+        <DbForm
+          ref="formRef"
+          :model="formData">
+          <DbFormItem
+            :label="t('排班表发送')"
+            property="enabled">
+            <BkSwitcher
+              v-model="formData.enabled"
+              size="small"
+              theme="primary" />
+          </DbFormItem>
+          <TimeItem
+            v-show="formData.enabled"
+            ref="timeRef"
+            :data="formData.cron" />
+          <DbFormItem
+            :label="t('发送内容')"
+            property="after"
+            required>
+            <BkInput
+              v-model="formData.after"
               :clearable="false"
-              style="width: 58px">
-              <BkOption
-                v-for="(item, index) in periodList"
-                :key="index"
-                :label="item.label"
-                :value="item.value" />
-            </BkSelect>
-          </div>
-          <span>{{ t('收到通知') }}</span>
-        </div>
+              :max="100"
+              :min="1"
+              :prefix="t('未来')"
+              style="width: 200px"
+              type="number">
+            </BkInput>
+            <span class="input-suffix">{{ t('天的排班结果') }}</span>
+          </DbFormItem>
+          <Channels
+            ref="channelsRef"
+            :data="formData.channels" />
+        </DbForm>
       </div>
-    </template>
-  </div>
-  <div class="notification-setting-footer">
-    <AuthButton
-      action-id="update_duty_notices_config"
-      class="mr-8"
-      theme="primary"
-      @click="handleSubmit">
-      {{ t('保存') }}
-    </AuthButton>
-    <DbPopconfirm
-      :confirm-handler="handleReset"
-      :content="t('重置将会恢复默认设置的内容！')"
-      :title="t('确认重置当前配置？')">
-      <BkButton>
-        {{ t('重置') }}
-      </BkButton>
-    </DbPopconfirm>
-  </div>
+      <template #action>
+        <div>
+          <AuthButton
+            action-id="update_duty_notices_config"
+            class="mr-8 w-88"
+            :disabled="sendLoading || resetLoading"
+            :loading="updateLoading"
+            theme="primary"
+            @click="handleSave">
+            {{ t('保存') }}
+          </AuthButton>
+          <AuthButton
+            action-id="update_duty_notices_config"
+            class="mr-8 w-88"
+            :disabled="updateLoading || resetLoading"
+            :loading="sendLoading"
+            theme="primary"
+            @click="handleSend">
+            {{ t('立即发送') }}
+          </AuthButton>
+          <DbPopconfirm
+            :confirm-handler="handleReset"
+            :content="t('重置将会恢复默认设置的内容！')"
+            :title="t('确认重置当前配置？')">
+            <span>
+              <AuthButton
+                action-id="update_duty_notices_config"
+                class="w-88"
+                :disabled="updateLoading || sendLoading"
+                :loading="resetLoading">
+                {{ t('重置') }}
+              </AuthButton>
+            </span>
+          </DbPopconfirm>
+        </div>
+      </template>
+    </SmartAction>
+  </BkLoading>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDutyNoticeConfig, updateDutyNoticeConfig } from '@services/source/monitor';
+  import { getDutyNoticeConfig, sendDutyNoticeSchedule, updateDutyNoticeConfig } from '@services/source/monitor';
 
-  import { messageError, messageSuccess } from '@utils';
+  import { DBTypes } from '@common/const';
 
-  import SingleMonthDateRange from './components/SingleMonthDateRange.vue';
+  import DbTab from '@components/db-tab/Index.vue';
 
-  type DutyConfig = ServiceReturnType<typeof getDutyNoticeConfig>;
+  import { messageSuccess } from '@utils';
 
-  const initData = (data?: DutyConfig) => {
+  import Channels from './components/Channels.vue';
+  import TimeItem from './components/TimeItem.vue';
+
+  type DutyNoticeConfig = ServiceReturnType<typeof getDutyNoticeConfig>[string];
+
+  const initData = (data?: DutyNoticeConfig) => {
     if (!data) {
       return {
-        person_duty: {
-          enable: false,
-          send_at: {
-            num: 1,
-            unit: 'h',
-          },
+        after: 7,
+        channels: {},
+        cron: {
+          day_of_month: '*',
+          day_of_week: '*',
+          hour: '0',
+          minute: '0',
         },
-        schedule_table: {
-          enable: false,
-          qywx_id: '',
-          send_at: {
-            freq: 'w',
-            freq_values: [] as number[],
-            time: '00:00:00',
-          },
-          send_day: 7,
-        },
+        enabled: true,
       };
     }
     return data;
@@ -191,174 +130,106 @@
 
   const { t } = useI18n();
 
-  const formData = ref(initData());
+  const formRef = useTemplateRef('formRef');
+  const timeRef = useTemplateRef('timeRef');
+  const channelsRef = useTemplateRef('channelsRef');
 
-  useRequest(getDutyNoticeConfig, {
-    onSuccess: (data) => {
-      formData.value = data;
-    },
-  });
+  const dbType = ref(DBTypes.MYSQL);
 
-  const { run: runUpdateDutyNoticeConfig } = useRequest(updateDutyNoticeConfig, {
+  const formData = reactive(initData());
+
+  const {
+    data: dutyNoticeConfig,
+    loading: getLoading,
+    run: runGetDutyNoticeConfig,
+  } = useRequest(getDutyNoticeConfig, {
     manual: true,
-    onSuccess: (updateResult) => {
-      if (updateResult) {
-        messageSuccess(t('保存成功'));
-        return;
-      }
-      messageError(t('保存失败'));
+  });
+
+  const { loading: updateLoading, run: runUpdateDutyNoticeConfig } = useRequest(updateDutyNoticeConfig, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('保存成功'));
+      runGetDutyNoticeConfig();
     },
   });
 
-  const dateList = [
-    {
-      label: t('按周'),
-      value: 'w',
+  const { loading: sendLoading, run: runSendDutyNoticeSchedule } = useRequest(sendDutyNoticeSchedule, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('发送成功'));
     },
-    {
-      label: t('按月'),
-      value: 'm',
-    },
-  ];
+  });
 
-  const weekdayList = [
-    {
-      label: t('周一'),
-      value: 1,
+  const { loading: resetLoading, run: runResetDutyNoticeConfig } = useRequest(updateDutyNoticeConfig, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('重置成功'));
+      runGetDutyNoticeConfig();
     },
-    {
-      label: t('周二'),
-      value: 2,
-    },
-    {
-      label: t('周三'),
-      value: 3,
-    },
-    {
-      label: t('周四'),
-      value: 4,
-    },
-    {
-      label: t('周五'),
-      value: 5,
-    },
-    {
-      label: t('周六'),
-      value: 6,
-    },
-    {
-      label: t('周日'),
-      value: 0,
-    },
-  ];
+  });
 
-  const periodList = [
-    {
-      label: t('时'),
-      value: 'h',
+  watch(
+    [dbType, dutyNoticeConfig],
+    () => {
+      if (dutyNoticeConfig.value && _.has(dutyNoticeConfig.value, dbType.value)) {
+        Object.assign(formData, initData(dutyNoticeConfig.value[dbType.value]));
+      } else {
+        Object.assign(formData, initData());
+      }
     },
     {
-      label: t('天'),
-      value: 'd',
+      immediate: true,
     },
-  ];
+  );
 
-  const handleSingleMonthDateRangeChange = (list: number[]) => {
-    formData.value.schedule_table.send_at.freq_values = list;
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const handleSave = () => {
+    formRef.value!.validate().then(() => {
+      const params = {
+        after: formData.after,
+        channels: channelsRef.value!.getValue(),
+        cron: timeRef.value!.getValue(),
+        db_type: dbType.value,
+        enabled: formData.enabled,
+      };
+      runUpdateDutyNoticeConfig(params);
+    });
+  };
+
+  const handleSend = () => {
+    runSendDutyNoticeSchedule({ db_type: dbType.value });
   };
 
   const handleReset = () => {
-    formData.value = initData();
+    runResetDutyNoticeConfig({ ...initData(), db_type: dbType.value });
   };
 
-  const handleSubmit = () => {
-    runUpdateDutyNoticeConfig(formData.value);
-  };
+  onMounted(() => {
+    runGetDutyNoticeConfig();
+  });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .notification-setting-box {
-    padding: 14px 18px;
-    background: #fff;
-    border-radius: 2px;
-    box-shadow: 0 2px 4px 0 #1919290d;
-
-    .switch-box {
-      display: flex;
-      width: 100%;
-      align-items: center;
-      margin-bottom: 14px;
-
-      .title {
-        margin-right: 8px;
-        color: #313238;
-      }
+    .notification-setting-content {
+      padding: 24px;
+      margin: 20px 28px 32px;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 2px 4px 0 #1919290d;
     }
 
-    .item-box {
-      display: flex;
-      width: 100%;
-      margin-bottom: 16px;
-
-      .title {
-        width: 200px;
-        height: 32px;
-        margin-right: 22px;
-        line-height: 32px;
-        text-align: right;
-      }
-
-      .content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .prefix-box {
-          width: 28px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          background: #fafbfd;
-          border-right: 1px solid #c4c6cc;
-        }
-
-        .icon {
-          font-size: 18px;
-          color: #c4c6cc;
-          cursor: pointer;
-
-          &:hover {
-            color: #979ba5;
-          }
-        }
-
-        .suffix-box {
-          margin-left: -8px;
-
-          :deep(.bk-input) {
-            height: 32px;
-          }
-        }
-
-        .time-pick {
-          position: relative;
-          width: 180px;
-
-          :deep(.bk-date-picker-dropdown) {
-            top: 36px !important;
-            left: 0 !important;
-          }
-        }
-      }
+    .bk-form-label {
+      font-size: 12px;
+      color: #4d4f56;
     }
-  }
 
-  .notification-setting-footer {
-    margin: 32px 0 0 240px;
-
-    .bk-button {
-      width: 88px;
+    .input-suffix {
+      margin-left: 8px;
+      font-size: 12px;
+      color: #4d4f56;
     }
   }
 </style>
