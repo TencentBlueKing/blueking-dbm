@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import MachineType
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -30,6 +30,7 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
             help_text=_("新机器部署的介质包ID，暂时在FLow计算赋值"), required=False, default=0
         )
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+        current_proxy_num = serializers.IntegerField(help_text=_("当前proxy数量"), required=False)
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
@@ -39,29 +40,10 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
     )
     infos = serializers.ListField(help_text=_("添加信息"), child=AddInfoSerializer())
 
-    def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super(MysqlProxyAddDetailSerializer, self).validate_cluster_can_access(attrs)
-        super(MysqlProxyAddDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
-
-        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
-            return attrs
-
-        # 校验集群与新增proxy云区域是否相同
-        super(MysqlProxyAddDetailSerializer, self).validate_hosts_clusters_in_same_cloud_area(
-            attrs, host_key=["new_proxy"], cluster_key=["cluster_ids"]
-        )
-
-        # 校验添加新proxy主机不能重复
-        new_proxy_hosts = [info["new_proxy"]["bk_host_id"] for info in attrs["infos"]]
-        if len(set(new_proxy_hosts)) != len(new_proxy_hosts):
-            raise serializers.ValidationError(_("目标主机有重复，请重新输入"))
-
-        return attrs
-
 
 class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_add_scene
+    validator = MySQLController.mysql_proxy_add_scene.validator
 
     @classmethod
     def merge_same_proxy_clusters(cls, infos):
