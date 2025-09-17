@@ -98,7 +98,7 @@
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ t('通知设置') }}
+                  {{ t('轮值通知') }}
                 </span>
               </BkMenuItem>
             </FunController>
