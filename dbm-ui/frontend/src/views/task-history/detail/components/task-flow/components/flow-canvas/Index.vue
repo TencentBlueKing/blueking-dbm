@@ -156,11 +156,9 @@
           canvasZoomValue.value = flowGraphInstance.viewZoom * 100;
         } else {
           if (Math.abs(e.wheelDeltaX) > Math.abs(e.wheelDeltaY)) {
-            const horizontalDistance = e.wheelDeltaX > 0 ? 25 : -25; // 向右滚向右，向左滚向左
-            flowGraphInstance.translateBy([horizontalDistance, 0]);
+            flowGraphInstance.translateBy([e.wheelDeltaX, 0]); // 左右滚动
           } else {
-            const verticalDistance = e.wheelDeltaY > 0 ? 25 : -25; // 向下滚向下，向上滚向上
-            flowGraphInstance.translateBy([0, verticalDistance]);
+            flowGraphInstance.translateBy([0, e.wheelDeltaY]); // 上下滚动
           }
         }
       },

@@ -185,7 +185,7 @@ export function generateTreeData(
   ) => {
     const { start_event: startEvent } = baseData;
     const treeData: TreeNode[] = [];
-    let currentNode = nodesMap[Array.from(edgesMap[startEvent.id])[0]] as any;
+    let currentNode = nodesMap[Array.from(edgesMap[startEvent.id]!)[0]!] as any;
 
     while (currentNode && currentNode.type !== 'EmptyEndEvent') {
       if (parentProcessNodeId) {
@@ -195,7 +195,7 @@ export function generateTreeData(
       if (currentNode.pipeline) {
         currentNode.children = deepGenerate(currentNode.pipeline, nodesMap, edgesMap, currentNode.id);
       }
-      const nextNodeIds = Array.from(edgesMap[currentNode.id]);
+      const nextNodeIds = Array.from(edgesMap[currentNode.id]!);
       if (nextNodeIds.length > 1) {
         // 一 对 多的网关节点
         currentNode.children = [];
@@ -209,10 +209,10 @@ export function generateTreeData(
           }
           currentNode.children.push(nextNode);
         });
-        const nextNode = nodesMap[Array.from(edgesMap[nodesMap[nextNodeIds[0]].id])[0]];
+        const nextNode = nodesMap[Array.from(edgesMap[nodesMap[nextNodeIds[0]!]!.id]!)[0]!];
         currentNode = nextNode;
       } else {
-        currentNode = nodesMap[nextNodeIds[0]];
+        currentNode = nodesMap[nextNodeIds[0]!];
       }
     }
     return treeData;
@@ -328,8 +328,8 @@ export function generateEdges(
   allNodes.forEach((node) => {
     if (node.pipeline) {
       // 由于画布子流程需要去掉开始和结束节点，子流程需要新增一条直接指向开始节点之后的节点的边
-      const startNodeId = pipelineNodeToStartEventMap[node.id];
-      const firstNodeId = Array.from(edgesMap[startNodeId])[0];
+      const startNodeId = pipelineNodeToStartEventMap[node.id]!;
+      const firstNodeId = Array.from(edgesMap[startNodeId]!)[0]!;
       edges.push({
         id: random(),
         source: node.id,
@@ -381,14 +381,14 @@ export function getRemoveCollapsedData(
   removeNodeId: string,
 ) {
   const dataMap = collapsedMap;
-  const { edges, nodes } = collapsedMap[removeNodeId];
+  const { edges, nodes } = collapsedMap[removeNodeId]!;
   delete dataMap[removeNodeId];
   const totalEdges = _.cloneDeep(edges);
   const totalNodes = _.cloneDeep(nodes);
   const findRelatedNodeData = (nodeList: Node[]) => {
     nodeList.forEach((node) => {
       if (collapsedMap[node.id]) {
-        const { edges, nodes } = collapsedMap[node.id];
+        const { edges, nodes } = collapsedMap[node.id]!;
         delete dataMap[node.id];
         totalEdges.push(...edges);
         totalNodes.push(...nodes);
@@ -432,7 +432,7 @@ export const formatGraphData = (data: FlowDetail, expandNodes: Set<string> = new
   const availableNodes: Node[] = [];
   const nodesCountMap: Record<string, number> = {};
   flagNodes.forEach((node) => {
-    nodesCountMap[node.id] = nodesCountMap[node.id] ? nodesCountMap[node.id] + 1 : 1;
+    nodesCountMap[node.id] = nodesCountMap[node.id] ? nodesCountMap[node.id]! + 1 : 1;
     if (nodesCountMap[node.id] === 1) {
       availableNodes.push(node);
     }
@@ -510,13 +510,13 @@ const getLineTargets = (
 
   if (Array.isArray(outgoing)) {
     outgoing.forEach((id: string) => {
-      getLineTargets(nodeMap[flows[id].target] as any, nodeMap, flows, true, targets, isStartNode);
+      getLineTargets(nodeMap[flows[id]!.target] as any, nodeMap, flows, true, targets, isStartNode);
     });
 
     return targets;
   }
 
-  const targetNode = nodeMap[flows[outgoing].target];
+  const targetNode = nodeMap[flows[outgoing]!.target]!;
   if (getewayTypes.includes(targetNode.type as FlowType)) {
     targets.push(targetNode.id);
     return targets;
@@ -551,7 +551,7 @@ const formartLines = (data: FlowDetail, level = 0, lines: Edge[] = []) => {
     if (node.type === FlowTypes.EmptyStartEvent && level > 0) {
       const { outgoing } = node;
       const addLine = (lineId: string) => {
-        const { target } = flows[lineId];
+        const { target } = flows[lineId]!;
         const targets = getLineTargets(nodesMap[target] as any, nodesMap as any, flows, true, [], true);
         for (const id of targets) {
           lines.push({
@@ -615,7 +615,7 @@ function addNode(
   expandNodes: Set<string> = new Set(),
 ) {
   const isRoundType = roundTypes.includes(node.type as FlowTypes);
-  const len = nodes[index].length;
+  const len = nodes[index]!.length;
   const Node = {
     ...node,
     data: node,
@@ -631,7 +631,7 @@ function addNode(
 
     type: node.type,
   } as unknown as Node;
-  nodes[index].push(Node);
+  nodes[index]!.push(Node);
 }
 
 /**
@@ -672,14 +672,14 @@ function getLevelNodes(
       if (node.outgoing) {
         const targets = Array.isArray(node.outgoing) ? node.outgoing : [node.outgoing];
         for (const targetId of targets) {
-          const targetNode = nodesMap[flows[targetId].target];
+          const targetNode = nodesMap[flows[targetId]!.target];
           addNode(targetNode as any, parent, nodes, index, level, expandNodes);
           nextColumnNodes.push(targetNode);
         }
       }
     }
     // 去重，获取队列下次需要处理的节点
-    const nextQueueValue = _.uniqBy(nextColumnNodes, 'id');
+    const nextQueueValue = _.uniqBy(nextColumnNodes, 'id') as any;
     nextQueueValue.length > 0 && queue.push(nextQueueValue);
   }
 
@@ -718,7 +718,7 @@ function initRootNodesX(nodes: Node[][]) {
   const len = nodes.length;
   let preMaxEndX = 0; // 记录节点左侧的节点最大结束 x 位置
   for (let index = 0; index < len; index++) {
-    const columnNodes = nodes[index];
+    const columnNodes = nodes[index]!;
     const x = index === 0 ? preMaxEndX : layoutConfig.horizontalSep + preMaxEndX;
     for (const node of columnNodes) {
       node.style.x = x + node.style.width / 2; // 渲染的时候x坐标是在width的一半位置
@@ -737,7 +737,7 @@ function calcNodesLocation(nodes: Node[][], expandNodes: Set<string> = new Set()
   const len = reverseNodes.length;
   let maxY = preMaxY;
   for (let columnIndex = 0; columnIndex < len; columnIndex++) {
-    const columnNodes = nodes[columnIndex]; // 获取同level的节点
+    const columnNodes = nodes[columnIndex]!; // 获取同level的节点
     const coefficient = len - 1 - columnIndex; // 节点为倒叙，就是同层节点列表的下标
     for (const node of columnNodes) {
       const { children, index, level, parent } = node;
@@ -748,7 +748,7 @@ function calcNodesLocation(nodes: Node[][], expandNodes: Set<string> = new Set()
       } else if (index === 0) {
         y = preMaxY + height + layoutConfig.verticalSep;
       } else {
-        const preNode = columnNodes[index - 1];
+        const preNode = columnNodes[index - 1]!;
         const preNodeMaxY = getNodeDepthY([preNode]);
         y = layoutConfig.verticalSep + height + preNodeMaxY;
       }
@@ -758,7 +758,7 @@ function calcNodesLocation(nodes: Node[][], expandNodes: Set<string> = new Set()
         const startX = layoutConfig.chidlOffset + parent.style.x;
         const currentX = tmpNodes
           .slice(0, coefficient)
-          .reduce((sum, nodeList) => sum + nodeList[0].style.width + layoutConfig.horizontalSep, startX);
+          .reduce((sum, nodeList) => sum + nodeList[0]!.style.width + layoutConfig.horizontalSep, startX);
         node.style.x = currentX;
         // 纠正网关节点布局
         if (getewayTypes.includes(node.data.type)) {

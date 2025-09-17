@@ -88,7 +88,7 @@ export class FlowGraph {
   }
 
   getElementPosition(nodeId: string) {
-    return this.graph!.getElementPosition(nodeId);
+    return this.graph!.getElementPosition(nodeId) as [number, number];
   }
 
   getNodeData() {

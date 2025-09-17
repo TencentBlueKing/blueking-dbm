@@ -158,7 +158,7 @@
       .then((historyData) => {
         state.histories = historyData;
         if (historyData.length > 0) {
-          state.latestVersion = historyData[0].version;
+          state.latestVersion = historyData[0]!.version;
           [state.active] = historyData;
         }
         isAnomalies.value = false;
