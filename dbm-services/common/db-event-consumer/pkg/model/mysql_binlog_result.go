@@ -8,15 +8,19 @@
 
 package model
 
-import "time"
+import (
+	"time"
+
+	"dbm-services/common/db-event-consumer/pkg/base"
+)
 
 type BinlogFileModel struct {
-	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
+	base.BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
-	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL;index:id_bkbizid,priority:1"`
-	ClusterId int `json:"cluster_id,omitempty" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL;index:id_clusterid,priority:1"`
+	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL;index:idx_bkbizid,priority:1"`
+	ClusterId int `json:"cluster_id,omitempty" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL;index:uk_cluster,unique,priority:1"`
 	// immutable domain, 如果是从库，也使用主域名。cluster_domain 至少作为备注信息，一般不作为查询条件
-	ClusterDomain string `json:"cluster_domain" db:"cluster_domain" gorm:"column:cluster_domain;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1;id_clusterdomain,priority:1"`
+	ClusterDomain string `json:"cluster_domain" db:"cluster_domain" gorm:"column:cluster_domain;type:varchar(255);NOT NULL;index:idx_cluster,priority:1"`
 	DbRole        string `json:"db_role" db:"db_role" gorm:"column:db_role;type:varchar(32);NOT NULL"`
 	Host          string `json:"host,omitempty" db:"host" gorm:"column:host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2;index:idx_host"`
 	Port          int    `json:"port,omitempty" db:"port" gorm:"column:port;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
@@ -24,7 +28,7 @@ type BinlogFileModel struct {
 	Filesize      int64  `json:"size" db:"filesize" gorm:"column:filesize;type:bigint;NOT NULL"`
 	// FileMtime 文件最后修改时间，带时区
 	FileMtime        time.Time `json:"file_mtime" db:"file_mtime" gorm:"column:file_mtime;type:TIMESTAMP;default:'1970-01-02 00:00:00';index:idx_mtime"`
-	StartTime        time.Time `json:"start_time" db:"start_time" gorm:"column:start_time;type:TIMESTAMP NULL;default:null;index:id_clusterid,priority:2;id_clusterdomain,priority:2"`
+	StartTime        time.Time `json:"start_time" db:"start_time" gorm:"column:start_time;type:TIMESTAMP NULL;default:null;index:idx_cluster,priority:2"`
 	StopTime         time.Time `json:"stop_time" db:"stop_time" gorm:"column:stop_time;type:TIMESTAMP NULL;default:null"`
 	BackupEnable     bool      `json:"backup_enable" db:"backup_enable" gorm:"column:backup_enable;type:tinyint;NOT NULL"`
 	BackupStatus     int       `json:"backup_status,omitempty" db:"backup_status" gorm:"column:backup_status;type:tinyint;NOT NULL;index:idx_status"`
@@ -35,4 +39,9 @@ type BinlogFileModel struct {
 
 func (m BinlogFileModel) TableName() string {
 	return "tb_mysql_binlog_result"
+}
+
+// UniqueKey is used to handle duplicate record
+func (m BinlogFileModel) UniqueKey() []string {
+	return []string{"cluster_id", "host", "port", "filename"}
 }

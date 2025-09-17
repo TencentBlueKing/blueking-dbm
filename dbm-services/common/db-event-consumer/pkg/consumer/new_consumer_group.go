@@ -18,6 +18,7 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/exp/slog"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/config"
 	"dbm-services/common/db-event-consumer/pkg/model"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -27,12 +28,13 @@ type Sinker struct {
 	RuntimeConfig   *config.SinkerConfig
 	MetaInfo        *config.KafkaMeta
 	consumerHandler sarama.ConsumerGroupHandler
-	DSWriter        sinker.DSWriter
+	DSWriter        base.DSWriter
 }
 
 func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 	var handler *AnySinker
 	modelTable, ok := sinker.ModelSinkerRegistered[s.RuntimeConfig.ModelTable]
+	s.DSWriter.SetWriteMode(s.RuntimeConfig.WriteMode)
 	if ok {
 		if !*s.RuntimeConfig.StrictSchema {
 			return nil, fmt.Errorf("registerd table[%s] need strict_schema=true", s.RuntimeConfig.ModelTable)

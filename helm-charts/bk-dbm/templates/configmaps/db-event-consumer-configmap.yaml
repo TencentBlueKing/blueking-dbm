@@ -36,6 +36,14 @@ data:
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
         charset: utf8
+    - name: prod_bk_dbm_report2
+      type: mysql_raw
+      dsn:
+        address: "{{ $reportDB.host }}:{{ $reportDB.port }}"
+        user: "{{ $reportDB.user }}"
+        password: "{{ $reportDB.password }}"
+        database: "{{ $reportDB.name }}"
+        charset: utf8
     - name: doris_bk_dbm_stats
       type: mysql
       dsn:

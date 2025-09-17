@@ -14,6 +14,8 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+
+	"dbm-services/common/db-event-consumer/pkg/base"
 )
 
 type Datasource struct {
@@ -56,19 +58,28 @@ type InstanceDsn struct {
 	SessionVariables map[string]interface{} `yaml:"session_variables" mapstructure:"session_variables"`
 }
 
-func GetDSWriter(ds *Datasource) (DSWriter, error) {
+func GetDSWriter(ds *Datasource) (base.DSWriter, error) {
 	if ds.Type == "mysql" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
 			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
 		}
 		return NewMysqlWriter(&mysqlDsn, nil)
+
 	} else if ds.Type == "mysql_xorm" {
 		var mysqlDsn InstanceDsn
 		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
 			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
 		}
 		return NewXormWriter(&mysqlDsn, nil)
+
+	} else if ds.Type == "mysql_raw" {
+		var mysqlDsn InstanceDsn
+		if err := mapstructure.Decode(ds.Dsn, &mysqlDsn); err != nil {
+			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+		}
+		return NewMysqlRawWriter(&mysqlDsn)
+
 	} else if ds.Type == "doris" {
 		return NewMysqlWriter(nil, nil)
 	} else {

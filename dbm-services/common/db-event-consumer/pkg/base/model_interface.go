@@ -6,11 +6,27 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-package sinker
+package base
 
-type DSWriter interface {
-	Type() string
-	AutoMigrate(interface{}) error
-	WriteOne(obj interface{}) error
-	WriteBatch(table interface{}, models interface{}) error
+// CustomCreator 1. 定义接口（用于编译时检查，非必须但推荐）
+// 自定义 create model 不会触发 write_mode 检查
+type CustomCreator interface {
+	Create(objs interface{}, w DSWriter) error
+}
+
+type CustomMigrator interface {
+	MigrateSchema(w DSWriter) error
+}
+
+type ModelSinker interface {
+	TableName() string
+	StrictSchema() bool
+}
+
+type ModelFieldOmit interface {
+	OmitFields() []string
+}
+
+type UniqueKey interface {
+	UniqueKey() []string
 }

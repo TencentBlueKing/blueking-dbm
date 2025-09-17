@@ -8,8 +8,10 @@
 
 package model
 
+import "dbm-services/common/db-event-consumer/pkg/base"
+
 type FakeModelForNoStrictSchema struct {
-	BaseModel
+	base.BaseModel
 	tableName  string
 	omitFields []string
 }

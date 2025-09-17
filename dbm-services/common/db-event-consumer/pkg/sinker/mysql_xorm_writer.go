@@ -9,18 +9,26 @@
 package sinker
 
 import (
+	"fmt"
 	"log/slog"
 	"reflect"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
-	"gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"xorm.io/xorm"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/cst"
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 type XormWriter struct {
-	engine *xorm.Engine
+	engine      *xorm.Engine
+	session     *xorm.Session
+	dbWithModel bool
+	writeMode   string
 }
 
 func NewXormWriter(dsn *InstanceDsn, engine *xorm.Engine) (*XormWriter, error) {
@@ -31,7 +39,7 @@ func NewXormWriter(dsn *InstanceDsn, engine *xorm.Engine) (*XormWriter, error) {
 		return nil, errors.New("dsn is nil")
 	}
 
-	engine, err := GetXormDB(dsn, nil)
+	engine, err := GetXormDB(dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -45,45 +53,123 @@ func (w *XormWriter) Type() string {
 func (w *XormWriter) AutoMigrate(m interface{}) error {
 	slog.Info("XormWriter run common migrate for ", m)
 
-	return w.engine.Sync(m)
-
+	_, err := w.engine.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true})
+	return err
 }
 
-func (w *XormWriter) WriteOne(obj interface{}) error {
+// onOneDuplicate handle one object with unique key
+func (w *XormWriter) onOneDuplicate(obj interface{}, sess *xorm.Session) error {
 	var err error
-	if omitted, ok := obj.(ModelFieldOmit); ok {
-		_, err = w.engine.Omit(omitted.OmitFields()...).Insert(obj)
-	} else {
-		_, err = w.engine.Insert(obj)
+	uniqueWhere := make(map[string]interface{})
+	if uniqueCols, ok := obj.(base.UniqueKey); ok {
+		uniqueWhere = cmutil.StructToMap(obj, "db", uniqueCols.UniqueKey())
 	}
-	return err
+	if len(uniqueWhere) == 0 {
+		return errors.WithMessagef(err, "failed to find unique key to upsert for %+v", obj)
+	}
+
+	if w.writeMode == cst.ModeUpsert {
+		if _, err = sess.Where(uniqueWhere).Limit(1).Update(obj); err != nil {
+			return err
+		}
+	} else if w.writeMode == cst.ModeReplace {
+		sess.Begin()
+		txErr := func() error {
+			if _, err := sess.Where(uniqueWhere).Limit(1).Delete(obj); err != nil {
+				return err
+			}
+			if _, err := sess.Insert(obj); err != nil {
+				return err
+			}
+			return nil
+		}
+		if txErr != nil {
+			_ = sess.Rollback()
+		} else {
+			return sess.Commit()
+		}
+	}
+	return nil
 }
 
 func (w *XormWriter) WriteBatch(table interface{}, ms interface{}) error {
 	// xorm table allow &{}, or table name string
 	var err error
-	tableType := reflect.TypeOf(table).Elem().Name()
-	if tableType == cst.NoStrictSchemaModel {
-		t, ok := table.(schema.Tabler)
-		if !ok {
-			return errors.Errorf("FakeModelForNoStrictSchema must implement schema.Tabler")
+	if !w.dbWithModel {
+		w.session = w.engine.Table(table)
+		if omitted, ok := table.(base.ModelFieldOmit); ok {
+			w.session = w.session.Omit(omitted.OmitFields()...)
 		}
-		if omitted, ok := table.(ModelFieldOmit); ok {
-			_, err = w.engine.Table(t.TableName()).Omit(omitted.OmitFields()...).InsertMulti(ms)
-		} else {
-			_, err = w.engine.Table(t.TableName()).InsertMulti(ms)
+		w.dbWithModel = true
+	}
+	_, err = w.session.InsertMulti(ms)
+	var mysqlErr *mysql.MySQLError
+	if err != nil { // create, 不能丢失这个原始 error
+		if (errors.As(err, &mysqlErr) && mysqlErr.Number != 1062) && !errors.Is(err, gorm.ErrDuplicatedKey) {
+			return err
 		}
-	} else {
-		if omitted, ok := table.(ModelFieldOmit); ok {
-			_, err = w.engine.Table(table).Omit(omitted.OmitFields()...).InsertMulti(ms)
-		} else {
-			_, err = w.engine.Table(table).InsertMulti(ms)
+		slog.Warn("XormWriter insert duplicate key error", slog.Any("err", err))
+		if txErr := w.OnDuplicate(ms); txErr != nil {
+			return errors.WithMessage(err, txErr.Error())
 		}
 	}
-
-	return err
+	return nil
 }
 
-func (w *XormWriter) XormDB() *xorm.Engine {
-	return w.engine
+// OnDuplicate handle one or multi object with unique key
+func (w *XormWriter) OnDuplicate(objs interface{}) error {
+	if w.writeMode == cst.ModeInsertIgnore {
+		slog.Info("XormWriter ignore duplicate key error", slog.Any("model", objs))
+		return nil
+	}
+	if w.writeMode == cst.ModeUpsert || w.writeMode == cst.ModeReplace {
+		slog.Info("XormWriter upsert duplicate key error", slog.Any("model", objs))
+		sliceValue := reflect.Indirect(reflect.ValueOf(objs))
+		if sliceValue.Kind() != reflect.Slice {
+			return errors.New("needs a pointer to a slice")
+		}
+		w.session.Begin()
+		txErr := func(sess *xorm.Session) error {
+			var err error
+			for i := 0; i < sliceValue.Len(); i++ {
+				obj := sliceValue.Index(i).Interface()
+				if sess == nil {
+					return errors.New("session is nil")
+				}
+				fmt.Printf("sess i=%d\n", i)
+				if _, err = sess.InsertMulti(obj); err == nil {
+					continue
+				}
+				if err = w.onOneDuplicate(obj, sess); err != nil {
+					return err
+				}
+			}
+			return nil
+		}(w.session)
+		if txErr != nil {
+			_ = w.session.Rollback()
+			return txErr
+		} else {
+			return w.session.Commit()
+		}
+	}
+	return nil
+}
+func (w *XormWriter) DB() base.DbExec {
+	return w.engine.DB().DB
+}
+
+func (w *XormWriter) SetWriteMode(mode string) {
+	w.writeMode = mode
+}
+func (w *XormWriter) GetWriteMode() string {
+	return w.writeMode
+}
+
+func buildUniqueColumns(uniqueKey []string) []clause.Column {
+	columns := make([]clause.Column, len(uniqueKey))
+	for _, key := range uniqueKey {
+		columns = append(columns, clause.Column{Name: key})
+	}
+	return columns
 }

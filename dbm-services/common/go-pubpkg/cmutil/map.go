@@ -1,6 +1,8 @@
 package cmutil
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // CleanStrMap TODO
 func CleanStrMap(data map[string]string) map[string]string {

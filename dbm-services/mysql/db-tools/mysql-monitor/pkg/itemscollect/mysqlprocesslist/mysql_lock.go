@@ -33,6 +33,7 @@ var nameMySQLLockMetric string
 func init() {
 	lockThreshold = 5
 	nameMySQLLockMetric = strings.Replace(nameMySQLLock, "-", "_", -1)
+	nameMySQLTableSlow = strings.Replace(nameMySQLTableSlow, "-", "_", -1)
 }
 
 func mysqlLock() (string, error) {
@@ -62,7 +63,7 @@ func mysqlLock() (string, error) {
 			return "", err
 		}
 		if hasLongWait || hasAbnormalTableState {
-			utils.SendMonitorMetrics(nameMySQLLockMetric, p.Time.Int64, map[string]interface{}{
+			utils.SendMonitorMetrics(nameMySQLTableSlow, p.Time.Int64, map[string]interface{}{
 				"lock_user":    p.User.String,
 				"lock_id":      p.Id.Int64,
 				"lock_db":      p.Db.String,

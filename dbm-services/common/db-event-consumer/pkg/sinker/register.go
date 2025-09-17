@@ -10,33 +10,25 @@ package sinker
 
 import (
 	"github.com/pkg/errors"
+
+	"dbm-services/common/db-event-consumer/pkg/base"
 )
 
-var ModelSinkerRegistered = make(map[string]ModelSinker)
+var ModelSinkerRegistered = make(map[string]base.ModelSinker)
 
-func RegisterModelSinker(modelObj ModelSinker) error {
-	/*
-		name := reflect.TypeOf(model).Name()
-		if _, ok := modelSinker[name]; ok {
-			return errors.Errorf("model sinker name [%s] is exist", name)
-		}
-	*/
+func RegisterModelSinker(modelObj base.ModelSinker) error {
 	name := modelObj.TableName()
 	if _, ok := ModelSinkerRegistered[name]; ok {
 		return errors.Errorf("model sinker name [%s] is exist", name)
 	}
-	/*
-		if _, ok := modelObj.(model.CustomCreator); ok {
-			modelObj.(model.CustomCreator).CustomInit()
-		}
-	*/
+
 	ModelSinkerRegistered[name] = modelObj
 	return nil
 }
 
-var ModelWriterType = make(map[string]DSWriter)
+var ModelWriterType = make(map[string]base.DSWriter)
 
-func RegisterModelWriteType(typeObj DSWriter) error {
+func RegisterModelWriteType(typeObj base.DSWriter) error {
 	name := typeObj.Type()
 	if _, ok := ModelWriterType[name]; ok {
 		return errors.Errorf("model writer name [%s] is exist", name)

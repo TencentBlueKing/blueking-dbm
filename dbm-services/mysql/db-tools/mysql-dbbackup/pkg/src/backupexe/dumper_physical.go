@@ -135,6 +135,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 
 	if p.cnf.PhysicalBackup.Throttle > 0 {
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
+		args = append(args, "--log-copy-interval=500")
 	}
 	if p.cnf.PhysicalBackup.LockDDL {
 		// will block all ddl and non-innodb dml from the backup beginning
@@ -232,7 +233,7 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
 		errStrDetail, _ := cmutil.NewGrepLines(xtrabackupLogFile, true, false).
-			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file", "Note"}, 5)
+			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file", "Note", "DDLoperation"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
