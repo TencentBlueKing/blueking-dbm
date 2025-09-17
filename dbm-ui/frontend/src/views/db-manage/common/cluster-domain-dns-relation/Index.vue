@@ -14,6 +14,7 @@
 <template>
   <span v-db-console="accessEntryDbConsole">
     <BkButton
+      v-if="userProfileStore.isDba"
       :disabled="data.isOffline"
       text
       @click="() => (isShow = true)">
@@ -126,6 +127,8 @@
   import ClusterEntryDetailModel, { type DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
+  import { useUserProfile } from '@stores';
+
   import { ClusterTypes } from '@common/const';
 
   import RenderBindIps from './components/RenderBindIps.vue';
@@ -171,6 +174,7 @@
   });
 
   const { t } = useI18n();
+  const userProfileStore = useUserProfile();
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 

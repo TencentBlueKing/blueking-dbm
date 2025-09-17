@@ -287,11 +287,6 @@
                   </AuthButton>
                 </OperationBtnStatusTips>
               </div>
-              <ClusterDomainDnsRelation :data="data">
-                <BkButton text>
-                  {{ t('手动配置域名 DNS 记录') }}
-                </BkButton>
-              </ClusterDomainDnsRelation>
             </template>
           </OperationColumn>
         </template>
@@ -426,7 +421,6 @@
   import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
-  import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterLoad from '@views/db-manage/common/cluster-load/Index.vue';
