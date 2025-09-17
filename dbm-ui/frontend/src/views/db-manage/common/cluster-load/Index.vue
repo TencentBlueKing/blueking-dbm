@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
   import BkTag from 'bkui-vue/lib/tag';
+  import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -77,8 +78,12 @@
   };
 
   const tagInfo = computed(() => {
-    if (clusterLoadData.value) {
-      const { status } = clusterLoadData.value.cluster_load_status_map[props.domain];
+    if (
+      clusterLoadData.value &&
+      !_.isEmpty(clusterLoadData.value.cluster_load_status_map) &&
+      clusterLoadData.value.cluster_load_status_map[props.domain]
+    ) {
+      const { status } = clusterLoadData.value.cluster_load_status_map[props.domain]!;
       return tagInfoMap[status];
     }
     return;
