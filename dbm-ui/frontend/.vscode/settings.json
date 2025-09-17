@@ -44,6 +44,7 @@
     "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*, .env.*",
     "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .prettier*, prettier*, .editorconfig, .stylelint*, .browserslistrc, commit*, .npmrc, .nvmrc"
   },
+  "explorer.sortOrderLexicographicOptions": "unicode",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#65c89b",
     "activityBar.background": "#65c89b",
