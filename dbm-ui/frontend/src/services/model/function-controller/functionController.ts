@@ -25,6 +25,7 @@ export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb' | 'replicaSetList' | 'sharedClusterList' | 'toolbox';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
 export type OracleFunctions = 'oracle_single_none' | 'oracle_primary_standby' | 'toolbox';
+export type DashboardFunctions = 'dashboard';
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
@@ -33,7 +34,8 @@ export type FunctionKeys =
   | MonitorFunctions
   | OracleFunctions
   | SqlServerFunctions
-  | MongoFunctions;
+  | MongoFunctions
+  | DashboardFunctions;
 
 export interface ControllerBaseInfo {
   is_enabled: boolean;
@@ -224,6 +226,7 @@ export default class FunctionController {
   bigdata: ControllerItem<BigdataFunctions>;
   bizConfigManage: ControllerItem<string>;
   common: ControllerItem<string>;
+  dashboard: ControllerItem<DashboardFunctions>;
   databaseManage: ControllerItem<string>;
   globalConfigManage: ControllerItem<string>;
   mongodb: ControllerItem<MongoFunctions>;
@@ -255,6 +258,7 @@ export default class FunctionController {
     this.bizConfigManage = payload.bizConfigManage;
     this.databaseManage = payload.databaseManage;
     this.platformManage = payload.platformManage;
+    this.dashboard = payload.dashboard;
 
     // 批处理 dbconsole 的开关
     Object.assign(this, payload);

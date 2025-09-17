@@ -110,11 +110,15 @@
 
   import { getAppShareList } from '@services/source/bkVersion';
 
+  import { useFunController } from '@stores';
+
   import { useActiveKey } from './hooks/useActiveKey';
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+
+  const funControllerStore = useFunController();
 
   const menuRef = ref<InstanceType<typeof Menu>>();
 
@@ -122,7 +126,9 @@
     manual: true,
   });
 
-  await fetchAppShareList();
+  if (funControllerStore.funControllerData.getFlatData('dashboard').dashboard) {
+    await fetchAppShareList();
+  }
 
   const { key: currentActiveKey, parentKey } = useActiveKey(
     menuRef as Ref<InstanceType<typeof Menu>>,
