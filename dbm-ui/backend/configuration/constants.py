@@ -155,6 +155,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     REDIS_DELETE_RATE = EnumField("REDIS_DELETE_RATE", _("redie删除key限速配置"))
     # 集群负载判定配置
     CLUSTER_LOAD_RULE = EnumField("CLUSTER_LOAD_RULE", _("集群负载判定配置"))
+    # 平台管理运营数据开关
+    OPERATION_DATA_SWITCH = EnumField("OPERATION_DATA_SWITCH", _("运营数据开关"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -298,6 +300,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.PADDING_PROXY_APPS, "list", [], _("补全proxy业务")],
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
     # [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
+    [SystemSettingsEnum.OPERATION_DATA_SWITCH.value, "bool", False, _("运营数据开关")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
