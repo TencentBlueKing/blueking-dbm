@@ -1,8 +1,16 @@
 import { registerModule } from '@router';
 
+import { useFunController } from '@stores';
+
 import { t } from '@locales/index';
 
 export default () => {
+  const { funControllerData } = useFunController();
+
+  if (!funControllerData.getFlatData('dashboard').dashboard) {
+    return;
+  }
+
   registerModule([
     {
       path: 'dashboard-manage',
