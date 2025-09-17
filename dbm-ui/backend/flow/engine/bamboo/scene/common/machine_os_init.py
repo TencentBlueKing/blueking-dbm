@@ -210,12 +210,12 @@ class ImportResourceInitStepFlow(object):
             hosts = []
         __add_host_remark(recycle_hosts, _("检测主机为Windows机器"))
 
-        # 存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
-        host_ids = [host["bk_host_id"] for host in hosts]
+        # 直连区域：存在uwork的主机需要回到故障池，存在裁撤单的主机需要回到待回收池，否则退回资源池
+        host_ids = [host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0]
         dissolved_hosts = HCMApi.check_host_is_dissolved(host_ids)
         uwork_hosts = HCMApi.check_host_has_uwork(host_ids)
 
-        host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts}
+        host_ip__host_id_map = {host["ip"]: host["bk_host_id"] for host in hosts if host["bk_cloud_id"] == 0}
         xwork_hosts = XworkApi.check_xwork_list(host_ip__host_id_map)
 
         for host in hosts:

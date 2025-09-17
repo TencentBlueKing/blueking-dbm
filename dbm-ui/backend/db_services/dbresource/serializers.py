@@ -64,21 +64,21 @@ class ResourceImportSerializer(serializers.Serializer):
     label_names = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
-        host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
-        host_ids = list(host_id__ip_map.keys())
-
         # 如果主机存在元数据，则拒绝导入
+        host_ids = [host["host_id"] for host in attrs["hosts"]]
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
         if exist_hosts:
             raise serializers.ValidationError(_("导入失败，主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
+        # 直连区域主机才进行uwork/xwork检查
+        host_id__ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"] if host["bk_cloud_id"] == 0}
+        host_ip__host_id_map = {host["ip"]: host["host_id"] for host in attrs["hosts"] if host["bk_cloud_id"] == 0}
         # 存在uwork或者是待裁撤主机，则不允许导入
         check_uwork = HCMApi.check_host_has_uwork(host_ids)
         if check_uwork:
             ips = [host_id__ip_map[host_id] for host_id in check_uwork.keys()]
             raise serializers.ValidationError(_("导入失败，检测主机{}有关联的uwork单据，请检查后重新导入").format(ips))
 
-        host_ip__host_id_map = {host["ip"]: host["host_id"] for host in attrs["hosts"]}
         check_xwork = XworkApi.check_xwork_list(host_ip__host_id_map)
         if check_xwork:
             ips = [host_id__ip_map[host_id] for host_id in check_xwork.keys()]
