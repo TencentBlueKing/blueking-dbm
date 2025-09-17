@@ -55,6 +55,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "common_sqls",
             "machine_property",
             "builtin_labels",
+            "operation_data_switch",
         ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
@@ -174,6 +175,16 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             SystemSettings.get_setting_value(
                 SystemSettingsEnum.MACHINE_PROPERTY.value, default=DEFAULT_MACHINE_PROPERTY
             )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询平台运营数据开关配置"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None)
+    def operation_data_switch(self, request, *args, **kwargs):
+        return Response(
+            SystemSettings.get_setting_value(SystemSettingsEnum.OPERATION_DATA_SWITCH.value, default=False)
         )
 
 
