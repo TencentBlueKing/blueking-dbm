@@ -45,6 +45,7 @@ var rootCmd = &cobra.Command{
 		wg := &sync.WaitGroup{}
 
 		for _, sink := range config.SinkerConfigs {
+			// 每一个 sinker 都有自己的 writer 实体
 			dsWriter, err := sinker.GetDSWriter(sinker.DatasourceMap[sink.Datasource])
 			if err != nil {
 				return err

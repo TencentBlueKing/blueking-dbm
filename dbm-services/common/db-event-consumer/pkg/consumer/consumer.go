@@ -17,17 +17,18 @@ import (
 
 	"github.com/Shopify/sarama"
 
-	"dbm-services/common/db-event-consumer/pkg/model"
-	"dbm-services/common/db-event-consumer/pkg/sinker"
+	"dbm-services/common/db-event-consumer/pkg/base"
 )
 
 type AnySinker struct {
-	dsWriter    sinker.DSWriter
+	dsWriter    base.DSWriter
 	Ready       chan bool
 	Sinker      *Sinker
 	modelType   reflect.Type
 	modelObject interface{}
 	modelValue  reflect.Value
+	// write mode: insert_ignore,upsert,insert
+	writeMode string
 
 	strictSchema bool
 }
@@ -37,7 +38,7 @@ func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	if s.Sinker.RuntimeConfig.SkipMigrateSchema || !s.strictSchema {
 		return nil
 	}
-	if migrator, ok := s.modelObject.(model.CustomMigrator); ok {
+	if migrator, ok := s.modelObject.(base.CustomMigrator); ok {
 		err = migrator.MigrateSchema(s.dsWriter)
 	} else {
 		err = s.dsWriter.AutoMigrate(s.modelObject)
@@ -97,18 +98,18 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 }
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
-func (c *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, s *Sinker) error {
-	if !c.strictSchema {
-		return c.HandleMessages3(msgs, s)
+func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+	if !s.strictSchema {
+		return s.HandleMessagesMapper(msgs, sk)
 	}
-	if c.dsWriter.Type() == "mysql_xorm" {
-		return c.HandleMessages2(msgs, s)
+	if s.dsWriter.Type() == "mysql_xorm" {
+		return s.HandleMessagesXorm(msgs, sk)
 	}
-	err := c.HandleMessages(msgs, s)
+	err := s.HandleMessages(msgs, sk)
 	if err != nil {
 		err = nil
 		for _, msg := range msgs {
-			if err2 := c.HandleMessages([]*sarama.ConsumerMessage{msg}, s); err2 != nil {
+			if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
 				slog.Error("handle message", err2)
 				err = errors.Join(err, err2)
 			}
@@ -141,7 +142,7 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 		result = reflect.Append(result, objValue.Elem())
 	}
 	//return nil
-	if creator, ok := s.modelObject.(model.CustomCreator); ok {
+	if creator, ok := s.modelObject.(base.CustomCreator); ok {
 		err = creator.Create(result.Interface(), s.dsWriter)
 	} else {
 		err = s.dsWriter.WriteBatch(s.modelObject, result.Interface())
@@ -149,11 +150,12 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 	return err
 }
 
-func (s *AnySinker) HandleMessages2(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+// HandleMessagesXorm xorm 实现写入简单很多
+func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
 	if len(msgs) == 0 {
 		return nil
 	}
-	var objs []sinker.ModelSinker
+	var objs []base.ModelSinker
 	for _, message := range msgs {
 		slog.Debug("process message", slog.String("Value", string(message.Value)))
 		obj := reflect.New(s.modelType).Interface()
@@ -163,7 +165,7 @@ func (s *AnySinker) HandleMessages2(msgs []*sarama.ConsumerMessage, sk *Sinker) 
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))
 			return err
 		}
-		objs = append(objs, obj.(sinker.ModelSinker))
+		objs = append(objs, obj.(base.ModelSinker))
 	}
 
 	if err := s.dsWriter.WriteBatch(s.modelObject, objs); err != nil {
@@ -172,7 +174,7 @@ func (s *AnySinker) HandleMessages2(msgs []*sarama.ConsumerMessage, sk *Sinker) 
 	return nil
 }
 
-func (s *AnySinker) HandleMessages3(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -180,7 +182,7 @@ func (s *AnySinker) HandleMessages3(msgs []*sarama.ConsumerMessage, sk *Sinker) 
 	for _, message := range msgs {
 		slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var obj map[string]interface{}
-
+		// map 形式，无法正确处理时区问题
 		err := json.Unmarshal(message.Value, &obj)
 		if err != nil {
 			slog.Error("unmarshal task object", err, slog.Any("msg", message.Value))

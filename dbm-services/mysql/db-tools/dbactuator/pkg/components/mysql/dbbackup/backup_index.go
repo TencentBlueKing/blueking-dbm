@@ -170,9 +170,7 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.
 		if err := MergeAndUntarFiles(f.splitParts, f.backupDir, untarDir, shareContext); err != nil {
 			return err
 		}
-	}
-
-	if len(f.tarParts) > 0 {
+	} else if len(f.tarParts) > 0 {
 		for _, p := range f.tarParts {
 			cmd := fmt.Sprintf(`cd %s && tar -xf %s -C %s/`, f.backupDir, p, untarDir)
 			if strings.Contains(p, ".gz") {
@@ -190,6 +188,8 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, shareContext *filecontext.
 				}
 			}
 		}
+	} else {
+		return errors.Errorf("no tar file found in %s", f.indexFilePath)
 	}
 
 	if !cmutil.FileExists(f.targetDir) {

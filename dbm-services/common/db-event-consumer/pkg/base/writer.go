@@ -6,18 +6,33 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-package cst
+package base
 
-const NoStrictSchemaModel = "FakeModelForNoStrictSchema"
+import (
+	"context"
+	"database/sql"
 
-var (
-	PtrTrue  = true
-	PtrFalse = false
+	"gorm.io/gorm"
 )
 
-const (
-	ModeInsert       = "insert"
-	ModeUpsert       = "upsert"
-	ModeInsertIgnore = "insert_ignore"
-	ModeReplace      = "replace"
-)
+type DSWriter interface {
+	Type() string
+	AutoMigrate(interface{}) error
+	WriteBatch(table interface{}, models interface{}) error
+	OnDuplicate(objs interface{}) error
+
+	SetWriteMode(mode string)
+	GetWriteMode() string
+}
+
+type GormMigrator interface {
+	GormDB() *gorm.DB
+	CloseGormDB() error
+}
+
+type DbExec interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	Exec(query string, args ...any) (sql.Result, error)
+	//Query(query string, args ...any) (*sql.Rows, error)
+	//QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}

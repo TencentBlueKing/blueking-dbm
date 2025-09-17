@@ -18,6 +18,10 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
+	//_ "github.com/go-sql-driver/mysql"
+
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
@@ -48,6 +52,7 @@ func GetGormDB(dsn *InstanceDsn) (*gorm.DB, error) {
 	}), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 		Logger:                                   slowLogger,
+		// TranslateError: true,
 	})
 
 	if err != nil {
@@ -102,7 +107,7 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 	return dbc, nil
 }
 
-func GetXormDB(dsn *InstanceDsn, sessionVars map[string]interface{}) (*xorm.Engine, error) {
+func GetXormDB(dsn *InstanceDsn) (*xorm.Engine, error) {
 	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=True&loc=Local",
 		dsn.User,
 		dsn.Password,
@@ -129,4 +134,24 @@ func GetXormDB(dsn *InstanceDsn, sessionVars map[string]interface{}) (*xorm.Engi
 		log.Fatalf("ping to db fail! err:%+v", err)
 	}
 	return engine, nil
+}
+
+func GetGoframeDB(dsn *InstanceDsn) (gdb.DB, error) {
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=True&loc=Local",
+		dsn.User,
+		dsn.Password,
+		dsn.Address,
+		dsn.Database,
+	)
+	db, err := gdb.New(gdb.ConfigNode{
+		Link: "mysql:" + dsnUrl,
+	})
+	if err != nil {
+		log.Fatalf("connect to mysql failed %s", err.Error())
+		return nil, err
+	}
+	db.SetMaxIdleConnCount(10)
+	db.SetMaxOpenConnCount(30)
+	db.SetMaxConnLifeTime(30 * time.Minute)
+	return db, nil
 }

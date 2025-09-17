@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
+	"github.com/pkg/errors"
 )
 
 /*
@@ -29,16 +30,16 @@ func (c *DbTableFilter) validate() error {
 	// TODO 检测不能包含 ', ", ; 这些危险字符
 
 	if err := globCheck(c.IncludeDbPatterns); err != nil {
-		return err
+		return errors.WithMessagef(err, "%v", c.IncludeDbPatterns)
 	}
 	if err := globCheck(c.IncludeTablePatterns); err != nil {
-		return err
+		return errors.WithMessagef(err, "%v", c.IncludeTablePatterns)
 	}
 	if err := globCheck(c.ExcludeDbPatterns); err != nil {
-		return err
+		return errors.WithMessagef(err, "%v", c.ExcludeDbPatterns)
 	}
 	if err := globCheck(c.ExcludeTablePatterns); err != nil {
-		return err
+		return errors.WithMessagef(err, "%v", c.ExcludeTablePatterns)
 	}
 	return nil
 }

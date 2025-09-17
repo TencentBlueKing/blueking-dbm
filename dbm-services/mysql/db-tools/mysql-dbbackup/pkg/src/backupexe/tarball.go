@@ -260,13 +260,13 @@ func (p *PackageFile) tarAndSplit(cnfPublic *config.Public) (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, cnfPublic.IOLimitMBPerSec)
 
 	// 如果备份总大小大于 2TB, 增加单切片大小，提高切片速度
-	if p.datadirSizeMB > 8*1024*1024*1024*1024 {
+	if p.datadirSizeMB > 8*1024*1024 {
 		cnfPublic.IOLimitMBPerSec *= 8
 		cnfPublic.TarSizeThreshold *= 8
-	} else if p.datadirSizeMB > 4*1024*1024*1024*1024 {
+	} else if p.datadirSizeMB > 4*1024*1024 {
 		cnfPublic.IOLimitMBPerSec *= 4
 		cnfPublic.TarSizeThreshold *= 4
-	} else if p.datadirSizeMB > 2*1024*1024*1024*1024 {
+	} else if p.datadirSizeMB > 2*1024*1024 {
 		cnfPublic.IOLimitMBPerSec *= 2
 		cnfPublic.TarSizeThreshold *= 2
 	}

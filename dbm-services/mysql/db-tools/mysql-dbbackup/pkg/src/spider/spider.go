@@ -15,7 +15,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/olekukonko/tablewriter"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -235,26 +236,36 @@ func printBackup(tasks []*GlobalBackupModel, format string) {
 		fmt.Println(string(jsonBytes))
 		return
 	}
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(false)
-	table.SetAutoMergeCellsByColumnIndex([]int{0})
-	table.SetRowLine(true)
-	table.SetHeader([]string{"BackupId", "ServerName", "BackupStatus", "Host", "Port", "ShardValue", "CreatedAt"})
+	tw := table.NewWriter()
+	tw.SetOutputMirror(os.Stdout)
+	tw.Style().Options.SeparateRows = true
+	tw.Style().Format.Header = text.FormatDefault
+	tw.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, Name: "BackupId", AutoMerge: true},
+	})
+	tw.SortBy([]table.SortBy{
+		{Name: "CreatedAt", Mode: table.Dsc},
+		{Name: "Wrapper", Mode: table.Asc},
+		{Name: "ShardValue", Mode: table.Asc},
+	})
+	tw.AppendHeader(table.Row{
+		"BackupId", "ServerName", "BackupStatus", "Host", "Port", "ShardValue", "Wrapper", "CreatedAt",
+	})
 	for _, t := range tasks {
 		if t != nil {
-			table.Append([]string{
+			tw.AppendRow([]interface{}{
 				t.BackupId,
 				t.ServerName,
 				t.BackupStatus,
 				t.Host,
-				cast.ToString(t.Port),
-				cast.ToString(t.ShardValue),
+				t.Port,
+				t.ShardValue,
+				t.Wrapper,
 				t.CreatedAt})
 		}
 	}
-	table.SetFooter([]string{"Rows", cast.ToString(table.NumLines()), "", "", "", "", ""})
-	table.Render()
+	tw.SetCaption("Total: %d", tw.Length())
+	tw.Render()
 }
 func runBackup(tasks []InstBackupTask) error {
 	var errList []error

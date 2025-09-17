@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jedib0t/go-pretty/v6/text"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cast"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -80,49 +81,54 @@ func listEntries(cmd *cobra.Command, status string) []*api.SimpleEntry {
 
 func printEntries(entries []*api.SimpleEntry, detail bool) {
 	sort.Sort(api.SimpleEntryList(entries)) // 自定义排序展示
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoWrapText(false)
-	table.SetRowLine(true)
-	table.SetAutoFormatHeaders(false)
 
+	tw := table.NewWriter()
+	tw.SetOutputMirror(os.Stdout)
+	tw.Style().Options.SeparateRows = true
+	tw.Style().Format.Header = text.FormatDefault
+	//tw.SortBy([]table.SortBy{{Name: "Command", Mode: table.Asc}, {Name: "Schedule", Mode: table.Asc}})
+	warnColor := text.Colors{text.FgRed}
+	colorTrans := text.Transformer(func(val interface{}) string {
+		if val.(bool) == false {
+			return warnColor.Sprintf("%t", val)
+		}
+		return fmt.Sprintf("%t", val)
+	})
 	if detail {
-		table.SetHeader([]string{"ID", "JobName", "Schedule", "Command", "Args", "WorkDir", "Enable", "NextTime"})
+		tw.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 7, Name: "Enable", Transformer: colorTrans}, // column: Enable or not
+		})
+		tw.AppendHeader(table.Row{"ID", "JobName", "Schedule", "Command", "Args", "WorkDir", "Enable", "NextTime"},
+			table.RowConfig{})
 		for _, e := range entries {
-			row := []string{
-				cast.ToString(e.ID),
+			row := []interface{}{
+				e.ID,
 				e.Job.Name,
 				e.Job.Schedule,
 				e.Job.Command,
 				strings.Join(e.Job.Args, " "),
 				e.Job.WorkDir,
-				cast.ToString(e.Job.Enable),
+				*e.Job.Enable,
 				e.Next.Format(time.RFC3339),
 			}
-			if *(e.Job.Enable) {
-				table.Append(row)
-			} else {
-				table.Rich(row,
-					[]tablewriter.Colors{nil, nil, nil, nil, nil, nil, tablewriter.Colors{tablewriter.FgMagentaColor}, nil})
-			}
+			tw.AppendRow(row)
 		}
 	} else {
-		table.SetHeader([]string{"ID", "JobName", "Schedule", "Command", "Enable", "NextTime"})
+		tw.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 5, Name: "Enable", Transformer: colorTrans}, // column: Enable or not
+		})
+		tw.AppendHeader(table.Row{"ID", "JobName", "Schedule", "Command", "Enable", "NextTime"})
 		for _, e := range entries {
-			row := []string{
-				cast.ToString(e.ID),
+			row := []interface{}{
+				e.ID,
 				e.Job.Name,
 				e.Job.Schedule,
 				e.Job.Command,
-				cast.ToString(e.Job.Enable),
+				*e.Job.Enable,
 				e.Next.Format(time.RFC3339),
 			}
-			if *(e.Job.Enable) {
-				table.Append(row)
-			} else {
-				table.Rich(row,
-					[]tablewriter.Colors{nil, nil, nil, nil, tablewriter.Colors{tablewriter.FgMagentaColor}, nil})
-			}
+			tw.AppendRow(row)
 		}
 	}
-	table.Render()
+	tw.Render()
 }

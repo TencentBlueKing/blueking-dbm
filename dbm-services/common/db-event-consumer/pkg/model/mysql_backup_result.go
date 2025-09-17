@@ -19,21 +19,22 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
 
 type MysqlBackupResultModel struct {
-	BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
+	base.BaseModel `json:",inline" gorm:"embedded" xorm:"extends"`
 
 	BackupId        string `json:"backup_id" db:"backup_id" gorm:"column:backup_id;type:varchar(60);NOT NULL;index:uk_cluster,unique,priority:4" validate:"required"`
 	BackupType      string `json:"backup_type" db:"backup_type" gorm:"column:backup_type;type:varchar(32);NOT NULL"`
 	ClusterId       int    `json:"cluster_id" db:"cluster_id" gorm:"column:cluster_id;type:int;NOT NULL"`
 	ClusterAddress  string `json:"cluster_address" db:"cluster_address" gorm:"column:cluster_address;type:varchar(255);NOT NULL;index:uk_cluster,unique,priority:1"`
-	BackupHost      string `json:"backup_host" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_hostport,unique,priority:1"`
-	BackupPort      int    `json:"backup_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_hostport,unique,priority:2"`
-	MysqlRole       string `json:"mysql_role" db:"mysql_role" gorm:"column:mysql_role;type:varchar(32);NOT NULL;index:uk_hostport,unique,priority:3;;index:uk_cluster,unique,priority:3"`
-	ShardValue      int    `json:"shard_value" db:"shard_value" gorm:"column:shard_value;type:int;NOT NULL;index:uk_cluster,unique,priority:2"`
+	BackupHost      string `json:"backup_host" db:"backup_host" gorm:"column:backup_host;type:varchar(32);NOT NULL;index:uk_cluster,unique,priority:2"`
+	BackupPort      int    `json:"backup_port" db:"backup_port" gorm:"column:backup_port;type:int;NOT NULL;index:uk_cluster,unique,priority:3"`
+	MysqlRole       string `json:"mysql_role" db:"mysql_role" gorm:"column:mysql_role;type:varchar(32);NOT NULL"`
+	ShardValue      int    `json:"shard_value" db:"shard_value" gorm:"column:shard_value;type:int;NOT NULL"`
 	BillId          string `json:"bill_id" db:"bill_id" gorm:"column:bill_id;type:varchar(32);NOT NULL"`
 	BkBizId         int    `json:"bk_biz_id" db:"bk_biz_id" gorm:"column:bk_biz_id;type:int;NOT NULL"`
 	MysqlVersion    string `json:"mysql_version" db:"mysql_version" gorm:"column:mysql_version;type:varchar(120);NOT NULL"`
@@ -44,7 +45,7 @@ type MysqlBackupResultModel struct {
 	IsStandby            string    `json:"is_standby" db:"is_standby" gorm:"column:is_standby;type:varchar(10);NOT NULL"`
 	FileRetentionTag     string    `json:"file_retention_tag" db:"file_retention_tag" gorm:"column:file_retention_tag;type:varchar(32);NOT NULL"`
 	TotalFilesize        uint64    `json:"total_filesize" db:"total_filesize" gorm:"column:total_filesize;type:bigint;NOT NULL"`
-	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:TIMESTAMP;default:'1970-01-02 00:00:00';index:uk_hostport,unique,priority:4"`
+	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time" gorm:"column:backup_consistent_time;type:TIMESTAMP;default:'1970-01-02 00:00:00'"`
 	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time" gorm:"column:backup_begin_time;type:TIMESTAMP NULL;default:null"`
 	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time" gorm:"column:backup_end_time;type:TIMESTAMP NULL;default:null"`
 	BackupMethod         string    `json:"backup_method" db:"backup_method" gorm:"column:backup_method;type:varchar(32)"`
@@ -59,45 +60,44 @@ func (m *MysqlBackupResultModel) TableName() string {
 	return "tb_mysql_backup_result"
 }
 
-func (m *MysqlBackupResultModel) MigrateSchema(w sinker.DSWriter) error {
+// UniqueKey is used to handle duplicate record
+func (m *MysqlBackupResultModel) UniqueKey() []string {
+	return []string{"cluster_address", "backup_host", "backup_port", "backup_id"}
+}
+
+func (m *MysqlBackupResultModel) MigrateSchema(w base.DSWriter) error {
 	slog.Info("run migrate for MysqlBackupResultModel", slog.String("table", m.TableName()))
-	if w.Type() == "mysql" {
-		dbWriter := w.(*sinker.MysqlWriter)
+	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
+		dbWriter := w.(base.GormMigrator)
 		db := dbWriter.GormDB()
+		// 调用通用 migrate
 		if err := db.Migrator().AutoMigrate(&m); err != nil {
 			return err
 		}
-		/*
-			if err := AddIndex(db, m.TableName(), "uk_hostport",
-				[]string{"backup_host", "backup_port", "mysql_role", "backup_consistent_time"}, true, true); err != nil {
-				return err
-			}
-			if err := AddIndex(db, m.TableName(), "uk_cluster",
-				[]string{"cluster_address", "shard_value", "mysql_role", "backup_id"}, true, true); err != nil {
-				return err
-			}
-		*/
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_backuptime",
+		// 处理索引与其他约束
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_hostport",
+			[]string{"backup_host", "backup_port", "mysql_role", "backup_consistent_time"}, true, true); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clusterid",
+			[]string{"cluster_id", "backup_id", "backup_consistent_time"}, false, true); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backuptime",
 			[]string{"backup_consistent_time"}, false, true); err != nil {
 			return err
 		}
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_backupid",
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backupid",
 			[]string{"backup_id"}, false, true); err != nil {
 			return err
 		}
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_clusterid",
-			[]string{"cluster_id"}, false, true); err != nil {
-			return err
-		}
 		return nil
-	} else if w.Type() == "mysql_xorm" {
-		return w.AutoMigrate(m)
 	} else {
 		return w.AutoMigrate(m)
 	}
 }
 
-func (m *MysqlBackupResultModel) Create(objs interface{}, w sinker.DSWriter) error {
+func (m *MysqlBackupResultModel) Create(objs interface{}, w base.DSWriter) error {
 	if w.Type() == "mysql" {
 		if writer, ok := w.(*sinker.MysqlWriter); ok {
 			return m.mysqlCreate(objs, writer.GormDB())
@@ -226,7 +226,7 @@ func (m *MysqlBackupResultModel) UnmarshalJSON(data []byte) error {
 }
 
 type MysqlBackupResultMsg struct {
-	BaseModel `json:",inline"`
+	base.BaseModel `json:",inline"`
 	//dbareport.IndexContent `json:",inline"`
 	dbareport.BackupMetaFileBase `json:",inline"`
 	dbareport.ExtraFields        `json:",inline"`

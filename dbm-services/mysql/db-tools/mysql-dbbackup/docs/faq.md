@@ -34,28 +34,21 @@ DataSchemaGrant = all
 ### 4. 怎么修改备份开始时间
 
 - **tendbha主从高可用集群**  
-进入 mysql-crond 任务调度程序目录
+进入备份工具目录 `/home/mysql/dbbackup-go`，修改 CronTime
 ```
-cd /home/mysql/mysql-crond
-./mysql-crond  list
+# 编辑 dbbackup.20xxx.ini
+[Schedule]
+Command =       /home/mysql/dbbackup-go/dbbackup_main.sh > /home/mysql/dbbackup-go/logs/main.log 2>&1
+CronTime        =       30 3 * * *
+JobName =       dbbackup-schedule
 ```
 
-修改 schedule:
+再执行 reschedule:
 ```
- ./mysql-crond change-job --permanent -n "dbbackup-schedule" --schedule "4 3 * * *"
-```
-某些旧版本的 mysql-crond 没有 change-job命令，可以直接修改 `jobs-config.yaml`，再重启 mysql-crond
-```
-    - name: dbbackup-schedule
-      enable: true
-      command: /home/mysql/dbbackup-go/dbbackup_main.sh
-      args:
-        - '>'
-        - /home/mysql/dbbackup-go/logs/main.log
-        - 2>&1
-      schedule: 3 3 * * *
-      creator: system
-      work_dir: /home/mysql/dbbackup-go
+./dbbackup reschedule -c dbbackup.20000.ini
+
+# 确认结果
+../mysql-crond/mysql-crond list
 ```
 
 - **tendbcluster 集群**  
@@ -66,33 +59,23 @@ spider 集群的备份由两个任务组成
   - `spiderbackup-check`  
    每分钟轮训判断本机是否有备份任务，如果有则执行备份
 
-修改备份时间时间 schedule：
+修改 spider 集群的备份时间，需要在 spider master primary 节点：
 ```
-./mysql-crond change-job --permanent -n "spiderbackup-schedule" --schedule "4 3 * * *"
-```
-
--- **也可直接修改jobs-config.yaml**  
-某些旧版本的 mysql-crond 没有 change-job 命令，可以直接修改 `jobs-config.yaml`，再重启 mysql-crond
-```
-    - name: spiderbackup-schedule
-      enable: true
-      command: /home/mysql/dbbackup-go/dbbackup
-      args:
-        - spiderbackup
-        - schedule
-        - --config
-        - dbbackup.25000.ini
-      schedule: 3 3 * * *  --- 改这个
-      creator: xxx
-      work_dir: /home/mysql/dbbackup-go
+# 编辑 dbbackup.25xxx.ini
+[Schedule]
+Command =       /home/mysql/dbbackup-go/dbbackup spiderbackup schedule
+CronTime        =       30 3 * * *
+JobName =       spiderbackup-schedule
 ```
 
-如果需要重启 mysql-crond  
+再执行 reschedule
 ```
-./stop.sh && sleep 1
-./start.sh
+./dbbackup reschedule -c dbbackup.25000.ini
 ```
 
+不需要修改 remote 机器的配置。提示：因为 spider master primary 可能会在任何 spider master 节点之间切换，所以需要在所有 spider 节点进行修改。
+
+以上，修改机器上的配置，在下次迁移或者标准化的时候，被刷掉，需要修改 dbconfig 里面的配置。
 
 ### 5. 怎么手工在机器上发起备份
 首先要坚持当前实例的角色，比如备份类型(physical/logical)，备份角色(master/slave)，备份内容(all/schema,grant)
@@ -265,6 +248,7 @@ use --long-query-guard to change the guard value, kill queries (--kill-long-quer
 
 mydumper 备份发起的时候，当前实例有运行超过 120s的慢查询（`--long-query-guard=120`），在经历时间 `--long-query-retry-interval`\*`--long-query-retries` 之后慢查询还没结束，所以备份退出。
 
+可以在 `logs/dbbackup_dump.log` 备份日志里看到当时的 processlist。
 处理方法：
 - 如果想自动 kill 掉这类长 sql，可以设置 `Public.KillLongQueryTime=120`，即超过 120s 的 sql会杀掉。
 - 如果不想 kill，仅仅想设置更长的时间等待长 sql执行完成，可以设置 `Public.FtwrlWaitTimeout=3600`。
@@ -283,10 +267,16 @@ mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--
 - 调整备份时间段
 
 #### 5. Unable to obtain lock. Please try again later
-有 mysiam 表？
+物理备份的时候检测到有慢 SQL，可以根据 `logs/dbbackup_dump.log` 查看当前的 processlist。
+
+目前发现有一种情况是主从校验引起的从库延迟，也会触发物理备份在备份完 innodb 后进行 FLUSH TABLE WITH READ LOCK 之前进行慢 sql 判断，会将 checksum 语句认为是慢 sql。
+当前可以设置 `Public.FtwrlWaitTimeout = 0`来避免慢 sql 检查。但这个设置会让 xtrabackup 直接加 FTWRL，建议只在 slave 上设置。
+或者，错开校验与备份时间。
 
 #### 6. Couldn't acquire global lock, snapshots will not be consistent
 > CRITICAL **: Couldn't acquire global lock, snapshots will not be consistent: 
 > Lock wait timeout exceeded; try restarting transaction
 
-执行逻辑备份的时候刚开始的时候，有慢查询没结束
+执行逻辑备份的时候刚开始的时候，有慢查询没结束。可以在 `logs/dbbackup_dump.log` 备份日志里看到当时的 processlist, 关键字 _get processlist for backup failed_
+
+#### 7. DDLoperation has been performed

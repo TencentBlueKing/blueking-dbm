@@ -124,36 +124,32 @@ type GoApplyBinlog struct {
 func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
-	errChan := make(chan error)
-	//var externalErr error
-	//tokenBulkChan := make(chan struct{}, r.ParseConcurrency)
 	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
 	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, r.ParseConcurrency, 10*time.Second)
 	if err != nil {
 		return err
 	}
 	logger.Info("using lock file %s", fileLock.GetContextFilePath())
-	//cancelCtx, cancel := context.WithCancel(context.Background())
-	g, _ := errgroup.WithContext(context.Background())
-	g.SetLimit(r.ParseConcurrency) // 单个进程也设置一下最大并发
-
 	logger.Info("need parse %d binlog files: %s", len(r.BinlogFiles), r.BinlogFiles)
 
+	g, ctx := errgroup.WithContext(context.Background())
+	g.SetLimit(r.ParseConcurrency) // 单个进程也设置一下最大并发
 	for _, f := range r.BinlogFiles {
-		//tokenBulkChan <- struct{}{}
+		f := f
+		var ctxDone bool
 		// 如果遇到解析错误，不启动后续解析的 goroutine，所以要在 routine 外层
 		select {
-		case e := <-errChan:
-			if e != nil {
-				//不直接 return e，error 信息在 g.Wait() 也能获取到
-				close(errChan)
-				break
-			}
+		case <-ctx.Done():
+			ctxDone = true
+			break
 		default:
 			// 默认不阻塞
 		}
-		lockErr := fileLock.Add(1)
+		if ctxDone {
+			break // 需要跳出 for 循环。主要是避免是用 break label 才定义的 ctxDone
+		}
 
+		lockErr := fileLock.Add(1)
 		if lockErr != nil {
 			// 这里全局并发控制失效，但不让任务失败
 			logger.Error("failed to get file lock:%s. ignore error and concurrency not work", lockErr.Error())
@@ -170,12 +166,16 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 			} else {
 				r.BinlogOpt.StartPos = 0
 			}
+			select {
+			case <-ctx.Done():
+				//fmt.Printf("Cancellation signal received, stopping processing of file: %s\n", filePath)
+				return ctx.Err()
+			default:
+			}
 			_, internalErr := r.BinlogOpt.Parse(r.BinlogDir, f, r.QuickMode)
 			if internalErr != nil {
-				logger.Error("parse %s failed: %s", f, internalErr.Error())
-				errChan <- internalErr
+				logger.Error("parse failed %s: %s", f, internalErr.Error())
 			}
-			//<-tokenBulkChan
 			return internalErr
 		})
 	}

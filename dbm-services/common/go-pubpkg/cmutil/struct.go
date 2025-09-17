@@ -6,13 +6,25 @@
 // an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-package sinker
+package cmutil
 
-type ModelSinker interface {
-	TableName() string
-	StrictSchema() bool
-}
+import (
+	"slices"
 
-type ModelFieldOmit interface {
-	OmitFields() []string
+	"github.com/gogf/gf/v2/util/gconv"
+)
+
+func StructToMap(obj interface{}, tagName string, fields []string) map[string]interface{} {
+	m := gconv.Map(obj, gconv.MapOption{
+		Tags: []string{tagName},
+	})
+	if len(fields) == 0 {
+		return m
+	}
+	for k, _ := range m {
+		if slices.Index(fields, k) < 0 {
+			delete(m, k)
+		}
+	}
+	return m
 }

@@ -14,8 +14,8 @@ import (
 	"os"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/cast"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -60,33 +60,35 @@ var queryCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetAutoWrapText(false)
-		table.SetAutoFormatHeaders(false)
-		table.SetAutoMergeCellsByColumnIndex([]int{0, 1})
-		table.SetRowLine(true)
-		table.SetHeader([]string{"Port", "DBRole", "Filename", "Filesize", "FileMtime", "StopTime",
+		tw := table.NewWriter()
+		tw.SetOutputMirror(os.Stdout)
+		tw.Style().Options.SeparateRows = true
+		tw.Style().Format.Header = text.FormatDefault
+		tw.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, Name: "Port", AutoMerge: true},
+			{Number: 2, Name: "DBRole", AutoMerge: true},
+		})
+		tw.AppendHeader(table.Row{"Port", "DBRole", "Filename", "Filesize", "FileMtime", "StopTime",
 			"BackupTaskId", "BackupStatus", "StatusMsg", "ClusterId", "Host"})
 		for _, fi := range files {
 			if fi != nil {
-				table.Append([]string{
-					cast.ToString(fi.Port),
+				tw.AppendRow([]interface{}{
+					fi.Port,
 					fi.DBRole,
 					fi.Filename,
-					cast.ToString(fi.Filesize),
+					fi.Filesize,
 					fi.FileMtime,
 					fi.StopTime,
 					fi.BackupTaskid,
-					cast.ToString(fi.BackupStatus),
+					fi.BackupStatus,
 					models.IBStatusMap[fi.BackupStatus],
-					cast.ToString(fi.ClusterId),
+					fi.ClusterId,
 					fi.Host,
 				})
-
 			}
 		}
-		//table.SetFooter([]string{"Rows", cast.ToString(table.NumLines()), "", "", "", "", ""})
-		table.Render()
+		tw.SetCaption("Total: %d", tw.Length())
+		tw.Render()
 		return nil
 	},
 }

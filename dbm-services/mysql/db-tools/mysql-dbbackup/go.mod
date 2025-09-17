@@ -9,11 +9,11 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/uuid v1.6.0
 	github.com/huandu/go-sqlbuilder v1.36.1
+	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/klauspost/compress v1.18.0
 	github.com/melbahja/goph v1.4.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/olekukonko/tablewriter v0.0.5
 	github.com/samber/lo v1.44.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.9.3
@@ -45,7 +45,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/sftp v1.13.7 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
@@ -32,6 +33,7 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
+	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})
 }
 
 type mainConfig struct {
@@ -104,6 +106,13 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 				return nil, fmt.Errorf("duplicate sinker name %s", name)
 			}
 			checkDup[name] = struct{}{}
+
+			if s.WriteMode == "" {
+				s.WriteMode = cst.ModeUpsert
+			}
+			if !lo.Contains([]string{cst.ModeInsertIgnore, cst.ModeInsert, cst.ModeUpsert}, s.WriteMode) {
+				return nil, fmt.Errorf("invalid write_mode: %s", s.WriteMode)
+			}
 		}
 	}
 	return allSinkers, nil

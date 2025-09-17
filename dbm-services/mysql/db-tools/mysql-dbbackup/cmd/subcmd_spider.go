@@ -153,7 +153,7 @@ var spiderCheckCmd = &cobra.Command{
 var spiderQueryCmd = &cobra.Command{
 	Use:          "query",
 	Short:        "spiderbackup query",
-	Long:         `Query spider backup task status, only run on spider master`,
+	Long:         `Query spider backup task status, only run on spider master. tdbctl schema backup is not included`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {

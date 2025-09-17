@@ -11,12 +11,12 @@ package model
 import (
 	"log/slog"
 
-	"dbm-services/common/db-event-consumer/pkg/sinker"
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
 
 type MysqlBackupStatusModel struct {
-	BaseModel              `json:",inline" gorm:"embedded" xorm:"extends"`
+	base.BaseModel         `json:",inline" gorm:"embedded" xorm:"extends"`
 	dbareport.BackupStatus `json:",inline" xorm:"extends"`
 }
 
@@ -24,32 +24,44 @@ func (m MysqlBackupStatusModel) TableName() string {
 	return "tb_mysql_backup_progress"
 }
 
-func (m MysqlBackupStatusModel) MigrateSchema(w sinker.DSWriter) error {
+func (m MysqlBackupStatusModel) UniqueKey() []string {
+	return []string{"event_uuid"}
+}
+
+func (m MysqlBackupStatusModel) MigrateSchema(w base.DSWriter) error {
 	slog.Info("run migrate for MysqlBackupStatusModel", slog.String("table", m.TableName()))
-	if w.Type() == "mysql" {
-		dbWriter := w.(*sinker.MysqlWriter)
+	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
+		dbWriter := w.(base.GormMigrator)
 		db := dbWriter.GormDB()
+
+		// 处理字段
 		if err := db.Migrator().AutoMigrate(&m); err != nil {
 			return err
 		}
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_cluster",
+
+		// 处理约束与索引
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "uk_eventuuid",
+			[]string{"event_uuid"}, true, true); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_cluster",
 			[]string{"cluster_domain"}, false, true); err != nil {
 			return err
 		}
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_status",
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_status",
 			[]string{"status"}, false, true); err != nil {
 			return err
 		}
-		if err := CreateOrUpdateIndex(db, m.TableName(), "idx_host",
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_host",
 			[]string{"backup_host"}, false, true); err != nil {
 			return err
 		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_create_ts",
+			[]string{"event_create_timestamp"}, false, true); err != nil {
+			return err
+		}
 		return nil
-	} else if w.Type() == "mysql_xorm" {
-		return w.AutoMigrate(m)
 	} else {
 		return w.AutoMigrate(m)
 	}
 }
-
-// replace

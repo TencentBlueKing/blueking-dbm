@@ -10,9 +10,9 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/gofrs/flock v0.12.1
 	github.com/google/uuid v1.6.0
+	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/juju/ratelimit v1.0.2
-	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pingcap/errors v0.11.4
 	github.com/pkg/errors v0.9.1
 	github.com/samber/lo v1.51.0
@@ -37,7 +37,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
