@@ -52,7 +52,6 @@ class CommonEnum(EnhanceEnum):
         "bk_bak_operator",
         "sub_zone",
         "rack_id",
-        "svr_device_class",
     ]
 
     @classmethod
