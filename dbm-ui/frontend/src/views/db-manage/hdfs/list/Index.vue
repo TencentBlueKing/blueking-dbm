@@ -301,7 +301,7 @@
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
-  import ClusterSettings from './components/ClusterSettings.vue';
+  import ClusterSettings from './components/cluster-settings/Index.vue';
 
   const route = useRoute();
   const { t } = useI18n();
