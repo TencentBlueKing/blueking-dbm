@@ -244,9 +244,12 @@
   const handleChange = (data?: BackupLogRecord) => {
     if (data?.backup_id) {
       backupTime.value = data.backup_time;
-      emits('change');
     }
   };
+
+  watch(backupTime, () => {
+    emits('change');
+  });
 </script>
 <style lang="less" scoped>
   .batch-select {
