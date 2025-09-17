@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import MachineType
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -39,6 +39,10 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         old_nodes = OldProxySerializer(help_text=_("旧Proxy实例信息"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
+        related_instances = serializers.ListSerializer(
+            help_text=_("关联的实例"), child=serializers.JSONField(), required=False
+        )
+        origin_proxy_ip = serializers.JSONField(help_text=_("原始proxy信息"))
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
@@ -47,25 +51,15 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("资源来源类型"), choices=SourceType.get_choices(), required=False, default=SourceType.RESOURCE_AUTO
     )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
-    force = serializers.BooleanField(help_text=_("是否强制替换"), required=False, default=False)
+    is_safe = serializers.BooleanField(help_text=_("是否安全模式"), required=False, default=True)
     infos = serializers.ListField(help_text=_("替换信息"), child=SwitchInfoSerializer())
     opera_object = serializers.ChoiceField(help_text=_("操作对象类型"), choices=OperaObjType.get_choices(), required=False)
     disable_manual_confirm = serializers.BooleanField(help_text=(_("自愈单据禁用人工确认")), default=False)
 
-    def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super(MysqlProxySwitchDetailSerializer, self).validate_cluster_can_access(attrs)
-        super(MysqlProxySwitchDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
-
-        # 校验来源是资源池
-        if attrs["ip_source"] != IpSource.RESOURCE_POOL:
-            raise serializers.ValidationError(_("主机来源不为资源池模式"))
-
-        return attrs
-
 
 class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_scene
+    validator = MySQLController.mysql_proxy_switch_scene.validator
 
     @classmethod
     def merge_same_proxy_clusters(cls, infos):
@@ -77,10 +71,6 @@ class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
                 switch_proxy_cluster_map[switch_key] = {**info, "cluster_ids": []}
             switch_proxy_cluster_map[switch_key]["cluster_ids"].extend(info["cluster_ids"])
         return list(switch_proxy_cluster_map.values())
-
-    def format_ticket_data(self):
-        for info in self.ticket_data["infos"]:
-            info["origin_proxy_ip"] = info["old_nodes"]["origin_proxy"][0]
 
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
