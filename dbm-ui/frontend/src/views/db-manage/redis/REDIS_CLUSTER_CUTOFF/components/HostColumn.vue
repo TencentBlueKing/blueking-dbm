@@ -192,6 +192,7 @@
     () => {
       if (modelValue.value.ip && !modelValue.value.bk_host_id) {
         queryMachine({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_type: DBTypes.REDIS,
           instance_addresses: [modelValue.value.ip],
         });
