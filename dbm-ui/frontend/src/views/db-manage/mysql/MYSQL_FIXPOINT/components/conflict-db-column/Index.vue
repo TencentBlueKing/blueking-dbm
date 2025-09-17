@@ -35,6 +35,7 @@
     </template>
     <EditableBlock :placeholder="t('自动生成')">
       <BkButton
+        v-if="conflictDbNum"
         text
         theme="primary"
         @click="handleClick">
@@ -149,8 +150,31 @@
   });
 
   watch(
-    () => [props.rowData.cluster.id, props.rowData.targetCluster?.id, props.rowData.databases],
+    () => [
+      props.rowData.cluster.id,
+      props.rowData.targetCluster?.id,
+      props.rowData.databases,
+      props.rowData.backupRecord?.backup_id,
+    ],
     () => {
+      conflictDbNum.value = 0;
+      let valid = false;
+      if (props.rowData.targetCluster) {
+        valid = Boolean(
+          props.rowData.cluster.id &&
+            props.rowData.backupRecord?.backup_id &&
+            props.rowData.databases.length &&
+            props.rowData.targetCluster.id,
+        );
+      } else {
+        valid = Boolean(
+          props.rowData.cluster.id && props.rowData.backupRecord?.backup_id && props.rowData.databases.length,
+        );
+      }
+      if (!valid) {
+        return;
+      }
+
       const clusterId = props.rowData.targetCluster?.id || props.rowData.cluster.id; // 回档的目标集群是源集群
       const dbs = props.rowData.databases || [];
       if (clusterId) {

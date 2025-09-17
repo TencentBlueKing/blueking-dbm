@@ -320,7 +320,7 @@
 
   const diabledEdit = (row: RowData) => {
     // 只要备份方式选择的是物理备份，则库，表字段默认填充*，且不可编辑
-    if (row.backupRecord.backup_type === 'physical') {
+    if (row.backupRecord?.backup_type === 'physical') {
       return true;
     }
     // 指定时间构造数据，库，表字段默认填充*，且不可编辑
