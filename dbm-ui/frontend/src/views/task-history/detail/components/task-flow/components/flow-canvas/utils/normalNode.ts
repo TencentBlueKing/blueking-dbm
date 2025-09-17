@@ -43,11 +43,11 @@ function adjustLinesText(linesText: string[], keyword: string) {
   if (firstLineTestWidth < LINE_WIDTH) {
     while (firstLineTestWidth < LINE_WIDTH && firstLineTestWidth < totalWidth) {
       secondLineStartIndex += 1;
-      const tmpStr = firstTestStr + linesText[1].substring(0, secondLineStartIndex);
+      const tmpStr = firstTestStr + linesText[1]!.substring(0, secondLineStartIndex);
       firstLineTestWidth = getTextWidth(tmpStr);
     }
     adjustLines[0] =
-      secondLineStartIndex > 0 ? firstTestStr + linesText[1].substring(0, secondLineStartIndex) : firstTestStr;
+      secondLineStartIndex > 0 ? firstTestStr + linesText[1]!.substring(0, secondLineStartIndex) : firstTestStr;
   }
   if (adjustLines[0] === totalStr) {
     return [totalStr];
@@ -55,7 +55,7 @@ function adjustLinesText(linesText: string[], keyword: string) {
 
   if (firstTestStr !== totalStr) {
     adjustLines[1] =
-      secondLineStartIndex > 1 ? linesText[1].substring(secondLineStartIndex) : `${keyword}${linesText[1]}`;
+      secondLineStartIndex > 1 ? linesText[1]!.substring(secondLineStartIndex) : `${keyword}${linesText[1]}`;
   } else {
     if (!adjustLines[1] && totalStr.endsWith(keyword) && adjustLines[0] !== totalStr) {
       adjustLines[1] = keyword;
@@ -137,15 +137,9 @@ export class NormalNode extends Rect {
     }
 
     const [width, height] = this.getSize(attributes);
-
-    // const collapseBackgroundStyle = {
-    //   cx: -120,
-    //   cy: 0,
-    //   fill: attributes.collapseBackgroundColor,
-    //   r: 7,
-    //   zIndex: 101,
-    // };
-    // this.upsert('collapseBackground', GCircle, collapseBackgroundStyle, container);
+    if (!width || !height) {
+      return;
+    }
 
     const collapseIconStyle = {
       height: 14,
@@ -161,6 +155,10 @@ export class NormalNode extends Rect {
 
   drawFocusBackgroundShape(attributes: any, container: Group) {
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     const focusBackgroundStyle = {
       fill: 'rgba(58, 132, 255, 0.1)',
       height: height + 16,
@@ -176,6 +174,10 @@ export class NormalNode extends Rect {
 
   drawNodeTitleShape(attributes: any, container: Group) {
     const [width] = this.getSize(attributes);
+    if (!width) {
+      return;
+    }
+
     const { name } = this.data;
 
     let y = 10;
@@ -239,6 +241,10 @@ export class NormalNode extends Rect {
       return;
     }
     const [width] = this.getSize(attributes);
+    if (!width) {
+      return;
+    }
+
     const { retryable, skippable, status, todoId } = this.data;
     if (status === 'FAILED') {
       if (skippable) {
@@ -480,6 +486,10 @@ export class NormalNode extends Rect {
     }
 
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     // 矩形背景
     const mainStatusBackgroundStyle = {
       fill: strokeColor,
@@ -637,6 +647,10 @@ export class NormalNode extends Rect {
     }
 
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     const diffSeconds = this.isRunning
       ? Math.floor(Date.now() / 1000) - this.data.started_at
       : this.data.updated_at - this.data.started_at;

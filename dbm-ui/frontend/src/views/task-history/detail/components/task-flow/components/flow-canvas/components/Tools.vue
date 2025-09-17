@@ -270,7 +270,9 @@
 
   const showMiniMap = () => {
     const minimapDom = document.getElementsByClassName(G6_MINIMAP_CLASS_NAME)[0];
-    minimapDom.classList.add(G6_MINIMAP_SHOW_CLASS_NAME);
+    if (minimapDom) {
+      minimapDom.classList.add(G6_MINIMAP_SHOW_CLASS_NAME);
+    }
   };
 
   const handleClickTool = (type: string) => {
@@ -294,7 +296,9 @@
 
   const hideMiniMap = () => {
     const minimapDom = document.getElementsByClassName(G6_MINIMAP_CLASS_NAME)[0];
-    minimapDom.classList.remove(G6_MINIMAP_SHOW_CLASS_NAME);
+    if (minimapDom) {
+      minimapDom.classList.remove(G6_MINIMAP_SHOW_CLASS_NAME);
+    }
   };
 
   const handleClickToolsOutside = (e: any) => {
