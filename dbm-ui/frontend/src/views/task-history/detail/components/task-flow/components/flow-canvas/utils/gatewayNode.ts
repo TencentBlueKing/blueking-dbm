@@ -49,6 +49,10 @@ export class GatewayNode extends Rect {
 
   drawFocusBackgroundShape(attributes: any, container: Group) {
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     const focusBackgroundStyle = {
       fill: '#E1ECFF',
       height: height + 16,
@@ -65,6 +69,10 @@ export class GatewayNode extends Rect {
   // 基类方法覆盖
   drawIconShape(attributes: any, container: Group) {
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     const gatewayIconStyle = {
       height: 25,
       src: iconMap[this.data.type as keyof typeof iconMap],
@@ -80,12 +88,6 @@ export class GatewayNode extends Rect {
     this.drawFocusBackgroundShape(attributes, container);
     this.drawBackground(attributes, container);
   }
-
-  // protected getKeyStyle(attributes: any) {
-  //   const keyStyle = super.getKeyStyle(attributes);
-  //   keyStyle.ports = [{ placement: 'left' }, { placement: 'right' }];
-  //   return keyStyle;
-  // }
 
   // eslint-disable-next-line perfectionist/sort-classes
   render(attributes = this.parsedAttributes as any, container: Group) {

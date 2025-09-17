@@ -63,12 +63,12 @@ export default class CustomEdge extends Polyline {
   }
 
   protected getKeyPath(attributes: any) {
-    const keyPathStyle = super.getKeyPath(attributes);
+    const keyPathStyle = super.getKeyPath(attributes)!;
     // 垂直边线校正
     if (this.sourceNodeData.style.y < this.targetNodeData.style.y) {
-      keyPathStyle.splice(1, 0, ['L', keyPathStyle[0][1], keyPathStyle[1][2]] as any);
+      keyPathStyle.splice(1, 0, ['L', keyPathStyle[0][1], keyPathStyle[1]![2]!]);
     } else if (this.sourceNodeData.style.y > this.targetNodeData.style.y) {
-      keyPathStyle.splice(1, 0, ['L', keyPathStyle[1][1], keyPathStyle[0][2]] as any);
+      keyPathStyle.splice(1, 0, ['L', keyPathStyle[1]![1]!, keyPathStyle[0]![2]!]);
     }
     return keyPathStyle;
   }

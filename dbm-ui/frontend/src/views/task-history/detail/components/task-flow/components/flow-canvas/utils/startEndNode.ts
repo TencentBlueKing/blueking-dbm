@@ -35,6 +35,10 @@ export class StartEndNode extends Rect {
 
   drawFocusBackgroundShape(attributes: any, container: Group) {
     const [width, height] = this.getSize(attributes);
+    if (!width || !height) {
+      return;
+    }
+
     const focusBackgroundStyle = {
       fill: '#E1ECFF',
       height: height + 16,
@@ -68,12 +72,6 @@ export class StartEndNode extends Rect {
     this.drawBackgroundShape(attributes, container);
     this.drawTitleShape(attributes, container);
   }
-
-  // protected getKeyStyle(attributes: any) {
-  //   const keyStyle = super.getKeyStyle(attributes);
-  //   keyStyle.ports = [{ placement: 'left' }, { placement: 'right' }];
-  //   return keyStyle;
-  // }
 
   // eslint-disable-next-line perfectionist/sort-classes
   render(attributes = this.parsedAttributes as any, container: Group) {
