@@ -21,8 +21,9 @@ const routes: RouteRecordRaw[] = [
     path: 'notification-setting',
     name: 'PlatformNotificationSetting',
     meta: {
+      fullscreen: true,
       isMenu: true,
-      navName: t('通知设置'),
+      navName: t('轮值通知'),
     },
     component: () => import('@views/notification-setting/Index.vue'),
   },
