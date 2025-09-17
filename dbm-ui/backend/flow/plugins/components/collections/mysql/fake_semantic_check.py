@@ -31,10 +31,10 @@ class FakeSemanticCheck(BaseService):
             return False
 
         # 模拟语义执行
-        time.sleep(60)
+        # time.sleep(60)
 
         # 打印日志
-        log_num = 300
+        log_num = 1000
         for i in range(log_num):
             self.log_info(f"test log {i}")
             time.sleep(0.1)

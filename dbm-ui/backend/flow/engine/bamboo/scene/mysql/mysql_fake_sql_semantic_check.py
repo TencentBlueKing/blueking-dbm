@@ -53,7 +53,7 @@ class MySQLFakeSemanticCheck(object):
         )
         fake_semantic_check.add_act(act_name=_("串行2"), act_component_code=FakeSemanticCheckComponent.code, kwargs={})
         fake_semantic_check.add_act(act_name=_("串行3"), act_component_code=FakeSemanticCheckComponent.code, kwargs={})
-        parallel_num = 5
+        parallel_num = 2
         parallel_acts = [
             {
                 "act_name": _("并行-{}").format(index),
