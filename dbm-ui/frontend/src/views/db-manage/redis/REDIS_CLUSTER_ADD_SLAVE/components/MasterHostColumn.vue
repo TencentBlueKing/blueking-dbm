@@ -39,6 +39,7 @@
         Promise.all(
           props.related_clusters.map((item) =>
             queryMasterSlavePairs({
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               cluster_id: item.id,
             }),
           ),

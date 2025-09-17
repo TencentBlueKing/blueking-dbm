@@ -169,6 +169,7 @@
         isLoading.value = true;
         modelValue.value.bk_host_id = 0;
         getGlobalMachine({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_type: DBTypes.REDIS,
           ip: modelValue.value.ip,
         })
