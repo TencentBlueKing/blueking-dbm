@@ -218,8 +218,8 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
+  import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
   import ClusterDetail from '@views/db-manage/sqlserver/common/ha-cluster-detail/Index.vue';
-  import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 

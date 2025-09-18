@@ -71,6 +71,7 @@
               :title="t('选择集群类型变更部署方案')" />
             <EditableColumn
               :label="t('切换模式')"
+              readonly
               :width="200">
               <template #head>
                 <BkPopover

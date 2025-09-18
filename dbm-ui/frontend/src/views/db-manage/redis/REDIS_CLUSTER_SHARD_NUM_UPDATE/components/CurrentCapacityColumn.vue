@@ -75,7 +75,7 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
 

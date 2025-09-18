@@ -124,7 +124,7 @@
   import MigrateFormItems, {
     ArchitectureType,
     MigrateType,
-  } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
+  } from '@views/db-manage/redis/common/toolbox-common/migrate-form-items/Index.vue';
 
   // import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
   import InstanceColumn from './components/InstanceColumn.vue';
@@ -202,7 +202,7 @@
       trigger: 'change',
       validator: (value: string, { rowData }: { rowData: IDataRow }) =>
         ![ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
-          Object.values(rowData.batchInstance.instances)?.[0].cluster_type as ClusterTypes,
+          Object.values(rowData.batchInstance.instances)?.[0]!.cluster_type as ClusterTypes,
         ),
     },
   ];
@@ -360,7 +360,7 @@
             );
             const [instance] = instances;
             return {
-              cluster_id: instance.cluster_id,
+              cluster_id: instance!.cluster_id,
               db_version: tableItem.current_versions,
               migrate_instance: instances.map((item) => item.instance_address).join(','),
               // old_nodes: oldNodes,
@@ -368,7 +368,7 @@
               resource_spec: {
                 backend_group: {
                   count: 1,
-                  spec_id: instance.spec_config.id,
+                  spec_id: instance!.spec_config.id,
                 },
               },
             };

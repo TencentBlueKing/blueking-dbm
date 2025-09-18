@@ -2,6 +2,7 @@
   <EditableColumn
     :label="t('关联主库主机')"
     :loading="isLoading"
+    readonly
     :width="200">
     <EditableBlock :placeholder="t('输入主机后自动生成')">
       {{ masterIp }}

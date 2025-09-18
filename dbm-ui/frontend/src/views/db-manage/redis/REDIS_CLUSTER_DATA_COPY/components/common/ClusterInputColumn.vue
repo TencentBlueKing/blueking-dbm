@@ -15,21 +15,26 @@
   <EditableColumn
     :append-rules="rules"
     :field="field"
+    :fixed="fixed"
     :label="label"
-    required
-    :width="200">
+    :min-width="350"
+    required>
     <EditableInput
       v-model="modelValue"
       :placeholder="t('请输入单个(IP 或 域名):Port')" />
   </EditableColumn>
 </template>
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { domainPort, ipPort } from '@common/regex';
 
+  import { Column as EditableColumn } from '@components/editable-table/Index.vue';
+
   interface Props {
     field: string;
+    fixed?: ComponentProps<typeof EditableColumn>['fixed'];
     label: string;
   }
 

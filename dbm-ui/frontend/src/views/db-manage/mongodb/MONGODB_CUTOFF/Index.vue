@@ -52,8 +52,8 @@
             @batch-edit="handleHostBatchEdit" />
           <EditableColumn
             :label="t('角色类型')"
-            :min-width="200"
-            readonly>
+            readonly
+            :width="200">
             <EditableBlock v-if="item.host.machine_type">
               {{ getRoleType(item) }}
             </EditableBlock>
@@ -63,7 +63,7 @@
           </EditableColumn>
           <EditableColumn
             :label="t('所属集群')"
-            :min-width="200"
+            :min-width="350"
             readonly
             :rowspan="item.rowspan">
             <div

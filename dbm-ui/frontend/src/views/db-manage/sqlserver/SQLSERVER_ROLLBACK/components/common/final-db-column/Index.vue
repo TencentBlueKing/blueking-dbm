@@ -69,7 +69,7 @@
   import { checkClusterDatabase } from '@services/source/dbbase';
   import { queryBackupLogs, queryDbsByBackupLog } from '@services/source/sqlserver';
 
-  import EditName from '@views/db-manage/sqlserver/common/edit-rename-info-new/Index.vue';
+  import EditName from './components/edit-rename-info/Index.vue';
 
   interface Props {
     cluster: {

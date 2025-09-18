@@ -2,6 +2,7 @@
   <EditableColumn
     :label="t('待切换的 Master 实例')"
     :loading="loading"
+    readonly
     :width="200">
     <EditableBlock :placeholder="t('输入主机后自动生成')">
       <div
@@ -14,6 +15,7 @@
   <EditableColumn
     :label="t('待切换的从库主机')"
     :loading="loading"
+    readonly
     :width="200">
     <EditableBlock :placeholder="t('输入主机后自动生成')">
       {{ modelValue?.slave_ip }}

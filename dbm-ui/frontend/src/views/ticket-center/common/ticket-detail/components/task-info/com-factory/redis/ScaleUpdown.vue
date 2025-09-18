@@ -71,7 +71,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
 

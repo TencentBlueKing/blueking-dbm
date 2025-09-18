@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标分片集群')"
     :loading="loading"
-    :min-width="200"
+    :min-width="350"
     required>
     <template #headAppend>
       <span
