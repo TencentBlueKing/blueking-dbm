@@ -265,20 +265,23 @@
   });
 </script>
 <style lang="less">
-  @scroll-z-index: 200;
-  @fixed-wrapper-z-index: 300;
-
   .bk-editable-table {
+    --table-scroll-z-index: 200;
+    --table-fixed-wrapper-z-index: 300;
+    --table-border-color: #dcdee5;
+    --column-head-backgroud-color: #f0f1f5;
+    --column-head-hover-backgroud-color: #eaebf0;
+    --column-background-color: #fff;
+
     position: relative;
-    background: #fff;
     transform: translate(0);
 
     &::before {
       position: absolute;
       z-index: 9;
       pointer-events: none;
-      border-right: 1px solid #dcdee5;
-      border-left: 1px solid #dcdee5;
+      border-right: 1px solid var(--table-border-color);
+      border-left: 1px solid var(--table-border-color);
       content: '';
       inset: 0;
     }
@@ -324,7 +327,7 @@
         position: absolute;
         z-index: 99999;
         pointer-events: none;
-        border: 1px solid #dcdee5;
+        border: 1px solid var(--table-border-color);
         content: '';
         inset: 0;
       }
@@ -349,30 +352,22 @@
     th {
       padding: 0 10px;
       color: #313238;
-      background-color: #f0f1f5;
+      background-color: var(--column-head-backgroud-color);
 
       &.fixed-left-column,
       &.fixed-right-column {
         z-index: 9;
-        background-color: #f0f1f5;
+        background-color: var(--column-head-backgroud-color);
       }
 
       &:hover {
-        background-color: #eaebf0;
+        background-color: var(--column-head-hover-backgroud-color);
       }
     }
 
     td {
       padding: 0;
-      background: #fff;
-
-      // &.is-fixed {
-      //   z-index: @fixed-column-z-index;
-
-      //   &:hover {
-      //     z-index: @fixed-column-hover-z-index;
-      //   }
-      // }
+      background: var(--column-background-color);
     }
 
     &:hover {
@@ -394,7 +389,7 @@
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: @fixed-wrapper-z-index;
+    z-index: var(--table-fixed-wrapper-z-index);
     overflow-x: hidden;
     pointer-events: none;
     box-shadow: 8px 0 10px -5px rgb(0 0 0 / 12%);
@@ -405,7 +400,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: @fixed-wrapper-z-index;
+    z-index: var(--table-fixed-wrapper-z-index);
     pointer-events: none;
     box-shadow: -8px 0 10px -5px rgb(0 0 0 / 12%);
   }
@@ -424,7 +419,7 @@
     right: 1px;
     bottom: 0;
     left: 1px;
-    z-index: @scroll-z-index;
+    z-index: var(--table-scroll-z-index);
     height: 14px;
     overflow: scroll hidden;
     cursor: pointer;

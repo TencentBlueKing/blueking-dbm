@@ -15,7 +15,8 @@
   <EditableColumn
     field="available_resource"
     :label="t('可用资源')"
-    :min-width="150">
+    :min-width="150"
+    readonly>
     <EditableBlock>
       <BkButton
         text
