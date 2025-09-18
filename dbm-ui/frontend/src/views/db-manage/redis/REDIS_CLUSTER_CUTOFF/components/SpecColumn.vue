@@ -41,13 +41,11 @@
         class="related-cell"
         :placeholder="t('自动生成')">
         <template #append>
-          <SpecPanel
-            :data="relatedSlaveSpec"
-            :hide-qps="!relatedSlaveSpec.qps.min">
+          <SpecDetailPopover :data="relatedSlaveSpec">
             <DbIcon
               class="visible-icon ml-4"
               type="visible1" />
-          </SpecPanel>
+          </SpecDetailPopover>
         </template>
       </EditableBlock>
     </div>

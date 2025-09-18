@@ -62,7 +62,7 @@ export default function getRoutes() {
           meta: {
             navName: t('故障池'),
           },
-          component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+          component: () => import('@views/resource-manage/fault-or-recycle-list/Index.vue'),
         },
         checkDbConsole('resourceManage.toRecyclePool') && {
           path: 'to-recycle-pool',
@@ -70,7 +70,7 @@ export default function getRoutes() {
           meta: {
             navName: t('待回收池'),
           },
-          component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+          component: () => import('@views/resource-manage/fault-or-recycle-list/Index.vue'),
         },
         checkDbConsole('resourceManage.allHost') && {
           path: 'all-host',
