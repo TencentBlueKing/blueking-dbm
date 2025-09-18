@@ -35,6 +35,7 @@
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
+            :tab-list-config="tabListConfig"
             @batch-edit="handleBatchEdit" />
           <SpecColumn
             v-model="item.specId"
@@ -112,13 +113,12 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
+  import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-
   interface RowData {
-    cluster: ComponentProps<typeof ClusterColumn>['modelValue'];
+    cluster: TendbClusterModel;
     count: string;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
@@ -151,6 +151,19 @@
     },
   ];
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: [
+        {
+          handler: (data: TendbClusterModel) => data.spider_slave.length > 0,
+          tip: t('该集群已有只读集群'),
+        },
+      ],
+      id: ClusterTypes.TENDBCLUSTER,
+      name: t('集群选择'),
+    },
+  };
+
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     cluster: Object.assign(
       {
@@ -158,7 +171,7 @@
         id: 0,
         master_domain: '',
         region: '',
-      },
+      } as TendbClusterModel,
       data.cluster,
     ),
     count: data.count || '',
