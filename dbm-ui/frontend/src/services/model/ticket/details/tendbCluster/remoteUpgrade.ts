@@ -1,6 +1,6 @@
 import type { DetailBase, DetailClusters } from '../common';
 
-export interface SpiderUpgrade extends DetailBase {
+export interface RemoteUpgrade extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
@@ -11,26 +11,7 @@ export interface SpiderUpgrade extends DetailBase {
       pkg_name: string;
     };
     new_db_module_id: number;
-    old_nodes: {
-      spider_master: {
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-      spider_slave: {
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      }[];
-    };
     pkg_id: number;
-    resource_spec: {
-      [key in string]: {
-        count: number;
-        labels?: string[];
-        spec_id: number;
-      };
-    };
     target_version: {
       charset: string;
       db_module_name: string;
@@ -38,7 +19,7 @@ export interface SpiderUpgrade extends DetailBase {
       pkg_name: string;
     };
   }[];
-  ip_source: 'resource_pool';
   is_check_process: boolean;
+  is_verify_checksum: boolean;
   upgrade_local: boolean;
 }

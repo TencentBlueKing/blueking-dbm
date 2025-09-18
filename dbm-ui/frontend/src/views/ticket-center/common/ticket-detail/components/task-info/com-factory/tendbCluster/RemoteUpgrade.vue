@@ -51,7 +51,10 @@
   </BkTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从数据校验结果')">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>
@@ -68,7 +71,7 @@
   import VersionContent from './components/VersionContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.LocalUpgrade>;
+    ticketDetails: TicketModel<TendbCluster.RemoteUpgrade>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

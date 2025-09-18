@@ -45,7 +45,7 @@
       </EditableTable>
       <BkFormItem>
         <BkCheckbox
-          v-model="formData.isSafe"
+          v-model="formData.is_check_process"
           :false-label="false"
           true-label>
           <span
@@ -143,7 +143,7 @@
   });
 
   const defaultData = () => ({
-    isSafe: true,
+    is_check_process: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -165,6 +165,7 @@
     onSuccess(ticketDetail) {
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
+        is_check_process: ticketDetail.details.is_check_process,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({
             // 集群信息现查，从而带出当前版本信息
@@ -198,7 +199,7 @@
         pkg_name: string;
       };
     }[];
-    is_safe: boolean;
+    is_check_process: boolean;
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_LOCAL_UPGRADE);
 
@@ -214,7 +215,7 @@
             pkg_id: item.pkg_id,
             target_version: item.target_version,
           })),
-          is_safe: formData.isSafe,
+          is_check_process: formData.is_check_process,
           upgrade_local: true,
         },
         ...formData.payload,
