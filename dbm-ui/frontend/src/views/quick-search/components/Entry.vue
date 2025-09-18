@@ -225,7 +225,6 @@
   watch(
     renderData,
     (newRenderData) => {
-      console.log('renderData = ', renderData);
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
         current: 1,

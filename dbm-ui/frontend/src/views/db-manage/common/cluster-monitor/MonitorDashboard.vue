@@ -89,7 +89,6 @@
   });
 
   const handleLoad = () => {
-    console.log('asdasdas');
     isLoading.value = false;
   };
 </script>

@@ -16,7 +16,7 @@
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
   interface Props {
-    related_clusters: {
+    relatedClusters: {
       id: number;
     }[];
     slaveIp: string;
@@ -34,11 +34,11 @@
   const masterIp = computed(() => modelValue.value[props.slaveIp]?.ip || '');
 
   watch(
-    () => props.related_clusters,
+    () => props.relatedClusters,
     () => {
-      if (props.related_clusters.length > 0) {
+      if (props.relatedClusters.length > 0) {
         Promise.all(
-          props.related_clusters.map((item) =>
+          props.relatedClusters.map((item) =>
             queryMasterSlavePairs({
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               cluster_id: item.id,
