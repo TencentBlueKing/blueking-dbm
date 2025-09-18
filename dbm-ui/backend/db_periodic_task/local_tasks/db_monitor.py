@@ -222,7 +222,7 @@ def cycle_trigger_operator_collector():
 def send_duty_schedule(db_type):
     """发送轮值排班表"""
 
-    def __format_arrange_str(arranges):
+    def __format_arrange_str(rule, arranges):
         # 格式化排版表文本
         date_space = " " * 10  # 2000-01-01
         work_time_space = " " * (max([len(d["work_times"]) for d in arranges]) * 12)  # 00:00--23:59
@@ -234,8 +234,8 @@ def send_duty_schedule(db_type):
         # 格式化标题
         now_date = f"{now.month}.{now.day}"
         after_now = now + timedelta(days=notice_after)
-        after_now_data = f"{after_now.month}.{after_now.day}"
-        title = _("[{}] {}-{} 轮值排班表").format(DBType.get_choice_label(db_type), now_date, after_now_data)
+        after_date = f"{after_now.month}.{after_now.day}"
+        title = _("[{} {}] {}-{} 轮值排班表").format(DBType.get_choice_label(db_type), rule.name, now_date, after_date)
 
         return title, content
 
@@ -258,7 +258,7 @@ def send_duty_schedule(db_type):
             continue
 
         # 获取通知内容
-        title, arrange_content = __format_arrange_str(arranges)
+        title, arrange_content = __format_arrange_str(rule, arranges)
         # 根据通知渠道进行通知
         msg_types = [msg_type for msg_type in notice_cfg["channels"] if notice_cfg["channels"][msg_type]]
         for msg_type in msg_types:

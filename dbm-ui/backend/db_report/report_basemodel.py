@@ -17,7 +17,10 @@ from backend.bk_web.models import AuditedModel
 class BaseReportABS(AuditedModel):
     bk_biz_id = models.IntegerField(default=0, help_text=_("业务的 cmdb id"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 id"))
+    # TODO: status考虑废弃。替换成state，丰富字段表达
     status = models.BooleanField(default=True, help_text=_("巡检结果状态, 默认正常"))  # True = 正常, False = 异常
+    state = models.CharField(default="", max_length=64, help_text=_("巡检结果状态"))
+    failed_days = models.IntegerField(default=0, help_text=_("失败持续天数"))
     msg = models.TextField(default="", help_text=_("备注信息"))
 
     class Meta:

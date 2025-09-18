@@ -13,9 +13,11 @@ from datetime import datetime, timezone
 from typing import Dict
 
 from django.core.cache import cache
+from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
@@ -23,7 +25,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.models import DBAdministrator
-from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportType
+from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportStateType, ReportType
 from backend.db_report.filters import ReportFilterBackend
 from backend.db_report.register import db_report_maps
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
@@ -31,6 +33,8 @@ from backend.iam_app.handlers.drf_perm.db_report import DBReportPermission
 
 
 class ReportBaseViewSet(AuditedModelViewSet):
+    # 序列化器
+    serializer_class = None
     # 分页类
     pagination_class = AuditedLimitOffsetPagination
     # 巡检类型
@@ -39,21 +43,32 @@ class ReportBaseViewSet(AuditedModelViewSet):
     report_name = ""
     # 巡检表头
     report_title = []
-    # 巡检过滤类
-    filter_backends = [ReportFilterBackend]
+    # 巡检过滤/排序
+    filter_backends = [ReportFilterBackend, OrderingFilter]
     filter_fields = {
         "bk_biz_id": ["exact"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
+        "state": ["exact", "in"],
+        "failed_days": ["exact", "lte", "gte"],
     }
+    ordering_fields = ["create_at", "failed_days"]
     # 鉴权类
     action_permission_map = {("list",): [DBReportPermission()]}
+
+    def summary_state_count(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        state_count_info = queryset.values("state").annotate(count=Count("state"))
+        state_map = {state: 0 for state in ReportStateType.get_values()}
+        state_map.update({info["state"]: info["count"] for info in state_count_info})
+        return state_map
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data["name"] = self.report_name or ReportType.get_choice_label(self.report_type)
         response.data["title"] = self.report_title
+        response.data["state_count"] = self.summary_state_count()
         return response
 
 

@@ -226,7 +226,6 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBHAExportQueryResource
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         """
         instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
-        instance_info.update(
-            related_pair_instance=kwargs.get("pair_instance_map", {}).get(instance["machine__ip"], "")
-        )
+        pari_key = f"{instance['machine__ip']}:{instance['port']}"
+        instance_info.update(related_pair_instance=kwargs.get("pair_instance_map", {}).get(pari_key, ""))
         return instance_info

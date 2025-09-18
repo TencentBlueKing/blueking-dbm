@@ -76,6 +76,7 @@ class MySQLBackupRecoverTaskSerializer(serializers.ModelSerializer):
             "backup_begin_time",
             "recover_duration",
             "status",
+            "state",
             "task_id",
             "charset",
             "mysql_version",
