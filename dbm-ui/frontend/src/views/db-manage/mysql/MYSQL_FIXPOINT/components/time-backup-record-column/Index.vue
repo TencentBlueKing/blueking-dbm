@@ -128,8 +128,7 @@
     v-model="backupRecord"
     v-model:is-show="isShowSelector"
     v-bind="props"
-    only-full
-    @change="handleChange" />
+    only-full />
 </template>
 <script lang="ts" setup>
   import dayjs from 'dayjs';
@@ -239,12 +238,6 @@
     });
     emits('batch-edit', formData.value.backup_time, 'backupTime');
     emits('batch-edit', data, 'backupRecord');
-  };
-
-  const handleChange = (data?: BackupLogRecord) => {
-    if (data?.backup_id) {
-      backupTime.value = data.backup_time;
-    }
   };
 
   watch(backupTime, () => {
