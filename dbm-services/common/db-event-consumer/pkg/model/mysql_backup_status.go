@@ -11,6 +11,8 @@ package model
 import (
 	"log/slog"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
@@ -31,7 +33,10 @@ func (m MysqlBackupStatusModel) UniqueKey() []string {
 func (m MysqlBackupStatusModel) MigrateSchema(w base.DSWriter) error {
 	slog.Info("run migrate for MysqlBackupStatusModel", slog.String("table", m.TableName()))
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
-		dbWriter := w.(base.GormMigrator)
+		dbWriter, ok := w.(base.GormMigrator)
+		if !ok {
+			return errors.Errorf("writer_type=%s has no gorm db for custom migrate: %s", w.Type(), m.TableName())
+		}
 		db := dbWriter.GormDB()
 
 		// 处理字段
@@ -44,8 +49,12 @@ func (m MysqlBackupStatusModel) MigrateSchema(w base.DSWriter) error {
 			[]string{"event_uuid"}, true, true); err != nil {
 			return err
 		}
-		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_cluster",
-			[]string{"cluster_domain"}, false, true); err != nil {
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clusterstatus",
+			[]string{"cluster_domain", "status"}, false, true); err != nil {
+			return err
+		}
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clusteridstatus",
+			[]string{"cluster_id", "status"}, false, true); err != nil {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_status",

@@ -41,4 +41,4 @@ class MysqlBinlogResult(models.Model):
     class Meta:
         managed = False
         db_table = "tb_mysql_binlog_result"
-        unique_together = (("cluster_domain", "host", "port", "filename"),)
+        unique_together = (("cluster_id", "host", "port", "filename"),)
