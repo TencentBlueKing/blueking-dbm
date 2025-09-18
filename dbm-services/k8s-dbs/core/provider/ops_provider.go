@@ -34,9 +34,7 @@ import (
 	"github.com/pkg/errors"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
-	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 )
@@ -128,7 +126,9 @@ func (o *OpsRequestProviderBuilder) WithClusterProvider(
 type ClusterOperationFn func(*commentity.DbsContext, *coreentity.Request) (*coreentity.Metadata, error)
 
 // ReleaseMetaUpdateFn 集群 Release 元数据更新函数定义
-type ReleaseMetaUpdateFn func(provider metaprovider.AddonClusterReleaseProvider,
+type ReleaseMetaUpdateFn func(
+	clusterConfigMetaProvider metaprovider.K8sClusterConfigProvider,
+	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
 	request *coreentity.Request,
 	k8sClusterConfigID uint64) (*metaentity.AddonClusterReleaseEntity, error)
 
@@ -167,7 +167,7 @@ func (o *OpsRequestProvider) withMetaDataSync(
 
 	if releaseUpdateFn != nil {
 		// 更新 cluster release 元数据
-		_, err = releaseUpdateFn(o.releaseMetaProvider, request, dbsCtx.K8sClusterConfigID)
+		_, err = releaseUpdateFn(o.clusterConfigProvider, o.releaseMetaProvider, request, dbsCtx.K8sClusterConfigID)
 		if err != nil {
 			return nil, err
 		}
@@ -354,7 +354,7 @@ func (o *OpsRequestProvider) VolumeExpansion(
 		}
 	}
 
-	return o.withMetaDataSync(ctx, request, o.doVolumeExpansion, metautil.UpdateValWithCompList)
+	return o.withMetaDataSync(ctx, request, o.doVolumeExpansion, metautil.UpdateValWithVolumeExpansion)
 }
 
 // doVolumeExpansion 磁盘扩容具体实现
@@ -371,7 +371,7 @@ func (o *OpsRequestProvider) doVolumeExpansion(
 		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	clusterInfo, err := getClusterInfo(request, k8sClient)
+	clusterInfo, err := coreutil.GetClusterInfo(request, k8sClient)
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError, err)
 	}
@@ -585,7 +585,7 @@ func (o *OpsRequestProvider) doUpgradeCluster(
 		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	cluster, err := getClusterInfo(request, k8sClient)
+	cluster, err := coreutil.GetClusterInfo(request, k8sClient)
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError, err)
 	}
@@ -713,25 +713,4 @@ func (o *OpsRequestProvider) validateProvider() error {
 		return fmt.Errorf("missing clusterConfigProvider")
 	}
 	return nil
-}
-
-// getClusterInfo Query cluster information and return
-func getClusterInfo(request *coreentity.Request, k8sClient *commutil.K8sClient) (*kbv1.Cluster, error) {
-	// Construct and query crd resources
-	crd := &coreentity.CustomResourceDefinition{
-		ResourceName:         request.Metadata.ClusterName,
-		Namespace:            request.Metadata.Namespace,
-		GroupVersionResource: kbtypes.ClusterGVR(),
-	}
-	clusterCR, err := coreutil.GetCRD(k8sClient, crd)
-	if err != nil {
-		return nil, err
-	}
-	// Serializing Unstructured Format
-	var clusterInfo *kbv1.Cluster
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(clusterCR.Object, &clusterInfo)
-	if err != nil {
-		return nil, err
-	}
-	return clusterInfo, nil
 }

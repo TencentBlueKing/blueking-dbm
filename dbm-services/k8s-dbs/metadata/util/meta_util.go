@@ -235,6 +235,7 @@ func getEntityFromReq(crd *coreentity.CustomResourceDefinition) (*metaentity.K8s
 
 // UpdateValWithCompList updates the release entity's chart values with component configurations.
 func UpdateValWithCompList(
+	_ metaprovider.K8sClusterConfigProvider,
 	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
 	request *coreentity.Request,
 	k8sClusterConfigID uint64,
@@ -289,6 +290,7 @@ func UpdateValWithCompList(
 
 // UpdateValWithHScaling updates the release entity's chart values with horizontal scaling configurations.
 func UpdateValWithHScaling(
+	_ metaprovider.K8sClusterConfigProvider,
 	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
 	request *coreentity.Request,
 	k8sClusterConfigID uint64,
@@ -314,6 +316,74 @@ func UpdateValWithHScaling(
 				}
 				compListFromVal[i] = compFromVal
 			}
+		}
+	}
+	values["componentList"] = compListFromVal
+	jsonStr, err := commutil.MapToJSONStr(values)
+	if err != nil {
+		return nil, err
+	}
+	releaseEntity.ChartValues = jsonStr
+	releaseEntity.UpdatedBy = request.BkUserName
+	_, err = releaseMetaProvider.UpdateClusterRelease(releaseEntity)
+	if err != nil {
+		return nil, err
+	}
+	return releaseEntity, nil
+}
+
+// UpdateValWithVolumeExpansion updates the release entity's chart values with volume expansion configurations.
+func UpdateValWithVolumeExpansion(
+	clusterConfigMetaProvider metaprovider.K8sClusterConfigProvider,
+	releaseMetaProvider metaprovider.AddonClusterReleaseProvider,
+	request *coreentity.Request,
+	k8sClusterConfigID uint64,
+) (*metaentity.AddonClusterReleaseEntity, error) {
+	k8sClusterConfig, err := clusterConfigMetaProvider.FindConfigByName(request.K8sClusterName)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+	clusterInfo, err := coreutil.GetClusterInfo(request, k8sClient)
+	if err != nil {
+		return nil, dbserrors.NewK8sDbsError(dbserrors.GetClusterError, err)
+	}
+	volumeExpansionList, err := coreutil.CreateVolumeExpansionList(request, clusterInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	releaseEntity, values, err := getClusterMetaRelease(releaseMetaProvider, request, k8sClusterConfigID)
+	if err != nil {
+		return nil, err
+	}
+	compListFromVal, _ := values["componentList"].([]interface{})
+	for _, compFromReq := range request.ComponentList {
+		for i, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			if compFromVal["componentName"] != compFromReq.ComponentName {
+				continue
+			}
+
+			vct, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
+			if !vctOk || compFromReq.Storage.IsZero() {
+				continue
+			}
+			for _, ve := range volumeExpansionList {
+				if ve.ComponentName == compFromReq.ComponentName &&
+					len(ve.VolumeClaimTemplates) > 0 {
+					vct["storage"] = ve.VolumeClaimTemplates[0].Storage
+				}
+			}
+			compListFromVal[i] = compFromVal
+
 		}
 	}
 	values["componentList"] = compListFromVal

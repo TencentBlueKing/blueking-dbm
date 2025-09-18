@@ -746,7 +746,7 @@ func (c *ClusterProvider) installHelmRelease(
 		return nil, fmt.Errorf("failed to load helm chart requested\n%s", err)
 	}
 	values := chart.Values
-	err = coreutil.MergeValues(values, request)
+	err = coreutil.MergeValues(values, request, true)
 	if err != nil {
 		slog.Error("failed to merge dynamic values", "error", err)
 		return nil, fmt.Errorf("failed to merge dynamic values  %w", err)
@@ -829,13 +829,13 @@ func (c *ClusterProvider) doUpdateClusterRelease(
 		if err != nil {
 			return nil, err
 		}
-		if err = coreutil.MergeValues(currentValues, request); err != nil {
+		if err = coreutil.MergeValues(currentValues, request, false); err != nil {
 			return nil, err
 		}
 		values = currentValues
 	} else {
 		chartValues := chart.Values
-		err = coreutil.MergeValues(chartValues, request)
+		err = coreutil.MergeValues(chartValues, request, false)
 		if err != nil {
 			return nil, err
 		}

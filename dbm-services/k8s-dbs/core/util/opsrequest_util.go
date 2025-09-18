@@ -417,40 +417,9 @@ func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cl
 	*entity.CustomResourceDefinition, error,
 ) {
 	objectName := util.ResourceName("ops-vexpansion-", OpsNameSuffixLength)
-	var volumeExpansionList []opv1.VolumeExpansion
-	for _, compFromReq := range request.ComponentList {
-		// get component names
-		volumeExpansion := opv1.VolumeExpansion{
-			ComponentOps: opv1.ComponentOps{
-				ComponentName: compFromReq.ComponentName,
-			},
-		}
-		for _, compFromCluster := range clusterObject.Spec.ComponentSpecs {
-			if compFromCluster.Name == compFromReq.ComponentName {
-				// get vct names
-				var volumeClaimTemplates []opv1.OpsRequestVolumeClaimTemplate
-				for _, vct := range compFromCluster.VolumeClaimTemplates {
-
-					// Check whether the storage increment is reasonable
-					currentStorage := vct.Spec.Resources.Requests.Storage().DeepCopy()
-					currentStorage.Add(compFromReq.Storage)
-					storageClassName := vct.Spec.StorageClassName
-
-					err := CheckStorageBySC(*storageClassName, currentStorage)
-					if err != nil {
-						slog.Error("failed to check storage by SC", "err", err)
-						return nil, err
-					}
-
-					volumeClaimTemplates = append(volumeClaimTemplates, opv1.OpsRequestVolumeClaimTemplate{
-						Name:    vct.Name,
-						Storage: currentStorage,
-					})
-				}
-				volumeExpansion.VolumeClaimTemplates = volumeClaimTemplates
-			}
-		}
-		volumeExpansionList = append(volumeExpansionList, volumeExpansion)
+	volumeExpansionList, err := CreateVolumeExpansionList(request, clusterObject)
+	if err != nil {
+		return nil, err
 	}
 
 	volumeExpansion := &opv1.OpsRequest{
@@ -490,6 +459,49 @@ func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cl
 		ResourceObject:       Obj,
 	}
 	return crd, err
+}
+
+// CreateVolumeExpansionList 创建存储卷扩容对象列表
+func CreateVolumeExpansionList(request *entity.Request, clusterObject *kbv1.Cluster) (
+	[]opv1.VolumeExpansion, error,
+) {
+	var volumeExpansionList []opv1.VolumeExpansion
+	for _, compFromReq := range request.ComponentList {
+		// get component names
+		volumeExpansion := opv1.VolumeExpansion{
+			ComponentOps: opv1.ComponentOps{
+				ComponentName: compFromReq.ComponentName,
+			},
+		}
+		for _, compFromCluster := range clusterObject.Spec.ComponentSpecs {
+			if compFromCluster.Name == compFromReq.ComponentName {
+				// get vct names
+				var volumeClaimTemplates []opv1.OpsRequestVolumeClaimTemplate
+				for _, vct := range compFromCluster.VolumeClaimTemplates {
+
+					// Check whether the storage increment is reasonable
+					currentStorage := vct.Spec.Resources.Requests.Storage().DeepCopy()
+					currentStorage.Add(compFromReq.Storage)
+					storageClassName := vct.Spec.StorageClassName
+
+					err := CheckStorageBySC(*storageClassName, currentStorage)
+					if err != nil {
+						slog.Error("failed to check storage by SC", "err", err)
+						return nil, err
+					}
+
+					volumeClaimTemplates = append(volumeClaimTemplates, opv1.OpsRequestVolumeClaimTemplate{
+						Name:    vct.Name,
+						Storage: currentStorage,
+					})
+				}
+				volumeExpansion.VolumeClaimTemplates = volumeClaimTemplates
+			}
+		}
+		volumeExpansionList = append(volumeExpansionList, volumeExpansion)
+	}
+
+	return volumeExpansionList, nil
 }
 
 // CreateExposeClusterObject 创建暴露服务操作请求对象
