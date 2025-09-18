@@ -138,6 +138,7 @@ export default class TendbCluster extends ClusterBase {
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
     this.permission = payload.permission || {};
+    this.region = payload.region;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.remote_db = payload.remote_db;

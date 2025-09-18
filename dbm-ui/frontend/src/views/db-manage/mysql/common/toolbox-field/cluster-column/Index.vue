@@ -92,7 +92,7 @@
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
     label: '目标集群',
-    minWidth: 300,
+    minWidth: 350,
     onlyOneType: false,
     rowspan: 1,
     supportOfflineData: false,
