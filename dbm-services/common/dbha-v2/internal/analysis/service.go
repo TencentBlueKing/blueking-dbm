@@ -27,7 +27,9 @@ package analysis
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -40,9 +42,13 @@ import (
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
 
@@ -53,10 +59,13 @@ const (
 type Service struct {
 	quit         chan struct{}
 	info         discovery.ServiceInfo
+	engine       *gin.Engine
+	httpApmSvr   *http.Server
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
 	db           *hamysql.DB
+	wg           sync.WaitGroup
 	logger       *zap.Logger // only for the gRPC
 }
 
@@ -82,6 +91,37 @@ func (s *Service) createDiscovery() error {
 	s.regCli = regCli
 
 	s.updateInfo()
+	return nil
+}
+
+func (s *Service) createApmServer() error {
+	trace.Setup()
+
+	if s.engine == nil {
+		gin.SetMode(gin.ReleaseMode)
+		s.engine = gin.Default()
+		s.engine.Use(otelgin.Middleware("dbha-v2-analysis"))
+	}
+
+	if s.httpApmSvr == nil {
+		s.httpApmSvr = &http.Server{
+			Handler:      s.engine,
+			Addr:         config.Cfg.Service.Apm.ListenAddress,
+			ReadTimeout:  config.Cfg.Service.Apm.ReadTimeout,
+			WriteTimeout: config.Cfg.Service.Apm.WriteTimeout,
+		}
+	}
+
+	metric.NewPrometheus("dbha-v2-analysis").Use(s.engine)
+
+	s.wg.Add(1)
+	go func() {
+		s.wg.Done()
+		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("failed to run apm server, errmsg: %s", err)
+		}
+		logger.Info("exited from the apm server")
+	}()
 	return nil
 }
 
@@ -174,6 +214,11 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
+	// create apm server
+	if err := s.createApmServer(); err != nil {
+		return err
+	}
+
 	timerTimeout := 3 * time.Second
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
@@ -195,4 +240,19 @@ func (s *Service) Run(ctx context.Context) error {
 
 func (s *Service) Close() {
 	s.wflow.Close()
+	if s.httpApmSvr != nil {
+		timeout := config.Cfg.Service.Apm.ReadTimeout
+		if timeout < config.Cfg.Service.Apm.WriteTimeout {
+			timeout = config.Cfg.Service.Apm.WriteTimeout
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		if err := s.httpApmSvr.Shutdown(ctx); err != nil {
+			logger.Fatal("failed to shutdown the apm server, errmsg: %s", err)
+		}
+	}
+
+	s.wg.Wait()
+	logger.Info("exited from the analysis service")
 }
