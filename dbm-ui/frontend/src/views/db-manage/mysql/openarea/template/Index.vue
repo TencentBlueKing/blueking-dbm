@@ -74,7 +74,7 @@
         data.cluster_type === 'tendbha' ? t('主从') : t('单节点'),
     },
     {
-      field: 'config_name',
+      field: 'source_cluster',
       label: t('源集群'),
       render: ({ data }: { data: OpenareaTemplateModel }) => data.source_cluster.immute_domain || '--',
     },

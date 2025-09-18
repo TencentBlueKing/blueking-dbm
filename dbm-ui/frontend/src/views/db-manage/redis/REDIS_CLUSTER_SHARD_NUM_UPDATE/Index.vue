@@ -55,7 +55,6 @@
             <TargetCapacityColumn
               v-model="item.target_capacity"
               :cluster="item.cluster"
-              :target-cluster-type="item.cluster.cluster_type"
               :title="t('选择集群分片变更部署方案')" />
             <EditableColumn
               :label="t('切换模式')"

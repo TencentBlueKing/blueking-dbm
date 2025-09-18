@@ -35,7 +35,6 @@
           <ClusterColumn
             v-model="item.cluster"
             allow-repeat
-            only-one-type
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <TruncateTypeColumn

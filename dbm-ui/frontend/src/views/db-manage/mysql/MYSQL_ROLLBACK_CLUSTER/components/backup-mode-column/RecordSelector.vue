@@ -26,7 +26,7 @@
       type="wenjian" />
     <div
       v-bk-tooltips="{
-        content: renderText,
+        content: renderText || '--',
         disabled: !renderText,
       }"
       class="select-result-text">
@@ -59,7 +59,7 @@
             v-for="item in tabOptions"
             :key="item.name"
             v-bk-tooltips="{
-              content: item.hoverText,
+              content: item.hoverText || '--',
               disabled: !item.hoverText,
             }"
             class="tab-header-item"

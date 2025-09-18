@@ -11,8 +11,7 @@
         @remove-tab="handleClickClearScreen" />
       <UsageHelp
         v-model="showUsageHelp"
-        :db-type="dbType"
-        @change="handleToggleHelp" />
+        :db-type="dbType" />
       <div class="operate-item-last">
         <FontSetting
           v-model="currentFontConfig"
@@ -101,7 +100,7 @@
   });
   const timezone = ref('+08:00');
   const charset = ref('default');
-  const role = ref('backend_slave');
+  const role = ref<'backend_master' | 'backend_slave' | 'orphan'>('backend_slave');
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
@@ -158,10 +157,6 @@
     clusterInfo.value = data;
     roleList.value = roleListConfig[data.cluster_type as keyof typeof roleListConfig];
     role.value = data.cluster_type === ClusterTypes.TENDBSINGLE ? 'orphan' : 'backend_slave';
-  };
-
-  const handleToggleHelp = () => {
-    showUsageHelp.value = !showUsageHelp.value;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {

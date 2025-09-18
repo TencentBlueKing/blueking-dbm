@@ -108,7 +108,7 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="root_id"
+        field="immute_domain"
         :label="t('所属集群')"
         :min-width="200">
         <template #default="{data}: {data: RedisHotKeyModel}">

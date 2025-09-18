@@ -36,7 +36,6 @@
             ref="clusterRef"
             v-model="item.cluster"
             allow-repeat
-            :cluster-types="[ClusterTypes.TENDBCLUSTER]"
             :rowspan="item.rowspan"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
@@ -183,7 +182,7 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
