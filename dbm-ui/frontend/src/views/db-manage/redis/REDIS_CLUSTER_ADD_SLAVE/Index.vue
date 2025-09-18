@@ -43,7 +43,7 @@
               @batch-edit="handleBatchEdit" />
             <MasterHostColumn
               v-model="slaveMasterMap"
-              :related_clusters="item.host.related_clusters"
+              :related-clusters="item.host.related_clusters"
               :slave-ip="item.host.ip" />
             <EditableColumn
               :label="t('所属集群')"

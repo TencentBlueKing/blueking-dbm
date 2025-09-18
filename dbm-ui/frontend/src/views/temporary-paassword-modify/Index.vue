@@ -106,7 +106,6 @@
   watch(
     formData,
     () => {
-      console.log('formData = ', formData);
       const { instanceList } = formData;
       if (instanceList.length > 0) {
         const instance = instanceList[0];
