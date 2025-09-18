@@ -22,7 +22,6 @@
     @submit="handleChange" />
 </template>
 <script setup lang="ts">
-  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
@@ -53,7 +52,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'datanode', TReplaceNode>>({
+  const nodeInfoMap = ref<Record<'datanode', TReplaceNode>>({
     datanode: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -80,7 +79,7 @@
         }
       });
 
-      nodeInfoMap.datanode.oldHostList = datanodeList;
+      nodeInfoMap.value.datanode.oldHostList = datanodeList;
     },
     {
       immediate: true,

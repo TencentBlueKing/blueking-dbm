@@ -57,7 +57,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer', TShrinkNode>>({
+  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer', TShrinkNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       minHost: 0,
@@ -106,14 +106,14 @@
           }
         });
 
-        nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
-        nodeInfoMap.hot.totalDisk = hotDiskTotal;
+        nodeInfoMap.value.hot.originalNodeList = hotOriginalNodeList;
+        nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
 
-        nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
-        nodeInfoMap.cold.totalDisk = coldDiskTotal;
+        nodeInfoMap.value.cold.originalNodeList = coldOriginalNodeList;
+        nodeInfoMap.value.cold.totalDisk = coldDiskTotal;
 
-        nodeInfoMap.observer.originalNodeList = observerOriginalNodeList;
-        nodeInfoMap.observer.totalDisk = observerDiskTotal;
+        nodeInfoMap.value.observer.originalNodeList = observerOriginalNodeList;
+        nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
@@ -154,12 +154,12 @@
           observerList.push(machineHost);
         }
       });
-      nodeInfoMap.hot.hostList = hotList;
-      nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
-      nodeInfoMap.cold.hostList = coldList;
-      nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
-      nodeInfoMap.observer.hostList = observerList;
-      nodeInfoMap.observer.shrinkDisk = observerShrinkDisk;
+      nodeInfoMap.value.hot.hostList = hotList;
+      nodeInfoMap.value.hot.shrinkDisk = hotShrinkDisk;
+      nodeInfoMap.value.cold.hostList = coldList;
+      nodeInfoMap.value.cold.shrinkDisk = coldShrinkDisk;
+      nodeInfoMap.value.observer.hostList = observerList;
+      nodeInfoMap.value.observer.shrinkDisk = observerShrinkDisk;
     },
     {
       immediate: true,
