@@ -47,6 +47,11 @@ class CapacityEvaluateViewSet(BaseOpenAPIViewSet):
         out = {}
         try:
             self.serializer_class(data=request.data).is_valid(raise_exception=True)
+        except Exception as e:
+            out.update({"result_code": 3, "result_status": "error", "result_msg": f"validate error: {e.detail}"})
+            return JsonResponse(out)
+
+        try:
             out = EvaluateAPI().do_evaluate(request)
         except Exception:
             err = traceback.format_exc()

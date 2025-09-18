@@ -293,14 +293,14 @@ class CapacityEvaluateService:
         """评估Proxy QPS"""
         proxy_qps_k = model.get("proxy_qps") / 1000
         proxy_qps_k_total = proxy_qps_k * topo_info.proxy_num
-
-        response.proxy_approve_info = _("Proxy:%d个,每个可支持Qps:%dK, 总共可支持Qps:%dK; 总qps需求:%dK") % (
+        response.proxy_approve_ok = req_qps_k <= proxy_qps_k_total
+        response.proxy_approve_info = _("Proxy:%d个,每个可支持Qps:%dK, 总共可支持Qps:%dK; 总qps需求:%dK; 是否通过:%s") % (
             topo_info.proxy_num,
             proxy_qps_k,
             proxy_qps_k_total,
             req_qps_k,
+            response.proxy_approve_ok,
         )
-        response.proxy_approve_ok = req_qps_k <= proxy_qps_k_total
 
     @classmethod
     def _evaluate_backend_qps(cls, response: Response, topo_info: ClusterTopoInfo, model: dict, req_qps_k: float):
@@ -319,35 +319,39 @@ class CapacityEvaluateService:
             f"shard_qps_per_core: {shard_qps_per_core}, shard_cpu_core_m: {shard_cpu_core_m}, "
             "shard_qps_k: {shard_qps_k}, shard_qps_k_total: {shard_qps_k_total}"
         )
+        response.backend_approve_ok = req_qps_k <= shard_qps_k_total
 
-        response.backend_approve_info = _("后端规格:[%s]x%d,每分片可支持Qps:%dK, 总共可支持Qps:%dK; 总qps需求:%dK") % (
+        response.backend_approve_info = _("后端规格:[%s]x%d,每分片可支持Qps:%dK, 总共可支持Qps:%dK; " "总qps需求:%dK; 是否通过:%s") % (
             topo_info.shard_spec,
             topo_info.shard_num,
             shard_qps_k,
             shard_qps_k_total,
             req_qps_k,
+            response.backend_approve_ok,
         )
-        response.backend_approve_ok = req_qps_k <= shard_qps_k_total
 
     @classmethod
     def _evaluate_capacity_usage(cls, response: Response, capacity_info: ClusterCapacityInfo, req_capacity_m: float):
         """评估容量使用"""
         # 如果是memory_redis，检查内存容量是否足够
         if capacity_info.topo_info.is_memory_redis():
-            response.capacity_approve_info = _("总容量(内存):%dG,剩余容量:%dG; 总容量需求:%0.1fG") % (
+            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
+
+            response.capacity_approve_info = _("总容量(内存):%dG,剩余容量:%dG; 总容量需求:%0.1fG; 是否通过:%s") % (
                 capacity_info.get_total_capacity_m() / 1024,
                 capacity_info.get_free_capacity_m() / 1024,
                 req_capacity_m / 1024,
+                response.capacity_approve_ok,
             )
-            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
         else:
             # 如果是ssd_redis或tendisplus，检查磁盘容量是否足够
-            response.capacity_approve_info = _("总容量(磁盘):%dG,剩余容量:%dG; 总容量需求:%0.1fG") % (
+            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
+            response.capacity_approve_info = _("总容量(磁盘):%dG,剩余容量:%dG; 总容量需求:%0.1fG; 是否通过:%s") % (
                 capacity_info.get_total_capacity_m() / 1024,
                 capacity_info.get_free_capacity_m() / 1024,
                 req_capacity_m / 1024,
+                response.capacity_approve_ok,
             )
-            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
 
     @classmethod
     def _determine_final_status(cls, response: Response) -> str:

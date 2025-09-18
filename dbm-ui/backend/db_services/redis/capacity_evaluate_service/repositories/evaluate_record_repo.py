@@ -86,7 +86,7 @@ class EvaluateRecordRepo:
         # action info
         record.action_id = action_info.get("action_id")
         record.action_name = action_info.get("action_name")
-        record.action_type = action_info.get("action_type")
+        record.action_type = action_info.get("action_type", "")
         record.action_user = action_info.get("action_user", "")
         record.bk_biz_id = action_info.get("bk_biz_id")
         record.bk_biz_name = action_info.get("bk_biz_name", "")
@@ -152,7 +152,7 @@ class EvaluateRecordRepo:
         # 本次评估的简要信息
         history.action_id = action_info.get("action_id")
         history.action_name = action_info.get("action_name")
-        history.action_type = action_info.get("action_type")
+        history.action_type = action_info.get("action_type", "")
         history.bk_biz_id = action_info.get("bk_biz_id")
         history.bk_biz_name = action_info.get("bk_biz_name", "")
         # 当前集群的容量信息
@@ -197,7 +197,7 @@ class EvaluateRecordRepo:
         history.action_user = action_info.get("action_user", "")
         history.approved_time = timezone.now()
         history.time_elapsed_ms = resp.get("time_elapsed_ms")
-        history.approved_user = resp.get("approved_user")
+        history.approved_user = resp.get("approved_user", "")
         history.approved_status = resp.get("status")
         history.approved_comment = resp.get("message")
         return history
