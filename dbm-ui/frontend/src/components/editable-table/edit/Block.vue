@@ -93,6 +93,10 @@
     min-height: 40px;
     align-items: center;
     overflow: hidden;
+
+    * {
+      pointer-events: all !important;
+    }
   }
 
   .bk-editable-block-prepend-wrapper,

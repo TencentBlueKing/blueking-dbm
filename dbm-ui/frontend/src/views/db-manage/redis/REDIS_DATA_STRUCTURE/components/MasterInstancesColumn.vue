@@ -15,6 +15,7 @@
   <EditableColumn
     ref="editableTableColumn"
     :append-rules="rules"
+    :disabled-method="() => !cluster.id || isTendisplus"
     field="master_instances"
     :label="t('待构造的实例')"
     required
@@ -23,7 +24,6 @@
       v-model="modelValue"
       :clearable="false"
       collapse-tags
-      :disabled="!cluster.id || isTendisplus"
       :list="selectList"
       multiple
       multiple-mode="tag"
