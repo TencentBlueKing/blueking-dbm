@@ -22,45 +22,21 @@
  * SOFTWARE.
  */
 
-package admin
+package haapm
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
+type MetricType string
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-)
-
-// Run run admin service
-func Run(cmd *cobra.Command, args []string) error {
-
-	viper.SetConfigName("admin")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		return err
-	}
-
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSizeMB,
-		MaxBackups: config.Cfg.Log.FileCount,
-	}
-
-	log := logger.NewDbmLogger(logCfg)
-	logger.SetLogger(log)
-
-	logger.Debug("admin configuration:%v", config.Cfg)
-	return nil
+func (m MetricType) String() string {
+	return string(m)
 }
+
+const (
+	MetricTypeGauge        MetricType = "gauge"
+	MetricTypeGaugeVec     MetricType = "gauge_vec"
+	MetricTypeCounter      MetricType = "counter"
+	MetricTypeCounterVec   MetricType = "counter_vec"
+	MetricTypeHistogram    MetricType = "histogram"
+	MetricTypeHistogramVec MetricType = "histogram_vec"
+	MetricTypeSummary      MetricType = "summary"
+	MetricTypeSummaryVec   MetricType = "summary_vec"
+)

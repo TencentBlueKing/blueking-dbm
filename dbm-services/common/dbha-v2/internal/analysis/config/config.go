@@ -70,6 +70,15 @@ type StorageConfig struct {
 	Password string `yaml:"password"  mapstructure:"password"`
 }
 
+// ServiceConfig service's configuration
+type ServiceConfig struct {
+	Apm struct {
+		ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+		WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
+		ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+	} `yaml:"apm" mapstructure:"apm"`
+}
+
 // LogConfig log configuration
 type LogConfig struct {
 	Path       string `yaml:"path"      mapstructure:"path"`
@@ -85,6 +94,7 @@ type Configuration struct {
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
 	Monitor   MonitorConfig   `yaml:"monitor"   mapstructure:"monitor"`
+	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
