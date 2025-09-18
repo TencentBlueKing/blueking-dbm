@@ -210,7 +210,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import DbForm from '@components/db-form/index.vue';
@@ -236,7 +236,7 @@
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: '',
+      disaster_tolerance_level: Affinity.MAJORITY_ELECTION_DISTRI,
       ip_source: 'resource_pool',
       oplog_percent: 10,
       resource_spec: {

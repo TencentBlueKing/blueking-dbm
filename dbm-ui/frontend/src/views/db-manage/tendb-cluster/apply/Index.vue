@@ -147,7 +147,7 @@
 
   import { useApplyBase, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import BackendQPSSpec from '@views/db-manage/common/apply-items/BackendQPSSpec.vue';
@@ -176,7 +176,7 @@
       cluster_shard_num: 0,
       db_app_abbr: '',
       db_module_id: null as null | number,
-      disaster_tolerance_level: '',
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
       remote_shard_num: 0,
       resource_spec: {
         backend_group: {

@@ -259,7 +259,7 @@
       cluster_type: ClusterTypes.REDIS_INSTANCE,
       db_app_abbr: '',
       db_version: '', // 追加就非必填
-      disaster_tolerance_level: Affinity.SAME_SUBZONE_CROSS_SWTICH,
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
       group_count: 1,
       infos: [] as Domain[],
       ip_source: 'resource_pool',

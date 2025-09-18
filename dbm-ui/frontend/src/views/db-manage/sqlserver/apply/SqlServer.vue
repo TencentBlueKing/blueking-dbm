@@ -353,7 +353,7 @@
       cluster_count: 1,
       db_app_abbr: '', // 业务 Code
       db_module_id: null as null | number,
-      disaster_tolerance_level: Affinity.NONE, // 容灾
+      disaster_tolerance_level: isSingleType ? Affinity.NONE : Affinity.CROS_SUBZONE, // 容灾
       domains: [{ key: '' }],
       inst_num: 1,
       ip_source: 'resource_pool',
