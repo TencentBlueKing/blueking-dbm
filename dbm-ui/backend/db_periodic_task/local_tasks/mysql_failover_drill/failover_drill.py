@@ -18,6 +18,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
+from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.dbresource.exceptions import (
     ResourceApplyException,
     ResourceApplyInsufficientException,
@@ -396,7 +397,7 @@ class MysqlFailoverDrill(BaseFailoverDrill):
 
         apply_params = {
             "for_biz": self.bk_biz_id,
-            "bk_biz_id": self.bk_biz_id,
+            "bk_biz_id": get_resource_biz(),
             "resource_type": "mysql",
             "hosts": hosts,
             "labels": self.labels,
