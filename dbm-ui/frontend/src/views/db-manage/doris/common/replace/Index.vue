@@ -62,7 +62,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
+  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer' | 'follower', TReplaceNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       role: 'doris_backend_cold',
@@ -106,10 +106,10 @@
         }
       });
 
-      nodeInfoMap.hot.oldHostList = hotList;
-      nodeInfoMap.cold.oldHostList = coldList;
-      nodeInfoMap.observer.oldHostList = observerList;
-      nodeInfoMap.follower.oldHostList = followerList;
+      nodeInfoMap.value.hot.oldHostList = hotList;
+      nodeInfoMap.value.cold.oldHostList = coldList;
+      nodeInfoMap.value.observer.oldHostList = observerList;
+      nodeInfoMap.value.follower.oldHostList = followerList;
     },
     {
       immediate: true,

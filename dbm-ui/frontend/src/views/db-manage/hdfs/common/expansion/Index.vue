@@ -21,7 +21,6 @@
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
@@ -46,7 +45,7 @@
   });
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'datanode', TExpansionNode>>({
+  const nodeInfoMap = ref<Record<'datanode', TExpansionNode>>({
     datanode: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -89,8 +88,8 @@
           }
         });
 
-        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
-        nodeInfoMap.datanode.originalHostList = datanodeOriginalHostList;
+        nodeInfoMap.value.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.value.datanode.originalHostList = datanodeOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
