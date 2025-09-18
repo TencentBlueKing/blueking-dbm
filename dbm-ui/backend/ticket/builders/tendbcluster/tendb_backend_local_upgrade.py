@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -19,7 +20,7 @@ from backend.ticket.constants import TicketType
 
 
 class TenDBBackendLocalUpgradeSerializer(TenDBLocalUpgradeSerializer):
-    pass
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
 
 
 class TenDBBackendLocalUpgradeParamBuilder(builders.FlowParamBuilder):
