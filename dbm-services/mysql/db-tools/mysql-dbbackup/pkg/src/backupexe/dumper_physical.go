@@ -135,7 +135,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 
 	if p.cnf.PhysicalBackup.Throttle > 0 {
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
-		args = append(args, "--log-copy-interval=500")
+		args = append(args, "--log-copy-interval=300")
 	}
 	if p.cnf.PhysicalBackup.LockDDL {
 		// will block all ddl and non-innodb dml from the backup beginning

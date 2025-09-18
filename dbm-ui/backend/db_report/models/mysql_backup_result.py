@@ -50,6 +50,6 @@ class MysqlBackupResult(models.Model):
         managed = False
         db_table = "tb_mysql_backup_result"
         unique_together = (
-            ("cluster_address", "shard_value", "mysql_role", "backup_id"),
+            ("cluster_address", "backup_host", "backup_port", "backup_id"),
             ("backup_host", "backup_port", "mysql_role", "backup_consistent_time"),
         )

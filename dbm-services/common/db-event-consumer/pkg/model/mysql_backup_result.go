@@ -68,7 +68,10 @@ func (m *MysqlBackupResultModel) UniqueKey() []string {
 func (m *MysqlBackupResultModel) MigrateSchema(w base.DSWriter) error {
 	slog.Info("run migrate for MysqlBackupResultModel", slog.String("table", m.TableName()))
 	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
-		dbWriter := w.(base.GormMigrator)
+		dbWriter, ok := w.(base.GormMigrator)
+		if !ok {
+			return errors.Errorf("writer_type=%s has no gorm db for custom migrate: %s", w.Type(), m.TableName())
+		}
 		db := dbWriter.GormDB()
 		// 调用通用 migrate
 		if err := db.Migrator().AutoMigrate(&m); err != nil {
@@ -79,8 +82,8 @@ func (m *MysqlBackupResultModel) MigrateSchema(w base.DSWriter) error {
 			[]string{"backup_host", "backup_port", "mysql_role", "backup_consistent_time"}, true, true); err != nil {
 			return err
 		}
-		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clusterid",
-			[]string{"cluster_id", "backup_id", "backup_consistent_time"}, false, true); err != nil {
+		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_clustertime",
+			[]string{"cluster_id", "backup_consistent_time"}, false, true); err != nil {
 			return err
 		}
 		if err := base.CreateOrUpdateIndex(db, m.TableName(), "idx_backuptime",
