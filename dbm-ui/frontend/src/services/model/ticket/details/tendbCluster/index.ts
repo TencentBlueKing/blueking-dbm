@@ -27,6 +27,7 @@ export * from './masterSlaveSwitch';
 export * from './migrateCluster';
 export * from './nodeRebalance';
 export * from './openArea';
+export * from './remoteUpgrade';
 export * from './partition';
 export * from './renameDataBase';
 export * as ResourcePool from './resource-pool/index';

@@ -43,15 +43,25 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem>
+      <BkFormItem class="mb-8">
         <BkCheckbox
-          v-model="formData.isSafe"
+          v-model="formData.is_check_process"
           :false-label="false"
           true-label>
           <span
             v-bk-tooltips="t('存在业务连接时需要人工确认')"
             class="safe-action-text">
             {{ t('检查业务连接') }}
+          </span>
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem>
+        <BkCheckbox
+          v-model="formData.is_verify_checksum"
+          :false-label="false"
+          true-label>
+          <span>
+            {{ t('检查主从数据校验结果') }}
           </span>
         </BkCheckbox>
       </BkFormItem>
@@ -143,7 +153,8 @@
   });
 
   const defaultData = () => ({
-    isSafe: true,
+    is_check_process: true,
+    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -161,10 +172,12 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<TendbCluster.LocalUpgrade>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, {
+  useTicketDetail<TendbCluster.RemoteUpgrade>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE, {
     onSuccess(ticketDetail) {
       Object.assign(formData, {
         ...createTickePayload(ticketDetail),
+        is_check_process: ticketDetail.details.is_check_process,
+        is_verify_checksum: ticketDetail.details.is_verify_checksum,
         tableData: ticketDetail.details.infos.map((item) =>
           createTableRow({
             // 集群信息现查，从而带出当前版本信息
@@ -198,7 +211,8 @@
         pkg_name: string;
       };
     }[];
-    is_safe: boolean;
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
     upgrade_local: boolean;
   }>(TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE);
 
@@ -214,7 +228,8 @@
             pkg_id: item.pkg_id,
             target_version: item.target_version,
           })),
-          is_safe: formData.isSafe,
+          is_check_process: formData.is_check_process,
+          is_verify_checksum: formData.is_verify_checksum,
           upgrade_local: true,
         },
         ...formData.payload,
