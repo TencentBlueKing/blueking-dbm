@@ -21,7 +21,7 @@
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { reactive, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import PulsarModel from '@services/model/pulsar/pulsar';
@@ -48,7 +48,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'bookkeeper' | 'broker', TShrinkNode>>({
+  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker', TShrinkNode>>({
     bookkeeper: {
       hostList: [],
       label: 'Bookkeeper',
@@ -101,11 +101,11 @@
           }
         });
 
-        nodeInfoMap.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
-        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.value.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
+        nodeInfoMap.value.bookkeeper.totalDisk = bookkeeperDiskTotal;
 
-        nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
-        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.value.broker.originalNodeList = brokerOriginalNodeList;
+        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
@@ -145,10 +145,10 @@
           });
         }
       });
-      nodeInfoMap.bookkeeper.hostList = bookkeeperHostList;
-      nodeInfoMap.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
-      nodeInfoMap.broker.hostList = brokerHostList;
-      nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
+      nodeInfoMap.value.bookkeeper.hostList = bookkeeperHostList;
+      nodeInfoMap.value.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
+      nodeInfoMap.value.broker.hostList = brokerHostList;
+      nodeInfoMap.value.broker.shrinkDisk = brokerShrinkDisk;
 
       if (bookkeeperHostList.length) {
         nodeType.value = 'bookkeeper';

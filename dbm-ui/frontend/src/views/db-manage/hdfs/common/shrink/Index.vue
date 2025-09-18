@@ -21,7 +21,7 @@
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { reactive, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
@@ -49,7 +49,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'datanode', TShrinkNode>>({
+  const nodeInfoMap = ref<Record<'datanode', TShrinkNode>>({
     datanode: {
       hostList: [],
       label: 'DataNode',
@@ -87,8 +87,8 @@
           }
         });
 
-        nodeInfoMap.datanode.originalNodeList = datanodeOriginalNodeList;
-        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.value.datanode.originalNodeList = datanodeOriginalNodeList;
+        nodeInfoMap.value.datanode.totalDisk = datanodeDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
@@ -117,8 +117,8 @@
           });
         }
       });
-      nodeInfoMap.datanode.hostList = datanodeList;
-      nodeInfoMap.datanode.shrinkDisk = datanodeShrinkDisk;
+      nodeInfoMap.value.datanode.hostList = datanodeList;
+      nodeInfoMap.value.datanode.shrinkDisk = datanodeShrinkDisk;
     },
     {
       immediate: true,

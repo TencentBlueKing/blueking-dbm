@@ -21,7 +21,7 @@
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { reactive, ref } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type KafkaModel from '@services/model/kafka/kafka';
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'broker', TExpansionNode>>({
+  const nodeInfoMap = ref<Record<'broker', TExpansionNode>>({
     broker: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -90,8 +90,8 @@
           }
         });
 
-        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
-        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
+        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.value.broker.originalHostList = brokerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;

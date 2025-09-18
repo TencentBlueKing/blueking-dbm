@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'broker' | 'zookeeper', TReplaceNode>>({
+  const nodeInfoMap = ref<Record<'broker' | 'zookeeper', TReplaceNode>>({
     broker: {
       clusterId: props.clusterData.id,
       hostList: [],
@@ -94,8 +94,8 @@
         }
       });
 
-      nodeInfoMap.broker.oldHostList = brokerList;
-      nodeInfoMap.zookeeper.oldHostList = zookeeperList;
+      nodeInfoMap.value.broker.oldHostList = brokerList;
+      nodeInfoMap.value.zookeeper.oldHostList = zookeeperList;
     },
     {
       immediate: true,
