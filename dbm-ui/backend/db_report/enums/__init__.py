@@ -53,3 +53,9 @@ class ReportType(str, StructuredEnum):
     SQLSERVER_JOB_SYNC_CHECK = EnumField("sqlserver_job_sync_check", _("业务Job的同步巡检"))
     SQLSERVER_LINK_SERVER_SYNC_CHECK = EnumField("sqlserver_link_server_sync_check", _("业务Linkserver的同步巡检"))
     SQLSERVER_USER_SYNC_CHECK = EnumField("sqlserver_user_sync_check", _("业务账号同步巡检"))
+
+
+class ReportStateType(str, StructuredEnum):
+    NORMAL = EnumField("normal", _("正常"))
+    WARNING = EnumField("warning", _("预警"))
+    ABNORMAL = EnumField("abnormal", _("异常"))

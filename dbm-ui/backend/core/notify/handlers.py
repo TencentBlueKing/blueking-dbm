@@ -264,11 +264,14 @@ class NotifyAdapter:
     def get_support_msg_types(cls):
         # 获取当前环境下支持的通知类型
         # 所有的拓展方式都需要接入CMSI，所以直接返回CMSI支持方式即可
-        # TODO: 暂不暴露微信的通知方式
+        # TODO: 暂不暴露微信、短信的通知方式
         msg_types = CmsiApi.get_msg_type()
-        msg_type_map = {msg["type"]: msg for msg in msg_types}
-        msg_type_map[MsgType.WEIXIN.value]["is_active"] = False
-        return list(msg_type_map.values())
+        for msg in msg_types:
+            # 将msg_type文案转换为平台定义
+            msg["label"] = MsgType.get_choice_label(msg["type"])
+            if msg["type"] in [MsgType.WEIXIN, MsgType.SMS]:
+                msg["is_active"] = False
+        return msg_types
 
     def get_notify_class(self, msg_type: str):
         # 根据通知类型获取通知类，以及通知所需的上下文

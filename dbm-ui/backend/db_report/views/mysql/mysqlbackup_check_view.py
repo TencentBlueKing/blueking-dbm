@@ -31,7 +31,7 @@ logger = logging.getLogger("root")
 class MysqlBackupCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = MysqlBackupCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at", "dba")
+        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "state", "msg", "create_at", "dba", "failed_days")
         swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_CHECK_DATA}
 
 
@@ -60,6 +60,11 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.STATUS.value,
         },
         {
+            "name": "state",
+            "display_name": _("全备状态(新)"),
+            "format": ReportFieldFormat.STATUS.value,
+        },
+        {
             "name": "msg",
             "display_name": _("详情"),
             "format": ReportFieldFormat.TEXT.value,
@@ -67,6 +72,11 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
         {
             "name": "create_at",
             "display_name": _("巡检时间"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "failed_days",
+            "display_name": _("持续天数"),
             "format": ReportFieldFormat.TEXT.value,
         },
     ]

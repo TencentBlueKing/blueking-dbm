@@ -329,9 +329,8 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         """
         instance["port"] = instance["inst_port"]
         instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
-        instance_info.update(
-            related_pair_instance=kwargs.get("pair_instance_map", {}).get(instance["machine__ip"], "")
-        )
+        pari_key = f"{instance['machine__ip']}:{instance['port']}"
+        instance_info.update(related_pair_instance=kwargs.get("pair_instance_map", {}).get(pari_key, ""))
         return instance_info
 
     @classmethod

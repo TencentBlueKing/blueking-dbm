@@ -30,6 +30,7 @@ class MysqlListRetrieveResource(query.ListRetrieveResource):
             .prefetch_related("as_receiver", "as_receiver__ejector__machine")
         )
         for inst in insts:
-            pair_instance_map[inst.machine.ip] = inst.as_receiver.get().ejector.simple_desc
+            key = f"{inst.machine.ip}:{inst.port}"
+            pair_instance_map[key] = inst.as_receiver.get().ejector.simple_desc
 
         return pair_instance_map

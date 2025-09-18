@@ -19,8 +19,8 @@ class MsgType(str, StructuredEnum):
     WEIXIN = EnumField("weixin", _("微信"))
     MAIL = EnumField("mail", _("邮件"))
     VOICE = EnumField("voice", _("语音"))
-    RTX = EnumField("rtx", _("企业微信"))
-    WECOM_ROBOT = EnumField("wecom_robot", _("企业微信机器人"))
+    RTX = EnumField("rtx", _("企微"))
+    WECOM_ROBOT = EnumField("wecom_robot", _("企微群聊"))
     # 未知发送类型，配置此type一般用于跳过消息发送
     UNKNOWN = EnumField("unknown", _("未知"))
 
