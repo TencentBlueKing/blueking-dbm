@@ -387,7 +387,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, DBTypes, MachineTypes, OSTypes, TicketTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -486,7 +486,7 @@
       cluster_type: renderRedisClusterTypes.value[0].id,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: '',
+      disaster_tolerance_level: Affinity.CROS_SUBZONE,
       ip_source: redisIpSources.resource_pool.id,
       nodes: {
         master: [] as HostInfo[],
