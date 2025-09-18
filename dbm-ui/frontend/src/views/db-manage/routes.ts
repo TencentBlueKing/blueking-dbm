@@ -15,7 +15,7 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { registerModule } from '@router';
+import { registerBusinessModule, registerModule } from '@router';
 
 import { useFunController } from '@stores';
 
@@ -35,15 +35,8 @@ const dbaModules = import.meta.glob<{ default: (params: FunctionControllModel) =
 export default function getRoutes() {
   const { funControllerData } = useFunController();
 
-  const children = Object.values(modules).reduce((result, item) => {
-    const routes = item.default(funControllerData);
-    if (Array.isArray(routes) && routes.length > 0) {
-      result.push(routes[0]!);
-    }
-    return result;
-  }, [] as RouteRecordRaw[]);
-
-  const routes = [
+  // 业务路由
+  registerBusinessModule([
     {
       path: 'db-manage',
       name: 'DbManage',
@@ -51,24 +44,17 @@ export default function getRoutes() {
         navName: t('数据库管理'),
       },
       component: () => import('@views/db-manage/Index.vue'),
-      children,
+      children: Object.values(modules).reduce((result, item) => {
+        const routes = item.default(funControllerData);
+        if (Array.isArray(routes) && routes.length > 0) {
+          result.push(routes[0]!);
+        }
+        return result;
+      }, [] as RouteRecordRaw[]),
     },
-  ];
+  ]);
 
-  return routes;
-}
-
-export function getDbaManageRoutes() {
-  const { funControllerData } = useFunController();
-
-  const children = Object.values(dbaModules).reduce((result, item) => {
-    const routes = item.default(funControllerData);
-    if (Array.isArray(routes) && routes.length > 0) {
-      result.push(routes[0]);
-    }
-    return result;
-  }, [] as RouteRecordRaw[]);
-
+  // 全局路由
   registerModule([
     {
       path: 'dba-manage',
@@ -78,7 +64,13 @@ export function getDbaManageRoutes() {
         navName: t('DBA 工具箱'),
       },
       component: () => import('@views/db-manage/Index.vue'),
-      children,
+      children: Object.values(dbaModules).reduce((result, item) => {
+        const routes = item.default(funControllerData);
+        if (Array.isArray(routes) && routes.length > 0) {
+          result.push(routes[0]);
+        }
+        return result;
+      }, [] as RouteRecordRaw[]),
     },
   ]);
 }

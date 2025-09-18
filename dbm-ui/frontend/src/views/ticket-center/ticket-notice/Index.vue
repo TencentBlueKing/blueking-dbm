@@ -14,7 +14,7 @@
 <template>
   <BkLoading :loading="getBizSettingLoading || groupNotifyLoading">
     <SmartAction
-      class="ticket-notice"
+      class="ticket-notice-page"
       :offset-target="getSmartActionOffsetTarget">
       <BkCard
         :border="false"
@@ -347,7 +347,7 @@
 </script>
 
 <style lang="less" scoped>
-  .ticket-notice {
+  .ticket-notice-page {
     padding: 20px;
 
     .db-card {
