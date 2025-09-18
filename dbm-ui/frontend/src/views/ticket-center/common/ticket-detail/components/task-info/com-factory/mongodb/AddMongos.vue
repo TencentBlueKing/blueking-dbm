@@ -50,22 +50,20 @@
 
   const columns = [
     {
-      field: 'immute_domain',
-      label: t('目标分片集群'),
-      showOverflowTooltip: true,
+      colKey: 'immute_domain',
+      title: t('目标分片集群'),
     },
     {
-      field: 'node_type',
-      label: t('扩容节点类型'),
+      colKey: 'node_type',
+      title: t('扩容节点类型'),
     },
     {
-      field: 'sepc_name',
-      label: t('扩容规格'),
-      showOverflowTooltip: true,
+      colKey: 'sepc_name',
+      title: t('扩容规格'),
     },
     {
-      field: 'add_shard_num',
-      label: t('扩容数量（台）'),
+      colKey: 'add_shard_num',
+      title: t('扩容数量（台）'),
     },
   ];
 

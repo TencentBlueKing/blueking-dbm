@@ -15,23 +15,23 @@
   <PrimaryTable
     :data="[ticketDetails]"
     row-key="cluster_id">
-    <BkTableColumn :title="t('集群')">
+    <TableColumn :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
         {{ row.details.clusters[row.details.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :title="t('集群类型')">
+    </TableColumn>
+    <TableColumn :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
         {{ row.details.clusters[row.details.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="ticketDetails.details.spider_role"
       :title="t('角色')">
       <template #default="{ row }: { row: RowData }">
         {{ RoleDisplayMap[row.details.spider_role!] }}
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </PrimaryTable>
 </template>
 

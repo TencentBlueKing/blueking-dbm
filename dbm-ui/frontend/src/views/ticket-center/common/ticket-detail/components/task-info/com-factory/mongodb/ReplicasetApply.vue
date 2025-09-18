@@ -67,20 +67,22 @@
     <InfoItem
       :label="t('域名设置')"
       style="width: 100%">
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterId"
-          :label="t('集群ID')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterName"
-          :label="t('集群名称')">
-        </BkTableColumn>
-      </BkTable>
+      <PrimaryTable
+        :data="tableData"
+        row-key="clusterId">
+        <TableColumn
+          col-key="mainDomain"
+          :title="t('主域名')">
+        </TableColumn>
+        <TableColumn
+          col-key="clusterId"
+          :title="t('集群ID')">
+        </TableColumn>
+        <TableColumn
+          col-key="clusterName"
+          :title="t('集群名称')">
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>

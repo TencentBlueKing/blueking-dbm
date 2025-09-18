@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :key="tableKey"
     :columns="columns"
-    show-overflow-tooltip
+    ellipsis
     v-bind="$attrs">
     <slot />
     <template #empty>
@@ -27,11 +27,11 @@
           @refresh="handleRefresh" />
       </slot>
     </template>
-  </BkTable>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">
-  import type { Table } from 'bkui-vue';
+  import type { PrimaryTableCol } from 'tdesign-vue-next';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
@@ -40,7 +40,7 @@
     (e: 'clearSearch'): void;
   }
   interface Props {
-    columns?: InstanceType<typeof Table>['$props']['columns'];
+    columns?: PrimaryTableCol[];
     isAnomalies?: boolean;
     isSearching?: boolean;
   }

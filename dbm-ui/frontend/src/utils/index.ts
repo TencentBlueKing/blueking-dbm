@@ -46,3 +46,4 @@ export * from './url';
 export * from './validateBrackets';
 export * from './vNodeToHtml';
 export * from './vueHelper';
+export * from './tableMerge';

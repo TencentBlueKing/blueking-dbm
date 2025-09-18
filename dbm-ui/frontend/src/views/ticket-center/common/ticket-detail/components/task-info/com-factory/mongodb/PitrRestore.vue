@@ -17,30 +17,32 @@
       {{ clusterTypeInfos[ticketDetails.details.cluster_type].name }}
     </InfoItem>
     <InfoItem :label="t('目标集群与构造设置:')">
-      <BkTable :data="ticketDetails.details.cluster_ids.map((item) => ({ clusterId: item }))">
-        <BkTableColumn
+      <PrimaryTable
+        :data="ticketDetails.details.cluster_ids.map((item) => ({ clusterId: item }))"
+        row-key="clusterId">
+        <TableColumn
           fixed="left"
-          :label="t('集群')"
+          :title="t('集群')"
           :width="300">
           <template #default="{ row }">
             {{ ticketDetails.details.clusters[row.clusterId].immute_domain }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('版本')"
+        </TableColumn>
+        <TableColumn
+          :title="t('版本')"
           :width="150">
           <template #default="{ row }">
             {{ ticketDetails.details.clusters[row.clusterId].major_version }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          :label="t('指定时间')"
-          :min-width="240">
+        </TableColumn>
+        <TableColumn
+          :min-width="240"
+          :title="t('指定时间')">
           <template #default="{ row }">
             {{ utcDisplayTime(ticketDetails.details.rollback_time[row.clusterId]) }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
     <InfoItem :label="t('构造新主机规格:')">
       {{ ticketDetails.details.specs[ticketDetails.details.resource_spec.mongodb.spec_id].name }}

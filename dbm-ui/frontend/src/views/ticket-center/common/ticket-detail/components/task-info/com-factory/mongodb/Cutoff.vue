@@ -12,24 +12,25 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
+    col-key="ip"
     :data="tableData"
-    :merge-cells="mergeCells"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="ip"
+    ellipsis
+    :rowspan-and-colspan="createTableMerge(mergeCells)">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      :label="t('待替换的主机')" />
-    <BkTableColumn
-      field="role"
-      :label="t('角色类型')" />
-    <BkTableColumn
-      field="cluster"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="spec"
-      :label="t('新机规格')" />
-  </BkTable>
+      :title="t('待替换的主机')" />
+    <TableColumn
+      col-key="role"
+      :title="t('角色类型')" />
+    <TableColumn
+      col-key="cluster"
+      :title="t('所属集群')" />
+    <TableColumn
+      col-key="spec"
+      :title="t('新机规格')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -40,6 +41,8 @@
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import { createTableMerge } from '@/utils';
 
   interface Props {
     ticketDetails: TicketModel<Mongodb.Cutoff>;

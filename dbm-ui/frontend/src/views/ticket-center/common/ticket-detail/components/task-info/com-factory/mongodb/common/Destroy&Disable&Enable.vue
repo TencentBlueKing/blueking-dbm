@@ -43,20 +43,20 @@
    */
   const columns = [
     {
-      field: 'cluster_id',
-      label: t('集群ID'),
-      render: ({ data }: { data: ClusterItem }) => <span>{data.id || '--'}</span>,
+      cell: (_, { row: data }: { row: ClusterItem }) => <span>{data.id || '--'}</span>,
+      colKey: 'cluster_id',
+      title: t('集群ID'),
     },
     {
-      field: 'immute_domain',
-      label: t('集群名称'),
-      render: ({ data }: { data: ClusterItem }) => data.immute_domain,
+      cell: (_, { row: data }: { row: ClusterItem }) => data.immute_domain,
+      colKey: 'immute_domain',
       showOverflowTooltip: false,
+      title: t('集群名称'),
     },
     {
-      field: 'cluster_type_name',
-      label: t('集群类型'),
-      render: ({ data }: { data: ClusterItem }) => <span>{data.cluster_type_name || '--'}</span>,
+      cell: (_, { row: data }: { row: ClusterItem }) => <span>{data.cluster_type_name || '--'}</span>,
+      colKey: 'cluster_type_name',
+      title: t('集群类型'),
     },
   ];
 
