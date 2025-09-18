@@ -227,7 +227,7 @@
       disaster_tolerance_level: string; // 亲和性
       node_replicaset_count: number; // 单机部署实例数
       resource_spec: {
-        shard_nodes: {
+        mongodb: {
           count: number; // 台数
           spec_id: number;
         };
@@ -341,7 +341,7 @@
             disaster_tolerance_level: tableRow.cluster.disaster_tolerance_level,
             node_replicaset_count: tableRow.cluster.machine_instance_num,
             resource_spec: {
-              shard_nodes: {
+              mongodb: {
                 count:
                   getAddMachinePair(tableRow.add_shards_num, tableRow.cluster.single_host_shard_num) *
                   tableRow.cluster.shard_node_count, // 机器组数 * 每片节点数
