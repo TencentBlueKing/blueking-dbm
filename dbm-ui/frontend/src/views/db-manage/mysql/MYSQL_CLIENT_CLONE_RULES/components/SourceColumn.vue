@@ -47,6 +47,7 @@
     :label="t('模块')"
     :loading="loading"
     :min-width="150"
+    readonly
     required>
     <EditableBlock
       v-model="module"

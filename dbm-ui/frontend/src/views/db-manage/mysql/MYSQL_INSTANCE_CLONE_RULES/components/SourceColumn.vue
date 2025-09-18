@@ -43,6 +43,7 @@
     :label="t('所属集群')"
     :loading="loading"
     :min-width="250"
+    readonly
     required>
     <EditableBlock
       v-model="clusterDomain"
