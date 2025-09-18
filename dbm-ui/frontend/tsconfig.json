@@ -4,6 +4,7 @@
   "compilerOptions": {
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "noUncheckedIndexedAccess": false,
 
     "baseUrl": ".",
     "paths": {
