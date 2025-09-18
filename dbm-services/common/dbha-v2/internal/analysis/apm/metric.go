@@ -22,45 +22,12 @@
  * SOFTWARE.
  */
 
-package admin
+package apm
 
-import (
-	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
+import "dbm-services/common/go-pubpkg/apm/metric"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-)
+var Metrics []*metric.Metric
 
-// Run run admin service
-func Run(cmd *cobra.Command, args []string) error {
-
-	viper.SetConfigName("admin")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		return err
-	}
-
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSizeMB,
-		MaxBackups: config.Cfg.Log.FileCount,
-	}
-
-	log := logger.NewDbmLogger(logCfg)
-	logger.SetLogger(log)
-
-	logger.Debug("admin configuration:%v", config.Cfg)
-	return nil
+func init() {
+	Metrics = append(Metrics, &metric.Metric{})
 }

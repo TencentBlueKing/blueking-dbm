@@ -75,7 +75,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		MaxBackups: config.Cfg.Log.FileCount,
 	}
 
-	log := logger.NewZapLogger(logCfg)
+	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
 	logger.Debug("receiver config. %v", config.Cfg)
