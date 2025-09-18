@@ -69,7 +69,7 @@
   import { importResource } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
-  import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
+  import { useImportResourcePoolTooltip } from '@views/resource-manage/common/hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
