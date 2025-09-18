@@ -16,7 +16,7 @@
     <div class="version-files-file-content">
       <BkTab
         v-model:active="state.active"
-        type="card">
+        type="card-tab">
         <BkTabPanel
           v-for="tab of tabs"
           :key="tab.name"

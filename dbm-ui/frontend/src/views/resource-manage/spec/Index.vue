@@ -19,7 +19,7 @@
       class="wrapper">
       <BkTab
         v-model:active="curChildTab"
-        type="card">
+        type="card-tab">
         <BkTabPanel
           v-for="childTab of childrenTabs"
           :key="childTab.value"
