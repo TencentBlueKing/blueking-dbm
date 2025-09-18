@@ -21,7 +21,7 @@
     @submit="handleChange" />
 </template>
 <script setup lang="tsx">
-  import { reactive, ref } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import PulsarModel from '@services/model/pulsar/pulsar';
@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'bookkeeper' | 'broker', TExpansionNode>>({
+  const nodeInfoMap = ref<Record<'bookkeeper' | 'broker', TExpansionNode>>({
     bookkeeper: {
       clusterId: props.clusterData.id,
       // targetDisk: 0,
@@ -113,11 +113,11 @@
           }
         });
 
-        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
-        nodeInfoMap.bookkeeper.originalHostList = bookkeeperOriginalHostList;
+        nodeInfoMap.value.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.value.bookkeeper.originalHostList = bookkeeperOriginalHostList;
 
-        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
-        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
+        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.value.broker.originalHostList = brokerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;

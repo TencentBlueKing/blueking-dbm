@@ -47,7 +47,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'broker', TShrinkNode>>({
+  const nodeInfoMap = ref<Record<'broker', TShrinkNode>>({
     broker: {
       hostList: [],
       label: 'Broker',
@@ -84,8 +84,8 @@
           }
         });
 
-        nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
-        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.value.broker.originalNodeList = brokerOriginalNodeList;
+        nodeInfoMap.value.broker.totalDisk = brokerDiskTotal;
       })
       .finally(() => {
         isLoading.value = false;
@@ -114,8 +114,8 @@
           });
         }
       });
-      nodeInfoMap.broker.hostList = brokerHostList;
-      nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
+      nodeInfoMap.value.broker.hostList = brokerHostList;
+      nodeInfoMap.value.broker.shrinkDisk = brokerShrinkDisk;
     },
     {
       immediate: true,

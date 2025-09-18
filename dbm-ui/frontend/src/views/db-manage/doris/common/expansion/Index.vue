@@ -71,7 +71,7 @@
 
   const { t } = useI18n();
 
-  const nodeInfoMap = reactive<Record<'cold' | 'hot' | 'observer', TDorisExpansionNode>>({
+  const nodeInfoMap = ref<Record<'cold' | 'hot' | 'observer', TDorisExpansionNode>>({
     cold: generateNodeInfo({
       label: t('冷节点'),
       mutexNodeTypes: ['hot', 'observer'],
@@ -129,14 +129,14 @@
           }
         });
 
-        nodeInfoMap.hot.totalDisk = hotDiskTotal;
-        nodeInfoMap.hot.originalHostList = hotOriginalHostList;
+        nodeInfoMap.value.hot.totalDisk = hotDiskTotal;
+        nodeInfoMap.value.hot.originalHostList = hotOriginalHostList;
 
-        nodeInfoMap.cold.totalDisk = coldDiskTotal;
-        nodeInfoMap.cold.originalHostList = coldOriginalHostList;
+        nodeInfoMap.value.cold.totalDisk = coldDiskTotal;
+        nodeInfoMap.value.cold.originalHostList = coldOriginalHostList;
 
-        nodeInfoMap.observer.totalDisk = observerDiskTotal;
-        nodeInfoMap.observer.originalHostList = observerOriginalHostList;
+        nodeInfoMap.value.observer.totalDisk = observerDiskTotal;
+        nodeInfoMap.value.observer.originalHostList = observerOriginalHostList;
       })
       .finally(() => {
         isLoading.value = false;
