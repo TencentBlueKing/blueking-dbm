@@ -228,6 +228,9 @@ class ProxyBaseView(View):
                 cluster_types = []
                 view = f"{db_type}-{view}"
                 update_dashes.append({"db_type": db_type, "type": DashboardType.BUSINESS, "view": view})
+            elif dash_type == DashboardType.OVERVIEW:
+                view = _("业务概览仪表盘")
+                update_dashes.append({"db_type": "", "type": DashboardType.OVERVIEW, "view": view})
 
             # 创建或更新集群监控仪表盘
             for cluster_type in cluster_types:
