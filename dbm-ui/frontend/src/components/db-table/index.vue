@@ -411,6 +411,7 @@
   };
 
   let requestKey = 0;
+  let batchRequestTimer: Timeout;
   const fetchListData = (loading = true) => {
     requestKey = Date.now();
     const latestRequestKey = requestKey;
@@ -438,13 +439,13 @@
         .then((data) => {
           bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 20));
           if (data.results.length > 20) {
-            setTimeout(() => {
+            batchRequestTimer = setTimeout(() => {
               if (latestRequestKey !== requestKey) {
                 return;
               }
               bkTableRef.value.getVxeTableInstance().loadData(data.results.slice(0, 50));
               if (data.results.length > 50) {
-                setTimeout(() => {
+                batchRequestTimer = setTimeout(() => {
                   if (latestRequestKey !== requestKey) {
                     return;
                   }
@@ -724,6 +725,9 @@
   onMounted(() => {
     parseURL();
     calcTableHeight();
+  });
+  onBeforeUnmount(() => {
+    clearTimeout(batchRequestTimer);
   });
 
   defineExpose<Exposes>({

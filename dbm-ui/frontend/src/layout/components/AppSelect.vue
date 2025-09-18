@@ -56,7 +56,6 @@
       return;
     }
     const { matched } = route;
-    console.log('matched = ', matched, route);
     // 2，当前路由带有请求参数，切换业务时则需要做回退处理
     // 路由只匹配到了一个
     if (matched.length < 2) {
