@@ -35,7 +35,7 @@
     </template>
     <EditableBlock :placeholder="t('自动生成')">
       <BkButton
-        v-if="conflictDbNum"
+        v-if="isParamsComplete"
         text
         theme="primary"
         @click="handleClick">
@@ -82,6 +82,8 @@
   const isShowSlider = ref(false);
   const rootRef = ref();
   const popRef = ref();
+  // 参数是否选填完整
+  const isParamsComplete = ref(false);
 
   let tippyIns: Instance | undefined;
 
@@ -171,6 +173,7 @@
           props.rowData.cluster.id && props.rowData.backupRecord?.backup_id && props.rowData.databases.length,
         );
       }
+      isParamsComplete.value = valid;
       if (!valid) {
         return;
       }
