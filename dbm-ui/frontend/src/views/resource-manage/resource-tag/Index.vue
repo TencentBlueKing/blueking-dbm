@@ -213,7 +213,7 @@
           width={280}
           onConfirm={() => handleDelete(data)}>
           {{
-            content: (
+            content: () => (
               <>
                 <div>
                   {t('标签：')}
@@ -222,7 +222,7 @@
                 <div class='mb-10 mt-4'>{t('删除操作无法撤回，请谨慎操作！')}</div>
               </>
             ),
-            default: (
+            default: () => (
               <Button
                 v-bk-tooltips={{
                   content: t('该标签已被绑定 ，不能删除'),
@@ -237,6 +237,7 @@
           }}
         </BKPopConfirm>
       ),
+      width: 120,
     },
   ]);
 

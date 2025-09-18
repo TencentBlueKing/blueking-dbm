@@ -1,5 +1,5 @@
 <template>
-  <div class="ticket-cooperation-setting">
+  <div class="ticket-cooperation-settings-page">
     <SmartAction :offset-target="getSmartActionOffsetTarget">
       <DbCard
         mode="collapse"
@@ -118,7 +118,7 @@
 </script>
 
 <style scoped lang="less">
-  .ticket-cooperation-setting {
+  .ticket-cooperation-settings-page {
     .submit-btn {
       width: 88px;
       margin-top: 16px;

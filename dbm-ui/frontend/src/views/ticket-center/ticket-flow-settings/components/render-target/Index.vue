@@ -47,7 +47,7 @@
     clusterIds: number[];
     dbType: DBTypes;
   }>({
-    required: true
+    required: true,
   });
 
   const selectBizRef = ref<InstanceType<typeof SelectBiz>>();
