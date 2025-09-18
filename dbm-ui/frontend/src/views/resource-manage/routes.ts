@@ -12,136 +12,95 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import { registerBusinessModule } from '@router';
+import { registerBusinessModule, registerModule } from '@router';
 
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const resourcePoolRoute = {
-  path: 'pool/:page?',
-  name: 'resourcePool',
-  meta: {
-    fullscreen: true,
-    navName: t('DB 资源池'),
-  },
-  component: () => import('@views/resource-manage/pool/global/Index.vue'),
-};
-
-const faultPoolRoute = {
-  path: 'fault-pool',
-  name: 'faultPool',
-  meta: {
-    navName: t('故障池'),
-  },
-  component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
-};
-
-const toRecyclePoolRoute = {
-  path: 'to-recycle-pool',
-  name: 'toRecyclePool',
-  meta: {
-    navName: t('待回收池'),
-  },
-  component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
-};
-
-const allHostRoute = {
-  path: 'all-host',
-  name: 'allHost',
-  meta: {
-    navName: t('所有主机'),
-  },
-  component: () => import('@views/resource-manage/pool/all-host/Index.vue'),
-};
-
-const resourcePoolOperationRecordRoute = {
-  path: 'record',
-  name: 'resourcePoolOperationRecord',
-  meta: {
-    navName: t('资源操作记录'),
-  },
-  component: () => import('@views/resource-manage/record/Index.vue'),
-};
-
-const resourceTagsManagementRoute = {
-  path: 'tags-management',
-  name: 'resourceTagsManagement',
-  meta: {
-    navName: t('资源标签管理'),
-  },
-  component: () => import('@views/tag-manage/resource/Index.vue'),
-};
-
-const resourceSpecRoute = {
-  path: 'spec',
-  name: 'resourceSpec',
-  meta: {
-    fullscreen: true,
-    navName: t('资源规格管理'),
-  },
-  component: () => import('@views/resource-manage/spec/Index.vue'),
-};
-
-const mainRoute = [
-  {
-    path: 'resource-manage',
-    name: 'resourceManage',
-    redirect: {
-      name: 'resourcePool',
-    },
-    component: () => import('@views/resource-manage/Index.vue'),
-    children: [] as RouteRecordRaw[],
-  },
-];
-
 export default function getRoutes() {
-  let existResourcePool = false;
+  // 注册全局路由
+  registerModule([
+    {
+      path: 'resource-manage',
+      name: 'resourceManage',
+      redirect: {
+        name: 'resourcePool',
+      },
+      component: () => import('@views/resource-manage/Index.vue'),
+      children: [
+        checkDbConsole('resourceManage.resourceSpec') && {
+          path: 'spec',
+          name: 'resourceSpec',
+          meta: {
+            fullscreen: true,
+            navName: t('资源规格管理'),
+          },
+          component: () => import('@views/resource-manage/spec/Index.vue'),
+        },
+        checkDbConsole('resourceManage.resourcePool') && {
+          path: 'pool/:page?',
+          name: 'resourcePool',
+          meta: {
+            fullscreen: true,
+            navName: t('DB 资源池'),
+          },
+          component: () => import('@views/resource-manage/pool/global/Index.vue'),
+        },
+        checkDbConsole('resourceManage.resourcePool') && {
+          path: 'pool/:page?',
+          name: 'resourcePool',
+          meta: {
+            fullscreen: true,
+            navName: t('DB 资源池'),
+          },
+          component: () => import('@views/resource-manage/pool/global/Index.vue'),
+        },
+        checkDbConsole('resourceManage.faultPool') && {
+          path: 'fault-pool',
+          name: 'faultPool',
+          meta: {
+            navName: t('故障池'),
+          },
+          component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+        },
+        checkDbConsole('resourceManage.toRecyclePool') && {
+          path: 'to-recycle-pool',
+          name: 'toRecyclePool',
+          meta: {
+            navName: t('待回收池'),
+          },
+          component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+        },
+        checkDbConsole('resourceManage.allHost') && {
+          path: 'all-host',
+          name: 'allHost',
+          meta: {
+            navName: t('所有主机'),
+          },
+          component: () => import('@views/resource-manage/pool/all-host/Index.vue'),
+        },
+        checkDbConsole('resourceManage.resourceTagsManagement') && {
+          path: 'resource-tag',
+          name: 'resourceTagsManagement',
+          meta: {
+            navName: t('资源标签管理'),
+          },
+          component: () => import('@views/resource-manage/resource-tag/Index.vue'),
+        },
+        checkDbConsole('resourceManage.resourceOperationRecord') && {
+          path: 'record',
+          name: 'resourcePoolOperationRecord',
+          meta: {
+            navName: t('资源操作记录'),
+          },
+          component: () => import('@views/resource-manage/record/Index.vue'),
+        },
+      ].filter((_) => _) as RouteRecordRaw[],
+    },
+  ]);
 
-  if (checkDbConsole('resourceManage.resourceSpec')) {
-    mainRoute[0].children.push(resourceSpecRoute);
-  }
-
-  if (checkDbConsole('resourceManage.resourcePool')) {
-    mainRoute[0].children.push(resourcePoolRoute);
-    existResourcePool = true;
-  }
-
-  if (checkDbConsole('resourceManage.faultPool')) {
-    mainRoute[0].children.push(faultPoolRoute);
-  }
-
-  if (checkDbConsole('resourceManage.toRecyclePool')) {
-    mainRoute[0].children.push(toRecyclePoolRoute);
-  }
-
-  if (checkDbConsole('resourceManage.allHost')) {
-    mainRoute[0].children.push(allHostRoute);
-  }
-
-  if (checkDbConsole('resourceManage.resourceTagsManagement')) {
-    mainRoute[0].children.push(resourceTagsManagementRoute);
-  }
-
-  if (checkDbConsole('resourceManage.resourceOperationRecord')) {
-    mainRoute[0].children.push(resourcePoolOperationRecordRoute);
-  }
-
-  if (mainRoute[0].children.length) {
-    if (!existResourcePool) {
-      mainRoute[0].redirect.name = mainRoute[0].children[0].name as string;
-    }
-  } else {
-    mainRoute[0].redirect.name = '';
-  }
-
-  return mainRoute;
-}
-
-/**
- * 业务下的资源池相关的管理路由
- */
-export function getBizResourcePoolRoute() {
+  // 注册业务路由
   registerBusinessModule([
     {
       path: 'resource-manage',
@@ -156,7 +115,23 @@ export function getBizResourcePoolRoute() {
           },
           component: () => import('@views/resource-manage/pool/business/Index.vue'),
         },
-      ] as RouteRecordRaw[],
+        checkDbConsole('bizConfigManage.businessResourceTag') && {
+          path: 'resource-tag',
+          name: 'BizResourceTag',
+          meta: {
+            navName: t('资源标签'),
+          },
+          component: () => import('@views/resource-manage/resource-tag/Index.vue'),
+        },
+        checkDbConsole('bizConfigManage.businessClusterTag') && {
+          path: 'cluster-tag',
+          name: 'businessClusterTag',
+          meta: {
+            navName: t('集群标签管理'),
+          },
+          component: () => import('@views/resource-manage/cluster-tag/Index.vue'),
+        },
+      ].filter((_) => _) as RouteRecordRaw[],
     },
   ]);
 }

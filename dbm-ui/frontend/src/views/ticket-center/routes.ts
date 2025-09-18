@@ -1,8 +1,11 @@
 import { registerBusinessModule, registerModule } from '@router';
 
+import { checkDbConsole } from '@utils';
+
 import { t } from '@locales/index';
 
 export default () => {
+  // 注册全局模块
   registerModule([
     {
       path: 'ticket-self-apply/:ticketId?',
@@ -40,15 +43,6 @@ export default () => {
       },
       component: () => import('@views/ticket-center/ticket-self-done/Index.vue'),
     },
-    // {
-    //   path: 'ticket-self-manage/:ticketId?',
-    //   name: 'ticketSelfManage',
-    //   meta: {
-    //     fullscreen: true,
-    //     navName: t('我负责的业务'),
-    //   },
-    //   component: () => import('@views/ticket-center/ticket-self-manage/Index.vue'),
-    // },
     {
       path: 'ticket-platform-manage/:ticketId?',
       name: 'ticketPlatformManage',
@@ -69,6 +63,21 @@ export default () => {
     },
   ]);
 
+  if (checkDbConsole('globalConfigManage.ticketFlowSetting')) {
+    registerModule([
+      {
+        path: 'ticket-flow-global-settings',
+        name: 'PlatformTicketFlowSetting',
+        meta: {
+          fullscreen: true,
+          navName: t('单据流程设置'),
+        },
+        component: () => import('@views/ticket-center/ticket-flow-global-settings/Index.vue'),
+      },
+    ]);
+  }
+
+  // 注册业务模块
   registerBusinessModule([
     {
       path: 'ticket-business-manage/:ticketId?',
@@ -80,4 +89,42 @@ export default () => {
       component: () => import('@views/ticket-center/ticket-business-manage/Index.vue'),
     },
   ]);
+  if (checkDbConsole('bizConfigManage.ticketCooperationSetting')) {
+    registerBusinessModule([
+      {
+        path: 'ticket-cooperation-settings',
+        name: 'TicketCooperationSetting',
+        meta: {
+          navName: t('单据协助设置'),
+        },
+        component: () => import('@views/ticket-center/ticket-cooperation-settings/Index.vue'),
+      },
+    ]);
+  }
+  if (checkDbConsole('bizConfigManage.ticketFlowSetting')) {
+    registerBusinessModule([
+      {
+        path: 'ticket-flow-settings',
+        name: 'TicketFlowSetting',
+        meta: {
+          fullscreen: true,
+          navName: t('单据免审批设置'),
+        },
+        component: () => import('@views/ticket-center/ticket-flow-settings/Index.vue'),
+      },
+    ]);
+  }
+  if (checkDbConsole('bizConfigManage.ticketNoticeSetting')) {
+    registerBusinessModule([
+      {
+        path: 'ticket-notice',
+        name: 'TicketNoticeSetting',
+        meta: {
+          fullscreen: true,
+          navName: t('单据通知'),
+        },
+        component: () => import('@views/ticket-center/ticket-notice/Index.vue'),
+      },
+    ]);
+  }
 };
