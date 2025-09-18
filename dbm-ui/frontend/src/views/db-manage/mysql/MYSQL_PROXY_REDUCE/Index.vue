@@ -40,14 +40,16 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem
-        v-bk-tooltips="t('存在业务连接时需要人工确认')"
-        class="fit-content">
+      <BkFormItem>
         <BkCheckbox
           v-model="formData.is_safe"
           :false-label="false"
           true-label>
-          <span class="safe-action-text">{{ t('检查业务连接') }}</span>
+          <span
+            v-bk-tooltips="t('存在业务连接时需要人工确认')"
+            class="safe-action-text">
+            {{ t('检查业务连接') }}
+          </span>
         </BkCheckbox>
       </BkFormItem>
       <TicketPayload v-model="formData.payload" />
