@@ -51,15 +51,15 @@
       :width="120">
     </BkTableColumn>
     <BkTableColumn
-      field="resource_spec.shard_nodes.spec_id"
+      field="resource_spec.mongodb.spec_id"
       :label="t('规格')"
       :min-width="200">
       <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.specs[data.resource_spec.shard_nodes.spec_id]?.name }}
+        {{ ticketDetails.details.specs[data.resource_spec.mongodb.spec_id]?.name }}
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="resource_spec.shard_nodes.count"
+      field="resource_spec.mongodb.count"
       :label="t('新增机器（组）')"
       :width="120">
       <template #default="{data}: {data: RowData}">

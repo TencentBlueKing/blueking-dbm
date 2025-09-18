@@ -12,7 +12,7 @@ export interface AddShard extends DetailBase {
     disaster_tolerance_level: string; // 亲和性
     node_replicaset_count: number; // 单机部署实例数
     resource_spec: {
-      shard_nodes: {
+      mongodb: {
         count: number; // 台数
         spec_id: number;
       };
