@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
@@ -205,13 +206,16 @@
             current_versions: tableItem.current_versions,
             node_type: props.nodeType,
             slave_current_versions: [],
-            target_versions: tableItem.cluster.redis_master.concat(tableItem.cluster.redis_slave).map((proxyItem) => ({
-              instance_role: '',
-              ip: proxyItem.ip,
-              related_clusters: [],
-              slave_ip: '',
-              version: tableItem.target_version,
-            })),
+            target_versions: _.uniqBy(
+              tableItem.cluster.redis_master.concat(tableItem.cluster.redis_slave).map((proxyItem) => ({
+                instance_role: '',
+                ip: proxyItem.ip,
+                related_clusters: [],
+                slave_ip: '',
+                version: tableItem.target_version,
+              })),
+              'ip',
+            ),
           }));
         }
         return Promise.reject([]);
