@@ -34,8 +34,8 @@
             @batch-edit="handleBatchEdit" />
           <EditableColumn
             :label="t('缩容节点类型')"
-            :min-width="180"
-            readonly>
+            readonly
+            :width="180">
             <EditableBlock v-model="item.role" />
           </EditableColumn>
           <!-- <EditableColumn

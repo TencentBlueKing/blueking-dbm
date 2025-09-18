@@ -65,7 +65,7 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
 
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   const modelValue = defineModel<{
     id: number;

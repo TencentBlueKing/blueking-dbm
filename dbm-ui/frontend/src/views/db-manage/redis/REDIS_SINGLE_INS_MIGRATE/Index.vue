@@ -70,7 +70,7 @@
   import MigrateFormItems, {
     ArchitectureType,
     MigrateType,
-  } from '@views/db-manage/redis/common/toolbox-field/migrate-form-items/Index.vue';
+  } from '@views/db-manage/redis/common/toolbox-common/migrate-form-items/Index.vue';
 
   import RenderMasterInstance from './components/master-slave-instance/Index.vue';
   import RenderMasterSlaveHost from './components/master-slave-machine/Index.vue';
@@ -82,7 +82,7 @@
   // 单据克隆
   useTicketDetail<Redis.MigrateSingle>(TicketTypes.REDIS_SINGLE_INS_MIGRATE, {
     onSuccess(ticketDetail) {
-      if (ticketDetail.details.infos[0].migrate_type === 'machine') {
+      if (ticketDetail.details.infos[0]?.migrate_type === 'machine') {
         formData.migrateType = MigrateType.MACHINE;
       }
       formData.payload = createTickePayload(ticketDetail);

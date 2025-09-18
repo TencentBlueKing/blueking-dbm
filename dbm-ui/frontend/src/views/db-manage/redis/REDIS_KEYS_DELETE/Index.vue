@@ -1,7 +1,7 @@
 <template>
   <div class="sqlserver-db-backup-page">
     <SmartAction>
-      <KeyOpreationAlert />
+      <KeyOperationAlert />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
@@ -45,19 +45,19 @@
                 :placeholder="t('自动生成')">
               </EditableBlock>
             </EditableColumn>
-            <KeyOprationColumn
+            <KeyOperationColumn
               v-model="rowData.white_regex"
               field="white_regex"
               :label="t('包含 Key')"
               required
               @batch-edit="handleBatchEdit">
-            </KeyOprationColumn>
-            <KeyOprationColumn
+            </KeyOperationColumn>
+            <KeyOperationColumn
               v-model="rowData.black_regex"
               field="black_regex"
               :label="t('排除 Key')"
               @batch-edit="handleBatchEdit">
-            </KeyOprationColumn>
+            </KeyOperationColumn>
             <DeleteRateColumn
               v-model="rowData.delete_rate"
               :cluster="rowData.cluster" />
@@ -103,8 +103,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import KeyOprationColumn from '@views/db-manage/redis/common/edit-field/KeyOprationColumn.vue';
-  import KeyOpreationAlert from '@views/db-manage/redis/common/KeyOpreationAlert.vue';
+  import KeyOperationAlert from '@views/db-manage/redis/common/toolbox-common/key-operation-alert/Index.vue';
+  import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import DeleteRateColumn from './components/DeleteRateColumn.vue';
@@ -169,7 +169,7 @@
 
       nextTick(() => {
         formData.tableData.forEach((item, index) =>
-          Object.assign(item, { delete_rate: details.rules[index].delete_rate }),
+          Object.assign(item, { delete_rate: details.rules[index]!.delete_rate }),
         );
       });
     },

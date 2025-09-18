@@ -28,11 +28,13 @@
             :key="index">
             <EditableColumn
               :label="t('关联单据')"
+              readonly
               :width="200">
               <EditableBlock style="color: #3a84ff">{{ item.bill_id }}</EditableBlock>
             </EditableColumn>
             <EditableColumn
               :label="t('源集群')"
+              readonly
               :width="300">
               <EditableBlock>{{ item.src_cluster }}</EditableBlock>
             </EditableColumn>
@@ -41,6 +43,7 @@
               :src-cluster="item.src_cluster" />
             <EditableColumn
               :label="t('目标集群')"
+              readonly
               :width="300">
               <EditableBlock>{{ item.dst_cluster }}</EditableBlock>
             </EditableColumn>

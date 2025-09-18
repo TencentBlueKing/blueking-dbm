@@ -43,7 +43,6 @@
               @batch-edit="handleBatchEdit" />
             <MasterHostColumn
               v-model="slaveMasterMap"
-              readonly
               :related_clusters="item.host.related_clusters"
               :slave-ip="item.host.ip" />
             <EditableColumn
@@ -372,10 +371,10 @@
     });
     const keys = Object.keys(clusterMap);
     const infos = keys.map((domain) => {
-      const sameArr = clusterMap[domain];
-      const clusterIds = sameArr[0].host.related_clusters.map((item) => item.id);
+      const sameArr = clusterMap[domain]!;
+      const clusterIds = sameArr[0]!.host.related_clusters.map((item) => item.id);
       const infoItem = {
-        bk_cloud_id: slaveMasterMap.value[sameArr[0].host.ip].bk_cloud_id,
+        bk_cloud_id: slaveMasterMap.value[sameArr[0]!.host.ip]!.bk_cloud_id,
         cluster_ids: clusterIds,
         pairs: [] as {
           redis_master: {
@@ -391,7 +390,7 @@
         }[],
       };
       sameArr.forEach((item) => {
-        const master = slaveMasterMap.value[item.host.ip];
+        const master = slaveMasterMap.value[item.host.ip]!;
         const pair = {
           redis_master: {
             bk_cloud_id: master.bk_cloud_id,

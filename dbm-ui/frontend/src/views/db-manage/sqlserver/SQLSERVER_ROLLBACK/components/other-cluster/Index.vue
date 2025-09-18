@@ -66,7 +66,7 @@
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
-  import FinalDbColumn from '../common/FinalDbColumn.vue';
+  import FinalDbColumn from '../common/final-db-column/Index.vue';
   import RenderModeColumn from '../common/render-mode-column/Index.vue';
 
   import DstClusterColumn from './components/DstClusterColumn.vue';

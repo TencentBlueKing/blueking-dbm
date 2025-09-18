@@ -52,7 +52,7 @@
             </EditableColumn>
             <TargetNumColumn
               v-model="item.target_num"
-              :disabled="!item.cluster.id"
+              :cluster-id="item.cluster.id"
               :max="item.cluster.shard_node_count"
               @batch-edit="handleBatchEdit" />
             <OperationColumn

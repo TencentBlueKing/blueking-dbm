@@ -351,14 +351,14 @@
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+  import RenderSpec from '@components/spec-display/Index.vue';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
-  import CustomSchema from '@views/db-manage/redis/common/cluster-deploy-plan/CustomSchema.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
+  import CustomSchema from '@views/db-manage/redis/common/toolbox-common/custom-schema/Index.vue';
 
   import { convertStorageUnits } from '@utils';
 

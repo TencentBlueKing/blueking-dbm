@@ -165,8 +165,8 @@
   import DbForm from '@components/db-form/index.vue';
 
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
-  import CustomSchema from '@views/db-manage/redis/common/cluster-deploy-plan/CustomSchema.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
+  import CustomSchema from '@views/db-manage/redis/common/toolbox-common/custom-schema/Index.vue';
 
   export interface Props {
     cluster: {

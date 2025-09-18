@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标实例')"
     :loading="isLoading"
-    :min-width="300"
+    :min-width="350"
     required>
     <template #headAppend>
       <span
