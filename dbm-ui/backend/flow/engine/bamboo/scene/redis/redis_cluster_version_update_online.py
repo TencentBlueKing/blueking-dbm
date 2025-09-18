@@ -273,6 +273,14 @@ class RedisClusterVersionUpdateOnline(object):
 
         if sub_pipelines:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            act_kwargs.cluster["update_proxy"] = True
+            act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
+            act_kwargs.cluster["bk_biz_id"] = cluster_meta_data["bk_biz_id"]
+            redis_pipeline.add_act(
+                act_name=_("{}-Proxy-更新版本").format(cluster_meta_data["immute_domain"]),
+                act_component_code=RedisUpdateVersionComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
     def _create_storage_upgrade_sub_pipelines(self, trans_files, bk_biz_id):
         """创建存储升级子流水线"""
