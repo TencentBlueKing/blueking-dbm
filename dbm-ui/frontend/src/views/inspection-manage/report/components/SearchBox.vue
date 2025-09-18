@@ -1,20 +1,19 @@
 <template>
-  <div class="inspection-search-box">
-    <div class="search-operations">
-      <BkDatePicker
-        append-to-body
-        class="date-picker-main"
-        clearable
-        :model-value="dateValue"
-        @change="handleDatePickerChange" />
-      <DbSearchSelect
-        class="search-select-main"
-        :data="searchData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
-        unique-select
-        @change="handleSearchValueChange" />
-    </div>
+  <div class="inspection-search-operations">
+    <BkCheckbox v-model="isOnlyAbnormal">{{ t('仅显示预警 / 异常') }}</BkCheckbox>
+    <BkDatePicker
+      append-to-body
+      class="date-picker-main"
+      clearable
+      :model-value="dateValue"
+      @change="handleDatePickerChange" />
+    <DbSearchSelect
+      class="search-select-main"
+      :data="searchData"
+      :get-menu-list="getMenuList"
+      :model-value="searchValue"
+      unique-select
+      @change="handleSearchValueChange" />
   </div>
 </template>
 <script setup lang="ts">
@@ -50,6 +49,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
+  const isOnlyAbnormal = ref(false);
   const dateValue = ref(dayjs().format('YYYY-MM-DD'));
   const searchValue = ref<ISearchValue[]>([]);
 
@@ -103,10 +103,13 @@
     if (route.query.create_at__gte && route.query.create_at__lte) {
       dateValue.value = dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD');
     }
+    if (route.query.isOnlyAbnormal) {
+      isOnlyAbnormal.value = route.query.isOnlyAbnormal === 'true';
+    }
   });
 
   watch(
-    () => [searchValue.value, dateValue.value],
+    () => [searchValue.value, dateValue.value, isOnlyAbnormal.value],
     () => {
       const searchObj = searchValue.value.reduce<Record<string, string>>((results, item) => {
         Object.assign(results, {
@@ -121,6 +124,10 @@
           create_at__lte: dayjs(dateValue.value).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         });
       }
+
+      Object.assign(searchObj, {
+        isOnlyAbnormal: isOnlyAbnormal.value,
+      });
       emits('change', searchObj);
     },
     {
@@ -184,7 +191,7 @@
               results.push(
                 ...idList.map((id, index) => ({
                   id,
-                  name: nameList[index],
+                  name: nameList[index]!,
                 })),
               );
               return results;
@@ -206,21 +213,16 @@
   };
 </script>
 <style lang="less">
-  .inspection-search-box {
+  .inspection-search-operations {
     display: flex;
+    gap: 8px;
 
-    .search-operations {
-      display: flex;
-      gap: 8px;
+    .date-picker-main {
+      width: 150px;
+    }
 
-      .date-picker-main {
-        width: 150px;
-        margin-right: 8px;
-      }
-
-      .search-select-main {
-        width: 580px;
-      }
+    .search-select-main {
+      width: 580px;
     }
   }
 </style>
