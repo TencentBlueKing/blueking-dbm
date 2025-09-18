@@ -25,13 +25,16 @@ import (
 	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	"k8s-dbs/core/constant"
-	"k8s-dbs/core/entity"
+	coreentity "k8s-dbs/core/entity"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
+
+	kbv1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +65,7 @@ var maxStorageForSC = map[string]resource.Quantity{
 }
 
 // CreateCRD create crd by k8sClient client
-func CreateCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefinition) error {
+func CreateCRD(k8sClient *commutil.K8sClient, crd *coreentity.CustomResourceDefinition) error {
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when creating resource")
 	}
@@ -86,7 +89,7 @@ func CreateCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefiniti
 }
 
 // DeleteCRD delete crd by k8sClient client
-func DeleteCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefinition) error {
+func DeleteCRD(k8sClient *commutil.K8sClient, crd *coreentity.CustomResourceDefinition) error {
 	if crd == nil {
 		return fmt.Errorf("CustomResourceDefinition can't be nil when deleting resource")
 	}
@@ -110,7 +113,10 @@ func DeleteCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefiniti
 }
 
 // GetCRD get crd by k8sClient client
-func GetCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefinition) (*unstructured.Unstructured, error) {
+func GetCRD(
+	k8sClient *commutil.K8sClient,
+	crd *coreentity.CustomResourceDefinition,
+) (*unstructured.Unstructured, error) {
 	if crd == nil {
 		return nil, fmt.Errorf("CustomResourceDefinition can't be nil when getting resource")
 	}
@@ -138,7 +144,7 @@ func GetCRD(k8sClient *commutil.K8sClient, crd *entity.CustomResourceDefinition)
 // ListCRD 获取 crd 资源列表
 func ListCRD(
 	k8sClient *commutil.K8sClient,
-	crd *entity.CustomResourceDefinition,
+	crd *coreentity.CustomResourceDefinition,
 ) (*unstructured.UnstructuredList, error) {
 	if crd == nil {
 		return nil, fmt.Errorf("CustomResourceDefinition can't be nil when listing resources")
@@ -217,13 +223,13 @@ func ReadValuesYaml(chartPath string) (map[string]interface{}, error) {
 }
 
 // MergeValues 将 request 中的参数合并到 values 映射中
-func MergeValues(values map[string]interface{}, request *entity.Request) error {
+func MergeValues(values map[string]interface{}, request *coreentity.Request, isInstall bool) error {
 	err := mergeMetaData(values, request)
 	if err != nil {
 		return err
 	}
 
-	err = mergeComponentList(values, request.ComponentList)
+	err = mergeComponentList(values, request.ComponentList, isInstall)
 	if err != nil {
 		return err
 	}
@@ -241,7 +247,28 @@ func MergeValues(values map[string]interface{}, request *entity.Request) error {
 	return nil
 }
 
-func mergeMetaData(values map[string]interface{}, request *entity.Request) error {
+// GetClusterInfo Query cluster information and return
+func GetClusterInfo(request *coreentity.Request, k8sClient *commutil.K8sClient) (*kbv1.Cluster, error) {
+	// Construct and query crd resources
+	crd := &coreentity.CustomResourceDefinition{
+		ResourceName:         request.Metadata.ClusterName,
+		Namespace:            request.Metadata.Namespace,
+		GroupVersionResource: kbtypes.ClusterGVR(),
+	}
+	clusterCR, err := GetCRD(k8sClient, crd)
+	if err != nil {
+		return nil, err
+	}
+	// Serializing Unstructured Format
+	var clusterInfo *kbv1.Cluster
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(clusterCR.Object, &clusterInfo)
+	if err != nil {
+		return nil, err
+	}
+	return clusterInfo, nil
+}
+
+func mergeMetaData(values map[string]interface{}, request *coreentity.Request) error {
 	setIfNotEmpty := func(key string, value string) {
 		if value != "" {
 			values[key] = value
@@ -266,15 +293,66 @@ func mergeMetaData(values map[string]interface{}, request *entity.Request) error
 	return nil
 }
 
-func mergeComponentList(values map[string]interface{}, compListFromReq []entity.ComponentResource) error {
+func mergeComponentList(
+	values map[string]interface{},
+	compListFromReq []coreentity.ComponentResource,
+	isInstall bool,
+) error {
 	if compListFromReq == nil {
 		return nil
 	}
+	// Step 1: 获取用户传入的 componentList
 	compListFromVal, _ := values["componentList"].([]interface{})
+	// Step 2: 遍历 compListFromReq，更新 compListFromVal 中匹配的项（始终执行）
+	if err := mergeCompListFromVal(compListFromReq, compListFromVal); err != nil {
+		return err
+	}
+	// Step 3: 仅在 isInstall 为 true 时，进行校验和过滤：删除 compListFromVal 中不在 compListFromReq 中的项
+	if isInstall {
+		// 3.1 先收集 compListFromReq 中所有合法的 componentName
+		validComponentNames := make(map[string]struct{})
+		for _, comp := range compListFromReq {
+			validComponentNames[comp.ComponentName] = struct{}{}
+		}
+		// 3.2 过滤 compListFromVal，只保留 componentName 存在于 validComponentNames 中的项
+		filteredCompList := make([]interface{}, 0, len(compListFromVal))
+		for _, itemFromVal := range compListFromVal {
+			compFromVal, ok := itemFromVal.(map[string]interface{})
+			if !ok {
+				continue // 非预期类型，跳过
+			}
+			componentName, ok := compFromVal["componentName"].(string)
+			if !ok {
+				continue // 无 componentName，跳过
+			}
+			if _, exists := validComponentNames[componentName]; exists {
+				filteredCompList = append(filteredCompList, compFromVal)
+			}
+			// else: 不在 compListFromReq 中的 componentName，直接丢弃
+		}
+		// 3.3 将过滤后的列表重新设置回 values
+		values["componentList"] = filteredCompList
+	} else {
+		// 非 install 场景，直接将原始（可能包含额外组件）的 compListFromVal 设置回去
+		values["componentList"] = compListFromVal
+	}
+
+	return nil
+}
+
+func mergeCompListFromVal(compListFromReq []coreentity.ComponentResource, compListFromVal []interface{}) error {
 	for _, compFromReq := range compListFromReq {
 		for i, itemFromVal := range compListFromVal {
 			compFromVal, ok := itemFromVal.(map[string]interface{})
-			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
+			if !ok {
+				continue
+			}
+			componentName, ok := compFromVal["componentName"].(string)
+			if !ok {
+				continue
+			}
+
+			if componentName == compFromReq.ComponentName {
 				if compFromReq.Version != "" {
 					compFromVal["serviceVersion"] = compFromReq.Version
 				}
@@ -301,7 +379,6 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 					slog.Error("failed to merge env", "err", err)
 					return err
 				}
-
 				if err := MergeObjectToVal(compFromVal, compFromReq.InstanceUpdateStrategy, "instanceUpdateStrategy"); err != nil {
 					slog.Error("failed to merge instance update strategy", "err", err)
 					return err
@@ -310,11 +387,10 @@ func mergeComponentList(values map[string]interface{}, compListFromReq []entity.
 			}
 		}
 	}
-	values["componentList"] = compListFromVal
 	return nil
 }
 
-func mergeExtraArgs(compFromReq entity.ComponentResource) error {
+func mergeExtraArgs(compFromReq coreentity.ComponentResource) error {
 	// Extract EXTRA_ARGS and type assert
 	extraArgsRaw, exists := compFromReq.Env["EXTRA_ARGS"]
 	if exists {
@@ -339,7 +415,7 @@ func mergeExtraArgs(compFromReq entity.ComponentResource) error {
 	return nil
 }
 
-func mergeResources(compFromVal map[string]interface{}, compFromReq entity.ComponentResource) error {
+func mergeResources(compFromVal map[string]interface{}, compFromReq coreentity.ComponentResource) error {
 	resources, resOk := compFromVal["resources"].(map[string]interface{})
 	if !resOk {
 		resources = make(map[string]interface{})
@@ -356,7 +432,7 @@ func mergeResources(compFromVal map[string]interface{}, compFromReq entity.Compo
 	return nil
 }
 
-func mergeDependencies(values map[string]interface{}, dependencies *entity.Dependencies) error {
+func mergeDependencies(values map[string]interface{}, dependencies *coreentity.Dependencies) error {
 	if dependencies == nil {
 		return nil
 	}
@@ -380,7 +456,7 @@ Function:
 - Merges the BkLogConfig and SvcMonitor configurations in the observeConfig object into values["observeConfig"]
 - If the observeConfig key does not exist in the target map, an empty map will be automatically created
 */
-func mergeObserveConfig(values map[string]interface{}, observeConfig *entity.ObserveConfig) error {
+func mergeObserveConfig(values map[string]interface{}, observeConfig *coreentity.ObserveConfig) error {
 	if observeConfig == nil {
 		return nil
 	}
@@ -476,7 +552,7 @@ func getJSONTagName(field reflect.StructField) string {
 	return tag
 }
 
-func checkStorageByComp(comp *entity.ComponentResource) error {
+func checkStorageByComp(comp *coreentity.ComponentResource) error {
 	if comp.VolumeClaimTemplates == nil {
 		return nil
 	}
@@ -539,10 +615,10 @@ func CheckStorageBySC(storageClassName string, currentStorage resource.Quantity)
 // GetComponentPods 获取组件实例列表
 func GetComponentPods(
 	addonType string,
-	params *entity.ComponentQueryParams,
+	params *coreentity.ComponentQueryParams,
 	k8sClient *commutil.K8sClient,
-) ([]*entity.Pod, error) {
-	crd := &entity.CustomResourceDefinition{
+) ([]*coreentity.Pod, error) {
+	crd := &coreentity.CustomResourceDefinition{
 		GroupVersionResource: kbtypes.PodGVR(),
 		Namespace:            params.Namespace,
 		Labels: map[string]string{
@@ -555,7 +631,7 @@ func GetComponentPods(
 		return nil, err
 	}
 	if len(podList.Items) == 0 {
-		return []*entity.Pod{}, nil
+		return []*coreentity.Pod{}, nil
 	}
 	pods, err := ExtractPodsInfo(addonType, params.K8sClusterName, k8sClient, podList)
 	if err != nil {
@@ -570,15 +646,15 @@ func ExtractPodsInfo(
 	k8sClusterName string,
 	k8sClient *commutil.K8sClient,
 	podList *unstructured.UnstructuredList,
-) ([]*entity.Pod, error) {
-	var pods []*entity.Pod
+) ([]*coreentity.Pod, error) {
+	var pods []*coreentity.Pod
 	for _, item := range podList.Items {
 		pod, err := ConvertUnstructuredToPod(item)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert unstructured pod %s: %w", item.GetName(), err)
 		}
-		var resourceQuota *entity.PodResourceQuota
-		var resourceUsage *entity.PodResourceUsage
+		var resourceQuota *coreentity.PodResourceQuota
+		var resourceUsage *coreentity.PodResourceUsage
 		if pod.Status.Phase == corev1.PodRunning {
 			// 获取资源配额
 			resourceQuota, err = GetPodResourceQuota(k8sClient, pod)
@@ -592,7 +668,7 @@ func ExtractPodsInfo(
 				slog.Warn("failed to get pod resource usage", "namespace", pod.Namespace, "pod", pod.Name)
 			}
 		}
-		pods = append(pods, &entity.Pod{
+		pods = append(pods, &coreentity.Pod{
 			PodName:       pod.Name,
 			Status:        pod.Status.Phase,
 			Node:          pod.Spec.NodeName,
