@@ -203,8 +203,8 @@
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import InstanceList from '@views/db-manage/mongodb/common/ClusterDetailInstanceList.vue';
-  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
 
   interface Props {
     clusterId: number;

@@ -242,8 +242,8 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
+  import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import ReplicaSetDetail from '@views/db-manage/mongodb/common/replica-set-detail/Index.vue';
-  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 

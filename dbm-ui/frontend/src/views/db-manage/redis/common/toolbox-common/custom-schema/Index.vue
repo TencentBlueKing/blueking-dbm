@@ -10,7 +10,7 @@
         :biz-id="clusterInfo.bizId"
         :cloud-id="clusterInfo.cloudId"
         cluster-type="redis"
-        :machine-type="specClusterMachineMap[clusterInfo.clusterType]"
+        :machine-type="specClusterMachineMap[clusterInfo.clusterType]!"
         style="width: 314px" />
     </DbFormItem>
     <DbFormItem
@@ -74,7 +74,7 @@
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
-  import { specClusterMachineMap } from '../const';
+  import { specClusterMachineMap } from '../../const';
 
   interface Props {
     clusterInfo: {

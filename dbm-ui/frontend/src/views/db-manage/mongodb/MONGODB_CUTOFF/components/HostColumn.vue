@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('待替换的主机')"
     :loading="loading"
-    :min-width="200"
+    :min-width="240"
     required>
     <template #headAppend>
       <span

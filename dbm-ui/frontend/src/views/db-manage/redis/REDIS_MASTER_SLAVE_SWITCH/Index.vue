@@ -43,7 +43,7 @@
               @batch-edit="handleHostBatchEdit" />
             <EditableColumn
               :label="t('所属集群')"
-              :min-width="300"
+              :min-width="350"
               readonly>
               <EditableBlock :placeholder="t('输入主机后自动生成')">
                 <div

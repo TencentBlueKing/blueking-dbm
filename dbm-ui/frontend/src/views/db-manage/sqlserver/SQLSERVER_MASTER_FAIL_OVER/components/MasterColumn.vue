@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('故障主库主机')"
     :loading="loading"
-    :min-width="150"
+    :min-width="240"
     required>
     <template #headAppend>
       <span
@@ -36,8 +36,8 @@
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['SqlserverHaHost']"
-    :selected="selectedInstances"
     hide-manual-input
+    :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>

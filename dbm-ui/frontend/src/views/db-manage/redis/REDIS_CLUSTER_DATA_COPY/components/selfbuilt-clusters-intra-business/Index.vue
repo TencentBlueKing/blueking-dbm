@@ -21,6 +21,7 @@
       <ClusterInputColumn
         v-model="item.src_cluster"
         field="src_cluster"
+        fixed="left"
         :label="t('源集群')">
       </ClusterInputColumn>
       <ClusterTypeColumn v-model="item.src_cluster_type" />

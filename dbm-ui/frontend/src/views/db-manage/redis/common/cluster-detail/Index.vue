@@ -333,7 +333,7 @@
     useRedisClusterListToToolbox,
   } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
+  import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
   interface Props {
     clusterId: number;
