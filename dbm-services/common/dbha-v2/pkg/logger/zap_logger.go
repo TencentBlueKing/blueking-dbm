@@ -30,6 +30,25 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+func convertLevel(level Level) zapcore.Level {
+	switch level {
+	case DebugLevel:
+		return zapcore.DebugLevel
+
+	case InfoLevel:
+		return zapcore.InfoLevel
+
+	case ErrorLevel:
+		return zapcore.ErrorLevel
+
+	case FatalLevel:
+		return zapcore.FatalLevel
+
+	default:
+		return zapcore.InfoLevel
+	}
+}
+
 type ZapLogger struct {
 	logger        *zap.Logger
 	sugaredLogger *zap.SugaredLogger
@@ -39,43 +58,28 @@ func (z *ZapLogger) OriginLogger() *zap.Logger {
 	return z.logger
 }
 
-func (z *ZapLogger) Debug(format string, args ...interface{}) {
+func (z *ZapLogger) Debug(format string, args ...any) {
 	z.sugaredLogger.Debugf(format, args...)
 }
 
-func (z *ZapLogger) Info(format string, args ...interface{}) {
+func (z *ZapLogger) Info(format string, args ...any) {
 	z.sugaredLogger.Infof(format, args...)
 }
 
-func (z *ZapLogger) Warn(format string, args ...interface{}) {
+func (z *ZapLogger) Warn(format string, args ...any) {
 	z.sugaredLogger.Warnf(format, args...)
 }
 
-func (z *ZapLogger) Error(format string, args ...interface{}) {
+func (z *ZapLogger) Error(format string, args ...any) {
 	z.sugaredLogger.Errorf(format, args...)
 }
 
-func (z *ZapLogger) Fatal(format string, args ...interface{}) {
+func (z *ZapLogger) Fatal(format string, args ...any) {
 	z.sugaredLogger.Fatalf(format, args...)
 }
 
 func (z *ZapLogger) Sync() error {
 	return z.logger.Sync()
-}
-
-func convertLevel(level Level) zapcore.Level {
-	switch level {
-	case DebugLevel:
-		return zapcore.DebugLevel
-	case InfoLevel:
-		return zapcore.InfoLevel
-	case ErrorLevel:
-		return zapcore.ErrorLevel
-	case FatalLevel:
-		return zapcore.FatalLevel
-	default:
-		return zapcore.InfoLevel
-	}
 }
 
 // NewZapLogger create a zap logger
