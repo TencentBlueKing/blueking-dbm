@@ -61,7 +61,7 @@ class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
             for info in next_flow.details["ticket_data"]["infos"]:
-                info["mongo_add_shards"] = info.pop("shard_nodes")
+                info["mongo_add_shards"] = info.pop("mongodb")
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True)
