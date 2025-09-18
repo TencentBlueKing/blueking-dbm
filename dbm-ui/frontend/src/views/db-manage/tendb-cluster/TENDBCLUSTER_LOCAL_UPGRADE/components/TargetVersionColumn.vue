@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="() => (cluster.id ? false : t('请先选择集群'))"
     field="target_version"
     :label="t('目标版本')"
     :min-width="200"

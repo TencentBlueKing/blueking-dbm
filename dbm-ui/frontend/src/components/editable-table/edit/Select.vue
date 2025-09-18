@@ -152,6 +152,7 @@
           background: transparent;
           border: none !important;
           box-shadow: none !important;
+          flex: 1;
         }
       }
     }
