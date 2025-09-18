@@ -140,6 +140,7 @@ class DashboardType(str, StructuredEnum):
 
     CLUSTER = EnumField("cluster", _("集群仪表盘"))
     BUSINESS = EnumField("business", _("业务仪表盘"))
+    OVERVIEW = EnumField("overview", _("业务概览仪表盘"))
 
 
 # 非ui方式监控策略模板占位符
