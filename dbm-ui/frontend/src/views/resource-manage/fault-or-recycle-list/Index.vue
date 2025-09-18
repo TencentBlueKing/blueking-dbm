@@ -140,6 +140,7 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
+  import ReviewDataDialog from '@views/resource-manage/common/components/review-data-dialog/Index.vue';
 
   import {
     checkDbConsole,
@@ -149,8 +150,6 @@
     messageSuccess,
     messageWarn,
   } from '@utils';
-
-  import ReviewDataDialog from '../host-list/components/review-data-dialog/Index.vue';
 
   import BatchImportResourcePool from './components/BatchImportResourcePool/Index.vue';
   // import ImportResourcePool from './components/ImportResourcePool.vue';

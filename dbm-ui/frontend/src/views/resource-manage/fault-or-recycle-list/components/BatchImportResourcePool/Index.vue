@@ -56,7 +56,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { useImportResourcePoolTooltip } from '../../../hooks/useImportResourcePoolTip';
+  import { useImportResourcePoolTooltip } from '@views/resource-manage/common/hooks/useImportResourcePoolTip';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
