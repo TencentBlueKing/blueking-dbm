@@ -14,8 +14,6 @@
         <ClusterColumn
           v-model="item.cluster"
           allow-repeat
-          :cluster-types="[ClusterTypes.TENDBHA]"
-          :min-width="240"
           :selected="selected"
           @batch-edit="handleClusterBatchEdit" />
         <DatetimeColumn
@@ -96,7 +94,7 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {

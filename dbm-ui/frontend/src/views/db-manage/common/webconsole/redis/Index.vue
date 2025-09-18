@@ -14,8 +14,7 @@
       <ExportData @export="handleClickExport" />
       <UsageHelp
         v-model="showUsageHelp"
-        :db-type="dbType"
-        @change="handleToggleHelp" />
+        :db-type="dbType" />
       <div class="operate-item-last">
         <FontSetting
           v-model="currentFontConfig"
@@ -123,10 +122,6 @@
 
   const handleChangeCurrentCluster = (data: ClusterItem) => {
     clusterInfo.value = data;
-  };
-
-  const handleToggleHelp = () => {
-    showUsageHelp.value = !showUsageHelp.value;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {

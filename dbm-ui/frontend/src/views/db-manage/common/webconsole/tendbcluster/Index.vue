@@ -11,8 +11,7 @@
         @remove-tab="handleClickClearScreen" />
       <UsageHelp
         v-model="showUsageHelp"
-        :db-type="dbType"
-        @change="handleToggleHelp" />
+        :db-type="dbType" />
       <div class="operate-item-last">
         <FontSetting
           v-model="currentFontConfig"
@@ -105,7 +104,7 @@
   });
   const timezone = ref('+08:00');
   const charset = ref('default');
-  const role = ref('spider_slave');
+  const role = ref<'spider_slave' | 'spider_master'>('spider_slave');
   const isFullScreen = ref(false);
   const showUsageHelp = ref(false);
 
@@ -177,10 +176,6 @@
       roleList.value = roleListConfig.slice(0, 1);
       role.value = 'spider_master';
     }
-  };
-
-  const handleToggleHelp = () => {
-    showUsageHelp.value = !showUsageHelp.value;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {
