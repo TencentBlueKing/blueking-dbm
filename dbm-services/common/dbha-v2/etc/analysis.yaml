@@ -11,7 +11,7 @@ workflow:
   scanTimeout: 60s
   scanInterval: 3s
   updateDbmCacheInterval: 10s
-  
+
   dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
     timeout: 10s
@@ -37,6 +37,12 @@ monitor:
   accessToken: ""
   bkMonitorBeat: ""
   bkMonitorEndpoint: 127.0.0.1:9090
+
+service:
+  apm:
+    readTimeout: 10s
+    writeTimeout: 10s
+    listenAddress: http://127.0.0.1:8081
 
 storage:
   endpoint: tcp://127.0.0.1:3306
