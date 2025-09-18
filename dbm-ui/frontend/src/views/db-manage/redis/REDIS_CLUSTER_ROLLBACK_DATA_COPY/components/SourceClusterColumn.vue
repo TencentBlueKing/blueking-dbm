@@ -19,7 +19,7 @@
     :label="t('构造产物访问入口')"
     :loading="isLoading"
     required
-    :width="300">
+    :width="350">
     <template #headAppend>
       <BkButton
         text

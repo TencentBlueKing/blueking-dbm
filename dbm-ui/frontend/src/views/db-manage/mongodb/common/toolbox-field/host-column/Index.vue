@@ -5,7 +5,7 @@
     field="host.ip"
     :label="label"
     :loading="isLoading"
-    :min-width="300"
+    :min-width="240"
     required>
     <template #headAppend>
       <span

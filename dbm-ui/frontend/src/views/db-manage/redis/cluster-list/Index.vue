@@ -411,7 +411,6 @@
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
   import { getUserList } from '@services/source/user';
-  import type { ClusterListNode } from '@services/types';
 
   import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
 
@@ -441,7 +440,7 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/redis/common/cluster-detail/Index.vue';
-  import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
+  import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 

@@ -212,7 +212,7 @@
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue';
+  import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 

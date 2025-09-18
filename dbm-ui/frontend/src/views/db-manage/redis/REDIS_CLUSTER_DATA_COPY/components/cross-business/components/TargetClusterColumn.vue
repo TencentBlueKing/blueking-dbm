@@ -15,8 +15,8 @@
   <EditableColumn
     field="dst_cluster"
     :label="t('目标集群')"
-    required
-    :width="200">
+    :min-width="350"
+    required>
     <EditableSelect
       v-model="modelValue"
       :clearable="false"

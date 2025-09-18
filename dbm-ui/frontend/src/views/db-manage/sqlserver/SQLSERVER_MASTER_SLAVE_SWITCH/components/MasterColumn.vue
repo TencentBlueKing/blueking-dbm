@@ -18,7 +18,7 @@
     fixed="left"
     :label="t('目标主库主机')"
     :loading="loading"
-    :min-width="150"
+    :min-width="240"
     required>
     <template #headAppend>
       <span
