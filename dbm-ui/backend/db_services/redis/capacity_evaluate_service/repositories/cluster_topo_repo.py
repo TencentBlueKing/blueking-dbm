@@ -218,27 +218,28 @@ class ClusterTopoInfo:
             proxy_spec_map[self.format_spec(proxy_cpu_core_m, proxy_mem_m, 0, "", True)] += num
 
         # calculate shard spec, save to shard_spec_map
-        storage_cpu_total, storage_mem_total_m, storage_disk_total = 0, 0, 0
+        storage_cpu_total, storage_mem_total_m, storage_disk_total_m = 0, 0, 0
         shard_spec_map = defaultdict(int)
         min_shard_cpu_core_m = 0
+        # 计算集群总规格
         for ip, num in _shard_num_in_cluster.items():
             if ip not in host_infos_map:
                 raise Exception(f"ip {ip} not found in host_infos_map")
             inst_num_total = inst_num_by_ip[ip]
             cvm_spec = host_infos_map[ip]["cvm_spec"]
-            shard_cpu_core_m = cvm_spec.cpu_core_m * 1 / inst_num_total
-            shard_mem_m = self.get_work_mem(cvm_spec.mem_total_m) * 1 / inst_num_total
-            shard_disk_m = self.get_work_disk(cvm_spec.disk_size_total_m) * 1 / inst_num_total
+            shard_cpu_core_m = cvm_spec.cpu_core_m * (num / inst_num_total)
+            shard_mem_m = self.get_work_mem(cvm_spec.mem_total_m) * (num / inst_num_total)
+            shard_disk_m = self.get_work_disk(cvm_spec.disk_size_total_m) * (num / inst_num_total)
             storage_cpu_total += shard_cpu_core_m
             storage_mem_total_m += shard_mem_m
-            storage_disk_total += shard_disk_m
+            storage_disk_total_m += shard_disk_m
             shard_spec_map[self.format_spec(shard_cpu_core_m, shard_mem_m, shard_disk_m, "", False)] += num
             if min_shard_cpu_core_m == 0 or shard_cpu_core_m < min_shard_cpu_core_m:
                 min_shard_cpu_core_m = shard_cpu_core_m
 
         # generate proxy spec and shard spec string
-        proxy_spec = ";".join(f"{spec}x{num}" for spec, num in proxy_spec_map.items())
-        shard_spec = ";".join(f"{spec}x{num}" for spec, num in shard_spec_map.items())
+        proxy_spec = ";".join(f"({spec})x{num}" for spec, num in proxy_spec_map.items())
+        shard_spec = ";".join(f"({spec})x{num}" for spec, num in shard_spec_map.items())
 
         # save to self
         self.proxy_cpu_total = proxy_cpu_total
@@ -247,7 +248,7 @@ class ClusterTopoInfo:
         self.shard_spec = shard_spec
         self.storage_cpu_total = storage_cpu_total
         self.storage_mem_total_m = storage_mem_total_m
-        self.storage_disk_total = storage_disk_total
+        self.storage_disk_total = storage_disk_total_m
         self.shard_cpu_core_m = min_shard_cpu_core_m
 
     @classmethod

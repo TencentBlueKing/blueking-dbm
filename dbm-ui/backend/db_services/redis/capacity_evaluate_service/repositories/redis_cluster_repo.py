@@ -142,8 +142,14 @@ class DbmClusterRepository:
 
     @classmethod
     def get_cluster_by_domain(cls, domain: str) -> Cluster:
+        """解析域名，域名可能包含redis://或clb.前缀，或者带有端口，需要去掉"""
+        """ 不处理有密码的情况. 不允许传入有密码的域名. """
         if not domain:
             return None
+        if "redis://" in domain:
+            domain = domain.split("redis://")[1]
+        if "clb." in domain:
+            domain = domain.split("clb.")[1]
         if ":" in domain:
             domain = domain.split(":")[0]
         domain = domain.strip()

@@ -17,13 +17,15 @@ class ActionInfoSLZ(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text="Business ID")
     action_id = serializers.CharField(max_length=50, help_text="Action ID")
     action_name = serializers.CharField(max_length=200, help_text="Action name")
-    action_type = serializers.CharField(max_length=100, help_text="full or incr, default is incr", required=False)
+    action_type = serializers.CharField(
+        max_length=100, help_text="full or incr, default is incr", required=False, allow_blank=True
+    )
     action_user = serializers.CharField(max_length=100, help_text="Action user", required=False)
     start_time = serializers.DateTimeField(help_text="Start time")
     end_time = serializers.DateTimeField(help_text="End time")
     is_force = serializers.IntegerField(min_value=0, max_value=1, help_text="Force flag")
     user = serializers.CharField(max_length=100, help_text="User", required=False)
-    approved_user = serializers.CharField(max_length=100, help_text="Approved user", required=False)
+    approved_user = serializers.CharField(max_length=100, help_text="Approved user", required=False, allow_blank=True)
     debug = serializers.IntegerField(min_value=0, max_value=1, help_text="Debug flag", required=False)
 
 
