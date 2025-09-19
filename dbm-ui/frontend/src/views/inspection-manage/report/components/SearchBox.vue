@@ -1,6 +1,10 @@
 <template>
   <div class="inspection-search-operations">
-    <BkCheckbox v-model="isOnlyAbnormal">{{ t('仅显示预警 / 异常') }}</BkCheckbox>
+    <BkCheckbox
+      v-if="!isTodos"
+      v-model="isOnlyAbnormal"
+      >{{ t('仅显示预警 / 异常') }}</BkCheckbox
+    >
     <BkDatePicker
       append-to-body
       class="date-picker-main"
@@ -49,7 +53,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const isOnlyAbnormal = ref(false);
+  const isOnlyAbnormal = ref(true);
   const dateValue = ref(dayjs().format('YYYY-MM-DD'));
   const searchValue = ref<ISearchValue[]>([]);
 
