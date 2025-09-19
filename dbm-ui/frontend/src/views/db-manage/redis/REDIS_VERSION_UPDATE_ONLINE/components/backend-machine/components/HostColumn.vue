@@ -29,6 +29,7 @@
     <InstanceSelector
       v-model:is-show="isShowSelector"
       :cluster-types="['RedisHost']"
+      hide-manual-input
       :selected="selectedList"
       :tab-list-config="tabListConfig"
       @change="handleInstanceSelectChange" />
