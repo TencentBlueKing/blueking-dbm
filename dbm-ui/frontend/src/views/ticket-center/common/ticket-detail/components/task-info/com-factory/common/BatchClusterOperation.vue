@@ -14,6 +14,7 @@
 <template>
   <PrimaryTable
     :data="tableData"
+    ellipsis
     row-key="id">
     <TableColumn :title="t('集群')">
       <template #default="{ row }: { row: RowData }">
