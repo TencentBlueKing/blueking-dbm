@@ -19,7 +19,6 @@ from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance
 from .machine import Machine
 from .proxy_instance_ext import TenDBClusterSpiderExt
-from .redis_hot_key import RedisHotKeyDetail, RedisHotKeyInfo
 from .spec import SnapshotSpec, Spec
 from .storage_instance_tuple import StorageInstanceTuple
 from .storage_set_dtl import NosqlStorageSetDtl, TenDBClusterStorageSet
