@@ -25,14 +25,12 @@ from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, MySQLBackupTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     change_master_by_master_status,
     tendbha_rollback_data_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
@@ -232,13 +230,6 @@ class MySQLRollbackDataFlow(object):
             rollback_pipeline_list = []
             change_master_pipeline_list = []
             for rollback_storage in storages:
-                if not check_storage_database(
-                    rollback_class.bk_cloud_id, rollback_storage.machine.ip, rollback_storage.port
-                ):
-                    logger.error("cluster {} check database fail".format(rollback_class.id))
-                    raise NormalSpiderFlowException(
-                        message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(rollback_class.id))
-                    )
                 #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
                 backup_id = self.data.get("backup_id", None)
                 if backup_id is None or backup_id == "":
