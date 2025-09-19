@@ -15,12 +15,12 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterInstShutdownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterInstShutdownDetailSerializer(RedisBaseOperateDetailSerializer):
     """实例下架"""
 
     class InfoSerializer(serializers.Serializer):

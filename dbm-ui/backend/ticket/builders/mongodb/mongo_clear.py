@@ -32,9 +32,6 @@ class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("清档信息"), child=ClearDetailSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBClearFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
     controller = MongoDBController.mongo_remove_ns

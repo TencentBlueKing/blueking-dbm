@@ -50,6 +50,7 @@ class MongoDBRestoreDetailSerializer(BaseMongoDBOperateDetailSerializer):
     resource_spec = serializers.JSONField(help_text=_("资源池规格"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         clusters = Cluster.objects.filter(id__in=attrs["cluster_ids"])
         cluster_type = clusters.first().cluster_type
         attrs["cluster_type"] = cluster_type

@@ -34,6 +34,7 @@ class MySQLFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListSerializer(child=MySQLFullBackupInfoSerializer())
 
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
 
         errors = []

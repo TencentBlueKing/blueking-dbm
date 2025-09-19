@@ -30,6 +30,7 @@ from backend.ticket.builders.common.base import (
     MySQLTicketFlowBuilderPatchMixin,
     ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
     fetch_cluster_ids,
 )
 from backend.ticket.constants import TicketType
@@ -56,7 +57,7 @@ class MySQLBasePauseParamBuilder(builders.PauseParamBuilder):
 
 
 class MySQLBaseOperateDetailSerializer(
-    SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, ParamValidateSerializerMixin, serializers.Serializer
 ):
     """
     mysql操作的基类，主要功能:
@@ -172,6 +173,7 @@ class MySQLBaseOperateDetailSerializer(
                 raise serializers.ValidationError(_("集群{}最近一次备份类型不匹配{}").format(cluster_id, backup_type))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 默认全局校验只需要校验集群的状态
         self.validate_cluster_can_access(attrs)
         attrs = super().validated_params(attrs=attrs)
@@ -190,7 +192,9 @@ class MysqlSingleOpsBaseDetailSerializer(MySQLBaseOperateDetailSerializer):
         return attrs
 
 
-class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class MySQLClustersTakeDownDetailsSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     cluster_ids = serializers.ListField(help_text=_("集群ID"), child=serializers.IntegerField())
     force = serializers.BooleanField(help_text=_("是否强制下架"), required=False, default=False)
 
@@ -207,6 +211,13 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
     def validate_cluster_ids(self, value):
         self.clusters_status_transfer_valid(cluster_ids=value, ticket_type=self.context["ticket_type"])
         return value
+
+    def validate(self, attrs):
+        """
+        公共校验：集群操作互斥校验
+        """
+        attrs = super().validate(attrs)
+        return attrs
 
 
 class MySQLBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):

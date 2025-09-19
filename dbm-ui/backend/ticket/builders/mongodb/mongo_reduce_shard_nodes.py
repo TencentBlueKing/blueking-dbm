@@ -38,6 +38,7 @@ class MongoDBReduceShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
         clusters = Cluster.objects.filter(id__in=cluster_ids)
 

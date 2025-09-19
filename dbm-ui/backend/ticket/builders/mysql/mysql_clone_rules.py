@@ -18,8 +18,7 @@ from backend.db_services.mysql.permission.constants import CloneClusterType, Clo
 from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException, DBPermissionBaseException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -33,7 +32,7 @@ class MySQLCloneRulesPluginSerializer(serializers.Serializer):
     target_instances = serializers.ListField(help_text=_("目标域名"), child=serializers.CharField())
 
 
-class MySQLCloneRulesSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class MySQLCloneRulesSerializer(MySQLBaseOperateDetailSerializer):
     clone_plugin_infos = serializers.ListSerializer(
         help_text=_("插件的权限克隆信息"), child=MySQLCloneRulesPluginSerializer(), required=False
     )
@@ -43,6 +42,10 @@ class MySQLCloneRulesSerializer(SkipToRepresentationMixin, serializers.Serialize
     clone_cluster_type = serializers.ChoiceField(
         help_text=_("克隆集群类型"), choices=CloneClusterType.get_choices(), required=False, default=CloneClusterType.MYSQL
     )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        return attrs
 
 
 class MySQLCloneRulesFlowParamBuilder(builders.FlowParamBuilder):
