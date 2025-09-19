@@ -113,6 +113,9 @@ class ClusterTopoInfo:
             ClusterType.TendisTwemproxyTendisplusIns.value,
         ]
 
+    def is_mongodb(self) -> bool:
+        return ClusterType.is_mongodb(self.cluster_type)
+
     @property
     def proxy_num(self):
         return len(self.proxy_list)
@@ -227,13 +230,15 @@ class ClusterTopoInfo:
                 raise Exception(f"ip {ip} not found in host_infos_map")
             inst_num_total = inst_num_by_ip[ip]
             cvm_spec = host_infos_map[ip]["cvm_spec"]
-            shard_cpu_core_m = cvm_spec.cpu_core_m * (num / inst_num_total)
-            shard_mem_m = self.get_work_mem(cvm_spec.mem_total_m) * (num / inst_num_total)
-            shard_disk_m = self.get_work_disk(cvm_spec.disk_size_total_m) * (num / inst_num_total)
-            storage_cpu_total += shard_cpu_core_m
-            storage_mem_total_m += shard_mem_m
-            storage_disk_total_m += shard_disk_m
-            shard_spec_map[self.format_spec(shard_cpu_core_m, shard_mem_m, shard_disk_m, "", False)] += num
+            shard_cpu_core_m = cvm_spec.cpu_core_m * (1 / inst_num_total)
+            shard_mem_m = self.get_work_mem(cvm_spec.mem_total_m) * (1 / inst_num_total)
+            shard_disk_m = self.get_work_disk(cvm_spec.disk_size_total_m) * (1 / inst_num_total)
+            shard_spec_map[
+                self.format_spec(shard_cpu_core_m, shard_mem_m, shard_disk_m, "", self.is_memory_redis())
+            ] += num
+            storage_cpu_total += shard_cpu_core_m * num
+            storage_mem_total_m += shard_mem_m * num
+            storage_disk_total_m += shard_disk_m * num
             if min_shard_cpu_core_m == 0 or shard_cpu_core_m < min_shard_cpu_core_m:
                 min_shard_cpu_core_m = shard_cpu_core_m
 

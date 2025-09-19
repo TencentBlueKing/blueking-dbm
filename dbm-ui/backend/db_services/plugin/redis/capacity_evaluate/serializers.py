@@ -25,7 +25,6 @@ class ActionInfoSLZ(serializers.Serializer):
     end_time = serializers.DateTimeField(help_text="End time")
     is_force = serializers.IntegerField(min_value=0, max_value=1, help_text="Force flag")
     user = serializers.CharField(max_length=100, help_text="User", required=False)
-    approved_user = serializers.CharField(max_length=100, help_text="Approved user", required=False, allow_blank=True)
     debug = serializers.IntegerField(min_value=0, max_value=1, help_text="Debug flag", required=False)
 
 
