@@ -18,13 +18,20 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin, get_ticket_zone_list
+from backend.ticket.builders.common.base import (
+    CommonValidate,
+    SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
+    get_ticket_zone_list,
+)
 from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterApplyDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     proxy_port = serializers.IntegerField(help_text=_("集群端口"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
@@ -71,9 +78,8 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
         2. master=slave数量为>=1
         3. proxy>=2
         """
-
         # 判断主机角色是否互斥
-        super().validate(attrs)
+        attrs = super().validate(attrs)
 
         # predixyRedisCluster， tendisplus集群分片数至少>=3
         if attrs["cluster_shard_num"] < 3 and attrs["cluster_type"] in [

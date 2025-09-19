@@ -25,12 +25,15 @@ from backend.ticket.builders.common.base import (
     DisplayInfoSerializer,
     HostRecycleSerializer,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
 )
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
 
-class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValidateMixin, serializers.Serializer):
+class RedisClusterCutOffDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, ClusterValidateMixin, serializers.Serializer
+):
     """整机替换"""
 
     class InfoSerializer(DisplayInfoSerializer):
@@ -51,6 +54,10 @@ class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValid
     )
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        return attrs
 
 
 class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):

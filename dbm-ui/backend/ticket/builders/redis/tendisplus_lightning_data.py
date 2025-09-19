@@ -16,14 +16,17 @@ from rest_framework import serializers
 from backend.flow.engine.bamboo.scene.redis.tendisplus_lightning_data import TendisPlusLightningData
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
 
-class TendisPlusLightningDataSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class TendisPlusLightningDataSerializer(RedisBaseOperateDetailSerializer):
     """TendisPlus闪电导入数据"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
@@ -33,6 +36,7 @@ class TendisPlusLightningDataSerializer(SkipToRepresentationMixin, serializers.S
     infos = serializers.ListField(help_text=_("参数列表"), child=InfoSerializer())
 
     def validate(self, attr):
+        attr = super().validate(attr)
         TendisPlusLightningData.precheck(attr["infos"])
         return attr
 

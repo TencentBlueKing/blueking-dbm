@@ -18,8 +18,7 @@ from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.db_services.redis.maxmemory_set.maxmemory_set import RedisClusterMaxmemorySet
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -59,7 +58,7 @@ class RedisClusterMaxmemorySetAlarmTransformSerializer(AlarmCallBackDataSerializ
         return ticket_detail
 
 
-class RedisClusterMaxMemorySetDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterMaxMemorySetDetailSerializer(RedisBaseOperateDetailSerializer):
     """集群maxmemory设置"""
 
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())

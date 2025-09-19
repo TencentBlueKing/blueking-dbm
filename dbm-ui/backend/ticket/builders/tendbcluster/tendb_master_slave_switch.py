@@ -37,6 +37,7 @@ class TendbMasterSlaveSwitchDetailSerializer(TendbBaseOperateDetailSerializer):
     is_verify_checksum = serializers.BooleanField(help_text=_("是否检测历史数据检验结果"))
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         if attrs["force"] or not attrs["is_check_delay"]:
             raise serializers.ValidationError(_("主从互切场景：非强制执行，强制检查延时"))
 

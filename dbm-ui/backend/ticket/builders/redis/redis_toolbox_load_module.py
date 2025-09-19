@@ -13,12 +13,16 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.common.base import DisplayInfoSerializer
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import LoadConfirmType, TicketType
 
 
-class RedisLoadModuleSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisLoadModuleSerializer(RedisBaseOperateDetailSerializer):
     """redis集群加载module"""
 
     class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):

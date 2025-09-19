@@ -23,9 +23,6 @@ from backend.ticket.constants import TicketType
 class MongoDBDisableDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBDisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.disable_cluster
