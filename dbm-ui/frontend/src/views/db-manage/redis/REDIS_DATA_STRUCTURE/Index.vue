@@ -142,7 +142,9 @@
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
-        cluster_spec: {} as RedisModel['cluster_spec'],
+        cluster_spec: {
+          spec_id: 0,
+        } as RedisModel['cluster_spec'],
         cluster_type: '',
         cluster_type_name: '',
         id: 0,
