@@ -100,7 +100,7 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_cluster_type = self.ticket_data["rollback_cluster_type"]
         for info in self.ticket_data["infos"]:
             # 获取定点回档的类型
-            op_type = "BACKUPID" if info.get("backupinfo") else "TIME"
+            op_type = "TIME" if info.get("rollback_time") else "BACKUPID"
             info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
             # 格式化定点回档部署的信息
             if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
