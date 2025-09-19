@@ -253,16 +253,6 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 // needsGlobalBalancing 判断是否需要全局均衡分配
 func needsGlobalBalancing(param RequestInputParam) bool {
 	// 多个请求且包含容忍度设置的亲和性
-	if len(param.Details) <= 1 {
-		return false
-	}
-
-	toleranceAffinities := []string{CROS_SUBZONE, SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH, CROSS_RACK}
-	for _, detail := range param.Details {
-		if detail.Tolerance >= 0 && slices.Contains(toleranceAffinities, detail.Affinity) {
-			return true
-		}
-	}
 	return false
 }
 
