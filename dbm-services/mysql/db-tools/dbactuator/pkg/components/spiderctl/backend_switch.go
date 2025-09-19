@@ -344,6 +344,17 @@ func (r *SpiderClusterBackendSwitchComp) PreCheck() (err error) {
 	// 主从延迟检查
 	if r.Params.SlaveDelayCheck {
 		for addr, conn := range r.slavesConn {
+			logger.Info("check replicate status...")
+			slaveStatus, serr := conn.ShowSlaveStatus()
+			if serr != nil {
+				logger.Error("[%s] show slave status failed: %s", addr, serr.Error())
+				return serr
+			}
+			if !slaveStatus.ReplSyncIsOk() {
+				return fmt.Errorf("[%s] replication status is abnormal ,IO Thread: %s,SQL Thread:%s", addr,
+					slaveStatus.SlaveIORunning,
+					slaveStatus.SlaveSQLRunning)
+			}
 			// 前置检查可以稍微宽松一点，因为实际切换也会检查
 			err = cmutil.Retry(cmutil.RetryConfig{
 				Times:     10,
@@ -476,12 +487,13 @@ func checkReplicationStatus(conns map[IPPORT]*native.DbWorker) (err error) {
 		}
 		err = cmutil.Retry(cmutil.RetryConfig{
 			DelayTime: 1 * time.Second,
-			Times:     10,
+			Times:     20,
 		}, func() error {
-			return conn.ReplicateDelayCheck(1, 1024)
+			logger.Info("waiting for the slave to be fully synchronized...")
+			return conn.CheckDelayBytesToZero()
 		})
 		if err != nil {
-			logger.Error("[%s]心跳表延迟检查失败: %s", addr, err.Error())
+			logger.Error("[%s]check delay bytes failed: %s", addr, err.Error())
 			return err
 		}
 	}
