@@ -17,17 +17,18 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
     DataCheckRepairSettingSerializer,
+    RedisBaseOperateDetailSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisShardUpdateDetailSerializer(RedisBaseOperateDetailSerializer):
     """集群分片变更"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

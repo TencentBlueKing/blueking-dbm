@@ -44,6 +44,7 @@ class InfluxDBApplyDetailSerializer(BigDataDetailsSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             format_bigdata_resource_spec(attrs)

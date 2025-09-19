@@ -41,8 +41,7 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     )
 
     def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
         super().validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:

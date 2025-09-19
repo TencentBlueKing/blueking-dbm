@@ -24,9 +24,6 @@ class MongoDBDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.deinstall_cluster

@@ -25,13 +25,16 @@ from backend.ticket.builders.common.base import (
     DisplayInfoSerializer,
     HostInfoSerializer,
     HostRecycleSerializer,
-    SkipToRepresentationMixin,
 )
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisScaleUpDownDetailSerializer(RedisBaseOperateDetailSerializer):
     """redis集群容量变更"""
 
     class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin):

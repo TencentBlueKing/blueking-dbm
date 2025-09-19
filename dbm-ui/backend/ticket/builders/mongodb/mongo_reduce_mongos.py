@@ -38,6 +38,7 @@ class MongoDBReduceMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         cluster_map = Cluster.objects.prefetch_related("proxyinstance_set__machine").in_bulk(cluster_ids)
 

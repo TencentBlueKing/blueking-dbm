@@ -319,7 +319,6 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_REMOTE_UPGRADE = TicketEnumField("TENDBCLUSTER_REMOTE_UPGRADE", _("TenDB Cluster 存储层本地升级"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_UPGRADE = TicketEnumField("TENDBCLUSTER_SPIDER_UPGRADE", _("TenDB Cluster Spider迁移升级"), _("集群维护"))  # noqa
     TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))  # noqa
-    TENDBCLUSTER_REMOTE_UPGRADE = TicketEnumField("TENDBCLUSTER_REMOTE_UPGRADE", _("TenDB Cluster 存储层本地升级"), _("集群维护"))  # noqa
     TENDBCLUSTER_FORCE_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_FORCE_IMPORT_SQLFILE", _("TenDB Cluster 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
     TENDBCLUSTER_DELETE_CLEAR_DB = TicketEnumField("TENDBCLUSTER_DELETE_CLEAR_DB", _("TenDB Cluster 删除清档备份库"), _("数据处理"), register_iam=False)  # noqa
     TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"), register_iam=False)  # noqa

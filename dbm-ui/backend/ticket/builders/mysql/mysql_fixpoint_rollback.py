@@ -93,8 +93,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
             )
 
     def validate(self, attrs):
-        # 校验集群是否可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
 
         now = datetime.datetime.now(timezone.utc)
         for info in attrs["infos"]:

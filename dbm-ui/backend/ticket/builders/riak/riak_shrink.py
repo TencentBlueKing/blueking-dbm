@@ -34,6 +34,7 @@ class RiakShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super(BigDataSingleClusterOpsDetailsSerializer, self).validate(attrs)
         return attrs
 
 

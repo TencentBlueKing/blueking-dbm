@@ -16,12 +16,15 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import (
+    BaseRedisInstanceTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
-class RedisMasterSlaveSwitchDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisMasterSlaveSwitchDetailSerializer(RedisBaseOperateDetailSerializer):
     """主从切换"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):

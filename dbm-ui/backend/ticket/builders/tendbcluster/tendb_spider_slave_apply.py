@@ -40,6 +40,7 @@ class SpiderSlaveApplyDetailSerializer(TendbBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         """校验集群是否已经存在只读接入层"""
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         clusters = Cluster.objects.prefetch_related("proxyinstance_set").filter(
             id__in=[info["cluster_id"] for info in attrs["infos"]]
         )

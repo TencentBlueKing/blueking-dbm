@@ -15,13 +15,13 @@ from rest_framework import serializers
 from backend.db_services.redis.redis_dts.enums import DtsDataRepairMode, ExecuteMode
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisDataCheckRepairDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisDataCheckRepairDetailSerializer(RedisBaseOperateDetailSerializer):
     """数据校验与修复"""
 
     class InfoSerializer(serializers.Serializer):
@@ -47,6 +47,7 @@ class RedisDataCheckRepairDetailSerializer(SkipToRepresentationMixin, serializer
 
     def validate(self, attr):
         """进一步校验info"""
+        attr = super().validate(attr)
         key_white_regex_cnt = sum(map(lambda info: 1 if len(info["key_white_regex"]) else 0, attr["infos"]))
         key_black_regex_cnt = sum(map(lambda info: 1 if len(info["key_black_regex"]) else 0, attr["infos"]))
         if (key_white_regex_cnt + key_black_regex_cnt) < len(attr["infos"]):

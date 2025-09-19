@@ -27,9 +27,6 @@ class MongoDBFullBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
     file_tag = serializers.ChoiceField(help_text=_("备份保存时间"), choices=MongoDBBackupFileTagEnum.get_choices())
     infos = serializers.ListSerializer(help_text=_("备份信息"), child=FullBackupDetailSerializer())
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBFullBackupFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.mongo_backup

@@ -25,6 +25,7 @@ from backend.ticket.builders.common.base import (
     ParamValidateSerializerMixin,
     RedisTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
 )
 from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
@@ -54,18 +55,22 @@ class RedisALLInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, Ticket
     cluster_types = ClusterType.db_type_to_cluster_types(DBType.Redis)
 
 
-class RedisSingleOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisSingleOpsBaseDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     def validate(self, attrs):
         """
         公共校验：集群操作互斥校验
         """
-        super().validate(attrs)
+        attrs = super().validate(attrs)
         return attrs
 
 
-class RedisOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisOpsBaseDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     # TODO: rules内部校验
     rules = serializers.JSONField(help_text=_("提取/删除/备份规则列表"))
 
@@ -73,7 +78,7 @@ class RedisOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serial
         """
         公共校验：集群操作互斥校验
         """
-        super().validate(attrs)
+        attrs = super().validate(attrs)
         return attrs
 
 
@@ -174,8 +179,9 @@ class ClusterValidateMixin(object):
 
 
 class RedisBaseOperateDetailSerializer(
-    ParamValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+    TicketBaseValidateSerializerMixin, ParamValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
 ):
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         attrs = super().validated_params(attrs=attrs)
         return attrs

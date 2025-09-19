@@ -65,8 +65,8 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super(MysqlMigrateUpgradeDetailSerializer, self).validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
+
         super(MysqlMigrateUpgradeDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         # 校验集群最近一次备份记录是逻辑备份

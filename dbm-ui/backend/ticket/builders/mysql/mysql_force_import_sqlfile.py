@@ -28,6 +28,7 @@ logger = logging.getLogger("root")
 
 class MysqlForceSqlImportDetailSerializer(ImportSQLForceSerializer, MySQLBaseOperateDetailSerializer):
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         return attrs
 
 

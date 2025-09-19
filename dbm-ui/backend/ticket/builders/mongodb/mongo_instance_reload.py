@@ -32,9 +32,6 @@ class MongoDBInstanceReloadDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
     infos = serializers.ListSerializer(help_text=_("重启信息"), child=InstanceReloadDetailSerializer())
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBInstanceReloadFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_restart
