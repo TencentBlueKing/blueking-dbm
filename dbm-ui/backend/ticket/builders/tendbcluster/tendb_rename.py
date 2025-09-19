@@ -13,13 +13,18 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameFlowParamBuilder, MySQLHaRenameSerializer
+from backend.ticket.builders.mysql.mysql_ha_rename import (
+    MySQLBaseOperateDetailSerializer,
+    MySQLHaRenameFlowParamBuilder,
+    MySQLHaRenameSerializer,
+)
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class TendbRenameSerializer(MySQLHaRenameSerializer):
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         super().validate_cluster_can_access(attrs)
         # 集群类型校验
         super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBCluster)

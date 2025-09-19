@@ -17,7 +17,7 @@ from backend.db_services.dbpermission.db_authorize.serializers import PreCheckAu
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.mongodb.base import BaseMongoDBTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -32,13 +32,14 @@ class MongoDBAuthorizeInfoSerializer(serializers.Serializer):
     target_instances = serializers.ListSerializer(child=serializers.CharField(), help_text=_("目标集群域名"))
 
 
-class MongoDBAuthorizeRulesSerializer(serializers.Serializer):
+class MongoDBAuthorizeRulesSerializer(BaseMongoDBOperateDetailSerializer):
     authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
     authorize_data = serializers.ListSerializer(
         help_text=_("授权数据列表"), child=MongoDBAuthorizeInfoSerializer(), required=False
     )
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         return attrs
 
 

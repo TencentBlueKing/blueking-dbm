@@ -14,13 +14,14 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameFlowParamBuilder, MySQLHaRenameSerializer
 from backend.ticket.constants import TicketType
 
 
 class MySQLSingleRenameDetailSerializer(MySQLHaRenameSerializer):
     def validate(self, attrs):
+        super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         super().validate_cluster_can_access(attrs)
         # 集群类型校验
         super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBSingle)

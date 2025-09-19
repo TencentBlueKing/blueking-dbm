@@ -14,12 +14,12 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tbinlogdumper.base import DumperBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperSwitchNodesDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class TbinlogdumperSwitchNodesDetailSerializer(DumperBaseOperateDetailSerializer):
     class DumperSwitchInfoSerializer(serializers.Serializer):
         class SwitchInstanceSerializer(serializers.Serializer):
             dumper_instance_id = serializers.IntegerField(help_text=_("dumper进程ID"))

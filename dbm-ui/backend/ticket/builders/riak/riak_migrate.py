@@ -45,6 +45,7 @@ class RiakMigrateDetailSerializer(BigDataApplyDetailsSerializer):
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def validate(self, attrs):
+        attrs = super(BigDataApplyDetailsSerializer, self).validate(attrs)
         # 校验集群名是否重复
         CommonValidate.validate_duplicate_cluster_name(
             self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"], attrs["db_module_id"]

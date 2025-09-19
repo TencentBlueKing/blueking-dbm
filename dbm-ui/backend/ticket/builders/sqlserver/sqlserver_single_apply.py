@@ -28,7 +28,7 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
+from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerSingleTicketFlowBuilder,
     SQLServerBaseOperateResourceParamBuilder,
@@ -37,7 +37,7 @@ from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 
 
-class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
+class SQLServerSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     class DomainSerializer(serializers.Serializer):
         """域名信息序列化，此字段是集群名，可考虑跟前端一起调整为 cluster_name"""
 
@@ -92,6 +92,7 @@ class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
         return representation
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验集群名是否重复
         for domain in attrs["domains"]:
             CommonValidate.validate_duplicate_cluster_name(

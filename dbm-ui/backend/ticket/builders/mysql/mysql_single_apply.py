@@ -28,7 +28,7 @@ from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
+from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
@@ -43,7 +43,7 @@ class DomainSerializer(serializers.Serializer):
     key = serializers.CharField(help_text=_("域名关键字"), max_length=LEN_MIDDLE)
 
 
-class MysqlSingleApplyDetailSerializer(serializers.Serializer):
+class MysqlSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
@@ -96,6 +96,7 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         return representation
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验集群名是否重复
         for domain in attrs["domains"]:
             CommonValidate.validate_duplicate_cluster_name(

@@ -30,6 +30,7 @@ class SQLServerAuthorizeRulesSerializer(SQLServerBaseOperateDetailSerializer):
     )
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         super().validate_cluster_can_access(attrs)
         return attrs
 
