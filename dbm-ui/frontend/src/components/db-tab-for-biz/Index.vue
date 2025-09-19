@@ -35,19 +35,21 @@
   interface Props {
     exclude?: DBTypes[];
     labelConfig?: Record<DBTypes, string>;
+    prefixItems?: TabItem[];
   }
 
   interface TabItem {
-    id: DBTypes;
+    id: string;
     name: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     exclude: () => [],
     labelConfig: undefined,
+    prefixItems: () => [],
   });
 
-  const moduleValue = defineModel<DBTypes>();
+  const moduleValue = defineModel<string>();
   const isShow = defineModel<boolean>('isShow', {
     default: true,
   });
@@ -58,8 +60,8 @@
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);
 
-  const renderTabs = computed(() =>
-    Object.values(tabList.value).reduce((result, item) => {
+  const renderTabs = computed(() => {
+    const displayTabs = Object.values(tabList.value).reduce((result, item) => {
       const { id, moduleId, name } = item;
       const data = funControllerStore.funControllerData.getFlatData(moduleId);
       if (data[id] && !props.exclude.includes(id)) {
@@ -69,11 +71,13 @@
         });
       }
       return result;
-    }, [] as TabItem[]),
-  );
+    }, [] as TabItem[]);
+
+    return props.prefixItems.concat(displayTabs);
+  });
 
   watch(
-    () => [props.exclude, props.labelConfig],
+    () => [props.exclude, props.labelConfig, props.prefixItems],
     () => {
       renderKey.value += 1;
     },
