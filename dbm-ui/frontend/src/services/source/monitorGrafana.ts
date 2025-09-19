@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { DBTypes } from '@common/const';
+
 import http from '../http';
 
 const path = '/apis/monitor/grafana';
@@ -40,7 +42,8 @@ export function getBusinessDashboard(params: { bk_biz_id: number }) {
   return http.get<{
     url: string;
     urls: {
-      db_type: string;
+      db_type: DBTypes; // type 为 overview时，为空字符串
+      type: 'business' | 'overview';
       url: string;
       view: string;
     }[];
