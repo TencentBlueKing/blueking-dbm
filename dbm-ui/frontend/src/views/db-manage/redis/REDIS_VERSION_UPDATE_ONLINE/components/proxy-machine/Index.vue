@@ -13,6 +13,7 @@
       <HostColumn
         v-model="item.host"
         :cluster-types="['RedisHost']"
+        hide-manual-input
         :label="t('目标主机')"
         :selected="selected"
         :tab-list-config="tabListConfig"

@@ -240,7 +240,7 @@
                 version: tableItem.target_version,
               };
               if (clusterMap[clusterId]) {
-                clusterMap[clusterId].target_versions.concat(targetVersionItem);
+                clusterMap[clusterId].target_versions.push(targetVersionItem);
               } else {
                 Object.assign(clusterMap, {
                   [clusterId]: {

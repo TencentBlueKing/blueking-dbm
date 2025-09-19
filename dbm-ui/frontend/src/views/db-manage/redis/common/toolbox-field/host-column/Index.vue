@@ -24,6 +24,7 @@
     <InstanceSelector
       v-model:is-show="isShowSelector"
       :cluster-types="clusterTypes"
+      :hide-manual-input="hideManualInput"
       :selected="selectedList"
       :tab-list-config="tabListConfig"
       @change="handleInstanceSelectChange" />
@@ -46,6 +47,7 @@
   interface Props {
     clusterTypes: InstanceSelectorProps['clusterTypes'];
     disabled?: boolean;
+    hideManualInput?: boolean;
     label: string;
     placeholder?: string;
     selected: {
