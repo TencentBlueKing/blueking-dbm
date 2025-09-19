@@ -94,8 +94,8 @@
   watch(
     () => modelValue.value.master_domain,
     () => {
-      modelValue.value.id = 0;
       if (!modelValue.value.id && modelValue.value.master_domain) {
+        modelValue.value.id = 0;
         isLoading.value = true;
         filterClusters<RedisModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

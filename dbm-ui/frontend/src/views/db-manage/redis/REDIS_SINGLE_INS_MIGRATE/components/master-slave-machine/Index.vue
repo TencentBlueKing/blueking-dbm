@@ -26,6 +26,7 @@
       <HostColumn
         v-model="item.host"
         :cluster-types="['RedisHost']"
+        hide-manual-input
         :label="t('主库主机')"
         :placeholder="t('请输入IP（单个）')"
         :selected="selected"

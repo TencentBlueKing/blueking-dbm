@@ -17,15 +17,15 @@
     :label="t('目标版本')"
     :loading="loading"
     required
-    :width="200">
+    :width="300">
     <EditableSelect
       v-model="modelValue"
       :clearable="false">
       <BkOption
         v-for="(item, index) in versions"
-        :key="index"
-        :label="item"
-        :value="item">
+        :id="item"
+        :key="item"
+        :name="item">
         <TextOverflowLayout>
           {{ item }}
           <template #append>
