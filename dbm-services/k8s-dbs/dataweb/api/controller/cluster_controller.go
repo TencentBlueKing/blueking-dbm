@@ -32,6 +32,7 @@ import (
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
+	metaresponse "k8s-dbs/metadata/vo/response"
 	"log/slog"
 	"strconv"
 
@@ -118,7 +119,7 @@ func (c *ClusterController) GetClusterList(ctx *gin.Context) {
 		c.processingClusterOpsStatus(ctx, &data[idx])
 	}
 
-	var responseData = response.PageResult{
+	var responseData = metaresponse.PageResult{
 		Count:  count,
 		Result: data,
 	}
