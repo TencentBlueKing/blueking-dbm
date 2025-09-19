@@ -187,6 +187,7 @@
   const createRowData = (values = {} as Partial<IDataRow>) => ({
     batchInstance: Object.assign(
       {
+        current_spec_id: 0,
         instances: {} as IDataRow['batchInstance']['instances'],
         renderText: '',
       },

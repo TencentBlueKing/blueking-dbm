@@ -161,7 +161,9 @@
         ip: '',
         related_clusters: [] as IDataRow['host']['related_clusters'],
         related_instances: [] as IDataRow['host']['related_instances'],
-        spec_config: {} as MachineSpecConfig,
+        spec_config: {
+          id: 0,
+        } as MachineSpecConfig,
       },
       values.host,
     ),

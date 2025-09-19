@@ -111,14 +111,14 @@
     () => modelValue.value.master_domain,
     () => {
       if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
+        modelValue.value.id = 0;
         runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
         });
       }
       if (!modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
+        modelValue.value.id = 0;
       }
     },
     {

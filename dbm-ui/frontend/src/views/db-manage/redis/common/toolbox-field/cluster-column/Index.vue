@@ -94,7 +94,7 @@
   watch(
     () => modelValue.value.master_domain,
     () => {
-      modelValue.value.id = undefined;
+      modelValue.value.id = 0;
       if (!modelValue.value.id && modelValue.value.master_domain) {
         isLoading.value = true;
         filterClusters<RedisModel>({
@@ -112,7 +112,7 @@
           });
       }
       if (!modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
+        modelValue.value.id = 0;
       }
     },
     {
