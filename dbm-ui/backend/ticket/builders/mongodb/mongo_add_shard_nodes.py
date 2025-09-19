@@ -44,6 +44,7 @@ class MongoDBAddShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容shard节点数申请信息"), child=AddShardNodesDetailSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
         clusters = Cluster.objects.filter(id__in=cluster_ids)
 

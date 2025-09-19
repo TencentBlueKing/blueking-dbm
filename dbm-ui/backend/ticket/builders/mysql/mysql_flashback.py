@@ -113,10 +113,9 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
                 raise serializers.ValidationError(_(info["message"]))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验闪回的时间
         self.validate_flash_time(attrs)
-        # 校验集群是否可用，集群类型为高可用
-        super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 库表校验结果判断
         self.check_flashback_database_result(attrs)
         # 校验待闪回记录格式与字段是否存在

@@ -22,6 +22,7 @@ from backend.ticket.builders.common.base import (
     CommonValidate,
     SkipToRepresentationMixin,
     SQLServerTicketFlowBuilderPatchMixin,
+    TicketBaseValidateSerializerMixin,
     fetch_cluster_ids,
 )
 from backend.ticket.builders.mysql.base import MySQLClustersTakeDownDetailsSerializer
@@ -56,7 +57,9 @@ class SQLServerTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer)
     pass
 
 
-class SQLServerBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class SQLServerBaseOperateDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     """
     sqlserver操作的基类，主要功能:
     1. 屏蔽序列化的to_representation
@@ -120,6 +123,7 @@ class SQLServerBaseOperateDetailSerializer(SkipToRepresentationMixin, serializer
             raise serializers.ValidationError(message)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 默认全局校验只需要校验集群的状态
         return attrs
 

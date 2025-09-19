@@ -44,6 +44,7 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验count = 机器组数 * 集群分片节点数
         for info in attrs["infos"]:
             mongo_count = info["resource_spec"]["mongodb"]["count"]

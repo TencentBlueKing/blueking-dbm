@@ -50,6 +50,7 @@ class TenDBClusterFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
         return info
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         for cluster_info in attrs["infos"]:
             self.get_backup_local_params(cluster_info)
 

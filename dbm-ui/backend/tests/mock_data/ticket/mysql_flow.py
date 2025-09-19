@@ -317,7 +317,7 @@ SQL_IMPORT_DATA = {
         "charset": "default",
         "force": False,
         "path": "/bk-dbm/mysql/sqlfile",
-        "cluster_ids": [110],
+        "cluster_ids": [CLUSTER_ID],
         "execute_objects": [
             {
                 "sql_files": ["bar.sql", "foo.sql"],

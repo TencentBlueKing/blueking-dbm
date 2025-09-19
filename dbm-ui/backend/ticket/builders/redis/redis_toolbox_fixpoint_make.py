@@ -20,14 +20,18 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 from backend.utils.time import str2datetime
 
 
-class RedisFixPointMakeDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisFixPointMakeDetailSerializer(RedisBaseOperateDetailSerializer):
     """定点构造"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
@@ -39,6 +43,7 @@ class RedisFixPointMakeDetailSerializer(SkipToRepresentationMixin, serializers.S
 
         def validate(self, attr):
             """业务逻辑校验"""
+            attr = super().validate(attr)
             master_instances = attr.get("master_instances")
             recovery_time_point = attr.get("recovery_time_point")
             resource_spec = attr.get("resource_spec")

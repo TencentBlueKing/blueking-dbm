@@ -36,6 +36,7 @@ class MySQLDataMigrateDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("数据迁移信息"), child=DataMigrateInfoSerializer())
 
     def validate(self, attrs):
+        attrs = super(MySQLBaseOperateDetailSerializer, self).validate(attrs)
         # 获取目标集群的库信息
         cluster_ids = [[*info["target_clusters"], info["source_cluster"]] for info in attrs["infos"]]
         cluster_ids = list(itertools.chain(*cluster_ids))

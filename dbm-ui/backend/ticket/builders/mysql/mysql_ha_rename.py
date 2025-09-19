@@ -44,7 +44,7 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
         CommonValidate.validate_mysql_db_rename(attrs["infos"], cluster__databases)
 
     def validate(self, attrs):
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
         # 集群类型校验
         super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBHA)
         # DB重命名校验

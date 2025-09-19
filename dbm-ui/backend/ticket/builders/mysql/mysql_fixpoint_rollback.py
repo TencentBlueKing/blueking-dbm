@@ -80,8 +80,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
             raise serializers.ValidationError(_("定点时间{}不能晚于当前时间{}").format(rollback_time, now))
 
     def validate(self, attrs):
-        # 校验集群是否可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
 
         now = datetime.datetime.now(timezone.utc)
         for info in attrs["infos"]:
