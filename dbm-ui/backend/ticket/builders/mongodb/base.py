@@ -27,6 +27,7 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     MongoDBTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
+    TicketBaseValidateSerializerMixin,
 )
 
 MONGODB_SHARD_GROUP_COUNT = 3
@@ -59,7 +60,9 @@ class BaseMongoShardedTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, Tick
     cluster_types = [ClusterType.MongoShardedCluster.value]
 
 
-class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class BaseMongoDBOperateDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     @classmethod
     def validate_shrink_spec_machine_affinity(
         cls, cluster: Cluster, machines: List[Machine], spec_id: int, count: int
@@ -116,6 +119,7 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
                 raise serializers.ValidationError(_("请保证这一批集群的属性: {}是一致的").format(attr))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         return attrs
 
 
@@ -123,6 +127,7 @@ class BaseMongoDBPluginDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         return attrs
 
 

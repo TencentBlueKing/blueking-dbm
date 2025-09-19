@@ -23,9 +23,6 @@ from backend.ticket.constants import TicketType
 class MongoDBEnableDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 
-    def validate(self, attrs):
-        return attrs
-
 
 class MongoDBEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.enable_cluster

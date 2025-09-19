@@ -22,6 +22,7 @@ from backend.ticket.constants import TicketType
 class TendbClearDetailSerializer(MySQLHaClearDetailSerializer):
     def validate(self, attrs):
         """校验库表选择器信息是否正确"""
+        attrs = super(MySQLHaClearDetailSerializer, self).validate(attrs)
         super().validate_cluster_can_access(attrs)
         # 库表选择器校验
         super().validate_database_table_selector(attrs)

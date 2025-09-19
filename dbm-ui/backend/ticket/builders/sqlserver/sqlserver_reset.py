@@ -31,6 +31,7 @@ class SQLServerResetDetailSerializer(SQLServerBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("集群重置信息"), child=ResetInfoSerializer())
 
     def validate(self, attrs):
+        attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
         # 校验所有集群都处于禁用状态
         clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(attrs))
         for cluster in clusters:

@@ -32,7 +32,7 @@ class SQLServerMasterSlaveSwitchDetailSerializer(SQLServerBaseOperateDetailSeria
     force = serializers.BooleanField(help_text=_("是否强制切换(互切固定为false)"), default=False, required=False)
 
     def validate(self, attrs):
-
+        attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为高可用
         super().validate_cluster_can_access(attrs)
         super().validated_cluster_type(attrs, ClusterType.SqlserverHA)

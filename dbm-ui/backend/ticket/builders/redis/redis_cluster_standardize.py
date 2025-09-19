@@ -13,12 +13,11 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class RedisClusterStandardizeDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisClusterStandardizeDetailSerializer(RedisBaseOperateDetailSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField())

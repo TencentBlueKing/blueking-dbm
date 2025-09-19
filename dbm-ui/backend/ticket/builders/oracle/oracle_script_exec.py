@@ -16,12 +16,14 @@ from backend.db_services.mysql.sql_import.constants import SQLImportMode
 from backend.db_services.oracle.sql_import.constants import BKREPO_ORACLE_SQLFILE_PATH
 from backend.flow.engine.controller.oracle import OracleController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import SkipToRepresentationMixin, TicketBaseValidateSerializerMixin
 from backend.ticket.builders.oracle.base import BaseOracleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class OracleScriptExecDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class OracleScriptExecDetailSerializer(
+    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+):
     class ClusterDetailSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群id"))
         execute_db = serializers.ListField(help_text=_("执行的db"), child=serializers.CharField())
@@ -32,6 +34,7 @@ class OracleScriptExecDetailSerializer(SkipToRepresentationMixin, serializers.Se
     import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         attrs["path"] = BKREPO_ORACLE_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
         return attrs
 

@@ -69,8 +69,7 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     ignore_check_db = serializers.BooleanField(help_text=_("是否忽略业务库"), required=False, default=False)
 
     def validate(self, attrs):
-        # 校验集群是否可用
-        super().validate_cluster_can_access(attrs)
+        attrs = super().validate(attrs)
 
         # 校验回档信息
         now = datetime.datetime.now(timezone.utc)

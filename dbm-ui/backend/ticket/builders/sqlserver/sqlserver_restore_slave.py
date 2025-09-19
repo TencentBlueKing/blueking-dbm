@@ -54,6 +54,7 @@ class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer
         # super(MysqlRestoreLocalSlaveDetailSerializer, self).validate_instance_role(
         #     attrs, instance_key=["slave"], role=InstanceInnerRole.SLAVE
         # )
+        attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
         # 校验集群是否可用，集群类型为高可用
         super(SQLServerRestoreSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
         super(SQLServerRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.SqlserverHA)

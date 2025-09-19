@@ -21,12 +21,12 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin, get_ticket_zone_list
-from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
+from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisInstanceApplyDetailSerializer(RedisBaseOperateDetailSerializer):
     class InstanceInfoSerializer(serializers.Serializer):
         cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
         databases = serializers.IntegerField(help_text=_("db数量"))
@@ -64,6 +64,7 @@ class RedisInstanceApplyDetailSerializer(SkipToRepresentationMixin, serializers.
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 集群名校验
         bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
         for info in attrs["infos"]:

@@ -15,12 +15,12 @@ from rest_framework import serializers
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tbinlogdumper.base import DumperBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperEnableDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class TbinlogdumperEnableDetailSerializer(DumperBaseOperateDetailSerializer):
     dumper_instance_ids = serializers.ListField(help_text=_("dumper实例ID"), child=serializers.IntegerField())
 
 
