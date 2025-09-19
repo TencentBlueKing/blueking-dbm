@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="spec",
             name="biz_scope",
-            field=models.JSONField(default=list, help_text="业务范围:[3,4,5]", null=True),
+            field=models.JSONField(default=list, help_text="业务范围:[3,4,5]", null=True, blank=True),
         ),
         migrations.AlterField(
             model_name="spec",

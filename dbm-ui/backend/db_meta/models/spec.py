@@ -48,7 +48,7 @@ class Spec(AuditedModel):
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属
     qps = models.JSONField(default=dict, help_text=_('qps规格描述:{"min": 1, "max": 100}'), null=True)
-    biz_scope = models.JSONField(default=list, help_text=_("业务范围:[3,4,5]"), null=True)
+    biz_scope = models.JSONField(default=list, help_text=_("业务范围:[3,4,5]"), null=True, blank=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("资源规格(Spec)")
