@@ -117,6 +117,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.permission.clone",
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
+    "backend.db_services.risk_memo",
     "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
