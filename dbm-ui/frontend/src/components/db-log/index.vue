@@ -43,13 +43,14 @@
 
 <script setup lang="tsx">
   import { format } from 'date-fns';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { execCopy } from '@utils';
 
   import { FitAddon } from '@xterm/addon-fit';
   import { WebLinksAddon } from '@xterm/addon-web-links';
-  import { Terminal } from '@xterm/xterm';
+  import { type IBuffer, Terminal } from '@xterm/xterm';
 
   interface Props {
     loading?: boolean;
@@ -74,12 +75,16 @@
     loading: false,
   });
 
-  let terminal: Terminal;
-  let fitAddon: FitAddon;
+  let terminal: Terminal | null;
+  let fitAddon: FitAddon | null;
   let isAutoScrollEnabled = true; // 默认开启自动滚动
   let lastScrollPosition = 0; // 记录上次滚动位置
   let localLogList: NodeLog[] = [];
   let logicalLineNumbers: number[] = []; // 逻辑行与实际行的映射
+
+  const updateLastScrollPosition = _.debounce(() => {
+    lastScrollPosition = terminal?.buffer.active.viewportY || 0;
+  }, 500);
 
   const initTerm = () => {
     terminal = new Terminal({
@@ -108,11 +113,11 @@
       originalWrite.call(this, data);
       // 仅当用户未手动滚动时自动跳转到底部
       if (isAutoScrollEnabled) {
-        terminal.scrollToBottom();
+        terminal?.scrollToBottom();
       } else {
         // 维持用户手动定位的位置
         setTimeout(() => {
-          terminal.scrollToLine(lastScrollPosition);
+          terminal?.scrollToLine(lastScrollPosition);
         });
       }
     };
@@ -120,7 +125,7 @@
     // 劫持键盘事件
     terminal.attachCustomKeyEventHandler((e) => {
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && e.type === 'keydown') {
-        const selection = terminal.getSelection();
+        const selection = terminal?.getSelection();
         if (selection) {
           execCopy(selection);
           return false; // 阻止默认
@@ -130,9 +135,7 @@
     });
 
     terminal.attachCustomWheelEventHandler(() => {
-      setTimeout(() => {
-        lastScrollPosition = terminal.buffer.active.viewportY;
-      });
+      updateLastScrollPosition();
       return true;
     });
 
@@ -149,12 +152,15 @@
   const isTermAtBottom = ref(false);
 
   const updateLogicalLineNumbers = () => {
-    const buffer = terminal.buffer.active;
+    const buffer = terminal?.buffer.active || ([] as unknown as IBuffer);
     logicalLineNumbers = [];
     let currentLogicalLine = 0;
+    if (!buffer.length) {
+      return;
+    }
 
     for (let i = 0; i < buffer.length; i++) {
-      const line = buffer.getLine(i);
+      const line = buffer!.getLine(i);
       if (line && !line.isWrapped) {
         currentLogicalLine = currentLogicalLine + 1; // 行号从1开始
       }
@@ -165,9 +171,9 @@
   // 更新行号函数
   const updateLineNumbers = () => {
     const lineNumbers = document.getElementById('nodeLogLineNumbers')!;
-    const activeBuffer = terminal.buffer.active;
-    const scrollTop = activeBuffer.viewportY;
-    const visibleRows = terminal.rows;
+    const activeBuffer = terminal?.buffer.active;
+    const scrollTop = activeBuffer?.viewportY || 0;
+    const visibleRows = terminal?.rows || 0;
     // 生成当前可见行的行号
     let numbersHtml = '';
     let isSameLine = false;
@@ -175,7 +181,7 @@
       const lineIndex = scrollTop + i;
       isSameLine = logicalLineNumbers[lineIndex] === logicalLineNumbers[lineIndex - 1];
       const logicalLine = !isSameLine ? logicalLineNumbers[lineIndex] : '';
-      const lineText = activeBuffer.getLine(lineIndex)?.translateToString().trim();
+      const lineText = activeBuffer?.getLine(lineIndex)?.translateToString().trim();
       if (lineText) {
         numbersHtml += `<div class="line-num">${logicalLine}</div>`;
       }
@@ -184,13 +190,13 @@
   };
 
   const checkTermScroll = () => {
-    isTermAtTop.value = terminal.buffer.active.viewportY === 0;
-    const buffer = terminal.buffer.active;
-    isTermAtBottom.value = buffer.viewportY + terminal.rows >= buffer.length;
+    isTermAtTop.value = terminal?.buffer.active.viewportY === 0;
+    const buffer = terminal?.buffer.active;
+    isTermAtBottom.value = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
   };
 
   const handleClearLog = () => {
-    terminal.clear();
+    terminal?.clear();
   };
 
   const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
@@ -223,24 +229,25 @@
   };
 
   const handleTermToTop = () => {
-    terminal.scrollToTop();
+    terminal?.scrollToTop();
     lastScrollPosition = 0;
   };
 
   const handleTermToBottom = () => {
-    terminal.scrollToBottom();
+    terminal?.scrollToBottom();
   };
 
   /**
    * 设置日志
    */
   const handleSetLog = (list: NodeLog[] = []) => {
+    handleClearLog();
     localLogList = list;
     const transferList = formatLogData(list);
     const content = transferList.join('\r\n');
-    terminal.write(content);
+    terminal?.write(content);
     setTimeout(() => {
-      fitAddon.fit();
+      fitAddon?.fit();
       updateLogicalLineNumbers();
       updateLineNumbers();
       checkTermScroll();
@@ -249,15 +256,17 @@
 
   const destroyTerm = () => {
     isAutoScrollEnabled = true;
-    terminal.clear();
-    terminal.dispose();
-    fitAddon.dispose();
+    terminal?.clear();
+    terminal?.dispose();
+    fitAddon?.dispose();
+    terminal = null;
+    fitAddon = null;
     const lineNumbers = document.getElementById('nodeLogLineNumbers')!;
     lineNumbers.innerHTML = '';
   };
 
   const handleWindowResize = () => {
-    fitAddon.fit();
+    fitAddon?.fit();
     updateLogicalLineNumbers();
     updateLineNumbers();
     checkTermScroll();
@@ -279,7 +288,7 @@
     },
     init: initTerm,
     resizeFit() {
-      fitAddon.fit();
+      fitAddon?.fit();
     },
     setLog: handleSetLog,
   });

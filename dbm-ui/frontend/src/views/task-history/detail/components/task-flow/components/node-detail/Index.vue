@@ -444,7 +444,7 @@
     }
 
     :deep(.bk-sideslider-content) {
-      height: calc(100vh - 100px);
+      height: calc(100vh - 55px);
       padding: 16px;
       background: #f5f7fa;
     }
