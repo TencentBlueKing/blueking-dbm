@@ -10,7 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import json
+import random
 import re
+import string
+import time
 from typing import Any, List, Optional, Tuple, Union
 
 from django.utils.translation import ugettext
@@ -224,3 +227,10 @@ def format_size(size_bytes: int) -> str:
 
     # 使用合适的单位并限制小数点后两位
     return f"{size:.2f} {size_name[len(size_name) - 1 - i]}"
+
+
+def make_unique_key(file_obj, random_len: int = 8) -> str:
+    """生成唯一文件 key"""
+    now = int(time.time())
+    random_str = "".join(random.choices(string.ascii_lowercase, k=random_len))
+    return f"{now}_{random_str}_{file_obj.name}"
