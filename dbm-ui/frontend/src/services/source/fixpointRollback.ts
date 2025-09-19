@@ -139,10 +139,13 @@ export function queryLatesBackupLog(params: {
 export function queryLatestTimeBackupLog(params: {
   bk_biz_id: number;
   cluster_id: number;
-  job_instance_id?: number;
+  deadlines_days?: number;
   latest_time?: string;
   backup_source?: string;
   backup_method?: string;
+  limit?: number;
+  offset?: number;
+  is_full_backup?: boolean;
 }) {
   return http.get<BackupLogRecord>(`${path}/latest_time_backup_log/`, params);
 }
