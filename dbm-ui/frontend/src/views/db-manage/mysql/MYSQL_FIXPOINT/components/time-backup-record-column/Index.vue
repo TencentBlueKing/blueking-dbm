@@ -225,6 +225,7 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
+      is_full_backup: true,
       latest_time: formatDateToUTC(date),
     });
   };
@@ -234,6 +235,7 @@
       backup_source: props.backupSource,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_id: props.cluster.id,
+      is_full_backup: true,
       latest_time: formatDateToUTC(formData.value.backup_time),
     });
     emits('batch-edit', formData.value.backup_time, 'backupTime');
