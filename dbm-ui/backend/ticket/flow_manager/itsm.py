@@ -138,6 +138,6 @@ class ItsmFlow(BaseTicketFlow):
             notify.send_msg.apply_async(args=(self.ticket.id,))
         return data["sn"]
 
-    def _revoke(self, operator) -> Any:
+    def _revoke(self, operator, remark="") -> Any:
         # 父类通过触发todo的终止可以终止itsm单据
-        super()._revoke(operator)
+        super()._revoke(operator, remark)

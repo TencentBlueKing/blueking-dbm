@@ -177,7 +177,7 @@ def query_cluster_load(cluster_type, clusters) -> (dict, dict):
     load_tpl_map = defaultdict(dict)
     for machine in CLUSTER_TYPE_LOAD_RULES[cluster_type]:
         load_tpl_map[machine].update({index: {} for index in CLUSTER_MACHINE_LOAD_QUERY_TEMPLATE[machine]})
-    cluster_load_map = defaultdict(lambda: load_tpl_map)
+    cluster_load_map = defaultdict(lambda: copy.deepcopy(load_tpl_map))
 
     cluster_load_rule = SystemSettings.get_setting_value(SystemSettingsEnum.CLUSTER_LOAD_RULE, default={})
     # 批量查询集群负载指标
