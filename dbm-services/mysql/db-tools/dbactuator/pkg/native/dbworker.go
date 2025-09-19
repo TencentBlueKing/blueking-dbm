@@ -313,7 +313,8 @@ func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	var ss ShowSlaveStatusResp
 	err = h.Queryxs(&ss, "show slave status;")
 	if err != nil {
-		return
+		logger.Error("show slave status failed %s", err.Error())
+		return -1, err
 	}
 	masterBinIdx, err := getIndexFromBinlogFile(ss.MasterLogFile)
 	if err != nil {
@@ -323,7 +324,7 @@ func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 	if err != nil {
 		return -1, err
 	}
-	return (masterBinIdx-relayBinIdx)*maxbinlogsize - ss.ExecMasterLogPos, nil
+	return (masterBinIdx-relayBinIdx)*maxbinlogsize - ss.ExecMasterLogPos + ss.ReadMasterLogPos, nil
 }
 
 // getIndexFromBinlogFile TODO
@@ -1071,6 +1072,10 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 		logger.Error("get total delay binlog size failed %s", err.Error())
 		return err
 	}
+	if total == 0 {
+		logger.Info("the total delay binlog size is 0,skip next check")
+		return nil
+	}
 	if total > behindExecBinLogbyte {
 		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, behindExecBinLogbyte)
 	}
@@ -1091,6 +1096,21 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 		return fmt.Errorf("slave 延迟时间 %ds, 超过了上限 %d", delaySec, allowDelaySec)
 	}
 	return
+}
+
+func (slaveConn *DbWorker) CheckDelayBytesToZero() (err error) {
+	// 检查主从同步delay binlog size
+	total, err := slaveConn.TotalDelayBinlogSize()
+	if err != nil {
+		logger.Error("get total delay binlog size failed %s", err.Error())
+		return err
+	}
+	if total == 0 {
+		logger.Info("the total delay binlog size is 0")
+		return nil
+	}
+	logger.Info("the total delay binlog size %d is greater 0 ", total)
+	return fmt.Errorf("the total delay binlog size %d is greater 0", total)
 }
 
 // CompareBinlogPos TODO

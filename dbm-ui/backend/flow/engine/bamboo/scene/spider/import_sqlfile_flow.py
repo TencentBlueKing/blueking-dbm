@@ -236,6 +236,7 @@ class ImportSQLFlow(object):
                     exec_ip=cluster["master_ctl_ip"],
                     cluster=cluster,
                     get_mysql_payload_func=MysqlActPayload.get_semantic_dump_schema_payload.__name__,
+                    job_timeout=LONG_JOB_TIMEOUT,
                 )
             ),
         )
