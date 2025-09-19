@@ -1,7 +1,7 @@
 <template>
   <DbFormItem
     class="notification-setting-channel-item"
-    :label="t('发送渠道')"
+    :label="t('通知渠道')"
     property="channels"
     required
     :rules="channelsRules">
@@ -42,7 +42,7 @@
 
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
 
-  import { InputMessageTypes } from '@common/const';
+  import { InputMessageTypes, MessageTypes } from '@common/const';
 
   interface Props {
     data: Record<string, boolean | string>;
@@ -91,8 +91,8 @@
       if (alarmGroupNotifyList.value) {
         channelList.value = alarmGroupNotifyList.value.reduce<UnwrapRef<typeof channelList>>((prev, notifyItem) => {
           // 消息类型有开启才展示
-          if (notifyItem.is_active) {
-            // 结合接口数据进行回显
+          if (notifyItem.is_active && notifyItem.type !== MessageTypes.VOICE) {
+            // 结合历史配置数据进行回显
             const isExist = _.has(props.data, notifyItem.type);
             const channelItem = InputMessageTypes.includes(notifyItem.type)
               ? {

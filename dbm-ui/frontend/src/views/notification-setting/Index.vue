@@ -22,19 +22,7 @@
           ref="formRef"
           :model="formData">
           <DbFormItem
-            :label="t('排班表发送')"
-            property="enabled">
-            <BkSwitcher
-              v-model="formData.enabled"
-              size="small"
-              theme="primary" />
-          </DbFormItem>
-          <TimeItem
-            v-show="formData.enabled"
-            ref="timeRef"
-            :data="formData.cron" />
-          <DbFormItem
-            :label="t('发送内容')"
+            :label="t('通知内容')"
             property="after"
             required>
             <BkInput
@@ -46,11 +34,24 @@
               style="width: 200px"
               type="number">
             </BkInput>
-            <span class="input-suffix">{{ t('天的排班结果') }}</span>
+            <span class="input-suffix">{{ t('天的排班表') }}</span>
           </DbFormItem>
           <Channels
             ref="channelsRef"
             :data="formData.channels" />
+          <DbFormItem
+            :label="t('周期发送')"
+            property="enabled">
+            <BkSwitcher
+              v-model="formData.enabled"
+              size="small"
+              theme="primary"
+              @change="handleChangeEnabled" />
+          </DbFormItem>
+          <TimeItem
+            v-show="formData.enabled"
+            ref="timeRef"
+            :data="formData.cron" />
         </DbForm>
       </div>
       <template #action>
@@ -69,7 +70,6 @@
             class="mr-8 w-88"
             :disabled="updateLoading || resetLoading"
             :loading="sendLoading"
-            theme="primary"
             @click="handleSend">
             {{ t('立即发送') }}
           </AuthButton>
@@ -100,7 +100,7 @@
 
   import { getDutyNoticeConfig, sendDutyNoticeSchedule, updateDutyNoticeConfig } from '@services/source/monitor';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, MessageTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
 
@@ -115,14 +115,16 @@
     if (!data) {
       return {
         after: 7,
-        channels: {},
+        channels: {
+          [MessageTypes.RTX]: true,
+        },
         cron: {
           day_of_month: '*',
-          day_of_week: '*',
-          hour: '0',
+          day_of_week: '1',
+          hour: '10',
           minute: '0',
         },
-        enabled: true,
+        enabled: false,
       };
     }
     return data;
@@ -184,6 +186,12 @@
   );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const handleChangeEnabled = (value: boolean) => {
+    if (value) {
+      Object.assign(formData, { cron: initData().cron });
+    }
+  };
 
   const handleSave = () => {
     formRef.value!.validate().then(() => {
