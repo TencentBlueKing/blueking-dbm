@@ -12,21 +12,21 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.clone_data"
-    :show-overflow="false">
-    <BkTableColumn :label="t('源客户端IP')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="bk_cloud_id">
+    <TableColumn :title="t('源客户端IP')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.source }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('所属模块')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.module }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新客户端 IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新客户端 IP')">
+      <template #default="{ row: data }: { row: RowData }">
         <template
           v-for="(item, index) in data.target"
           :key="index">
@@ -40,8 +40,8 @@
           </p>
         </template>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

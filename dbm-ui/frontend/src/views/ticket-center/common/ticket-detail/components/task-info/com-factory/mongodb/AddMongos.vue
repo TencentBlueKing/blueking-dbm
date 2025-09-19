@@ -12,9 +12,20 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <DbOriginalTable :data="tableData">
+    <TableColumn
+      col-key="immute_domain"
+      :title="t('目标分片集群')" />
+    <TableColumn
+      col-key="node_type"
+      :title="t('扩容节点类型')" />
+    <TableColumn
+      col-key="sepc_name"
+      :title="t('扩容规格')" />
+    <TableColumn
+      col-key="add_shard_num"
+      :title="t('扩容数量（台）')" />
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -48,24 +59,6 @@
 
   const tableData = ref<RowData[]>([]);
 
-  const columns = [
-    {
-      colKey: 'immute_domain',
-      title: t('目标分片集群'),
-    },
-    {
-      colKey: 'node_type',
-      title: t('扩容节点类型'),
-    },
-    {
-      colKey: 'sepc_name',
-      title: t('扩容规格'),
-    },
-    {
-      colKey: 'add_shard_num',
-      title: t('扩容数量（台）'),
-    },
-  ];
 
   tableData.value = infos.map((item) => ({
     add_shard_num: item.resource_spec.mongos.count,

@@ -28,68 +28,68 @@
       {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :merge-cells="mergeCells">
-    <BkTableColumn
+    :merge-cells="createTableMerge(mergeCells)">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
+      :title="t('目标集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       fixed="left"
-      :label="t('校验范围')"
+      :title="t('校验范围')"
       :width="100">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.checksum_scope === 'all' ? t('整个集群') : t('部分实例') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验从库')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验从库')"
       :width="220">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.slave || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验主库')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验主库')"
       :width="220">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.master || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验DB名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验DB名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('忽略DB名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验表名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验表名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略表名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('忽略表名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { type UnwrapRef, watchEffect } from 'vue';
@@ -103,7 +103,7 @@
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { createTableMerge, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 

@@ -14,8 +14,29 @@
 <template>
   <DbOriginalTable
     class="details-cluster__table"
-    :columns="columns"
-    :data="dataList" />
+    :data="dataList">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('集群ID')">
+      <template #default="{ row: data }: { row: ClusterItem }">
+        <span>{{ data.id || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="immute_domain"
+      :title="t('集群名称')">
+      <template #default="{ row: data }: { row: ClusterItem }">
+        <span>{{ data.immute_domain }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row: data }: { row: ClusterItem }">
+        <span>{{ data.cluster_type_name || '--' }}</span>
+      </template>
+    </TableColumn>
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -37,28 +58,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  /**
-   * Mongo 启停删单据
-   */
-  const columns = [
-    {
-      cell: (_, { row: data }: { row: ClusterItem }) => <span>{data.id || '--'}</span>,
-      colKey: 'cluster_id',
-      title: t('集群ID'),
-    },
-    {
-      cell: (_, { row: data }: { row: ClusterItem }) => data.immute_domain,
-      colKey: 'immute_domain',
-      showOverflowTooltip: false,
-      title: t('集群名称'),
-    },
-    {
-      cell: (_, { row: data }: { row: ClusterItem }) => <span>{data.cluster_type_name || '--'}</span>,
-      colKey: 'cluster_type_name',
-      title: t('集群类型'),
-    },
-  ];
 
   const { clusters } = props.ticketDetails.details;
   const dataList = Object.keys(clusters).reduce((prevData, clusterId) => {

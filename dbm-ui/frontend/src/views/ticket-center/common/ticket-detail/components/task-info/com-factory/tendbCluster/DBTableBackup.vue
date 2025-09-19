@@ -12,51 +12,53 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
+      :title="t('目标集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份位置')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('备份位置')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.backup_local }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份DB名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('备份DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('忽略DB名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('备份表名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('备份表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略表名')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('忽略表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

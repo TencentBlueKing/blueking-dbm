@@ -13,8 +13,27 @@
 
 <template>
   <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+    :data="dataList">
+    <TableColumn
+      col-key="immute_domain"
+      :title="t('目标分片集群')" />
+    <TableColumn
+      col-key="target_spec"
+      :title="t('目标资源规格')">
+      <template #default="{ row }">
+        <span>{{ row.target_spec || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="shard_node_count"
+      :title="t('目标Shard节点数')" />
+    <TableColumn
+      col-key="shard_machine_group"
+      :title="t('目标机器组数')" />
+    <TableColumn
+      col-key="shards_num"
+      :title="t('分片数')" />
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -37,31 +56,6 @@
 
   const { t } = useI18n();
 
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标分片集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'target_spec',
-      label: t('目标资源规格'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'shard_node_count',
-      label: t('目标Shard节点数'),
-    },
-    {
-      field: 'shard_machine_group',
-      label: t('目标机器组数'),
-    },
-    {
-      field: 'shards_num',
-      label: t('分片数'),
-    },
-  ];
 
   const dataList = computed(() => {
     const { clusters, infos, specs } = props.ticketDetails.details;

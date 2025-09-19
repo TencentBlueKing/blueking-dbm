@@ -12,14 +12,14 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <DbOriginalTable :data="dataList">
+    <TableColumn
+      col-key="name"
+      :title="$t('临时集群名称')" />
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -34,16 +34,6 @@
   });
 
   const props = defineProps<Props>();
-
-  const { t } = useI18n();
-
-  const columns = [
-    {
-      field: 'name',
-      label: t('临时集群名称'),
-      showOverflowTooltip: false,
-    },
-  ];
 
   const dataList = computed(() => {
     const { cluster_ids: clusterIds, clusters } = props.ticketDetails.details;

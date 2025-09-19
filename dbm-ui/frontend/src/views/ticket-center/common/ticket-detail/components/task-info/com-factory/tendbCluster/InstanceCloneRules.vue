@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源客户端IP')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.clone_data"
+    row-key="cluster_id">
+    <TableColumn :title="t('源客户端IP')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.source }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('所属模块')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.module }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新客户端 IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新客户端 IP')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.target }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

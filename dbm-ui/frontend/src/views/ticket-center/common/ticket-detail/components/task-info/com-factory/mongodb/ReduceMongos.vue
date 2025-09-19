@@ -12,9 +12,20 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <DbOriginalTable :data="tableData">
+    <TableColumn
+      col-key="immute_domain"
+      :title="t('目标分片集群')" />
+    <TableColumn
+      col-key="node_type"
+      :title="t('缩容节点类型')" />
+    <TableColumn
+      col-key="reduce_ips"
+      :title="t('缩容的IP')" />
+    <TableColumn
+      col-key="reduce_shard_num"
+      :title="t('缩容数量（台）')" />
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -47,27 +58,6 @@
   const tableData = ref<RowData[]>([]);
 
   const { clusters, infos } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标分片集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'node_type',
-      label: t('缩容节点类型'),
-    },
-    {
-      field: 'reduce_ips',
-      label: t('缩容的IP'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'reduce_shard_num',
-      label: t('缩容数量（台）'),
-    },
-  ];
 
   tableData.value = infos.map((item) => ({
     immute_domain: clusters[item.cluster_id].immute_domain,
