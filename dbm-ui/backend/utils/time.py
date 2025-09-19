@@ -111,7 +111,7 @@ def calculate_cost_time(
         start_time = strptime(start_time)
     if isinstance(end_time, str) or end_time is None:
         end_time = strptime(end_time)
-    return (end_time - start_time).seconds
+    return int((end_time - start_time).total_seconds())
 
 
 def timestamp2str(timestamp: int) -> str:
