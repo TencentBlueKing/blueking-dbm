@@ -250,23 +250,26 @@ class CapacityEvaluateService:
         cls._evaluate_backend_qps(response, topo_info, model, total_req_qps_k)
         cls._evaluate_capacity_usage(response, capacity_info, total_req_capacity_m)
         logger_debug(f"action_info: {action_info}")
-        approved_user = action_info["approved_user"]
+        # approved_user = action_info.get("approved_user", "") # deprecated
+        user = action_info.get("user", "")
         # response["approved_user"] = approver_user
         # 设置最终状态
+        is_force = action_info.get("is_force", 0)  # 0: 不强制评估，1: 强制评估
+        # is_force为True时，总是通过，设置评估人为user
+        # is_force为False时，如果评估通过，则设置评估人
+        response.approved_user = user if is_force > 0 else "system"
         all_approved_ok = response.proxy_approve_ok and response.backend_approve_ok and response.capacity_approve_ok
+
         if all_approved_ok:
             response.status = ResultStatus.SUCCESS.value
-            response.message = _("评估通过")
-            response.approved_user = "system"
-        elif action_info.get("is_force", 0) == 1:
+            response.message = _("评估通过,评估人:") + response.approved_user
+        elif is_force > 0:
             all_approved_ok = True
-            response.approved_user = approved_user
             response.status = ResultStatus.SUCCESS.value
-            response.message = _("强制评估通过，评估人：") + approved_user
+            response.message = _("强制评估通过,评估人:") + response.approved_user
         else:
             response.status = ResultStatus.FAILED.value
-            response.message = _("评估不通过")
-            response.approved_user = approved_user
+            response.message = _("评估不通过,评估人:") + response.approved_user
         return response
 
     @classmethod
@@ -321,7 +324,7 @@ class CapacityEvaluateService:
         )
         response.backend_approve_ok = req_qps_k <= shard_qps_k_total
 
-        response.backend_approve_info = _("后端规格:[%s]x%d,每分片可支持Qps:%dK, 总共可支持Qps:%dK; " "总qps需求:%dK; 是否通过:%s") % (
+        response.backend_approve_info = _("分片规格:[%s],共%d个分片,每分片可支持Qps:%dK, 总共可支持Qps:%dK; " + "总Qps需求:%dK; 是否通过:%s") % (
             topo_info.shard_spec,
             topo_info.shard_num,
             shard_qps_k,
@@ -334,24 +337,15 @@ class CapacityEvaluateService:
     def _evaluate_capacity_usage(cls, response: Response, capacity_info: ClusterCapacityInfo, req_capacity_m: float):
         """评估容量使用"""
         # 如果是memory_redis，检查内存容量是否足够
-        if capacity_info.topo_info.is_memory_redis():
-            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
-
-            response.capacity_approve_info = _("总容量(内存):%dG,剩余容量:%dG; 总容量需求:%0.1fG; 是否通过:%s") % (
-                capacity_info.get_total_capacity_m() / 1024,
-                capacity_info.get_free_capacity_m() / 1024,
-                req_capacity_m / 1024,
-                response.capacity_approve_ok,
-            )
-        else:
-            # 如果是ssd_redis或tendisplus，检查磁盘容量是否足够
-            response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
-            response.capacity_approve_info = _("总容量(磁盘):%dG,剩余容量:%dG; 总容量需求:%0.1fG; 是否通过:%s") % (
-                capacity_info.get_total_capacity_m() / 1024,
-                capacity_info.get_free_capacity_m() / 1024,
-                req_capacity_m / 1024,
-                response.capacity_approve_ok,
-            )
+        storage_type = capacity_info.storage_type
+        response.capacity_approve_ok = req_capacity_m <= capacity_info.get_free_capacity_m()
+        response.capacity_approve_info = _("总容量(%s):%0.1fG,剩余容量:%0.1fG; 总容量需求:%0.1fG; 是否通过:%s") % (
+            storage_type,
+            capacity_info.get_total_capacity_m() / 1024,
+            capacity_info.get_free_capacity_m() / 1024,
+            req_capacity_m / 1024,
+            response.capacity_approve_ok,
+        )
 
     @classmethod
     def _determine_final_status(cls, response: Response) -> str:
