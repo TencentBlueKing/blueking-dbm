@@ -35,13 +35,13 @@
 <script setup lang="ts">
   interface Props {
     checked?: boolean;
-    desc: string;
+    desc?: string;
     disabled?: boolean;
     disabledTooltips?: string;
     falseValue?: boolean | string;
-    icon: string;
+    icon?: string;
     modelValue?: boolean | string;
-    title: string;
+    title?: string;
     trueValue?: boolean | string;
   }
 
@@ -66,14 +66,14 @@
     'card-checkbox--selected': props.modelValue === props.trueValue || props.checked,
   }));
 
-  function handleChange() {
+  const handleChange = () => {
     if (props.disabled || props.modelValue === props.trueValue) {
       return;
     }
 
     const isSelected = props.modelValue === props.trueValue;
     emits('update:modelValue', isSelected ? props.falseValue : props.trueValue);
-  }
+  };
 </script>
 
 <style lang="less" scoped>

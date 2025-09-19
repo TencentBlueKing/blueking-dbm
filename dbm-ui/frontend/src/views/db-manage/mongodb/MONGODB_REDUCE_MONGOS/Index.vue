@@ -138,7 +138,9 @@
       id: 0,
       master_domain: '',
       mongos: [] as MongoDBModel['mongos'],
-      spec_config: {} as MongoDBModel['mongos'][0]['spec_config'],
+      spec_config: {
+        id: 0,
+      } as MongoDBModel['mongos'][0]['spec_config'],
     },
     hosts: data.hosts || ([] as RowData['hosts']),
     role: data.role || 'mongos',
