@@ -16,16 +16,17 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
     DataCheckRepairSettingSerializer,
+    RedisBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import RemindFrequencyType, SyncDisconnectSettingType, TicketType, WriteModeType
 
 
-class RedisDataCopyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
+class RedisDataCopyDetailSerializer(RedisBaseOperateDetailSerializer):
     """数据复制"""
 
     class SyncDisconnectSettingSerializer(serializers.Serializer):
@@ -81,6 +82,7 @@ class RedisDataCopyDetailSerializer(SkipToRepresentationMixin, serializers.Seria
 
     def validate(self, attr):
         """根据复制类型校验info"""
+        attr = super().validate(attr)
         dts_copy_type = attr.get("dts_copy_type")
         infos = attr.get("infos")
 

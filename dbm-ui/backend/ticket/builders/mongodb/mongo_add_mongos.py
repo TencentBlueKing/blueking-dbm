@@ -39,6 +39,7 @@ class MongoDBAddMongosDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("扩容接入层申请信息"), child=AddMongosDetailSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         CommonValidate.validated_cluster_type(cluster_ids, ClusterType.MongoShardedCluster)
         return attrs

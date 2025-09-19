@@ -29,6 +29,7 @@ class TenDBClusterAppendDeployCTLDetailSerializer(TendbBaseOperateDetailSerializ
     use_mydumper = serializers.BooleanField(help_text=_("是否使用mydumper,myloader迁移"), required=False, default=False)
 
     def validate(self, attrs):
+        attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
         self.__validate_cluster(attrs=attrs)
         return attrs
 

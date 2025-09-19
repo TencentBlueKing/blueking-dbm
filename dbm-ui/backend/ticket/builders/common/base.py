@@ -159,6 +159,27 @@ class InstanceInfoSerializer(HostInfoSerializer):
     port = serializers.IntegerField(help_text=_("端口号"))
 
 
+class TicketBaseValidateSerializerMixin(object):
+    # 检查提单集群所在业务是否与当前业务一致
+    def validated_biz(self, attrs):
+        if not self.context.get("bk_biz_id"):
+            return attrs
+        bk_biz_id = self.context["bk_biz_id"]
+        cluster_ids = fetch_cluster_ids(attrs)
+        if not cluster_ids:
+            return attrs
+
+        # 获取保持对应关系的元组列表
+        bk_biz_ids = list(Cluster.objects.filter(id__in=cluster_ids).values_list("bk_biz_id", flat=True))
+        if len(set(bk_biz_ids)) > 1 or list(set(bk_biz_ids)) != [bk_biz_id]:
+            raise TicketParamsVerifyException(_("提单涉及的集群业务不匹配当前业务"))
+        return attrs
+
+    def validate(self, attrs):
+        attrs = self.validated_biz(attrs)
+        return attrs
+
+
 class HostRecycleSerializer(serializers.Serializer):
     """主机回收信息"""
 

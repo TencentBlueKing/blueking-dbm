@@ -29,17 +29,22 @@ from backend.ticket.builders.common.base import (
     CommonValidate,
     HostRecycleSerializer,
     InfluxdbTicketFlowBuilderPatchMixin,
+    TicketBaseValidateSerializerMixin,
     format_bigdata_resource_spec,
 )
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
 
 
-class BigDataDetailsSerializer(serializers.Serializer):
+class BigDataDetailsSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     nodes = serializers.JSONField(help_text=_("节点列表信息"), required=False)
 
     def to_representation(self, instance):
         return instance
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        return attrs
 
     @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id, nodes: Dict):
@@ -94,6 +99,7 @@ class BigDataScaleDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             format_bigdata_resource_spec(attrs)
@@ -149,6 +155,8 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
             return attrs["resource_spec"][role]["count"]
 
     def validate(self, attrs):
+        # 检查业务是否一致
+        attrs = super().validate(attrs)
         bk_biz_id = self.context["bk_biz_id"]
         ticket_type = self.context["ticket_type"]
 
@@ -212,6 +220,7 @@ class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         # 校验替换前后角色类型和数量一致
         old_nodes = attrs["old_nodes"]
         new_nodes = attrs["new_nodes"] if attrs["ip_source"] == IpSource.MANUAL_INPUT else attrs["resource_spec"]
@@ -256,6 +265,7 @@ class BigDataRebootDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     instance_list = serializers.ListSerializer(help_text=_("实例列表"), child=RebootNodeSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         for instance_info in attrs["instance_list"]:
             instance = StorageInstance.objects.filter(machine=instance_info["bk_host_id"], port=instance_info["port"])
             if not instance.exists():
@@ -345,6 +355,7 @@ class BaseInfluxDBOpsDetailSerializer(BigDataDetailsSerializer):
     instance_list = serializers.ListSerializer(help_text=_("实例列表"), child=InstanceSerializer())
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         for instance_info in attrs["instance_list"]:
             instance = StorageInstance.objects.filter(machine=instance_info["bk_host_id"], port=instance_info["port"])
             if not instance.exists():
