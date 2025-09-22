@@ -11,6 +11,7 @@
 package backupexe
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -21,7 +22,10 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/huandu/go-sqlbuilder"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
@@ -29,20 +33,28 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // DeleteOldBackup Delete expired backup file
 // expireDays =0  时表示删除所有备份，但依然会保留其它端口的 12h 内的备份
-func DeleteOldBackup(cnf *config.Public, expireDays int) ([]string, error) {
+func DeleteOldBackup(cnf *config.Public, expireDays int) error {
+	defer func() {
+		// 只要调用 DeleteOldBackup ，则清理一下本地备份报告
+		if db, err := mysqlconn.InitConnx(cnf, context.Background()); err == nil {
+			cleanLocalBackupReport(cnf.MysqlHost, cnf.MysqlPort, db, logger.Log)
+			db.Close()
+		}
+	}()
+
 	expireTime := time.Now().AddDate(0, 0, -1*expireDays)
 	logger.Log.Infof("try to remove old backup files before '%s'", expireTime)
 	dir, err := ioutil.ReadDir(cnf.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
-		return nil, err
+		return err
 	}
-	var backupIndexDeleted []string
 	for _, fi := range dir {
 		fileMatchHost := fmt.Sprintf("_%s_", cnf.MysqlHost)
 		fileMatchPort := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
@@ -58,35 +70,86 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) ([]string, error) {
 				canRemove = true
 			}
 		}
-
-		if canRemove {
-			fileName := filepath.Join(cnf.BackupDir, fi.Name())
-			if strings.HasSuffix(fileName, ".index") {
-				// delete record from infodba_schema.local_backup_report
-				backupIndexDeleted = append(backupIndexDeleted, fi.Name())
-			}
-			if fi.Size() > 4*1024*1024*1024 {
-				// remove 速度适度放大一点
-				removeLimit := cnf.IOLimitMBPerSec + 300
-				logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
-				if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
-					// 尽可能清理，记录最后一个错误
-					err = err2
-					continue
-				}
-			} else {
-				logger.Log.Info("remove old backup file ", fileName)
-				if err2 := os.RemoveAll(fileName); err2 != nil {
-					err = err2
-					continue
-				}
-			}
+		if !canRemove {
+			continue
 		}
-		if fi.ModTime().Compare(expireTime) <= 0 {
-
+		fileName := filepath.Join(cnf.BackupDir, fi.Name())
+		if fi.Size() > 4*1024*1024*1024 {
+			// remove 速度适度放大一点
+			removeLimit := cnf.IOLimitMBPerSec + 300
+			logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
+			if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
+				// 尽可能清理，记录最后一个错误
+				err = err2
+				continue
+			}
+		} else {
+			logger.Log.Info("remove old backup file ", fileName)
+			if err2 := os.RemoveAll(fileName); err2 != nil {
+				err = err2
+				continue
+			}
 		}
 	}
-	return backupIndexDeleted, err
+	return err
+}
+
+// cleanLocalBackupReport 维持 local_backup_report 表里面的记录状态
+// 当本地文件 index 文件不存在时，将备份状态置为 local_removed
+func cleanLocalBackupReport(host string, port int, db *sqlx.DB, l *logrus.Logger) (err error) {
+	ctx := context.Background()
+	db = db.Unsafe()
+	session, _ := db.Connx(ctx)
+	defer session.Close()
+
+	tableName := dbareport.ModelLocalBackupReport{}.TableName()
+	var metaFiles []*dbareport.ModelLocalBackupReport
+	builder := sqlbuilder.Select("backup_id", "mysql_role", "shard_value", "backup_host", "backup_port",
+		"backup_status", "cluster_id", "cluster_address", "data_schema_grant", "backup_method", "backup_meta_file").
+		From(tableName)
+	builder.Where(
+		//builder.Equal("backup_host", host),
+		builder.Equal("backup_port", port),
+		builder.NotEqual("backup_status", cst.LocalRemoved),
+	)
+	sqlStr, sqlArgs := builder.BuildWithFlavor(sqlbuilder.MySQL)
+	sqlFull, err := sqlbuilder.MySQL.Interpolate(sqlStr, sqlArgs)
+	if err != nil {
+		return err
+	}
+	if err = session.SelectContext(ctx, &metaFiles, sqlFull); err != nil {
+		l.Error("failed to query local backup report, err:", err)
+		return err
+	}
+	if _, err = session.ExecContext(ctx, "set sql_log_bin=0;"); err != nil {
+		l.Error("failed to set sql_log_bin=0, err:", errors.WithMessage(err, "update local_backup_report"))
+		// 必须关闭 binlog，不然可能会出现主从复制报错
+		return err
+	}
+	for _, backupMeta := range metaFiles {
+		if cmutil.FileExists(backupMeta.BackupMetaFile) {
+			continue
+		}
+		//backupMeta.BackupStatus = cst.LocalRemoved
+		updateBuilder := sqlbuilder.Update(tableName)
+		updateBuilder.Set(updateBuilder.Assign("backup_status", cst.LocalRemoved)).
+			Where(
+				updateBuilder.Equal("backup_id", backupMeta.BackupId),
+				//updateBuilder.Equal("backup_host", backupMeta.BackupHost),
+				updateBuilder.Equal("backup_port", backupMeta.BackupPort),
+			)
+		sqlStr, sqlArgs := updateBuilder.Build()
+		sqlFull, err = sqlbuilder.MySQL.Interpolate(sqlStr, sqlArgs)
+		if err != nil {
+			l.Error("failed to update backup report, err:", err)
+			continue
+		}
+		if _, err = session.ExecContext(ctx, sqlFull); err != nil {
+			l.Error("failed to update backup report, err:", err)
+			continue
+		}
+	}
+	return nil
 }
 
 // CheckAndCleanDiskSpace 如果空间不足，则会强制删除所有备份文件
@@ -97,7 +160,7 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dataDirSizeBytes uint64, dbh *sq
 		return nil
 	}
 	// 删除旧备份后，第二次检查
-	if _, err = DeleteOldBackup(cnf, 0); err != nil {
+	if err = DeleteOldBackup(cnf, 0); err != nil {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}

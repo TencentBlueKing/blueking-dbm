@@ -75,7 +75,7 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 	cnfPublic := &cnf.Public
 	// 例行删除旧备份
 	logger.Log.Infof("remove old backup files OldFileLeftDay=%d normally", cnfPublic.OldFileLeftDay)
-	_, err = DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay)
+	err = DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay)
 	if err != nil {
 		logger.Log.Warn("failed to delete old backup, err:", err)
 	}
