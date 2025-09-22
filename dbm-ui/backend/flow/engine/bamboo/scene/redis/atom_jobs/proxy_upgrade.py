@@ -100,11 +100,11 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_proxy_upgrade_online_payload.__name__
         acts_list.append(
             {
-                "act_name": _("{}-proxy版本升级").format(ip),
+                "act_name": _("{}-proxy执行actuator").format(ip),
                 "act_component_code": ExecuteDBActuatorScriptComponent.code,
                 "kwargs": asdict(act_kwargs),
             }
         )
     if acts_list:
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-    return sub_pipeline.build_sub_process(sub_name=_("{}-集群proxy版本升级").format(param["cluster_domain"]))
+    return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(proxy_pkg_prefix))
