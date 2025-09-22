@@ -11,3 +11,7 @@
 .cursor/
 # Claude
 .claude/
+
+# Specify 
+.specify/
+.specify.md
