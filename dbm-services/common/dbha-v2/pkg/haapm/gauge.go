@@ -22,20 +22,4 @@
  * SOFTWARE.
  */
 
-package apm
-
-import "dbm-services/common/go-pubpkg/apm/metric"
-
-var Metrics []*metric.Metric
-
-var (
-	SyncDbmMetadataDurationMetric = &metric.Metric{
-		ID:          "sync_dbm_metadata_duration",
-		Name:        "sync_dbm_metadata_duration_ms",
-		Description: "The time-consuming of synchronizing DBM metadata",
-	}
-)
-
-func init() {
-	Metrics = append(Metrics, &metric.Metric{})
-}
+package haapm
