@@ -132,6 +132,12 @@
     );
   });
 
+  const calcPanelWidth = () => {
+    setTimeout(() => {
+      contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+    });
+  };
+
   watch(
     modelValue,
     () => {
@@ -162,9 +168,6 @@
       }
 
       handleSelectParent(list.value[0]!);
-      setTimeout(() => {
-        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
-      });
     },
     {
       immediate: true,
@@ -173,6 +176,7 @@
 
   const handleSelectParent = (item: IResult) => {
     parentKey.value = item.value;
+    calcPanelWidth();
   };
 
   const handleChange = (data: IResult) => {
