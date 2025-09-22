@@ -34,7 +34,7 @@
     </template>
     <template #menu>
       <div class="db-navigation-side-menu">
-        <Suspense>
+        <Suspense :key="menuType">
           <component :is="renderMenuCom" />
         </Suspense>
       </div>

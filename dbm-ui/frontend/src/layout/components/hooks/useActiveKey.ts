@@ -1,6 +1,6 @@
 import { Menu } from 'bkui-vue';
 import _ from 'lodash';
-import { nextTick, type Ref, ref, watch } from 'vue';
+import { type Ref, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 export const useActiveKey = (
@@ -25,7 +25,7 @@ export const useActiveKey = (
   watch(
     [menuRef, route],
     () => {
-      nextTick(() => {
+      setTimeout(() => {
         if (!menuRef.value) {
           return;
         }

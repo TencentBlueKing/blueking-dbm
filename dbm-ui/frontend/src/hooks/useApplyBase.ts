@@ -19,6 +19,8 @@ import { createAppAbbr } from '@services/source/cmdb';
 import { createTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
 
+import { getBusinessHref } from '@utils';
+
 /**
  * 申请服务基础信息设置
  */
@@ -75,13 +77,16 @@ export const useApplyBase = () => {
 
   function handleCreateTicket(formdata: any) {
     createTicket(formdata)
-      .then(() => {
+      .then((data) => {
         Message({
           message: t('申请成功'),
           theme: 'success',
         });
         window.changeConfirm = false;
-        router.push({ name: 'bizTicketManage' });
+        const { href } = router.resolve({
+          name: 'bizTicketManage',
+        });
+        window.open(getBusinessHref(href, data.bk_biz_id), '_blank');
       })
       .finally(() => {
         baseState.isSubmitting = false;
