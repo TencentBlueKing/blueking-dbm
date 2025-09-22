@@ -76,20 +76,22 @@ class RedisClusterVersionUpdateOnline(object):
         self.root_id = root_id
         self.data = data
         self.cluster_cache = {}
+        self.cluster_versions_ips = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         self.precheck()
 
     def precheck(self):
         """
+        将 [infos] 解析为 {nodetype: {cluster_id: {target_version: (ips)}}}
+        并检验：
         1. 集群是否存在
         2. 版本信息是否变化
         3. 是否存在非 running 状态的 proxy;
         4. 是否存在非 running 状态的 redis;
         5. 连接 proxy 是否正常;
         6. 连接 redis 是否正常;
-        7. 是否所有master 都有 slave;
+        7. 是否所有 master 都有 slave;
         8. 指定升级的 master 对应的 slave 目标也是升级到或者已经是同样版本;
         """
-        bk_biz_id = self.data["bk_biz_id"]
         to_precheck_cluster_ids = []
         for input_item in self.data["infos"]:
             cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
@@ -98,90 +100,90 @@ class RedisClusterVersionUpdateOnline(object):
         async_multi_clusters_precheck(to_precheck_cluster_ids)
 
         for input_item in self.data["infos"]:
-            node_type = input_item["node_type"]
-            cluster_ids = []
-            if "cluster_ids" in input_item and input_item["cluster_ids"]:
-                cluster_ids = input_item["cluster_ids"]
-            else:
-                cluster_ids.append(input_item["cluster_id"])
+            cluster_ids = self.get_cluster_ids_from_info_item(input_item)
+            cluster_id = int(cluster_ids[0])
 
-            if not input_item.get("target_versions"):
-                raise Exception(_("redis集群 {} 目标版本为空?").format(cluster_ids))
-
-            for cluster_id in cluster_ids:
-                # Map version to IPs.
-                version_ips = defaultdict(set)
-                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
-
-                # 检查版本是否合法
-                valid_versions = (
-                    get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
-                    if node_type == RedisVerUpdateNodeType.Proxy
-                    else get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
-                )
-
-                for version_obj in input_item["target_versions"]:
-                    ver = version_obj["version"]
-                    ip = version_obj["ip"]
-                    if ver not in valid_versions:
-                        raise Exception(
-                            _("Redis集群 {},节点类型: {},目标版本 {} 不合法,合法的版本:{}").format(
-                                cluster.immute_domain,
-                                node_type,
-                                ver,
-                                valid_versions,
-                            )
-                        )
-                    version_ips[ver].add(ip)
-
-                # 进一步检查各IP机器上的版本
-                if node_type == RedisVerUpdateNodeType.Proxy:
-                    for target_version, ips in version_ips.items():
-                        ip_cur_ver = {ip: get_proxy_version_by_ip(cluster_id, ip) for ip in ips}
-
-                        if all(target_version == ip_cur_ver[ip] for ip in ips):
-                            raise Exception(
-                                _("集群 {} 所有proxy当前版本等于目标版本: {},无需升级").format(cluster.immute_domain, target_version)
-                            )
-                elif node_type == RedisVerUpdateNodeType.Backend:
-                    for target_version, ips in version_ips.items():
-                        ip_cur_ver = {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
-                        cluster_info = get_cluster_info_by_cluster_id(cluster_id)
-                        master_ip_to_slave_ip = cluster_info.get("master_ip_to_slave_ip", {})
-
-                        if any(version_gt(ip_cur_ver[ip], target_version) for ip in ips):
-                            raise Exception(
-                                _("集群 {} storage IP {} 当前版本 {} > 目标版本: {},不支持降级").format(
-                                    cluster.immute_domain, ip, ip_cur_ver[ip], target_version
-                                )
-                            )
-
-                        for ip in ips:
-                            # 检查 Master 对应 Slave 也升级到对应版本或者已经是目标版本
-                            if ip in cluster_info.get("master_ports", {}):
-                                slave_ip = master_ip_to_slave_ip.get(ip)
-                                if not slave_ip:
-                                    raise Exception(
-                                        _("集群 {} Master {} 没有找到对应的 Slave").format(cluster.immute_domain, ip)
-                                    )
-                                slave_upgrading_too = slave_ip in ips
-                                slave_already_upgraded = version_eq(ip_cur_ver[slave_ip], target_version)
-                                if not slave_upgrading_too and not slave_already_upgraded:
-                                    raise Exception(
-                                        _("集群 {} 的Master {} 对应的 Slave {} 版本为 {}: 不等于目标版本且不在升级列表中").format(
-                                            cluster.immute_domain, ip, ip_cur_ver[ip], slave_ip
-                                        )
-                                    )
-                            elif ip not in cluster_info.get("slave_ports", {}):
-                                raise Exception(_("集群 {} IP {} 既不是master也不是slave").format(cluster.immute_domain, ip))
-                else:
-                    raise Exception(
-                        _(
-                            "未知的结点类型: '{}' 必须是 '{}' 或 '{}'".format(
-                                node_type, RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value
-                            )
+            node_type = input_item.get("node_type")
+            if node_type not in (RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value):
+                raise Exception(
+                    _(
+                        "未知的结点类型: '{}' 必须是 '{}' 或 '{}'".format(
+                            node_type, RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value
                         )
                     )
+                )
+
+            if not input_item.get("target_versions") or len(input_item["target_versions"]) == 0:
+                raise Exception(_("redis集群 {} 目标版本为空?").format(cluster_ids))
+
+            for target in input_item["target_versions"]:
+                version = target["version"]
+                ip = target["ip"]
+                self.cluster_versions_ips[node_type][cluster_id][version].add(ip)
+
+        # Proxy 升降级检查
+        for cluster_id, target_pairs in self.cluster_versions_ips["Proxy"].items():
+            cluster = Cluster.objects.get(id=cluster_id)
+            valid_versions = get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
+
+            for target_version, ips in target_pairs.items():
+                if target_version not in valid_versions:
+                    raise Exception(
+                        _("Redis集群 {}, 目标版本 {} 不合法, 合法的版本: {}").format(
+                            cluster.immute_domain,
+                            target_version,
+                            valid_versions,
+                        )
+                    )
+
+                ip_cur_ver = {ip: get_proxy_version_by_ip(cluster_id, ip) for ip in ips}
+                if all(target_version == ip_cur_ver[ip] for ip in ips):
+                    raise Exception(
+                        _("集群 {} 所有proxy当前版本等于目标版本: {}, 无需执行").format(cluster.immute_domain, target_version)
+                    )
+
+        # Backend 升级检查
+        for cluster_id, target_pairs in self.cluster_versions_ips["Backend"].items():
+            cluster = Cluster.objects.get(id=cluster_id)
+            valid_versions = get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
+
+            for target_version, ips in target_pairs.items():
+                if target_version not in valid_versions:
+                    raise Exception(
+                        _("Redis集群 {}, 目标版本 {} 不合法, 合法的版本: {}").format(
+                            cluster.immute_domain,
+                            target_version,
+                            valid_versions,
+                        )
+                    )
+
+                ip_cur_ver = {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
+                cluster_info = get_cluster_info_by_cluster_id(cluster_id)
+                master_ip_to_slave_ip = cluster_info.get("master_ip_to_slave_ip", {})
+
+                for ip in ips:
+                    if version_gt(ip_cur_ver[ip], target_version):
+                        raise Exception(
+                            _("集群 {} storage IP {} 当前版本 {} > 目标版本: {},不支持降级").format(
+                                cluster.immute_domain, ip, ip_cur_ver[ip], target_version
+                            )
+                        )
+
+                    # 检查 Master 对应 Slave 也升级到对应版本或者已经是目标版本
+                    if ip in cluster_info.get("master_ports", {}):
+                        slave_ip = master_ip_to_slave_ip.get(ip)
+                        if not slave_ip:
+                            raise Exception(_("集群 {} Master {} 没有找到对应的 Slave").format(cluster.immute_domain, ip))
+                        slave_upgrading_too = slave_ip in ips
+                        slave_already_upgraded = version_eq(ip_cur_ver[slave_ip], target_version)
+                        if not slave_upgrading_too and not slave_already_upgraded:
+                            raise Exception(
+                                _("集群 {} 的Master {} 对应的 Slave {} 版本为 {}: 不等于目标版本且不在升级队列中").format(
+                                    cluster.immute_domain, ip, ip_cur_ver[ip], slave_ip
+                                )
+                            )
+                    elif ip not in cluster_info.get("slave_ports", {}):
+                        raise Exception(_("集群 {} IP {} 既不是master也不是slave").format(cluster.immute_domain, ip))
 
     @staticmethod
     def get_cluster_ids_from_info_item(info_item: Dict) -> List[int]:
@@ -198,12 +200,11 @@ class RedisClusterVersionUpdateOnline(object):
         Redis集群在线版本升级流程
         ========================
 
-        升级过程包含两个步骤：Proxy升级 和 Backend升级
+        升级包含 Proxy升级 和 Backend升级
 
         Proxy升级流程
         --------------
-        1. 将参数解析为 [{target_version: ips}] 格式
-        2. 遍历任务列表并行执行Proxy升级原子任务
+        - 遍历任务列表 `self.cluster_versions_ips["Proxy"]` 并行执行Proxy升级原子任务
 
         Backend升级流程
         ----------------
@@ -228,113 +229,97 @@ class RedisClusterVersionUpdateOnline(object):
                 - 升级 Master 节点
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        trans_files = GetFileList(db_type=DBType.Redis)
-        bk_biz_id = self.data["bk_biz_id"]
 
-        redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         # 先升级 proxy
-        for input_item in self.data["infos"]:
-            cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
-
-            if input_item["node_type"] == RedisVerUpdateNodeType.Proxy:
-                self._create_proxy_upgrade_sub_pipelines(input_item, cluster_ids, redis_pipeline)
+        proxy_to_upgrade = self.cluster_versions_ips.get("Proxy")
+        if proxy_to_upgrade:
+            proxy_pipelines = []
+            for cluster_id, target_pairs in proxy_to_upgrade.items():
+                proxy_process = self._create_proxy_upgrade_sub_flow(cluster_id, target_pairs)
+                proxy_pipelines.append(proxy_process)
+            if proxy_pipelines:
+                redis_pipeline.add_parallel_sub_pipeline(proxy_pipelines)
 
         # 再升级 storage
-        sub_pipelines = self._create_storage_upgrade_sub_pipelines(trans_files, bk_biz_id)
-        if sub_pipelines:
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        storage_to_upgrade = self.cluster_versions_ips.get("Backend")
+        if storage_to_upgrade:
+            storage_pipelines = []
+            for cluster_id, target_pairs in storage_to_upgrade.items():
+                storage_process = self._create_storage_upgrade_sub_flow(cluster_id, target_pairs)
+                storage_pipelines.append(storage_process)
+            if storage_pipelines:
+                redis_pipeline.add_parallel_sub_pipeline(storage_pipelines)
+
         redis_pipeline.run_pipeline()
 
-    def _create_proxy_upgrade_sub_pipelines(self, input_item, cluster_ids, redis_pipeline):
-        """Create sub-pipelines for proxy upgrades."""
-        sub_pipelines = []
-        for cluster_id in cluster_ids:
-            cluster_meta_data = get_cluster_info_by_cluster_id(int(cluster_id))
-            act_kwargs = ActKwargs()
-            act_kwargs.set_trans_data_dataclass = CommonContext.__name__
-            act_kwargs.is_update_trans_data = True
+    def _create_proxy_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
+        """创建代理升级子流水线"""
+        version_pipelines = []
+        cluster_meta_data = get_cluster_info_by_cluster_id(cluster_id)
+        act_kwargs = ActKwargs()
+        act_kwargs.set_trans_data_dataclass = CommonContext.__name__
+        act_kwargs.is_update_trans_data = True
 
-            versions = defaultdict(set)
-            for target in input_item["target_versions"]:
-                versions[target["version"]].add(target["ip"])
-
-            for version, ips in versions.items():
-                sub_builder = ClusterProxysUpgradeAtomJob(
-                    self.root_id,
-                    self.data,
-                    act_kwargs,
-                    {
-                        "cluster_domain": cluster_meta_data["immute_domain"],
-                        "target_ips": ips,
-                        "target_version": version,
-                    },
-                )
-                sub_pipelines.append(sub_builder)
-
-        if sub_pipelines:
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-            act_kwargs.cluster["update_proxy"] = True
-            act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
-            act_kwargs.cluster["bk_biz_id"] = cluster_meta_data["bk_biz_id"]
-            redis_pipeline.add_act(
-                act_name=_("{}-Proxy-更新版本").format(cluster_meta_data["immute_domain"]),
-                act_component_code=RedisUpdateVersionComponent.code,
-                kwargs=asdict(act_kwargs),
+        for version, ips in version_pairs.items():
+            sub_process = ClusterProxysUpgradeAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                {
+                    "cluster_domain": cluster_meta_data["immute_domain"],
+                    "target_ips": ips,
+                    "target_version": version,
+                },
             )
+            version_pipelines.append(sub_process)
 
-    def _create_storage_upgrade_sub_pipelines(self, trans_files, bk_biz_id):
+        cluster_process_builder = SubBuilder(root_id=self.root_id, data=self.data)
+        if version_pipelines:
+            cluster_process_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
+            self._add_freshing_version_act(
+                cluster_process_builder, cluster_meta_data, self.MetaUpdateOption.UPDATE_PROXY
+            )
+        return cluster_process_builder.build_sub_process(_("集群{}-Proxy升级").format(cluster_meta_data["cluster_name"]))
+
+    def _create_storage_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
         """创建存储升级子流水线"""
-        sub_pipelines = []
-        for input_item in self.data["infos"]:
-            if input_item["node_type"] != RedisVerUpdateNodeType.Backend:
-                continue
+        act_kwargs = ActKwargs()
+        act_kwargs.set_trans_data_dataclass = CommonContext.__name__
+        act_kwargs.is_update_trans_data = True
+        # 加个缓存
+        if not self.cluster_cache.get(cluster_id):
+            self.cluster_cache[cluster_id] = get_cluster_info_by_cluster_id(cluster_id)
+        cluster_meta_data = self.cluster_cache[cluster_id]
+        act_kwargs.bk_cloud_id = cluster_meta_data["bk_cloud_id"]
+        act_kwargs.cluster.update(cluster_meta_data)
 
-            # 兼容传入cluster_id 和 cluster_ids 两种方式
-            cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
-            cluster_id = int(cluster_ids[0])
+        trans_files = GetFileList(db_type=DBType.Redis)
 
-            versions = defaultdict(set)
-            for target in input_item["target_versions"]:
-                versions[target["version"]].add(target["ip"])
+        version_pipelines = []
+        for target_version, ips in version_pairs.items():
+            target_major_version = get_major_version_by_version_name(target_version)
 
-            act_kwargs = ActKwargs()
-            act_kwargs.set_trans_data_dataclass = CommonContext.__name__
-            act_kwargs.is_update_trans_data = True
-            # 加个缓存
-            if not self.cluster_cache.get(cluster_id):
-                self.cluster_cache[cluster_id] = get_cluster_info_by_cluster_id(cluster_id)
-            cluster_meta_data = self.cluster_cache[cluster_id]
-            act_kwargs.bk_cloud_id = cluster_meta_data["bk_cloud_id"]
-            act_kwargs.cluster.update(cluster_meta_data)
-
-            target_pipelines = []
-            for target_version, ips in versions.items():
-                target_major_version = get_major_version_by_version_name(target_version)
-
-                # 主从结构(RedisInstance), 专门处理
-                if cluster_meta_data["cluster_type"] == ClusterType.TendisRedisInstance:
-                    sub_builder = self.redisinstance_version_update_sub_flow(
-                        act_kwargs, cluster_meta_data["cluster_id"], target_major_version, ips
-                    )
-                    target_pipelines.append(sub_builder)
-                    continue
-
-                # 非主从架构(RedisCluster), 继续执行
-                target_pipeline = self._create_redis_cluster_upgrade_pipeline(
-                    act_kwargs, cluster_meta_data, cluster_id, target_major_version, ips, trans_files, bk_biz_id
+            if cluster_meta_data["cluster_type"] == ClusterType.TendisRedisInstance:
+                # 主从结构(RedisInstance)
+                target_process = self.redisinstance_version_update_sub_flow(
+                    act_kwargs, cluster_meta_data["cluster_id"], target_major_version, ips
                 )
-                target_pipelines.append(
-                    target_pipeline.build_sub_process(sub_name=_("目标版本{}在线升级".format(target_major_version)))
+                version_pipelines.append(target_process)
+            else:
+                # 非主从架构(RedisCluster)
+                target_process = self._create_redis_cluster_upgrade_flow(
+                    act_kwargs, cluster_meta_data, cluster_id, target_major_version, ips, trans_files
                 )
-            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=target_pipelines)
-            sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("集群{}在线升级".format(cluster_meta_data["cluster_name"])))
-            )
-        return sub_pipelines
+                version_pipelines.append(target_process)
 
-    def _create_redis_cluster_upgrade_pipeline(
-        self, act_kwargs, cluster_meta_data, cluster_id, target_major_version, ips, trans_files, bk_biz_id
+        sub_builder = SubBuilder(root_id=self.root_id, data=self.data)
+        sub_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
+        self._add_freshing_version_act(sub_builder, cluster_meta_data, self.MetaUpdateOption.UPDATE_STORAGE)
+
+        return sub_builder.build_sub_process(sub_name=_("集群{}-Backend升级".format(cluster_meta_data["cluster_name"])))
+
+    def _create_redis_cluster_upgrade_flow(
+        self, act_kwargs, cluster_meta_data, cluster_id, target_major_version, ips, trans_files
     ):
         """创建Redis集群升级流水线"""
         target_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
@@ -365,29 +350,18 @@ class RedisClusterVersionUpdateOnline(object):
                 ips,
                 target_major_version,
                 pairs_to_switch,
-                bk_biz_id,
             )
 
         # 更新元数据（如果有切换发生）
         if pairs_to_switch:
             self._add_metadata_update_acts(
-                target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, target_major_version, bk_biz_id
+                target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, target_major_version
             )
-
-        # 更新 instance 版本
-        act_kwargs.cluster["update_all"] = True
-        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
-        act_kwargs.cluster["bk_biz_id"] = bk_biz_id
-        target_pipeline.add_act(
-            act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
-            act_component_code=RedisUpdateVersionComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
 
         # 重装 dbmon
         self._add_dbmon_reinstall_act(target_pipeline, act_kwargs, cluster_meta_data, ips)
 
-        return target_pipeline
+        return target_pipeline.build_sub_process(sub_name=_("目标版本-{}".format(target_major_version)))
 
     def _add_initialization_acts(self, target_pipeline, act_kwargs, ips, trans_files, target_major_version):
         """添加初始化配置和下发介质包的动作"""
@@ -509,7 +483,6 @@ class RedisClusterVersionUpdateOnline(object):
         ips,
         target_major_version,
         pairs_to_switch,
-        bk_biz_id,
     ):
         """处理Twemproxy类型的集群升级"""
         first_master_ip = list(cluster_meta_data["master_ports"].keys())[0]
@@ -529,7 +502,7 @@ class RedisClusterVersionUpdateOnline(object):
         self._add_old_master_flush_acts(target_pipeline, act_kwargs, cluster_meta_data, ips)
 
         # old_master做new_slave
-        self._add_master_to_slave_sync_acts(target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, bk_biz_id)
+        self._add_master_to_slave_sync_acts(target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips)
 
     def _add_twemproxy_switch_acts(
         self, target_pipeline, act_kwargs, cluster_meta_data, cluster_id, first_master_ip, pairs_to_switch
@@ -652,10 +625,9 @@ class RedisClusterVersionUpdateOnline(object):
             )
         target_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    def _add_master_to_slave_sync_acts(
-        self, target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, bk_biz_id
-    ):
+    def _add_master_to_slave_sync_acts(self, target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips):
         """添加old_master做new_slave的同步动作"""
+        bk_biz_id = cluster_meta_data["bk_biz_id"]
         twemproxy_server_shards = get_twemproxy_cluster_server_shards(bk_biz_id, cluster_id, {})
         child_pipelines = []
         act_kwargs.cluster = {}
@@ -693,13 +665,14 @@ class RedisClusterVersionUpdateOnline(object):
         target_pipeline.add_parallel_sub_pipeline(child_pipelines)
 
     def _add_metadata_update_acts(
-        self, target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, target_major_version, bk_biz_id
+        self, target_pipeline, act_kwargs, cluster_meta_data, cluster_id, ips, target_major_version
     ):
         """添加元数据更新动作"""
         # 修改元数据指向(old_masters和proxy关系断开,new_master增加和proxy关系)
         # 更新 cluster.nosqlstoragesetdtl_set
         # new_masters 设置 instance_role 为 InstanceRole.REDIS_MASTER.value
         # 最后娜动CC模块
+        bk_biz_id = cluster_meta_data["bk_biz_id"]
         act_kwargs.cluster = {}
         act_kwargs.cluster["bk_biz_id"] = bk_biz_id
         act_kwargs.cluster["bk_cloud_id"] = cluster_meta_data["bk_cloud_id"]
@@ -1092,17 +1065,6 @@ class RedisClusterVersionUpdateOnline(object):
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-        # 更新 集群 instance 版本
-        act_kwargs.cluster["update_storage"] = True
-        act_kwargs.cluster["update_proxy"] = False
-        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
-        act_kwargs.cluster["bk_biz_id"] = cluster.bk_biz_id
-        sub_pipeline.add_act(
-            act_name=_("{}-更新版本").format(cluster_meta_data["immute_domain"]),
-            act_component_code=RedisUpdateVersionComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
         # 重装 dbmon
         acts_list = []
         for ip in all_ips:
@@ -1117,4 +1079,31 @@ class RedisClusterVersionUpdateOnline(object):
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
-        return sub_pipeline.build_sub_process(sub_name=_("主从集群 {} 版本升级").format(cluster_meta_data["cluster_name"]))
+        return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(target_major_version))
+
+    def _add_freshing_version_act(self, pipeline, cluster_meta_data, switch):
+        """刷新版本元数据信息"""
+        valid_options = self.MetaUpdateOption.get_valid_options()
+        if switch not in valid_options:
+            raise Exception(_("未知的版本元数据更新对象: {} 可选的值: {}").format(switch, ", ".join(valid_options)))
+        act_kwargs = ActKwargs()
+        act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
+        act_kwargs.cluster["bk_biz_id"] = cluster_meta_data["bk_biz_id"]
+        act_kwargs.cluster[switch] = True
+        pipeline.add_act(
+            act_name=_("刷新版本元数据更新-{}").format(switch),
+            act_component_code=RedisUpdateVersionComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+    class MetaUpdateOption:
+        """Redis cluster metadata update options"""
+
+        UPDATE_PROXY = "update_proxy"
+        UPDATE_STORAGE = "update_storage"
+        UPDATE_ALL = "update_all"
+
+        @classmethod
+        def get_valid_options(cls):
+            """Get all valid update options"""
+            return [cls.UPDATE_PROXY, cls.UPDATE_STORAGE, cls.UPDATE_ALL]

@@ -482,25 +482,23 @@ def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool 
 
     trimSuffix默认为False,如果trimSuffix==True,则返回结果 ['predixy-1.4.0']
     """
-    versions = []
     if is_predixy_proxy_type(cluster_type):
-        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Predixy.value).values_list(
-            "name", flat=True
-        )
-        versions = list(ret)
+        pkg_type = MediumEnum.Predixy.value
     elif is_twemproxy_proxy_type(cluster_type):
-        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Twemproxy.value).values_list(
-            "name", flat=True
-        )
-        versions = list(ret)
+        pkg_type = MediumEnum.Twemproxy.value
     else:
         raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))
+
+    versions = list(
+        Package.objects.filter(db_type=DBType.Redis.value, pkg_type=pkg_type)
+        .order_by("-priority", "-update_at")
+        .values_list("name", flat=True)
+        .distinct()
+    )
 
     if trimSuffix:
         versions = [version.replace(".tar.gz", "") for version in versions]
         versions = [version.replace(".tgz", "") for version in versions]
-
-    versions = list(set(versions))
 
     return versions
 
