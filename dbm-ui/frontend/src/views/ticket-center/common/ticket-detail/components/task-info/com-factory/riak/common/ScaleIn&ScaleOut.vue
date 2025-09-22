@@ -36,9 +36,20 @@
           <InfoItem
             :label="t('已选IP')"
             style="width: 100%">
-            <BkTable
-              :columns="tableColumns"
-              :data="ipList" />
+            <PrimaryTable
+              :data="ipList"
+              row-key="ip">
+              <TableColumn
+                col-key="alive"
+                :title="t('Agent状态')">
+                <template #default="{ row }">
+                  <span>{{ row.alive === 1 ? t('正常') : t('异常') }}</span>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="bk_disk"
+                :title="t('磁盘_GB')" />
+            </PrimaryTable>
           </InfoItem>
         </template>
       </template>
@@ -46,9 +57,13 @@
         v-else
         :label="t('缩容主机：')"
         style="width: 100%">
-        <BkTable
-          :columns="scaleDownTableColumns"
-          :data="ticketDetails.details?.nodes" />
+        <PrimaryTable
+          :data="ticketDetails.details?.nodes?.riak"
+          row-key="ip">
+          <TableColumn
+            col-key="ip"
+            :title="t('节点 IP')" />
+        </PrimaryTable>
       </InfoItem>
     </InfoList>
   </BkLoading>
@@ -82,29 +97,6 @@
   const isFromResourcePool = props.ticketDetails.details.ip_source === 'resource_pool';
   const clusterId = props.ticketDetails.details.cluster_id;
   const clusterInfo = props.ticketDetails.details.clusters?.[clusterId] || {};
-
-  const tableColumns = [
-    {
-      field: 'ip',
-      label: t('节点 IP'),
-    },
-    {
-      field: 'alive',
-      label: t('Agent状态'),
-      render: ({ data }: { data: { alive: number } }) => <span>{data.alive === 1 ? t('正常') : t('异常')}</span>,
-    },
-    {
-      field: 'bk_disk',
-      label: t('磁盘_GB'),
-    },
-  ];
-
-  const scaleDownTableColumns = [
-    {
-      field: 'ip',
-      label: 'IP',
-    },
-  ];
 
   const ipList = computed(() => props.ticketDetails.details?.nodes?.riak || []);
 
