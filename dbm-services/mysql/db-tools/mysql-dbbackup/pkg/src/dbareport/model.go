@@ -28,16 +28,17 @@ type ModelLocalBackupReport struct {
 	// IsFullBackup 是否包含数据的全备
 	IsFullBackup bool `json:"is_full_backup" db:"is_full_backup"`
 
-	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"backup_consistent_time"`
-	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time"`
-	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time"`
+	BackupMethod    *string   `json:"backup_method" db:"backup_method"`
+	BackupBeginTime time.Time `json:"backup_begin_time" db:"backup_begin_time"`
+	BackupEndTime   time.Time `json:"backup_end_time" db:"backup_end_time"`
 	// BinlogInfo show slave status / show master status
 	BinlogInfo BinlogStatusInfo `json:"binlog_info" db:"binlog_info"`
 	// FileList backup tar file list
 	FileList         []IndexFileItem `json:"file_list" db:"file_list"`
 	ExtraFields      ExtraFields     `json:"extra_fields" db:"extra_fields"`
-	BackupConfigFile string          `json:"backup_config_file" db:"backup_config_file"`
+	BackupMetaFile   string          `json:"backup_meta_file" db:"backup_meta_file"`
 	BackupStatus     string          `json:"backup_status" db:"backup_status"`
+	BackupConfigFile string          `json:"backup_config_file" db:"backup_config_file"`
 }
 
 func (m ModelLocalBackupReport) TableName() string {

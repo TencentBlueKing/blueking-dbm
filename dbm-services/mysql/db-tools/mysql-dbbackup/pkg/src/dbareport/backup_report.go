@@ -322,11 +322,15 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 	if err != nil {
 		return err
 	}
-
+	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
-		_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
+		if _, err = conn.ExecContext(ctx, "set session sql_log_bin=0;"); err != nil {
+			logger.Log.Error("failed to set sql_log_bin=0, err: %s",
+				errors.WithMessage(err, "migrate local_backup_report"))
+			return err
+		}
 		if err = migrateLocalBackupSchema(err, conn); err != nil {
 			return err
 		}

@@ -140,3 +140,5 @@ const (
 
 // KillDelayMilliSec 中断信号延迟毫秒数
 const KillDelayMilliSec = 100
+
+const LocalRemoved = "local_removed"

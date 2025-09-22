@@ -41,7 +41,7 @@ import (
 type LogicalDumperMysqldump struct {
 	cnf            *config.BackupConfig
 	backupInfo     dbareport.IndexContent // for mysqldump backup
-	dbConn         *sqlx.Conn
+	dbConn         *sqlx.DB
 	dbbackupHome   string
 	logBinDisabled bool
 
@@ -90,7 +90,8 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 		defer func() {
 			_ = l.dbConn.Close()
 		}()
-		dbListFiltered, err = filter.GetDbsByConn(l.dbConn)
+		connx, _ := l.dbConn.Connx(context.Background())
+		dbListFiltered, err = filter.GetDbsByConn(connx)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get database from instance")
 		}

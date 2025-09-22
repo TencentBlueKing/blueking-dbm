@@ -40,12 +40,11 @@ func InitConn(cfg *config.Public) (*sql.DB, error) {
 }
 
 // InitConnx create mysql connection of sqlx
-func InitConnx(cfg *config.Public, ctx context.Context) (*sqlx.Conn, error) {
+func InitConnx(cfg *config.Public, ctx context.Context) (*sqlx.DB, error) {
 	if db, err := InitConn(cfg); err != nil {
 		return nil, err
 	} else {
-		dbx := sqlx.NewDb(db, "mysql")
-		return dbx.Connx(ctx)
+		return sqlx.NewDb(db, "mysql"), nil
 	}
 }
 
