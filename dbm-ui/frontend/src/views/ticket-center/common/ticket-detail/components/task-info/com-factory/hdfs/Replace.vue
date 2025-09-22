@@ -13,8 +13,99 @@
 
 <template>
   <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+    :data="dataList">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('集群ID')">
+      <template #default="{ row }">
+        <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="immute_domain"
+      :ellipsis="false"
+      :title="t('集群名称')">
+      <template #default="{ row }">
+        <div
+          v-overflow-tips="{
+            allowHTML: true,
+            content: `
+            <p>${t('域名')}：${row.immute_domain}</p>
+            ${row.name ? `<p>${t('集群别名')}：${row.name}</p>` : ''}
+          `,
+          }"
+          class="details-replace__cell text-overflow">
+          <span>{{ row.immute_domain }}</span>
+          <br />
+          <span class="cluster-name__alias">{{ row.name }}</span>
+        </div>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }">
+        <span class="details-replace__cell">{{ row.cluster_type_name || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="new_nodes"
+      :title="t('角色类型')">
+      <template #default="{ row }">
+        <p
+          v-for="(item, index) in row.new_nodes"
+          :key="index"
+          class="details-replace__cell"
+          :style="{ lineHeight: item.value.length * 30 + 'px' }">
+          {{ item.key }}
+        </p>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="new_nodes_ips"
+      :title="t('新节点IP')">
+      <template #default="{ row }">
+        <div
+          v-for="(item, itemIndex) in row.new_nodes"
+          :key="itemIndex"
+          class="details-replace__cell">
+          <p
+            v-for="(ip, ipIndex) in item.value"
+            :key="ipIndex"
+            class="details-replace__ip">
+            {{ ip }}
+            <i
+              v-if="ipIndex === 0"
+              v-bk-tooltips="t('复制 IP')"
+              class="db-icon-copy"
+              @click="handleCopy(item.value)" />
+          </p>
+        </div>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="old_nodes"
+      :title="t('被替换的节点IP')">
+      <template #default="{ row }">
+        <div
+          v-for="(item, itemIndex) in row.old_nodes"
+          :key="itemIndex"
+          class="details-replace__cell">
+          <p
+            v-for="(ip, ipIndex) in item.value"
+            :key="ipIndex"
+            class="details-replace__ip">
+            {{ ip }}
+            <i
+              v-if="ipIndex === 0"
+              v-bk-tooltips="t('复制 IP')"
+              class="db-icon-copy"
+              @click="handleCopy(item.value)" />
+          </p>
+        </div>
+      </template>
+    </TableColumn>
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -43,104 +134,6 @@
     key: string;
     value: string[];
   };
-
-  /**
-   * 替换
-   */
-
-  const columns = [
-    {
-      field: 'cluster_id',
-      label: t('集群ID'),
-      render: ({ cell }: { cell: string }) => <span class='details-replace__cell'>{cell || '--'}</span>,
-    },
-    {
-      field: 'immute_domain',
-      label: t('集群名称'),
-      render: ({ data }: { data: any }) => (
-        <div
-          v-overflow-tips={{
-            allowHTML: true,
-            content: `
-            <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${'集群别名'}：${data.name}</p>` : null}
-          `,
-          }}
-          class='details-replace__cell text-overflow'>
-          <span>{data.immute_domain}</span>
-          <br />
-          <span class='cluster-name__alias'>{data.name}</span>
-        </div>
-      ),
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'cluster_type_name',
-      label: t('集群类型'),
-      render: ({ cell }: { cell: string }) => <span class='details-replace__cell'>{cell || '--'}</span>,
-    },
-    {
-      field: 'new_nodes',
-      label: t('角色类型'),
-      render: ({ cell }: { cell: nodeIpList[] }) =>
-        cell.map((item) => {
-          const lineHeight = item.value.length * 30;
-          return (
-            <p
-              class='details-replace__cell'
-              style={{ 'line-height': `${lineHeight}px` }}>
-              {item.key}
-            </p>
-          );
-        }),
-    },
-    {
-      field: 'new_nodes',
-      label: t('新节点IP'),
-      render: ({ cell }: { cell: nodeIpList[] }) =>
-        cell.map((item) => (
-          <div class='details-replace__cell'>
-            {item.value.map((ip, index) => (
-              <p class='details-replace__ip'>
-                {ip}
-                {index === 0 ? (
-                  <i
-                    v-bk-tooltips={t('复制 IP')}
-                    class='db-icon-copy'
-                    onClick={() => handleCopy(item.value)}
-                  />
-                ) : (
-                  ''
-                )}
-              </p>
-            ))}
-          </div>
-        )),
-    },
-    {
-      field: 'old_nodes',
-      label: t('被替换的节点IP'),
-      render: ({ cell }: { cell: nodeIpList[] }) =>
-        cell.map((item) => (
-          <div class='details-replace__cell'>
-            {item.value.map((ip, index) => (
-              <p class='details-replace__ip'>
-                {ip}
-                {index === 0 ? (
-                  <i
-                    v-bk-tooltips={t('复制 IP')}
-                    class='db-icon-copy'
-                    onClick={() => handleCopy(item.value)}
-                  />
-                ) : (
-                  ''
-                )}
-              </p>
-            ))}
-          </div>
-        )),
-    },
-  ];
 
   const dataList = computed(() => {
     const list: any = [];
