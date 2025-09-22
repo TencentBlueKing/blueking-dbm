@@ -108,7 +108,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
-        self.ticket_data["resource_spec"]["proxy"].update(tolerance=0.5)
+        self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
 
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
