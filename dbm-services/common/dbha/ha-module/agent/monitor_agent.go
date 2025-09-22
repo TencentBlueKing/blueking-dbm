@@ -103,6 +103,11 @@ func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 	startTime := time.Now()
 	sem := make(chan struct{}, a.MaxConcurrency) // 创建一个有缓冲的通道，容量为 maxConcurrency
 	log.Logger.Debugf("[%s] need to detect instances number:%d", a.DetectType, len(a.DBInstance))
+	if len(instances) == 0 {
+		log.Logger.Debugf("[%s] no instance need to detect", a.DetectType)
+		time.Sleep(3 * time.Second)
+	}
+
 	for _, ins := range instances {
 		wg.Add(1)
 		sem <- struct{}{} // 向通道发送信号，表明一个新的 goroutine 启动
@@ -140,11 +145,6 @@ func (a *MonitorAgent) RefreshInstanceCache() {
 			return
 		}
 		a.flushInsFetchTime()
-
-		// delete reported gm cache
-		for k, _ := range a.ReportGMCache {
-			delete(a.ReportGMCache, k)
-		}
 	}
 }
 
@@ -215,6 +215,16 @@ func (a *MonitorAgent) RefreshGMCache() {
 		}
 	}
 
+	// delete not exists or expired ip from gm cache
+	log.Logger.Debugf("try to refresh gm cache instances, cache number:%d", len(a.ReportGMCache))
+	now := time.Now()
+	for ip, cacheIns := range a.ReportGMCache {
+		if now.After(cacheIns.ReporterGMTime.Add(time.Second * 600)) {
+			log.Logger.Debugf("gm cache instance[%s] expired, delete", cacheIns.Ip)
+			delete(a.ReportGMCache, ip)
+		}
+	}
+
 	// we not return error here, next refresh, new added gm maybe available.
 	if len(a.GMInstance) == 0 {
 		log.Logger.Errorf("after refresh, no gm available")
@@ -223,7 +233,8 @@ func (a *MonitorAgent) RefreshGMCache() {
 
 // FetchDBInstance fetch instance list by city info
 func (a *MonitorAgent) FetchDBInstance() error {
-	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.CityID, a.DetectType, a.Conf.AgentConf.FetchInterval)
+	mod, modValue, err := a.HaDBClient.AgentGetHashValueByIP(a.CityID, a.Conf.AgentConf.FetchInterval,
+		a.DetectType, a.MonIp)
 	if err != nil {
 		log.Logger.Errorf("get hash module info failed and wait next refresh time. err:%s", err.Error())
 		return err
@@ -232,9 +243,6 @@ func (a *MonitorAgent) FetchDBInstance() error {
 	log.Logger.Debugf("hash mod:%d, hash value:%d, dbType:%s", mod, modValue, a.DetectType)
 	a.HashMod = mod
 	a.HashValue = modValue
-	if a.Conf.AgentConf.HashMod > 0 {
-		a.HashMod = a.Conf.AgentConf.HashMod
-	}
 
 	req := client.DBInstanceByCityRequest{
 		LogicalCityIDs: []int{a.CityID},
@@ -328,7 +336,7 @@ func (a *MonitorAgent) FetchGMInstance() error {
 			err = a.GMInstance[info.IP].Init()
 			if err != nil {
 				log.Logger.Errorf("init gm failed. gm_ip:%s, gm_port:%d, err:%s",
-					info.Port, info.Port, err.Error())
+					info.IP, info.Port, err.Error())
 				return err
 			}
 		}
@@ -347,8 +355,7 @@ func (a *MonitorAgent) NeedReportGM(ins dbutil.DataBaseDetect) bool {
 		return false
 	}
 
-	if _, ok := a.ReportGMCache[ip]; ok {
-		cachedIns := a.ReportGMCache[ip]
+	if cachedIns, ok := a.ReportGMCache[ip]; ok {
 		now := time.Now()
 		if now.Before(cachedIns.ReporterGMTime.Add(time.Second * time.Duration(cachedIns.ExpireInterval))) {
 			log.Logger.Debugf("instance[%s] cached, skip report to gm", cachedIns.Ip)
@@ -364,6 +371,12 @@ func (a *MonitorAgent) ReportDetectInfoToGM(reporterInstance dbutil.DataBaseDete
 	var err error
 	isReported := false
 	ip, port := reporterInstance.GetAddress()
+
+	jsonInfo, err := reporterInstance.Serialization()
+	if err != nil {
+		log.Logger.Errorf("instance Serialization failed. err:%s", err.Error())
+		return err
+	}
 
 	// 提取 GMInstance 的 IP 列表
 	var gmIPs []string
@@ -384,17 +397,9 @@ func (a *MonitorAgent) ReportDetectInfoToGM(reporterInstance dbutil.DataBaseDete
 		sortedIp := gmIPs[checkIndex]
 		gmIns := a.GMInstance[sortedIp]
 		gmIns.Mutex.Lock()
-		if !gmIns.IsConnected {
-			gmIns.Mutex.Unlock()
-			continue
-		}
+
 		gmInfo := fmt.Sprintf("%s#%d", gmIns.Ip, gmIns.Port)
-		jsonInfo, err := reporterInstance.Serialization()
-		if err != nil {
-			gmIns.Mutex.Unlock()
-			log.Logger.Errorf("instance Serialization failed. err:%s", err.Error())
-			return err
-		}
+
 		log.Logger.Infof("ins:[%s#%d] try to report detect info to gm:[%s]", ip, port, gmInfo)
 		err = gmIns.ReportInstance(reporterInstance.GetDetectType(), jsonInfo)
 		if err != nil {
@@ -402,17 +407,19 @@ func (a *MonitorAgent) ReportDetectInfoToGM(reporterInstance dbutil.DataBaseDete
 			gmIns.IsConnected = false
 			gmIns.Mutex.Unlock()
 			a.RepairGMConnection(gmIns)
-			//do retry
 			continue
 		} else {
 			log.Logger.Debugf("reporter instance[%s#%d] to gm[%s#%d] success", ip, port, gmIns.Ip, gmIns.Port)
 			isReported = true
 			gmIns.Mutex.Unlock()
+			a.Mutex.Lock()
 			a.ReportGMCache[ip] = &CachedHostInfo{
 				ReporterGMTime: time.Now(),
 				Ip:             ip,
 				ExpireInterval: a.Conf.AgentConf.ReportInterval,
 			}
+			a.Mutex.Unlock()
+			log.Logger.Debugf("gm cache instances number:%d", len(a.ReportGMCache))
 			//report bind gmInfo to ha_agent_logs
 			if err = a.HaDBClient.ReportDBStatus(reporterInstance.GetApp(), a.MonIp, ip, port,
 				string(reporterInstance.GetDBType()), string(reporterInstance.GetStatus()), gmInfo); err != nil {
@@ -498,7 +505,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 
 // reporterHeartbeat send agent heartbeat to HA-DB
 func (a *MonitorAgent) reporterHeartbeat(interval int) error {
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, interval, a.HashMod, a.HashValue)
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, interval)
 	a.heartbeat = time.Now()
 	return err
 }

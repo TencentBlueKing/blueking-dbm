@@ -42,6 +42,7 @@ type DetectMonitor struct {
 	Status      string
 	Cluster     string
 	ClusterType string
+	DBRole      string
 }
 
 // GlobalMonitor HA global monitor struct
@@ -141,6 +142,7 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["cluster_domain"] = info.Detect.Cluster
 		addDimension["machine_type"] = info.Detect.MachineType
 		addDimension["cluster_type"] = info.Detect.ClusterType
+		addDimension["instance_role"] = info.Detect.DBRole
 	case constvar.MonitorInfoGlobal:
 		addDimension["server_ip"] = info.Global.ServerIp
 		addDimension["uncovered_ins_num"] = info.Global.UnCoveredInsNumber
@@ -255,6 +257,7 @@ func GetMonitorInfoByDetect(ins dbutil.DataBaseDetect, eventName string) Monitor
 			Status:      string(ins.GetStatus()),
 			Cluster:     ins.GetCluster(),
 			ClusterType: ins.GetClusterType(),
+			DBRole:      ins.GetDBRole(),
 		},
 	}
 }

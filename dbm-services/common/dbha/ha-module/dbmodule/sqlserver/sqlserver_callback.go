@@ -122,6 +122,7 @@ func UnMarshalSqlserverInstanceByCmdb(instances []interface{},
 				ClusterType: ins.ClusterType,
 				MetaType:    ins.MachineType,
 				Cluster:     ins.Cluster,
+				DbRole:      ins.InstanceRole,
 			}
 		}
 	}
