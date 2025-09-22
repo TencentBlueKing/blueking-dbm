@@ -354,6 +354,48 @@ func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) 
 	return result, nil
 }
 
+// GetAgentInfoDetail get alive ha component instance from ha_status table
+func (c *HaDBClient) GetAgentInfoDetail(cityID, interval int, dbType, ip string) ([]model.HaStatus, error) {
+	currentTime := time.Now().Add(-time.Second * time.Duration(interval))
+	req := HaStatusRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Name:         constvar.GetAliveHAInfoDetail,
+		QueryArgs: &model.HaStatus{
+			CityID:   cityID,
+			Module:   constvar.Agent,
+			Status:   constvar.RUNNING,
+			IP:       ip,
+			CloudID:  c.CloudId,
+			DbType:   dbType,
+			LastTime: &currentTime,
+		},
+	}
+
+	log.Logger.Debugf("GetAgentInfoDetail param:%#v", util.GraceStructString(req.QueryArgs))
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
+	if err != nil {
+		log.Logger.Errorf("GetAliveHAInfo failed, do http fail,err:%s", err.Error())
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+
+	result := make([]model.HaStatus, 0)
+	err = json.Unmarshal(response.Data, &result)
+	if err != nil {
+		log.Logger.Errorf("GetAliveHAInfo failed, unmarshal failed, err:%s, data:%s", err.Error(), response.Data)
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no HA component found")
+	}
+	return result, nil
+}
+
 // GetAliveHAComponent get alive ha component instance from ha_status table
 func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]model.HaStatus, error) {
 	currentTime := time.Now().Add(-time.Second * time.Duration(interval))
@@ -393,7 +435,7 @@ func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]model.H
 }
 
 // ReporterAgentHeartbeat report agent heartbeat to ha_status table
-func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval, mod, modValue int) error {
+func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval int) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -408,8 +450,6 @@ func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval
 		SetArgs: &model.HaStatus{
 			ReportInterval: interval,
 			LastTime:       &currentTime,
-			HashMod:        &mod,
-			HashValue:      &modValue,
 		},
 	}
 
@@ -748,6 +788,32 @@ func (c *HaDBClient) InsertSwitchLog(swId int64, ip string, port int, app, resul
 	return nil
 }
 
+// AgentGetHashValueByIP get agent's module value and hash value.
+// fetch all agents by current agent's city, db_type
+//
+//	mod value  : agent number
+//	hash value : agent's index
+func (c *HaDBClient) AgentGetHashValueByIP(cityID, interval int, dbType, agentIP string) (int, int, error) {
+	//	select ip from ha_status where city_id = ? and db_type = ?
+	//	and module = "agent" and status = "RUNNING"
+	//	and last_time > DATE_SUB(now(), interval 5 minute)
+	//	order by uid;
+	agents, err := c.GetAgentInfoDetail(cityID, interval, dbType, agentIP)
+	if err != nil {
+		log.Logger.Errorf("get agent list failed. err:%s", err.Error())
+		return 0, 0, err
+	}
+	for _, agent := range agents {
+		if agent.IP == agentIP {
+			return agent.HashMod, agent.HashValue, nil
+		}
+	}
+
+	err = fmt.Errorf("bug: can't find agent:%s", agentIP)
+	log.Logger.Errorf(err.Error())
+	return -1, -1, err
+}
+
 // AgentGetHashValue get agent's module value and hash value.
 // fetch all agents by current agent's city, db_type
 //
@@ -780,10 +846,8 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string
 	if !find {
 		err = fmt.Errorf("bug: can't find in agent list. agentIP:%s, dbType:%s", agentIP, dbType)
 		log.Logger.Errorf(err.Error())
-		//report invalid mod info
-		_ = c.ReporterAgentHeartbeat(agentIP, dbType, interval, 0, 0)
+		return 0, 0, err
 
-		return mod, modValue, err
 	}
 	return mod, modValue, nil
 }

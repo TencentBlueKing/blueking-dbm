@@ -124,6 +124,7 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		}
 
 		if instance.GetRole() == constvar.TenDBClusterStorageMaster {
+			//master all standby slave satisfy switch
 			masterWg.Add(1)
 			go func(ins dbutil.DataBaseSwitch) {
 				defer masterWg.Done()

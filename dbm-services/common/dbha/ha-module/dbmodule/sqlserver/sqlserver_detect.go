@@ -39,7 +39,7 @@ type SqlserverDetectResponse struct {
 	dbutil.BaseDetectDBResponse
 }
 
-// SqlserverLDetectInstanceInfoFromCmDB Sqlserver instance detect struct in cmdbcar
+// SqlserverDetectInstanceInfoFromCmDB Sqlserver instance detect struct in cmdbcar
 type SqlserverDetectInstanceInfoFromCmDB struct {
 	Ip          string
 	Port        int
@@ -47,6 +47,7 @@ type SqlserverDetectInstanceInfoFromCmDB struct {
 	ClusterType string
 	MetaType    string
 	Cluster     string
+	DbRole      string
 }
 
 // SqlserverDetectInstance sqlserver instance detect struct
@@ -190,6 +191,7 @@ func AgentNewSqlserverDetectInstance(ins *SqlserverDetectInstanceInfoFromCmDB, c
 			Port:           ins.Port,
 			App:            ins.App,
 			DBType:         types.DBType(ins.MetaType),
+			DBRole:         ins.DbRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
@@ -218,6 +220,7 @@ func GMNewSqlserverDetectInstance(ins *SqlserverDetectResponse, conf *config.Con
 			Port:           ins.DBPort,
 			App:            ins.App,
 			DBType:         types.DBType(ins.DBType),
+			DBRole:         ins.DBRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),

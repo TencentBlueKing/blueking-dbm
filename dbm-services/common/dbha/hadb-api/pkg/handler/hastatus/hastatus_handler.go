@@ -1,6 +1,7 @@
 package hastatus
 
 import (
+	"dbm-services/common/dbha/ha-module/util"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -60,6 +61,8 @@ const (
 	GetAliveAgentInfo = "get_alive_agent_info"
 	// GetAliveHAInfo TODO
 	GetAliveHAInfo = "get_alive_ha_info"
+	// GetAliveHAInfoDetail TODO
+	GetAliveHAInfoDetail = "get_alive_ha_info_detail"
 	// RegisterHaInfo TODO
 	RegisterHaInfo = "register_dbha_info"
 )
@@ -85,6 +88,8 @@ func Handler(ctx *fasthttp.RequestCtx) {
 		GetAliveHAByModule(ctx, param.QueryArgs)
 	case GetAliveAgentInfo:
 		GetAliveHaByCity(ctx, param.QueryArgs)
+	case GetAliveHAInfoDetail:
+		GetAliveHaDetail(ctx, param.QueryArgs)
 	case RegisterHaInfo:
 		ReplaceHaInfo(ctx, param.QueryArgs, param.SetArgs)
 	default:
@@ -126,7 +131,7 @@ func GetHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 		response.Message = err.Error()
 		return
 	} else {
-		if err = json.Unmarshal(bytes, whereCond.query); err != nil {
+		if err = json.Unmarshal(bytes, &whereCond.query); err != nil {
 			response.Code = api.RespErr
 			response.Message = err.Error()
 			return
@@ -227,7 +232,7 @@ func GetAliveHAByModule(ctx *fasthttp.RequestCtx, param interface{}) {
 	if !ctx.IsPost() {
 		response.Message = "must be POST request"
 		response.Code = api.RespErr
-		log.Logger.Errorf("must by post request, param:%+v", param)
+		log.Logger.Errorf("must by post request, param:%+v", util.GraceStructString(param))
 		return
 	}
 
@@ -312,13 +317,87 @@ func GetAliveHaByCity(ctx *fasthttp.RequestCtx, param interface{}) {
 	log.Logger.Debugf("%+v", result)
 }
 
+// GetAliveHaDetail TODO
+func GetAliveHaDetail(ctx *fasthttp.RequestCtx, param interface{}) {
+	var (
+		result    = []model.HaStatus{}
+		whereCond = &model.HaStatus{}
+		response  = api.ResponseInfo{
+			Data:    &result,
+			Code:    api.RespOK,
+			Message: "",
+		}
+	)
+	// NB:couldn't user api.SendResponse(ctx, response) directly, otherwise
+	// deepCopy response first
+	defer func() { api.SendResponse(ctx, response) }()
+
+	if !ctx.IsPost() {
+		response.Message = "must be POST request"
+		response.Code = api.RespErr
+		log.Logger.Errorf("must by post request, param:%+v", param)
+		return
+	}
+
+	if bytes, err := json.Marshal(param); err != nil {
+		log.Logger.Errorf("convert param failed:%s", err.Error())
+		response.Code = api.RespErr
+		response.Message = err.Error()
+		return
+	} else {
+		if err = json.Unmarshal(bytes, whereCond); err != nil {
+			response.Code = api.RespErr
+			response.Message = err.Error()
+			return
+		}
+	}
+	log.Logger.Debugf("%+v", whereCond)
+
+	// select ip from ha_status
+	//	 where city_id = ? and db_type = ?
+	//	 and module = "agent" and status = "RUNNING"
+	//	 and last_time > DATE_SUB(now(), interval 5 minute)
+	//	 order by uid;
+	db := model.HADB.Self
+
+	db.Table(haTableName).Where(
+		"city_id = ? and module = ? and status = ? and last_time > ? "+
+			"and db_type= ? and cloud_id= ?",
+		whereCond.CityID, whereCond.Module, whereCond.Status, whereCond.LastTime, whereCond.DbType,
+		whereCond.CloudID).Order("uid").Find(&result)
+
+	if err := db.Error; err != nil {
+		response.Code = api.RespErr
+		response.Message = err.Error()
+		response.Data = nil
+		log.Logger.Errorf("query table failed:%s", err.Error())
+	}
+	log.Logger.Debugf("%+v", result)
+}
+
 // ReplaceHaInfo TODO
 func ReplaceHaInfo(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam interface{}) {
 	var (
 		result    = map[string]int64{}
 		whereCond = struct {
-			query model.HaStatus
-			set   model.HaStatus
+			query struct {
+				IP      string `json:"ip,omitempty"`
+				Module  string `json:"module,omitempty"`
+				DbType  string `json:"db_type,omitempty"`
+				CloudID int    `json:"cloud_id,omitempty"`
+			}
+			set struct {
+				IP        string     `json:"ip,omitempty"`
+				Port      int        `json:"port,omitempty"`
+				Module    string     `json:"module,omitempty"`
+				DbType    string     `json:"db_type,omitempty"`
+				CityID    int        `json:"city_id,omitempty"`
+				Campus    string     `json:"campus,omitempty"`
+				CloudID   int        `json:"cloud_id,omitempty"`
+				StartTime *time.Time `json:"start_time,omitempty"`
+				LastTime  *time.Time `json:"last_time,omitempty"`
+				Status    string     `json:"status,omitempty"`
+			}
 		}{}
 		response = api.ResponseInfo{
 			Code:    api.RespOK,
@@ -367,14 +446,14 @@ func ReplaceHaInfo(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam in
 	currentTime := time.Now()
 	whereCond.set.LastTime = &currentTime
 
-	log.Logger.Debugf("%+v", whereCond)
+	log.Logger.Debugf("ReplaceHaInfo: %+v", whereCond)
 
 	if err := model.HADB.Self.Transaction(func(tx *gorm.DB) error {
 		row := &model.HaStatus{}
-		rt := tx.Table(whereCond.query.TableName()).Where(whereCond.query).First(row)
+		rt := tx.Table(haTableName).Where(whereCond.query).First(row)
 		if rt.Error != nil {
 			if rt.Error == gorm.ErrRecordNotFound {
-				tx = tx.Table(whereCond.set.TableName()).Create(setParam)
+				tx = tx.Table(haTableName).Create(setParam)
 				if tx.Error != nil {
 					return tx.Error
 				} else {
@@ -385,7 +464,7 @@ func ReplaceHaInfo(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam in
 				return rt.Error
 			}
 		} else {
-			tx = tx.Table(whereCond.set.TableName()).Where(whereCond.query).Updates(whereCond.set)
+			tx = tx.Table(haTableName).Where(whereCond.query).Updates(whereCond.set)
 			if tx.Error != nil {
 				return tx.Error
 			} else {

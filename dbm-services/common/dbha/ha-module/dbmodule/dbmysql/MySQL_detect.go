@@ -56,6 +56,8 @@ type MySQLDetectInstanceInfoFromCmDB struct {
 	//machine type in cmdb, url:dbm-ui/backend/db_meta/enums/machine_type.py
 	MetaType string
 	Cluster  string
+	//instance_role in cmdb, url:dbm-ui/backend/db_meta/enums/instance_role.py
+	DbRole string
 }
 
 // AgentNewMySQLDetectInstance convert CmDBInstanceUrl response info to MySQLDetectInstance
@@ -66,6 +68,7 @@ func AgentNewMySQLDetectInstance(ins *MySQLDetectInstanceInfoFromCmDB, conf *con
 			Port:           ins.Port,
 			App:            ins.App,
 			DBType:         types.DBType(ins.MetaType),
+			DBRole:         ins.DbRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
@@ -96,6 +99,7 @@ func GMNewMySQLDetectInstance(ins *MySQLDetectResponse, conf *config.Config) *My
 			Port:           ins.DBPort,
 			App:            ins.App,
 			DBType:         types.DBType(ins.DBType),
+			DBRole:         ins.DBRole,
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         types.CheckStatus(ins.Status),

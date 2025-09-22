@@ -77,6 +77,7 @@ type MySQLCommonSwitch struct {
 	Role string
 	//standby slave which master switch to
 	StandBySlave dbutil.SlaveInfo
+	Entry        dbutil.BindEntry
 }
 
 // MySQLCommonSwitchUtil common switch util for mysql-related instance used

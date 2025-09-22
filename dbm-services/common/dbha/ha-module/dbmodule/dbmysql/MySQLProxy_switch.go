@@ -4,14 +4,12 @@ import (
 	"fmt"
 
 	"dbm-services/common/dbha/ha-module/constvar"
-	"dbm-services/common/dbha/ha-module/dbutil"
 )
 
 // MySQLProxySwitch define proxy switch detail info
 type MySQLProxySwitch struct {
 	MySQLCommonSwitch
 	AdminPort int
-	Entry     dbutil.BindEntry
 }
 
 // CheckSwitch check whether proxy allowed swtich, always true at present
