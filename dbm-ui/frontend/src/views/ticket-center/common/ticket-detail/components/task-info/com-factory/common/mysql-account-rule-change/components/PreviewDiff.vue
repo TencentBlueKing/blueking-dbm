@@ -26,14 +26,17 @@
       :is-active="collapseActive.accessDb"
       mode="collapse"
       :title="t('访问DB变更前后对比')">
-      <BkTable :data="accessDbData">
-        <BkTableColumn
-          field="oldAccessDb"
-          :label="t('变更前')" />
-        <BkTableColumn
-          field="newAccessDb"
-          :label="t('变更后')" />
-      </BkTable>
+      <PrimaryTable
+        :data="accessDbData"
+        ellipsis
+        row-key="oldAccessDb">
+        <TableColumn
+          col-key="oldAccessDb"
+          :title="t('变更前')" />
+        <TableColumn
+          col-key="newAccessDb"
+          :title="t('变更后')" />
+      </PrimaryTable>
     </DbCard>
     <DbCard
       v-model:collapse="collapseActive.privilege"
@@ -49,16 +52,18 @@
           <span style="color: #ea3636">{{ deleteCount }}</span>
         </I18nT>
       </template>
-      <BkTable
+      <PrimaryTable
         class="privilege-table"
         :data="privilegeData"
-        :merge-cells="mergeCells">
-        <BkTableColumn
+        ellipsis
+        row-key="beforePrivilege"
+        :rowspan-and-colspan="createTableMerge(mergeCells)">
+        <TableColumn
           class-name="cell-bold"
-          field="privilegeDisplay"
-          :label="t('权限类型')" />
-        <BkTableColumn :label="t('变更前')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          col-key="privilegeDisplay"
+          :title="t('权限类型')" />
+        <TableColumn :title="t('变更前')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div v-if="data.beforePrivilege">
               <span>{{ data.beforePrivilege }}</span>
               <span
@@ -69,11 +74,11 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
+        </TableColumn>
+        <TableColumn
           class-name="cell-privilege"
-          :label="t('变更后')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          :title="t('变更后')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div
               v-if="data.afterPrivilege"
               :class="[data.diffType]">
@@ -86,8 +91,8 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </DbCard>
   </div>
 </template>
@@ -101,6 +106,8 @@
   import { AccountTypes } from '@common/const';
 
   import configMap from '@views/db-manage/common/permission/components/mysql/config';
+
+  import { createTableMerge } from '@/utils';
 
   import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
