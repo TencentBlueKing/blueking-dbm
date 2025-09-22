@@ -36,6 +36,7 @@
           v-for="url in serviceList"
           :key="url"
           ref="dynamicTablesRef"
+          :is-only-abnormal="isOnlyAbnormal"
           :is-platform="isPlatform"
           :search-params="searchParams"
           :service-url="url" />
@@ -79,6 +80,7 @@
   const excludeDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
   const isTabShow = ref(true);
+  const isOnlyAbnormal = ref(false);
 
   const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
@@ -90,7 +92,7 @@
       return [];
     }
 
-    const pathList = dbOverviewConfig.value[tabType.value];
+    const pathList = dbOverviewConfig.value[tabType.value]!;
     return pathList.map((path) => `/db_report/${tabType.value}/${path}/`);
   });
 
@@ -169,7 +171,8 @@
     });
   };
 
-  const handleSearchChange = (payload: Record<string, string>) => {
+  const handleSearchChange = (payload: Record<string, any>) => {
+    isOnlyAbnormal.value = payload.isOnlyAbnormal;
     updateRouteQuery(payload);
   };
 
