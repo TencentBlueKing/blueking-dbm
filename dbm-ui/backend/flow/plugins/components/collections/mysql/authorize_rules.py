@@ -33,8 +33,9 @@ logger = logging.getLogger("flow")
 class AuthResultSerializer(BaseFlowOutputSerializer):
     hidden = True
     table_name = "authorize_results"
+    table_display_name = _("授权摘要")
 
-    message = serializers.CharField(label=_("授权结果"))
+    message = serializers.CharField(help_text=_("授权结果"))
 
 
 class AuthorizeRules(BaseService):

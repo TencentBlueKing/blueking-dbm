@@ -28,6 +28,7 @@ saas:
     resources: {}
     replicaCount: 1
     gunicornWorker: 8
+    timeout: 120
     autoscaling:
       enabled: false
       minReplicas: 1
