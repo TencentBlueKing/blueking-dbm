@@ -3,4 +3,4 @@ appVersion: 1.5.0-alpha.3339
 description: A Helm chart for dbm
 name: dbm
 type: application
-version: 0.1.47
+version: 0.1.48

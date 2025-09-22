@@ -108,6 +108,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
     def format(self):
+        # 这里必须用group_count参数，因为需要分组申请后顺序分配
         self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
 
     @classmethod

@@ -26,6 +26,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import Machine
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
+from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -65,16 +66,20 @@ class RecycleOutputContext:
         remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
     class ToFailSerializer(RecycleOutputSerializer):
-        table_name = _("退回故障池")
+        table_name = IpDest.Fault.value
+        table_display_name = _("退回故障池")
 
     class ToResourceSerializer(RecycleOutputSerializer):
-        table_name = _("退回资源池")
+        table_name = IpDest.Resource.value
+        table_display_name = _("退回资源池")
 
     class ToRecycleSerializer(RecycleOutputSerializer):
-        table_name = _("退回待回收池")
+        table_name = IpDest.Recycle.value
+        table_display_name = _("退回待回收池")
 
     class ToRecycledSerializer(RecycleOutputSerializer):
-        table_name = _("退回CC待回收")
+        table_name = IpDest.Recycled.value
+        table_display_name = _("退回CC待回收")
 
 
 class ImportResourceInitStepFlow(object):
