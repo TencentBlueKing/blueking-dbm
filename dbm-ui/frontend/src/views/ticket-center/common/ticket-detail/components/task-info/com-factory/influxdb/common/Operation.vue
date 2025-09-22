@@ -13,8 +13,21 @@
 
 <template>
   <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+    :data="tableData">
+    <TableColumn
+      col-key="instance_id"
+      :title="t('实例ID')" />
+    <!-- 实例 -->
+    <TableColumn
+      col-key="instance"
+      :title="t('实例')">
+      <template #default="{ row }: { row: Details['ticketDetails']['details']['instance_list'] }">
+        <span>
+          {{ row.ip && row.port ? `${row.ip}:${row.port}` : '--' }}
+        </span>
+      </template>
+    </TableColumn>
+  </DbOriginalTable>
 </template>
 
 <script setup lang="ts">
@@ -38,20 +51,4 @@
   const { t } = useI18n();
 
   const tableData = computed(() => props.ticketDetails?.details?.instance_list || []);
-  const columns = [
-    {
-      field: 'instance_id',
-      label: t('实例ID'),
-    },
-    {
-      field: 'instance',
-      label: t('实例'),
-      render: ({ data }: { data: Details['ticketDetails']['details']['instance_list'] }) => {
-        if (data.ip && data.port) {
-          return `${data.ip}:${data.port}`;
-        }
-        return '--';
-      },
-    },
-  ];
 </script>
