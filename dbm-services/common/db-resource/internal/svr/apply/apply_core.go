@@ -1063,9 +1063,10 @@ func (gc *GlobalBalanceCoordinator) allocateForContext(context *SearchContext, g
 		picker.InitToleranceConfig(selectedTolerance, context.CurrentHosts, context.Count)
 	}
 
-	// 获取优先级资源
+	// 获取优先级资源（排除已使用的资源）
+	availableResources := gc.getAvailableResourcesForContext(globalState)
 	priorityElements, prioritySumMap, err := context.AnalysisResourcePriority(
-		gc.getResourcesForContext(), false)
+		availableResources, false)
 	if err != nil {
 		return nil, fmt.Errorf("analyze priority failed: %v", err)
 	}
@@ -1087,13 +1088,19 @@ func (gc *GlobalBalanceCoordinator) allocateForContext(context *SearchContext, g
 	return picker, nil
 }
 
-// getResourcesForContext 获取特定上下文的资源
-func (gc *GlobalBalanceCoordinator) getResourcesForContext() []model.TbRpDetail {
+// getAvailableResourcesForContext 获取特定上下文的可用资源（排除已使用的）
+func (gc *GlobalBalanceCoordinator) getAvailableResourcesForContext(
+	globalState *GlobalAllocationState) []model.TbRpDetail {
 	var resources []model.TbRpDetail
 
-	// 收集相关园区的资源
+	// 收集相关园区的资源，过滤已使用的
 	for _, subZoneResources := range gc.AllResourcePools {
-		resources = append(resources, subZoneResources...)
+		for _, resource := range subZoneResources {
+			// 只包含未被使用的主机
+			if !globalState.UsedHostIds[resource.BkHostID] {
+				resources = append(resources, resource)
+			}
+		}
 	}
 
 	return resources
@@ -1382,8 +1389,8 @@ func (gc *GlobalBalanceCoordinator) allocateOneFromSubZone(picker *PickerObject,
 		if !ok {
 			continue
 		}
-
 		if globalState.UsedHostIds[v.BkHostId] {
+			logger.Debug("从园区 %s 分配主机 %d，主机已分配", subZone, v.BkHostId)
 			continue
 		}
 

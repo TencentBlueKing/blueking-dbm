@@ -241,10 +241,10 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 	}
 
 	// 检查是否需要全局均衡分配
-	if needsGlobalBalancing(param) {
-		logger.Info("使用全局均衡分配策略")
-		return CycleApplyWithGlobalBalancing(param)
-	}
+	// if needsGlobalBalancing(param) {
+	// 	logger.Info("使用全局均衡分配策略")
+	// 	return CycleApplyWithGlobalBalancing(param)
+	// }
 
 	// 使用原有的顺序分配策略
 	return cycleApplySequential(param)
@@ -252,8 +252,169 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 
 // needsGlobalBalancing 判断是否需要全局均衡分配
 func needsGlobalBalancing(param RequestInputParam) bool {
-	// 多个请求且包含容忍度设置的亲和性
-	return false
+	// 单个请求不需要全局均衡
+	if len(param.Details) <= 1 {
+		return false
+	}
+
+	// 检查是否有指定主机申请
+	for _, detail := range param.Details {
+		if len(detail.Hosts) > 0 {
+			logger.Info("存在指定主机申请，不使用全局均衡分配")
+			return false
+		}
+	}
+
+	// 检查是否所有请求的规格相同且城市相同
+	if !allRequestsHaveSameSpecAndCity(param.Details) {
+		logger.Info("请求规格或城市不同，不使用全局均衡分配")
+		return false
+	}
+
+	// 检查是否有容忍度设置
+	hasTolerance := false
+	for _, detail := range param.Details {
+		if detail.Tolerance > 0 {
+			hasTolerance = true
+			break
+		}
+	}
+
+	if !hasTolerance {
+		logger.Info("没有容忍度设置，不使用全局均衡分配")
+		return false
+	}
+
+	logger.Info("满足全局均衡分配条件：规格相同、城市相同、有容忍度设置、无指定主机")
+	return true
+}
+
+// allRequestsHaveSameSpecAndCity 检查所有请求是否具有相同的规格和城市
+func allRequestsHaveSameSpecAndCity(details []ObjectDetail) bool {
+	if len(details) <= 1 {
+		return true
+	}
+
+	// 使用第一个请求作为基准
+	base := details[0]
+
+	for i := 1; i < len(details); i++ {
+		current := details[i]
+
+		// 检查城市是否相同
+		if !isSameCity(base.LocationSpec, current.LocationSpec) {
+			logger.Info("城市不同：base=%s, current=%s", base.LocationSpec.City, current.LocationSpec.City)
+			return false
+		}
+
+		// 检查规格是否相同
+		if !isSameSpec(base, current) {
+			logger.Info("规格不同：base=%+v, current=%+v", base, current)
+			return false
+		}
+	}
+
+	return true
+}
+
+// isSameCity 检查两个位置规格是否指向同一个城市
+func isSameCity(loc1, loc2 meta.LocationSpec) bool {
+	// 如果城市为空，认为相同（表示不限制城市）
+	if loc1.City == "" && loc2.City == "" {
+		return true
+	}
+
+	// 比较城市名称
+	return loc1.City == loc2.City
+}
+
+// isSameSpec 检查两个ObjectDetail是否具有相同的规格
+func isSameSpec(detail1, detail2 ObjectDetail) bool {
+	// 检查设备类型是否相同
+	if !isSameStringSlice(detail1.DeviceClass, detail2.DeviceClass) {
+		return false
+	}
+
+	// 检查CPU和内存规格是否相同
+	if !isSameMeasureRange(detail1.Spec.Cpu, detail2.Spec.Cpu) {
+		return false
+	}
+	if !isSameMeasureRange(detail1.Spec.Mem, detail2.Spec.Mem) {
+		return false
+	}
+
+	// 检查存储规格是否相同
+	if !isSameStorageSpecs(detail1.StorageSpecs, detail2.StorageSpecs) {
+		return false
+	}
+
+	return true
+}
+
+// isSameStringSlice 检查两个字符串切片是否相同
+func isSameStringSlice(slice1, slice2 []string) bool {
+	if len(slice1) != len(slice2) {
+		return false
+	}
+
+	// 创建副本并排序
+	s1 := make([]string, len(slice1))
+	s2 := make([]string, len(slice2))
+	copy(s1, slice1)
+	copy(s2, slice2)
+
+	sort.Strings(s1)
+	sort.Strings(s2)
+
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isSameMeasureRange 检查两个MeasureRange是否相同
+func isSameMeasureRange(range1, range2 meta.MeasureRange) bool {
+	return range1.Min == range2.Min && range1.Max == range2.Max
+}
+
+// isSameStorageSpecs 检查两个存储规格切片是否相同
+func isSameStorageSpecs(specs1, specs2 []meta.DiskSpec) bool {
+	if len(specs1) != len(specs2) {
+		return false
+	}
+
+	// 创建副本并排序（按挂载点排序）
+	s1 := make([]meta.DiskSpec, len(specs1))
+	s2 := make([]meta.DiskSpec, len(specs2))
+	copy(s1, specs1)
+	copy(s2, specs2)
+
+	// 按挂载点排序
+	sort.Slice(s1, func(i, j int) bool {
+		return s1[i].MountPoint < s1[j].MountPoint
+	})
+	sort.Slice(s2, func(i, j int) bool {
+		return s2[i].MountPoint < s2[j].MountPoint
+	})
+
+	for i := range s1 {
+		if !isSameDiskSpec(s1[i], s2[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// isSameDiskSpec 检查两个DiskSpec是否相同
+func isSameDiskSpec(spec1, spec2 meta.DiskSpec) bool {
+	return spec1.DiskType == spec2.DiskType &&
+		spec1.MinSize == spec2.MinSize &&
+		spec1.MaxSize == spec2.MaxSize &&
+		spec1.MountPoint == spec2.MountPoint
 }
 
 // CycleApplyWithGlobalBalancing 全局均衡分配策略

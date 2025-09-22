@@ -34,24 +34,601 @@ func TestNeedsGlobalBalancingSimple(t *testing.T) {
 		t.Error("单个请求不应该需要全局均衡")
 	}
 
-	// 测试多个请求且包含容忍度设置需要全局均衡
+	// 测试多个请求但规格不同，不需要全局均衡
 	param2 := RequestInputParam{
 		Details: []ObjectDetail{
 			{
 				Count:     5,
 				Tolerance: 0.3,
 				Affinity:  CROS_SUBZONE,
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
 			},
 			{
 				Count:     3,
 				Tolerance: 0.2,
 				Affinity:  SAME_SUBZONE,
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 2, Max: 8}, // 不同的CPU规格
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
 			},
 		},
 	}
-	if !needsGlobalBalancing(param2) {
-		t.Error("多个请求且包含容忍度设置应该需要全局均衡")
+	if needsGlobalBalancing(param2) {
+		t.Error("规格不同的多个请求不应该需要全局均衡")
 	}
+
+	// 测试多个请求但城市不同，不需要全局均衡
+	param3 := RequestInputParam{
+		Details: []ObjectDetail{
+			{
+				Count:     5,
+				Tolerance: 0.3,
+				Affinity:  CROS_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:     3,
+				Tolerance: 0.2,
+				Affinity:  SAME_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "北京", // 不同的城市
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		},
+	}
+	if needsGlobalBalancing(param3) {
+		t.Error("城市不同的多个请求不应该需要全局均衡")
+	}
+
+	// 测试多个请求但无容忍度设置，不需要全局均衡
+	param4 := RequestInputParam{
+		Details: []ObjectDetail{
+			{
+				Count:     5,
+				Tolerance: 0, // 无容忍度
+				Affinity:  CROS_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:     3,
+				Tolerance: 0, // 无容忍度
+				Affinity:  SAME_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		},
+	}
+	if needsGlobalBalancing(param4) {
+		t.Error("无容忍度设置的多个请求不应该需要全局均衡")
+	}
+
+	// 测试规格相同、城市相同、有容忍度设置，需要全局均衡
+	param5 := RequestInputParam{
+		Details: []ObjectDetail{
+			{
+				Count:     5,
+				Tolerance: 0.3,
+				Affinity:  CROS_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:     3,
+				Tolerance: 0.2,
+				Affinity:  SAME_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		},
+	}
+	if !needsGlobalBalancing(param5) {
+		t.Error("规格相同、城市相同、有容忍度设置的多个请求应该需要全局均衡")
+	}
+
+	// 测试有指定主机申请，不需要全局均衡
+	param6 := RequestInputParam{
+		Details: []ObjectDetail{
+			{
+				Count:     5,
+				Tolerance: 0.3,
+				Affinity:  CROS_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				Hosts: Hosts{
+					{BkHostId: 1001, IP: "10.1.1.1"},
+					{BkHostId: 1002, IP: "10.1.1.2"},
+				}, // 指定了主机
+			},
+			{
+				Count:     3,
+				Tolerance: 0.2,
+				Affinity:  SAME_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		},
+	}
+	if needsGlobalBalancing(param6) {
+		t.Error("有指定主机申请的请求不应该需要全局均衡")
+	}
+
+	// 测试部分请求有指定主机，不需要全局均衡
+	param7 := RequestInputParam{
+		Details: []ObjectDetail{
+			{
+				Count:     5,
+				Tolerance: 0.3,
+				Affinity:  CROS_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:     3,
+				Tolerance: 0.2,
+				Affinity:  SAME_SUBZONE,
+				LocationSpec: meta.LocationSpec{
+					City: "上海",
+				},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				Hosts: Hosts{
+					{BkHostId: 2001, IP: "10.2.1.1"},
+				}, // 第二个请求指定了主机
+			},
+		},
+	}
+	if needsGlobalBalancing(param7) {
+		t.Error("部分请求有指定主机申请不应该需要全局均衡")
+	}
+}
+
+// TestSpecComparison 测试规格比较的各种情况
+func TestSpecComparison(t *testing.T) {
+	// 测试设备类型不同的情况
+	detail1 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8", "SA3.LARGE16"},
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+		},
+	}
+
+	detail2 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8"}, // 不同的设备类型
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+		},
+	}
+
+	if isSameSpec(detail1, detail2) {
+		t.Error("设备类型不同的规格应该被认为不同")
+	}
+
+	// 测试存储规格不同的情况
+	detail3 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8"},
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+		},
+	}
+
+	detail4 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8"},
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "HDD", MinSize: 100, MaxSize: 500, MountPoint: "/data"}, // 不同的磁盘类型
+		},
+	}
+
+	if isSameSpec(detail3, detail4) {
+		t.Error("存储规格不同的规格应该被认为不同")
+	}
+
+	// 测试完全相同的规格
+	detail5 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8"},
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+		},
+	}
+
+	detail6 := ObjectDetail{
+		DeviceClass: []string{"SA2.MEDIUM8"},
+		Spec: meta.Spec{
+			Cpu: meta.MeasureRange{Min: 1, Max: 4},
+			Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+		},
+		StorageSpecs: []meta.DiskSpec{
+			{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+		},
+	}
+
+	if !isSameSpec(detail5, detail6) {
+		t.Error("完全相同的规格应该被认为相同")
+	}
+}
+
+// TestCityComparison 测试城市比较的各种情况
+func TestCityComparison(t *testing.T) {
+	// 测试相同城市
+	loc1 := meta.LocationSpec{City: "上海"}
+	loc2 := meta.LocationSpec{City: "上海"}
+	if !isSameCity(loc1, loc2) {
+		t.Error("相同城市应该被认为相同")
+	}
+
+	// 测试不同城市
+	loc3 := meta.LocationSpec{City: "上海"}
+	loc4 := meta.LocationSpec{City: "北京"}
+	if isSameCity(loc3, loc4) {
+		t.Error("不同城市应该被认为不同")
+	}
+
+	// 测试空城市（表示不限制城市）
+	loc5 := meta.LocationSpec{City: ""}
+	loc6 := meta.LocationSpec{City: ""}
+	if !isSameCity(loc5, loc6) {
+		t.Error("空城市应该被认为相同")
+	}
+}
+
+// TestAllRequestsHaveSameSpecAndCity 测试 allRequestsHaveSameSpecAndCity 函数
+func TestAllRequestsHaveSameSpecAndCity(t *testing.T) {
+	// 测试空列表或单个请求
+	t.Run("EmptyOrSingleRequest", func(t *testing.T) {
+		// 空列表
+		if !allRequestsHaveSameSpecAndCity([]ObjectDetail{}) {
+			t.Error("空列表应该返回 true")
+		}
+
+		// 单个请求
+		singleRequest := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		}
+		if !allRequestsHaveSameSpecAndCity(singleRequest) {
+			t.Error("单个请求应该返回 true")
+		}
+	})
+
+	// 测试规格相同、城市相同的情况
+	t.Run("SameSpecAndCity", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+				StorageSpecs: []meta.DiskSpec{
+					{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+				StorageSpecs: []meta.DiskSpec{
+					{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+				},
+			},
+		}
+		if !allRequestsHaveSameSpecAndCity(details) {
+			t.Error("规格相同、城市相同的请求应该返回 true")
+		}
+	})
+
+	// 测试城市不同的情况
+	t.Run("DifferentCities", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "北京"}, // 不同城市
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("城市不同的请求应该返回 false")
+		}
+	})
+
+	// 测试CPU规格不同的情况
+	t.Run("DifferentCpuSpec", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 2, Max: 8}, // 不同的CPU规格
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("CPU规格不同的请求应该返回 false")
+		}
+	})
+
+	// 测试内存规格不同的情况
+	t.Run("DifferentMemSpec", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 2048, Max: 8192}, // 不同的内存规格
+				},
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("内存规格不同的请求应该返回 false")
+		}
+	})
+
+	// 测试设备类型不同的情况
+	t.Run("DifferentDeviceClass", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA3.LARGE16"}, // 不同的设备类型
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("设备类型不同的请求应该返回 false")
+		}
+	})
+
+	// 测试存储规格不同的情况
+	t.Run("DifferentStorageSpec", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				StorageSpecs: []meta.DiskSpec{
+					{DiskType: "SSD", MinSize: 100, MaxSize: 500, MountPoint: "/data"},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				StorageSpecs: []meta.DiskSpec{
+					{DiskType: "HDD", MinSize: 100, MaxSize: 500, MountPoint: "/data"}, // 不同的磁盘类型
+				},
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("存储规格不同的请求应该返回 false")
+		}
+	})
+
+	// 测试空城市的情况
+	t.Run("EmptyCities", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: ""}, // 空城市
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: ""}, // 空城市
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+			},
+		}
+		if !allRequestsHaveSameSpecAndCity(details) {
+			t.Error("空城市的请求应该返回 true")
+		}
+	})
+
+	// 测试多个请求的情况
+	t.Run("MultipleRequests", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+			{
+				Count:        2,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+		}
+		if !allRequestsHaveSameSpecAndCity(details) {
+			t.Error("多个相同规格和城市的请求应该返回 true")
+		}
+	})
+
+	// 测试多个请求中有一个不同的情况
+	t.Run("MultipleRequestsWithOneDifferent", func(t *testing.T) {
+		details := []ObjectDetail{
+			{
+				Count:        5,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+			{
+				Count:        3,
+				LocationSpec: meta.LocationSpec{City: "上海"},
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+			{
+				Count:        2,
+				LocationSpec: meta.LocationSpec{City: "北京"}, // 第三个请求城市不同
+				Spec: meta.Spec{
+					Cpu: meta.MeasureRange{Min: 1, Max: 4},
+					Mem: meta.MeasureRange{Min: 1024, Max: 4096},
+				},
+				DeviceClass: []string{"SA2.MEDIUM8"},
+			},
+		}
+		if allRequestsHaveSameSpecAndCity(details) {
+			t.Error("多个请求中有一个不同的应该返回 false")
+		}
+	})
 }
 
 func TestParamCheckToleranceSimple(t *testing.T) {
