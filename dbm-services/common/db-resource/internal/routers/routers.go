@@ -33,9 +33,13 @@ func RegisterRoutes(engine *gin.Engine) {
 	background := controller.BackStageHandler{}
 	background.RegisterRouter(engine)
 	// statistic router
-	statistic := statistic.Handler{}
-	statistic.RegisterRouter(engine)
+	statisticHandler := statistic.Handler{}
+	statisticHandler.RegisterRouter(engine)
+	// water level router
+	waterLevel := statistic.WaterLevelHandler{}
+	waterLevel.RegisterRouter(engine)
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})
+
 }
