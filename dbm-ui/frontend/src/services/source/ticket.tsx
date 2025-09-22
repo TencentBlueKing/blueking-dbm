@@ -95,7 +95,7 @@ export function createTicketBatch<T>(params: {
  */
 export function createTicket(formData: Record<string, any>) {
   return http
-    .post<{ id: number }>(`${path}/`, formData, { catchError: true })
+    .post<{ bk_biz_id: number; id: number }>(`${path}/`, formData, { catchError: true })
     .then((res) => res)
     .catch((e) => {
       const { code, data } = e;
@@ -104,15 +104,13 @@ export function createTicket(formData: Record<string, any>) {
         const id = data.duplicate_ticket_id;
         const router = getRouter();
 
-        console.log('router = ', router);
-
         const route = router.resolve({
-          name: 'bizTicketManage',
+          name: 'SelfServiceMyTickets',
           params: {
             ticketId: id,
           },
         });
-        return new Promise<{ id: number }>((resolve, reject) => {
+        return new Promise<{ bk_biz_id: number; id: number }>((resolve, reject) => {
           InfoBox({
             cancelText: t('取消提单'),
             confirmText: t('继续提单'),
