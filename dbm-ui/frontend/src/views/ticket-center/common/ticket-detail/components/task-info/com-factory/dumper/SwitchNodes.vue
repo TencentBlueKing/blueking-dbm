@@ -12,9 +12,24 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <DbOriginalTable :data="tableData">
+    <TableColumn
+      col-key="host"
+      :title="t('源实例')">
+      <template #default="{ row }:{ row: { host: string; port: number } }">
+        <span>{{ row.host }}:{{ row.port }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="target_pos"
+      :title="t('迁移目标位置')" />
+    <TableColumn
+      col-key="repl_binlog_file"
+      title="binlog file" />
+    <TableColumn
+      col-key="repl_binlog_pos"
+      title="binlog pos" />
+  </DbOriginalTable>
 </template>
 
 <script setup lang="tsx">
@@ -39,28 +54,4 @@
 
   const { infos } = props.ticketDetails.details;
   const tableData = infos[0].switch_instances;
-
-  const columns = [
-    {
-      field: 'host',
-      label: t('源实例'),
-      render: ({ data }: { data: { host: string; port: number } }) => (
-        <span>
-          {data.host}:{data.port}
-        </span>
-      ),
-    },
-    {
-      field: 'target_pos',
-      label: t('迁移目标位置'),
-    },
-    {
-      field: 'repl_binlog_file',
-      label: 'binlog file',
-    },
-    {
-      field: 'repl_binlog_pos',
-      label: 'binlog pos',
-    },
-  ];
 </script>
