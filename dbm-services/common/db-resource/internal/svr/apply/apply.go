@@ -239,56 +239,8 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		logger.Info("apply all groups in same location")
 		return applyGroupsInSameLocation(param)
 	}
-
-	// 检查是否需要全局均衡分配
-	if needsGlobalBalancing(param) {
-		logger.Info("使用全局均衡分配策略")
-		return CycleApplyWithGlobalBalancing(param)
-	}
-
 	// 使用原有的顺序分配策略
 	return cycleApplySequential(param)
-}
-
-// needsGlobalBalancing 判断是否需要全局均衡分配
-func needsGlobalBalancing(param RequestInputParam) bool {
-	// 多个请求且包含容忍度设置的亲和性
-	return false
-}
-
-// CycleApplyWithGlobalBalancing 全局均衡分配策略
-func CycleApplyWithGlobalBalancing(param RequestInputParam) (pickers []*PickerObject, err error) {
-	resourceReqList, err := param.SortDetails()
-	if err != nil {
-		logger.Error("对请求参数排序失败%v", err)
-		return nil, err
-	}
-
-	// 创建全局均衡协调器
-	coordinator := NewGlobalBalanceCoordinator(param)
-
-	// 第一阶段：准备所有请求的资源池
-	contexts, err := coordinator.PrepareAllContexts(resourceReqList)
-	if err != nil {
-		return nil, err
-	}
-
-	// 第二阶段：全局均衡分配
-	pickers, err = coordinator.GlobalBalancedAllocation(contexts)
-	if err != nil {
-		return nil, err
-	}
-
-	// 第三阶段：批量更新资源状态
-	for _, picker := range pickers {
-		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
-			// 回滚已更新的资源状态
-			RollBackAllInstanceUnused(pickers)
-			return nil, fmt.Errorf("update picker %s status failed: %v", picker.Item, updateErr)
-		}
-	}
-
-	return pickers, nil
 }
 
 // cycleApplySequential 原有的顺序分配策略

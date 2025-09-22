@@ -100,11 +100,12 @@ type ActionInfo struct {
 
 // RequestInputParam 请求接口参数
 type RequestInputParam struct {
-	ResourceType         string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
-	DryRun               bool           `json:"dry_run"`
-	ForbizId             int            `json:"for_biz_id"`
-	Details              []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
-	GroupsInSameLocation bool           `json:"groups_in_same_location"`
+	ResourceType string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
+	DryRun       bool           `json:"dry_run"`
+	ForbizId     int            `json:"for_biz_id"`
+	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
+	// 表示 deails需要保证每个请求的资源都在同一个园区,参考第一个detail的园区的相关参数
+	GroupsInSameLocation bool `json:"groups_in_same_location"`
 	ActionInfo
 }
 

@@ -18,9 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickmn/go-cache"
-	"github.com/samber/lo"
-
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/db-resource/internal/svr/task"
@@ -28,6 +25,8 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/patrickmn/go-cache"
+	"github.com/samber/lo"
 )
 
 const (
@@ -486,11 +485,6 @@ func (c *PickerObject) SortSubZoneByBalance(cross_subzone bool) []string {
 			continue
 		}
 
-		// 跨园区模式下，跳过已经使用过的园区
-		if cross_subzone && !cmutil.ElementNotInArry(subZone, c.ExistSubZone) {
-			continue
-		}
-
 		// 检查是否可以分配到该园区
 		if c.Tolerance >= 0 && c.MaxPerSubZone > 0 {
 			if !c.CanAllocateToSubZone(subZone) {
@@ -548,11 +542,18 @@ func (c *PickerObject) SortSubZoneByBalance(cross_subzone bool) []string {
 	result := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
 		result = append(result, candidate.subZone)
-		logger.Debug("园区 %s: 当前机器数=%d, 容量=%d, 均衡得分=%.3f",
-			candidate.subZone, candidate.currentTotal, candidate.capacity, candidate.balanceScore)
+		remainingCapacity := candidate.capacity - candidate.currentTotal
+		logger.Debug("园区 %s: 当前机器数=%d, 容量=%d, 剩余可用=%d, 均衡得分=%.3f",
+			candidate.subZone, candidate.currentTotal, candidate.capacity, remainingCapacity, candidate.balanceScore)
 	}
 
-	logger.Info("均衡排序后的园区顺序: %v", result)
+	// 输出排序后的园区及其剩余可用数量
+	var resultWithCapacity []string
+	for _, candidate := range candidates {
+		remainingCapacity := candidate.capacity - candidate.currentTotal
+		resultWithCapacity = append(resultWithCapacity, fmt.Sprintf("%s(剩余:%d)", candidate.subZone, remainingCapacity))
+	}
+	logger.Info("均衡排序后的园区顺序: %v", resultWithCapacity)
 	return result
 }
 
@@ -1020,15 +1021,24 @@ func (gc *GlobalBalanceCoordinator) GlobalBalancedAllocation(contexts []*SearchC
 		}
 	}
 
+	// 输出全局分配开始信息
+	gc.logGlobalAllocationStart(contexts)
+
 	// 按优先级分配每个请求
-	for _, context := range contexts {
+	for i, context := range contexts {
+		logger.Info("🎯 === 开始分配组 %s (%d/%d) ===", context.GroupMark, i+1, len(contexts))
+
 		picker, err := gc.allocateForContext(context, globalState)
 		if err != nil {
+			logger.Error("❌ 组 %s 分配失败: %v", context.GroupMark, err)
 			return nil, fmt.Errorf("allocate failed for %s: %v", context.GroupMark, err)
 		}
 
 		pickers = append(pickers, picker)
-		logger.Info("完成组 %s 的分配: %d台机器", context.GroupMark, len(picker.SatisfiedHostIds))
+		logger.Info("✅ 完成组 %s 的分配: %d台机器 (%.1f%%)",
+			context.GroupMark, len(picker.SatisfiedHostIds),
+			float64(len(picker.SatisfiedHostIds))/float64(context.ObjectDetail.Count)*100)
+		logger.Info("=====================================")
 	}
 
 	// 输出全局分配统计
@@ -1400,29 +1410,59 @@ func (gc *GlobalBalanceCoordinator) allocateOneFromSubZone(picker *PickerObject,
 	return false
 }
 
-// logGlobalAllocationResult 输出全局分配结果
-func (gc *GlobalBalanceCoordinator) logGlobalAllocationResult(globalState *GlobalAllocationState) {
-	logger.Info("=== 全局均衡分配结果 ===")
-	logger.Info("总请求数量: %d", gc.TotalRequestCount)
-	logger.Info("分配级别: %s", map[bool]string{true: "机架级", false: "园区级"}[gc.IsRackLevel])
-	logger.Info("全局容忍度: %.2f", gc.GlobalTolerance)
-	logger.Info("单元最大机器数: %d", gc.MaxPerUnit)
+// logGlobalAllocationStart 输出全局分配开始信息
+func (gc *GlobalBalanceCoordinator) logGlobalAllocationStart(contexts []*SearchContext) {
+	logger.Info("🌍 === 开始全局均衡分配 ===")
+	logger.Info("📊 分配概览: 总请求组数=%d, 总请求机器数=%d", len(contexts), gc.TotalRequestCount)
+	logger.Info("🎯 分配级别: %s", map[bool]string{true: "机架级", false: "园区级"}[gc.IsRackLevel])
+	logger.Info("⚖️  全局容忍度: %.2f", gc.GlobalTolerance)
+	logger.Info("📏 单元最大机器数: %d", gc.MaxPerUnit)
 
+	// 显示各组的请求详情
+	logger.Info("📋 请求组详情:")
+	for i, context := range contexts {
+		logger.Info("  %d. 组 %s: 申请%d台机器", i+1, context.GroupMark, context.ObjectDetail.Count)
+	}
+
+	// 显示初始资源分布
+	logger.Info("📍 初始资源分布:")
 	if gc.IsRackLevel {
-		logger.Info("机架机器分布:")
-		for rackId, count := range globalState.RackCounts {
-			existing := gc.CurrentUnitCounts[rackId]
-			logger.Info("  机架 %s: 已存在机器=%d, 新分配机器=%d, 总机器数=%d",
-				rackId, existing, count-existing, count)
+		for rackId, count := range gc.CurrentUnitCounts {
+			logger.Info("  🏗️  机架 %s: 已存在机器=%d", rackId, count)
 		}
 	} else {
-		logger.Info("园区机器分布:")
+		for subZone, count := range gc.CurrentUnitCounts {
+			logger.Info("  🏢 园区 %s: 已存在机器=%d", subZone, count)
+		}
+	}
+	logger.Info("===============================")
+}
+
+// logGlobalAllocationResult 输出全局分配结果
+func (gc *GlobalBalanceCoordinator) logGlobalAllocationResult(globalState *GlobalAllocationState) {
+	logger.Info("🏁 === 全局均衡分配结果 ===")
+	logger.Info("📊 总请求数量: %d", gc.TotalRequestCount)
+	logger.Info("🎯 分配级别: %s", map[bool]string{true: "机架级", false: "园区级"}[gc.IsRackLevel])
+	logger.Info("⚖️  全局容忍度: %.2f", gc.GlobalTolerance)
+	logger.Info("📏 单元最大机器数: %d", gc.MaxPerUnit)
+
+	if gc.IsRackLevel {
+		logger.Info("🏗️  机架机器分布:")
+		for rackId, count := range globalState.RackCounts {
+			existing := gc.CurrentUnitCounts[rackId]
+			newAllocated := count - existing
+			logger.Info("  🏗️  机架 %s: 已存在=%d, 新分配=%d, 总计=%d",
+				rackId, existing, newAllocated, count)
+		}
+	} else {
+		logger.Info("🏢 园区机器分布:")
 		for subZone, count := range globalState.UnitCounts {
 			existing := gc.CurrentUnitCounts[subZone]
-			logger.Info("  园区 %s: 已存在机器=%d, 新分配机器=%d, 总机器数=%d",
-				subZone, existing, count-existing, count)
+			newAllocated := count - existing
+			logger.Info("  🏢 园区 %s: 已存在=%d, 新分配=%d, 总计=%d",
+				subZone, existing, newAllocated, count)
 		}
 	}
 
-	logger.Info("========================")
+	logger.Info("===============================")
 }
