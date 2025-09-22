@@ -66,7 +66,10 @@ export function createTicketNew<T>(params: {
   remark: string;
   ticket_type: TicketTypes;
 }) {
-  return http.post<{ id: number }>(`${path}/`, params, { catchError: true });
+  return http.post<{ id: number }>(`${path}/`, params, {
+    catchError: true,
+    timeout: 300000,
+  });
 }
 
 /**
@@ -86,6 +89,7 @@ export function createTicketBatch<T>(params: {
     params,
     {
       catchError: true,
+      timeout: 300000,
     },
   );
 }
@@ -95,7 +99,10 @@ export function createTicketBatch<T>(params: {
  */
 export function createTicket(formData: Record<string, any>) {
   return http
-    .post<{ bk_biz_id: number; id: number }>(`${path}/`, formData, { catchError: true })
+    .post<{ bk_biz_id: number; id: number }>(`${path}/`, formData, {
+      catchError: true,
+      timeout: 300000,
+    })
     .then((res) => res)
     .catch((e) => {
       const { code, data } = e;
