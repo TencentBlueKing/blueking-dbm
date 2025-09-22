@@ -382,12 +382,14 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             affinity = cluster.disaster_tolerance_level
             if affinity in [AffinityEnum.CROS_SUBZONE, AffinityEnum.MAJORITY_ELECTION_DISTRI] and machine_zone_map:
                 replace_zone = [machine_zone_map[fetch_host_ips(info["old_nodes"])[0]]]
+            else:
+                replace_zone = []
             self.patch_affinity_location(cluster, info["resource_spec"], roles, replace_zone)
             # 工具箱操作，补充业务和云区域ID
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     @classmethod
-    def patch_affinity_location(cls, cluster, resource_spec, roles=None, replace_zone=None):
+    def patch_affinity_location(cls, cluster, resource_spec, roles=None, replace_zone: list = None):
         """
         节点变更的时候，补充亲和性和位置参数
         TODO: 暂定废弃，改用patch_common_affinity/patch_info_common_affinity
