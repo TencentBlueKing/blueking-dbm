@@ -35,7 +35,12 @@ class InstanceResourceProvider(BaseModelResourceProvider):
         filter.data_source = self.model
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         filter.keyword_field = "machine__ip__icontains"
-        filter.conditions = {"instance_role__in": self.instance_roles}
+        conditions = {"instance_role__in": self.instance_roles}
+        # 添加基于tenant的bk_biz_id过滤
+        bk_biz_ids = self.get_bk_biz_id_from_tenant()
+        if bk_biz_ids:
+            conditions["bk_biz_id__in"] = bk_biz_ids
+        filter.conditions = conditions
         return super().list_instance(filter, page, **options)
 
     def search_instance(self, filter, page, **options):

@@ -40,6 +40,9 @@ class TicketResourceProvider(BaseModelResourceProvider):
         filter.data_source = self.model
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         filter.keyword_field = "id__icontains"
+        bk_biz_ids = self.get_bk_biz_id_from_tenant()
+        if bk_biz_ids:
+            filter.conditions["bk_biz_id__in"] = bk_biz_ids
         return super().list_instance(filter, page, **options)
 
     def _list_instance(self, data_source: models.Model, condition, value_list, page):

@@ -67,11 +67,17 @@ class Permission(object):
 
     @classmethod
     def get_iam_client(cls):
+        # todo: tenant_id 这里还存在问题，这里IAM的文档中是要写入不同的租户ID
+        tenant_id = "system"
         if env.BK_IAM_SKIP:
-            return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_INNER_HOST, env.BK_COMPONENT_API_URL)
+            return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_APIGATEWAY, tenant_id)
 
         return IAM(
-            env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGATEWAY, api_version=env.BK_IAM_API_VERSION
+            env.APP_CODE,
+            env.SECRET_KEY,
+            bk_apigateway_url=env.BK_IAM_APIGATEWAY,
+            bk_tenant_id=tenant_id,
+            api_version=env.BK_IAM_API_VERSION,
         )
 
     def get_system_info(self):

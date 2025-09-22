@@ -22,7 +22,7 @@ class Client(IAMClient):
         path = "/api/v2/open/management/systems/{system_id}/grade_managers/{grade_manager_id}/groups/".format(
             system_id=system_id, grade_manager_id=grade_manager_id
         )
-        ok, message, data = self._call_iam_api(http_post, path, data)
+        ok, message, data = self._call_apigateway_api(http_post, path, data)
         return ok, message, data
 
     # 用户组授权
@@ -30,7 +30,7 @@ class Client(IAMClient):
         path = "/api/v2/open/management/systems/{system_id}/groups/{group_id}/policies".format(
             system_id=system_id, group_id=group_id
         )
-        ok, message, data = self._call_iam_api(http_post, path, data)
+        ok, message, data = self._call_apigateway_api(http_post, path, data)
         return ok, message, data
 
     # 添加用户组成员
@@ -38,7 +38,7 @@ class Client(IAMClient):
         path = "/api/v2/open/management/systems/{system_id}/groups/{group_id}/members".format(
             system_id=system_id, group_id=group_id
         )
-        ok, message, data = self._call_iam_api(http_post, path, data)
+        ok, message, data = self._call_apigateway_api(http_post, path, data)
         return ok, message, data
 
     # 查询用户组
@@ -46,7 +46,7 @@ class Client(IAMClient):
         path = "/api/v2/open/management/systems/{system_id}/grade_managers/{grade_manager_id}/groups".format(
             system_id=system_id, grade_manager_id=grade_manager_id
         )
-        ok, message, data = self._call_iam_api(http_get, path, data)
+        ok, message, data = self._call_apigateway_api(http_get, path, data)
         return ok, message, data
 
     # 更新用户组名字和描述
@@ -54,13 +54,11 @@ class Client(IAMClient):
         path = "/api/v2/open/management/systems/{system_id}/groups/{group_id}/".format(
             system_id=system_id, group_id=group_id
         )
-        ok, message, data = self._call_iam_api(http_put, path, data)
+        ok, message, data = self._call_apigateway_api(http_put, path, data)
         return ok, message, data
 
 
 class IAM(BaseIAM):
-    def __init__(
-        self, app_code, app_secret, bk_iam_host=None, bk_paas_host=None, bk_apigateway_url=None, api_version="v2"
-    ):
-        super().__init__(app_code, app_secret, bk_iam_host, bk_paas_host, bk_apigateway_url, api_version)
-        self._client = Client(app_code, app_secret, bk_iam_host, bk_paas_host, bk_apigateway_url)
+    def __init__(self, app_code, app_secret, bk_apigateway_url=None, bk_tenant_id="", api_version="v2"):
+        super().__init__(app_code, app_secret, bk_apigateway_url, bk_tenant_id, api_version)
+        self._client = Client(app_code, app_secret, bk_apigateway_url, bk_tenant_id)

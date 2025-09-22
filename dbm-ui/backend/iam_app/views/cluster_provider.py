@@ -41,8 +41,16 @@ class ClusterResourceProvider(BaseModelResourceProvider):
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         # 资源过滤的字段
         filter.keyword_field = "immute_domain__icontains"
+        # 基础过滤条件
+        conditions = {"cluster_type__in": self.cluster_types}
+
+        # 添加基于tenant的bk_biz_id过滤
+        bk_biz_ids = self.get_bk_biz_id_from_tenant()
+        if bk_biz_ids:
+            conditions["bk_biz_id__in"] = bk_biz_ids
+
         # 资源其他过滤条件，会同keyword_field一起组成Q查询
-        filter.conditions = {"cluster_type__in": self.cluster_types}
+        filter.conditions = conditions
         return super().list_instance(filter, page, **options)
 
     def search_instance(self, filter, page, **options):

@@ -19,8 +19,10 @@ from iam.resource.provider import ListResult, ResourceProvider
 from iam.resource.utils import FancyDict, Page
 
 from backend.components.base import DataAPI
+from backend.db_meta.models.app import AppCache
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.handlers.converter import InterfaceConverter
+from backend.utils.local import local
 
 
 class CommonProviderMixin(object):
@@ -191,6 +193,19 @@ class BaseModelResourceProvider(BaseResourceProvider):
 
     resource_meta: ResourceMeta = None
     model: models.Model = None
+
+    def get_bk_biz_id_from_tenant(self):
+        """从本地线程存储的tenant_id获取关联的bk_biz_id列表"""
+        # 从线程本地存储获取tenant_id
+        tenant_id = getattr(local, "tenant_id", None)
+        if not tenant_id:
+            return None
+
+        # 根据tenant_id获取该租户下所有的bk_biz_id
+        bk_biz_ids = AppCache.objects.filter(tenant_id=tenant_id).values_list("bk_biz_id", flat=True)
+        if not bk_biz_ids:
+            return None
+        return bk_biz_ids
 
     def get_model_bk_iam_path(self, model, instances, *args, **kwargs) -> Dict:
         """获取带有模型实例的bk_iam_path"""

@@ -71,6 +71,7 @@ BK_IAM_API_VERSION = get_type_env(key="BK_IAM_API_VERSION", _type=str, default="
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 BK_IAM_GRADE_MANAGER_ID = get_type_env(key="BK_IAM_GRADE_MANAGER_ID", _type=int, default=0)
+BKPAAS_APP_TENANT_ID = get_type_env(key="BKPAAS_APP_TENANT_ID", _type=str, default="system")
 
 # APIGW 相关配置
 BK_APIGATEWAY_DOMAIN = get_type_env(key="BK_APIGATEWAY_DOMAIN", _type=str, default=BK_COMPONENT_API_URL)

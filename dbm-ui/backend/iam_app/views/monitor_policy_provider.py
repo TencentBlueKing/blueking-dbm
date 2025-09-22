@@ -49,6 +49,7 @@ class MonitorPolicyResourceProvider(BaseModelResourceProvider):
         filter.value_list = [self.resource_meta.lookup_field, *self.resource_meta.display_fields]
         filter.keyword_field = "name__icontains"
         # 默认给上bk_biz_id=0的过滤，如果监控有业务层级，则被覆盖不影响
+        # todo:
         filter.conditions = {"bk_biz_id": 0}
         return super().list_instance(filter, page, **options)
 
