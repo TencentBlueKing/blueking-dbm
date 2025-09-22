@@ -17,7 +17,7 @@
       <BkDatePicker
         v-model="state.filter.daterange"
         :placeholder="t('选择日期范围')"
-        style="width: 300px; margin-left: auto"
+        style="width: 300px"
         type="daterange"
         @change="fetchTableData" />
       <DbSearchSelect

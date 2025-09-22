@@ -108,7 +108,12 @@ export function getReport(path: string, params: Record<string, any>, payload = {
   return http.get<{
     count: number;
     name: string;
-    results: Record<string, string>[];
+    results: Record<string, any>[];
+    state_count: {
+      abnormal: number;
+      normal: number;
+      warning: number;
+    };
     title: {
       display_name: string;
       format: string;
