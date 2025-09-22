@@ -24,8 +24,9 @@ from backend.db_meta.enums import ClusterType
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.utils.time import datetime2timestamp
 
-from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait
+from .const import SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
+from .global_msg import GetOrSaveSwitchWait
 from .message import send_msg_2_qywx
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
@@ -136,39 +137,20 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
                 swiched_host.ip, swiched_host.switch_ports, swiched_host
             )
         )
-        waiter = REDIS_SWITCH_WAITER.get(swiched_host.ip)
-        if not waiter:
-            REDIS_SWITCH_WAITER[swiched_host.ip] = RedisSwitchWait(
-                ip=swiched_host,
-                err=swiched_host.sw_result,
-                entry=datetime2timestamp(datetime.datetime.now(timezone.utc)),
-                counter=1,
+        waiter = GetOrSaveSwitchWait(swiched_host.ip, swiched_host.sw_result)
+        logger.info(
+            "machine {} {} NOT all instance swithed , need wait seconds {}".format(
+                swiched_host.ip, swiched_host.switch_ports, waiter
             )
-            logger.info(
-                "machine {} {} NOT all instance swithed , need wait seconds {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, swiched_host
-                )
-            )
+        )
+        if waiter["counter"] == 1:
             if wait_small_uid <= swiched_host.sw_min_id:
                 wait_small_uid = swiched_host.sw_min_id
-            continue
-        elif (now_timestamp - waiter.entry) > SWITCH_MAX_WAIT_SECONDS:
-            if (now_timestamp - waiter.entry) > SWITCH_MAX_WAIT_SECONDS * 6:
-                waiter.entry = now_timestamp
-                waiter.counter = 1
-                waiter.err = ""
-                logger.info(
-                    "machine {} {} NOT all instance swithed , need wait seconds. {}".format(
-                        swiched_host.ip, swiched_host.switch_ports, swiched_host
-                    )
-                )
-                if wait_small_uid <= swiched_host.sw_min_id:
-                    wait_small_uid = swiched_host.sw_min_id
-                continue
+        elif (now_timestamp - float(waiter["start"])) > SWITCH_MAX_WAIT_SECONDS:
             # 等待切换超时
             logger.info(
                 "machine {} {} NOT all instance swithed , wait timeout entry time : {} {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host
+                    swiched_host.ip, swiched_host.switch_ports, waiter, swiched_host
                 )
             )
             swiched_host.ignore_fix = True
@@ -176,15 +158,6 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             save_ignore_host(swiched_host, "wait_timeout")
             if ignore_max_uid >= swiched_host.sw_max_id:
                 ignore_max_uid = swiched_host.sw_max_id + 1
-        else:
-            logger.info(
-                "machine {} {} NOT all instance swithed , continue wait entry time : {} {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host
-                )
-            )
-            if wait_small_uid <= swiched_host.sw_min_id:
-                wait_small_uid = swiched_host.sw_min_id
-            waiter.counter = waiter.counter + 1
 
     # end for
     next_watch_id = succ_max_uid
