@@ -16,65 +16,65 @@
       {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     v-if="ticketDetails.details.shrink_type === 'HOST'"
     :data="tableData"
-    :show-overflow="false">
-    <BkTableColumn
-      field="ip"
-      :label="t('目标主机')"
-      :min-width="200" />
-    <BkTableColumn
-      field="domain"
-      :label="t('关联集群')"
-      :min-width="250" />
-    <BkTableColumn
-      field="online_switch_type"
-      :label="t('切换模式')"
-      :min-width="150" />
-  </BkTable>
-  <BkTable
+    row-key="ip">
+    <TableColumn
+      col-key="ip"
+      :min-width="200"
+      :title="t('目标主机')" />
+    <TableColumn
+      col-key="domain"
+      :min-width="250"
+      :title="t('关联集群')" />
+    <TableColumn
+      col-key="online_switch_type"
+      :min-width="150"
+      :title="t('切换模式')" />
+  </PrimaryTable>
+  <PrimaryTable
     v-else
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('架构版本')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前数量(台)')"
-      :min-width="100">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="100"
+      :title="t('当前数量(台)')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.proxy_reduced_hosts.length + data.target_proxy_count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容数量(台)')"
-      :min-width="100">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="100"
+      :title="t('缩容数量(台)')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.proxy_reduced_hosts.length }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_proxy_count"
-      :label="t('剩余数量(台)')"
-      :min-width="100" />
-    <BkTableColumn :label="t('切换模式')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="target_proxy_count"
+      :min-width="100"
+      :title="t('剩余数量(台)')" />
+    <TableColumn :label="t('切换模式')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.online_switch_type === 'no_confirm' ? t('无需确认') : t('需人工确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

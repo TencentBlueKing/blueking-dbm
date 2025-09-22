@@ -12,17 +12,17 @@
 -->
 
 <template>
-  <BkTable
-    border
+  <PrimaryTable
+    bordered
     :data="tableData"
-    :merge-cells="mergeCells"
     :row-class-name="generateRowClass"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="ip"
+    :rowspan-and-colspan="createTableMerge(mergeCells)">
+    <TableColumn
       field="ip"
       :label="t('目标主机')"
       :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.ip || '--' }}</p>
         <div
           v-if="data?.related_slave_ip"
@@ -31,12 +31,12 @@
           <p>-- {{ data?.related_slave_ip }}</p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       field="role"
       :label="t('角色类型')"
       :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.role || '--' }}</p>
         <p
           v-if="data?.related_slave_ip"
@@ -44,20 +44,20 @@
           redis_slave
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       field="cluster_domain"
       :label="t('所属集群')"
       :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.cluster_domain || '--' }}</p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       field="spec_config"
       :label="t('规格需求')"
       :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <div class="has-related">
           {{ data.spec_config?.name || '--' }}
           <SpecPanel
@@ -84,8 +84,8 @@
           </SpecPanel>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">
@@ -99,6 +99,8 @@
   import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
 
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+
+  import { createTableMerge } from '@/utils';
 
   interface Props {
     ticketDetails: TicketModel<Redis.ResourcePool.ClusterCutoff>;

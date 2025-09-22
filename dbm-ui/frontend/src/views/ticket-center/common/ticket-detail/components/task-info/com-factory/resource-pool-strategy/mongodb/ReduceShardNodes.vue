@@ -12,35 +12,38 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn
+  <PrimaryTable
+    :data="tableData"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{data}: {data: RowData}">
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{row:data}: {row: RowData}">
         <div
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_type_text"
-      :label="t('集群类型')"
-      :min-width="150" />
-    <BkTableColumn
-      field="current_shard_nodes_num"
-      :label="t('当前Shard的节点数')"
-      :min-width="150" />
-    <BkTableColumn
-      :label="t('缩容至（节点数）')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_text"
+      :min-width="150"
+      :title="t('集群类型')" />
+    <TableColumn
+      col-key="current_shard_nodes_num"
+      :min-width="150"
+      :title="t('当前Shard的节点数')" />
+    <TableColumn
+      :min-width="150"
+      :title="t('缩容至（节点数）')">
       <template #default="{ row }: { row: RowData }">
         {{ row.current_shard_nodes_num - row.reduce_shard_nodes }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ !ticketDetails.details.is_safe ? t('是') : t('否') }}

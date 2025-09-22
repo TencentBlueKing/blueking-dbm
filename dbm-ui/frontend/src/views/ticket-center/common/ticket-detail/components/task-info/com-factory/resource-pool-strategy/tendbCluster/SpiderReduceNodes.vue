@@ -17,60 +17,61 @@
       {{ ticketDetails.details.shrink_type === 'HOST' ? t('指定主机缩容') : t('指定数量缩容') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     v-if="ticketDetails.details.shrink_type === 'HOST'"
     :data="tableData"
-    :merge-cells="mergeCells">
-    <BkTableColumn
-      field="ip"
-      :label="t('目标主机')"
-      :min-width="200" />
-    <BkTableColumn
-      field="role"
-      :label="t('缩容节点类型')"
-      :min-width="150" />
-    <BkTableColumn
-      field="domain"
-      :label="t('关联集群')"
-      :min-width="250" />
-  </BkTable>
-  <BkTable
+    row-key="ip"
+    :rowspan-and-colspan="createTableMerge(mergeCells)">
+    <TableColumn
+      col-key="ip"
+      :min-width="200"
+      :title="t('目标主机')" />
+    <TableColumn
+      col-key="role"
+      :min-width="150"
+      :title="t('缩容节点类型')" />
+    <TableColumn
+      col-key="domain"
+      :min-width="250"
+      :title="t('关联集群')" />
+  </PrimaryTable>
+  <PrimaryTable
     v-else
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容节点类型')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('缩容节点类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.reduce_spider_role === 'spider_master' ? 'Spider Master' : 'Spider Slave' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前数量(台)')"
-      :min-width="100">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="100"
+      :title="t('当前数量(台)')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.spider_reduced_hosts.length + data.spider_reduced_to_count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容数量(台)')"
-      :min-width="100">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="100"
+      :title="t('缩容数量(台)')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.spider_reduced_hosts.length }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       field="spider_reduced_to_count"
-      :label="t('剩余数量(台)')"
-      :min-width="100" />
-  </BkTable>
+      :min-width="100"
+      :title="t('剩余数量(台)')" />
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
@@ -85,6 +86,8 @@
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import { createTableMerge } from '@/utils';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 

@@ -12,23 +12,26 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标分片集群')"
-      :min-width="200">
+      :min-width="200"
+      :title="t('目标分片集群')">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容节点类型')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('缩容节点类型')">
       <template #default> mongos </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前规格')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('当前规格')">
       <template #default>
         {{ specInfo.name }}
         <SpecPanel
@@ -40,15 +43,15 @@
             type="visible1" />
         </SpecPanel>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('缩容的IP')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('缩容的IP')">
       <template #default="{ row }: { row: RowData }">
         {{ row.old_nodes.mongos?.length > 0 ? row.old_nodes.mongos.map((item) => item.ip).join(',') : '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
