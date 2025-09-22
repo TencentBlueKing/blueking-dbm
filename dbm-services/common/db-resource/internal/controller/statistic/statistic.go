@@ -127,7 +127,7 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 		s.SendResponse(c, fmt.Errorf("must specify biz"), "must specify biz")
 		return
 	}
-	dbmClient := dbmapi.NewDbmClient()
+	dbmClient := GetDbmClient()
 	specList, err := dbmClient.GetDbmSpec(param.SpecParam.getQueryParam(param.EnableSpec))
 	if err != nil {
 		logger.Error("get dbm spec failed: %v", err)
@@ -488,6 +488,11 @@ func parseSpecGroupKey(groupKey string) (dedicatedBiz int, city string, specId i
 	specId, err = strconv.Atoi(cols[2])
 	return dedicatedBiz, city, specId, err
 }
+
+// relationMap 存储主机与可能对应的规格关系
+// parseSpecGroupKey 解析分组键，返回专用业务ID、城市和规格ID
+// groupKey 格式应为 "dedicatedBiz:city:specId"
+// 若格式不正确或转换失败，返回错误
 
 func rsMatchSpecs(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) (relationMap map[int][]int,
 	noSpecIpList []string) {

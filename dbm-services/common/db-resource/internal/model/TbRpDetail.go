@@ -76,6 +76,8 @@ type TbRpDetail struct {
 	OsVersion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
 	//  操作系统名称
 	OsName string `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`
+	//  操作系统名称原始
+	OsNameOrigin string `gorm:"column:os_name_origin;type:varchar(128);not null;comment:'操作系统名称原始'" json:"os_name_origin"`
 	//  磁盘Raid
 	Raid string `gorm:"column:raid;type:varchar(20);not null" json:"raid"`
 	//  实际城市ID

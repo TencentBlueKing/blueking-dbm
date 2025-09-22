@@ -267,8 +267,9 @@ func SyncOsNameInfo() (err error) {
 		for _, ccInfo := range ccInfos {
 			err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ? and  bk_biz_id = ? ", ccInfo.InnerIP, bizId).
 				Updates(map[string]interface{}{
-					"os_name":    util.CleanOsName(ccInfo.OSName),
-					"os_version": ccInfo.BkOsVersion,
+					"os_name":        util.CleanOsName(ccInfo.OSName),
+					"os_version":     ccInfo.BkOsVersion,
+					"os_name_origin": ccInfo.OSName,
 				}).Error
 			if err != nil {
 				logger.Warn("request cmdb api failed %s", err.Error())
