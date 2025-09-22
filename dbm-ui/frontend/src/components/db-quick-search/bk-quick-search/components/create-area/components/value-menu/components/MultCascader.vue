@@ -158,6 +158,12 @@
     };
   };
 
+  const calcPanelWidth = () => {
+    setTimeout(() => {
+      contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+    });
+  };
+
   let isInnerSelfChange = false;
   watch(
     modelValue,
@@ -201,10 +207,7 @@
           }
         }
       }
-
-      setTimeout(() => {
-        contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
-      });
+      calcPanelWidth();
     },
     {
       immediate: true,
@@ -213,6 +216,7 @@
 
   const handleSelectParent = (item: IResult) => {
     parentKey.value = item.value;
+    calcPanelWidth();
   };
 
   const handleParentChange = (checked: boolean, data: IResult) => {
