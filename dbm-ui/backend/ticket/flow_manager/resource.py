@@ -214,6 +214,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                 _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"], resp.get("message"))
             )
 
+        # 获得规格信息
         resource_specs = (
             [ticket_data["resource_spec"]]
             if ticket_data.get("resource_spec")
@@ -225,7 +226,6 @@ class ResourceApplyFlow(BaseTicketFlow):
             for role, spec in resource.items()
             if spec.get("spec_id")
         }
-
         spec_map = {
             spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=list(first_key_spec_id_map.values()))
         }

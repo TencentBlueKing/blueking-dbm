@@ -165,7 +165,7 @@ class Spec(AuditedModel):
         """
         根据规格和分组要求，获取资源申请参数
         @param group_mark: 组名
-        @param group_count: 每组资源数量 TODO: 此参数后续可被tolerance代替
+        @param group_count: 每组资源数量
         @param count: 总数量. count // group_count表示申请组数，每一组都会有亲和性和位置参数的限制
         比如你想申请一批proxy机器，要求这一批proxy机器:
         1. 至少分布在2个以上的机房，那么亲和性你就需要选择"跨机房"，group_count=2
