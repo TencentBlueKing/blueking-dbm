@@ -22,20 +22,49 @@
  * SOFTWARE.
  */
 
-package apm
+package haapm
 
 import "dbm-services/common/go-pubpkg/apm/metric"
 
-var Metrics []*metric.Metric
+// HaCounter is a Metric that represents a single numerical value that only ever
+// goes up. That implies that it cannot be used to count items whose number can
+// also go down, e.g. the number of currently running goroutines. Those
+// "counters" are represented by Gauges.
+//
+// A Counter is typically used to count requests served, tasks completed, errors
+// occurred, etc.
+//
+// To create HaCounter instances, use NewHaCounter.
+type HaCounter struct {
+	metric *metric.Metric
+}
 
-var (
-	SyncDbmMetadataDurationMetric = &metric.Metric{
-		ID:          "sync_dbm_metadata_duration",
-		Name:        "sync_dbm_metadata_duration_ms",
-		Description: "The time-consuming of synchronizing DBM metadata",
+func (m *HaCounter) ToMetric() *metric.Metric {
+	return (*metric.Metric)(m.metric)
+}
+
+func (m *HaCounter) Inc() {
+	m.metric.Inc()
+}
+
+func (m *HaCounter) Add(val float64) {
+	m.metric.Add(val)
+}
+
+func NewHaCounter(name, help string, labels ...string) *HaCounter {
+	counter := &HaCounter{}
+	counter.metric = &metric.Metric{
+		ID:          name,
+		Name:        name,
+		Description: help,
 	}
-)
 
-func init() {
-	Metrics = append(Metrics, &metric.Metric{})
+	if len(labels) == 0 {
+		counter.metric.Type = MetricTypeCounter.String()
+	} else {
+		counter.metric.Type = MetricTypeCounterVec.String()
+		counter.metric.Labels = append(counter.metric.Labels, labels...)
+	}
+
+	return counter
 }
