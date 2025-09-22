@@ -205,13 +205,13 @@ TENDBCLUSTER_SPIDER_SWITCH_NODES_DATA = {
                 "resource_spec": {"spider_master": {"count": 1, "labels": [], "spec_id": 234}},
                 "spider_old_ip_list": [{"bk_cloud_id": 0, "bk_host_id": 123, "ip": "5.5.5.5", "port": 20001}],
                 "switch_spider_role": "spider_master",
-                "old_nodes": {
-                    "spider_master": [{"bk_cloud_id": 0, "bk_host_id": 123, "ip": "5.5.5.5"}],
-                    "spider_slave": [],
-                },
             }
         ],
         "ip_source": "resource_pool",
+        "old_nodes": {
+            "spider_master": [{"bk_cloud_id": 0, "bk_host_id": 123, "ip": "5.5.5.5"}],
+            "spider_slave": [],
+        },
     },
     "remark": "",
     "ticket_type": "TENDBCLUSTER_SPIDER_SWITCH_NODES",
