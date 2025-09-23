@@ -29,6 +29,7 @@
             :is-assist="isTodoAssist"
             :is-show-all="isPlatform"
             :is-todos="!isInspectionReport"
+            :show-only-abnormal="!isTodoPage"
             style="margin-bottom: 16px"
             @change="handleSearchChange" />
         </div>

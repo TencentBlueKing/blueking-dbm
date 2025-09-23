@@ -1,7 +1,7 @@
 <template>
   <div class="inspection-search-operations">
     <BkCheckbox
-      v-if="!isTodos"
+      v-if="showOnlyAbnormal"
       v-model="isOnlyAbnormal"
       >{{ t('仅显示预警 / 异常') }}</BkCheckbox
     >
@@ -38,6 +38,7 @@
     isAssist?: boolean;
     isShowAll?: boolean;
     isTodos?: boolean;
+    showOnlyAbnormal?: boolean;
   }
 
   type Emits = (e: 'change', value: Record<string, any>) => void;
@@ -46,6 +47,7 @@
     isAssist: false,
     isShowAll: false,
     isTodos: false,
+    showOnlyAbnormal: true,
   });
   const emits = defineEmits<Emits>();
 
