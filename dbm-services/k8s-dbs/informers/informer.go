@@ -17,10 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package informer
+package informers
 
 import (
 	"context"
+	"fmt"
 	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
 	entitys "k8s-dbs/metadata/entity"
@@ -37,8 +38,8 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 )
 
-// StartInformer 启动 informer
-func StartInformer(ctx context.Context) {
+// StartInformers 启动 informer
+func StartInformers(ctx context.Context) {
 	k8sClusterConfigProvider := metaprovider.
 		NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(util.Db.GormDb))
 	opsMetaProvider := metaprovider.
@@ -52,43 +53,54 @@ func StartInformer(ctx context.Context) {
 	}
 
 	for _, clusterConfig := range k8sClusterConfigs {
-		startOpsInformer(ctx, clusterConfig, clusterMetaProvider, opsMetaProvider)
+		clusterInformer := NewClusterInformer(clusterConfig, clusterMetaProvider)
+		startGenericInformer(ctx, clusterConfig, clusterInformer, "clusterInformer")
+
+		opsInformer := NewOpsRequestInformer(clusterConfig, clusterMetaProvider, opsMetaProvider)
+		startGenericInformer(ctx, clusterConfig, opsInformer, "opsInformer")
 	}
 	slog.Info("Finished starting all opsInformer")
 }
 
-// startOpsInformer 启动单个 opsInformer
-func startOpsInformer(
+// DbsInformerStarter 定义所有 informer 必须实现的启动方法
+type DbsInformerStarter interface {
+	Start(ctx context.Context, factory dynamicinformer.DynamicSharedInformerFactory) error
+}
+
+// startGenericInformer 封装公共的 informer 启动逻辑
+func startGenericInformer(
 	ctx context.Context,
 	clusterConfig *entitys.K8sClusterConfigEntity,
-	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
-	opsMetaProvider metaprovider.K8sCrdOpsRequestProvider,
+	informerStarter DbsInformerStarter,
+	informerName string,
 ) {
-	slog.Info("Begin to starting opsInformer", "k8sClusterName", clusterConfig.ClusterName)
+	slog.Info(fmt.Sprintf("Begin to starting %s", informerName),
+		"k8sClusterName", clusterConfig.ClusterName)
+
 	k8sClient, err := commutil.NewK8sClient(clusterConfig)
 	if err != nil {
 		slog.Error("failed to create k8s client", "error", err)
 		return
 	}
 
-	factory := dynamicinformer.NewDynamicSharedInformerFactory(
-		k8sClient.DynamicClient,
-		time.Second*30,
-	)
-	ctxInformer, cancelInformer := context.WithCancel(ctx)
-	opsInformer := NewOpsRequestInformer(clusterConfig, clusterMetaProvider, opsMetaProvider)
+	factory := dynamicinformer.NewDynamicSharedInformerFactory(k8sClient.DynamicClient, time.Second*30)
+	informerCtx, cancelInformer := context.WithCancel(ctx)
 
+	// 调用具体 informer 的 Start 方法
 	go func() {
-		if err = opsInformer.Start(ctxInformer, factory); err != nil {
+		if err := informerStarter.Start(informerCtx, factory); err != nil {
 			cancelInformer()
-			slog.Error("failed to start ops informer", "error", err)
+			slog.Error(fmt.Sprintf("%s failed to start", informerName), "error", err)
 			return
 		}
 	}()
 
+	// 监听 ctx.Done() 取消 informer
 	go func() {
 		<-ctx.Done()
 		cancelInformer()
 	}()
-	slog.Info("Finished starting opsInformer", "k8sClusterName", clusterConfig.ClusterName)
+
+	slog.Info(fmt.Sprintf("Finished starting %s", informerName),
+		"k8sClusterName", clusterConfig.ClusterName)
 }

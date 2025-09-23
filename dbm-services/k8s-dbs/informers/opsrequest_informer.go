@@ -17,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package informer
+package informers
 
 import (
 	"context"
@@ -27,14 +27,12 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
-	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
-	"github.com/pkg/errors"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 )
@@ -64,58 +62,20 @@ func (o *OpsRequestInformer) Start(
 	ctx context.Context,
 	factory dynamicinformer.DynamicSharedInformerFactory,
 ) error {
-	slog.Info("Starting informer...", "k8sClusterName", o.k8sClusterConfig.ClusterName)
-	genericOpsInformer := factory.ForResource(kbtypes.OpsGVR())
-	opsInformer := genericOpsInformer.Informer()
-	_, err := opsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	slog.Info("Starting OpsRequestInformer...", "k8sClusterName", o.k8sClusterConfig.ClusterName)
+	handler := cache.ResourceEventHandlerFuncs{
 		UpdateFunc: o.OnUpdate,
-	})
-
-	if err != nil {
-		return errors.Wrap(err, "failed to add OpsRequest handler")
 	}
-
-	// 启动 informer
-	go opsInformer.Run(ctx.Done())
-
-	// 设计缓存同步超时
-	syncCtx, syncCancel := context.WithTimeout(ctx, 60*time.Second)
-	defer syncCancel()
-
-	// 等待缓存同步
-	if !cache.WaitForCacheSync(syncCtx.Done(), opsInformer.HasSynced) {
-		if errors.Is(syncCtx.Err(), context.DeadlineExceeded) {
-			slog.Error("OpsInformer cache sync timed out",
-				"timeout", "60s",
-				"k8sClusterName", o.k8sClusterConfig.ClusterName,
-			)
-			return errors.New("OpsInformer cache sync timed out after 60 seconds")
-		}
-		return errors.Wrap(ctx.Err(), "context cancelled while waiting for cache sync")
+	if err := DoStart(
+		ctx,
+		kbtypes.OpsGVR(),
+		factory,
+		handler,
+		"OpsRequestInformer",
+	); err != nil {
+		slog.Error("Error starting informer for OpsRequestInformer. ", "error", err)
+		return err
 	}
-
-	slog.Info("OpsRequest Informer started and cache synced successfully",
-		"k8sClusterName", o.k8sClusterConfig.ClusterName)
-
-	// 健康检查 goroutine
-	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				if !opsInformer.HasSynced() {
-					slog.Warn("opsInformer cache lost sync", "k8sClusterName", o.k8sClusterConfig.ClusterName)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	// 等待终止信号
-	<-ctx.Done()
 	slog.Info("Shutting down informer...", "k8sClusterName", o.k8sClusterConfig.ClusterName)
 	return nil
 }

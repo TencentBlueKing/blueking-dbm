@@ -26,7 +26,7 @@ import (
 	"k8s-dbs/core"
 	_ "k8s-dbs/core/checker/addonoperation"
 	"k8s-dbs/core/util"
-	dbsinformer "k8s-dbs/informer"
+	dbsinformer "k8s-dbs/informers"
 	"k8s-dbs/router"
 	_ "k8s-dbs/router/core"
 	_ "k8s-dbs/router/dataweb"
@@ -64,7 +64,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	dbsinformer.StartInformer(ctx)
+	dbsinformer.StartInformers(ctx)
 
 	startServer(r.Engine, cancel)
 
