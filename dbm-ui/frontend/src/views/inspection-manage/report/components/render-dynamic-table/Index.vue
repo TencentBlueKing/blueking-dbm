@@ -5,21 +5,23 @@
     <BlockCard>
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
-        <span class="ml-6 mr-2">(</span>
-        <template v-if="!isOnlyAbnormal">
-          <span>{{ t('正常') }}</span>
+        <template v-if="isShowStateCount">
+          <span class="ml-6 mr-2">(</span>
+          <template v-if="!isOnlyAbnormal">
+            <span>{{ t('正常') }}</span>
+            <span class="ml-4 mr-4">:</span>
+            <span style="color: #2caf5e; font-weight: 700">{{ stateCountsMap.normal }}</span>
+            <span class="ml-4 mr-4">,</span>
+          </template>
+          <span>{{ t('预警') }}</span>
           <span class="ml-4 mr-4">:</span>
-          <span style="color: #2caf5e; font-weight: 700">{{ stateCountsMap.normal }}</span>
+          <span style="color: #f59500; font-weight: 700">{{ stateCountsMap.warning }}</span>
           <span class="ml-4 mr-4">,</span>
+          <span>{{ t('异常') }}</span>
+          <span class="ml-4 mr-4">:</span>
+          <span style="color: #ea3636; font-weight: 700">{{ stateCountsMap.abnormal }}</span>
+          <span class="ml-2">)</span>
         </template>
-        <span>{{ t('预警') }}</span>
-        <span class="ml-4 mr-4">:</span>
-        <span style="color: #f59500; font-weight: 700">{{ stateCountsMap.warning }}</span>
-        <span class="ml-4 mr-4">,</span>
-        <span>{{ t('异常') }}</span>
-        <span class="ml-4 mr-4">:</span>
-        <span style="color: #ea3636; font-weight: 700">{{ stateCountsMap.abnormal }}</span>
-        <span class="ml-2">)</span>
       </template>
       <PrimaryTable
         :data="tableData"
@@ -94,6 +96,7 @@
   interface Props {
     isOnlyAbnormal?: boolean;
     isPlatform?: boolean;
+    isShowStateCount?: boolean;
     searchParams: Record<string, any>;
     serviceUrl: string;
   }
@@ -112,6 +115,7 @@
   const props = withDefaults(defineProps<Props>(), {
     isOnlyAbnormal: false,
     isPlatform: false,
+    isShowStateCount: true,
   });
 
   const { t } = useI18n();

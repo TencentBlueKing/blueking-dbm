@@ -38,6 +38,7 @@
           ref="dynamicTablesRef"
           :is-only-abnormal="isOnlyAbnormal"
           :is-platform="isPlatform"
+          :is-show-state-count="!isTodoPage"
           :search-params="searchParams"
           :service-url="url" />
       </div>
@@ -85,6 +86,7 @@
   const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
   const isInspectionReport = computed(() => route.name === 'inspectionReport');
+  const isTodoPage = computed(() => route.name === 'InspectionTodos');
   const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
 
   const serviceList = computed(() => {
