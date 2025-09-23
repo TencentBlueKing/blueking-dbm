@@ -255,6 +255,7 @@ def update_status(payloads: List, bk_cloud_id: int):
 def swap_role(payloads: List, bk_cloud_id: int):
     """
     可以用来操作 tendbha 和 tendbcluster 的存储层
+    swap 没有限定 ins1, ins2 谁是谁, 只是做交换
     """
     DBHASwapRequestSerializer(data={"payloads": payloads}).is_valid(raise_exception=True)
     for pl in payloads:
@@ -262,10 +263,10 @@ def swap_role(payloads: List, bk_cloud_id: int):
         ins2 = pl["instance2"]
 
         ins1_obj = StorageInstance.objects.get(
-            machine__ip=ins1["ip"], port=ins1["port"], machine__bk_cloud_id=bk_cloud_id
+            machine__ip=ins1["ip"], port=ins1["port"], machine__bk_cloud_id=bk_cloud_id, is_stand_by=True
         )
         ins2_obj = StorageInstance.objects.get(
-            machine__ip=ins2["ip"], port=ins2["port"], machine__bk_cloud_id=bk_cloud_id
+            machine__ip=ins2["ip"], port=ins2["port"], machine__bk_cloud_id=bk_cloud_id, is_stand_by=True
         )
 
         if (
@@ -286,8 +287,16 @@ def swap_role(payloads: List, bk_cloud_id: int):
 
         __swap(ins1_obj, ins2_obj)
 
+        __fix_others(ins1_obj, ins2_obj)
+
 
 def __swap(ins1: StorageInstance, ins2: StorageInstance):
+    """
+    1. 交换了 standby 主备的 tuple 关系
+    2. 维护 proxy 对应的存储实例
+    3. 交换了两个实例的 role
+    4. 这里不要操作 standby slave 域名
+    """
     # 修改 proxy backend
     temp_proxy_set = list(ins1.proxyinstance_set.all())
 
@@ -313,6 +322,24 @@ def __swap(ins1: StorageInstance, ins2: StorageInstance):
 
     ins1.save(update_fields=["instance_role", "instance_inner_role"])
     ins2.save(update_fields=["instance_role", "instance_inner_role"])
+
+
+def __fix_others(ins1: StorageInstance, ins2: StorageInstance):
+    """
+    一定要在 __swap 后执行
+    """
+    if ins1.instance_inner_role == InstanceInnerRole.MASTER:
+        current_master_instance = ins1
+        pre_master_instance = ins2
+    else:
+        current_master_instance = ins2
+        pre_master_instance = ins1
+
+    # 为了能正常展示集群拓扑
+    # 全量维护
+    StorageInstanceTuple.objects.filter(
+        ejector=pre_master_instance,
+    ).update(ejector=current_master_instance)
 
 
 @transaction.atomic
