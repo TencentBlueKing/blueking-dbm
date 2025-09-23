@@ -122,10 +122,10 @@
   const globalBizsStore = useGlobalBizs();
 
   const pagination = reactive({
-    count: 0,
     current: 1,
     limit: 10,
     remote: true,
+    total: 0,
   });
 
   const tableName = ref('');
@@ -153,7 +153,7 @@
     manual: true,
     onSuccess(result) {
       stateCountsMap.value = result.state_count;
-      pagination.count = result.count;
+      pagination.total = result.count;
       tableName.value = result.name;
       titleList.value = result.title;
       tableData.value = result.results;
