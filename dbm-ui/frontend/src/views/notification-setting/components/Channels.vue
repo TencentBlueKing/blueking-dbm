@@ -91,7 +91,10 @@
       if (alarmGroupNotifyList.value) {
         channelList.value = alarmGroupNotifyList.value.reduce<UnwrapRef<typeof channelList>>((prev, notifyItem) => {
           // 消息类型有开启才展示
-          if (notifyItem.is_active && notifyItem.type !== MessageTypes.VOICE) {
+          if (
+            notifyItem.is_active &&
+            ![MessageTypes.SMS, MessageTypes.VOICE].includes(notifyItem.type as MessageTypes)
+          ) {
             // 结合历史配置数据进行回显
             const isExist = _.has(props.data, notifyItem.type);
             const channelItem = InputMessageTypes.includes(notifyItem.type)
