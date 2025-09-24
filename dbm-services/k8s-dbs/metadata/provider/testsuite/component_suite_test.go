@@ -135,3 +135,24 @@ func (suite *ComponentProviderTestSuite) TestGetComponent() {
 	assert.Equal(t, component.CrdClusterID, foundComponent.CrdClusterID)
 	assert.Equal(t, component.Status, foundComponent.Status)
 }
+
+func (suite *ComponentProviderTestSuite) TestFindComponentsByParams() {
+	t := suite.T()
+	component, err := suite.componentProvider.CreateComponent(componentSample)
+	assert.NoError(t, err)
+	assert.NotZero(t, component.ID)
+
+	var params = &entitys.ComponentQueryParams{
+		ComponentName: "component-01",
+		CrdClusterID:  1,
+	}
+
+	foundComponents, err := suite.componentProvider.FindComponentsByParams(params)
+	assert.NoError(t, err)
+	assert.NotNil(t, foundComponents)
+	assert.Equal(t, 1, len(foundComponents))
+
+	assert.Equal(t, component.ComponentName, foundComponents[0].ComponentName)
+	assert.Equal(t, component.CrdClusterID, foundComponents[0].CrdClusterID)
+	assert.Equal(t, component.Status, foundComponents[0].Status)
+}

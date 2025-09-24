@@ -34,6 +34,7 @@ type K8sCrdComponentProvider interface {
 	CreateComponent(entity *entitys.K8sCrdComponentEntity) (*entitys.K8sCrdComponentEntity, error)
 	DeleteComponentByID(id uint64) (uint64, error)
 	FindComponentByID(id uint64) (*entitys.K8sCrdComponentEntity, error)
+	FindComponentsByParams(params *entitys.ComponentQueryParams) ([]*entitys.K8sCrdComponentEntity, error)
 	UpdateComponent(entity *entitys.K8sCrdComponentEntity) (uint64, error)
 	DeleteComponentByClusterID(id uint64) (uint64, error)
 }
@@ -41,6 +42,22 @@ type K8sCrdComponentProvider interface {
 // K8sCrdComponentProviderImpl K8sCrdComponentProvider 具体实现
 type K8sCrdComponentProviderImpl struct {
 	dbAccess dbaccess.K8sCrdComponentDbAccess
+}
+
+// FindComponentsByParams 参数查询实现
+func (k K8sCrdComponentProviderImpl) FindComponentsByParams(params *entitys.ComponentQueryParams) (
+	[]*entitys.K8sCrdComponentEntity,
+	error,
+) {
+	componentModels, err := k.dbAccess.FindByParams(params)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find component with params %+v", params)
+	}
+	var componentEntities []*entitys.K8sCrdComponentEntity
+	if err = copier.Copy(&componentEntities, componentModels); err != nil {
+		return nil, errors.Wrap(err, "failed to copy")
+	}
+	return componentEntities, nil
 }
 
 // DeleteComponentByClusterID 根据 cluster ID 来删除 component

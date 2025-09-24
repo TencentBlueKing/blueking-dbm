@@ -21,7 +21,9 @@ package dbaccess
 
 import (
 	"fmt"
+	commconst "k8s-dbs/common/constant"
 	"k8s-dbs/common/entity"
+	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 
 	"github.com/pkg/errors"
@@ -34,6 +36,7 @@ type K8sCrdComponentDbAccess interface {
 	Create(model *models.K8sCrdComponentModel) (*models.K8sCrdComponentModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdComponentModel, error)
+	FindByParams(params *metaentity.ComponentQueryParams) ([]*models.K8sCrdComponentModel, error)
 	Update(model *models.K8sCrdComponentModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sCrdComponentModel, int64, error)
 	DeleteByClusterID(id uint64) (uint64, error)
@@ -42,6 +45,25 @@ type K8sCrdComponentDbAccess interface {
 // K8sCrdComponentDbAccessImpl K8sCrdComponentDbAccess 的具体实现
 type K8sCrdComponentDbAccessImpl struct {
 	db *gorm.DB
+}
+
+// FindByParams 参数查询实现
+func (k *K8sCrdComponentDbAccessImpl) FindByParams(params *metaentity.ComponentQueryParams) (
+	[]*models.K8sCrdComponentModel,
+	error,
+) {
+	var componentModels []*models.K8sCrdComponentModel
+	err := k.db.
+		Where(params).
+		Limit(commconst.MaxFetchSize).
+		Find(&componentModels).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find component with params %+v", params)
+	}
+	return componentModels, nil
 }
 
 // DeleteByClusterID 按照 cluster ID 来删除 component
