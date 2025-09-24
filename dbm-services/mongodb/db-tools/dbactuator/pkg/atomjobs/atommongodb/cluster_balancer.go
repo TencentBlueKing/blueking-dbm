@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
@@ -35,6 +37,12 @@ type Balancer struct {
 	ConfParams *BalancerConfParams
 }
 
+// ChunkNum shard 的 chunk 数量
+type ChunkNum struct {
+	ID    string `json:"_id"`
+	Count int    `json:"count"`
+}
+
 // NewBalancer 实例化结构体
 func NewBalancer() jobruntime.JobRunner {
 	return &Balancer{}
@@ -50,6 +58,12 @@ func (b *Balancer) Run() error {
 	// 执行脚本
 	if err := b.execScript(); err != nil {
 		return err
+	}
+	// 监控数据均衡状态
+	if b.ConfParams.Open == true {
+		if err := b.checkBalanceStatus(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -137,12 +151,12 @@ func (b *Balancer) execScript() error {
 		"", nil,
 		60*time.Second)
 	if err != nil {
-		b.runtime.Logger.Error("set cluster balancer status fail, error:%s", err)
-		return fmt.Errorf("set cluster balancer status fail, error:%s", err)
+		b.runtime.Logger.Error("set cluster balancer status:%t fail, error:%s", b.ConfParams.Open, err)
+		return fmt.Errorf("set cluster balancer status:%t fail, error:%s", b.ConfParams.Open, err)
 	}
 	b.runtime.Logger.Info("execute script successfully")
 
-	// 检查状态
+	// 检查设置是否成功
 	b.runtime.Logger.Info("start to check balancer status")
 	result, err = common.CheckBalancer(b.Mongo, b.ConfParams.IP, b.ConfParams.Port,
 		b.ConfParams.AdminUsername, b.ConfParams.AdminPassword)
@@ -157,4 +171,63 @@ func (b *Balancer) execScript() error {
 	}
 
 	return nil
+}
+
+// checkBalanceStatus 开启数据均衡检查数据是否已均衡  1.迁移队列是否为空 2.chunk分布是否均衡
+func (b *Balancer) checkBalanceStatus() error {
+	for {
+		// 每 5 分钟检查一次
+		b.runtime.Logger.Info("wait for 5 minutes before check balancer status")
+		time.Sleep(5 * time.Minute)
+		// 1.迁移队列是否为空
+		b.runtime.Logger.Info("start to check balancer running status")
+		resultBalancerRunning, err := common.CheckBalancerRunning(b.Mongo, b.ConfParams.IP, b.ConfParams.Port,
+			b.ConfParams.AdminUsername, b.ConfParams.AdminPassword)
+		if err != nil {
+			b.runtime.Logger.Error("get balancer running status fail, error:%s", err)
+			return fmt.Errorf("get balancer running status fail, error:%s", err)
+		}
+		flagBalancerRunning, _ := strconv.ParseBool(resultBalancerRunning)
+		b.runtime.Logger.Info("get balancer running status:%t", flagBalancerRunning)
+
+		// 2.chunk分布是否均衡
+		b.runtime.Logger.Info("start to check shard chunk number")
+		resultChunkNumString, err := common.GetShardChunkNum(b.Mongo, b.ConfParams.IP, b.ConfParams.Port,
+			b.ConfParams.AdminUsername, b.ConfParams.AdminPassword)
+		if err != nil {
+			b.runtime.Logger.Error("get chunk number fail, error:%s", err)
+			return fmt.Errorf("get chunk number fail, error:%s", err)
+		}
+		b.runtime.Logger.Info("get chunk number:\n%s", resultChunkNumString)
+		var flagChunkNum bool
+		if resultChunkNumString != "" {
+			var countSlice []int
+			chunkNumSlice := strings.Split(resultChunkNumString, "\n")
+			for _, v := range chunkNumSlice {
+				chunkNum := ChunkNum{}
+				json.Unmarshal([]byte(v), &chunkNum)
+				countSlice = append(countSlice, chunkNum.Count)
+			}
+			sort.Ints(countSlice)
+			minValue := countSlice[0]
+			maxValue := countSlice[len(countSlice)-1]
+			if maxValue-minValue < 6 {
+				flagChunkNum = false
+			} else {
+				flagChunkNum = true
+			}
+
+		} else {
+			flagChunkNum = false
+		}
+
+		// 判断
+		if !flagBalancerRunning && !flagChunkNum {
+			b.runtime.Logger.Info("balance data successfully, isBalancerRunning:%t, shard chunk number:%s",
+				flagBalancerRunning, resultChunkNumString)
+			return nil
+		} else {
+			b.runtime.Logger.Info("balance data continue")
+		}
+	}
 }

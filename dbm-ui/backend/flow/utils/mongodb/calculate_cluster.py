@@ -12,7 +12,13 @@ from copy import deepcopy
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterDefaultPort, MongoDBDomainPrefix, MongoDBTotalCache
+from backend.flow.consts import (
+    MongoDBClusterDefaultPort,
+    MongoDBDomainPrefix,
+    MongoDBTotalCache,
+    MongoOplogSizePercent,
+)
+from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
 
 
 def get_cache_size(memory_size: int, cache_percent: float, num: int) -> int:
@@ -51,7 +57,35 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
         AffinityEnum.CROSS_RACK,
     ]:
         machines = machine_set
+    else:
+        machines = machine_set
     return machines
+
+
+def cluster_shard_get_machine(
+    all_machine: list, shard_info: list, node_count: int, node_replicaset_count: int, disaster_tolerance_level: str
+):
+    """分片集群分配机器"""
+
+    shards = []
+    add_shards = {}
+    for index, machine_set in enumerate(all_machine):
+        # 通过容灾获取机器顺序
+        machines = machine_order_by_tolerance(disaster_tolerance_level, machine_set)
+        # 获取机器对应的多个复制集
+        replica_sets = shard_info[index * node_replicaset_count : node_replicaset_count * (index + 1)]
+        for replica_set in replica_sets:
+            nodes = [{"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]} for machine in machines]
+            replica_set["nodes"] = nodes
+            shards.append(replica_set)
+            if node_count > 1:
+                add_shard_nodes = nodes[0:-1]
+            else:
+                add_shard_nodes = nodes
+            add_shards[replica_set["set_id"]] = ",".join(
+                ["{}:{}".format(node["ip"], str(replica_set["port"])) for node in add_shard_nodes]
+            )
+    return shards, add_shards
 
 
 def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefix: list) -> dict:
@@ -206,7 +240,6 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     # shards
     # 获取shard的id，port
     shard_info = []
-    add_shards = {}
     for i in range(payload["shard_num"]):
         if shard_port in shard_port_not_use:
             shard_port += 1
@@ -219,26 +252,14 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
             }
         )
         shard_port += 1
-    shards = []
-    for index, machine_set in enumerate(payload["nodes"]["mongodb"]):
-        # 通过容灾获取机器顺序
-        machines = machine_order_by_tolerance(payload["disaster_tolerance_level"], machine_set)
-        # 获取机器对应的多个复制集
-        replica_sets = shard_info[index * node_replica_count : node_replica_count * (index + 1)]
-        for replica_set in replica_sets:
-            nodes = [{"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]} for machine in machines]
-            replica_set["nodes"] = nodes
-            shards.append(replica_set)
-            if node_count > 1:
-                add_shard_nodes = nodes[0:-1]
-            else:
-                add_shard_nodes = nodes
-            add_shards[replica_set["set_id"]] = ",".join(
-                ["{}:{}".format(node["ip"], str(replica_set["port"])) for node in add_shard_nodes]
-            )
 
-    payload_clusters["shards"] = shards
-    payload_clusters["add_shards"] = add_shards
+    payload_clusters["shards"], payload_clusters["add_shards"] = cluster_shard_get_machine(
+        all_machine=payload["nodes"]["mongodb"],
+        shard_info=shard_info,
+        node_count=node_count,
+        node_replicaset_count=node_replica_count,
+        disaster_tolerance_level=disaster_tolerance_level,
+    )
 
     # mongos
     mongos = {}
@@ -289,3 +310,121 @@ def calculate_cluster(payload: dict) -> dict:
     elif cluster_type == ClusterType.MongoShardedCluster.value:
         result = cluster_calc(payload, payload_clusters, app)
     return result
+
+
+def calculate_cluster_add_shard(payload: dict) -> dict:
+    """分片集群增加 shard 计算"""
+
+    add_shard_payload = {}
+    add_shard_payload["uid"] = payload["uid"]
+    add_shard_payload["created_by"] = payload["created_by"]
+    add_shard_payload["bk_biz_id"] = payload["bk_biz_id"]
+    add_shard_payload["ticket_type"] = payload["ticket_type"]
+    add_shard_payload["bk_app_abbr"] = payload["bk_app_abbr"]
+    add_shard_payload["cluster_type"] = ClusterType.MongoShardedCluster.value
+
+    # 计算多个cluster
+    cluster_add_shard_info = []
+    for cluster in payload["infos"]:
+        cluster_info = {}
+        cluster_info["cluster_id"] = cluster["cluster_id"]
+        cluster_info["db_version"] = cluster["db_version"]
+        cluster_info["city"] = cluster["city_code"]
+        cluster_info["resource_spec"] = cluster["resource_spec"]
+        cluster_id = cluster["cluster_id"]
+        # 亲和性
+        disaster_tolerance_level = cluster["disaster_tolerance_level"]
+        # 增加总的分片数
+        add_shards_num = cluster["add_shards_num"]
+        # 一个 shard 有多少个 node
+        # current_shard_nodes_num = cluster["current_shard_nodes_num"]
+        # 单机部署分片数
+        node_replicaset_count = cluster["node_replicaset_count"]
+
+        # 从dbconfig获取 key_file
+        cluster_info["key_file"] = ""
+        # 所有的机器
+        hosts = []
+        for host_set in cluster["mongo_add_shards"]:
+            for host in host_set:
+                hosts.append(
+                    {
+                        "ip": host["ip"],
+                        "bk_cloud_id": host["bk_cloud_id"],
+                    }
+                )
+        cluster_info["hosts"] = hosts
+
+        # shard CacheSizeGB
+        shard_avg_mem_size_gb = get_cache_size(
+            memory_size=cluster["mongo_add_shards"][0][0]["bk_mem"],
+            cache_percent=MongoDBTotalCache.Cache_Percent,
+            num=node_replicaset_count,
+        )
+
+        # shard oplogSizeMB
+        data_disk = "/data1"
+        if cluster["mongo_add_shards"][0][0]["storage_device"].get("/data1"):
+            data_disk = "/data1"
+        elif cluster["mongo_add_shards"][0][0]["storage_device"].get("/data"):
+            data_disk = "/data"
+        shard_oplog_size_mb = get_oplog_size(
+            disk_size=cluster["mongo_add_shards"][0][0]["storage_device"].get(data_disk)["size"],
+            oplog_percent=MongoOplogSizePercent.Oplog_Percent.value,
+            num=node_replicaset_count,
+        )
+
+        # 查询集群信息
+        cluster_info_from_db = MongoRepository().fetch_one_cluster(id=cluster_id)
+        cluster_name = cluster_info_from_db.name
+        cluster_info["cluster_name"] = cluster_name
+
+        # 获取 mongos
+        mongos = cluster_info_from_db.get_mongos()[0]
+        cluster_info["mongos"] = {}
+        cluster_info["mongos"]["port"] = mongos.port
+        cluster_info["mongos"]["nodes"] = [
+            {
+                "ip": mongos.ip,
+                "bk_cloud_id": mongos.bk_cloud_id,
+                "port": mongos.port,
+            }
+        ]
+        # 获取 shard 和 config 的端口
+        shard_port_not_use = []
+        for shard in cluster_info_from_db.get_shards():
+            shard_port_not_use.append(shard.members[0].port)
+        shard_port = max(shard_port_not_use) + 1
+        shard_num = len(shard_port_not_use)
+        shard_port_not_use.append(cluster_info_from_db.get_config().members[0].port)
+
+        # 获取新增shard的set_id port
+        shard_info = []
+        for i in range(add_shards_num):
+            if shard_port in shard_port_not_use:
+                shard_port += 1
+            shard_info.append(
+                {
+                    "set_id": "{}-s{}".format(cluster_name, str(shard_num + i + 1)),
+                    "port": shard_port,
+                    "cacheSizeGB": shard_avg_mem_size_gb,
+                    "oplogSizeMB": shard_oplog_size_mb,
+                }
+            )
+            shard_port += 1
+        node_count = len(cluster["mongo_add_shards"][0])
+        cluster_info["node_count"] = node_count
+
+        # 新增的分片信息 新增的分片添加到集群信息
+        cluster_info["shards"], cluster_info["add_shards"] = cluster_shard_get_machine(
+            all_machine=cluster["mongo_add_shards"],
+            shard_info=shard_info,
+            node_count=node_count,
+            node_replicaset_count=node_replicaset_count,
+            disaster_tolerance_level=disaster_tolerance_level,
+        )
+
+        cluster_add_shard_info.append(cluster_info)
+
+    add_shard_payload["cluster_add_shard_info"] = cluster_add_shard_info
+    return add_shard_payload

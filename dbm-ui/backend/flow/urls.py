@@ -89,6 +89,7 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
+    MongoDBClusterAddShardView,
     MongoDBClusterMigrateView,
     MongoDBCreateUserView,
     MongoDBDeInstallView,
@@ -381,6 +382,7 @@ urlpatterns = [
     url(r"^scene/multi_cluster_disable$", MongoDBDisableClusterView.as_view()),
     url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
     url(r"^scene/multi_instance_deinstall$", MongoDBInstanceDeInstallView.as_view()),
+    url(r"^scene/multi_cluster_add_shard$", MongoDBClusterAddShardView.as_view()),
     # mongodb end
     # oracle start
     url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),

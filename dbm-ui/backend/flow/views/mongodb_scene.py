@@ -296,3 +296,15 @@ class MongoDBClusterMigrateView(FlowTestView):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).migrate_meta()
         return Response({"root_id": root_id})
+
+
+class MongoDBClusterAddShardView(FlowTestView):
+    """
+    cluster增加shard
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).cluster_add_shard()
+        return Response({"root_id": root_id})

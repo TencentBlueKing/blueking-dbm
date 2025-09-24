@@ -2344,6 +2344,69 @@ class ActKwargs:
             "usernames": [MongoDBDefaultUser.DefaultUser.value],
         }
 
+    def get_balancer_kwargs(self, open: bool) -> dict:
+        """分片集群操作数据均衡 open：true 打开   open：false 关闭"""
+
+        ip = self.payload["nodes"][0]["ip"]
+        port = self.payload["nodes"][0]["port"]
+        bk_cloud_id = self.payload["nodes"][0]["bk_cloud_id"]
+        admin_user = MongoDBManagerUser.DbaUser.value
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": bk_cloud_id,
+            "exec_ip": ip,
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.ClusterBalancer,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": ip,
+                    "port": port,
+                    "open": open,
+                    "adminUsername": admin_user,
+                    "adminPassword": self.payload["passwords"][admin_user],
+                },
+            },
+        }
+
+    def get_add_shard_to_meta_kwargs(self, info: dict) -> dict:
+        """分片集群新增shard添加关系到meta的kwargs"""
+
+        node_count = info["node_count"]
+
+        # shard
+        storages = []
+        for shard in info["shards"]:
+            storage = {
+                "shard": shard["set_id"],
+                "nodes": [],
+            }
+            if len(shard["nodes"]) <= 11:
+                for index, node in enumerate(shard["nodes"]):
+                    if node_count == 1:
+                        storage["nodes"].append(
+                            {"role": self.instance_role[index], "ip": node["ip"], "port": shard["port"]}
+                        )
+                    elif node_count > 1:
+                        if index == len(shard["nodes"]) - 1:
+                            storage["nodes"].append(
+                                {"role": self.instance_role[-1], "ip": node["ip"], "port": shard["port"]}
+                            )
+                        else:
+                            storage["nodes"].append(
+                                {"role": self.instance_role[index], "ip": node["ip"], "port": shard["port"]}
+                            )
+            storages.append(storage)
+        return {
+            "bk_biz_id": self.payload["bk_biz_id"],
+            "cluster_id": info["cluster_id"],
+            "creator": self.payload["created_by"],
+            "storages": storages,
+            "bk_cloud_id": self.payload["hosts"][0]["bk_cloud_id"],
+            "machine_specs": info["resource_spec"],  # {"shard_nodes": {"spec_id": 10, "count": 1}}
+        }
+
 
 @dataclass()
 class CommonContext:

@@ -575,6 +575,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     MongoPitrRebuild = EnumField("mongodb_pitr_rebuild", _("mongodb_pitr_rebuild"))
     MongoInstanceOp = EnumField("mongodb_instance_op", _("mongodb_instance_op"))
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
+    ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
