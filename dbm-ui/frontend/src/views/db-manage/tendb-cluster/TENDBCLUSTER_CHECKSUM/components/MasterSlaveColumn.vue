@@ -19,6 +19,21 @@
     :min-width="120"
     required
     :rowspan="rowspan">
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :data-list="scopeOptions"
+        :title="t('校验范围')"
+        type="select"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
     <EditableSelect
       v-model="scope"
       :list="scopeOptions"
@@ -98,6 +113,8 @@
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
   type SlaveItem = ServiceReturnType<typeof getTendbclusterInstanceList>['results'][0];
   type MasterItem = SlaveItem['related_pair_instance'];
 
@@ -127,7 +144,10 @@
     rowspan?: number;
   }
 
-  type Emits = (e: 'change') => void;
+  interface Emits {
+    (e: 'batch-edit', value: string, field: string): void;
+    (e: 'change'): void;
+  }
 
   const props = defineProps<Props>();
 
@@ -157,6 +177,7 @@
     [ClusterTypes.TENDBCLUSTER]: [],
   });
   const isShowInstanceSelector = ref(false);
+  const showBatchEdit = ref(false);
 
   const scopeOptions = [
     {
@@ -210,6 +231,14 @@
       }
     },
   });
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string) => {
+    emits('batch-edit', value, 'scope');
+  };
 
   const handleShowSelector = () => {
     isShowInstanceSelector.value = true;
