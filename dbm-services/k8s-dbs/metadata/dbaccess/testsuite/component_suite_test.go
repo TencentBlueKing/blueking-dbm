@@ -23,6 +23,7 @@ import (
 	"context"
 	"k8s-dbs/metadata/constant"
 	"k8s-dbs/metadata/dbaccess"
+	entitys "k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/helper/testhelper"
 	"k8s-dbs/metadata/model"
 	"log"
@@ -125,6 +126,27 @@ func (suite *ComponentDbAccessTestSuite) TestGetComponent() {
 	assert.Equal(t, component.ComponentName, foundComponent.ComponentName)
 	assert.Equal(t, component.CrdClusterID, foundComponent.CrdClusterID)
 	assert.Equal(t, component.Status, foundComponent.Status)
+}
+
+func (suite *ComponentDbAccessTestSuite) TestFindByParams() {
+	t := suite.T()
+	component, err := suite.dbAccess.Create(componentSample)
+	assert.NoError(t, err)
+	assert.NotZero(t, component.ID)
+
+	var params = &entitys.ComponentQueryParams{
+		ComponentName: "component-01",
+		CrdClusterID:  1,
+	}
+
+	foundComponents, err := suite.dbAccess.FindByParams(params)
+	assert.NoError(t, err)
+	assert.NotNil(t, foundComponents)
+
+	assert.Equal(t, 1, len(foundComponents))
+	assert.Equal(t, component.ComponentName, foundComponents[0].ComponentName)
+	assert.Equal(t, component.CrdClusterID, foundComponents[0].CrdClusterID)
+	assert.Equal(t, component.Status, foundComponents[0].Status)
 }
 
 func (suite *ComponentDbAccessTestSuite) TestDeleteComponentByClusterID() {

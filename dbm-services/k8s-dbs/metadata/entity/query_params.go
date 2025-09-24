@@ -142,3 +142,11 @@ type OpsRequestQueryParams struct {
 	OpsRequestType     string `gorm:"size:32;column:opsrequest_type" json:"opsrequestType"`
 	Status             string `gorm:"size:100;column:status" json:"status"`
 }
+
+// ComponentQueryParams component 查询参数
+type ComponentQueryParams struct {
+	ID            uint64 `gorm:"primaryKey;autoIncrement;column:id" json:"id"`
+	CrdClusterID  uint64 `gorm:"not null;column:crd_cluster_id" json:"crdClusterId"`
+	ComponentName string `gorm:"size:32;not null;column:component_name" json:"componentName"`
+	Status        string `gorm:"size:100;column:status" json:"status"`
+}

@@ -43,7 +43,7 @@ type ClusterInformer struct {
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider
 }
 
-// NewClusterInformer OpsRequest informer 构造函数
+// NewClusterInformer Cluster informer 构造函数
 func NewClusterInformer(
 	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
@@ -88,7 +88,7 @@ func (o *ClusterInformer) OnUpdate(_, newObj interface{}) {
 	var newCluster *appsv1.Cluster
 	if err := runtime.
 		DefaultUnstructuredConverter.FromUnstructured(newUnstructured.Object, &newCluster); err != nil {
-		slog.Error("failed to cast oldUnstructured to OpsRequest")
+		slog.Error("failed to cast oldUnstructured to Cluster")
 		return
 	}
 	clusterName := newCluster.Name

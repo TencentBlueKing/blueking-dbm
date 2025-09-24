@@ -45,6 +45,8 @@ func StartInformers(ctx context.Context) {
 	opsMetaProvider := metaprovider.
 		NewK8sCrdOpsRequestProvider(metadbaccess.NewK8sCrdOpsRequestDbAccess(util.Db.GormDb))
 	clusterMetaProvider := routerutil.BuildClusterMetaProvider(util.Db.GormDb)
+	componentMetaProvider := metaprovider.
+		NewK8sCrdComponentProvider(metadbaccess.NewK8sCrdComponentAccess(util.Db.GormDb))
 
 	k8sClusterConfigs, err := k8sClusterConfigProvider.ListConfigsByLimit(commconst.MaxFetchSize)
 	if err != nil || len(k8sClusterConfigs) == 0 {
@@ -58,6 +60,9 @@ func StartInformers(ctx context.Context) {
 
 		opsInformer := NewOpsRequestInformer(clusterConfig, clusterMetaProvider, opsMetaProvider)
 		startGenericInformer(ctx, clusterConfig, opsInformer, "opsInformer")
+
+		cmpInformer := NewComponentInformer(clusterConfig, clusterMetaProvider, componentMetaProvider)
+		startGenericInformer(ctx, clusterConfig, cmpInformer, "componentInformer")
 	}
 	slog.Info("Finished starting all opsInformer")
 }
