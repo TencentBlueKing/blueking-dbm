@@ -154,51 +154,42 @@ func (a *AddShardToCluster) createAddShardToClusterScript() error {
 }
 
 // checkShard 检查shard是否已经加入到cluster中
-func (a *AddShardToCluster) checkShard() (bool, error) {
+func (a *AddShardToCluster) checkShard(result string) bool {
 	a.runtime.Logger.Info("start to check shard")
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --quiet --authenticationDatabase=admin --eval \"db.getMongo().getDB('config').shards.find()\" admin",
-		a.Mongo, a.ConfParams.AdminUsername, a.ConfParams.AdminPassword, a.ConfParams.IP, a.ConfParams.Port)
-	result, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		a.runtime.Logger.Error(fmt.Sprintf("get shard info fail, error:%s", err))
-		return false, fmt.Errorf("get shard info fail, error:%s", err)
-	}
-	result = strings.Replace(result, "\n", "", -1)
 	if result == "" {
-		a.runtime.Logger.Info("shard is not existed")
-		return false, nil
+		return false
 	}
-
+	var flag bool
 	for k, _ := range a.ConfParams.Shards {
-
 		if strings.Contains(result, k) {
+			flag = true
 			continue
 		}
-
-		return false, fmt.Errorf("add shard %s fail", k)
+		flag = false
+		a.runtime.Logger.Error("shard:%s not belongs to cluster", k)
+		return flag
 	}
 	a.runtime.Logger.Info("check shard successfully")
-	return true, nil
+	return flag
 }
 
 // execScript 执行脚本
 func (a *AddShardToCluster) execScript() error {
-	// 检查
-	flag, err := a.checkShard()
+	// 获取shard信息
+	result, err := common.GetShardInfo(
+		a.Mongo, a.ConfParams.IP, a.ConfParams.Port, a.ConfParams.AdminUsername, a.ConfParams.AdminPassword)
 	if err != nil {
-		return err
+		a.runtime.Logger.Error("get shard info fail, error:%s", err)
+		return fmt.Errorf("get shard info fail, error:%s", err)
 	}
+	// 检查
+	flag := a.checkShard(result)
 	if flag == true {
 		a.runtime.Logger.Info(fmt.Sprintf("shards have been added"))
 		// 删除脚本
 		if err = a.removeScript(); err != nil {
 			return err
 		}
-
 		return nil
 	}
 
@@ -218,14 +209,18 @@ func (a *AddShardToCluster) execScript() error {
 
 	time.Sleep(5 * time.Second)
 
-	// 检查
-	flag, err = a.checkShard()
+	// 获取 shard 信息
+	result, err = common.GetShardInfo(
+		a.Mongo, a.ConfParams.IP, a.ConfParams.Port, a.ConfParams.AdminUsername, a.ConfParams.AdminPassword)
 	if err != nil {
-		return err
+		a.runtime.Logger.Error("get shard info fail, error:%s", err)
+		return fmt.Errorf("get shard info fail, error:%s", err)
 	}
+	// 检查
+	flag = a.checkShard(result)
 	if flag == false {
-		a.runtime.Logger.Error(fmt.Sprintf("add shard fail, error:%s", err))
-		return fmt.Errorf("add shard fail, error:%s", err)
+		a.runtime.Logger.Error("add shards fail")
+		return fmt.Errorf("add shards fail")
 	}
 
 	// 删除脚本

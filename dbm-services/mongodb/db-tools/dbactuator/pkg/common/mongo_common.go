@@ -601,6 +601,40 @@ func CheckBalancer(mongoBin string, ip string, port int, username string, passwo
 	return result, nil
 }
 
+// CheckBalancerRunning 检查balancer是否正在运行
+func CheckBalancerRunning(mongoBin string, ip string, port int, username string, password string) (string,
+	error) {
+	cmd := fmt.Sprintf(
+		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"sh.isBalancerRunning()\"",
+		mongoBin, username, password, ip, port)
+	result, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		60*time.Second)
+	if err != nil {
+		return "", err
+	}
+	result = strings.Replace(result, "\n", "", -1)
+	return result, nil
+}
+
+// GetShardChunkNum 获取每个分片的chunk数量
+func GetShardChunkNum(mongoBin string, ip string, port int, username string, password string) (string,
+	error) {
+	cmd := fmt.Sprintf(
+		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval '%s'",
+		mongoBin, username, password, ip, port,
+		"db.getSiblingDB(\"config\").chunks.aggregate([{ $group: { _id: \"$shard\", count: { $sum: 1 } } }])")
+	result, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		60*time.Second)
+	if err != nil {
+		return "", err
+	}
+	return result, nil
+}
+
 // GetProfilingLevel 获取profile级别
 func GetProfilingLevel(mongoBin string, ip string, port int, username string, password string,
 	dbName string) (int, error) {
@@ -650,4 +684,20 @@ func GetFCV(mongoBin string, ip string, port int, username string, password stri
 	fcv := GetFcv{}
 	_ = json.Unmarshal([]byte(fcvInfo), &fcv)
 	return fcv.FeatureCompatibilityVersion, nil
+}
+
+// GetShardInfo 获取shard信息
+func GetShardInfo(mongoBin string, ip string, port int, username string, password string) (string, error) {
+	cmd := fmt.Sprintf(
+		"%s -u %s -p '%s' --host %s --port %d --quiet --authenticationDatabase=admin --eval \"db.getMongo().getDB('config').shards.find()\" admin",
+		mongoBin, username, password, ip, port)
+	result, err := util.RunBashCmd(
+		cmd,
+		"", nil,
+		60*time.Second)
+	if err != nil {
+		return "", err
+	}
+	result = strings.Replace(result, "\n", "", -1)
+	return result, nil
 }

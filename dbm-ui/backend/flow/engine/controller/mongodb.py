@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix import MongoAutofixFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_add_shard import MongoDBClusterAddShardFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_enable_disable import MongoEnableDisableFlow
@@ -206,3 +207,11 @@ class MongoDBController(BaseController):
 
         flow = MongoDBMigrateMetaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_migrate_flow()
+
+    def cluster_add_shard(self):
+        """
+        增加分片
+        """
+
+        flow = MongoDBClusterAddShardFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_add_shard_flow()
