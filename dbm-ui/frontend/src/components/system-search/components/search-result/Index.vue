@@ -1,60 +1,58 @@
 <template>
   <div class="system-serach-box">
-    <div
-      v-bkloading="{
-        loading: quickSearchLoading,
-      }"
-      class="result-list">
-      <slot>
-        <BkAlert
-          v-if="showAlert"
-          closable
-          style="margin: 0 12px"
-          theme="info">
-          <template #title>
-            <span>{{ t('每个分类最多显示 10 条记录，点击搜索可查看全部记录。') }}</span>
+    <div class="result-list">
+      <BkLoading :loading="quickSearchLoading">
+        <slot>
+          <BkAlert
+            v-if="showAlert"
+            closable
+            style="margin: 0 12px"
+            theme="info">
+            <template #title>
+              <span>{{ t('每个分类最多显示 10 条记录，点击搜索可查看全部记录。') }}</span>
+              <BkButton
+                text
+                theme="primary"
+                @click="handleUnsubscribe">
+                {{ t('不再提示') }}
+              </BkButton>
+            </template>
+          </BkAlert>
+          <BkException
+            v-if="isSearchEmpty"
+            :description="t('暂无搜索内容，换个关键词试一试')"
+            scene="part"
+            style="padding-top: 100px"
+            type="search-empty">
             <BkButton
               text
               theme="primary"
-              @click="handleUnsubscribe">
-              {{ t('不再提示') }}
+              @click="handleClearSearch">
+              {{ t('清空输入内容') }}
             </BkButton>
-          </template>
-        </BkAlert>
-        <BkException
-          v-if="isSearchEmpty"
-          :description="t('暂无搜索内容，换个关键词试一试')"
-          scene="part"
-          style="padding-top: 100px"
-          type="search-empty">
-          <BkButton
-            text
-            theme="primary"
-            @click="handleClearSearch">
-            {{ t('清空输入内容') }}
-          </BkButton>
-        </BkException>
-        <ScrollFaker
-          v-else
-          style="height: calc(100% - 16px)">
-          <div v-if="serachResult">
-            <template
-              v-for="resultType in serachResultKeyList"
-              :key="resultType">
-              <div
-                v-if="serachResult[resultType].length"
-                class="result-type-text">
-                {{ resultTypeTextMap[resultType] }}
-              </div>
-              <RenderResult
-                :biz-id-name-map="bizIdNameMap"
-                :data="serachResult[resultType as keyof typeof serachResult]"
-                :key-word="modelValue"
-                :name="resultType" />
-            </template>
-          </div>
-        </ScrollFaker>
-      </slot>
+          </BkException>
+          <ScrollFaker
+            v-else
+            style="height: calc(100% - 16px)">
+            <div v-if="serachResult">
+              <template
+                v-for="resultType in serachResultKeyList"
+                :key="resultType">
+                <div
+                  v-if="serachResult[resultType].length"
+                  class="result-type-text">
+                  {{ resultTypeTextMap[resultType] }}
+                </div>
+                <RenderResult
+                  :biz-id-name-map="bizIdNameMap"
+                  :data="serachResult[resultType as keyof typeof serachResult]"
+                  :key-word="modelValue"
+                  :name="resultType" />
+              </template>
+            </div>
+          </ScrollFaker>
+        </slot>
+      </BkLoading>
     </div>
     <div
       v-if="showOptions"
@@ -169,6 +167,7 @@
   watch(
     [modelValue, formData],
     ([newKeyword], [oldKeyword]) => {
+      console.log('from watch = ', modelValue.value);
       const newKeywordArr = newKeyword.split(batchSplitRegex);
       const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
       if (_.isEqual(newKeywordArr, oldKeywordArr)) {
