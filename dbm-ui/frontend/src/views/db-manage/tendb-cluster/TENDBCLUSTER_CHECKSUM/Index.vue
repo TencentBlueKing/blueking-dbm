@@ -46,6 +46,7 @@
             v-model:table-data="formData.tableData"
             :cluster="item.cluster"
             :rowspan="item.rowspan"
+            @batch-edit="handleBatchEdit"
             @change="handleRowMerge" />
           <DbNameColumn
             v-model="item.db_patterns"
