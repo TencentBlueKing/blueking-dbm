@@ -43,11 +43,11 @@
 
   import { systemSearchCache } from '@common/cache';
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const historyKeyWordList = shallowRef(systemSearchCache.getItem());
 
