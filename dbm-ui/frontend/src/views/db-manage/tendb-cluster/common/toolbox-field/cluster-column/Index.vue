@@ -126,8 +126,10 @@
   };
 
   const handleChange = (value: string) => {
-    modelValue.value.id = 0;
-    modelValue.value.master_domain = value;
+    modelValue.value = {
+      id: 0,
+      master_domain: value,
+    } as TendbClusterModel;
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
