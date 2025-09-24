@@ -2,9 +2,9 @@
   <div class="inspection-search-operations">
     <BkCheckbox
       v-if="showOnlyAbnormal"
-      v-model="isOnlyAbnormal"
-      >{{ t('仅显示预警 / 异常') }}</BkCheckbox
-    >
+      v-model="isOnlyAbnormal">
+      {{ t('仅显示预警 / 异常') }}
+    </BkCheckbox>
     <BkDatePicker
       append-to-body
       class="date-picker-main"
