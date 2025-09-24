@@ -272,12 +272,14 @@
 
     grammarCheckHandle(params)
       .then((data) => {
-        Object.keys(data).forEach((realFilePath) => {
-          const grammarCheckResult = data[realFilePath];
+        Object.entries(data).forEach(([realFilePath, grammarCheckResult]) => {
+          const result = {
+            [realFilePath]: grammarCheckResult,
+          };
           if (grammarCheckResult.isError) {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name].grammarCheckFailed(data);
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckFailed(result);
           } else {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name].grammarCheckSuccessed(data);
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckSuccessed(result);
           }
         });
       })
