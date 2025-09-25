@@ -24,3 +24,5 @@ from .sqlserver_check_report import (
     SqlserverFullBackupInfoReport,
     SqlserverLogBackupInfoReport,
 )
+
+from .monogdb_check_report import MongodbBackupCheckReport

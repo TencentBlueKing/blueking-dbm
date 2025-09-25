@@ -29,7 +29,16 @@ logger = logging.getLogger("root")
 class MongodbBackupCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = MongodbBackupCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "instance", "status", "msg", "create_at")
+        fields = (
+            "bk_biz_id",
+            "cluster",
+            "cluster_type",
+            "instance",
+            "msg",
+            "create_at",
+            "failed_days",
+            "state",
+        )
         swagger_schema_fields = {"example": mock_data.MONGODB_BACKUP_CHECK_DATA}
 
 
@@ -58,7 +67,7 @@ class MongodbBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
         {
-            "name": "status",
+            "name": "state",
             "display_name": _("检查结果"),
             "format": ReportFieldFormat.STATUS.value,
         },
@@ -96,7 +105,7 @@ class MongodbFullBackupCheckReportViewSet(MongodbBackupCheckReportBaseViewSet):
     report_type = ReportType.FULL_BACKUP_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("MongoDB 全备检查报告"),
+        operation_summary=_("MongoDB 备份检查报告"),
         responses={status.HTTP_200_OK: MongodbBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

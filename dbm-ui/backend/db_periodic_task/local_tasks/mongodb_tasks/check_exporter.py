@@ -14,6 +14,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 
+from backend.db_report.enums import ReportStateType
 from django.db.models import Q
 from django.utils import timezone
 
@@ -22,46 +23,73 @@ from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import addr, create_failed_record, dev_debug
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import (
+    ClusterReport,
+    RecordBatchOps,
+    addr,
+    dev_debug,
+)
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
-from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
 logger = logging.getLogger("root")
 
 
 class CheckMongodbUpMetricTask:
-    def __init__(self):
-        pass
+    """检查mongodb_up指标, 每个节点的mongodb_up指标值为1, 否则认为异常"""
 
-    def start(self):
+    check_type: str
+
+    def __init__(self):
+        self.check_type = MongodbExporterCheckSubType.Up.value
+
+    def start(self, report_day: int = None, batch_size: int = 20):
         """
         replicaset, sharded cluster 2种架构：
         1, list all cluster
         2, filter failed, write to db
         """
-
-        """
-        删除时间大于60天的记录,全备份和binlog都是同一张表，这里操作就好
-        """
-        failed_records = []
-        MongodbBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+        if report_day is None:
+            report_day = int(timezone.now().date().strftime("%Y%m%d"))
+        record_batch_ops = RecordBatchOps(self.check_type, report_day)
+        deleted_count = record_batch_ops.delete_old_record(360)
+        logger.info(
+            f"CheckMongodbUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"deleted_count: {deleted_count}"
+        )
+        deleted_count = record_batch_ops.delete_today_record()
+        logger.info(
+            f"CheckMongodbUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"deleted_count: {deleted_count}"
+        )
 
         # 构建查询条件: 集群创建时间大于1小时
         query = Q(cluster_type__in=[ClusterType.MongoShardedCluster, ClusterType.MongoReplicaSet]) & Q(
             create_at__lt=timezone.now() - timedelta(hours=1)
         )
-        # 这里的cluster_list是一个QuerySet对象，包含了所有符合条件的Cluster对象
         cluster_list = Cluster.objects.filter(query)
         logger.info(cluster_list.query)
+        app_total = {
+            ReportStateType.NORMAL.value: 0,
+            ReportStateType.WARNING.value: 0,
+            ReportStateType.ABNORMAL.value: 0,
+        }
 
-        for c in cluster_list:
-            cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
-            rows = self.check_one(cluster)
-            failed_records.extend(rows)
-
-        # 批量插入备份失败记录
-        MongodbBackupCheckReport.objects.bulk_create(failed_records)
+        for i in range(0, len(cluster_list), batch_size):
+            for c in cluster_list[i : i + batch_size]:
+                cluster = MongoRepository.fetch_one_cluster(with_tags=True, id=c.id)
+                rows = self.check_cluster(cluster, report_day)
+                app_total[rows[0].state] += 1
+                for record in rows:
+                    record_batch_ops.append(record)
+            record_batch_ops.bulk_create()
+        logger.info(
+            f"CheckMongodbUpMetricTask report_day: {report_day} "
+            f"sub_type: {self.check_type} "
+            f"app_total: {app_total}"
+        )
 
     def is_skip_check(self, cluster: MongoDBCluster) -> tuple[bool, str]:
         """
@@ -75,7 +103,7 @@ class CheckMongodbUpMetricTask:
             return True, "skipped by temporary:{}".format(v)
         return False, ""
 
-    def check_one(self, cluster: MongoDBCluster):
+    def check_cluster(self, cluster: MongoDBCluster, report_day: int):
         """
         1. 获得所有的mongodb_up的metric.
         2. 对比instance, instance_role 是否一致
@@ -83,73 +111,41 @@ class CheckMongodbUpMetricTask:
             1) metric not found
             2) instance_role not match
             3) value != 1
-
         """
-        failed_records = []
-        mongodb_up = MongodbExporterCheckSubType.Up.value
+        cluster_report = ClusterReport(cluster, report_day, self.check_type)
 
         skipped, reason = self.is_skip_check(cluster)
         if skipped:
             dev_debug(f"=== check_one {cluster.cluster_id} {cluster.immute_domain} {reason} === ")
-            failed_records.append(create_failed_record(cluster, "all", "all", True, reason, mongodb_up))
-            return failed_records
+            return cluster_report.make_skip_record(reason)
 
-        metric_val = fetch_metric_by_cluster(cluster.immute_domain)
         all_node = get_all_nodes(cluster)
         if len(all_node) == 0:
-            # 可能已下架
-            return failed_records
+            cluster_report.append(ReportStateType.ABNORMAL.value, "all", "all", "no node")
+            return cluster_report.make_records()
 
-        if metric_val is None:
-            failed_records.append(
-                create_failed_record(
-                    c=cluster,
-                    shard="",
-                    instance="all-node",
-                    status=0,
-                    msg="fetch metric api error",
-                    subtype=mongodb_up,
-                )
-            )
-            return failed_records
-
-        if len(metric_val) == 0:
-            failed_records.append(
-                create_failed_record(
-                    c=cluster, shard="", instance="all-node", status=0, msg="metric not found", subtype=mongodb_up
-                )
-            )
-            return failed_records
-
+        metric_val = fetch_metric_by_cluster(cluster.immute_domain)
         for node in all_node:
+            msg = "ok"
             item = metric_val.get(addr(node))
             if item is None:
                 msg = "metric not found"
+                state = ReportStateType.ABNORMAL.value
             elif item["value"] != 1:
                 msg = "metric value not 1 ({})".format(item["value"])
+                state = ReportStateType.ABNORMAL.value
             else:
                 msg = "ok"
+                state = ReportStateType.NORMAL.value
 
-            if msg:
-                failed_records.append(
-                    create_failed_record(
-                        c=cluster,
-                        shard=node.set_name,
-                        instance=addr(node),
-                        status=0 if msg != "ok" else 1,
-                        msg=msg,
-                        subtype=mongodb_up,
-                    )
-                )
+            cluster_report.append(state, node.set_name, addr(node), msg)
 
-        return failed_records
+        return cluster_report.make_records()
 
 
 def get_all_nodes(cluster: MongoDBCluster) -> list:
     """
     获取所有节点的ip和端口
-    :param cluster:
-    :return:
     """
     nodes = []
     for shard in cluster.get_shards(with_config=True, sort_by_set_name=True):
