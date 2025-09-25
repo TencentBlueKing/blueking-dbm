@@ -30,13 +30,17 @@ class Status(str, StructuredEnum):
     DONE = EnumField("done", _("结项"))
 
 
-class BizInpact(str, StructuredEnum):
+class Bizinpact(str, StructuredEnum):
     """
     业务影响枚举类
     """
 
     ONLINE = EnumField("online", _("在线"))
     LOGIN = EnumField("login", _("登录"))
+    EXPERIENCE = EnumField("experience", _("体验"))
+    RECHARGE = EnumField("recharge", _("充值"))
+    ACTIVITY = EnumField("activity", _("活动"))
+    OTHER = EnumField("other", _("其他"))
 
 
 class RiskPriority(StructuredEnum):
