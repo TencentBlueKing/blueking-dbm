@@ -106,10 +106,13 @@
         </RouterLink>
       </I18nT>
     </BkAlert>
-    <HostTable
-      ref="tableRef"
+    <DbTable
+      ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="DBTypes.DORIS"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
+      selectable
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
@@ -153,7 +156,7 @@
           </OperationBtnStatusTips>
         </template>
       </TableColumn>
-    </HostTable>
+    </DbTable>
     <ClusterExpansion
       v-if="clusterData"
       v-model:is-show="isShowExpandsion"
@@ -179,15 +182,13 @@
 
   import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisMachineModel from '@services/model/doris/doris-machine';
+  import type { ListBase } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import {
-    HostListFieldColumn,
-    HostTable,
-    useCopyMachineIp,
-    useHostSearchSelect,
-  } from '@views/db-manage/common/cluster-details';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/doris/common/replace/Index.vue';
@@ -204,7 +205,7 @@
   const { t } = useI18n();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
-  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.DORIS, {
     tableRef: hostTableRef,
   });
@@ -306,9 +307,9 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: DorisMachineModel[]) => {
+  const handleRequestSuccess = (list: ListBase<DorisMachineModel[]>) => {
     roleList.value = _.uniqBy(
-      list.map((item) => ({
+      list.results.map((item) => ({
         label: item.instance_role,
         value: item.instance_role,
       })),
@@ -316,7 +317,7 @@
     );
   };
 
-  const handleSelectChange = (_: any[], list: DorisMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: DorisMachineModel[]) => {
     selectedMachineList.value = list;
   };
 

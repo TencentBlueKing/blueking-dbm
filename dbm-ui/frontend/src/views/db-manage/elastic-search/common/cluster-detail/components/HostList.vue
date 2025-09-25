@@ -115,10 +115,13 @@
         </AuthRouterLink>
       </I18nT>
     </BkAlert>
-    <HostTable
+    <DbTable
       ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="DBTypes.ES"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
+      selectable
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
@@ -166,7 +169,7 @@
           </OperationBtnStatusTips>
         </template>
       </TableColumn>
-    </HostTable>
+    </DbTable>
     <ClusterExpansion
       v-if="clusterData"
       v-model:is-show="isShowExpandsion"
@@ -192,15 +195,13 @@
 
   import EsModel from '@services/model/es/es';
   import EsMachineModel from '@services/model/es/es-machine';
+  import type { ListBase } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import {
-    HostListFieldColumn,
-    HostTable,
-    useCopyMachineIp,
-    useHostSearchSelect,
-  } from '@views/db-manage/common/cluster-details';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/elastic-search/common/replace/Index.vue';
@@ -218,7 +219,7 @@
 
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
-  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.ES, {
     tableRef: hostTableRef,
   });
@@ -292,9 +293,9 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: EsMachineModel[]) => {
+  const handleRequestSuccess = (list: ListBase<EsMachineModel[]>) => {
     roleList.value = _.uniqBy(
-      list.map((item) => ({
+      list.results.map((item) => ({
         label: item.instance_role,
         value: item.instance_role,
       })),
@@ -302,7 +303,7 @@
     );
   };
 
-  const handleSelectChange = (list: EsMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: EsMachineModel[]) => {
     selectedMachineList.value = list;
   };
 

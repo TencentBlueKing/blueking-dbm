@@ -10,15 +10,15 @@ import { DBTypeInfos, type DBTypes } from '@common/const';
 import { batchSplitRegex, ipv4 } from '@common/regex';
 
 import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
+import DbTable from '@components/db-table/IndexNew.vue';
 
 import { URL_HOST_MEMO_KEY } from '../constants';
-import HostTable from '../HostTable.vue';
 
 const quickSearchValue = ref<Record<string, any>>({});
 
 export const useHostSearchSelect = (
   dbType: DBTypes,
-  options = {} as { tableRef: Ref<InstanceType<typeof HostTable> | undefined> },
+  options = {} as { tableRef: Ref<InstanceType<typeof DbTable> | undefined> },
 ) => {
   const route = useRoute();
   const router = useRouter();
@@ -44,7 +44,7 @@ export const useHostSearchSelect = (
         remoteMethod: () =>
           Promise.resolve(
             _.uniqBy(
-              options.tableRef?.value?.getData().map((item) => ({
+              options.tableRef?.value?.getData<{ instance_role: string }>().map((item) => ({
                 label: item.instance_role,
                 value: item.instance_role,
               })),

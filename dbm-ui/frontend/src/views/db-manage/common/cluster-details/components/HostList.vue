@@ -30,29 +30,35 @@
         style="flex: 1; max-width: 560px; margin-left: auto"
         @change="handleSearchValueChange" />
     </div>
-    <HostTable
+    <DbTable
       ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="dbType"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
+      selectable
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
         :db-type="dbType"
         :role-list="roleList" />
-    </HostTable>
+    </DbTable>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import type { ListBase } from '@services/types';
+
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
+
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
   import { useCopyMachineIp, useHostSearchSelect } from '../hooks';
   import HostListFieldColumn from '../HostListFieldColumn.vue';
-  import HostTable from '../HostTable.vue';
 
   interface Props {
     clusterId: number;
@@ -62,7 +68,6 @@
   type IData = ServiceReturnType<ReturnType<typeof useClusterMachineList>>['results'][number];
 
   const props = defineProps<Props>();
-
   const dbType =
     props.clusterType === ClusterTypes.REDIS_CLUSTER ? DBTypes.REDIS : clusterTypeInfos[props.clusterType].dbType;
 
@@ -71,7 +76,7 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
   const requestHandler = useClusterMachineList(props.clusterType);
 
-  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(dbType, {
     tableRef: hostTableRef,
   });
@@ -90,13 +95,13 @@
     }[]
   >([]);
 
-  const handleSelectChange = (list: IData[]) => {
+  const handleSelectChange = (_key: string[], list: IData[]) => {
     selectedHostList.value = list;
   };
 
-  const handleRequestSuccess = (list: IData[]) => {
+  const handleRequestSuccess = (list: ListBase<IData[]>) => {
     roleList.value = _.uniqBy(
-      list.map((item) => ({
+      list.results.map((item) => ({
         label: item.instance_role,
         value: item.instance_role,
       })),
