@@ -180,8 +180,8 @@ func (conn *AgentConnection) parse(readLen int) error {
 
 				// unpack success
 				// replay ok
-				log.Logger.Infof("process net package success. Type:%s, Body:%s",
-					conn.netPackage.DetectType, conn.netPackage.Body)
+				log.Logger.Infof("process agent[%s:%d]'s net package success. Type:%s, Body:%s",
+					conn.Ip, conn.Port, conn.netPackage.DetectType, conn.netPackage.Body)
 				n, err := conn.NetConnection.Write([]byte("OK"))
 				if err != nil {
 					log.Logger.Error("write failed. agent ip:", conn.Ip, " port:", conn.Port)

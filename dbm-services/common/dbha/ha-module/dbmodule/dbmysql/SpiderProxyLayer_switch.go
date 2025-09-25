@@ -82,7 +82,8 @@ func (ins *SpiderProxyLayerSwitch) ElectPrimaryCandidate() (*TdbctlInfo, error) 
 			continue
 		}
 		if ins.Ip == spider.IP && ins.Port == spider.Port {
-			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("skip self node[%s#%d]]", spider.IP, spider.Port))
+			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("skip itself[%s:%d] in dbmeta",
+				spider.IP, spider.Port))
 			continue
 		}
 
@@ -117,6 +118,11 @@ func (ins *SpiderProxyLayerSwitch) ElectPrimaryCandidate() (*TdbctlInfo, error) 
 
 	ins.ReportLogs(constvar.InfoResult, "try to elect an appropriate node as primary")
 	for _, node := range nodes {
+		if node.Host == ins.Ip && ins.AdminPort == node.Port {
+			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("skip itself[%s:%d] in route table",
+				node.Host, node.Port))
+			continue
+		}
 		//1. clusterRole must be Secondary
 		//should not happen
 		if strings.EqualFold(node.ClusterRole, PrimaryRole) {

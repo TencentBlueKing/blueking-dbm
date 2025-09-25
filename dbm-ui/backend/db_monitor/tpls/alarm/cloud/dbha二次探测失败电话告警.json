@@ -35,6 +35,7 @@
               "cluster_type",
               "appid",
               "cluster_domain",
+              "instance_role",
               "server_ip",
               "server_port",
               "machine_type"

@@ -356,6 +356,9 @@ func (b *BaseDetectDB) GetDBType() types.DBType {
 
 // GetDBRole return
 func (b *BaseDetectDB) GetDBRole() string {
+	if b.DBRole == "" {
+		return "N/A"
+	}
 	return b.DBRole
 }
 
