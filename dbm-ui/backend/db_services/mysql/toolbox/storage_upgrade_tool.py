@@ -57,7 +57,7 @@ def _parse_package_version(pkg_name: str) -> int:
             logger.debug(_("TXSQL包 {} 解析版本: {}.{}.{} -> {}").format(pkg_name, major, minor, patch, version_num))
             return version_num
 
-        # tmysql格式：mysql-5.7.20-linux-x86_64-tmysql-3.4.4-gcs.tar.gz
+        # tmysql格式：mysql-5.7.20-linux-x86_64-tmysql-3.4.4-gcs.tar.gz 或 mysql-8.0.18-linux-x86_64-tmysql-4.1.1-gcs.tar.gz
         tmysql_pattern = r"mysql-(\d+)\.(\d+)\.(\d+)-.*-tmysql-(\d+)\.(\d+)\.(\d+)"
         match = re.match(tmysql_pattern, pkg_name)
         if match:
@@ -70,6 +70,18 @@ def _parse_package_version(pkg_name: str) -> int:
                 int(tmysql_major),
                 int(tmysql_minor),
                 int(tmysql_patch),
+            )
+            logger.debug(
+                _("TMySQL包 {} 解析版本: {}.{}.{}-tmysql-{}.{}.{} -> {}").format(
+                    pkg_name,
+                    mysql_major,
+                    mysql_minor,
+                    mysql_patch,
+                    tmysql_major,
+                    tmysql_minor,
+                    tmysql_patch,
+                    version_num,
+                )
             )
             return version_num
 
@@ -118,7 +130,7 @@ def _parse_actual_mysql_version(version_string: str) -> int:
     @return: 数值版本号，用于比较
     """
     try:
-        # tmysql格式：5.7.20-tmysql-3.4.2-log
+        # tmysql格式：5.7.20-tmysql-3.4.2-log 或 8.0.18-tmysql-4.1.1-log
         tmysql_pattern = r"(\d+)\.(\d+)\.(\d+)-tmysql-(\d+)\.(\d+)\.(\d+)"
         match = re.match(tmysql_pattern, version_string)
         if match:
@@ -158,6 +170,219 @@ def _parse_actual_mysql_version(version_string: str) -> int:
     except Exception as e:
         logger.error(_("解析实际MySQL版本失败: {} - {}").format(version_string, e))
         return 0
+
+
+def _merge_modules_by_id(modules1: List[Dict], modules2: List[Dict]) -> List[Dict]:
+    """
+    合并相同db_module_id的模块，将pkg_list相加
+
+    @param modules1: 第一个模块列表
+    @param modules2: 第二个模块列表
+    @return: 合并后的模块列表
+    """
+    try:
+        logger.info(_("开始合并模块列表 - 模块1: {} 个，模块2: {} 个").format(len(modules1), len(modules2)))
+
+        # 使用字典来存储合并后的模块，以db_module_id为key
+        merged_dict = {}
+
+        # 处理第一个模块列表
+        for module in modules1:
+            module_id = module.get("db_module_id")
+            if module_id:
+                merged_dict[module_id] = module.copy()
+                logger.debug(
+                    _("添加模块1: db_module_id={}, pkg_list长度={}").format(module_id, len(module.get("pkg_list", [])))
+                )
+
+        # 处理第二个模块列表，合并相同db_module_id的模块
+        for module in modules2:
+            module_id = module.get("db_module_id")
+            if module_id:
+                if module_id in merged_dict:
+                    # 合并pkg_list
+                    existing_pkg_list = merged_dict[module_id].get("pkg_list", [])
+                    new_pkg_list = module.get("pkg_list", [])
+
+                    # 去重合并pkg_list（基于pkg_id去重）
+                    existing_pkg_ids = {pkg.get("pkg_id") for pkg in existing_pkg_list}
+                    for pkg in new_pkg_list:
+                        if pkg.get("pkg_id") not in existing_pkg_ids:
+                            existing_pkg_list.append(pkg)
+
+                    merged_dict[module_id]["pkg_list"] = existing_pkg_list
+                    logger.debug(
+                        _("合并模块: db_module_id={}, 原有包数={}, 新增包数={}, 合并后包数={}").format(
+                            module_id,
+                            len(merged_dict[module_id].get("pkg_list", [])) - len(new_pkg_list),
+                            len(new_pkg_list),
+                            len(existing_pkg_list),
+                        )
+                    )
+                else:
+                    # 新模块，直接添加
+                    merged_dict[module_id] = module.copy()
+                    logger.debug(
+                        _("添加模块2: db_module_id={}, pkg_list长度={}").format(module_id, len(module.get("pkg_list", [])))
+                    )
+
+        # 转换为列表
+        merged_modules = list(merged_dict.values())
+
+        logger.info(
+            _("模块合并完成 - 合并前: {} + {} = {} 个，合并后: {} 个").format(
+                len(modules1), len(modules2), len(modules1) + len(modules2), len(merged_modules)
+            )
+        )
+
+        return merged_modules
+
+    except Exception as e:
+        logger.error(_("合并模块列表失败: {}").format(e))
+        # 出错时返回两个列表的简单合并
+        return modules1 + modules2
+
+
+def _check_tmysql_upgrade_compatibility(pkg_name: str, actual_version: str) -> bool:
+    """
+    检查tmysql升级到txsql或社区版本的兼容性
+
+    支持的升级路径：
+    1. tmysql-8.0.18 -> txsql-8.0.30
+    2. tmysql-8.0.18 -> mysql-8.0.32 (社区版本)
+
+    @param pkg_name: 目标包名
+    @param actual_version: 当前实际MySQL版本字符串
+    @return: 是否兼容
+    """
+    try:
+        logger.debug(_("检查tmysql升级兼容性: 包={}, 实际版本={}").format(pkg_name, actual_version))
+
+        # 检查当前版本是否为tmysql
+        if "tmysql" not in actual_version:
+            logger.debug(_("当前版本不是tmysql，跳过tmysql升级兼容性检查"))
+            return False
+
+        # 检查目标包类型
+        if "txsql" in pkg_name:
+            # tmysql -> txsql 升级
+            logger.info(_("检测到tmysql到txsql的升级路径"))
+            return _check_tmysql_to_txsql_compatibility(pkg_name, actual_version)
+        elif "tmysql" not in pkg_name:
+            # tmysql -> 社区版本 升级
+            logger.info(_("检测到tmysql到社区版本的升级路径"))
+            return _check_tmysql_to_community_compatibility(pkg_name, actual_version)
+        else:
+            logger.debug(_("目标包类型不支持tmysql升级: {}").format(pkg_name))
+            return False
+
+    except Exception as e:
+        logger.error(_("检查tmysql升级兼容性失败: {} - {}").format(pkg_name, e))
+        return False
+
+
+def _check_tmysql_to_txsql_compatibility(pkg_name: str, actual_version: str) -> bool:
+    """
+    检查tmysql到txsql的升级兼容性
+
+    @param pkg_name: txsql包名
+    @param actual_version: 当前tmysql版本
+    @return: 是否兼容
+    """
+    try:
+        # 解析当前tmysql版本
+        tmysql_pattern = r"(\d+)\.(\d+)\.(\d+)-tmysql-(\d+)\.(\d+)\.(\d+)"
+        match = re.match(tmysql_pattern, actual_version)
+        if not match:
+            logger.warning(_("无法解析tmysql版本: {}").format(actual_version))
+            return False
+
+        mysql_major, mysql_minor, mysql_patch, tmysql_major, tmysql_minor, tmysql_patch = match.groups()
+        current_mysql_version = f"{mysql_major}.{mysql_minor}.{mysql_patch}"
+
+        # 解析目标txsql版本
+        txsql_pattern = r"mysql-txsql-(\d+)\.(\d+)\.(\d+)"
+        match = re.match(txsql_pattern, pkg_name)
+        if not match:
+            logger.warning(_("无法解析txsql包版本: {}").format(pkg_name))
+            return False
+
+        target_major, target_minor, target_patch = match.groups()
+        target_mysql_version = f"{target_major}.{target_minor}.{target_patch}"
+
+        # 检查MySQL基础版本兼容性
+        current_version_num = calculate_mysql_version_number(int(mysql_major), int(mysql_minor), int(mysql_patch))
+        target_version_num = calculate_mysql_version_number(int(target_major), int(target_minor), int(target_patch))
+
+        # 允许升级到相同或更高版本的MySQL基础版本
+        if target_version_num >= current_version_num:
+            logger.info(
+                _("✓ tmysql升级到txsql兼容: {} -> {} (MySQL基础版本: {} -> {})").format(
+                    actual_version, pkg_name, current_mysql_version, target_mysql_version
+                )
+            )
+            return True
+        else:
+            logger.warning(
+                _("✗ tmysql升级到txsql不兼容: MySQL基础版本降级 {} -> {}").format(current_mysql_version, target_mysql_version)
+            )
+            return False
+
+    except Exception as e:
+        logger.error(_("检查tmysql到txsql兼容性失败: {} - {}").format(pkg_name, e))
+        return False
+
+
+def _check_tmysql_to_community_compatibility(pkg_name: str, actual_version: str) -> bool:
+    """
+    检查tmysql到社区版本的升级兼容性
+
+    @param pkg_name: 社区版本包名
+    @param actual_version: 当前tmysql版本
+    @return: 是否兼容
+    """
+    try:
+        # 解析当前tmysql版本
+        tmysql_pattern = r"(\d+)\.(\d+)\.(\d+)-tmysql-(\d+)\.(\d+)\.(\d+)"
+        match = re.match(tmysql_pattern, actual_version)
+        if not match:
+            logger.warning(_("无法解析tmysql版本: {}").format(actual_version))
+            return False
+
+        mysql_major, mysql_minor, mysql_patch, tmysql_major, tmysql_minor, tmysql_patch = match.groups()
+        current_mysql_version = f"{mysql_major}.{mysql_minor}.{mysql_patch}"
+
+        # 解析目标社区版本
+        community_pattern = r"mysql-(\d+)\.(\d+)\.(\d+)"
+        match = re.match(community_pattern, pkg_name)
+        if not match:
+            logger.warning(_("无法解析社区版本包: {}").format(pkg_name))
+            return False
+
+        target_major, target_minor, target_patch = match.groups()
+        target_mysql_version = f"{target_major}.{target_minor}.{target_patch}"
+
+        # 检查MySQL基础版本兼容性
+        current_version_num = calculate_mysql_version_number(int(mysql_major), int(mysql_minor), int(mysql_patch))
+        target_version_num = calculate_mysql_version_number(int(target_major), int(target_minor), int(target_patch))
+
+        # 允许升级到相同或更高版本的MySQL基础版本
+        if target_version_num >= current_version_num:
+            logger.info(
+                _("✓ tmysql升级到社区版本兼容: {} -> {} (MySQL基础版本: {} -> {})").format(
+                    actual_version, pkg_name, current_mysql_version, target_mysql_version
+                )
+            )
+            return True
+        else:
+            logger.warning(
+                _("✗ tmysql升级到社区版本不兼容: MySQL基础版本降级 {} -> {}").format(current_mysql_version, target_mysql_version)
+            )
+            return False
+
+    except Exception as e:
+        logger.error(_("检查tmysql到社区版本兼容性失败: {} - {}").format(pkg_name, e))
+        return False
 
 
 def _check_package_type_compatibility(pkg_name: str, actual_version: str) -> bool:
@@ -253,14 +478,19 @@ def get_storage_version_modules_api(
             # 获取更高主版本的模块
             major_version_modules = _find_higher_storage_version_modules(cluster_id, module_list, cluster_type)
             # 获取同大版本但子版本更高的模块
-            sub_version_modules = _find_same_major_storage_version_higher_sub_version_modules(
-                cluster_id, module_list, cluster_type
+            sub_version_modules = _find_same_major_storage_version_higher_sub_version_modules(cluster_id, module_list)
+            # 获取同大版本但子版本更高的模块，且兼容tmysql升级
+            sub_version_modules_compatible = _find_same_major_storage_version_higher_sub_version_modules(
+                cluster_id, module_list, _check_tmysql_upgrade_compatibility
             )
+
+            # 合并相同db_module_id的模块，将pkg_list相加
+            merged_sub_version_modules = _merge_modules_by_id(sub_version_modules, sub_version_modules_compatible)
             # 合并结果
-            result_modules = major_version_modules + sub_version_modules
+            result_modules = major_version_modules + merged_sub_version_modules
             logger.info(
-                _("合并结果: 更高主版本模块 {} 个，更高子版本模块 {} 个，总计 {} 个").format(
-                    len(major_version_modules), len(sub_version_modules), len(result_modules)
+                _("合并结果: 更高主版本模块 {} 个，合并后子版本模块 {} 个，总计 {} 个").format(
+                    len(major_version_modules), len(merged_sub_version_modules), len(result_modules)
                 )
             )
         elif higher_major_version:
@@ -268,9 +498,7 @@ def get_storage_version_modules_api(
             result_modules = _find_higher_storage_version_modules(cluster_id, module_list, cluster_type)
         elif higher_sub_version:
             logger.info(_("执行策略: 查找同大版本但子版本更高的模块"))
-            result_modules = _find_same_major_storage_version_higher_sub_version_modules(
-                cluster_id, module_list, cluster_type
-            )
+            result_modules = _find_same_major_storage_version_higher_sub_version_modules(cluster_id, module_list)
         else:
             # 默认行为：如果两个参数都为False，返回空列表
             logger.warning(_("higher_major_version 和 higher_sub_version 都为False，返回空列表"))
@@ -502,7 +730,7 @@ def _find_higher_storage_version_modules(cluster_id: int, module_list: List[Dict
 
 
 def _find_same_major_storage_version_higher_sub_version_modules(
-    cluster_id: int, module_list: List[Dict], cluster_type: str
+    cluster_id: int, module_list: List[Dict], compatibility_checker=None
 ) -> List[Dict]:
     """
     找出当前集群模块的更高子版本包
@@ -550,7 +778,10 @@ def _find_same_major_storage_version_higher_sub_version_modules(
         logger.info(_("找到当前集群模块: {} (模块配置版本: {})").format(module_name, current_module_storage_version))
 
         # 获取更高子版本的包列表
-        pkg_list = _get_higher_sub_version_packages(current_module_storage_version, actual_storage_version)
+
+        pkg_list = _get_higher_sub_version_packages(
+            current_module_storage_version, actual_storage_version, compatibility_checker
+        )
 
         # 返回当前模块的信息和可升级包列表
         result = [
@@ -653,7 +884,9 @@ def _get_storage_packages_for_module(module_storage_version: str, current_module
         return []
 
 
-def _get_higher_sub_version_packages(module_storage_version: str, actual_storage_version: str) -> List[Dict]:
+def _get_higher_sub_version_packages(
+    module_storage_version: str, actual_storage_version: str, compatibility_checker=None
+) -> List[Dict]:
     """
     获取同大版本但子版本更高的包列表
 
@@ -663,9 +896,14 @@ def _get_higher_sub_version_packages(module_storage_version: str, actual_storage
 
     @param module_storage_version: 目标模块的存储层配置版本（用于确定包的兼容性）
     @param actual_storage_version: 当前集群的实际运行版本（用于比较包版本）
+    @param compatibility_checker: 兼容性检查函数，默认为 _check_package_type_compatibility
     @return: 包列表
     """
     try:
+        # 设置默认的兼容性检查器
+        if compatibility_checker is None:
+            compatibility_checker = _check_package_type_compatibility
+
         logger.info(_("开始获取子版本更高的包 - 模块配置版本: {}, 实际运行版本: {}").format(module_storage_version, actual_storage_version))
 
         # 获取所有可用的MySQL包
@@ -704,7 +942,7 @@ def _get_higher_sub_version_packages(module_storage_version: str, actual_storage
                 logger.debug(_("包版本更高: {} ({} > {})").format(pkg.name, pkg_version_num, actual_version_num))
 
                 # 检查包类型是否与实际版本匹配（例如tmysql包对应tmysql实际版本）
-                is_compatible = _check_package_type_compatibility(pkg.name, actual_storage_version)
+                is_compatible = compatibility_checker(pkg.name, actual_storage_version)
                 logger.debug(_("包兼容性检查: {} 与 {} -> {}").format(pkg.name, actual_storage_version, is_compatible))
 
                 if is_compatible:
