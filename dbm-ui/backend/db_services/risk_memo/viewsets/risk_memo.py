@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.db_services.risk_memo.constants import BKREPO_RISK_MEMO_PATH, Bizinpact, RiskOpType, Status
+from backend.db_services.risk_memo.constants import BKREPO_RISK_MEMO_PATH, BizImpact, RiskOpType, Status
 from backend.db_services.risk_memo.filters import RiskMemoListFilter, RiskOpRecordListFilter
 from backend.db_services.risk_memo.handler import log_operation
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskOperateRecord
@@ -45,7 +45,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     action_permission_map = {
         ("list",): [ListRiskMemoPermission()],
         ("update", "create", "retrieve", "update_risk_status"): [RiskMemoPermission()],
-        ("get_risk_operate_records", "images"): [],
+        ("get_risk_operate_records", "get_biz_inpact_list", "images"): [],
     }
 
     queryset = RiskMemo.objects.all()
@@ -153,7 +153,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=None, filter_class=None)
     def get_biz_inpact_list(self, request, *args, **kwargs):
-        data = [{"value": inpact.value, "label": inpact.get_choice_label(inpact.value)} for inpact in Bizinpact]
+        data = [{"value": impact.value, "label": impact.get_choice_label(impact.value)} for impact in BizImpact]
         return Response(data)
 
     @common_swagger_auto_schema(
@@ -170,8 +170,14 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
             # 生成文件名
             file_name = make_unique_key(file_obj)
             storage = BKRepoStorage()
-            storage.save(name=BKREPO_RISK_MEMO_PATH.format(biz=bk_biz_id, file=file_name), content=file_obj)
+            bkrepo_path = BKREPO_RISK_MEMO_PATH.format(biz=bk_biz_id, file=file_name)
+            storage.save(name=bkrepo_path, content=file_obj)
+
+            # 获取文件 URL 并组合新路径
+            base_url = storage.url(file_name).split("?")[0]
+            url = "/".join(base_url.split("/")[:-1]) + "/" + bkrepo_path
+
         except Exception as e:
             return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
 
-        return Response({"url": storage.url(file_name)})
+        return Response({"url": url})
