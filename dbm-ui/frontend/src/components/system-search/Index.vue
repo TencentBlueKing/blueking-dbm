@@ -74,6 +74,7 @@
 
   import { quickSearch } from '@services/source/quickSearch';
 
+  import { systemSearchCache } from '@common/cache';
   import { batchSplitRegex } from '@common/regex';
 
   import { buildURLParams } from '@utils';
@@ -170,6 +171,8 @@
 
       return buildURLParams(query);
     };
+
+    systemSearchCache.appendItem(keyword);
 
     if (keyword) {
       quickSearch({
