@@ -114,10 +114,13 @@
         </AuthRouterLink>
       </I18nT>
     </BkAlert>
-    <HostTable
+    <DbTable
       ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="DBTypes.ES"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
+      selectable
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
@@ -167,7 +170,7 @@
           </OperationBtnStatusTips>
         </template>
       </TableColumn>
-    </HostTable>
+    </DbTable>
     <ClusterExpansion
       v-if="clusterData"
       v-model:is-show="isShowExpandsion"
@@ -193,15 +196,13 @@
 
   import KafkaDetailModel from '@services/model/kafka/kafka-detail';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
+  import type { ListBase } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import {
-    HostListFieldColumn,
-    HostTable,
-    useCopyMachineIp,
-    useHostSearchSelect,
-  } from '@views/db-manage/common/cluster-details';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
@@ -237,7 +238,7 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
 
-  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.KAFKA, {
     tableRef: hostTableRef,
   });
@@ -288,9 +289,9 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: KafkaMachineModel[]) => {
+  const handleRequestSuccess = (list: ListBase<KafkaMachineModel[]>) => {
     roleList.value = _.uniqBy(
-      list.map((item) => ({
+      list.results.map((item) => ({
         label: item.instance_role,
         value: item.instance_role,
       })),
@@ -298,7 +299,7 @@
     );
   };
 
-  const handleSelectChange = (list: KafkaMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: KafkaMachineModel[]) => {
     selectedMachineList.value = list;
   };
 

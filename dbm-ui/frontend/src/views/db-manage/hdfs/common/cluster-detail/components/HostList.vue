@@ -110,10 +110,13 @@
         </AuthRouterLink>
       </I18nT>
     </BkAlert>
-    <HostTable
+    <DbTable
       ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="DBTypes.HDFS"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
+      selectable
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
@@ -167,7 +170,7 @@
           </OperationBtnStatusTips>
         </template>
       </TableColumn>
-    </HostTable>
+    </DbTable>
     <ClusterExpansion
       v-model:is-show="isShowExpandsion"
       :cluster-data="clusterData"
@@ -189,15 +192,13 @@
 
   import HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
   import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
+  import type { ListBase } from '@services/types';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import {
-    HostListFieldColumn,
-    HostTable,
-    useCopyMachineIp,
-    useHostSearchSelect,
-  } from '@views/db-manage/common/cluster-details';
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/hdfs/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/hdfs/common/replace/Index.vue';
@@ -214,7 +215,7 @@
   const { t } = useI18n();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
-  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
   const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.HDFS, {
     tableRef: hostTableRef,
   });
@@ -322,9 +323,9 @@
     return options;
   });
 
-  const handleRequestSuccess = (list: HdfsMachineModel[]) => {
+  const handleRequestSuccess = (list: ListBase<HdfsMachineModel[]>) => {
     roleList.value = _.uniqBy(
-      list.map((item) => ({
+      list.results.map((item) => ({
         label: item.instance_role,
         value: item.instance_role,
       })),
@@ -332,7 +333,7 @@
     );
   };
 
-  const handleSelectChange = (list: HdfsMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: HdfsMachineModel[]) => {
     selectedMachineList.value = list;
   };
 
