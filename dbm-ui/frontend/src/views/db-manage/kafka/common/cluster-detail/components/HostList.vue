@@ -85,13 +85,11 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
-        :model-value="searchSelectValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
         @change="handleSearchValueChange" />
     </div>
     <BkAlert
@@ -117,37 +115,38 @@
       </I18nT>
     </BkAlert>
     <DbTable
-      ref="tableRef"
+      ref="hostTableRef"
       :data-source="dataSource"
-      primary-key="bk_host_id"
-      :row-config="{
-        useKey: true,
-        keyField: 'bk_host_id',
-      }"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
       selectable
+      @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
-      <HostListFieldColumn />
-      <BkTableColumn
-        field=""
+      <HostListFieldColumn
+        :db-type="DBTypes.ES"
+        :role-list="roleList" />
+      <TableColumn
+        col-key="row-operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="120">
-        <template #default="{ data }: { data: KafkaMachineModel }">
+        <template #default="{ row }: { row: KafkaMachineModel }">
           <!-- 缩容按钮 -->
           <OperationBtnStatusTips
             v-db-console="'kafka.nodeList.scaleDown'"
             :data="clusterData">
             <span
-              v-bk-tooltips="checkNodeShrinkDisable(data).tooltips"
+              v-bk-tooltips="checkNodeShrinkDisable(row).tooltips"
               class="ml-8">
               <AuthButton
                 action-id="kafka_shrink"
-                :disabled="checkNodeShrinkDisable(data).disabled || clusterData?.operationDisabled"
+                :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.kafka_shrink"
                 :resource="clusterData.id"
                 text
                 theme="primary"
-                @click="handleShrinkOne(data)">
+                @click="handleShrinkOne(row)">
                 {{ t('缩容') }}
               </AuthButton>
             </span>
@@ -165,12 +164,12 @@
               :resource="clusterData.id"
               text
               theme="primary"
-              @click="handleReplaceOne(data)">
+              @click="handleReplaceOne(row)">
               {{ t('替换') }}
             </AuthButton>
           </OperationBtnStatusTips>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
     <ClusterExpansion
       v-if="clusterData"
@@ -194,28 +193,21 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
 
   import KafkaDetailModel from '@services/model/kafka/kafka-detail';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
+  import type { ListBase } from '@services/types';
 
-  import { useUrlSearch } from '@hooks';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { ClusterTypes } from '@common/const';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
-  import {
-    getSearchSelectValue,
-    HostListFieldColumn,
-    URL_HOST_MEMO_KEY,
-    useCopyMachineIp,
-  } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/kafka/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     clusterData: KafkaDetailModel;
@@ -243,64 +235,20 @@
   };
 
   const { t } = useI18n();
-  const route = useRoute();
-  const router = useRouter();
-
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
-  const { getSearchParams } = useUrlSearch();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
+
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
+  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.KAFKA, {
+    tableRef: hostTableRef,
+  });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({
       ...params,
       cluster_ids: `${props.clusterData.id}`,
     });
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'instance_role') {
-        return _.uniqBy(
-          tableRef.value!.getData<KafkaMachineModel>().map((item) => ({
-            id: item.instance_role,
-            name: item.instance_role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
-  const searchSelectData = [
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      id: 'instance_role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'region',
-      name: t('地域'),
-    },
-    {
-      id: 'bk_sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'bk_os_name',
-      name: t('操作系统'),
-    },
 
-    {
-      id: 'bk_svr_device_cls_name',
-      name: t('机型'),
-    },
-  ];
-
-  const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
-
-  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -308,6 +256,12 @@
 
   const operationNodeList = shallowRef<Array<KafkaMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<KafkaMachineModel>>([]);
+  const roleList = shallowRef<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -335,19 +289,17 @@
     return options;
   });
 
-  const fetchData = () => {
-    const serachParams = getSearchSelectorParams(searchSelectValue.value);
-    tableRef.value?.fetchData(serachParams);
-
-    router.replace({
-      query: {
-        ...getSearchParams(),
-        [URL_HOST_MEMO_KEY]: encodeURIComponent(JSON.stringify(serachParams)),
-      },
-    });
+  const handleRequestSuccess = (list: ListBase<KafkaMachineModel[]>) => {
+    roleList.value = _.uniqBy(
+      list.results.map((item) => ({
+        label: item.instance_role,
+        value: item.instance_role,
+      })),
+      'value',
+    );
   };
 
-  const handleSelectChange = (_: any[], list: KafkaMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: KafkaMachineModel[]) => {
     selectedMachineList.value = list;
   };
 
@@ -362,12 +314,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value!.getData<KafkaMachineModel>());
+    copyAllIp(hostTableRef.value!.getData());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value!.getData<KafkaMachineModel>());
+    copyNotAliveIp(hostTableRef.value!.getData());
   };
 
   // 复制已选 IP
@@ -395,15 +347,6 @@
     operationNodeList.value = [data];
     isShowReplace.value = true;
   };
-
-  const handleSearchValueChange = _.debounce((payload: any) => {
-    searchSelectValue.value = payload;
-    fetchData();
-  }, 100);
-
-  onMounted(() => {
-    searchSelectValue.value = getSearchSelectValue(searchSelectData, urlPaylaod);
-  });
 </script>
 <style lang="less">
   .kafka-detail-host-list {
