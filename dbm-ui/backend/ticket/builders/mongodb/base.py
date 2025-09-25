@@ -26,6 +26,7 @@ from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     MongoDBTicketFlowBuilderPatchMixin,
+    ParamValidateSerializerMixin,
     SkipToRepresentationMixin,
     TicketBaseValidateSerializerMixin,
 )
@@ -61,7 +62,7 @@ class BaseMongoShardedTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, Tick
 
 
 class BaseMongoDBOperateDetailSerializer(
-    TicketBaseValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
+    TicketBaseValidateSerializerMixin, ParamValidateSerializerMixin, SkipToRepresentationMixin, serializers.Serializer
 ):
     @classmethod
     def validate_shrink_spec_machine_affinity(
@@ -120,6 +121,7 @@ class BaseMongoDBOperateDetailSerializer(
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        attrs = super().validated_params(attrs=attrs)
         return attrs
 
 
