@@ -53,6 +53,12 @@ class RiskMemoDtailSerializer(serializers.ModelSerializer):
 
         return RiskMemoFollowUpSerializer(follow_ups, many=True, context=self.context).data
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["biz_inpact"] = representation["biz_inpact"].split(",")
+        representation["inpact_cluster"] = representation["inpact_cluster"].split(",")
+        return representation
+
 
 class RiskMemoFollowUpSerializer(serializers.ModelSerializer):
     is_follow_up_owner = serializers.SerializerMethodField(help_text=_("是否跟进创建者"))
