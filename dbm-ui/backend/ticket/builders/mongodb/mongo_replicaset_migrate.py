@@ -25,29 +25,28 @@ from backend.ticket.builders.mongodb.base import (
 from backend.ticket.constants import TicketType
 
 
-class MongoDBAddShardDetailSerializer(BaseMongoDBOperateDetailSerializer):
-    class AddShardDetailSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerializer):
+    class ReplicasetMigrateDetailSerializer(serializers.Serializer):
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         db_version = serializers.CharField(help_text=_("DB版本"))
-        add_shards_num = serializers.IntegerField(help_text=_("新增分片数"))
-        current_shard_nodes_num = serializers.IntegerField(help_text=_("当前每分片节点数"))
-        node_replicaset_count = serializers.IntegerField(help_text=_("单机部署实例数"))
+        current_replicaset_nodes_num = serializers.IntegerField(help_text=_("当前一个副本集的节点数量"))
         disaster_tolerance_level = serializers.ChoiceField(
             help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
         )
-        city_code = serializers.CharField(help_text=_("DB版本"), required=False, default=None)
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
-        current_shards_num = serializers.IntegerField(help_text=_("当前的分片数"), required=False)
-        single_host_shard_num = serializers.IntegerField(help_text=_("单节点主机分片数"), required=False)
+        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
+        related_instances = serializers.ListSerializer(
+            help_text=_("实例信息查询"), child=serializers.JSONField(), required=False
+        )
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    infos = serializers.ListSerializer(help_text=_("扩容shard节点数申请信息"), child=AddShardDetailSerializer())
+    infos = serializers.ListSerializer(help_text=_("实例信息"), child=ReplicasetMigrateDetailSerializer())
 
 
-class MongoDBAddShardFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.cluster_add_shard
+class MongoDBReplicasetMigrateFlowParamBuilder(builders.FlowParamBuilder):
+    controller = MongoDBController.migrate_meta
     validator = None
 
     def format_ticket_data(self):
@@ -55,20 +54,23 @@ class MongoDBAddShardFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
-class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
+class MongoDBReplicasetMigrateResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_common_affinity(role="mongodb", remain_machine_type=MachineType.MONGODB, tolerance=0.5)
+        self.patch_info_common_affinity(
+            role="mongodb", remain_machine_type=MachineType.MONGODB, replace_key="shard", tolerance=0.5
+        )
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
-            for info in next_flow.details["ticket_data"]["infos"]:
-                info["mongo_add_shards"] = info.pop("mongodb")
+            new_infos = {"MongoReplicaSet": next_flow.details["ticket_data"]["infos"]}
+            next_flow.details["ticket_data"]["infos"] = new_infos
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True)
-class MongoDBAddShardFlowBuilder(BaseMongoDBTicketFlowBuilder):
-    serializer = MongoDBAddShardDetailSerializer
-    inner_flow_builder = MongoDBAddShardFlowParamBuilder
-    inner_flow_name = _("MongoDB 增加分片数")
-    resource_batch_apply_builder = MongoDBAddShardResourceParamBuilder
+@builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_MIGRATE, is_recycle=True)
+class MongoDBReplicasetMigrateFlowBuilder(BaseMongoDBTicketFlowBuilder):
+    serializer = MongoDBReplicasetMigrateDetailSerializer
+    resource_batch_apply_builder = MongoDBReplicasetMigrateResourceParamBuilder
+    inner_flow_builder = MongoDBReplicasetMigrateFlowParamBuilder
+    inner_flow_name = _("MongoDB 副本集集群迁移")
+    need_patch_recycle_host_details = True
