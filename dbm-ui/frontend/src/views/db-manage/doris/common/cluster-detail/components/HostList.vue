@@ -79,13 +79,11 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
-        :model-value="searchSelectValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
         @change="handleSearchValueChange" />
     </div>
     <BkAlert
@@ -111,31 +109,32 @@
     <DbTable
       ref="tableRef"
       :data-source="dataSource"
-      primary-key="bk_host_id"
-      :row-config="{
-        useKey: true,
-        keyField: 'bk_host_id',
-      }"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="bk_host_id"
       selectable
+      @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
-      <HostListFieldColumn />
-      <BkTableColumn
-        field=""
+      <HostListFieldColumn
+        :db-type="DBTypes.DORIS"
+        :role-list="roleList" />
+      <TableColumn
+        col-key="row-operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="120">
-        <template #default="{ data }: { data: DorisMachineModel }">
+        <template #default="{ row }: { row: DorisMachineModel }">
           <!-- 缩容按钮 -->
           <OperationBtnStatusTips :data="clusterData">
-            <span v-bk-tooltips="checkNodeShrinkDisable(data).tooltips">
+            <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
                 action-id="doris_shrink"
-                :disabled="checkNodeShrinkDisable(data).disabled || clusterData?.operationDisabled"
+                :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.doris_shrink"
                 :resource="clusterData.id"
                 text
                 theme="primary"
-                @click="handleShrinkOne(data)">
+                @click="handleShrinkOne(row)">
                 {{ t('缩容') }}
               </AuthButton>
             </span>
@@ -151,12 +150,12 @@
               :resource="clusterData.id"
               text
               theme="primary"
-              @click="handleReplaceOne(data)">
+              @click="handleReplaceOne(row)">
               {{ t('替换') }}
             </AuthButton>
           </OperationBtnStatusTips>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
     <ClusterExpansion
       v-if="clusterData"
@@ -180,28 +179,21 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
 
   import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisMachineModel from '@services/model/doris/doris-machine';
+  import type { ListBase } from '@services/types';
 
-  import { useUrlSearch } from '@hooks';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { ClusterTypes } from '@common/const';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
-  import {
-    getSearchSelectValue,
-    HostListFieldColumn,
-    URL_HOST_MEMO_KEY,
-    useCopyMachineIp,
-  } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/doris/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     clusterData: DorisDetailModel;
@@ -211,61 +203,18 @@
 
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.DORIS);
   const { t } = useI18n();
-  const route = useRoute();
-  const router = useRouter();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
-  const { getSearchParams } = useUrlSearch();
 
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+  const hostTableRef = ref<InstanceType<typeof DbTable>>();
+  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.DORIS, {
+    tableRef: hostTableRef,
+  });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({
       ...params,
       cluster_ids: `${props.clusterData.id}`,
     });
-
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'instance_role') {
-        return _.uniqBy(
-          tableRef.value?.getData<DorisMachineModel>().map((item) => ({
-            id: item.instance_role,
-            name: item.instance_role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
-
-  const searchSelectData = [
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      id: 'instance_role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'region',
-      name: t('地域'),
-    },
-    {
-      id: 'bk_sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'bk_os_name',
-      name: t('操作系统'),
-    },
-
-    {
-      id: 'bk_svr_device_cls_name',
-      name: t('机型'),
-    },
-  ];
 
   const checkNodeShrinkDisable = (node: DorisMachineModel) => {
     const options = {
@@ -287,7 +236,7 @@
       let observerNodeNum = 0;
       let hotNodeNum = 0;
       let coldNodeNum = 0;
-      (tableRef.value!.getData() as DorisMachineModel[]).forEach((nodeItem) => {
+      (hostTableRef.value!.getData() as DorisMachineModel[]).forEach((nodeItem) => {
         if (nodeItem.isObserver) {
           observerNodeNum = observerNodeNum + 1;
         } else if (nodeItem.isHot) {
@@ -315,7 +264,6 @@
     return options;
   };
 
-  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -323,7 +271,12 @@
 
   const operationMachineList = shallowRef<Array<DorisMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<DorisMachineModel>>([]);
-  const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
+  const roleList = shallowRef<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -355,19 +308,17 @@
     return options;
   });
 
-  const fetchData = () => {
-    const serachParams = getSearchSelectorParams(searchSelectValue.value);
-    tableRef.value?.fetchData(serachParams);
-
-    router.replace({
-      query: {
-        ...getSearchParams(),
-        [URL_HOST_MEMO_KEY]: encodeURIComponent(JSON.stringify(serachParams)),
-      },
-    });
+  const handleRequestSuccess = (list: ListBase<DorisMachineModel[]>) => {
+    roleList.value = _.uniqBy(
+      list.results.map((item) => ({
+        label: item.instance_role,
+        value: item.instance_role,
+      })),
+      'value',
+    );
   };
 
-  const handleSelectChange = (_: any[], list: DorisMachineModel[]) => {
+  const handleSelectChange = (_key: string[], list: DorisMachineModel[]) => {
     selectedMachineList.value = list;
   };
 
@@ -382,12 +333,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value!.getData<DorisMachineModel>());
+    copyAllIp(hostTableRef.value!.getData());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value!.getData<DorisMachineModel>());
+    copyNotAliveIp(hostTableRef.value!.getData());
   };
 
   // 复制已选 IP
@@ -415,15 +366,6 @@
     operationMachineList.value = [data];
     isShowReplace.value = true;
   };
-
-  const handleSearchValueChange = _.debounce((payload: any) => {
-    searchSelectValue.value = payload;
-    fetchData();
-  }, 100);
-
-  onMounted(() => {
-    searchSelectValue.value = getSearchSelectValue(searchSelectData, urlPaylaod);
-  });
 </script>
 
 <style lang="less">

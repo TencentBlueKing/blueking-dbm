@@ -462,7 +462,7 @@
 
           // 默认清空选项
           if (props.clearSelection) {
-            bkTableRef.value?.clearSelection?.();
+            handleClearWholeSelect();
           }
 
           if (!props.fixedPagination && props.releateUrlQuery) {
