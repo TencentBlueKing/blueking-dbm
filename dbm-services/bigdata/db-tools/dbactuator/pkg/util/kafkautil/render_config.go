@@ -21,6 +21,7 @@ type TemplateData struct {
 	Listeners                string
 	ZookeeperConnect         string
 	LogRetentionBytes        int
+	BrokerRack               string
 }
 
 func renderTemplate(value string, data TemplateData) (string, error) {

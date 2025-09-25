@@ -55,6 +55,7 @@ type InstallKafkaParams struct {
 	ServiceType    string          `json:"service_type"`
 	NoSecurity     int             `json:"no_security"`     // 兼容现有,0:有鉴权,1:无鉴权
 	RetentionBytes int             `json:"retention_bytes"` // log.retention.bytes 默认-1
+	Rack           string          `json:"rack"`            // 所属机架
 }
 
 // InitDirs TODO
@@ -534,6 +535,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		noSecurity     = i.Params.NoSecurity
 		brokerConfig   = i.Params.KafkaConfigs
 		retentionBytes = i.Params.RetentionBytes
+		rack           = i.Params.Rack
 	)
 
 	if retentionBytes == 0 {
@@ -606,6 +608,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 			Listeners:                listeners,
 			ZookeeperConnect:         zookeeperConnect,
 			LogRetentionBytes:        retentionBytes,
+			BrokerRack:               rack,
 		}
 		if err := kafkautil.CreateServerPropertiesFile(brokerConfig, templateData, cst.KafkaTmpConfig); err != nil {
 			return err
