@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.db_services.risk_memo.constants import BKREPO_RISK_MEMO_PATH, RiskOpType, Status
+from backend.db_services.risk_memo.constants import BKREPO_RISK_MEMO_PATH, Bizinpact, RiskOpType, Status
 from backend.db_services.risk_memo.filters import RiskMemoListFilter, RiskOpRecordListFilter
 from backend.db_services.risk_memo.handler import log_operation
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskOperateRecord
@@ -146,6 +146,15 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
         op_records_page_qs = self.paginate_queryset(super().filter_queryset(self.queryset))
         op_records_page_data = self.serializer_class(op_records_page_qs, many=True).data
         return self.get_paginated_response(data=op_records_page_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取业务影响类型"),
+        tags=[RISK_MEMO_VIEW_TAGS],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=None, filter_class=None)
+    def get_biz_inpact_list(self, request, *args, **kwargs):
+        data = [{"value": inpact.value, "label": inpact.get_choice_label(inpact.value)} for inpact in Bizinpact]
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("上传图片到制品库"),
