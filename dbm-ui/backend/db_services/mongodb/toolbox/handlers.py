@@ -8,8 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.db_meta.enums import ClusterType
+import operator
+from functools import reduce
+
+from django.db.models import Q
+
+from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
+from backend.db_meta.models import Cluster, NosqlStorageSetDtl
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 
 
 class ToolboxHandler(ClusterServiceHandler):
@@ -31,3 +38,61 @@ class ToolboxHandler(ClusterServiceHandler):
             host_ids = list(cluster.proxyinstance_set.values_list("machine__bk_host_id", flat=True))
 
         return host_ids
+
+    @classmethod
+    def get_mongo_shard(cls, data):
+        cluster_ids = []
+        if data.get("cluster_id"):
+            cluster_ids.append(data["cluster_id"])
+        if data.get("shard_names"):
+            cluster_ids.append(
+                NosqlStorageSetDtl.objects.filter(seg_range__in=data["shard_names"]).values_list(
+                    "cluster__id", flat=True
+                )
+            )
+
+        cluster_ids = list(set(cluster_ids))
+        clusters = Cluster.objects.filter(id__in=cluster_ids).all()
+        shard_data = []
+        for cluster in clusters:
+            mongodb_insts = [
+                m for m in cluster.storageinstance_set.all() if m.machine.machine_type == MachineType.MONGODB
+            ]
+            mongodb = [m.simple_desc for m in mongodb_insts]
+            shard_num = cluster.nosqlstoragesetdtl_set.filter(
+                instance__machine__machine_type=MachineType.MONGODB
+            ).count()
+            shard_node_count = len(mongodb) / shard_num
+            # 获取各个分片的节点组
+            inst_filter = Q(
+                reduce(
+                    operator.or_,
+                    [Q(instance_role=role) for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]],
+                ),
+                cluster=cluster,
+                machine_type=MachineType.MONGODB,
+            )
+            insts, inst_id__shard = MongoDBListRetrieveResource.query_storage_shard(inst_filter)
+            shard_name_instance_map = {}
+            for inst in insts:
+                shard_name = inst_id__shard[inst.id]
+                if shard_name in shard_name_instance_map:
+                    shard_name_instance_map[shard_name].append(inst)
+                else:
+                    shard_name_instance_map[shard_name] = [inst]
+            shard_data.extend(
+                [
+                    {
+                        "shard_name": shard_name,
+                        "related_instance": [inst.simple_desc for inst in shard_name_instance_map[shard_name]],
+                        "cluster_id": cluster.id,
+                        "master_domain": cluster.immute_domain,
+                        "region": cluster.region,
+                        "major_version": cluster.major_version,
+                        "disaster_tolerance_level": cluster.disaster_tolerance_level,
+                        "shard_node_count": shard_node_count,
+                    }
+                    for shard_name in shard_name_instance_map
+                ]
+            )
+        return shard_data
