@@ -30,7 +30,7 @@ class Status(str, StructuredEnum):
     DONE = EnumField("done", _("结项"))
 
 
-class Bizinpact(str, StructuredEnum):
+class BizImpact(str, StructuredEnum):
     """
     业务影响枚举类
     """
