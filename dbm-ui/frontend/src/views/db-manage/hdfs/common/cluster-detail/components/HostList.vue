@@ -81,13 +81,11 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
-        :model-value="searchSelectValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
         @change="handleSearchValueChange" />
     </div>
     <BkAlert
@@ -112,36 +110,34 @@
         </AuthRouterLink>
       </I18nT>
     </BkAlert>
-    <DbTable
-      ref="tableRef"
+    <HostTable
+      ref="hostTableRef"
       :data-source="dataSource"
-      primary-key="bk_host_id"
-      :row-config="{
-        useKey: true,
-        keyField: 'bk_host_id',
-      }"
-      selectable
+      :db-type="DBTypes.HDFS"
+      @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
-      <HostListFieldColumn />
-      <BkTableColumn
-        field=""
+      <HostListFieldColumn
+        :db-type="DBTypes.HDFS"
+        :role-list="roleList" />
+      <TableColumn
+        col-key="row-operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="120">
-        <template #default="{ data }: { data: HdfsMachineModel }">
+        <template #default="{ row }: { row: HdfsMachineModel }">
           <!-- 缩容按钮 -->
           <OperationBtnStatusTips
             v-db-console="'hdfs.nodeList.scaleDown'"
             :data="clusterData">
-            <span v-bk-tooltips="checkNodeShrinkDisable(data).tooltips">
+            <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
                 action-id="hdfs_shrink"
-                :disabled="checkNodeShrinkDisable(data).disabled || clusterData?.operationDisabled"
+                :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.hdfs_shrink"
                 :resource="clusterData.id"
                 text
                 theme="primary"
-                @click="handleShrinkOne(data)">
+                @click="handleShrinkOne(row)">
                 {{ t('缩容') }}
               </AuthButton>
             </span>
@@ -154,24 +150,24 @@
             <span
               v-bk-tooltips="{
                 content: t('节点类型不支持替换'),
-                disabled: data.isDataNode,
+                disabled: row.isDataNode,
               }">
               <AuthButton
                 action-id="hdfs_replace"
                 class="ml-8"
-                :disabled="checkNodeReplaceDisable(data).disabled || clusterData?.operationDisabled"
+                :disabled="checkNodeReplaceDisable(row).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.hdfs_replace"
                 :resource="clusterData.id"
                 text
                 theme="primary"
-                @click="handleReplaceOne(data)">
+                @click="handleReplaceOne(row)">
                 {{ t('替换') }}
               </AuthButton>
             </span>
           </OperationBtnStatusTips>
         </template>
-      </BkTableColumn>
-    </DbTable>
+      </TableColumn>
+    </HostTable>
     <ClusterExpansion
       v-model:is-show="isShowExpandsion"
       :cluster-data="clusterData"
@@ -190,28 +186,23 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
 
   import HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
   import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
 
-  import { useUrlSearch } from '@hooks';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import {
-    getSearchSelectValue,
     HostListFieldColumn,
-    URL_HOST_MEMO_KEY,
+    HostTable,
     useCopyMachineIp,
+    useHostSearchSelect,
   } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/hdfs/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/hdfs/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/hdfs/common/shrink/Index.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     clusterData: HdfsDetailModel;
@@ -221,61 +212,18 @@
 
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.HDFS);
   const { t } = useI18n();
-  const route = useRoute();
-  const router = useRouter();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
-  const { getSearchParams } = useUrlSearch();
 
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(DBTypes.HDFS, {
+    tableRef: hostTableRef,
+  });
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({
       ...params,
       cluster_ids: `${props.clusterData.id}`,
     });
-
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'instance_role') {
-        return _.uniqBy(
-          tableRef.value?.getData<HdfsMachineModel>().map((item) => ({
-            id: item.instance_role,
-            name: item.instance_role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
-
-  const searchSelectData = [
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      id: 'instance_role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'region',
-      name: t('地域'),
-    },
-    {
-      id: 'bk_sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'bk_os_name',
-      name: t('操作系统'),
-    },
-
-    {
-      id: 'bk_svr_device_cls_name',
-      name: t('机型'),
-    },
-  ];
 
   const checkNodeShrinkDisable = (node: HdfsMachineModel) => {
     const options = {
@@ -313,15 +261,19 @@
     return options;
   };
 
-  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isCopyDropdown = ref(false);
-  const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
   const operationMachineList = shallowRef<Array<HdfsMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<HdfsMachineModel>>([]);
+  const roleList = shallowRef<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
 
   const batchShrinkDisabledInfo = computed(() => {
     const options = {
@@ -370,19 +322,17 @@
     return options;
   });
 
-  const fetchData = () => {
-    const serachParams = getSearchSelectorParams(searchSelectValue.value);
-    tableRef.value?.fetchData(serachParams);
-
-    router.replace({
-      query: {
-        ...getSearchParams(),
-        [URL_HOST_MEMO_KEY]: encodeURIComponent(JSON.stringify(serachParams)),
-      },
-    });
+  const handleRequestSuccess = (list: HdfsMachineModel[]) => {
+    roleList.value = _.uniqBy(
+      list.map((item) => ({
+        label: item.instance_role,
+        value: item.instance_role,
+      })),
+      'value',
+    );
   };
 
-  const handleSelectChange = (_: any[], list: HdfsMachineModel[]) => {
+  const handleSelectChange = (list: HdfsMachineModel[]) => {
     selectedMachineList.value = list;
   };
 
@@ -397,12 +347,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value!.getData<HdfsMachineModel>());
+    copyAllIp(hostTableRef.value!.getData());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value!.getData<HdfsMachineModel>());
+    copyNotAliveIp(hostTableRef.value!.getData());
   };
 
   // 复制已选 IP
@@ -430,15 +380,6 @@
     operationMachineList.value = [data];
     isShowReplace.value = true;
   };
-
-  const handleSearchValueChange = _.debounce((payload: any) => {
-    searchSelectValue.value = payload;
-    fetchData();
-  }, 100);
-
-  onMounted(() => {
-    searchSelectValue.value = getSearchSelectValue(searchSelectData, urlPaylaod);
-  });
 </script>
 <style lang="less">
   .hdfs-detail-host-list {

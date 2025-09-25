@@ -9,6 +9,7 @@ import BaseInfo, {
 import BigDataInstanceList from './components/BigDataInstanceList.vue';
 import DisplayBox from './DisplayBox.vue';
 import HostListFieldColumn from './HostListFieldColumn.vue';
+import HostTable from './HostTable.vue';
 import InstanceListFieldColumn from './InstanceListFieldColumn.vue';
 import RoleSpec from './RoleSpec.vue';
 import SlaveDomain from './SlaveDomain.vue';
@@ -24,6 +25,7 @@ export {
   BigDataInstanceList,
   DisplayBox,
   HostListFieldColumn,
+  HostTable,
   InstanceListFieldColumn,
   RoleSpec,
   SlaveDomain,
