@@ -13,10 +13,15 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
 from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
-from backend.db_services.mongodb.toolbox.serializers import GetMongoTcpResultSerializer, MongoExecuteTcpCmdSerializer
+from backend.db_services.mongodb.toolbox.serializers import (
+    GetMongoShardSerializer,
+    GetMongoTcpResultSerializer,
+    MongoExecuteTcpCmdSerializer,
+)
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterActionPermission
@@ -53,3 +58,23 @@ class ToolboxViewSet(BaseClusterViewSet):
     def get_cluster_net_tcp_result(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         return Response(ToolboxHandler(bk_biz_id).get_cluster_proc_net_tcp(data["job_instance_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取mongo集群分片信息"),
+        query_serializer=GetMongoShardSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=GetMongoShardSerializer,
+        pagination_class=AuditedLimitOffsetPagination,
+    )
+    def get_mongo_shard(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        raw_data = ToolboxHandler(bk_biz_id).get_mongo_shard(data)
+        paginator = self.paginator
+        page = paginator.paginate_queryset(raw_data, request)
+        if page is not None:
+            return paginator.get_paginated_response(page)
+        return Response(raw_data)
