@@ -20,7 +20,9 @@ require (
 	github.com/testcontainers/testcontainers-go v0.38.0
 	github.com/testcontainers/testcontainers-go/modules/mysql v0.38.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.60.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.27.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 	helm.sh/helm/v3 v3.18.5

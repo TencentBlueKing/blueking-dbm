@@ -41,6 +41,11 @@ containerPorts:
 
 # @section dbs 服务配置
 server:
+  log:
+    max_size_mb: "10"
+    max_backups: "5"
+    max_age: "3"
+    compress: "true"
   vmMetricServerHost: "localhost"
   vmMetricServerPort: "80"
   # @param service type
@@ -110,3 +115,16 @@ readinessProbe:
   successThreshold: 1
   # @param dbs 服务就绪探针检查失败阈值
   failureThreshold: 3
+
+# @section 采集配置
+bkLogConfig:
+  # @param 是否启用日志插件
+  enabled: false
+  # @param 日志采集的 Data ID
+  dataId: 1
+  # @param api日志文件采集的 Data ID
+  dataIdForApi: 2
+  # @param sys日志文件采集的 Data ID
+  dataIdForSys: 3
+  # @param bkLogConfig bk_env 标签
+  bkEnv: ""

@@ -41,6 +41,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	middleHelper "k8s-dbs/middleware"
 )
 
 // main 函数是程序的入口点，执行以下步骤：
@@ -56,18 +58,21 @@ func main() {
 	}
 	slog.Info("Finish initial configuration...")
 
-	// 创建路由
-	r := router.NewRouter(util.Db.GormDb)
+	engine := gin.Default()
+	// 注册中间件
+	middleHelper.RegisterMiddleWare(engine)
+
+	// 构建路由
+	router.BuildRouter(engine, util.Db.GormDb)
 	slog.Info("Finish initial router...")
 
-	// 创建主上下文
+	// 启动 informers
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	dbsinformer.StartInformers(ctx)
 
-	startServer(r.Engine, cancel)
-
+	// 启动 server
+	startServer(engine, cancel)
 	slog.Info("Dbs server stopped.")
 
 }
