@@ -11,8 +11,7 @@ import { useGlobalBizs } from '@stores';
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
-
-import MultipleSelect from '@/components/db-table/components/MultipleSelect.vue';
+import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 type ITableFilter = Record<
   string,

@@ -5,7 +5,9 @@
     :popover-delay="0"
     theme="light"
     :width="600">
-    <slot />
+    <div class="spec-detail-popover-default-container">
+      <slot />
+    </div>
     <template #content>
       <div class="spec-detail-popover-content">
         <span class="spec-name">{{ data?.spec_name || data?.name }}</span>
@@ -106,6 +108,11 @@
 </script>
 
 <style lang="less">
+  .spec-detail-popover-default-container {
+    width: 100%;
+    cursor: pointer;
+  }
+
   .spec-detail-popover-content {
     padding: 9px 2px;
 
