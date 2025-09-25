@@ -24,18 +24,21 @@
 
 package apm
 
-import "dbm-services/common/go-pubpkg/apm/metric"
+import (
+	"dbm-services/common/dbha-v2/pkg/haapm"
+	"dbm-services/common/go-pubpkg/apm/metric"
+)
 
 var Metrics []*metric.Metric
 
 var (
-	SyncDbmMetadataDurationMetric = &metric.Metric{
-		ID:          "sync_dbm_metadata_duration",
-		Name:        "sync_dbm_metadata_duration_ms",
-		Description: "The time-consuming of synchronizing DBM metadata",
-	}
+	UptimeMetric *haapm.HaGauge
 )
 
-func init() {
-	Metrics = append(Metrics, &metric.Metric{})
+func InitAPM(serviceID string) {
+	UptimeMetric = haapm.NewHaGauge("dbha_analysis_startup_time_sec",
+		"The duration of how long the analysis server has been running.",
+		"service-id", "service-name")
+
+	Metrics = append(Metrics, UptimeMetric.ToMetric())
 }

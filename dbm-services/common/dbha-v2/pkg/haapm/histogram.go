@@ -30,26 +30,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// HaCounter is a Metric that represents a single numerical value that only ever
-// goes up. That implies that it cannot be used to count items whose number can
-// also go down, e.g. the number of currently running goroutines. Those
-// "counters" are represented by Gauges.
+// A HaHistogram counts individual observations from an event or sample stream in
+// configurable static buckets (or in dynamic sparse buckets as part of the
+// experimental Native Histograms, see below for more details). Similar to a
+// Summary, it also provides a sum of observations and an observation count.
 //
-// A Counter is typically used to count requests served, tasks completed, errors
-// occurred, etc.
+// The Observe method of a HaHistogram has a very low performance overhead in
+// comparison with the Observe method of a Summary.
 //
-// To create HaCounter instances, use NewHaCounter.
-type HaCounter struct {
+// To create HaHistogram instances, use NewHaHistogram.
+type HaHistogram struct {
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaCounter) ToMetric() *metric.Metric {
+func (m *HaHistogram) ToMetric() *metric.Metric {
 	return (*metric.Metric)(m.metric)
 }
 
-func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
+func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
 	if len(m.labelNames) == 0 {
 		panic("Update the gauge value with the new label values.")
 	}
@@ -61,26 +61,9 @@ func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
 	return m
 }
 
-func (m *HaCounter) Inc() {
+func (m *HaHistogram) Observe(val float64) {
 	if len(m.labelNames) == 0 {
-		m.metric.Collector.(prometheus.Counter).Inc()
-	}
-
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Inc()
-		return
-	}
-
-	// Reset the label values.
-	m.resetLabelValues()
-}
-
-func (m *HaCounter) Add(val float64) {
-	if len(m.labelNames) == 0 {
-		m.metric.Collector.(prometheus.Counter).Add(val)
+		m.metric.Collector.(prometheus.Histogram).Observe(val)
 		return
 	}
 
@@ -88,7 +71,7 @@ func (m *HaCounter) Add(val float64) {
 	values := m.getLabelValues()
 
 	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Add(val)
+		m.metric.Collector.(*prometheus.HistogramVec).WithLabelValues(values...).Observe(val)
 		return
 	}
 
@@ -96,7 +79,7 @@ func (m *HaCounter) Add(val float64) {
 	m.resetLabelValues()
 }
 
-func (m *HaCounter) getLabelValues() []string {
+func (m *HaHistogram) getLabelValues() []string {
 	values := []string{}
 
 	for _, name := range m.labelNames {
@@ -108,29 +91,53 @@ func (m *HaCounter) getLabelValues() []string {
 	return values
 }
 
-func (m *HaCounter) resetLabelValues() {
+func (m *HaHistogram) resetLabelValues() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
 		m.labelValues[name] = "" // set default label value
 	}
 }
 
-func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
-	counter := &HaCounter{}
-	counter.metric = &metric.Metric{
+func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
+	histogram := &HaHistogram{}
+	histogram.metric = &metric.Metric{
 		ID:          name,
 		Name:        name,
 		Description: help,
 	}
 
 	if len(labelNames) == 0 {
-		counter.metric.Type = MetricTypeCounter.String()
-		return counter
+		histogram.metric.Type = MetricTypeHistogram.String()
+		return histogram
 	}
 
-	counter.metric.Type = MetricTypeCounterVec.String()
-	counter.labelNames = append(counter.labelNames, labelNames...)
-	counter.metric.Labels = counter.labelNames
+	histogram.metric.Type = MetricTypeHistogramVec.String()
+	histogram.labelNames = append(histogram.labelNames, labelNames...)
+	histogram.metric.Labels = histogram.labelNames
 
-	return counter
+	return histogram
+}
+
+func NewHaHistogramWithBuckets(name, help string, buckets []float64, labelNames ...string) *HaHistogram {
+	histogram := &HaHistogram{}
+	histogram.metric = &metric.Metric{
+		ID:          name,
+		Name:        name,
+		Description: help,
+	}
+
+	if len(buckets) != 0 {
+		histogram.metric.Buckets = append(histogram.metric.Buckets, buckets...)
+	}
+
+	if len(labelNames) == 0 {
+		histogram.metric.Type = MetricTypeHistogram.String()
+		return histogram
+	}
+
+	histogram.metric.Type = MetricTypeHistogramVec.String()
+	histogram.labelNames = append(histogram.labelNames, labelNames...)
+	histogram.metric.Labels = histogram.labelNames
+
+	return histogram
 }
