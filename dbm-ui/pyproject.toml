@@ -9,7 +9,7 @@ python = "~3.10.0"
 Django = "3.2.25"
 djangorestframework = "3.12.4"
 PyMySQL = "1.1.1"
-requests = "2.31.0"
+requests = "2.32.4"
 Werkzeug = "1.0.1"
 celery = "5.2.2"
 bamboo-pipeline = "3.29.3"
@@ -71,6 +71,8 @@ future = "0.18.3"
 
 cos-python-sdk-v5 = "^1.9.38"
 django-db-connection-pool = {version = "1.2.6", extras = ["mysql"]}
+jinja2 = "3.1.6"
+urllib3 = "2.5.0"
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"
 pytest = "6.2.4"
