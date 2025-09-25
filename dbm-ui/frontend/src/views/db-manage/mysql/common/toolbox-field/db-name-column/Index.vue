@@ -19,14 +19,16 @@
     :label="label"
     :min-width="200"
     :required="required">
-    <template
-      v-if="showBatchEdit"
-      #headAppend>
-      <BatchEditColumn
-        :confirm-handler="handleBatchEditConfirm"
-        :label="label">
-        <BatchEditTagInput v-model="batchEditValue" />
-      </BatchEditColumn>
+    <template #headAppend>
+      <div style="display: flex">
+        <slot name="tooltip" />
+        <BatchEditColumn
+          v-if="showBatchEdit"
+          :confirm-handler="handleBatchEditConfirm"
+          :label="label">
+          <BatchEditTagInput v-model="batchEditValue" />
+        </BatchEditColumn>
+      </div>
     </template>
     <EditableTagInput
       v-model="modelValue"
