@@ -30,26 +30,35 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// HaCounter is a Metric that represents a single numerical value that only ever
-// goes up. That implies that it cannot be used to count items whose number can
-// also go down, e.g. the number of currently running goroutines. Those
-// "counters" are represented by Gauges.
+// A HaSummary captures individual observations from an event or sample stream and
+// summarizes them in a manner similar to traditional summary statistics: 1. sum
+// of observations, 2. observation count, 3. rank estimations.
 //
-// A Counter is typically used to count requests served, tasks completed, errors
-// occurred, etc.
+// A typical use-case is the observation of request latencies. By default, a
+// Summary provides the median, the 90th and the 99th percentile of the latency
+// as rank estimations. However, the default behavior will change in the
+// upcoming v1.0.0 of the library. There will be no rank estimations at all by
+// default. For a sane transition, it is recommended to set the desired rank
+// estimations explicitly.
 //
-// To create HaCounter instances, use NewHaCounter.
-type HaCounter struct {
+// Note that the rank estimations cannot be aggregated in a meaningful way with
+// the Prometheus query language (i.e. you cannot average or add them). If you
+// need aggregatable quantiles (e.g. you want the 99th percentile latency of all
+// queries served across all instances of a service), consider the Histogram
+// metric type. See the Prometheus documentation for more details.
+//
+// To create HaSummary instances, use NewHaSummary.
+type HaSummary struct {
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaCounter) ToMetric() *metric.Metric {
+func (m *HaSummary) ToMetric() *metric.Metric {
 	return (*metric.Metric)(m.metric)
 }
 
-func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
+func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
 	if len(m.labelNames) == 0 {
 		panic("Update the gauge value with the new label values.")
 	}
@@ -61,26 +70,9 @@ func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
 	return m
 }
 
-func (m *HaCounter) Inc() {
+func (m *HaSummary) Observe(val float64) {
 	if len(m.labelNames) == 0 {
-		m.metric.Collector.(prometheus.Counter).Inc()
-	}
-
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Inc()
-		return
-	}
-
-	// Reset the label values.
-	m.resetLabelValues()
-}
-
-func (m *HaCounter) Add(val float64) {
-	if len(m.labelNames) == 0 {
-		m.metric.Collector.(prometheus.Counter).Add(val)
+		m.metric.Collector.(prometheus.Summary).Observe(val)
 		return
 	}
 
@@ -88,7 +80,7 @@ func (m *HaCounter) Add(val float64) {
 	values := m.getLabelValues()
 
 	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Add(val)
+		m.metric.Collector.(*prometheus.SummaryVec).WithLabelValues(values...).Observe(val)
 		return
 	}
 
@@ -96,7 +88,7 @@ func (m *HaCounter) Add(val float64) {
 	m.resetLabelValues()
 }
 
-func (m *HaCounter) getLabelValues() []string {
+func (m *HaSummary) getLabelValues() []string {
 	values := []string{}
 
 	for _, name := range m.labelNames {
@@ -108,29 +100,29 @@ func (m *HaCounter) getLabelValues() []string {
 	return values
 }
 
-func (m *HaCounter) resetLabelValues() {
+func (m *HaSummary) resetLabelValues() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
 		m.labelValues[name] = "" // set default label value
 	}
 }
 
-func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
-	counter := &HaCounter{}
-	counter.metric = &metric.Metric{
+func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
+	summary := &HaSummary{}
+	summary.metric = &metric.Metric{
 		ID:          name,
 		Name:        name,
 		Description: help,
 	}
 
 	if len(labelNames) == 0 {
-		counter.metric.Type = MetricTypeCounter.String()
-		return counter
+		summary.metric.Type = MetricTypeSummary.String()
+		return summary
 	}
 
-	counter.metric.Type = MetricTypeCounterVec.String()
-	counter.labelNames = append(counter.labelNames, labelNames...)
-	counter.metric.Labels = counter.labelNames
+	summary.metric.Type = MetricTypeSummaryVec.String()
+	summary.labelNames = append(summary.labelNames, labelNames...)
+	summary.metric.Labels = summary.labelNames
 
-	return counter
+	return summary
 }
