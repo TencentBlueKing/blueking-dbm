@@ -25,6 +25,14 @@ spec:
             - containerPort: {{ .Values.containerPorts.http }}
               protocol: TCP
           env:
+          - name: LOG_MAX_SIZE_MB
+            value: "{{ .Values.server.log.max_size_mb }}"
+          - name: LOG_MAX_BACKUPS
+            value: "{{ .Values.server.log.max_backups }}"
+          - name: LOG_MAX_AGE
+            value: "{{ .Values.server.log.max_age }}"
+          - name: LOG_COMPRESS
+            value: "{{ .Values.server.log.compress }}"
           - name: VM_METRIC_SERVER_HOST
             value: "{{ .Values.server.vmMetricServerHost }}"
           - name: VM_METRIC_SERVER_PORT

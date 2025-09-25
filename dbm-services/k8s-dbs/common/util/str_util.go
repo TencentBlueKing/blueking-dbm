@@ -20,6 +20,8 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -222,4 +224,33 @@ func splitWords(s string) []string {
 	}
 
 	return cleaned
+}
+
+// ParseInt 字符串解析为 int
+func ParseInt(s string) (int, error) {
+	return strconv.Atoi(s)
+}
+
+// ParseBool 字符串解析为 bool
+func ParseBool(s string) (bool, error) {
+	switch strings.ToLower(s) {
+	case "true", "1":
+		return true, nil
+	case "false", "0":
+		return false, nil
+	default:
+		return false, fmt.Errorf("无法解析布尔值: %s", s)
+	}
+}
+
+// Truncate 截取指定长度字符串
+func Truncate(s string, maxLen int) string {
+	if maxLen <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen])
 }
