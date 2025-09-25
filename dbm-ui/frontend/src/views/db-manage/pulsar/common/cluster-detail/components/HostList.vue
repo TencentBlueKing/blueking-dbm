@@ -85,13 +85,11 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
-        :model-value="searchSelectValue"
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
         style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
         @change="handleSearchValueChange" />
     </div>
     <BkAlert
@@ -116,36 +114,34 @@
         </AuthRouterLink>
       </I18nT>
     </BkAlert>
-    <DbTable
-      ref="tableRef"
+    <HostTable
+      ref="hostTableRef"
       :data-source="dataSource"
-      primary-key="bk_host_id"
-      :row-config="{
-        useKey: true,
-        keyField: 'bk_host_id',
-      }"
-      selectable
+      :db-type="DBTypes.PULSAR"
+      @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
-      <HostListFieldColumn />
-      <BkTableColumn
-        field=""
+      <HostListFieldColumn
+        :db-type="DBTypes.PULSAR"
+        :role-list="roleList" />
+      <TableColumn
+        col-key="row-operation"
         fixed="right"
-        :label="t('操作')"
+        :title="t('操作')"
         :width="120">
-        <template #default="{ data }: { data: PulsarMachineModel }">
+        <template #default="{ row }: { row: PulsarMachineModel }">
           <!-- 缩容按钮 -->
           <OperationBtnStatusTips
             v-db-console="'pulsar.nodeList.scaleDown'"
             :data="clusterData">
-            <span v-bk-tooltips="checkNodeShrinkDisable(data).tooltips">
+            <span v-bk-tooltips="checkNodeShrinkDisable(row).tooltips">
               <AuthButton
                 action-id="pulsar_shrink"
-                :disabled="checkNodeShrinkDisable(data).disabled || clusterData?.operationDisabled"
+                :disabled="checkNodeShrinkDisable(row).disabled || clusterData?.operationDisabled"
                 :permission="clusterData.permission.pulsar_shrink"
                 :resource="clusterData.id"
                 text
                 theme="primary"
-                @click="handleShrinkOne(data)">
+                @click="handleShrinkOne(row)">
                 {{ t('缩容') }}
               </AuthButton>
             </span>
@@ -163,13 +159,13 @@
               :resource="clusterData.id"
               text
               theme="primary"
-              @click="handleReplaceOne(data)">
+              @click="handleReplaceOne(row)">
               {{ t('替换') }}
             </AuthButton>
           </OperationBtnStatusTips>
         </template>
-      </BkTableColumn>
-    </DbTable>
+      </TableColumn>
+    </HostTable>
     <ClusterExpansion
       v-if="clusterData"
       v-model:is-show="isShowExpandsion"
@@ -192,28 +188,23 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
 
   import PulsarDetailModel from '@services/model/pulsar/pulsar-detail';
   import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
 
-  import { useUrlSearch } from '@hooks';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import {
-    getSearchSelectValue,
     HostListFieldColumn,
-    URL_HOST_MEMO_KEY,
+    HostTable,
     useCopyMachineIp,
+    useHostSearchSelect,
   } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/pulsar/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
-
-  import { getSearchSelectorParams } from '@utils';
 
   interface Props {
     clusterData: PulsarDetailModel;
@@ -224,61 +215,21 @@
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.PULSAR);
 
   const { t } = useI18n();
-  const route = useRoute();
-  const router = useRouter();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
-  const { getSearchParams } = useUrlSearch();
 
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(
+    DBTypes.PULSAR,
+    {
+      tableRef: hostTableRef,
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({
       ...params,
       cluster_ids: `${props.clusterData.id}`,
     });
-
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'instance_role') {
-        return _.uniqBy(
-          tableRef.value?.getData<PulsarMachineModel>().map((item) => ({
-            id: item.instance_role,
-            name: item.instance_role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
-
-  const searchSelectData = [
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      id: 'instance_role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'region',
-      name: t('地域'),
-    },
-    {
-      id: 'bk_sub_zone',
-      name: t('园区'),
-    },
-    {
-      id: 'bk_os_name',
-      name: t('操作系统'),
-    },
-
-    {
-      id: 'bk_svr_device_cls_name',
-      name: t('机型'),
-    },
-  ];
 
   const checkNodeShrinkDisable = (node: PulsarMachineModel) => {
     const options = {
@@ -299,7 +250,6 @@
     return options;
   };
 
-  const tableRef = useTemplateRef('tableRef');
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -307,7 +257,12 @@
 
   const operationNodeList = shallowRef<Array<PulsarMachineModel>>([]);
   const selectedMachineList = shallowRef<Array<PulsarMachineModel>>([]);
-  const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
+  const roleList = shallowRef<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
 
   const isBatchReplaceDisabeld = computed(() => selectedMachineList.value.length < 1);
 
@@ -335,19 +290,17 @@
     return options;
   });
 
-  const fetchData = () => {
-    const serachParams = getSearchSelectorParams(searchSelectValue.value);
-    tableRef.value?.fetchData(serachParams);
-
-    router.replace({
-      query: {
-        ...getSearchParams(),
-        [URL_HOST_MEMO_KEY]: encodeURIComponent(JSON.stringify(serachParams)),
-      },
-    });
+  const handleRequestSuccess = (list: PulsarMachineModel[]) => {
+    roleList.value = _.uniqBy(
+      list.map((item) => ({
+        label: item.instance_role,
+        value: item.instance_role,
+      })),
+      'value',
+    );
   };
 
-  const handleSelectChange = (_: any[], list: PulsarMachineModel[]) => {
+  const handleSelectChange = (list: PulsarMachineModel[]) => {
     selectedMachineList.value = list;
   };
 
@@ -362,12 +315,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(tableRef.value!.getData<PulsarMachineModel>());
+    copyAllIp(hostTableRef.value!.getData());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(tableRef.value!.getData<PulsarMachineModel>());
+    copyNotAliveIp(hostTableRef.value!.getData());
   };
 
   // 复制已选 IP
@@ -395,15 +348,6 @@
     operationNodeList.value = [data];
     isShowReplace.value = true;
   };
-
-  const handleSearchValueChange = _.debounce((payload: any) => {
-    searchSelectValue.value = payload;
-    fetchData();
-  }, 100);
-
-  onMounted(() => {
-    searchSelectValue.value = getSearchSelectValue(searchSelectData, urlPaylaod);
-  });
 </script>
 <style lang="less">
   .pulsar-detail-host-list {

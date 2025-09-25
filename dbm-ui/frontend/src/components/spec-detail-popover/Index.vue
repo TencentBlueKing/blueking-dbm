@@ -5,7 +5,9 @@
     :popover-delay="0"
     theme="light"
     :width="600">
-    <slot />
+    <div class="spec-detail-popover-default-container">
+      <slot />
+    </div>
     <template #content>
       <div class="spec-detail-popover-content">
         <span class="spec-name">{{ data?.spec_name || data?.name }}</span>
@@ -14,6 +16,9 @@
             v-if="typeof data.availableCount === 'number'"
             :label="t('可用主机数')">
             {{ data.availableCount ?? 0 }}
+          </InfoItem>
+          <InfoItem label="ID">
+            {{ data.id || data.spec_id || '--' }}
           </InfoItem>
           <InfoItem
             v-if="data.device_class?.length"
@@ -85,10 +90,12 @@
       availableCount?: number; // 选择器显示的数量
       cpu: ResourceSpecModel['cpu'];
       device_class?: ResourceSpecModel['device_class'];
+      id?: number;
       instance_num?: number;
       mem: ResourceSpecModel['mem'];
       name?: string;
       qps?: ResourceSpecModel['qps'];
+      spec_id?: number;
       spec_name?: string;
       storage_spec: ResourceSpecModel['storage_spec'];
     };
@@ -106,6 +113,11 @@
 </script>
 
 <style lang="less">
+  .spec-detail-popover-default-container {
+    width: 100%;
+    cursor: pointer;
+  }
+
   .spec-detail-popover-content {
     padding: 9px 2px;
 
