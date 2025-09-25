@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
-from backend.db_services.risk_memo.constants import BizInpact, RiskOpType, RiskPriority, Status
+from backend.db_services.risk_memo.constants import RiskOpType, RiskPriority, Status
 from backend.db_services.risk_memo.models.managers import RiskMemoFollowUpManager, RiskMemoManager
 
 
@@ -26,15 +26,15 @@ class RiskMemo(AuditedModel):
     name = models.CharField(max_length=64, default="", help_text=_("风险名称"))
     bk_biz_id = models.IntegerField(default=0)
     level = models.CharField(
-        max_length=64, choices=RiskPriority.get_choices(), default=RiskPriority.LOW.value, help_text=_("风险等级")
+        max_length=64, choices=RiskPriority.get_choices(), default=RiskPriority.MIDDLE.value, help_text=_("风险等级")
     )
     status = models.CharField(
         max_length=32, choices=Status.get_choices(), default=Status.DOING.value, help_text=_("风险状态")
     )
     db_type = models.CharField(max_length=64, choices=DBType.get_choices(), default="")
     description = models.TextField(default="", help_text=_("风险描述"))
-    biz_inpact = models.CharField(max_length=64, choices=BizInpact.get_choices(), default="")
-    inpact_cluster = models.TextField()
+    biz_inpact = models.CharField(max_length=255, default="")
+    inpact_cluster = models.CharField(max_length=255, default="")
     is_special = models.BooleanField(default=False, help_text=_("是否特殊"))
     duration_time = models.IntegerField(default=0)
     # 结项字段

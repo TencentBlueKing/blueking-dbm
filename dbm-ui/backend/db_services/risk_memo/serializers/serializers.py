@@ -34,6 +34,12 @@ class RiskMemoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = model.AUDITED_FIELDS
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["biz_inpact"] = representation["biz_inpact"].split(",")
+        representation["inpact_cluster"] = representation["inpact_cluster"].split(",")
+        return representation
+
 
 class RiskMemoDtailSerializer(serializers.ModelSerializer):
     follow_ups = serializers.SerializerMethodField()
