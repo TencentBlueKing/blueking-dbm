@@ -21,3 +21,13 @@ class MongoExecuteTcpCmdSerializer(serializers.Serializer):
 
 class GetMongoTcpResultSerializer(serializers.Serializer):
     job_instance_id = serializers.IntegerField(help_text=_("job实例ID"))
+
+
+class GetMongoShardSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+    shard_names = serializers.CharField(help_text=_("业务ID"), required=False)
+
+    def validate(self, attrs):
+        if attrs.get("shard_names"):
+            attrs["shard_names"] = attrs["shard_names"].split(",")
+        return attrs
