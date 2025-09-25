@@ -1,6 +1,7 @@
 package gm
 
 import (
+	"dbm-services/common/dbha/ha-module/util"
 	"net"
 	"strconv"
 	"sync"
@@ -105,7 +106,8 @@ func (gdm *GDM) listenAndDoAccept() {
 			log.Logger.Errorf("accept socket failed. err:%s", err.Error())
 			continue
 		} else {
-			log.Logger.Infof("gdm accept success, agent ip: %v\n", conn.RemoteAddr().String())
+			log.Logger.Infof("gdm accept success, Local: %v, Remote: %v",
+				conn.LocalAddr().String(), conn.RemoteAddr().String())
 		}
 		agentConn := AgentConnection{
 			NetConnection: conn,
@@ -132,6 +134,8 @@ func (gdm *GDM) isReporterRecently(ins *DoubleCheckInstanceInfo) bool {
 		log.Logger.Infof("instance[%s#%d] cached, skip report", ip, port)
 		return true
 	}
+	log.Logger.Infof("gdm cache instance:%s, %s",
+		util.GraceStructString(ins), util.GraceStructString(ins.db))
 	// 刷新缓存
 	gdm.ReporterCache[ip] = ins
 	return false

@@ -216,7 +216,8 @@ func (a *MonitorAgent) RefreshGMCache() {
 	}
 
 	// delete not exists or expired ip from gm cache
-	log.Logger.Debugf("try to refresh gm cache instances, cache number:%d", len(a.ReportGMCache))
+	log.Logger.Debugf("[%s] try to refresh gm cache instances, cache number:%d",
+		a.DetectType, len(a.ReportGMCache))
 	now := time.Now()
 	for ip, cacheIns := range a.ReportGMCache {
 		if now.After(cacheIns.ReporterGMTime.Add(time.Second * 600)) {
