@@ -186,8 +186,9 @@ class KafkaApplyFlow(object):
         broker_act_list = []
         for broker in self.data["nodes"]["broker"]:
             act_kwargs.exec_ip = [broker]
+            rack = broker.get("rack_id", "RACK1")
             act_kwargs.template = act_payload.get_payload(
-                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"]
+                action=KafkaActuatorActionEnum.installBroker.value, host=broker["ip"], rack=rack
             )
             ip = broker["ip"]
             broker_act = {
