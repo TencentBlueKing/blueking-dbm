@@ -32,6 +32,7 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow"
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -112,7 +113,8 @@ func (s *Service) createApmServer() error {
 		}
 	}
 
-	metric.NewPrometheus("dbha-v2-analysis").Use(s.engine)
+	apm.InitAPM(s.info.ID)
+	metric.NewPrometheus("dbha-v2-analysis", apm.Metrics).Use(s.engine)
 
 	s.wg.Add(1)
 	go func() {
@@ -218,6 +220,11 @@ func (s *Service) Run(ctx context.Context) error {
 	if err := s.createApmServer(); err != nil {
 		return err
 	}
+
+	apm.UptimeMetric.UpdateLabel(map[string]string{
+		"service-id":   s.info.ID,
+		"service-name": s.info.Name,
+	}).Set(float64(s.info.StartTime.Unix()))
 
 	timerTimeout := 3 * time.Second
 	timer := time.NewTimer(timerTimeout)
