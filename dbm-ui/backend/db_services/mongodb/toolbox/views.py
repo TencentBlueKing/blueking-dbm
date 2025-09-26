@@ -72,7 +72,7 @@ class ToolboxViewSet(BaseClusterViewSet):
     )
     def get_mongo_shard(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        raw_data = ToolboxHandler(bk_biz_id).get_mongo_shard(data)
+        raw_data = ToolboxHandler(bk_biz_id).get_mongo_shard(bk_biz_id, data)
         paginator = self.paginator
         page = paginator.paginate_queryset(raw_data, request)
         if page is not None:
