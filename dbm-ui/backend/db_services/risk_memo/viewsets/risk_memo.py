@@ -173,9 +173,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
             bkrepo_path = BKREPO_RISK_MEMO_PATH.format(biz=bk_biz_id, file=file_name)
             storage.save(name=bkrepo_path, content=file_obj)
 
-            # 获取文件 URL 并组合新路径
-            base_url = storage.url(file_name).split("?")[0]
-            url = "/".join(base_url.split("/")[:-1]) + "/" + bkrepo_path
+            url = storage.url(bkrepo_path)
 
         except Exception as e:
             return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
