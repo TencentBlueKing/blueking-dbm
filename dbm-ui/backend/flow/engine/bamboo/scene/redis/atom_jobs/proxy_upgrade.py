@@ -73,19 +73,8 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    acts_list = []
-    for ip in cluster_ips_set:
-        # 下发介质
-        act_kwargs.exec_ip = ip
-        acts_list.append(
-            {
-                "act_name": _("{}-下发介质包").format(ip),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-    if acts_list:
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    act_kwargs.exec_ip = list(cluster_ips_set)
+    sub_pipeline.add_act(act_name=_("下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs))
 
     acts_list = []
     for ip in cluster_ips_set:
