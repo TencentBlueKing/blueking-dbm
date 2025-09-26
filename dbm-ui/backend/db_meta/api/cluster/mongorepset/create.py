@@ -48,6 +48,7 @@ def pkg_create_mongoset(
     cluster_type=ClusterType.MongoReplicaSet.value,
     skip_machine: bool = False,
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
 ):
     """
     这里打包从头开始创建一个 MongoSet
@@ -86,6 +87,7 @@ def pkg_create_mongoset(
         region=region,
         cluster_type=cluster_type,
         disaster_tolerance_level=disaster_tolerance_level,
+        zone_list=zone_list,
     )
 
 
@@ -103,6 +105,7 @@ def create_mongoset(
     region: str = "",
     cluster_type=ClusterType.MongoReplicaSet.value,
     disaster_tolerance_level: str = "",
+    zone_list: list = None,
 ):
     """创建副本集 MongoSet 实例
     1. 一般情况需要2到3个域名
@@ -146,6 +149,7 @@ def create_mongoset(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
+            zone_list=zone_list,
         )
         cluster.storageinstance_set.add(*storage_objs)
         cluster.save()
