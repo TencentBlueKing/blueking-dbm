@@ -28,7 +28,7 @@ from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_c
     PauseWithTicketLockCheckComponent,
 )
 from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
-from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext, TendbClusterSpiderUpgradeContext
 from backend.flow.utils.mysql.mysql_version_parse import get_spider_sub_version_by_pkg_name
 
 from .upgrade_components import (
@@ -252,7 +252,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                 sub_pipeline.build_sub_process(sub_name=_("[{}]本地升级spider版本".format(cluster.immute_domain)))
             )
         spider_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_upgrade_pipeline.run_pipeline()
+        spider_upgrade_pipeline.run_pipeline(init_trans_data_class=TendbClusterSpiderUpgradeContext())
         return
 
     def migrate_upgrade(self):

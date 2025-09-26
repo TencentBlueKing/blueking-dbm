@@ -98,6 +98,38 @@ def _get_current_cluster_info(cluster_id: int) -> tuple:
     return cluster, current_spider_versions, current_db_version, current_charset
 
 
+def _is_spider_version_compatible(current_major_version: int, module_major_version: int) -> bool:
+    """
+    检查Spider版本兼容性
+    实现精确的版本匹配规则：
+    - Spider-3 只能匹配 Spider-3 的模块
+    - Spider-3.6/3.7/3.8 可以匹配自己版本和 Spider-3 的模块
+
+    @param current_major_version: 当前集群主版本号
+    @param module_major_version: 模块主版本号
+    @return: 是否兼容
+    """
+    # 定义版本兼容性规则
+    if current_major_version == 3000000:  # 当前集群是 Spider-3
+        # Spider-3 只能匹配 Spider-3 的模块
+        return module_major_version == 3000000
+
+    elif current_major_version in [3005000, 3006000, 3007000, 3008000]:  # 当前集群是 Spider-3.5/3.6/3.7/3.8
+        # Spider-3.6/3.7/3.8 可以匹配自己版本和 Spider-3 的模块
+        return module_major_version == current_major_version or module_major_version == 3000000
+
+    elif current_major_version == 1000000:  # 当前集群是 Spider-1
+        # Spider-1 只能匹配 Spider-1 的模块
+        return module_major_version == 1000000
+
+    elif current_major_version == 4000000:  # 当前集群是 Spider-4
+        # Spider-4 只能匹配 Spider-4 的模块
+        return module_major_version == 4000000
+
+    # 其他版本默认不兼容
+    return False
+
+
 def _parse_spider_version_to_num(spider_version: str) -> int:
     """
     解析spider版本号
@@ -329,11 +361,11 @@ def find_higher_spider_version_modules(cluster_id: int, module_list: List[Dict])
                         version_num = spider_version.replace("Spider-", "")
                         version_major_mapping = {
                             "1": 1000000,
-                            "3": 3000000,
-                            "3.5": 3000000,  # 3.x系列
-                            "3.6": 3000000,  # 3.x系列
-                            "3.7": 3000000,  # 3.x系列
-                            "3.8": 3000000,  # 3.x系列
+                            "3": 3000000,  # Spider-3 独立版本
+                            "3.5": 3005000,  # Spider-3.5 独立版本
+                            "3.6": 3006000,  # Spider-3.6 独立版本
+                            "3.7": 3007000,  # Spider-3.7 独立版本
+                            "3.8": 3008000,  # Spider-3.8 独立版本
                             "4": 4000000,
                         }
                         module_major_version = version_major_mapping.get(version_num, 0)
@@ -463,11 +495,13 @@ def _filter_packages_by_module_version_higher_major(
 
 def find_same_major_version_higher_sub_version_modules(cluster_id: int, module_list: List[Dict]) -> List[Dict]:
     """
-    找出与源集群同大版本的模块（只比较大版本，不比较子版本）
+    找出与源集群兼容的模块，支持精确的版本匹配规则：
+    - Spider-3 只能匹配 Spider-3 的模块
+    - Spider-3.6/3.7/3.8 可以匹配自己版本和 Spider-3 的模块
 
     @param cluster_id: 当前集群ID
     @param module_list: 模块列表，格式如list_modules_by_biz返回的数据
-    @return: 同大版本的模块列表
+    @return: 兼容的模块列表，当前模块排在第一位
     """
     try:
         # 获取当前集群信息
@@ -515,6 +549,7 @@ def find_same_major_version_higher_sub_version_modules(cluster_id: int, module_l
 
         # 遍历模块列表，找出同大版本的模块
         same_major_version_modules = []
+        current_module = None  # 用于存储当前集群使用的模块
 
         for module in module_list:
             module_id = module.get("db_module_id")
@@ -538,22 +573,38 @@ def find_same_major_version_higher_sub_version_modules(cluster_id: int, module_l
                     version_num = spider_version.replace("Spider-", "")
                     version_major_mapping = {
                         "1": 1000000,
-                        "3": 3000000,
-                        "3.5": 3000000,  # 3.x系列
-                        "3.6": 3000000,  # 3.x系列
-                        "3.7": 3000000,  # 3.x系列
-                        "3.8": 3000000,  # 3.x系列
+                        "3": 3000000,  # Spider-3 独立版本
+                        "3.5": 3005000,  # Spider-3.5 独立版本
+                        "3.6": 3006000,  # Spider-3.6 独立版本
+                        "3.7": 3007000,  # Spider-3.7 独立版本
+                        "3.8": 3008000,  # Spider-3.8 独立版本
                         "4": 4000000,
                     }
                     module_major_version = version_major_mapping.get(version_num, 0)
                 else:
                     module_major_version, *unused = spider_major_version_parse(spider_version, has_prefix=False)
 
-                # 检查是否同大版本（不比较子版本）
+                # 检查版本兼容性：支持向下兼容
+                # Spider-3.5/3.6/3.7 可以匹配 Spider-3 的模块
+                # 但 Spider-3 不能匹配更高版本的模块
+                is_version_compatible = False
                 if module_major_version == current_major_version:
+                    # 完全匹配
+                    is_version_compatible = True
+                elif _is_spider_version_compatible(current_major_version, module_major_version):
+                    # 向下兼容匹配
+                    is_version_compatible = True
+
+                if is_version_compatible:
+                    # 判断匹配类型
+                    if module_major_version == current_major_version:
+                        match_type = _("完全匹配")
+                    else:
+                        match_type = _("向下兼容匹配")
+
                     logger.info(
-                        _("找到同大版本模块: {} (spider版本: {}, db版本: {}, 字符集: {}, 版本号: {})").format(
-                            module_name, spider_version, db_version, charset, module_version_num
+                        _("找到兼容模块: {} (spider版本: {}, db版本: {}, 字符集: {}, 版本号: {}, 匹配类型: {})").format(
+                            module_name, spider_version, db_version, charset, module_version_num, match_type
                         )
                     )
 
@@ -562,18 +613,23 @@ def find_same_major_version_higher_sub_version_modules(cluster_id: int, module_l
                         module_major_version, current_min_sub_version, spider_version
                     )
 
-                    same_major_version_modules.append(
-                        {
-                            "db_module_id": module_id,
-                            "db_module_name": module_name,
-                            "module_alias_name": module_alias_name,
-                            "spider_version": spider_version,
-                            "db_version": db_version,
-                            "charset": charset,
-                            "spider_version_num": module_version_num,
-                            "pkg_list": module_pkg_list,
-                        }
-                    )
+                    module_info = {
+                        "db_module_id": module_id,
+                        "db_module_name": module_name,
+                        "module_alias_name": module_alias_name,
+                        "spider_version": spider_version,
+                        "db_version": db_version,
+                        "charset": charset,
+                        "spider_version_num": module_version_num,
+                        "pkg_list": module_pkg_list,
+                    }
+
+                    # 检查是否为当前集群使用的模块
+                    if module_id == cluster.db_module_id:
+                        current_module = module_info
+                        logger.info(_("识别到当前集群使用的模块: {} (ID: {})").format(module_name, module_id))
+                    else:
+                        same_major_version_modules.append(module_info)
                 else:
                     logger.debug(
                         _("模块 {} 主版本不匹配: 当前={}, 模块={}").format(
@@ -588,7 +644,12 @@ def find_same_major_version_higher_sub_version_modules(cluster_id: int, module_l
         # 按版本号排序，版本高的在前
         same_major_version_modules.sort(key=lambda x: x["spider_version_num"], reverse=True)
 
-        logger.info(_("找到 {} 个同大版本的模块").format(len(same_major_version_modules)))
+        # 将当前模块放在第一位
+        if current_module:
+            same_major_version_modules.insert(0, current_module)
+            logger.info(_("当前模块已排在第一位: {}").format(current_module["db_module_name"]))
+
+        logger.info(_("找到 {} 个兼容的模块").format(len(same_major_version_modules)))
         return same_major_version_modules
 
     except Cluster.DoesNotExist:
@@ -617,9 +678,9 @@ def _filter_packages_by_module_version(
     )
     try:
         # 获取所有可用的spider包
-        packages = Package.objects.filter(pkg_type=MediumEnum.Spider, db_type=DBType.MySQL, enable=True).order_by(
-            "-priority", "-create_at"
-        )
+        packages = Package.objects.filter(
+            pkg_type=MediumEnum.Spider, version=spider_version, db_type=DBType.MySQL, enable=True
+        ).order_by("-priority", "-create_at")
 
         if not packages.exists():
             logger.warning(_("没有找到可用的spider包"))

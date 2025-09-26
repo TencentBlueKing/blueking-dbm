@@ -418,7 +418,9 @@ class MySQLStorageLocalUpgradeFlow(object):
         )
         # 阶段3: 主从切换
         self._add_master_slave_switch(sub_pipeline, cluster_ids, master_ip, stand_by_slave_ip, bk_biz_id)
+        # 人工确认升级原master实例
         # 阶段4: 升级原master实例（现在是slave）
+        sub_pipeline.add_act(act_name=_("人工确认升级原master实例"), act_component_code=PauseComponent.code, kwargs={})
         self._upgrade_master_instances(
             sub_pipeline, master_instances, pkg_id, new_mysql_pkg_name, bk_cloud_id, is_same_tmysql_version
         )

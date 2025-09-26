@@ -390,3 +390,17 @@ class TendbClusterStorageUpgradeContext:
     @staticmethod
     def get_alarm_shield_id_var_name() -> str:
         return "alarm_shield_id"
+
+
+@dataclass()
+class TendbClusterSpiderUpgradeContext:
+    """
+    定义TenDBClusterSpider升级的上下文dataclass
+    """
+
+    # 代表新master的位点信息
+    alarm_shield_id: int = None
+
+    @staticmethod
+    def get_alarm_shield_id_var_name() -> str:
+        return "alarm_shield_id"
