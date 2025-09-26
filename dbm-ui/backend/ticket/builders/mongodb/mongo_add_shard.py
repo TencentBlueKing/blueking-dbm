@@ -59,11 +59,20 @@ class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
     def format(self):
         # 资源申请的一些参数补充
         self.patch_info_common_affinity(role="mongodb", remain_machine_type=MachineType.MONGODB, tolerance=0.5)
+        for info in self.ticket_data["infos"]:
+            add_group = info["add_shards_num"] / info["node_replicaset_count"]  # 新增组数
+            origin_group_info = info["resource_spec"].pop("mongodb")
+            origin_group_info["count"] = origin_group_info["count"] / add_group
+            for i in range(add_group):
+                info["resource_spec"][f"mongodb_{i}"] = origin_group_info
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:
             for info in next_flow.details["ticket_data"]["infos"]:
-                info["mongo_add_shards"] = info.pop("mongodb")
+                add_group = info["add_shards_num"] / info["node_replicaset_count"]  # 新增组数
+                info["mongo_add_shards"] = []
+                for i in range(add_group):
+                    info["mongo_add_shards"] = info["mongo_add_shards"].append(info.pop(f"mongodb_{i}"))
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True)
