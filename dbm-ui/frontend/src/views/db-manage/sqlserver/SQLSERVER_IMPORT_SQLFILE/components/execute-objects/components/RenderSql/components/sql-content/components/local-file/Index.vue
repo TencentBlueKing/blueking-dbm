@@ -22,8 +22,8 @@
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
-        @remove="handleRemove"
-        @sort="handleFileSortChange">
+        @after-sort="handleFileSortChange"
+        @remove="handleRemove">
         <div
           key="upload"
           class="upload-btn"
@@ -165,9 +165,7 @@
 
     isInnerChange = true;
     if (uploadFileNameList.value.length) {
-      modelValue.value = uploadFileNameList.value.map(
-        (localFileName) => uploadFileDataMap.value[localFileName].realFilePath,
-      );
+      modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
     }
 
     emits('grammar-check', true, true);
@@ -228,12 +226,14 @@
 
     grammarCheckHandle(params)
       .then((data) => {
-        Object.keys(data).forEach((realFilePath) => {
-          const grammarCheckResult = data[realFilePath];
+        Object.entries(data).forEach(([realFilePath, grammarCheckResult]) => {
+          const result = {
+            [realFilePath]: grammarCheckResult,
+          };
           if (grammarCheckResult.isError) {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name].grammarCheckFailed(data);
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckFailed(result);
           } else {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name].grammarCheckSuccessed(data);
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckSuccessed(result);
           }
         });
       })
@@ -249,8 +249,7 @@
   };
 
   // 文件排序
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileNameList.value = list;
+  const handleFileSortChange = () => {
     triggerChange();
   };
 
@@ -279,7 +278,9 @@
 
   defineExpose<Expose>({
     getValue() {
-      return Promise.resolve().then(() => Object.values(uploadFileDataMap.value).map((item) => item.realFilePath));
+      return Promise.resolve().then(() =>
+        uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath),
+      );
     },
   });
 </script>

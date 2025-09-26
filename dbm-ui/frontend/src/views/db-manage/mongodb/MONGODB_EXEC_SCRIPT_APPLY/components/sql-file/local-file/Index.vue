@@ -36,8 +36,8 @@
             v-model="selectFileName"
             :data="uploadFileNameList"
             :file-data="uploadFileDataMap"
-            @remove="handleRemove"
-            @sort="handleFileSortChange" />
+            @after-sort="handleFileSortChange"
+            @remove="handleRemove" />
         </div>
         <div class="editor-layout-right">
           <!-- <BkLoading

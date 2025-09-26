@@ -127,7 +127,7 @@
 
   interface Emits {
     (e: 'remove', value: string, index: number): void;
-    (e: 'sort', value: string[]): void;
+    (e: 'after-sort', value: string[]): void;
   }
 
   const props = defineProps<Props>();
@@ -161,7 +161,7 @@
 
   const handleDragEnd = () => {
     emits(
-      'sort',
+      'after-sort',
       localList.value.map((item) => item.name),
     );
   };

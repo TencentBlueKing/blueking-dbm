@@ -22,8 +22,8 @@
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
-        @remove="handleRemove"
-        @sort="handleFileSortChange">
+        @after-sort="handleFileSortChange"
+        @remove="handleRemove">
         <div
           key="upload"
           class="upload-btn"
@@ -160,9 +160,7 @@
 
     isInnerChange = true;
     if (uploadFileNameList.value.length) {
-      modelValue.value = uploadFileNameList.value.map(
-        (localFileName) => uploadFileDataMap.value[localFileName].realFilePath,
-      );
+      modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
     }
 
     emits('grammar-check', true, true);
@@ -268,11 +266,12 @@
         triggerChange();
       });
   };
+
   // 文件排序
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileNameList.value = list;
+  const handleFileSortChange = () => {
     triggerChange();
   };
+
   // 删除文件
   const handleRemove = (fileName: string) => {
     const lastUploadFileDataMap = { ...uploadFileDataMap.value };
