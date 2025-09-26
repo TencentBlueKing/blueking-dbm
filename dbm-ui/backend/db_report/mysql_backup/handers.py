@@ -304,7 +304,7 @@ class MySQLBackupHandler:
                     "extra_fields", {}
                 ).get("total_filesize", 0)
                 shard_database_list = backup_info["extra_fields"].get("database_list", [])
-                if shard_database_list is not None:
+                if isinstance(shard_database_list, list):
                     for db in shard_database_list:
                         shard_str = f"_{backup_info['shard_value']}"
                         cluster_backup_info_map[backup_info["backup_id"]]["database_list"].append(
@@ -320,9 +320,9 @@ class MySQLBackupHandler:
                 cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
                     "extra_fields", {}
                 ).get("total_filesize", 0)
-                cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
-                    backup_info["extra_fields"].get("database_list", [])
-                )
+                database_list = backup_info["extra_fields"].get("database_list", [])
+                if isinstance(database_list, list):
+                    cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(database_list)
                 cluster_backup_info_map[backup_info["backup_id"]]["spider_node"] = backup_info
             elif (
                 len(cluster_backup_info_map[backup_info["backup_id"]]["tdbctl_node"]) == 0
@@ -331,9 +331,9 @@ class MySQLBackupHandler:
                 cluster_backup_info_map[backup_info["backup_id"]]["total_filesize"] += backup_info.get(
                     "extra_fields", {}
                 ).get("total_filesize", 0)
-                cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(
-                    backup_info["extra_fields"].get("database_list", [])
-                )
+                database_list = backup_info["extra_fields"].get("database_list", [])
+                if isinstance(database_list, list):
+                    cluster_backup_info_map[backup_info["backup_id"]]["database_list"].extend(database_list)
                 cluster_backup_info_map[backup_info["backup_id"]]["tdbctl_node"] = backup_info
         # 检查cluster_backup_info_map是否完整
         cluster_backup_info_map_tmp = copy.deepcopy(cluster_backup_info_map)
