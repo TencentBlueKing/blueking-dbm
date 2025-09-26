@@ -1044,9 +1044,13 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "ip": Q(ip__in=query_params.get("ip", "").split(",")),
             "machine_type": Q(machine_type=query_params.get("machine_type")),
             "bk_city_name": (
-                Q(bk_city__bk_idc_city_name__in=query_params.get("bk_city_name", "").split(","))
-                | Q(bk_city__logical_city__name__in=query_params.get("bk_city_name", "").split(","))
+                Q(bk_city__bk_idc_city_name__in=query_params.get("region", "").split(","))
+                | Q(bk_city__logical_city__name__in=query_params.get("region", "").split(","))
             ),
+            "bk_svr_device_cls_name": Q(
+                bk_svr_device_cls_name__in=query_params.get("bk_svr_device_cls_name", "").split(",")
+            ),
+            "bk_sub_zone": Q(bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
             "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
