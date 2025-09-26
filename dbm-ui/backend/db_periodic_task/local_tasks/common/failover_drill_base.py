@@ -10,10 +10,17 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
+from django.db.models import F, Value
+from django.db.models.functions import Concat
+
 from backend.components.hadb.client import HADBApi
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
-from backend.db_services.redis.autofix.enums import DBHASwitchResult
 from backend.utils.basic import generate_root_id
+
+
+class FailoverDrillTargetType:
+    PROXY = "proxy"
+    BACKEND = "backend"
 
 
 class BaseFailoverDrill:
@@ -41,16 +48,7 @@ class BaseFailoverDrill:
         raise NotImplementedError
 
     def init_report(self):
-        FailoverDrillReport.objects.create(
-            bk_biz_id=self.bk_biz_id,
-            bk_cloud_id=self.bk_cloud_id,
-            status=False,
-            main_task_id=self.main_task_id,
-            cluster_domain=self.get_immute_domain(),
-            cluster_type=self.cluster_type(),
-            city=self.city,
-            dbha_status=DBHASwitchResult.FAIL.value,
-        )
+        raise NotImplementedError
 
     def get_city_abbr(self) -> str:
         """
@@ -76,15 +74,16 @@ class BaseFailoverDrill:
         resp = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": kwargs}, raw=True)
         return resp
 
-    def update_drill_report(
-        self, info: str, dbha_info: str = "", status: bool = False, dbha_status: str = DBHASwitchResult.FAIL.value
-    ):
+    def update_drill_task_report(self, info: str, status: bool = False, task_status: str = "failed"):
         """
-        更新演练报告内容
+        用来更新于容灾演练任务有关的信息，不涉及DBHA相关信息
         """
-        report = FailoverDrillReport.objects.get(main_task_id=self.main_task_id)
-        report.task_info = f"{report.task_info}\n{info}".strip()
-        report.status = status
-        report.dbha_status = dbha_status
-        report.dbha_info = dbha_info
-        report.save(update_fields=["task_info", "status", "dbha_status", "dbha_info"])
+        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
+            status=status, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
+        )
+
+    def update_drill_report(self, dbha_infos):
+        """
+        更新DBHA相关信息
+        """
+        raise NotImplementedError
