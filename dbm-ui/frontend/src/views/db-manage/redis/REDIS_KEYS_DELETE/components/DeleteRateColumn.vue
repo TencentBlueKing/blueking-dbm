@@ -20,20 +20,19 @@
     <EditableSelect
       v-model="modelValue"
       :clearable="false"
-      :list="list" />
+      :list="list"
+      :loading="isLoading" />
   </EditableColumn>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
+  import { getClusterDelKeyRate } from '@/services/source/redisToolbox';
 
   interface Props {
-    cluster: {
-      delete_rate: RedisModel['delete_rate'];
-      id: number;
-    };
+    clusterId: number;
   }
 
   const props = defineProps<Props>();
@@ -51,17 +50,26 @@
     }[]
   >([]);
 
+  const { loading: isLoading, run: runGetClusterDelKeyRate } = useRequest(getClusterDelKeyRate, {
+    manual: true,
+    onSuccess({ delete_rate: deleteRate }) {
+      if (!modelValue.value) {
+        modelValue.value = deleteRate.default;
+      }
+      list.value = deleteRate.rate_list.map((item) => ({
+        label: item,
+        value: item,
+      }));
+    },
+  });
+
   watch(
-    () => props.cluster.id,
+    () => props.clusterId,
     () => {
-      if (props.cluster.id) {
-        if (modelValue.value === '') {
-          modelValue.value = props.cluster.delete_rate.default;
-        }
-        list.value = props.cluster.delete_rate.rate_list.map((item) => ({
-          label: item,
-          value: item,
-        }));
+      if (props.clusterId) {
+        runGetClusterDelKeyRate({
+          cluster_id: props.clusterId,
+        });
       } else {
         modelValue.value = '';
         list.value = [];
