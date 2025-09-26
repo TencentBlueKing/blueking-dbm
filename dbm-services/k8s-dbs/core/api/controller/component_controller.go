@@ -21,7 +21,7 @@ package controller
 
 import (
 	"k8s-dbs/common/api"
-	coreconst "k8s-dbs/common/constant"
+	commconst "k8s-dbs/common/constant"
 	commutil "k8s-dbs/common/util"
 	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
@@ -46,6 +46,7 @@ func NewComponentController(componentProvider *provider.ComponentProvider) *Comp
 
 // DescribeComponent 查看组件详情
 func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIComponentDesc)
 	request := &coreentity.Request{}
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
@@ -56,11 +57,12 @@ func (c *ComponentController) DescribeComponent(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
 		return
 	}
-	api.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, commconst.Success)
 }
 
 // ListPods 获取实例列表
 func (c *ComponentController) ListPods(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIComponentPods)
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.DescribeComponentError, err))
@@ -80,11 +82,12 @@ func (c *ComponentController) ListPods(ctx *gin.Context) {
 		Count:  count,
 		Result: pods,
 	}
-	api.SuccessResponse(ctx, responseData, coreconst.Success)
+	api.SuccessResponse(ctx, responseData, commconst.Success)
 }
 
 // GetComponentService 获取组件连接信息
 func (c *ComponentController) GetComponentService(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIComponentServiceInfo)
 	var svcEntity coreentity.K8sSvcEntity
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &svcEntity, nil); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetClusterEventError, err))
@@ -108,5 +111,5 @@ func (c *ComponentController) GetComponentService(ctx *gin.Context) {
 		InternalServiceInfo: internalServices,
 		ExternalServiceInfo: externalServices,
 	}
-	api.SuccessResponse(ctx, data, coreconst.Success)
+	api.SuccessResponse(ctx, data, commconst.Success)
 }

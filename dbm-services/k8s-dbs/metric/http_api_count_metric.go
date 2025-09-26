@@ -17,15 +17,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package metric
 
-const (
-	DefaultFetchSizeStr = "10"
-	DefaultPageStr      = "1"
-	DefaultFetchSize    = 50
-	MaxFetchSize        = 100
-	ParamsPage          = "page"
-	ParamsLimit         = "limit"
-	DefaultPage         = 1
-	DefaultPageLimit    = 10
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+// HTTPAPITotalMetric api 计数统计指标
+const HTTPAPITotalMetric = "k8s_dbs_http_api_total"
+
+var HTTPAPITotalMetricTags = []string{
+	"api_name",
+	"method",
+	"status",
+	"bk_username",
+	"bk_app_code",
+	"code",
+	"result",
+}
+
+// HTTPAPITotalCounter HTTP 请求总数
+var HTTPAPITotalCounter = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: HTTPAPITotalMetric,
+		Help: "Total number of HTTP requests by method, path and status code.",
+	},
+	HTTPAPITotalMetricTags,
 )

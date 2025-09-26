@@ -20,8 +20,10 @@ limitations under the License.
 package middleware
 
 import (
+	"bytes"
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
+	"io"
 	dbslogger "k8s-dbs/logger"
 	"log/slog"
 
@@ -43,5 +45,35 @@ func RegisterMiddleWare(engine *gin.Engine) {
 	engine.Use(otelgin.Middleware("k8s_dbs"))
 	// apm: add prom metrics middleware
 	metric.NewPrometheus("").Use(engine)
+	slog.Info("Finish initial trace...")
+
+	// 注册 metrics 中间件
+	engine.Use(MetricsMiddleware())
 	slog.Info("Finish initial metric...")
+}
+
+// ParseReqBody 获取请求消息体
+func ParseReqBody(c *gin.Context) []byte {
+	var reqBody []byte
+	if c.Request.Body != nil {
+		// 复制一份请求体，因为 c.Request.Body 只能读取一次
+		reqBodyBytes, err := io.ReadAll(c.Request.Body)
+		if err == nil {
+			reqBody = reqBodyBytes
+			// 恢复请求体，以便后续 handler 正常读取
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBodyBytes))
+		}
+	}
+	return reqBody
+}
+
+// DbsResponseWriter 用于捕获 Gin 的响应内容
+type DbsResponseWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (d *DbsResponseWriter) Write(b []byte) (int, error) {
+	d.body.Write(b)                  // 捕获响应内容
+	return d.ResponseWriter.Write(b) // 正常写入响应
 }

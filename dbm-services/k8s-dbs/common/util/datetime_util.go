@@ -149,3 +149,13 @@ func NextWorkday(t time.Time) time.Time {
 		}
 	}
 }
+
+// GetLatencyMs calculates the latency in milliseconds from a given start time.
+func GetLatencyMs(start time.Time) int64 {
+	latency := time.Since(start)
+	latencyMs := latency.Milliseconds()
+	if latencyMs < 1 {
+		latencyMs = 1
+	}
+	return latencyMs
+}

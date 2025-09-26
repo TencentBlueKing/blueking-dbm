@@ -17,7 +17,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package metric
 
-const DefaultPage = 1
-const DefaultPageLimit = 10
+// NormalizePath 去除路径参数，避免维度膨胀
+func NormalizePath(path string) string {
+	switch path {
+	case "/user/1", "/user/2", "/user/3":
+		return "/user/:id"
+	case "/product/123":
+		return "/product/:id"
+	default:
+		return path // 静态路由保持不变
+	}
+}

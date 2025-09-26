@@ -24,6 +24,8 @@ import (
 	routerutil "k8s-dbs/router/util"
 	"log"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -47,4 +49,6 @@ func BuildRouter(engine *gin.Engine, db *gorm.DB) {
 	baseRouter := engine.Group(basePath)
 	routerutil.BuildHealthRouter(baseRouter)
 	routerutil.BuildAPIRouters(db, baseRouter)
+	// 3. 暴露 Prometheus 标准 metrics 接口
+	baseRouter.GET("/metrics", gin.WrapH(promhttp.Handler()))
 }

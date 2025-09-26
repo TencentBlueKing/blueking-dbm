@@ -45,6 +45,7 @@ func NewAddonCategoryController(provider provider.AddonCategoryProvider) *AddonC
 
 // ListByLimit 获取 addon category 列表
 func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonCategoryList)
 	sizeStr := ctx.DefaultQuery("size", commconst.DefaultFetchSizeStr)
 	fetchSize, err := strconv.Atoi(sizeStr)
 	if err != nil {
@@ -66,6 +67,7 @@ func (c *AddonCategoryController) ListByLimit(ctx *gin.Context) {
 
 // Create 创建 addon category
 func (c *AddonCategoryController) Create(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaAddonCategoryCreate)
 	var reqVo metareqvo.AddonCategoryRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateMetaDataError, err))
