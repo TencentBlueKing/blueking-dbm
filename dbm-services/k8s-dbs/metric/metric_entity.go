@@ -17,15 +17,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package constant
+package metric
 
-const (
-	DefaultFetchSizeStr = "10"
-	DefaultPageStr      = "1"
-	DefaultFetchSize    = 50
-	MaxFetchSize        = 100
-	ParamsPage          = "page"
-	ParamsLimit         = "limit"
-	DefaultPage         = 1
-	DefaultPageLimit    = 10
-)
+// BaseMetricTags 基础标签
+type BaseMetricTags struct {
+	APIName    string
+	Method     string
+	Status     string
+	BkUserName string
+	BkAppCode  string
+	ResultCode string
+	Result     string
+}

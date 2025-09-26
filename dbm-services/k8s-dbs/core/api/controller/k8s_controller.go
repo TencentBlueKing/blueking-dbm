@@ -44,6 +44,7 @@ type K8sController struct {
 
 // CreateNamespace 创建 namespace
 func (k *K8sController) CreateNamespace(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIK8sNsCreate)
 	var reqVo request.K8sNamespaceRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
@@ -76,6 +77,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 
 // ListPodLogs 获取 pod 日志分页结果
 func (k *K8sController) ListPodLogs(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIK8sPodLogList)
 	pagination, err := commutil.BuildPagination(ctx)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
@@ -100,6 +102,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 
 // GetPodRawLogs 获取 pod 日志原始日志
 func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIK8sPodRawLog)
 	var podLogQueryEntity entity.K8sPodLogQueryParams
 	targetMap := map[string]reflect.Type{
 		"previous": reflect.TypeOf(true),
@@ -119,6 +122,7 @@ func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 
 // GetPodDetail 获取实例详情
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIK8sPodDetail)
 	var podDetailParams entity.K8sPodDetailQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podDetailParams, nil); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
@@ -134,6 +138,7 @@ func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 
 // DeletePod 删除实例
 func (k *K8sController) DeletePod(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIK8sPodDelete)
 	var podDeleteParams request.K8sPodDeleteRequest
 	if err := ctx.ShouldBindJSON(&podDeleteParams); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))

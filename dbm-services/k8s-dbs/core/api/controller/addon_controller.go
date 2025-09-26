@@ -40,6 +40,7 @@ type AddonController struct {
 
 // InstallAddon 安装 addon 插件
 func (a *AddonController) InstallAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIAddonInstall)
 	var reqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.InstallAddonError, err))
@@ -67,6 +68,7 @@ func (a *AddonController) InstallAddon(ctx *gin.Context) {
 
 // UninstallAddon 卸载 addon 插件
 func (a *AddonController) UninstallAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIAddonUninstall)
 	var reqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UninstallAddonError, err))
@@ -93,6 +95,7 @@ func (a *AddonController) UninstallAddon(ctx *gin.Context) {
 
 // UpgradeAddon 更新 addon 插件
 func (a *AddonController) UpgradeAddon(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIAddonUpgrade)
 	var reqVo reqvo.AddonOperationRequest
 	if err := ctx.ShouldBindJSON(&reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpgradeAddonError, err))
