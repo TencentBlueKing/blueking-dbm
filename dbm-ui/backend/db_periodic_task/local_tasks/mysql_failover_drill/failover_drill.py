@@ -9,8 +9,6 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
-from django.db.models import F, Value
-from django.db.models.functions import Concat
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
@@ -419,19 +417,6 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             info = _("资源服务请求异常，请查看服务日志处理！错误信息: {}".format(e))
             self.update_drill_task_report(info)
             raise ResourceReturnException(info)
-
-    def update_drill_task_report(self, info: str, status: bool = False, task_status: str = "failed"):
-        """
-        用来更新于容灾演练任务有关的信息，不涉及dbha相关信息
-        @param task_status:
-        @param info:
-        @param status:
-        @return:
-        """
-        # 拼接字符串时 使用Concat 与 Value
-        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
-            status=status, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
-        )
 
     def update_dbha_report(self, dbha_infos, status):
         """

@@ -19,8 +19,8 @@ from backend.db_meta.exceptions import DBMetaException
 from backend.db_periodic_task.local_tasks import register_periodic_task
 
 from ...models import FailoverDrillConfig
+from .failover_drill import FailoverDrillTargetType
 from .failover_drill_unit import failover_drill_unit
-from .utils import get_city_list
 
 logger = logging.getLogger("celery")
 
@@ -44,12 +44,11 @@ def proxy_failover_drill_task():
         return
 
     conf = model_to_dict(conf)
-    conf["target_type"] = "proxy"
+    conf["target_type"] = FailoverDrillTargetType.PROXY
 
     logger.info(_("Start Redis proxy failover drill"))
     logger.info(_("Configuration: {}".format(conf)))
-    city_list = get_city_list()
-    for city in city_list:
+    for city in conf["city_map"].keys():
         failover_drill_unit.apply_async(args=(city, conf))
 
 
@@ -72,10 +71,9 @@ def redis_failover_drill_task():
         return
 
     conf = model_to_dict(conf)
-    conf["target_type"] = "backend"
+    conf["target_type"] = FailoverDrillTargetType.BACKEND
 
     logger.info(_("Start Redis backend failover drill"))
     logger.info(_("Configuration: {}".format(conf)))
-    city_list = get_city_list()
-    for city in city_list:
+    for city in conf["city_map"].keys():
         failover_drill_unit.apply_async(args=(city, conf))
