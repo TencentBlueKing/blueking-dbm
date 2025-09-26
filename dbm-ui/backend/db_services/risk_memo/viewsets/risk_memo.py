@@ -18,7 +18,13 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.db_services.risk_memo.constants import BKREPO_RISK_MEMO_PATH, BizImpact, RiskOpType, Status
+from backend.db_services.risk_memo.constants import (
+    BKREPO_RISK_MEMO_PATH,
+    RISK_REQUIRE_MAP,
+    BizImpact,
+    RiskOpType,
+    Status,
+)
 from backend.db_services.risk_memo.filters import RiskMemoListFilter, RiskOpRecordListFilter
 from backend.db_services.risk_memo.handler import log_operation
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskOperateRecord
@@ -48,7 +54,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
         ("get_risk_operate_records", "get_biz_inpact_list", "images"): [],
     }
 
-    queryset = RiskMemo.objects.all()
+    queryset = RiskMemo.objects.all().order_by("-create_at")
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = RiskMemoSerializer
     filter_class = RiskMemoListFilter
@@ -108,6 +114,22 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     @action(detail=True, methods=["POST"], serializer_class=UpdateRiskStatusSerializer)
     def update_risk_status(self, request, *args, **kwargs):
         """更新风险状态"""
+
+        def get_operation_type(status, is_special):
+            # 状态与操作类型映射
+            status_op_map = {
+                Status.DONE.value: RiskOpType.FINAL.value,
+                Status.DOING.value: RiskOpType.RESTART_RISK.value,
+            }
+
+            oper_type = status_op_map.get(status)
+
+            # 如果是特殊业务要求，返回特殊的操作类型
+            if is_special:
+                return RISK_REQUIRE_MAP.get(oper_type, oper_type)
+
+            return oper_type
+
         validated_data = self.params_validate(self.get_serializer_class())
         risk = self.get_object()
 
@@ -117,16 +139,10 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
         except Exception as e:
             return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
 
-        # 状态与操作类型映射
-        status_optrate_map = {
-            Status.DONE.value: RiskOpType.FINAL.value,
-            Status.DOING.value: RiskOpType.RESTART_RISK.value,
-        }
+        oper_type = get_operation_type(validated_data["status"], risk.is_special)
 
         # 创建risk操作记录
-        RiskOperateRecord.objects.create(
-            creator=request.user.username, oper_type=status_optrate_map[validated_data["status"]], risk=risk
-        )
+        RiskOperateRecord.objects.create(creator=request.user.username, oper_type=oper_type, risk=risk)
 
         serializer = RiskMemoSerializer(instance=risk)
         return Response(serializer.data)
