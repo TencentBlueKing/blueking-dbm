@@ -110,6 +110,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     DBM_SSL = EnumField("DBM_SSL", _("DBM_SSL"))
     BKM_DBM_TOKEN = EnumField("BKM_DBM_TOKEN", _("监控数据源token"))
     BKM_DBM_REPORT = EnumField("BKM_DBM_REPORT", _("mysql/redis-监控自定义上报: dataid/token"))
+    BKM_SUBSCRIBE_METRIC = EnumField("BKM_SUBSCRIBE_METRIC", _("订阅指标"))
     FREE_BK_MODULE_ID = EnumField("FREE_BK_MODULE_ID", _("业务空闲模块ID"))
     VIRTUAL_USERS = EnumField("VIRTUAL_USERS", _("平台调用的虚拟账号列表"))
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下

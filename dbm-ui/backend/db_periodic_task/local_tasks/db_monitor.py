@@ -21,10 +21,12 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatHandler, CmsiHandler
+from backend.db_meta.models import Cluster
 from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
 from backend.db_monitor.exceptions import DutyNoticeScheduleException
 from backend.db_monitor.models import CollectInstance, DispatchGroup, DutyRule, MonitorPolicy, NoticeGroup
@@ -275,3 +277,49 @@ def send_duty_schedule(db_type):
                     CmsiHandler(title, arrange_content, receivers).send_msg(msg_type, context=None)
             except (ApiResultError, Exception) as e:
                 logger.error("[%s]send_duty_schedule error: %s", msg_type, e)
+
+
+@register_periodic_task(run_every=crontab(hour="0", minute="0"))
+def sync_monitor_subscribe():
+    """同步监控订阅"""
+
+    # 拉取全量的告警订阅策略
+    subscribe_list = BKMonitorV3Api.list_full_subscribe(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
+    metric_config = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_SUBSCRIBE_METRIC, default={})
+
+    # 获取用户订阅过的所有集群
+    cluster_subscribe_map = {}
+    for sub in subscribe_list:
+        conditions_map = {c["field"]: c["value"] for c in sub["conditions"]}
+        cluster_subscribe_map[conditions_map["tags.cluster_domain"][0]] = sub
+
+    clusters = Cluster.objects.filter(immute_domain__in=list(set(cluster_subscribe_map.keys())))
+    cluster_map = {c.immute_domain: c for c in clusters}
+
+    # 获取所有需要删除和更新的订阅
+    delete_subscribe_list = []
+    update_subscribe_list = []
+    for domain, sub in cluster_subscribe_map.items():
+        if domain not in cluster_map:
+            delete_subscribe_list.append(sub["id"])
+            continue
+
+        cluster = cluster_map[domain]
+        metric_list = [m["id"] for m in metric_config.get(cluster.cluster_type, [])]
+        metric_list = list(itertools.chain(*[x if isinstance(x, list) else [x] for x in metric_list]))
+
+        for condition in sub["conditions"]:
+            if condition["field"] != "alert.metric":
+                continue
+            if set(condition["value"]) == set(metric_list):
+                continue
+            condition["value"] = metric_list
+            sub["sub_username"] = sub["username"]
+            update_subscribe_list.append(sub)
+
+    # 分批删除/更新订阅
+    if delete_subscribe_list:
+        BKMonitorV3Api.bulk_delete_subscribe({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "ids": delete_subscribe_list})
+
+    if update_subscribe_list:
+        BKMonitorV3Api.bulk_save_subscribe_in_batch(env.DBA_APP_BK_BIZ_ID, update_subscribe_list)
