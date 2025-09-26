@@ -48,6 +48,11 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
+        # display fields
+        affect_db = serializers.ListField(
+            help_text=_("影响的DB"), child=serializers.CharField(), allow_null=True, required=False
+        )
+
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
