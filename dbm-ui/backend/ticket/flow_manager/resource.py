@@ -163,12 +163,14 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "rack_id": host.get("rack_id"),
                 "device_class": host.get("device_class"),
                 # 补充主机资源池原信息，可能用于重导入
-                "for_biz": {
+                "for_biz": host["dedicated_biz"],
+                "labels": host["labels"],
+                "for_biz_info": {
                     "bk_biz_id": host["dedicated_biz"],
                     "bk_biz_name": biz_name_map.get(host["dedicated_biz"], None),
                 },
                 # 补充标签字段
-                "labels": [
+                "label_info": [
                     {"id": int(label_id), "name": label_name_map.get(int(label_id), "")} for label_id in host["labels"]
                 ],
                 "resource_type": host["rs_type"],
