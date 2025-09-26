@@ -72,11 +72,39 @@ MOCK_SAVE_DUTY_RULE_RETURN = {
 
 MOCK_SAVE_USER_GROUP_RETURN = {"data": {"id": 0}, "code": 0, "result": True}
 
+# 创建一个基础的订阅记录模板
+BASE_SUBSCRIBE_RECORD = {
+    "id": 1,
+    "username": "xxxxx",
+    "bk_biz_id": 2,
+    "conditions": [
+        {"field": "tags.cluster_domain", "value": ["spider.xiaogtest.xxxx.db"], "method": "eq", "condition": "and"},
+        {"field": "tags.appid", "value": [2], "method": "eq", "condition": "and"},
+        {"field": "alert.severity", "value": [1, 2, 3], "method": "eq", "condition": "and"},
+        {"field": "alert.metric", "value": ["bk_monitor.system.mem.used"], "method": "include", "condition": "and"},
+    ],
+    "notice_ways": ["weixin", "mail"],
+    "priority": -1,
+    "user_type": "follower",
+    "is_enable": True,
+}
+
+# 生成 10 条订阅记录，这样当添加超过 5 条新订阅时就会超过 500 的限制
+MOCK_SUBSCRIBE_RESULTS = []
+for i in range(10):
+    record = copy.deepcopy(BASE_SUBSCRIBE_RECORD)
+    record["id"] = i + 1
+    record["conditions"][0]["value"] = [f"cluster-{i}.test.db"]
+    MOCK_SUBSCRIBE_RESULTS.append(record)
+
+MOCK_LIST_SUBSCRIBE_DATA = {"_meta": {"total": 495, "page": 1, "page_size": 500}, "data": MOCK_SUBSCRIBE_RESULTS}
+
 
 # BKMonitorV3Api的mock
 class BKMonitorV3MockApi:
     save_duty_rule_return = copy.deepcopy(MOCK_SAVE_DUTY_RULE_RETURN)
     save_user_group_return = copy.deepcopy(MOCK_SAVE_USER_GROUP_RETURN)
+    list_subscribe_return = copy.deepcopy(MOCK_LIST_SUBSCRIBE_DATA)
     delete_user_groups_return = None
     search_user_groups_return = None
     delete_duty_rules_return = None
@@ -112,3 +140,36 @@ class BKMonitorV3MockApi:
     @classmethod
     def delete_user_groups(cls, *args, **kwargs):
         return cls.delete_user_groups_return
+
+    @classmethod
+    def list_subscribe(cls, *args, **kwargs):
+        return cls.list_subscribe_return
+
+    @classmethod
+    def bulk_delete_subscribe(cls, *args, **kwargs):
+        params = kwargs.get("params")
+        assert "ids" in params
+
+    @classmethod
+    def bulk_save_subscribe(cls, *args, **kwargs):
+        params = kwargs.get("params", [])
+        subscriptions = params.get("subscriptions", [])
+        assert len(subscriptions) > 0
+
+        for sub in subscriptions:
+            assert "username" in sub
+            assert "conditions" in sub
+            assert "notice_ways" in sub
+
+            fields = {condition["field"] for condition in sub["conditions"]}
+            need_fields = ["tags.cluster_domain", "tags.appid", "alert.severity", "alert.metric"]
+            for field in need_fields:
+                assert field in fields
+
+    @classmethod
+    def bulk_save_subscribe_in_batch(cls, bk_biz_id, subscriptions):
+        return cls.bulk_create_subscribe(bk_biz_id=bk_biz_id, subscriptions=subscriptions)
+
+    @classmethod
+    def list_full_subscribe(cls, bk_biz_id, username=""):
+        return cls.list_subscribe_return["data"]

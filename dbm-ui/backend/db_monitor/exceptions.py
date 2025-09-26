@@ -52,3 +52,9 @@ class DutyNoticeScheduleException(DBMonitorBaseException):
     ERROR_CODE = "204"
     MESSAGE = _("轮值排班表异常")
     MESSAGE_TPL = _("轮值排班表异常: {message}")
+
+
+class SubscriptionMetricException(DBMonitorBaseException):
+    ERROR_CODE = "205"
+    MESSAGE = _("告警订阅异常")
+    MESSAGE_TPL = _("告警订阅异常: {message}")

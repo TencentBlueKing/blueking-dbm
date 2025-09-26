@@ -16,6 +16,7 @@ from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
 from backend.db_monitor.views.notice_group import MonitorNoticeGroupViewSet
 from backend.db_monitor.views.policy import MonitorPolicyViewSet
 from backend.db_monitor.views.shield import AlarmShieldView
+from backend.db_monitor.views.subscribe import MonitorSubscribeViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -25,5 +26,7 @@ routers.register(r"notice_group", MonitorNoticeGroupViewSet, basename="notice_gr
 routers.register(r"duty_rule", MonitorDutyRuleViewSet, basename="duty_rule")
 routers.register(r"alarm_shield", AlarmShieldView, basename="alarm_shield")
 routers.register(r"event", AlertView, basename="event")
+routers.register(r"subscribe", MonitorSubscribeViewSet, basename="subscribe")
+
 
 urlpatterns = routers.urls

@@ -119,6 +119,7 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         ActionEnum.REDIS_EDIT,
         ActionEnum.REDIS_BACKUP,
         ActionEnum.REDIS_ACCESS_ENTRY_VIEW,
+        ActionEnum.REDIS_SUBSCRIBE_MONITOR,
         ActionEnum.REDIS_WEBCONSOLE,
         ActionEnum.REDIS_SOURCE_ACCESS_VIEW,
     ]

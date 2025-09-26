@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend import env
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration.constants import DBType
+from backend.core.notify.constants import MsgType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_monitor import mock_data
@@ -401,3 +402,29 @@ class UpdateDutyNoticeSerializer(serializers.Serializer):
 
 class SendDutyNoticeScheduleSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+
+
+class SaveMonitorSubscribeSerializer(serializers.Serializer):
+    class SubscribeClusterInfo(serializers.Serializer):
+        cluster_domain = serializers.CharField(help_text=_("集群域名"))
+        cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+    clusters = serializers.ListField(help_text=_("订阅集群"), child=SubscribeClusterInfo())
+    alert_level = serializers.ListField(help_text=_("告警级别"), child=serializers.IntegerField())
+    notice_ways = serializers.ListField(
+        help_text=_("通知方式"), child=serializers.ChoiceField(choices=MsgType.get_choices())
+    )
+
+    def validate(self, attrs):
+        return attrs
+
+
+class DeleteMonitorSubscribeSerializer(serializers.Serializer):
+    ids = serializers.ListField(help_text=_("订阅ID列表"), child=serializers.IntegerField())
+
+    def validate(self, attrs):
+        return attrs
+
+
+class ListMonitorSubscribeSerializer(serializers.Serializer):
+    pass

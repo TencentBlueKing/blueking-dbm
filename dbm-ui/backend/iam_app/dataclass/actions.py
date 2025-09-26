@@ -1116,6 +1116,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    REDIS_SUBSCRIBE_MONITOR = ActionMeta(
+        id="redis_subscribe_monitor",
+        name=_("Redis 集群告警订阅"),
+        name_en="redis_subscribe_monitor",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_SOURCE_ACCESS_VIEW = ActionMeta(
         id="redis_source_access_view",
         name=_("Redis 访问来源查询"),
