@@ -24,7 +24,7 @@ class RiskMemoManager(models.Manager):
             risk.final_content = ""
             risk.final_time = ""
             risk.finished_by = ""
-            risk.duration_time = ""
+            risk.duration_time = 0
             risk.status = validated_data["status"]
             risk.save()
         else:
