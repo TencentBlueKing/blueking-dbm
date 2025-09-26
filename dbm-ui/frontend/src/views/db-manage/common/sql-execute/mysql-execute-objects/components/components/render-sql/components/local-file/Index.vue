@@ -22,8 +22,8 @@
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
-        @remove="handleRemove"
-        @sort="handleFileSortChange">
+        @after-sort="handleFileSortChange"
+        @remove="handleRemove">
         <div
           key="upload"
           class="upload-btn"
@@ -167,9 +167,7 @@
     }
 
     if (uploadFileNameList.value.length) {
-      modelValue.value = uploadFileNameList.value.map(
-        (localFileName) => uploadFileDataMap.value[localFileName].realFilePath,
-      );
+      modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
     }
 
     emits('grammar-check', true, true);
@@ -342,8 +340,7 @@
   };
 
   // 文件排序
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileNameList.value = list;
+  const handleFileSortChange = () => {
     triggerChange();
   };
 
@@ -379,10 +376,14 @@
 
   defineExpose<Expose>({
     getFileData() {
-      return uploadFileDataMap.value;
+      return Object.fromEntries(
+        uploadFileNameList.value.map((fileName) => [fileName, uploadFileDataMap.value[fileName]]),
+      );
     },
     getValue() {
-      return Promise.resolve().then(() => Object.values(uploadFileDataMap.value).map((item) => item.realFilePath));
+      return Promise.resolve().then(() =>
+        uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath),
+      );
     },
     setInit(cacheData: Record<string, SqlFileModel>) {
       uploadFileDataMap.value = cacheData;
