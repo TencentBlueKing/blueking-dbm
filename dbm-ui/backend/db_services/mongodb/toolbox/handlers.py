@@ -40,7 +40,7 @@ class ToolboxHandler(ClusterServiceHandler):
         return host_ids
 
     @classmethod
-    def get_mongo_shard(cls, data):
+    def get_mongo_shard(cls, bk_biz_id, data):
         cluster_ids = []
         if data.get("cluster_id"):
             cluster_ids.append(data["cluster_id"])
@@ -52,7 +52,12 @@ class ToolboxHandler(ClusterServiceHandler):
             )
 
         cluster_ids = list(set(cluster_ids))
-        clusters = Cluster.objects.filter(id__in=cluster_ids).all()
+        if cluster_ids:
+            clusters = Cluster.objects.filter(id__in=cluster_ids).all()
+        else:
+            clusters = Cluster.objects.filter(
+                bk_biz_id=bk_biz_id, cluster_type=ClusterType.MongoShardedCluster.value
+            ).all()
         shard_data = []
         for cluster in clusters:
             mongodb_insts = [
