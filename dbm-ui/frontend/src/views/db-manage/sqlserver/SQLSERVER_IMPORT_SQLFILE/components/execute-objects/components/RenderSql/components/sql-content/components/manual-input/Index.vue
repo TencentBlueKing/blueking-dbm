@@ -22,6 +22,7 @@
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
+        @after-sort="handleFileSortChange"
         @remove="handleRemoveFile">
         <div
           key="upload"
@@ -168,7 +169,7 @@
   const triggerChange = () => {
     window.changeConfirm = true;
     isInnerChange = true;
-    modelValue.value = Object.values(uploadFileDataMap.value).map((item) => item.realFilePath);
+    modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
   };
 
   const triggerGramarCheckChange = () => {
@@ -196,6 +197,11 @@
     });
     selectFileName.value = fileName;
     emits('grammar-check', false, false);
+    triggerChange();
+  };
+
+  // 文件排序
+  const handleFileSortChange = () => {
     triggerChange();
   };
 
@@ -267,7 +273,9 @@
 
   defineExpose<Expose>({
     getValue() {
-      return Promise.resolve().then(() => Object.values(uploadFileDataMap.value).map((item) => item.realFilePath));
+      return Promise.resolve().then(() =>
+        uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath),
+      );
     },
   });
 </script>
