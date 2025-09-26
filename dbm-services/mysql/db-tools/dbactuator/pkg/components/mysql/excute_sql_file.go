@@ -17,7 +17,9 @@ package mysql
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -123,8 +125,14 @@ func (e *ExecuteSQLFileComp) PreCheck() (err error) {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
 		return err
 	}
+	logger.Info("检查单行里面的SQL文件内容重复性检查")
+	if err = e.checkDuplicateFileInObjects(); err != nil {
+		logger.Error("SQL文件内容重复性检查失败:%s", err.Error())
+		return err
+	}
 	for _, port := range e.ports {
 		if err = e.checkDuplicateObjects(port); err != nil {
+			logger.Error("SQL文件内容重复性检查失败:%s", err.Error())
 			return err
 		}
 	}
@@ -160,6 +168,32 @@ func (e *ExecuteSQLFileComp) CheckSQLFileExist() (err error) {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (e ExecuteSQLFileComp) checkDuplicateFileInObjects() (err error) {
+	for _, f := range e.Params.ExecuteObjects {
+		// 如果文件只有一个，则跳过
+		if len(f.SQLFiles) <= 1 {
+			continue
+		}
+		// 校验每个文件的sha256, 如果存在相同的则报错，并抛出冲突的文件
+		hashMap := make(map[string]string) // hash => 文件名
+		for _, sqlFile := range f.SQLFiles {
+			filePath := path.Join(e.taskdir, sqlFile)
+			fileContent, err := readFile(filePath)
+			if err != nil {
+				logger.Error("读取SQL文件%s失败:%s", filePath, err.Error())
+				return err
+			}
+			sum := sha256.Sum256(fileContent)
+			hashsum := hex.EncodeToString(sum[:])
+			if existFile, ok := hashMap[hashsum]; ok {
+				return fmt.Errorf("文件内容重复, 文件: %s 和 %s 的hash相同, 请检查", sqlFile, existFile)
+			}
+			hashMap[hashsum] = sqlFile
+		}
+	}
+	return nil
 }
 
 func (e *ExecuteSQLFileComp) parseBlockingTables(port int) (blockingTableMap map[string][]string, err error) {
