@@ -138,7 +138,10 @@
     fileData: Record<string, SqlFileModel>;
   }
 
-  type Emits = (e: 'remove', filename: string) => void;
+  interface Emits {
+    (e: 'remove', filename: string): void;
+    (e: 'after-sort'): void;
+  }
 
   defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -178,6 +181,7 @@
 
   const handleDragEnd = () => {
     filenameList.value = localList.value.map((item) => item.name);
+    emits('after-sort');
   };
 
   const handleRemove = (filename: string) => {
