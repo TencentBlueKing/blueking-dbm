@@ -38,7 +38,7 @@
     },
     entry: {
       icon: 'piliangluru',
-      tooltip: t('批量录入：按行录入，快速批量输入多个单元格的值'),
+      tooltip: t('按行录入：批量录入多个单元格的值'),
     },
     select: {
       icon: 'batch-host-select',

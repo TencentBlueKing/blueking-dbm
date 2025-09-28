@@ -13,7 +13,13 @@
 
 <template>
   <BkButton
+    v-bk-tooltips="{
+      content: tooltipsContent,
+      disabled: !disabled,
+      placement: 'top',
+    }"
     class="checksum-batch"
+    :disabled="disabled"
     @click="() => (isShow = true)">
     <i class="bk-dbm-icon db-icon-add" />
     {{ t('批量录入') }}
@@ -84,11 +90,16 @@
       key: string;
       label: string;
     }[];
+    disabled?: boolean;
+    tooltipsContent?: string;
   }
 
   type Emits = (e: 'change', data: Record<string, any>[], isClear: boolean) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
+    tooltipsContent: '',
+  });
 
   const emits = defineEmits<Emits>();
 
