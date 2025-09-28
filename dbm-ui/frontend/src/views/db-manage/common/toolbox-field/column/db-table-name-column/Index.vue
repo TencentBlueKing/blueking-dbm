@@ -120,8 +120,8 @@
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   onMounted(() => {
-    nextTick(() => {
-      if (slots.tip && rootRef.value !== null) {
+    setTimeout(() => {
+      if (slots.tip && rootRef.value && popRef.value) {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           appendTo: () => document.body,
           arrow: true,

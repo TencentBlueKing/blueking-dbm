@@ -15,16 +15,15 @@
   <TicketInfoTable
     class="target-cluster-table"
     :data="tableData"
-    row-key="targetCluster"
-    :rowspan-and-colspan="rowspanAndColspan">
+    row-key="row_key">
     <TicketInfoTableColumn
-      col-key="targetCluster"
-      :get-copy-value="(row: RowData) => row.targetCluster"
+      col-key="cluster_domain"
+      :get-copy-value="(row: RowData) => row.cluster_domain"
       :min-width="200"
       :title="t('目标集群')"
       :width="250" />
     <TicketInfoTableColumn
-      col-key="newDb"
+      col-key="target_db"
       :min-width="150"
       :title="t('新DB')"
       :width="200" />
@@ -42,19 +41,24 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import type { BaseTableCellParams, TableRowData } from 'tdesign-vue-next/es/table/type';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import { random } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.OpenArea>;
   }
 
   interface RowData {
+    cluster_domain: string;
+    data_tblist: string[];
     ips: string;
-    newDb: string;
-    targetCluster: string;
+    row_key: string;
+    schema_tblist: string[];
+    source_db: string;
+    target_db: string;
   }
 
   const props = defineProps<Props>();
@@ -76,25 +80,18 @@
       _.sortBy(
         props.ticketDetails.details.config_data.map((item) => {
           const cluster = clustersMap[item.cluster_id]?.immute_domain;
-          return item.execute_objects.map((executeObject) => ({
-            ips: clusterIpsMap[cluster]?.join(',') || '',
-            newDb: executeObject.target_db,
-            targetCluster: cluster,
-          }));
+          return item.execute_objects.map((executeObject) =>
+            Object.assign({}, executeObject, {
+              cluster_domain: cluster,
+              ips: clusterIpsMap[cluster]?.join(',') || '',
+              row_key: random(),
+            }),
+          );
         }),
         'newDb',
       ),
     ),
   );
-
-  const rowspanAndColspan = (params: BaseTableCellParams<TableRowData>) => {
-    const { col, row } = params;
-    if (col.colKey === 'targetCluster') {
-      const rowSpan = tableData.value.filter((item: RowData) => item.targetCluster === row.targetCluster).length;
-      return { colspan: 1, rowspan: rowSpan > 1 ? rowSpan : 1 };
-    }
-    return {};
-  };
 </script>
 
 <style lang="less" scoped>
