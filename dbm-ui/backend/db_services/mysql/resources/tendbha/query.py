@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole, InstanceR
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import (
     CommonExportQueryResourceMixin,
@@ -212,7 +213,12 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBHAExportQueryResource
         role = query_params.get("role", "").split(",")
         pair_instance_map = {}
         if InstanceRole.BACKEND_SLAVE.value in role or InstanceRole.BACKEND_REPEATER.value in role:
-            pair_instance_map = cls.slave_associate_mater_role(instances)
+            query_instances = {
+                "instances": [instance["machine__ip"] + ":" + str(instance["inst_port"]) for instance in instances]
+            }
+            pair_instance_map = (
+                ClusterServiceHandler(bk_biz_id).query_machine_instance_pair(query_instances).get("instances", {})
+            )
         kwargs.update(pair_instance_map=pair_instance_map)
         return super()._filter_instance_hook(bk_biz_id, query_params, instances, **kwargs)
 
@@ -225,7 +231,4 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBHAExportQueryResource
         @param instance: 实例信息
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         """
-        instance_info = super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
-        pari_key = f"{instance['machine__ip']}:{instance['port']}"
-        instance_info.update(related_pair_instance=kwargs.get("pair_instance_map", {}).get(pari_key, ""))
-        return instance_info
+        return super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
