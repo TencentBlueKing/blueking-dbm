@@ -48,7 +48,6 @@ from backend.flow.consts import (
     MysqlVersionToDBBackupForMap,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.utils.base.bkrepo import get_bk_repo_url
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
@@ -1737,15 +1736,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         logger.info(
             "backup_time: {} ~ stop_time: {} ".format(self.cluster["backup_time"], self.cluster["rollback_time"])
         )
-        binlog_files = self.cluster["binlog_files"]
         backup_time = self.cluster["backup_time"]
-        binlog_files_list = binlog_files.split(",")
         binlog_start_file = self.cluster["binlog_start_file"]
         binlog_start_pos = int(self.cluster["binlog_start_pos"])
-        if binlog_start_file not in binlog_files_list:
-            logger.error("start binlog {} not exist".format(binlog_start_file))
-            raise TendbGetBackupInfoFailedException(message=_("start binlog  {} not exist".format(binlog_start_file)))
-        binlog_files_list_simple = [self.cluster["binlog_start_file"], binlog_files_list[0]]
+        simple_binlog_files = False
+        if len(self.cluster["binlog_files_list"]) > 2000:
+            # 超过1000个日志,为了避免payload信息过长,只传首尾
+            simple_binlog_files = True
+            binlog_files_list = [self.cluster["binlog_start_file"], self.cluster["binlog_files_list"][0]]
+        else:
+            binlog_files_list = self.cluster["binlog_files_list"]
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,
@@ -1754,7 +1754,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "work_dir": self.cluster["file_target_path"],
                     "binlog_dir": self.cluster["file_target_path"],
-                    "binlog_files": binlog_files_list_simple,
+                    "binlog_files": binlog_files_list,
+                    "simple_binlog_files": simple_binlog_files,
                     "tgt_instance": {
                         "host": kwargs["ip"],
                         "port": self.cluster["rollback_port"],

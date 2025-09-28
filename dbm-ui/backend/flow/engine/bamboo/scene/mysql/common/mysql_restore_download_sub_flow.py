@@ -71,26 +71,30 @@ def mysql_restore_download_sub_flow(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-
+    # 分批次下载备份文件
+    task_ids_split = [task_ids[i : i + 500] for i in range(0, len(task_ids), 500)]
+    batch_num = 0
     if source_ip is None:
         # 从远程下载备份文件
-        download_sub_pipeline_list = []
-        for dest_ip in dest_ips:
-            download_kwargs = DownloadBackupFileKwargs(
-                bk_cloud_id=bk_cloud_id,
-                task_ids=task_ids,
-                dest_ip=dest_ip,
-                dest_dir=file_target_path,
-                reason="download from remote backup system",
-            )
-            download_sub_pipeline_list.append(
-                {
-                    "act_name": _("远程备份文件到 {}".format(dest_ip)),
-                    "act_component_code": MySQLDownloadBackupfileComponent.code,
-                    "kwargs": asdict(download_kwargs),
-                }
-            )
-        sub_pipeline.add_parallel_acts(download_sub_pipeline_list)
+        for task_ids_bat in task_ids_split:
+            download_sub_pipeline_list = []
+            batch_num = batch_num + 1
+            for dest_ip in dest_ips:
+                download_kwargs = DownloadBackupFileKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    task_ids=task_ids_bat,
+                    dest_ip=dest_ip,
+                    dest_dir=file_target_path,
+                    reason="download from remote backup system",
+                )
+                download_sub_pipeline_list.append(
+                    {
+                        "act_name": _("第 {} 批远程备份文件下载到 {} 总数: {}".format(batch_num, dest_ip, len(task_ids_bat))),
+                        "act_component_code": MySQLDownloadBackupfileComponent.code,
+                        "kwargs": asdict(download_kwargs),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(download_sub_pipeline_list)
     else:
         # 点对点传输备份文件
         sub_pipeline.add_act(
@@ -104,17 +108,21 @@ def mysql_restore_download_sub_flow(
                 )
             ),
         )
-        sub_pipeline.add_act(
-            act_name=_("从本地 {} 点对点传输文件到 {}").format(source_ip, dest_ips),
-            act_component_code=MySQLTransFileComponent.code,
-            kwargs=asdict(
-                P2PFileKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    file_list=task_ids,
-                    file_target_path=file_target_path,
-                    source_ip_list=[source_ip],
-                    exec_ip=dest_ips,
-                )
-            ),
-        )
-    return sub_pipeline.build_sub_process(sub_name=_("下载备份文件"))
+        for task_ids_bat in task_ids_split:
+            batch_num = batch_num + 1
+            sub_pipeline.add_act(
+                act_name=_("第 {} 批 从本地 {} 点对点传输文件到 {} 总数: {}").format(
+                    batch_num, source_ip, dest_ips, len(task_ids_bat)
+                ),
+                act_component_code=MySQLTransFileComponent.code,
+                kwargs=asdict(
+                    P2PFileKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        file_list=task_ids_bat,
+                        file_target_path=file_target_path,
+                        source_ip_list=[source_ip],
+                        exec_ip=dest_ips,
+                    )
+                ),
+            )
+    return sub_pipeline.build_sub_process(sub_name=_("下载文件 总数: {} 总批次: {}".format(len(task_ids), len(task_ids_split))))
