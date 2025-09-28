@@ -423,16 +423,18 @@ MYSQL_PROXY_SWITCH_DATA = {
                         }
                     ]
                 },
-                "origin_proxy_ip": {
-                    "bk_biz_id": BK_BIZ_ID,
-                    "bk_cloud_id": 0,
-                    "bk_host_id": 446,
-                    "instance_address": "5.5.5.6:20001",
-                    "ip": "5.5.5.6",
-                    "port": 20001,
-                },
+                "origin_proxies": [
+                    {
+                        "bk_biz_id": BK_BIZ_ID,
+                        "bk_cloud_id": 0,
+                        "bk_host_id": 446,
+                        "instance_address": "5.5.5.6:20001",
+                        "ip": "5.5.5.6",
+                        "port": 20001,
+                    }
+                ],
                 "resource_spec": {
-                    "target_proxys": {
+                    "target_proxies": {
                         "hosts": [{"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 447, "ip": "5.5.5.7"}]
                     }
                 },

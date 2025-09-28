@@ -46,7 +46,7 @@ class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_common_affinity(role="new_proxys", remain_machine_type=MachineType.PROXY, tolerance=0.5)
+        self.patch_info_common_affinity(role="new_proxies", remain_machine_type=MachineType.PROXY, tolerance=0.5)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD, is_apply=True)

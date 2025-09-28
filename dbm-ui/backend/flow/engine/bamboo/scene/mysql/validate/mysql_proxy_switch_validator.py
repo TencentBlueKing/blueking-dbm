@@ -7,11 +7,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
 
-from django.utils.translation import ugettext as _
-
-from backend.flow.engine.validate.exceptions import DuplicateIPException
+from backend.flow.engine.validate.exceptions import DuplicateClusterException, DuplicateIPException
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
 
@@ -29,34 +26,24 @@ class MySQLProxySwitchValidator(MysqlBaseValidator):
     校验：同一个flow，同一个集群，如果规格出现不一致，则不能提单
     """
 
-    def pre_check_spec_group_by_cluster(self) -> str:
-        """
-        将单据参数，按照集群ID分类，如果单据中，同一个集群，替换两个以上的proxy，且存在不同规格，则校验不通过
-        """
-        err_msg = ""
-        cluster_id_spec = defaultdict(set)
-        for info in self.data["infos"]:
-            for cluster_id in info["cluster_ids"]:
-                cluster_id_spec[cluster_id].add(info["origin_proxy_ip"]["spec"]["id"])
-
-        for cluster_id, spec_set in cluster_id_spec.items():
-            if len(spec_set):
-                err_msg += _("在单据中，集群ID [{}] 出现两个以上的不同proxy规格的替换，请检查 \n".format(cluster_id))
-
-        return err_msg
-
-    def run_check_for_info(self, info: dict, index: int) -> list:
+    def run_check_for_info(self, info: dict, index: int, is_migrate_ins_task: bool = False) -> list:
         """
         @param info：  self.data["infos"]每个元素体
         @param index： 每个元素体的编号
+        @param is_migrate_ins_task：是否是实例级别的迁移proxy单据触发校验，如果是标记True，默认False
         """
         row_key = info.get("row_key", "")
 
         # 检查每一行ip传入是否合法
-        log_format_tag = self.create_log_tag(field="origin_proxy_ip", index=index, row_key=row_key)
-        error_msg = self.pre_check_ip([info["origin_proxy_ip"]["ip"]], **log_format_tag)
-        if error_msg:
-            return [error_msg]
+        # 嵌套行的精准输出
+        check_ip_errors = {"field": "origin_proxies", "errors": [], "index": index, "row_key": row_key}
+        for index, check_host in enumerate(info["origin_proxies"]):
+            log_format_tag = self.create_log_tag(field="origin_proxies", index=index, row_key=row_key)
+            error_msg = self.pre_check_ip([check_host["ip"]], **log_format_tag)
+            if error_msg:
+                check_ip_errors["errors"].append(error_msg)
+        if check_ip_errors["errors"]:
+            return [check_ip_errors]
 
         # 检查每一行集群是否存在
         log_format_tag = self.create_log_tag(field="cluster_ids", index=index, row_key=row_key)
@@ -65,23 +52,47 @@ class MySQLProxySwitchValidator(MysqlBaseValidator):
             return [error_msg]
 
         # 检查每一行传入的ip和集群信息，是否是所属关系
-        log_format_tag = self.create_log_tag(field="origin_proxy_ip", index=index, row_key=row_key)
-        error_msg = self.pre_check_mysql_proxy_in_cluster(
-            [info["origin_proxy_ip"]["ip"]], info["cluster_ids"], **log_format_tag
-        )
-        if error_msg:
-            return [error_msg]
+        # 嵌套行的精准输出
+        check_ip_cluster_relation_errors = {
+            "field": "origin_proxies",
+            "errors": [],
+            "index": index,
+            "row_key": row_key,
+        }
+        for index, check_host in enumerate(info["origin_proxies"]):
+            log_format_tag = self.create_log_tag(field="origin_proxies", index=index, row_key=row_key)
+            error_msg = self.pre_check_mysql_proxy_in_cluster(
+                [check_host["ip"]], info["cluster_ids"], **log_format_tag
+            )
+            if error_msg:
+                check_ip_cluster_relation_errors["errors"].append(error_msg)
+        if check_ip_cluster_relation_errors["errors"]:
+            return [check_ip_cluster_relation_errors]
+
+        if is_migrate_ins_task:
+            return []
 
         # 检查每一行的ip的所属集群信息是否传全
-        log_format_tag = self.create_log_tag(field="origin_proxy_ip", index=index, row_key=row_key)
-        error_msg = self.pre_check_proxy_clusters_included(
-            proxy_ip=info["origin_proxy_ip"]["ip"],
-            bk_cloud_id=int(info["origin_proxy_ip"]["bk_cloud_id"]),
-            cluster_ids=info["cluster_ids"],
-            **log_format_tag,
-        )
-        if error_msg:
-            return [error_msg]
+        # 嵌套行的精准输出
+        # 这里和实例级别拆分的流程是公用，但是这块实例级别拆分，不做这块检查
+        check_proxy_clusters_included_errors = {
+            "field": "origin_proxies",
+            "errors": [],
+            "index": index,
+            "row_key": row_key,
+        }
+        for index, check_host in enumerate(info["origin_proxies"]):
+            log_format_tag = self.create_log_tag(field="origin_proxies", index=index, row_key=row_key)
+            error_msg = self.pre_check_proxy_clusters_included(
+                proxy_ip=check_host["ip"],
+                bk_cloud_id=int(check_host["bk_cloud_id"]),
+                cluster_ids=info["cluster_ids"],
+                **log_format_tag,
+            )
+            if error_msg:
+                check_proxy_clusters_included_errors["errors"].append(error_msg)
+        if check_proxy_clusters_included_errors["errors"]:
+            return [check_proxy_clusters_included_errors]
 
         return []
 
@@ -95,11 +106,13 @@ class MySQLProxySwitchValidator(MysqlBaseValidator):
 
         # 阶段2 做聚合校验
         # 同一个flow，同一个集群，传入机器不能重复
-        err = self.pre_check_duplicate_ip("origin_proxy_ip")
+        err = self.pre_check_duplicate_ip("origin_proxies")
         if err:
             raise DuplicateIPException(err)
 
-        # 同一个flow，同一个集群，不能出现2个以上的proxy规格
-        # todo 后续添加
+        # 同一个flow，不能出现同一个集群
+        err = self.pre_check_duplicate_cluster_ids("cluster_ids")
+        if err:
+            raise DuplicateClusterException(err)
 
         return None
