@@ -18,7 +18,7 @@
     :show-overflow="false">
     <BkTableColumn :label="t('源客户端IP')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.source }}
+        {{ `${data.bk_cloud_id}:${data.source}` }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('所属模块')">
