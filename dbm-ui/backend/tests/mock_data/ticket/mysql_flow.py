@@ -412,7 +412,7 @@ MYSQL_PROXY_SWITCH_DATA = {
                 "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
                 "old_nodes": {
-                    "origin_proxy": [
+                    "proxy": [
                         {
                             "bk_biz_id": BK_BIZ_ID,
                             "bk_cloud_id": 0,
@@ -432,7 +432,7 @@ MYSQL_PROXY_SWITCH_DATA = {
                     "port": 20001,
                 },
                 "resource_spec": {
-                    "target_proxy": {
+                    "target_proxys": {
                         "hosts": [{"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 447, "ip": "5.5.5.7"}]
                     }
                 },
