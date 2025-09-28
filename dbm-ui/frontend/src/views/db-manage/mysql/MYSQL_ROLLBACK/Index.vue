@@ -53,16 +53,13 @@
       <BkFormItem
         :label="t('备份源')"
         required>
-        <BkRadioGroup
-          v-model="formData.backupSource"
-          style="width: 450px"
-          type="card">
-          <BkRadioButton :label="BackupSourceType.LOCAL">
-            {{ t('本地备份') }}
-          </BkRadioButton>
-          <BkRadioButton :label="BackupSourceType.REMOTE">
+        <BkRadioGroup v-model="formData.backupSource">
+          <BkRadio :label="BackupSourceType.REMOTE">
             {{ t('远程备份') }}
-          </BkRadioButton>
+          </BkRadio>
+          <BkRadio :label="BackupSourceType.LOCAL">
+            {{ t('本地备份') }}
+          </BkRadio>
         </BkRadioGroup>
       </BkFormItem>
       <BatchInput

@@ -65,12 +65,6 @@ export default [
   {
     children: [
       {
-        dbConsoleValue: 'mysql.toolbox.rollback',
-        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-        name: t('定点构造'),
-        parentId: 'fileback',
-      },
-      {
         dbConsoleValue: 'mysql.toolbox.fixpoint',
         id: TicketTypes.MYSQL_FIXPOINT,
         name: t('构造'),
@@ -83,10 +77,16 @@ export default [
         name: t('回档'),
         parentId: 'fileback',
       },
+      {
+        dbConsoleValue: 'mysql.toolbox.rollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+        name: t('定点构造（旧）'),
+        parentId: 'fileback',
+      },
     ],
     icon: 'db-icon-rollback',
     id: 'fileback',
-    name: t('回档'),
+    name: t('构造和回档'),
   },
   {
     children: [
