@@ -48,7 +48,7 @@ class ExecActuatorBaseKwargs:
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等, 后续需要废弃，尽量不要用这个属性，用custom_params属性
     job_timeout: int = DEFAULT_JOB_TIMEOUT  # 执行job单据的超时时间，默认是7200s
     write_op: str = None  # 控制上下文写方式，WriteContextOpType类型，有REWRITE和APPEND模式，如果不填默认是采用REWRITE模式
-    custom_params: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
+    component_kwargs: dict = field(default_factory=dict)  # 隐性参数，传入参数时作为额外参数传入，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
@@ -259,6 +259,7 @@ class DBMetaOPKwargs:
     db_meta_class_func: str
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
     is_update_trans_data: bool = False  # 表示是否把流程中上下文trans_data合并到cluster信息，默认不合并
+    component_kwargs: dict = field(default_factory=dict)  # 额外参数传入，对应每个场景应用，自定义拼接， 逐步代替cluster属性
 
 
 @dataclass()
