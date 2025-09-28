@@ -137,7 +137,6 @@
         tableData: details.clone_data.map((item) =>
           createTableRow({
             bk_cloud_id: item.bk_cloud_id,
-            module: item.module,
             source: item.source,
             target: item.target.join(','),
           }),
