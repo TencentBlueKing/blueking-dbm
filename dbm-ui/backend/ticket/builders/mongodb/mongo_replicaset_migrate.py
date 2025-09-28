@@ -58,7 +58,7 @@ class MongoDBReplicasetMigrateResourceParamBuilder(BaseMongoDBOperateResourcePar
     def format(self):
         # 资源申请的一些参数补充
         self.patch_info_common_affinity(
-            role="mongodb", remain_machine_type=MachineType.MONGODB, replace_key="shard", tolerance=0.5
+            role="mongodb", remain_machine_type=MachineType.MONGODB, replace_key="replicaset", tolerance=0.5
         )
 
     def post_callback(self):
