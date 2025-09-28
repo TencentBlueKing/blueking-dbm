@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+from typing import Dict, List
 
 from django.db.transaction import atomic
 
@@ -125,47 +126,50 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.cluster["id"]).decommission()
         return True
 
-    def mysql_proxy_add(self) -> bool:
+    def mysql_proxy_add(
+        self,
+        new_proxies: List[Dict],
+        proxy_ports: List[int],
+        cluster_ids: List[int],
+        target_proxy_pkg_id: int,
+        template_proxy_ip: str = None,
+        created_by: str = "admin",
+    ) -> bool:
         """
         添加proxy节点，添加相关元信息
+        @param new_proxies: 待加入的proxy机器信息，格式dict{"ip":xx, "bk_cloud_id":0 ...}
+        @param proxy_ports: 机器添加的proxy端口列表
+        @param cluster_ids: 哪些集群添加这些proxy实例
+        @param target_proxy_pkg_id: proxy实例安装哪个版本id
+        @param template_proxy_ip: 模板proxy机器ip， 替换单据专属
+        @param created_by: 单据操作者
         """
+        # 多proxy处理变成事务性：
+        with atomic():
+            for new_proxy in new_proxies:
+                TenDBHAClusterHandler.mysql_proxy_add(
+                    bk_biz_id=int(self.bk_biz_id),
+                    bk_cloud_id=new_proxy["bk_cloud_id"],
+                    proxy=new_proxy,
+                    proxy_ports=proxy_ports,
+                    cluster_ids=cluster_ids,
+                    created_by=created_by,
+                    template_proxy_ip=template_proxy_ip,
+                    target_proxy_pkg_id=target_proxy_pkg_id,
+                )
+            return True
 
-        TenDBHAClusterHandler.mysql_proxy_add(
-            bk_biz_id=int(self.bk_biz_id),
-            bk_cloud_id=self.cluster["proxy_ip"]["bk_cloud_id"],
-            proxy=self.cluster["proxy_ip"],
-            proxy_ports=self.ticket_data["proxy_ports"],
-            cluster_ids=self.cluster["cluster_ids"],
-            created_by=self.ticket_data["created_by"],
-            target_proxy_pkg_id=self.cluster["target_proxy_pkg_id"],
-        )
-        return True
-
-    def mysql_proxy_add_for_switch(self) -> bool:
+    @staticmethod
+    def mysql_proxy_reduce(cluster_ids: List[int], origin_proxy_ip: str) -> bool:
         """
-        添加proxy节点，添加相关元信息(替换专属)
-        """
-
-        TenDBHAClusterHandler.mysql_proxy_add(
-            bk_biz_id=int(self.bk_biz_id),
-            bk_cloud_id=self.cluster["target_proxy_ip"]["bk_cloud_id"],
-            proxy=self.cluster["target_proxy_ip"],
-            proxy_ports=self.ticket_data["proxy_ports"],
-            cluster_ids=self.cluster["cluster_ids"],
-            created_by=self.ticket_data["created_by"],
-            template_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
-            target_proxy_pkg_id=self.cluster["target_proxy_pkg_id"],
-        )
-        return True
-
-    def mysql_proxy_reduce(self) -> bool:
-        """
-        删除proxy节点
+        删除proxy节点的，在cluster_ids对应集群的相关元信息
+        @param cluster_ids: 需要删除proxy的相关集群ID列表
+        @param origin_proxy_ip: 删除的proxy节点ip
         """
 
         TenDBHAClusterHandler.mysql_proxy_reduce(
-            cluster_ids=self.cluster["cluster_ids"],
-            origin_proxy_ip=self.cluster["origin_proxy_ip"]["ip"],
+            cluster_ids=cluster_ids,
+            origin_proxy_ip=origin_proxy_ip,
         )
         return True
 

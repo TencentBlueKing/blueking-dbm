@@ -432,7 +432,7 @@ MYSQL_PROXY_SWITCH_DATA = {
                     "port": 20001,
                 },
                 "resource_spec": {
-                    "target_proxys": {
+                    "target_proxies": {
                         "hosts": [{"bk_biz_id": BK_BIZ_ID, "bk_cloud_id": 0, "bk_host_id": 447, "ip": "5.5.5.7"}]
                     }
                 },

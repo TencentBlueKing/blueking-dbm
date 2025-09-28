@@ -16,8 +16,10 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole, InstanceStatus
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.exceptions import ClusterNotExistException
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
 from backend.flow.consts import DnsOpType
@@ -59,20 +61,22 @@ class MySQLProxyClusterAddFlow(object):
     兼容跨云区域的场景支持
     ticket_data参数：
     {
-        "uid": "x",
-        "created_by": "x",
-        "bk_biz_id": "x",
-        "ticket_type": "MYSQL_PROXY_ADD",
-        "infos": [
+        "uid": "x", # 单据ID
+        "created_by": "x", #提单人
+        "bk_biz_id": "x", #业务ID
+        "ticket_type": "MYSQL_PROXY_ADD", # 单据类型
+        "infos": [ #对应前端每一行的入参信息
             {
-                "cluster_ids": [1,2],
-                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
-                "target_proxy_pkg_id":1,
-            },
+                "cluster_ids": [1,2], # 集群列表信息，list
+                "new_proxies": [
+                {"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spce":{...}},
+                ....] # 新加机器信息
+              },
             {
                 "cluster_ids": [3,4],
-                "proxy_ip": {"ip": "x", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 1, "spec":{}},
-                "target_proxy_pkg_id":1,
+                "new_proxies": [
+                {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spce":{...}},
+                ....]
             }
         ]
     }
@@ -119,39 +123,6 @@ class MySQLProxyClusterAddFlow(object):
         ).id
 
     @staticmethod
-    def __get_proxy_instance_info(cluster_id: int, proxy_ip: str) -> dict:
-        """
-        根据cluster_id 和 proxy_id 获取到待回收实例信息
-        @param cluster_id: 集群id
-        @param proxy_ip:   待添加的proxy_ip 机器
-        """
-        cluster = Cluster.objects.get(id=cluster_id)
-        # 选择集群标记running状态的proxy实例，作为流程中克隆权限的依据
-        template_proxy = ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value).all()[0]
-        mysql_ip_list = StorageInstance.objects.filter(cluster=cluster).all()
-        master = StorageInstance.objects.get(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER)
-        dns_list = template_proxy.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-
-        return {
-            "id": cluster_id,
-            "bk_cloud_id": cluster.bk_cloud_id,
-            "immute_domain": cluster.immute_domain,
-            "name": cluster.name,
-            "cluster_type": cluster.cluster_type,
-            "template_proxy_ip": template_proxy.machine.ip,
-            # 集群所有的backend实例的端口是一致的，获取第一个对象的端口信息即可
-            "mysql_ip_list": [m.machine.ip for m in mysql_ip_list],
-            "mysql_port": master.port,
-            # 每套集群的proxy端口必须是相同的，取第一个proxy的端口信息即可
-            "proxy_port": template_proxy.port,
-            "target_proxy_ip": proxy_ip,
-            # 新的proxy配置后端ip
-            # "set_backend_ip": master.machine.ip,
-            "add_domain_list": [i.entry for i in dns_list],
-            "is_drop": False,
-        }
-
-    @staticmethod
     def __get_proxy_install_ports(cluster_ids: list) -> list:
         """
         拼接proxy添加流程需要安装的端口，然后传入到流程的单据信息，安装proxy可以直接获取到
@@ -182,14 +153,16 @@ class MySQLProxyClusterAddFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
+            # 计算它的部署端口范围
             sub_flow_context["proxy_ports"] = self.__get_proxy_install_ports(cluster_ids=info["cluster_ids"])
+
+            # 声明子流程，按照前端每一行的维度，并发执行
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
             # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
             exec_act_kwargs = ExecActuatorKwargs(
                 cluster_type=ClusterType.TenDBHA,
-                exec_ip=info["proxy_ip"]["ip"],
-                bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
+                bk_cloud_id=info["new_proxies"][0]["bk_cloud_id"],
             )
 
             # 初始新机器
@@ -197,11 +170,11 @@ class MySQLProxyClusterAddFlow(object):
                 sub_flow=init_machine_sub_flow(
                     uid=sub_flow_context["uid"],
                     root_id=self.root_id,
-                    bk_cloud_id=int(info["proxy_ip"]["bk_cloud_id"]),
-                    sys_init_ips=[info["proxy_ip"]["ip"]],
-                    init_check_ips=[info["proxy_ip"]["ip"]],
-                    yum_install_perl_ips=[info["proxy_ip"]["ip"]],
-                    bk_host_ids=[info["proxy_ip"]["bk_host_id"]],
+                    bk_cloud_id=int(info["new_proxies"][0]["bk_cloud_id"]),
+                    sys_init_ips=[i["ip"] for i in info["new_proxies"]],
+                    init_check_ips=[i["ip"] for i in info["new_proxies"]],
+                    yum_install_perl_ips=[i["ip"] for i in info["new_proxies"]],
+                    bk_host_ids=[i["bk_host_id"] for i in info["new_proxies"]],
                 )
             )
 
@@ -213,24 +186,31 @@ class MySQLProxyClusterAddFlow(object):
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
-                        exec_ip=info["proxy_ip"]["ip"],
+                        bk_cloud_id=int(info["new_proxies"][0]["bk_cloud_id"]),
+                        exec_ip=[i["ip"] for i in info["new_proxies"]],
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(
                             info["target_proxy_pkg_id"]
                         ),
                     )
                 ),
             )
-
+            # 安装proxy实例，并发处理
+            # 根据计算好的pkg_id，获取介质包
+            acts_list = []
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_add_payload.__name__
-            exec_act_kwargs.custom_params = {"pkg_id": info["target_proxy_pkg_id"]}
-            sub_pipeline.add_act(
-                act_name=_("部署proxy实例"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
+            for new_proxy in info["new_proxies"]:
+                exec_act_kwargs.exec_ip = new_proxy["ip"]
+                exec_act_kwargs.component_kwargs = {"pkg_id": info["target_proxy_pkg_id"]}
+                acts_list.append(
+                    {
+                        "act_name": _("安装proxy实例[{}]".format(new_proxy["ip"])),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    }
+                )
 
-            instances = []
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
             # 阶段2 根据需要添加的proxy的集群，依次添加
             add_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
@@ -238,88 +218,123 @@ class MySQLProxyClusterAddFlow(object):
                 sub_sub_flow_context = copy.deepcopy(self.data)
                 sub_sub_flow_context.pop("infos")
 
-                # 获取对应的集群信息
-                cluster = self.__get_proxy_instance_info(cluster_id=cluster_id, proxy_ip=info["proxy_ip"]["ip"])
-                instances.append("{}:{}".format(info["proxy_ip"]["ip"], cluster["proxy_port"]))
+                # 获取对应集群相关对象
+                try:
+                    cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]))
+                except Cluster.DoesNotExist:
+                    raise ClusterNotExistException(
+                        cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
+                    )
+                template_proxy = ProxyInstance.objects.filter(
+                    cluster=cluster, status=InstanceStatus.RUNNING.value
+                ).all()[0]
 
                 # 针对集群维度声明子流程
                 add_proxy_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context))
 
-                add_proxy_sub_pipeline.add_act(
-                    act_name=_("新的proxy配置后端实例[{}:{}]".format(info["proxy_ip"]["ip"], cluster["proxy_port"])),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=cluster["bk_cloud_id"],
-                            cluster=cluster,
-                            exec_ip=info["proxy_ip"]["ip"],
-                            get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends_in_cluster.__name__,
-                        )
-                    ),
-                )
+                set_backend_acts_list = []
+                clone_user_acts_list = []
+                add_proxy_user_acts_list = []
 
-                add_proxy_sub_pipeline.add_act(
-                    act_name=_("克隆proxy用户白名单"),
-                    act_component_code=CloneProxyUsersInClusterComponent.code,
-                    kwargs=asdict(
-                        CloneProxyUsersKwargs(
-                            cluster_id=cluster["id"],
-                            target_proxy_host=info["proxy_ip"]["ip"],
-                        )
-                    ),
-                )
+                for new_proxy in info["new_proxies"]:
+                    set_backend_acts_list.append(
+                        {
+                            "act_name": _("新的proxy配置后端实例[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(
+                                ExecActuatorKwargs(
+                                    bk_cloud_id=cluster.bk_cloud_id,
+                                    component_kwargs={"cluster_id": cluster.id},
+                                    exec_ip=new_proxy["ip"],
+                                    get_mysql_payload_func=ProxyActPayload.get_set_proxy_backends_in_cluster.__name__,
+                                )
+                            ),
+                        }
+                    )
+                    clone_user_acts_list.append(
+                        {
+                            "act_name": _("克隆proxy用户白名单[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
+                            "act_component_code": CloneProxyUsersInClusterComponent.code,
+                            "kwargs": asdict(
+                                CloneProxyUsersKwargs(
+                                    cluster_id=cluster.id,
+                                    target_proxy_host=new_proxy["ip"],
+                                )
+                            ),
+                        }
+                    )
 
-                add_proxy_sub_pipeline.add_act(
-                    act_name=_("集群对新的proxy添加权限"),
-                    act_component_code=CloneProxyUsersInBackendComponent.code,
-                    kwargs=asdict(
-                        CloneProxyClientInBackendKwargs(
-                            cluster_id=cluster["id"],
-                            target_proxy_host=info["proxy_ip"]["ip"],
-                            origin_proxy_host=cluster["template_proxy_ip"],
-                        )
-                    ),
-                )
+                    add_proxy_user_acts_list.append(
+                        {
+                            "act_name": _("集群对新的proxy添加权限[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
+                            "act_component_code": CloneProxyUsersInBackendComponent.code,
+                            "kwargs": asdict(
+                                CloneProxyClientInBackendKwargs(
+                                    cluster_id=cluster.id,
+                                    target_proxy_host=new_proxy["ip"],
+                                    origin_proxy_host=template_proxy.machine.ip,
+                                )
+                            ),
+                        }
+                    )
+                # 阶段2.1: 并行执行新的proxy配置后端实例
+                add_proxy_sub_pipeline.add_parallel_acts(acts_list=set_backend_acts_list)
+                # 阶段2.2: 并行执行克隆proxy用户白名单
+                add_proxy_sub_pipeline.add_parallel_acts(acts_list=clone_user_acts_list)
+                # 阶段2.3: 并行执行集群对新的proxy添加权限
+                add_proxy_sub_pipeline.add_parallel_acts(acts_list=add_proxy_user_acts_list)
 
-                entrysub_process = BuildEntrysManageSubflow(
+                # 阶段2.4: 新proxy实例，做访问入口添加处理
+                entry_sub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,
                     op_type=DnsOpType.CREATE,
                     param={
-                        "cluster_id": cluster_id,
-                        "port": cluster["proxy_port"],
-                        "add_ips": [info["proxy_ip"]["ip"]],
+                        "cluster_id": cluster.id,
+                        "port": template_proxy.port,
+                        "add_ips": [i["ip"] for i in info["new_proxies"]],
                     },
                 )
-                add_proxy_sub_pipeline.add_sub_pipeline(entrysub_process)
+                add_proxy_sub_pipeline.add_sub_pipeline(entry_sub_process)
 
                 add_proxy_sub_list.append(
                     add_proxy_sub_pipeline.build_sub_process(
-                        sub_name=_("添加{}:{}".format(info["proxy_ip"]["ip"], cluster["proxy_port"]))
+                        sub_name=_("集群[{}]添加proxy实例".format(cluster.immute_domain))
                     )
                 )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=add_proxy_sub_list)
 
-            # 拼接db-meta的新ip信息到私有变量cluster, 兼容同一台proxy机器属于不同cluster的录入场景
+            # 阶段3：拼接db-meta的新ip信息到私有变量cluster, 兼容同一台proxy机器属于不同cluster的录入场景
             sub_pipeline.add_act(
                 act_name=_("添加db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.mysql_proxy_add.__name__,
-                        cluster=info,
+                        component_kwargs={
+                            "new_proxies": info["new_proxies"],
+                            "proxy_ports": sub_flow_context["proxy_ports"],
+                            "cluster_ids": info["cluster_ids"],
+                            "created_by": self.data["created_by"],
+                            "target_proxy_pkg_id": info["target_proxy_pkg_id"],
+                        },
                     )
                 ),
             )
 
+            # 阶段4：新proxy实例，添加周边程序
             sub_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
                     data=copy.deepcopy(self.data),
-                    bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
+                    bk_cloud_id=info["new_proxies"][0]["bk_cloud_id"],
                     bk_biz_id=self.data["bk_biz_id"],
-                    instances=instances,
+                    instances=[
+                        f"{new_proxy['ip']}{IP_PORT_DIVIDER}{port}"
+                        for new_proxy in info["new_proxies"]
+                        for port in sub_flow_context["proxy_ports"]
+                    ],
                     departs=[
                         DeployPeripheralToolsDepart.DBAToolKit,
                         DeployPeripheralToolsDepart.MySQLCrond,
@@ -332,7 +347,9 @@ class MySQLProxyClusterAddFlow(object):
             )
 
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("添加proxy子流程[{}]".format(info["proxy_ip"]["ip"])))
+                sub_pipeline.build_sub_process(
+                    sub_name=_("添加proxy子流程[{}]".format([i["ip"] for i in info["new_proxies"]]))
+                )
             )
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

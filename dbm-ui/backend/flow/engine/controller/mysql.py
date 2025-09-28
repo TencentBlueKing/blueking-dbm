@@ -73,6 +73,9 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validato
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_extend_validator import (
     MySQLProxySwitchForExtendValidator,
 )
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migrate_ins_validator import (
+    MySQLProxySwitchForMigrateInsValidator,
+)
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migrate_validator import (
     MySQLProxySwitchForMigrateValidator,
 )
@@ -253,23 +256,6 @@ class MySQLController(BaseController):
     def mysql_proxy_add_scene(self):
         """
         添加mysql_proxy实例场景(新flow编排)
-        ticket_data 参数结构体样例
-        {
-        "uid": "2022051612120001",
-        "created_by": "xxx",
-        "bk_biz_id": "152",
-        "ticket_type": "MYSQL_PROXY_ADD",
-        "add_infos": [
-              {
-                "cluster_ids": [1,2,3],
-                "proxy_ip": "1.1.1.1"
-              },
-              {
-                "cluster_ids": [4,5,6],
-                "proxy_ip": "2.2.2.2"
-              }
-        ]
-        }
         """
 
         flow = MySQLProxyClusterAddFlow(root_id=self.root_id, data=self.ticket_data)
@@ -333,6 +319,15 @@ class MySQLController(BaseController):
         """
         proxy 拆分单据调用flow的入口
         整个集群维度操作
+        """
+        flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.switch_proxy_for_migrate_flow()
+
+    @validates_with(MySQLProxySwitchForMigrateInsValidator)
+    def mysql_proxy_switch_for_migrate_ins_scene(self):
+        """
+        proxy 拆分单据调用flow的入口
+        可以细化到实例维度拆分，旧产物单据，为了修复集群同机关联的正确性，未来会回收掉
         """
         flow = ProxySwitchForMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_proxy_for_migrate_flow()
