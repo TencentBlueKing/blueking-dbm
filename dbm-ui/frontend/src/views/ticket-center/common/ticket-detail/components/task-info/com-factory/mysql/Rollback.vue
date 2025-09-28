@@ -13,10 +13,10 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('构造类型')">
+    <InfoItem :label="t('回档类型')">
       {{ t('构造回档') }}
     </InfoItem>
-    <InfoItem :label="t('构造方式')">
+    <InfoItem :label="t('回档方式')">
       {{ ticketDetails.details.infos[0]?.rollback_time ? t('指定时间回档') : t('指定备份记录回档') }}
     </InfoItem>
     <InfoItem :label="t('备份源')">

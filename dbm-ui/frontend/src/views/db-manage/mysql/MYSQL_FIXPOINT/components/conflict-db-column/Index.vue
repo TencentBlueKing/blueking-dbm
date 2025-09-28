@@ -39,7 +39,7 @@
         text
         theme="primary"
         @click="handleClick">
-        {{ conflictDbNum }}
+        {{ modelValue.length }}
       </BkButton>
     </EditableBlock>
   </EditableColumn>
@@ -76,9 +76,12 @@
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<string[]>({
+    required: true,
+  });
+
   const { t } = useI18n();
 
-  const conflictDbNum = ref(0);
   const isShowSlider = ref(false);
   const rootRef = ref();
   const popRef = ref();
@@ -95,7 +98,7 @@
         // 可填时需根据备份记录的 database_list 与目标集群的 db 列表取交集
         dataList = dataList.filter((item) => props.rowData.backupRecord.database_list?.includes(item));
       }
-      conflictDbNum.value = dataList.length;
+      modelValue.value = dataList;
     },
   });
 
@@ -159,7 +162,7 @@
       props.rowData.targetCluster?.id,
     ],
     () => {
-      conflictDbNum.value = 0;
+      modelValue.value = [];
       let valid = false;
       if (props.rowData.targetCluster) {
         valid = Boolean(

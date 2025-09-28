@@ -14,7 +14,7 @@
 <template>
   <InfoList>
     <InfoItem :label="t('构造类型')">
-      {{ rollbackTypeLabel[ticketDetails.details.rollback_cluster_type] }}
+      {{ t('在新集群上构造数据') }}
     </InfoItem>
     <InfoItem :label="t('构造方式')">
       {{ ticketDetails.details.infos[0]?.rollback_time ? t('指定时间构造数据') : t('指定备份记录构造数据') }}
@@ -124,15 +124,6 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
-      :label="t('目标集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.target_cluster_id]?.immute_domain || '--' }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       :label="t('新集群主机')"
       :min-width="180">
       <template #default="{ data }: { data: RowData }">
@@ -167,11 +158,6 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const rollbackTypeLabel = {
-    BUILD_INTO_EXIST_CLUSTER: t('在已有集群上构造数据'),
-    BUILD_INTO_NEW_CLUSTER: t('在新集群上构造数据'),
-  } as Record<string, string>;
 
   const backupMethodMap = {
     full_by_regular: t('全库备份（例行）'),
