@@ -86,7 +86,7 @@
           charset: confItems.charset?.conf_value || '',
           db_module_name: props.cluster.db_module_name,
           db_version: confItems.db_version?.conf_value || '',
-          pkg_name: _.uniq(props.cluster.spider_master.map((item) => item.version)).join(' | '),
+          pkg_name: _.uniq(props.cluster.remote_db.map((item) => item.version)).join(' | '),
         };
       }
     },
