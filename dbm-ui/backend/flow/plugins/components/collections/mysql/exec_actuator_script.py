@@ -104,7 +104,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             trans_data = asdict(trans_data)
 
         db_act_template = getattr(mysql_act_payload, kwargs["get_mysql_payload_func"])(
-            ip=exec_ips[0], trans_data=trans_data, custom_params=kwargs.get("custom_params", {})
+            ip=exec_ips[0], trans_data=trans_data, **kwargs.get("component_kwargs", {})
         )
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
