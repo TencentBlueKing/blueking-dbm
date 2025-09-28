@@ -13,7 +13,6 @@ import json
 import logging
 import re
 from abc import ABCMeta
-from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine import states
@@ -24,8 +23,6 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 from backend import env
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -91,31 +88,11 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         """
         if isinstance(flow, str):
             flow = Flow.objects.get(flow_obj_id=flow)
-        if flow.details.get("__flow_output") and not is_read_cache:
-            return flow.details.get("__flow_output")
 
-        # 获取缓存数据
-        flow_cache_key, flow_sensitive_key = f"{flow.flow_obj_id}_list", f"{flow.flow_obj_id}_is_sensitive"
-        flow_cache_data = [json.loads(item) for item in RedisConn.lrange(flow_cache_key, 0, -1)]
-        # 合并相同的key
-        merge_data = defaultdict(list)
-        for data in flow_cache_data:
-            for k, v in data.items():
-                merge_data[k].append(v)
-
-        # 如果是敏感数据，则整体加密
-        is_sensitive = int(RedisConn.get(flow_sensitive_key) or False)
-        if is_sensitive:
-            merge_data = json.dumps(merge_data)
-            merge_data = AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PASSWORD.value, content=merge_data)
-
-        # 入库到flow的details中，并删除缓存key
-        flow.update_details(
-            __flow_output={"root_id": flow.flow_obj_id, "is_sensitive": is_sensitive, "data": merge_data}
-        )
-        RedisConn.delete(flow_cache_key, flow_sensitive_key)
-
-        return flow.details["__flow_output"]
+        # 优先从output取
+        if flow.output_data:
+            return flow.output_data
+        return flow.details.get("__flow_output", [])
 
     def set_flow_output(self, root_id: str, key: Union[int, str], value: Any, is_sensitive: bool = False):
         """
@@ -144,21 +121,32 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         RedisConn.expire(flow_cache_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
         RedisConn.expire(flow_sensitive_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
 
-    def excel_download(self, root_id: str, key: Union[int, str], match_header: bool = False):
+    def excel_download(self, root_id: str, match_header: bool = False):
         """
         根据root_id下载Excel文件
         :param root_id: 流程id
         :param key: 缓存键值
         """
         # 获取root_id缓存数据
-        flow_details = self.get_flow_output(flow=root_id, is_read_cache=True)
+        flow_details = self.get_flow_output(flow=root_id)
 
         # 检查 flow_details 是否存在以及是否包含所需的 key
-        if not flow_details or key not in flow_details["data"]:
-            self.log_error(_("下载excel文件失败，未获取到{}相关的数据").format(key))
+        if not flow_details:
+            self.log_error(_("下载excel文件失败，未获取到流程id:{}相关的数据").format(root_id))
             return False
 
-        flow_detail = flow_details["data"][key]
+        # flow_details为列表且非空，提取第一个元素
+        if isinstance(flow_details, list) and flow_details:
+            flow_details = flow_details[0]
+
+        try:
+            flow_detail = flow_details.get("values", [])[0].get("process_infos", [])
+        except IndexError:
+            flow_detail = []
+
+        if not flow_detail:
+            self.log_error(_("下载excel文件失败，未获取到流程id:{}相关的数据").format(root_id))
+            return False
 
         # 如果 flow_detail 是一个双重列表，则去掉一个列表
         if isinstance(flow_detail[0], list):

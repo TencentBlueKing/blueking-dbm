@@ -97,7 +97,6 @@ class CallbackNodeSerializer(NodeSerializer):
 
 class DownloadExcelSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程ID"))
-    key = serializers.CharField(help_text=_("查询key"))
     match_header = serializers.BooleanField(help_text=_("是否严格匹配列名"), required=False)
 
 
