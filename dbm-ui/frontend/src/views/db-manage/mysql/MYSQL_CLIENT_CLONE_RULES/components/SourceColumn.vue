@@ -47,8 +47,7 @@
     :label="t('模块')"
     :loading="loading"
     :min-width="150"
-    readonly
-    required>
+    readonly>
     <EditableBlock
       v-model="module"
       :placeholder="t('输入集群后自动生成')" />
@@ -77,9 +76,7 @@
     required: true,
   });
 
-  const module = defineModel<string>('module', {
-    required: true,
-  });
+  const module = defineModel<string>('module');
 
   const { t } = useI18n();
 
@@ -105,10 +102,6 @@
         [module.value] = find.topo;
         source.value = find.ip;
         bkCloudId.value = find.bk_cloud_id;
-      } else {
-        module.value = '';
-        source.value = '';
-        bkCloudId.value = 0;
       }
     },
   });
@@ -136,7 +129,9 @@
   watch(
     localValue,
     () => {
-      source.value = localValue.value;
+      const strList = localValue.value.split(':');
+      bkCloudId.value = Number(strList[0]) || 0;
+      source.value = strList[strList.length - 1];
     },
     {
       immediate: true,
@@ -146,7 +141,7 @@
   watch(
     source,
     () => {
-      if (!localValue.value && source.value) {
+      if (!localValue.value && source.value && bkCloudId.value !== undefined) {
         localValue.value = `${bkCloudId.value}:${source.value}`;
         fetchHostTopoInfo({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
