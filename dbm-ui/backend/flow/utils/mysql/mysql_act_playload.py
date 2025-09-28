@@ -1745,7 +1745,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         if binlog_start_file not in binlog_files_list:
             logger.error("start binlog {} not exist".format(binlog_start_file))
             raise TendbGetBackupInfoFailedException(message=_("start binlog  {} not exist".format(binlog_start_file)))
-        binlog_files_list_simple = [self.cluster["binlog_start_file"], binlog_files[0]]
+        binlog_files_list_simple = [self.cluster["binlog_start_file"], binlog_files_list[0]]
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,
