@@ -16,15 +16,13 @@ from backend.db_meta.enums import MachineType
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
 class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
     class AddInfoSerializer(serializers.Serializer):
-        # 添加 Proxy 时，往往是由于原本 Proxy 所处的机器性能不足，因此添加时直接新增一台机器，把原机器上的 Proxy 一并部署到新机器上
-        new_proxy = HostInfoSerializer(help_text=_("Proxy IP + 云区域"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
         target_proxy_pkg_id = serializers.IntegerField(
             help_text=_("新机器部署的介质包ID，暂时在FLow计算赋值"), required=False, default=0
@@ -45,41 +43,10 @@ class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_add_scene
     validator = MySQLController.mysql_proxy_add_scene.validator
 
-    @classmethod
-    def merge_same_proxy_clusters(cls, infos):
-        """聚合增加相同的proxy的集群"""
-        add_proxy_cluster_map = {}
-        for info in infos:
-            proxy = info["proxy_ip"]
-            if proxy["bk_host_id"] not in add_proxy_cluster_map:
-                add_proxy_cluster_map[proxy["bk_host_id"]] = {**info, "cluster_ids": []}
-            add_proxy_cluster_map[proxy["bk_host_id"]]["cluster_ids"].extend(info["cluster_ids"])
-        return list(add_proxy_cluster_map.values())
-
-    def format_ticket_data(self):
-        if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
-            return
-        for info in self.ticket_data["infos"]:
-            info["proxy_ip"] = info["new_proxy"]
-        # 聚合集群
-        infos = self.merge_same_proxy_clusters(self.ticket_data["infos"])
-        self.ticket_data["infos"] = infos
-
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_common_affinity(role="new_proxy", remain_machine_type=MachineType.PROXY, tolerance=0.5)
-
-    def post_callback(self):
-        next_flow = self.ticket.next_flow()
-        ticket_data = next_flow.details["ticket_data"]
-        for info in ticket_data["infos"]:
-            info["new_proxy"] = info.pop("new_proxy")[0]
-            info["proxy_ip"] = info["new_proxy"]
-        # 聚合集群
-        infos = MysqlProxyAddParamBuilder.merge_same_proxy_clusters(ticket_data["infos"])
-        next_flow.details["ticket_data"]["infos"] = infos
-        next_flow.save(update_fields=["details"])
+        self.patch_info_common_affinity(role="new_proxys", remain_machine_type=MachineType.PROXY, tolerance=0.5)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_ADD, is_apply=True)
