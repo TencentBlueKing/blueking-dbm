@@ -79,6 +79,13 @@ export default [
         name: t('整机替换'),
         parentId: 'mongo_manage',
       },
+      {
+        bind: [TicketTypes.MONGODB_REPLICASET_MIGRATE, TicketTypes.MONGODB_SHARD_MIGRATE],
+        dbConsoleValue: 'mongodb.toolbox.replicasetMigrate',
+        id: TicketTypes.MONGODB_REPLICASET_MIGRATE,
+        name: t('迁移'),
+        parentId: 'mongo_manage',
+      },
     ],
     icon: 'db-icon-cluster',
     id: 'mongo_manage',

@@ -218,6 +218,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
+  import { getMongoShard } from '@services/source/mongodbToolbox';
   import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getRedisClusterList, getRedisInstances, getRedisMachineList } from '@services/source/redis';
   import {
@@ -252,6 +253,7 @@
   import PanelTab from './components/common/PanelTab.vue';
   import PreviewResult from './components/common/preview-result/Index.vue';
   import MongoClusterContent from './components/mongo/Index.vue';
+  import MongodbShardContent from './components/mongo-shard/Index.vue';
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import RenderRedisHost from './components/redis-host/Index.vue';
@@ -283,7 +285,7 @@
     tableConfig?: {
       columnsChecked?: string[];
       disabledRowConfig?: {
-        handler: (data: any) => boolean;
+        handler: (data: any, selected?: InstanceSelectorValues<IValue>) => boolean;
         tip?: string;
       };
       firsrColumn?: {
@@ -323,6 +325,7 @@
       | 'TendbSingleHost'
       | 'SpiderHost'
       | 'SqlserverHaHost'
+      | 'MongodbShard'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -648,6 +651,28 @@
             label: 'IP',
           },
           getTableList: getTendbclusterInstanceList,
+        },
+      },
+    ],
+    MongodbShard: [
+      {
+        content: MongodbShardContent,
+        id: 'MongodbShard',
+        name: t('选择分片'),
+        previewConfig: {
+          displayKey: 'shard_name',
+        },
+        tableConfig: {
+          firsrColumn: {
+            field: 'shard_name',
+            label: t('分片'),
+          },
+          getTableList: getMongoShard,
+          multiple: true,
+        },
+        topoConfig: {
+          countFunc: (item: MongodbModel) => item.shard_num,
+          getTopoList: getMongoTopoList,
         },
       },
     ],

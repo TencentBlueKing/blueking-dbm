@@ -21,6 +21,11 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, t('缩容接入层')),
   createRouteItem(TicketTypes.MONGODB_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_PITR_RESTORE, t('定点构造')),
+  createRouteItem(TicketTypes.MONGODB_BACKUP, t('库表备份')),
+  createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
+  createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
+  createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('迁移')),
+  createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('迁移')),
   {
     path: 'structure-instance/:page?',
     name: 'MongoStructureInstance',
@@ -29,9 +34,6 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/structure-instance/Index.vue'),
   },
-  createRouteItem(TicketTypes.MONGODB_BACKUP, t('库表备份')),
-  createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
-  createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
   {
     path: 'webconsole',
     name: 'MongodbWebconsole',

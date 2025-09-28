@@ -64,6 +64,7 @@
           <div style="height: 570px">
             <RenderTopoHost
               :cluster-id="selectClusterId"
+              :custom-colums="customColums"
               :disabled-row-config="disabledRowConfig"
               :firsr-column="firsrColumn"
               :get-table-list="getTableList"
@@ -103,6 +104,7 @@
   interface Props {
     // eslint-disable-next-line vue/no-unused-properties
     countFunc?: TopoConfigType['countFunc'];
+    customColums?: TableConfigType['customColums'];
     disabledRowConfig?: TableConfigType['disabledRowConfig'];
     filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
     firsrColumn?: TableConfigType['firsrColumn'];
