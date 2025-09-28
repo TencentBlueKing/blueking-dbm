@@ -12,8 +12,10 @@
 -->
 
 <template>
-  <DbTabForBiz v-model:active="activeTab" />
-  <div class="monitor-strategy-content">
+  <DbTabForBiz v-model="activeTab" />
+  <div
+    v-if="activeTab"
+    class="monitor-strategy-content">
     <RenderContent
       :key="activeTab"
       :active-db-type="activeTab" />
