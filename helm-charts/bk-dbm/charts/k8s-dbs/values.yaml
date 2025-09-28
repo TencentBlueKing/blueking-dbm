@@ -116,7 +116,7 @@ readinessProbe:
   # @param dbs 服务就绪探针检查失败阈值
   failureThreshold: 3
 
-# @section 采集配置
+# @section 日志采集配置
 bkLogConfig:
   # @param 是否启用日志插件
   enabled: false
@@ -128,3 +128,9 @@ bkLogConfig:
   dataIdForSys: 3
   # @param bkLogConfig bk_env 标签
   bkEnv: ""
+
+# @section 指标采集配置
+svcMonitor:
+  enabled: false
+  labels: {}
+  interval: "15s"
