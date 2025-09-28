@@ -24,7 +24,7 @@ class MysqlProxyMigrateDetailSerializer(MysqlProxySwitchDetailSerializer):
 
 class MysqlProxyMigrateParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_for_migrate_scene
-    validator = None
+    validator = MySQLController.mysql_proxy_switch_for_migrate_scene.validator
 
 
 class MysqlProxyMigrateResourceParamBuilder(MysqlProxySwitchResourceParamBuilder):

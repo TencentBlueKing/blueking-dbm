@@ -37,6 +37,7 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
             proxy = serializers.ListSerializer(child=InstanceInfoSerializer())
 
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+        origin_proxies = serializers.ListSerializer(child=InstanceInfoSerializer())
         old_nodes = OldProxySerializer(help_text=_("旧Proxy实例信息"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
         related_instances = serializers.ListSerializer(
@@ -55,13 +56,13 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_scene
-    validator = None
+    validator = MySQLController.mysql_proxy_switch_scene.validator
 
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity(
-            role="target_proxys", remain_machine_type=MachineType.PROXY, replace_key="proxy", tolerance=0.5
+            role="target_proxies", remain_machine_type=MachineType.PROXY, replace_key="proxy", tolerance=0.5
         )
 
 
