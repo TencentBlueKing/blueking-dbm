@@ -9,11 +9,18 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
+from rest_framework import serializers
 
 from backend import env
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
 from backend.flow.utils.mysql.check_client_connections import check_client_connection
+
+
+class CheckClientSerializer(BaseFlowOutputSerializer):
+    table_name = "check_client"
+    process_infos = serializers.ListField(child=serializers.JSONField(help_text=_("process信息")))
 
 
 class CheckClientConnService(BaseService):
@@ -55,17 +62,13 @@ class CheckClientConnService(BaseService):
                 self.log_info(f"This node [{res['address']}]  passed the checkpoint [check-client-conn]!")
 
         if len(process_infos) > 0:
-            # 结果录入缓存，目的打印到注册表
-            self.set_flow_output(
-                global_data["job_root_id"],
-                key="check_result",
-                value=process_infos,
-                is_sensitive=False,
-            )
+            data = {"process_infos": process_infos}
+            FlowOutputHandler(CheckClientSerializer).insert_data(global_data["job_root_id"], data)
+
             # 输出下载打印
             self.log_error(
-                _("检测结果详情请下载excel:<a href='{}/apis/taskflow/excel_download/?root_id={}&key={}'>excel 下载</a>").format(
-                    env.BK_SAAS_HOST, global_data["job_root_id"], "check_result"
+                _("检测结果详情请下载excel:<a href='{}/apis/taskflow/excel_download/?root_id={}'>excel 下载</a>").format(
+                    env.BK_SAAS_HOST, global_data["job_root_id"]
                 )
             )
             return False
