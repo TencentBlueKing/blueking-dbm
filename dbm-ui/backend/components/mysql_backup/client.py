@@ -28,6 +28,8 @@ class _BackupApi(BaseApi):
             method="POST",
             url="backupapi/recover",
             description=_("备份文件下载"),
+            default_timeout=300,
+            max_retry_times=1,
         )
 
         self.download_result = self.generate_data_api(
