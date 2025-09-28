@@ -134,7 +134,7 @@
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, // Mysql 主从互切
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_MIGRATE_UPGRADE, // MySQL 迁移升级
-    [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
+    [TicketTypes.MYSQL_OPEN_AREA]: TicketTypes.MYSQL_OPEN_AREA, // Mysql 新建开区
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
     [TicketTypes.MYSQL_PROXY_REDUCE]: TicketTypes.MYSQL_PROXY_REDUCE, // mysql 缩容 proxy
     [TicketTypes.MYSQL_PROXY_SWITCH]: TicketTypes.MYSQL_PROXY_SWITCH, // Mysql 替换Proxy

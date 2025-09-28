@@ -53,14 +53,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
-  {
-    path: 'openarea-template',
-    name: 'MySQLOpenareaTemplate',
-    meta: {
-      navName: t('开区模版'),
-    },
-    component: () => import('@views/db-manage/mysql/openarea/template/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版')),
   {
     path: 'webconsole',
     name: 'MySQLWebconsole',
@@ -240,7 +233,7 @@ const commonRouters: RouteRecordRaw[] = [
         meta: {
           navName: t('新建开区模板'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
+        component: () => import('@views/db-manage/mysql/MYSQL_OPEN_AREA/template-create/Index.vue'),
       },
       {
         path: 'openarea-template-edit/:id',
@@ -248,7 +241,7 @@ const commonRouters: RouteRecordRaw[] = [
         meta: {
           navName: t('编辑开区模板'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
+        component: () => import('@views/db-manage/mysql/MYSQL_OPEN_AREA/template-create/Index.vue'),
       },
       {
         path: 'openarea-create/:id',
@@ -256,7 +249,7 @@ const commonRouters: RouteRecordRaw[] = [
         meta: {
           navName: t('新建开区'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/create/Index.vue'),
+        component: () => import('@views/db-manage/mysql/MYSQL_OPEN_AREA/create/Index.vue'),
       },
     ],
   },
