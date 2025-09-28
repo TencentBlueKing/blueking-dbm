@@ -201,9 +201,15 @@ export default [
   },
   {
     children: [
+      // {
+      //   dbConsoleValue: 'mysql.toolbox.openareaTemplate',
+      //   id: 'MySQLOpenareaTemplate',
+      //   name: t('开区模版'),
+      //   parentId: 'mysql_openarea',
+      // },
       {
         dbConsoleValue: 'mysql.toolbox.openareaTemplate',
-        id: 'MySQLOpenareaTemplate',
+        id: TicketTypes.MYSQL_OPEN_AREA,
         name: t('开区模版'),
         parentId: 'mysql_openarea',
       },

@@ -44,9 +44,9 @@
             </BkSelect>
             <BkInput
               v-else-if="type === 'textarea'"
+              v-bind="{ ...attrs, ...props }"
               ref="inputRef"
               v-model="localValue"
-              v-bind="{ ...attrs, ...props }"
               :placeholder="placeholder"
               :rows="5"
               type="textarea"

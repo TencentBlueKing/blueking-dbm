@@ -64,7 +64,7 @@
     /**
      * 选择器tab集群类型
      */
-    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    clusterTypes?: ClusterTypes[];
     label?: string;
     minWidth?: number;
     /**
