@@ -22,9 +22,18 @@
       :width="200" />
     <TicketInfoTableColumn
       col-key="data_tblist"
+      :min-width="150"
+      :title="t('克隆表结构')"
+      :width="200">
+      <template #default>
+        {{ t('所有表') }}
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="schema_tblist"
       :title="t('克隆表数据')">
       <template #default="{ row }:{ row: RowData }">
-        <span>{{ row.data_tblist?.length > 0 ? row.data_tblist.join(',') : '--' }}</span>
+        <span>{{ row.schema_tblist?.length > 0 ? row.schema_tblist.join(',') : '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
