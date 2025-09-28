@@ -27,7 +27,7 @@ from backend.db_report.models.mysql_backup_result import MysqlBackupResult
 from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResult
 from backend.db_report.mysql_backup.constants import BACKUP_FILE_DEADLINE_DAYS
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.utils.time import compare_time
+from backend.utils.time import compare_time, str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -377,11 +377,25 @@ class MySQLBackupHandler:
             return cluster_backup_info_map[cluster_backup_id_list[0]]
         return cluster_backup_info_map
 
-    def get_binlog_backup_infos(self, host: str, port: int, start_time: datetime, end_time: datetime = None) -> list:
+    def get_binlog_backup_infos(
+        self, host: str, port: int, start_time: datetime, end_time: datetime = None, binlog_start_file: str = None
+    ) -> list:
         """
         获取指定备份信息的binlog备份信息
         """
         conditions = Q(cluster_id=self.cluster.id, cluster_domain=self.cluster.immute_domain, host=host, port=port)
+        # 在从库备份的时候,延迟特别严重,根据backup_consistent_time查询主库的binlog可能查询不到对应的binlog。需要根据起始binlog文件的时间来查询binlog。
+        if binlog_start_file is not None:
+            logger.info(_("根据起始binlog文件 {} 查询binlog".format(binlog_start_file)))
+            start_file_conditions = conditions & Q(filename=binlog_start_file)
+            start_binlog_list = MysqlBinlogResult.objects.filter(start_file_conditions)
+            self.query = str(start_binlog_list.query)
+            if start_binlog_list is not None and len(start_binlog_list) > 0:
+                logger.info(_("起始binlog文件的时间是 {} ".format(start_binlog_list[0].start_time)))
+                start_time = str2datetime(start_binlog_list[0].start_time)
+            else:
+                return []
+
         if end_time is None:
             end_time = datetime.now().astimezone(timezone.utc)
         start_time = start_time.astimezone(timezone.utc)
@@ -450,6 +464,7 @@ class MySQLBackupHandler:
                     binlog_info["show_slave_status"]["master_port"],
                     start_time,
                     end_time,
+                    binlog_info["show_slave_status"]["binlog_file"],
                 )
                 if binlog_info is None or len(binlog_list) == 0:
                     if binlog_list is None or len(binlog_list) == 0:
@@ -468,7 +483,8 @@ class MySQLBackupHandler:
         if result["binlog_start_file"] not in binlog_files:
             result["query_binlog_error"] = _("查不到起始binlog文件 {}").format(result["binlog_start_file"])
         # 可添加从binlog_start_file开始完后判断日志连续性...
-        result["binlog_files"] = ",".join(binlog_files)
+        result["binlog_files_list"] = binlog_files
+        # result["binlog_files"] = ",".join(binlog_files)
         return result
 
     def get_local_backup_infos(
