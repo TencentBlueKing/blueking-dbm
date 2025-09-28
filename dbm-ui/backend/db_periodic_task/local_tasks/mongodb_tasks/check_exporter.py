@@ -14,7 +14,6 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 
-from backend.db_report.enums import ReportStateType
 from django.db.models import Q
 from django.utils import timezone
 
@@ -23,12 +22,8 @@ from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
-from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import (
-    ClusterReport,
-    RecordBatchOps,
-    addr,
-    dev_debug,
-)
+from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import ClusterReport, RecordBatchOps, addr, dev_debug
+from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import MongodbExporterCheckSubType
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
