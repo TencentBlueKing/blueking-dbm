@@ -38,11 +38,19 @@ var IgnoreAPINames = map[string]bool{
 	commconst.APIHealth: true,
 }
 
-// MetricsMiddleware 指标上报中间件
-func MetricsMiddleware() gin.HandlerFunc {
+// APIMetricsMiddleware 收集 API 请求的指标数据并上报
+func APIMetricsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		basicMetricTags := dbsmetrics.BaseMetricTags{}
 		// 记录请求开始时间
 		start := time.Now()
+
+		// 设置用户标签
+		if err := setAPISourceTags(c, &basicMetricTags); err != nil {
+			slog.Warn("用户标签设置失败", "error", err.Error())
+			return
+		}
+
 		// 劫持 ResponseWriter 以捕获响应内容
 		writer := &DbsResponseWriter{
 			body:           bytes.NewBufferString(""),
@@ -58,37 +66,18 @@ func MetricsMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		basicMetricTags := dbsmetrics.BaseMetricTags{}
-		// 设置标签
-		if err := setMetricTags(c, &basicMetricTags, writer); err != nil {
+		// 设置基础标签
+		setAPIBasicTags(c, &basicMetricTags)
+
+		// 设置响应标签
+		if err := setAPIResponseTags(writer, &basicMetricTags); err != nil {
+			slog.Warn("响应标签设置失败", "error", err.Error())
 			return
 		}
 
 		// 指标上报
 		reportAPIMetrics(&basicMetricTags, start)
 	}
-}
-
-func setMetricTags(
-	c *gin.Context,
-	basicMetricTags *dbsmetrics.BaseMetricTags,
-	writer *DbsResponseWriter,
-) error {
-	// 设置基础标签
-	setBasicTags(c, basicMetricTags)
-
-	// 设置用户标签
-	if err := setUserInfoTags(c, basicMetricTags); err != nil {
-		slog.Warn("用户标签设置失败", "error", err.Error())
-		return err
-	}
-
-	// 设置返回标签
-	if err := setResponseTags(writer, basicMetricTags); err != nil {
-		slog.Warn("返回标签设置失败", "error", err.Error())
-		return err
-	}
-	return nil
 }
 
 // reportAPIMetrics api 指标上报
@@ -116,15 +105,15 @@ func reportAPIMetrics(basicMetricTags *dbsmetrics.BaseMetricTags, start time.Tim
 	).Observe(time.Since(start).Seconds())
 }
 
-// setBasicTags 设置基础标签
-func setBasicTags(c *gin.Context, basicMetricTags *dbsmetrics.BaseMetricTags) {
+// setAPIBasicTags 设置 API 基础标签
+func setAPIBasicTags(c *gin.Context, basicMetricTags *dbsmetrics.BaseMetricTags) {
 	basicMetricTags.APIName = c.GetString(commconst.APIName)
 	basicMetricTags.Method = c.Request.Method
 	basicMetricTags.Status = strconv.Itoa(c.Writer.Status())
 }
 
-// setResponseTags 设置响应相关标签
-func setResponseTags(
+// setAPIResponseTags 设置 API 响应相关标签
+func setAPIResponseTags(
 	writer *DbsResponseWriter,
 	metricTags *dbsmetrics.BaseMetricTags,
 ) error {
@@ -152,8 +141,8 @@ func shouldSkip(c *gin.Context) bool {
 	return false
 }
 
-// setUserInfoTags 设置用户标签
-func setUserInfoTags(c *gin.Context, metricTags *dbsmetrics.BaseMetricTags) error {
+// setAPISourceTags 设置 API Source 标签
+func setAPISourceTags(c *gin.Context, metricTags *dbsmetrics.BaseMetricTags) error {
 	reqBody := ParseReqBody(c)
 	if c.Request.Method == http.MethodGet {
 		metricTags.BkUserName = c.Query("bk_username")
@@ -161,7 +150,7 @@ func setUserInfoTags(c *gin.Context, metricTags *dbsmetrics.BaseMetricTags) erro
 	} else {
 		var reqMap = make(map[string]any)
 		if err := json.Unmarshal(reqBody, &reqMap); err != nil {
-			slog.Error("请求消息体参数反序列化失败", "err", err)
+			slog.Error("请求消息体参数反序列化失败", "reqBody", string(reqBody), "err", err)
 			return err
 		}
 		metricTags.BkUserName = getBkUserName(reqMap)

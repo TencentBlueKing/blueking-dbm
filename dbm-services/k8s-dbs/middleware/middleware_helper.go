@@ -48,7 +48,7 @@ func RegisterMiddleWare(engine *gin.Engine) {
 	slog.Info("Finish initial trace...")
 
 	// 注册 metrics 中间件
-	engine.Use(MetricsMiddleware())
+	engine.Use(APIMetricsMiddleware())
 	slog.Info("Finish initial metric...")
 }
 
