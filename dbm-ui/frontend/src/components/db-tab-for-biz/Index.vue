@@ -77,7 +77,7 @@
   });
 
   watch(
-    () => [props.exclude, props.labelConfig, props.prefixItems],
+    () => [props.exclude, props.labelConfig, renderTabs.value],
     () => {
       renderKey.value += 1;
     },
@@ -85,9 +85,12 @@
   );
 
   watch(
-    () => renderTabs.value.length,
+    renderTabs,
     () => {
       isShow.value = renderTabs.value.length > 0;
+      if (renderTabs.value.length > 0) {
+        moduleValue.value = renderTabs.value[0].id;
+      }
     },
     {
       immediate: true,
