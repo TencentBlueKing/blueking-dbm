@@ -91,14 +91,9 @@
 
   const rules = [
     {
-      message: t('IP格式有误，请输入合法IP'),
+      message: t('IP格式有误，请输入管控区域:IP'),
       trigger: 'change',
-      validator: () => !localValue.value || netIp.test(localValue.value),
-    },
-    {
-      message: t('源客户端IP不存在'),
-      trigger: 'blur',
-      validator: () => !localValue.value || Boolean(source.value),
+      validator: (value: string) => !value || netIp.test(localValue.value),
     },
   ];
 
@@ -123,7 +118,7 @@
   };
 
   const handleChange = (value: string) => {
-    if (!value) {
+    if (!value || !netIp.test(localValue.value)) {
       return;
     }
     fetchHostTopoInfo({
@@ -137,6 +132,16 @@
   const handleSelectorChange = (selected: HostInfo[]) => {
     emits('batch-edit', selected);
   };
+
+  watch(
+    localValue,
+    () => {
+      source.value = localValue.value;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     source,
