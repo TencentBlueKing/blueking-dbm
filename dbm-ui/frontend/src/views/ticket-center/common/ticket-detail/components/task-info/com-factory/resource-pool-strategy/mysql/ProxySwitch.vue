@@ -16,27 +16,29 @@
     :data="ticketDetails.details.infos"
     :show-overflow="false">
     <BkTableColumn
-      fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
+      :label="t('目标Proxy主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
+        <span v-if="!data.old_nodes?.proxy.length">--</span>
         <p
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          v-for="item in data.old_nodes.proxy"
+          v-else
+          :key="item.ip">
+          {{ item.ip }}
         </p>
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前规格')"
-      :min-width="200">
+      :label="t('关联集群')"
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        <p
-          v-for="proxy in data.old_nodes.proxy"
-          :key="proxy.ip">
-          {{ proxy.ip }}
-          {{ proxy.spec?.name ? ` ( ${proxy.spec?.name} )` : '' }}
-        </p>
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId">
+          <p>
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </p>
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -65,6 +67,11 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务连接')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -73,14 +80,16 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyConfChange>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+    name: TicketTypes.MYSQL_PROXY_SWITCH,
     inheritAttrs: false,
   });
 

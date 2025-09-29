@@ -18,15 +18,13 @@
         :config="batchInputConfig"
         @change="handleBatchInput" />
       <EditableTable
-        :key="tableKey"
         ref="table"
         class="mt-16 mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <HostColumnGroup
+          <InstanceColumnGroup
             v-model="item.originProxy"
             :handle-row-merge="handleRowMerge"
             :rowspan="item.rowspan"
@@ -35,9 +33,11 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id-list="item.originProxy.spec_id_list"
+            :current-spec-id-list="[item.originProxy.spec_config.id]"
             :machine-type="MachineTypes.MYSQL_PROXY"
             required
+            :rowspan="item.rowspan"
+            selectable
             :show-tag="false"
             @batch-edit="handleBatchEditColumn" />
           <ResourceTagColumn
@@ -118,11 +118,11 @@
 
   import { random } from '@utils';
 
-  import HostColumnGroup, { type SelectorItem } from './components/HostColumnGroup.vue';
+  import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
 
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
-    originProxy: ComponentProps<typeof HostColumnGroup>['modelValue'];
+    originProxy: ComponentProps<typeof InstanceColumnGroup>['modelValue'];
     rowspan: number;
     specId: number;
   }
@@ -134,9 +134,9 @@
 
   const batchInputConfig = [
     {
-      case: '192.168.10.2',
-      key: 'proxy_ip',
-      label: t('目标Proxy主机'),
+      case: '192.168.10.2:10000',
+      key: 'instance_address',
+      label: t('目标Proxy实例'),
     },
     {
       case: '2核_4G_50G',
@@ -158,12 +158,13 @@
         bk_host_id: 0,
         bk_idc_city_name: '',
         bk_sub_zone: '',
+        cluster_id: 0,
+        instance_address: '',
         ip: '',
-        related_clusters: [],
-        related_instances: [],
+        master_domain: '',
+        port: 0,
         role: '',
         spec_config: {},
-        spec_id_list: [],
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),
@@ -172,7 +173,7 @@
   });
 
   const defaultData = () => ({
-    is_safe: true,
+    is_safe: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -192,11 +193,11 @@
     sameClusterIdsRowsMap = {};
     formData.tableData.forEach((item) => {
       Object.assign(item, { rowspan: 1 });
-      const ids = (item.originProxy.related_clusters || []).map((item) => item.id).join(',');
-      if (!sameClusterIdsRowsMap[ids]) {
-        sameClusterIdsRowsMap[ids] = [item];
+      const id = item.originProxy.cluster_id;
+      if (!sameClusterIdsRowsMap[id]) {
+        sameClusterIdsRowsMap[id] = [item];
       } else {
-        sameClusterIdsRowsMap[ids].push(item);
+        sameClusterIdsRowsMap[id].push(item);
       }
     });
     Object.values(sameClusterIdsRowsMap).forEach((list) => {
@@ -204,26 +205,7 @@
     });
   };
 
-  const rules = {
-    specId: [
-      {
-        message: t('主机规格不一致'),
-        trigger: 'blur',
-        validator: (
-          value: number,
-          row: {
-            rowData: RowData;
-            rowIndex: number;
-          },
-        ) => {
-          const ids = (row.rowData.originProxy.related_clusters || []).map((item) => item.id).join(',');
-          return sameClusterIdsRowsMap[ids].every((item) => item.specId === value);
-        },
-      },
-    ],
-  };
-
-  useTicketDetail<Mysql.ResourcePool.ProxySwitch>(TicketTypes.MYSQL_PROXY_SWITCH, {
+  useTicketDetail<Mysql.ResourcePool.ProxyMigrateIns>(TicketTypes.MYSQL_PROXY_MIGRATE_INS, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
@@ -235,7 +217,7 @@
               createTableRow({
                 labels: (item.resource_spec.target_proxys?.labels || []).map((item) => ({ id: Number(item) })),
                 originProxy: {
-                  ip: proxy.ip || '',
+                  instance_address: `${proxy.ip}:${proxy.port}`,
                 },
                 specId: item.resource_spec.target_proxys?.spec_id,
               }),
@@ -282,7 +264,7 @@
     }[];
     ip_source: 'resource_pool';
     is_safe: boolean;
-  }>(TicketTypes.MYSQL_PROXY_SWITCH);
+  }>(TicketTypes.MYSQL_PROXY_MIGRATE_INS);
 
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
@@ -290,7 +272,7 @@
         acc.push(
           createTableRow({
             originProxy: {
-              ip: item.ip,
+              instance_address: item.instance_address,
             },
           }),
         );
@@ -306,7 +288,7 @@
         createTableRow({
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           originProxy: {
-            ip: item.proxy_ip,
+            instance_address: item.instance_address,
           },
           specId: item.spec_name,
         }),
@@ -338,18 +320,16 @@
       createTicketRun({
         details: {
           infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
-            cluster_ids: rows[0].originProxy.related_clusters.map((item) => item.id),
+            cluster_ids: [rows[0].originProxy.cluster_id],
             old_nodes: {
-              proxy: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>((acc, item) => {
-                item.originProxy.related_instances.forEach((instance) => {
-                  acc.push({
-                    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                    bk_cloud_id: instance.bk_cloud_id,
-                    bk_host_id: instance.bk_host_id,
-                    ip: instance.ip,
-                    port: instance.port,
-                    spec: instance.spec_config,
-                  });
+              proxy: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>((acc, row) => {
+                acc.push({
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                  bk_cloud_id: row.originProxy.bk_cloud_id,
+                  bk_host_id: row.originProxy.bk_host_id,
+                  ip: row.originProxy.ip,
+                  port: row.originProxy.port,
+                  spec: row.originProxy.spec_config,
                 });
                 return acc;
               }, []),

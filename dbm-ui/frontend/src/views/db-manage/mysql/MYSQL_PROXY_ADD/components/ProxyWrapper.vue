@@ -26,7 +26,7 @@
             v-model="modelValue.ticketType"
             class="mb-8"
             :desc-list="[
-              t('功能说明：为集群增加Proxy，新增Proxy沿用当前规格，关联集群将强制执行'),
+              t('功能说明：为集群增加 Proxy 数量，新增 Proxy 沿用当前规格，操作将同步至关联集群'),
               t('应用场景：集群负载升高需扩容、提升高可用能力时使用'),
             ]"
             icon="bk-dbm-icon db-icon-plus-fill"
@@ -36,7 +36,7 @@
             v-model="modelValue.ticketType"
             class="mb-8 ml-8"
             :desc-list="[
-              t('功能说明：下架指定Proxy主机（主机上所有实例同步下架），实现集群缩容'),
+              t('功能说明：下架指定 Proxy 主机（主机上所有实例同步下架），实现集群缩容'),
               t('应用场景：集群负载降低、需削减资源成本时使用'),
             ]"
             icon="bk-dbm-icon db-icon-minus-fill"
@@ -46,8 +46,8 @@
             v-model="modelValue.ticketType"
             class="mb-8"
             :desc-list="[
-              t('功能说明：对集群内所有Proxy统一执行升配/降配，关联集群将强制执行'),
-              t('应用场景：Proxy性能不足需升配，或资源过剩需降配时使用'),
+              t('功能说明：对集群内所有 Proxy 统一执行升配/降配，关联集群将强制执行'),
+              t('应用场景：Proxy 性能不足需升级配置、或资源过剩需降级配置时使用'),
             ]"
             icon="bk-dbm-icon db-icon-shengji"
             :title="t('Proxy 升降配')"
@@ -56,8 +56,10 @@
             v-model="modelValue.ticketType"
             class="mb-8 ml-8"
             :desc-list="[
-              t('功能说明：将目标Proxy主机替换为同规格新主机，原主机实例自动迁移'),
-              t('应用场景：旧主机裁撤、硬件故障处理时使用'),
+              t(
+                '功能说明：将目标 Proxy 主机替换为新主机(规格与原主机保持一致，不支持变更)，原主机上所有实例自动迁移至新主机',
+              ),
+              t('应用场景：旧主机裁撤、硬件故障处理、主机生命周期结束时使用'),
             ]"
             icon="bk-dbm-icon db-icon-kelong"
             :title="t('替换 Proxy')"
@@ -65,12 +67,24 @@
           <CardCheckbox
             v-model="modelValue.ticketType"
             :desc-list="[
-              t('功能说明：将集群所有Proxy迁移至新主机组实现拆分'),
-              t('应用场景：仅适用于“多实例共享主机”场景拆分Proxy实例，可减少资源竞争'),
+              t('功能说明：将集群所有 Proxy 从当前主机迁移至新主机组，仅支持“多实例共享主机”场景下的拆分'),
+              t('应用场景：需分离共享主机上的 Proxy 实例(如减少资源竞争、优化部署结构)时使用'),
             ]"
             icon="bk-dbm-icon db-icon-migration"
-            :title="t('迁移 Proxy')"
+            :title="t('迁移 Proxy (按集群)')"
             :true-value="TicketTypes.MYSQL_PROXY_MIGRATE" />
+          <CardCheckbox
+            v-model="modelValue.ticketType"
+            class="ml-8"
+            :desc-list="[
+              t('功能说明：将目标 Proxy 实例迁移至新的主机'),
+              t(
+                '应用场景：仅限修复 Proxy 共享主机不规范场景(如主机1包含C1/C2的Proxy，主机2包含C2/C3的Proxy，将C2迁出)',
+              ),
+            ]"
+            icon="bk-dbm-icon db-icon-migration"
+            :title="t('迁移 Proxy (按实例)')"
+            :true-value="TicketTypes.MYSQL_PROXY_MIGRATE_INS" />
         </div>
       </BkFormItem>
       <slot />

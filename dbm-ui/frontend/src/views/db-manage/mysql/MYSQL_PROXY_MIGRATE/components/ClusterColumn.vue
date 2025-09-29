@@ -24,14 +24,21 @@
       <span
         v-bk-tooltips="t('批量选择')"
         class="batch-host-select"
-        @click="handleShowSelector">
+        @click="handleShowBatchSelector">
         <DbIcon type="batch-host-select" />
       </span>
     </template>
     <EditableTextarea
       v-model="modelValue.renderText"
       :placeholder="t('请选择或输入集群（多个换行分隔）')"
-      @change="handleInputChange" />
+      @change="handleInputChange">
+      <template #append>
+        <DbIcon
+          class="select-icon"
+          type="host-select"
+          @click="handleShowSelector" />
+      </template>
+    </EditableTextarea>
   </EditableColumn>
   <EditableColumn
     :label="t('关联实例')"
@@ -54,10 +61,17 @@
       </div>
     </EditableBlock>
   </EditableColumn>
+  <!-- 表头批量添加 -->
+  <ClusterSelector
+    v-model:is-show="showBatchSelector"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedClusters"
+    @change="handleSelectorBatchChange" />
+  <!-- 单元格添加 -->
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    :selected="selectedClusters"
+    :selected="currentClusters"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -99,8 +113,12 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
+  const showBatchSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
     [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
+  }));
+  const currentClusters = computed<Record<string, TendbhaModel[]>>(() => ({
+    [ClusterTypes.TENDBHA]: modelValue.value.clusters,
   }));
   const selectedCounter = computed(() => _.countBy(props.selected, 'master_domain'));
 
@@ -166,8 +184,29 @@
     },
   });
 
+  const handleShowBatchSelector = () => {
+    showBatchSelector.value = true;
+  };
+
+  const handleSelectorBatchChange = (selected: Record<string, TendbhaModel[]>) => {
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  };
+
   const handleShowSelector = () => {
     showSelector.value = true;
+  };
+
+  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
+    const spedIdList: number[] = [];
+    const cities: string[] = [];
+    selected[ClusterTypes.TENDBHA].forEach((item) => {
+      spedIdList.push(item.cluster_spec?.spec_id);
+      cities.push(item.region);
+    });
+    modelValue.value.clusters = selected[ClusterTypes.TENDBHA];
+    modelValue.value.spec_id_list = spedIdList;
+    modelValue.value.cities = cities;
+    modelValue.value.renderText = selected[ClusterTypes.TENDBHA].map((item) => item.master_domain).join('\n');
   };
 
   const handleInputChange = (value: string) => {
@@ -188,19 +227,16 @@
     });
   };
 
-  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
-  };
-
   watch(
     modelValue,
     () => {
-      if (modelValue.value.renderText && !modelValue.value.clusters.length) {
+      if (!modelValue.value.renderText && modelValue.value.clusters.length) {
+        modelValue.value.renderText = modelValue.value.clusters.map((item) => item.master_domain).join('\n');
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
-          exact_domain: modelValue.value.renderText.replace('\n', ','),
+          exact_domain: modelValue.value.clusters.map((item) => item.master_domain).join(','),
         });
       }
     },
@@ -214,5 +250,18 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .select-icon {
+    display: flex;
+    margin-right: 5px;
+    font-size: 18px;
+    color: #979ba5;
+    align-items: center;
+    cursor: pointer;
+
+    &:hover {
+      color: #3a84ff;
+    }
   }
 </style>

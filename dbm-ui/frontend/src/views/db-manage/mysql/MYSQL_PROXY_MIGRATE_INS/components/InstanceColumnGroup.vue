@@ -37,7 +37,8 @@
     :label="t('关联集群')"
     :loading="loading"
     :min-width="240"
-    readonly>
+    readonly
+    :rowspan="rowspan">
     <EditableBlock
       v-model="modelValue.master_domain"
       :placeholder="t('自动生成')" />
@@ -69,6 +70,8 @@
   export type SelectorItem = IValue;
 
   interface Props {
+    handleRowMerge: () => void;
+    rowspan: number;
     selected: Array<typeof modelValue.value>;
   }
 
@@ -178,6 +181,7 @@
           role: instanceInfo.role,
           spec_config: instanceInfo.spec_config,
         };
+        props.handleRowMerge();
       }
     },
   });

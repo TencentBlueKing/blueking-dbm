@@ -18,8 +18,7 @@
     :min-width="minWidth"
     :readonly="!selectable"
     :required="required"
-    :rowspan="rowspan"
-    :rules="rules">
+    :rowspan="rowspan">
     <template
       v-if="tooltips"
       #head>
@@ -126,14 +125,6 @@
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      message: t('规格不能为空'),
-      trigger: 'change',
-      validator: (value: number) => Boolean(value),
-    },
-  ];
-
   const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
   const showBatchEdit = ref(false);
 
@@ -196,7 +187,7 @@
       }
       if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
         const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
-        if (!isExist) {
+        if (!isExist && specList.value.length) {
           modelValue.value = 0;
           return;
         }

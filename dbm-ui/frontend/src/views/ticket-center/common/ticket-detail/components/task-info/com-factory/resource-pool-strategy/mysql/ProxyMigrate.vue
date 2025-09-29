@@ -28,15 +28,17 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前规格')"
+      :label="t('关联实例')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        <p
-          v-for="proxy in data.old_nodes.proxy"
-          :key="proxy.ip">
-          {{ proxy.ip }}
-          {{ proxy.spec?.name ? ` ( ${proxy.spec?.name} )` : '' }}
-        </p>
+        <div
+          v-for="item in data.related_instances"
+          :key="item.instance_address">
+          <p>
+            {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
+          </p>
+          <p style="color: #979ba5">--{{ item.instance_address }}</p>
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -74,13 +76,13 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyConfChange>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyMigrate>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+    name: TicketTypes.MYSQL_PROXY_MIGRATE,
     inheritAttrs: false,
   });
 
