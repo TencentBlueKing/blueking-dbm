@@ -147,19 +147,17 @@
 </script>
 <style lang="less">
   .redis-webconsole {
-    display: flex;
-    width: 100%;
-    height: 100%;
+    font-size: 12px;
+    color: #c4c6cc;
     background: #1a1a1a;
+    height: calc(100% - 24px);
+    display: flex;
     flex-direction: column;
     transform: translate(0, 0);
 
     .top-main {
       display: flex;
-      width: 100%;
       height: 40px;
-      font-size: 12px;
-      color: #c4c6cc;
       background: #2e2e2e;
       box-shadow: 0 2px 4px 0 #00000029;
 
@@ -240,7 +238,6 @@
         position: fixed;
         top: 40px;
         z-index: 99;
-        width: 100%;
         height: calc(100% - 40px);
         background: transparent;
       }
