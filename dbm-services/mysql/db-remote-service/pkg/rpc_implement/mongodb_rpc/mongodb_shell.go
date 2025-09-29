@@ -8,16 +8,20 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
 const ClusterTypeReplicaSet = "MongoReplicaSet"
+const EndOfOutput = "_e70725970764b32aa7f8ba468944535f_"
+const ConnectToServerMsg = "connect to server, default db is test\n"
+
+var CheckInputError = errors.New("invalid input")
 
 type MongoHost struct {
 	Host          string
@@ -30,7 +34,7 @@ type MongoHost struct {
 	RealRtxId     string // 真实的RTX ID
 }
 
-func encodeURIComponent(str string) string {
+func EncodeURIComponent(str string) string {
 	str = url.QueryEscape(str)
 	str = strings.Replace(str, "+", "%20", -1)
 	return str
@@ -39,12 +43,12 @@ func encodeURIComponent(str string) string {
 func (h *MongoHost) Uri() string {
 	if h.SetName == "" {
 		return fmt.Sprintf("mongodb://%s:%s@%s/test?authSource=admin&appname=webconsole_%s",
-			h.UserName, encodeURIComponent(h.Password), h.Host, h.RealRtxId)
+			h.UserName, EncodeURIComponent(h.Password), h.Host, h.RealRtxId)
 	} else {
 		// 副本集, replicaSet=SetName不加时，可以直接连Secondary
 		return fmt.Sprintf(
 			"mongodb://%s:%s@%s/test?authSource=admin&appname=webconsole_%s",
-			h.UserName, encodeURIComponent(h.Password), h.Host, h.RealRtxId)
+			h.UserName, EncodeURIComponent(h.Password), h.Host, h.RealRtxId)
 	}
 }
 
@@ -61,7 +65,8 @@ type MongoShell struct {
 	MongoHost     MongoHost
 	MongoVersion  string
 	ShellBin      string // mongo or mongosh
-	ReadPref      string // primary,secondary,nearest
+	ReadPref      string // primary,secondary,nearest,direct
+	OneOff        int
 }
 
 // NewMongoShellFromParm create a new MongoShell instance
@@ -84,6 +89,7 @@ func NewMongoShellFromParm(p *QueryParams) *MongoShell {
 			RealRtxId:     p.OaUser,
 		},
 		ReadPref: p.ReadPreference,
+		OneOff:   p.OneOff,
 	}
 }
 
@@ -140,7 +146,8 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 		- secondary = "secondary" >=3节点
 		- secondaryPreferred = "secondaryPreferred" <3节点在primary上执行
 	*/
-	if r.ReadPref == "secondary" || r.ReadPref == "" {
+	switch r.ReadPref {
+	case "secondary", "":
 		if isMongos {
 			// 分片集群，总是先执行一次 setReadPref secondary
 			evalJs = "db.getMongo().setReadPref('secondary');"
@@ -152,7 +159,9 @@ func buildArgs(r *MongoShell) (argv []string, err error) {
 				evalJs = "db.getMongo().setReadPref('secondary');"
 			}
 		}
-	} else { // secondaryPreferred, < 3节点, 允许在primary上执行
+	case "direct":
+		evalJs = ""
+	default: // secondaryPreferred, < 3节点, 允许在primary上执行
 
 		// 分片集群: setReadPref secondaryPreferred
 		if isMongos {
@@ -226,7 +235,8 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 		r.logger.Error("buildArgs", slog.Any("err", err))
 		return fmt.Errorf("internal error, start process failed")
 	}
-	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]), slog.Any("argv", argv))
+	r.logger.Info("StartProcess", slog.String("cmdPath", argv[0]),
+		slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")))
 
 	go func(pid chan<- int) {
 		proc, err := os.StartProcess(argv[0], argv, &os.ProcAttr{
@@ -255,7 +265,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	r.Pid = pid
 	time.Sleep(2 * time.Second)
 	r.logger.Info("startProcess",
-		slog.String("cmdPath", argv[0]), slog.Any("argv", argv),
+		slog.String("cmdPath", argv[0]), slog.Any("argv", replacePassword(argv, r.MongoHost.Password, "")),
 		slog.Int("pid", r.Pid), slog.Any("err", err))
 	startWg.Done() // signal to main goroutine
 
@@ -264,8 +274,12 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 	go func() {
 		// read outr -> write BufChan
 		r.logger.Info("pumpStdout: always read from outr, and send to BufChan")
+		// 如果不是一次性的，则发送连接成功消息
+		if r.OneOff != 1 {
+			r.BufChan <- []byte(ConnectToServerMsg)
+		}
 		defer wg.Done()
-		var buf = make([]byte, 1024)
+		var buf = make([]byte, 1*1024*1024)
 		for {
 			select {
 			case <-procCtx.Done():
@@ -275,9 +289,9 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 			default:
 				// 阻塞读取 outr
 				n, readErr := outr.Read(buf)
-				r.logger.Info("readFromOutr",
+				r.logger.Info("readFromOut",
 					slog.Int("n", n),
-					slog.String("data", string(buf[:n])),
+					slog.String("data", shortMsg(string(buf[:n]), 512)),
 					slog.Any("err", readErr),
 				)
 				if err != nil {
@@ -286,8 +300,7 @@ func (r *MongoShell) Run(startWg *sync.WaitGroup, logger *slog.Logger) error {
 				}
 				if n > 0 {
 					// 发送到 BufChan
-					r.logger.Info("sendToBufChan", slog.Int("n", n),
-						slog.String("data", string(buf[:n])))
+					r.logger.Info("sendToBufChan", slog.Int("n", n), slog.String("data", shortMsg(string(buf[:n]), 512)))
 					var tmpBuf = make([]byte, n)
 					copy(tmpBuf, buf[:n])
 					r.BufChan <- tmpBuf
@@ -317,11 +330,12 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 	for {
 		select {
 		case v, ok := <-r.BufChan:
-			r.logger.Info("readFromBufChan", slog.Bool("isResponseEnd", isResponseEnd(v)),
-				slog.String("v", string(v)))
+			endFlag := isResponseEnd(v)
+			r.logger.Info("readFromBufChan", slog.Bool("isResponseEnd", endFlag),
+				slog.String("data", shortMsg(string(v), 512)))
 
 			if !ok {
-				r.logger.Info("chan closed", slog.String("v", string(v)))
+				r.logger.Info("chan closed", slog.String("data", shortMsg(string(v), 512)))
 				return msg.Bytes(), fmt.Errorf("chan closed")
 			}
 			n, werr := msg.Write(v)
@@ -331,12 +345,22 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 				return msg.Bytes(), werr
 			}
 			if bytesTotal > maxRespSize {
-				r.logger.Info("excess data size", slog.Int("bytesTotal", bytesTotal))
-				return nil, fmt.Errorf("excess data size")
+				r.logger.Info("excess data size", slog.Int("bytesTotal", bytesTotal),
+					slog.Int("maxRespSize", maxRespSize), slog.String("data", shortMsg(string(v), 512)))
+				return nil, fmt.Errorf("excess data size %dMB", maxRespSize/1024/1024)
 			}
 			checkConeCount = 0
 
+			if endFlag {
+				// delete EndOfOutput
+				out = msg.Bytes()
+				out = bytes.ReplaceAll(out, []byte(EndOfOutput), []byte(""))
+				r.logger.Info("replace EndOfOutput", slog.String("data", shortMsg(string(v), 512)))
+				return out, nil
+			}
+
 		case <-ctxTimeout.Done():
+			r.logger.Info("ctxTimeout.Done")
 			return msg.Bytes(), fmt.Errorf("timeout") // 返回超时或取消原因
 		case <-checkCone:
 			checkConeCount += 1
@@ -352,9 +376,10 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 }
 
 func (r *MongoShell) Stop() {
-	r.logger.Info("stop")
+	r.logger.Info("kill process", slog.Int("pid", r.Pid))
+	syscall.Kill(r.Pid, syscall.SIGKILL)
 	r.StopChan <- struct{}{}
-	r.logger.Info("stopped")
+	r.logger.Info("stopped, pid", slog.Int("pid", r.Pid))
 }
 
 func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
@@ -368,19 +393,26 @@ func precheckInput(ShellBin string, msg []byte) ([]byte, error) {
 		msg = append(msg, []byte("\n")...)
 	}
 
-	// 避免空的输出
-	// reShow, _ := regexp.Compile("(?i)" + `^\s*show\b`)
-	reUse, _ := regexp.Compile("(?i)" + `^\s*use\b`)
-	reIt, _ := regexp.Compile("(?i)" + `^\s*it\b`)
-	if reIt.Match(msg) || reUse.Match(msg) {
-		// use xxx
-		// it;
-		// 一定会有返回，不需要加 print, 其它的可能没有返回
-	} else {
-		msg = append(msg, []byte("print('')\n")...)
+	if isValid, err := isValidInput(msg); !isValid {
+		return nil, fmt.Errorf("invalid input, err:%s", err.Error())
 	}
-
+	msg = append(msg, []byte(";\nprint('"+EndOfOutput+"');\n")...)
 	return msg, nil
+	/*
+		// 避免空的输出
+		// reShow, _ := regexp.Compile("(?i)" + `^\s*show\b`)
+		reUse, _ := regexp.Compile("(?i)" + `^\s*use\b`)
+		reIt, _ := regexp.Compile("(?i)" + `^\s*it\b`)
+		if reIt.Match(msg) || reUse.Match(msg) {
+			// use xxx
+			// it;
+			// 一定会有返回，不需要加 print, 其它的可能没有返回
+		} else {
+			msg = append(msg, []byte(";\nprint('_done_xxxxx__xxxxx_');\n")...)
+		}
+
+		return msg, nil
+	*/
 }
 
 // SendMsg sends a message to process
@@ -389,11 +421,66 @@ func (r *MongoShell) SendMsg(msg []byte) (n int, err error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "precheckInput")
 	}
-	n, err = r.ProcessStdin.Write(msg)
+	n, err = r.ProcessStdin.Write([]byte(msg))
 	return
 }
 
 func isResponseEnd(buf []byte) bool {
 	// return len(buf) > 0 && buf[len(buf)-1] == '>' && bytes.Contains(buf, []byte(" [direct: "))
-	return len(buf) > 0 && buf[len(buf)-1] == '>'
+	return len(buf) > 0 && bytes.Contains(buf, []byte(EndOfOutput))
+}
+
+// isValidInput 检查([{}]) 是否成对出现, 优先处理 `'"的嵌套，然后再处理 ([{}])
+func isValidInput(buf []byte) (bool, error) {
+	scope_start := []byte{'[', '{', '('}
+	scope_end := []byte{']', '}', ')'}
+	scope_quote := []byte{'`', '"', '\''}
+	stack := []byte{}
+	quote_char := byte(0)
+	for _, b := range buf {
+		// 如果在引号中，直接跳过
+		if quote_char != 0 {
+			if quote_char == b {
+				quote_char = 0
+			}
+			continue
+		} else {
+			if bytes.Contains(scope_quote, []byte{b}) {
+				quote_char = b
+			} else if bytes.Contains(scope_start, []byte{b}) {
+				stack = append(stack, b)
+			} else if bytes.Contains(scope_end, []byte{b}) {
+				if len(stack) == 0 {
+					return false, errors.Wrap(CheckInputError, fmt.Sprintf("not match scope for %c", b))
+				}
+				last_char := stack[len(stack)-1]
+				if !(last_char == '[' && b == ']' || last_char == '{' && b == '}' || last_char == '(' && b == ')') {
+					return false, errors.Wrap(CheckInputError, fmt.Sprintf("not match scope for %c", b))
+				}
+				stack = stack[:len(stack)-1]
+			}
+		}
+	}
+	if len(stack) != 0 {
+		return false, errors.Wrap(CheckInputError, fmt.Sprintf("not match scope for %c", stack[len(stack)-1]))
+	}
+	if quote_char != 0 {
+		return false, errors.Wrap(CheckInputError, fmt.Sprintf("not match quote for %c", quote_char))
+	}
+	return true, nil
+}
+
+func replacePassword(argv []string, pwd string, newPwd string) []string {
+	if len(pwd) <= 4 {
+		return argv
+	}
+	newArgv := make([]string, len(argv))
+	pwd = EncodeURIComponent(pwd)
+	if newPwd == "" {
+		newPwd = pwd[0:4] + "...." + pwd[len(pwd)-4:]
+	}
+	for i, v := range argv {
+		newArgv[i] = strings.ReplaceAll(v, pwd, newPwd)
+	}
+	return newArgv
 }

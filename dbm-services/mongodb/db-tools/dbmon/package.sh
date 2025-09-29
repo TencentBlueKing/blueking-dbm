@@ -37,8 +37,8 @@ fi
 mkdir -p $targetDir
 
 cp ../build/bk-dbmon $targetDir/
-cp start.sh stop.sh gojq conn.sh $targetDir/
-chmod +x $targetDir/*.sh $targetDir/gojq $targetDir/bk-dbmon
+cp start.sh stop.sh gojq conn.sh mongo-cmd.py $targetDir/
+chmod +x $targetDir/*.sh $targetDir/gojq $targetDir/bk-dbmon  $targetDir/mongo-cmd.py
 
 if [[ -e $tarName ]]; then
     rm -rf $tarName
