@@ -25,6 +25,7 @@
 package haapm
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -40,6 +41,8 @@ import (
 //
 // To create HaCounter instances, use NewHaCounter.
 type HaCounter struct {
+	Error error
+
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
@@ -50,69 +53,77 @@ func (m *HaCounter) ToMetric() *metric.Metric {
 }
 
 func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
+	if m.Error != nil {
+		return m
+	}
+
 	if len(m.labelNames) == 0 {
-		panic("Update the gauge value with the new label values.")
+		m.Error = gerrors.New(gerrors.InvalidParameter, "invalid labels")
+		return m
 	}
 
 	for key, val := range lvs {
-		m.labelValues[key] = val
+		if _, ok := m.labelValues[key]; ok {
+			m.labelValues[key] = val
+			continue
+		}
+
+		m.Error = gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", key)
+		return m
 	}
 
+	m.Error = nil
 	return m
 }
 
-func (m *HaCounter) Inc() {
+func (m *HaCounter) Inc() error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Inc()
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Inc()
-		return
+	if len(m.labelValues) != len(m.labelNames) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.CounterVec).With(m.labelValues).Inc()
+	return m.Error
 }
 
-func (m *HaCounter) Add(val float64) {
+func (m *HaCounter) Add(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Add(val)
-		return
+		return nil
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.CounterVec).WithLabelValues(values...).Add(val)
-		return
+	if len(m.labelValues) != len(m.labelNames) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.CounterVec).With(m.labelValues).Add(val)
+	return m.Error
 }
 
-func (m *HaCounter) getLabelValues() []string {
-	values := []string{}
-
-	for _, name := range m.labelNames {
-		if val, ok := m.labelValues[name]; ok {
-			values = append(values, val)
-		}
-	}
-
-	return values
-}
-
-func (m *HaCounter) resetLabelValues() {
+func (m *HaCounter) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
 		m.labelValues[name] = "" // set default label value
 	}
+
+	m.Error = nil
 }
 
 func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
@@ -132,5 +143,6 @@ func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
 	counter.labelNames = append(counter.labelNames, labelNames...)
 	counter.metric.Labels = counter.labelNames
 
+	counter.reset()
 	return counter
 }

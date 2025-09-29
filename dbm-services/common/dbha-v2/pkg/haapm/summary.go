@@ -25,6 +25,7 @@
 package haapm
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,6 +50,8 @@ import (
 //
 // To create HaSummary instances, use NewHaSummary.
 type HaSummary struct {
+	Error error
+
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
@@ -59,52 +62,58 @@ func (m *HaSummary) ToMetric() *metric.Metric {
 }
 
 func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
+	if m.Error != nil {
+		return m
+	}
+
 	if len(m.labelNames) == 0 {
-		panic("Update the gauge value with the new label values.")
+		m.Error = gerrors.New(gerrors.InvalidParameter, "invalid labels")
+		return m
 	}
 
 	for key, val := range lvs {
-		m.labelValues[key] = val
+		if _, ok := m.labelValues[key]; ok {
+			m.labelValues[key] = val
+			continue
+		}
+
+		m.Error = gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", key)
+		return m
+
 	}
 
+	m.Error = nil
 	return m
 }
 
-func (m *HaSummary) Observe(val float64) {
+func (m *HaSummary) Observe(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Summary).Observe(val)
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.SummaryVec).WithLabelValues(values...).Observe(val)
-		return
+	if len(m.labelValues) != len(m.labelNames) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.SummaryVec).With(m.labelValues).Observe(val)
+	return m.Error
 }
 
-func (m *HaSummary) getLabelValues() []string {
-	values := []string{}
-
-	for _, name := range m.labelNames {
-		if val, ok := m.labelValues[name]; ok {
-			values = append(values, val)
-		}
-	}
-
-	return values
-}
-
-func (m *HaSummary) resetLabelValues() {
+func (m *HaSummary) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
 		m.labelValues[name] = "" // set default label value
 	}
+
+	m.Error = nil
 }
 
 func NewHaSummary(name, help string, labelNames ...string) *HaSummary {

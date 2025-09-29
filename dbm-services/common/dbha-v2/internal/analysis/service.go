@@ -38,6 +38,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
@@ -68,6 +69,79 @@ type Service struct {
 	db           *hamysql.DB
 	wg           sync.WaitGroup
 	logger       *zap.Logger // only for the gRPC
+}
+
+func (s *Service) Run(ctx context.Context) error {
+	s.info.Name = Name
+	s.info.ID = uuid.New().String()
+	s.info.StartTime = time.Now().Local()
+
+	// create discovery client
+	if err := s.createDiscovery(); err != nil {
+		return err
+	}
+
+	// create db storage
+	if err := s.createStorage(); err != nil {
+		return err
+	}
+
+	// create notifier
+	if err := s.createNotifier(); err != nil {
+		return err
+	}
+
+	// create workflow
+	if err := s.createWorkflow(ctx); err != nil {
+		return err
+	}
+
+	// create apm server
+	if err := s.createApmServer(); err != nil {
+		return err
+	}
+
+	if err := haapm.AppStartupMetric.Set(float64(s.info.StartTime.Unix())); err != nil {
+		logger.Warn("failed to update the startup time for this process, errmsg: %s", err)
+	}
+
+	if s.quit == nil {
+		s.quit = make(chan struct{})
+	}
+
+	timerTimeout := 3 * time.Second
+	timer := time.NewTimer(timerTimeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-s.quit:
+			return nil
+
+		case <-ctx.Done():
+			return nil
+
+		case <-timer.C:
+			s.updateInfo()
+			timer.Reset(timerTimeout)
+		}
+	}
+}
+
+func (s *Service) Close() {
+	s.wflow.Close()
+	if s.httpApmSvr != nil {
+		timeout := max(config.Cfg.Service.Apm.ReadTimeout, config.Cfg.Service.Apm.WriteTimeout)
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		if err := s.httpApmSvr.Shutdown(ctx); err != nil {
+			logger.Fatal("failed to shutdown the apm server, errmsg: %s", err)
+		}
+	}
+
+	s.wg.Wait()
+	logger.Info("exited from the analysis service")
 }
 
 func (s *Service) createDiscovery() error {
@@ -113,7 +187,7 @@ func (s *Service) createApmServer() error {
 		}
 	}
 
-	apm.InitAPM(s.info.ID)
+	apm.InitAPM(s.info.ID, s.info.Name)
 	metric.NewPrometheus("dbha-v2-analysis", apm.Metrics).Use(s.engine)
 
 	s.wg.Add(1)
@@ -189,77 +263,4 @@ func (s *Service) createWorkflow(ctx context.Context) error {
 	s.wflow = wflow
 
 	return s.wflow.Run(ctx)
-}
-
-func (s *Service) Run(ctx context.Context) error {
-	s.info.Name = Name
-	s.info.ID = uuid.New().String()
-	s.info.StartTime = time.Now().Local()
-
-	// create discovery client
-	if err := s.createDiscovery(); err != nil {
-		return err
-	}
-
-	// create db storage
-	if err := s.createStorage(); err != nil {
-		return err
-	}
-
-	// create notifier
-	if err := s.createNotifier(); err != nil {
-		return err
-	}
-
-	// create workflow
-	if err := s.createWorkflow(ctx); err != nil {
-		return err
-	}
-
-	// create apm server
-	if err := s.createApmServer(); err != nil {
-		return err
-	}
-
-	apm.UptimeMetric.UpdateLabel(map[string]string{
-		"service-id":   s.info.ID,
-		"service-name": s.info.Name,
-	}).Set(float64(s.info.StartTime.Unix()))
-
-	timerTimeout := 3 * time.Second
-	timer := time.NewTimer(timerTimeout)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-s.quit:
-			return nil
-
-		case <-ctx.Done():
-			return nil
-
-		case <-timer.C:
-			s.updateInfo()
-			timer.Reset(timerTimeout)
-		}
-	}
-}
-
-func (s *Service) Close() {
-	s.wflow.Close()
-	if s.httpApmSvr != nil {
-		timeout := config.Cfg.Service.Apm.ReadTimeout
-		if timeout < config.Cfg.Service.Apm.WriteTimeout {
-			timeout = config.Cfg.Service.Apm.WriteTimeout
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		if err := s.httpApmSvr.Shutdown(ctx); err != nil {
-			logger.Fatal("failed to shutdown the apm server, errmsg: %s", err)
-		}
-	}
-
-	s.wg.Wait()
-	logger.Info("exited from the analysis service")
 }

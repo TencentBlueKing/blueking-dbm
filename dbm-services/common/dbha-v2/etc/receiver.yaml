@@ -6,28 +6,34 @@ discovery:
   user: root
   password: dbhatest
 
-input:
-  - name: probe
-    enable: false
-    endpoint: 127.0.0.1:25560
+service:
+  apm:
+    readTimeout: 10s
+    writeTimeout: 10s
+    listenAddress: http://127.0.0.1:8081
 
-  - name: kafka
-    enable: true
-    endpoint: http://kafk-server:9092
-    user: root
-    password: 1234567890
-    netDialTimeout: 30s
-    netReadTimeout: 30s
-    netWriteTimeout: 30s
-    mechanism: plaintext
-    topics: [test]
+  source:
+    - name: probe
+      enable: false
+      endpoint: 127.0.0.1:25560
 
-output:
-  - name: mysql
-    enable: true
-    endpoint: 127.0.0.1:3306
-    user: root
-    password: dbhatest
+    - name: kafka
+      enable: true
+      endpoint: http://kafk-server:9092
+      user: root
+      password: 1234567890
+      netDialTimeout: 30s
+      netReadTimeout: 30s
+      netWriteTimeout: 30s
+      mechanism: plaintext
+      topics: [test]
+
+  sink:
+    - name: mysql
+      enable: true
+      endpoint: 127.0.0.1:3306
+      user: root
+      password: dbhatest
 
 log:
   path: /var/log/dbha/logs/receiver.log

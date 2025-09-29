@@ -35,8 +35,8 @@ type DiscoveryConfig struct {
 	Password string `yaml:"password" mapstructure:"password"`
 }
 
-// InputConfig define the information of data input stream.
-type IntputConfig struct {
+// SourceConfig define the information of data input stream.
+type SourceConfig struct {
 	Name            string        `yaml:"name"            mapstructure:"name"`
 	Enable          bool          `yaml:"enable"          mapstructure:"enable"`
 	Endpoints       string        `yaml:"endpoint"        mapstructure:"endpoint"`
@@ -49,13 +49,25 @@ type IntputConfig struct {
 	Topics          []string      `yaml:"topics"          mapstructure:"topics"`
 }
 
-// OutputConfig Configuration related to data storage.
-type OutputConfig struct {
+// SinkConfig Configuration related to data storage.
+type SinkConfig struct {
 	Name      string `yaml:"name"     mapstructure:"name"`
 	Enable    bool   `yaml:"enable"   mapstructure:"enable"`
 	Endpoints string `yaml:"endpoint" mapstructure:"endpoint"`
 	User      string `yaml:"user"     mapstructure:"user"`
 	Password  string `yaml:"password" mapstructure:"password"`
+}
+
+// ServiceConfig service's configuration
+type ServiceConfig struct {
+	Apm struct {
+		ReadTimeout   time.Duration `yaml:"readTimeout" mapstructure:"readTimeout"`
+		WriteTimeout  time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
+		ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+	} `yaml:"apm" mapstructure:"apm"`
+
+	Sources []SourceConfig `yaml:"source" mapstructure:"source"`
+	Sinks   []SinkConfig   `yaml:"sink" mapstructure:"sink"`
 }
 
 // LogConfig log configuration
@@ -71,7 +83,6 @@ type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	Inputers  []IntputConfig  `yaml:"input"     mapstructure:"input"`
-	Outputers []OutputConfig  `yaml:"output"    mapstructure:"output"`
+	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

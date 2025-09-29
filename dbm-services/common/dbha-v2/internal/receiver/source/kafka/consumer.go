@@ -84,8 +84,7 @@ type consumer struct {
 	wg        sync.WaitGroup
 }
 
-func New(cfg config.IntputConfig) (*consumer, error) {
-
+func New(cfg config.SourceConfig) (*consumer, error) {
 	cliCfg := sarama.NewConfig()
 
 	cliCfg.Version = sarama.V3_2_3_0
@@ -106,6 +105,7 @@ func New(cfg config.IntputConfig) (*consumer, error) {
 		sarama.NewBalanceStrategyRoundRobin(),
 		sarama.NewBalanceStrategyRange(),
 	}
+
 	cliCfg.Consumer.Offsets.AutoCommit = struct {
 		Enable   bool
 		Interval time.Duration
@@ -117,6 +117,7 @@ func New(cfg config.IntputConfig) (*consumer, error) {
 	cliCfg.Metadata.Full = true
 	cliCfg.Net.SASL.User = cfg.User
 	cliCfg.Net.SASL.Password = cfg.Password
+
 	if strings.ToUpper(cfg.Mechanism) == "SCRAM-SHA-512" {
 		cliCfg.Version = sarama.V2_4_0_0
 		cliCfg.Net.SASL.Mechanism = sarama.SASLTypeSCRAMSHA512
