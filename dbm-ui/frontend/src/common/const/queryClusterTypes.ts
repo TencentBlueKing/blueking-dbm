@@ -29,4 +29,5 @@ export const queryClusterTypes = {
   [DBTypes.RIAK]: [ClusterTypes.RIAK],
   [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
   [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
+  [DBTypes.ORACLE]: [ClusterTypes.ORACLE],
 };
