@@ -22,6 +22,7 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	commutil "k8s-dbs/common/util"
@@ -32,17 +33,35 @@ import (
 	commapi "k8s-dbs/common/api"
 )
 
+// IgnorePaths 忽略日志上报的 API 路径
+var IgnorePaths = map[string]bool{
+	"/metrics":       true,
+	"/common/health": true,
+}
+
 // LogMiddleware 日志中间件
 func LogMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 过滤不需要指标上报的接口
+		if skip := shouldSkipPath(c); skip {
+			return
+		}
 		start := time.Now()
+		requestedAt := commutil.Now(commutil.LayoutYYYYMMDDHHMMSS)
 		reqBody := ParseReqBody(c)
 		// 劫持 ResponseWriter 以捕获响应内容
 		writer := &DbsResponseWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 		c.Writer = writer
 		c.Next()
 		resBody := writer.body.Bytes()
-		logger.Info(getResponseMsg(resBody),
+		apiResponse, err := unMarshalResponse(resBody)
+		if err != nil {
+			slog.Error("failed to parse response bytes to apiResponse", "resBody", string(resBody), "err", err)
+			return
+		}
+
+		logger.Info(apiResponse.Message,
+			zap.String("requested_at", requestedAt),
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
 			zap.String("query", commutil.Truncate(c.Request.URL.RawQuery, 1024)),
@@ -50,17 +69,31 @@ func LogMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.String("request_body", commutil.Truncate(string(reqBody), 1024)),
 			zap.Int("status", c.Writer.Status()),
 			zap.String("response_body", commutil.Truncate(string(resBody), 1024)),
+			zap.Int64("result_code", int64(apiResponse.Code)),
+			zap.Bool("result", apiResponse.Result),
+			zap.Any("error", apiResponse.Error),
+			zap.String("user_agent", c.Request.UserAgent()),
 			zap.Int64("latency_ms", commutil.GetLatencyMs(start)),
 		)
 	}
 }
 
-func getResponseMsg(respBytes []byte) string {
-	var message = ""
+// unMarshalResponse 反序列化获取 Response
+func unMarshalResponse(respBytes []byte) (*commapi.Response, error) {
 	var response commapi.Response
-	err := json.Unmarshal(respBytes, &response)
-	if err == nil {
-		message = response.Message
+	if err := json.Unmarshal(respBytes, &response); err != nil {
+		slog.Error("failed to unmarshal response bytes", "resBody", string(respBytes), "err", err)
+		return nil, err
 	}
-	return message
+	return &response, nil
+}
+
+// shouldSkip 是否忽略日志上报
+func shouldSkipPath(c *gin.Context) bool {
+	path := c.Request.URL.Path
+	if IgnorePaths[path] {
+		slog.Warn("当前接口路径不需要进行日志上报", "接口路径", path)
+		return true
+	}
+	return false
 }
