@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -24,9 +25,11 @@ func replaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
 			shortPath := ""
 			fullPath := src.File
 			seps := strings.Split(fullPath, "/")
-			shortPath += seps[len(seps)-1]
-			shortPath += fmt.Sprintf(":%d", src.Line)
-			a.Value = slog.StringValue(shortPath)
+			shortPath = strings.Join(seps[len(seps)-2:], "/")
+			src.File = shortPath
+			lastSlash := strings.LastIndex(src.Function, "/")
+			src.Function = src.Function[lastSlash+1:]
+			a.Value = slog.AnyValue(src)
 		}
 	}
 	return a
@@ -41,28 +44,29 @@ func getPool() (*slog.Logger, *session.Pool) {
 		}
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, opt))
 		pool = session.NewPool(logger.With("service", "mongo_rpc"))
-		go pool.CheckTimeout(60)
+		go pool.CheckTimeout(3600)
 	})
 	return logger, pool
 }
 
 // QueryParams redis请求参数
 type QueryParams struct {
-	ClusterId      int      `json:"cluster_id"`      // 集群id
-	ClusterType    string   `json:"cluster_type"`    // 集群类型
-	ClusterDomain  string   `json:"cluster_domain"`  // 集群名称
-	Addresses      []string `json:"addresses"`       // ip:port列表
-	SetName        string   `json:"set_name"`        // 如果是集群，指定为空
-	OaUser         string   `json:"oa_user"`         // OA用户名
-	AdminUsername  string   `json:"admin_username"`  // 管理员用户名
-	AdminPassword  string   `json:"admin_password"`  // 管理员密码
-	UserName       string   `json:"username"`        // 用户名
-	Password       string   `json:"password"`        // 密码  MongodbRepo().getPassword()
-	Token          string   `json:"session"`         // session token, 一个随机字符串
-	Command        string   `json:"command"`         // 命令. 例如: "db.stats()". 必须是一个完整的命令
-	Timeout        int      `json:"timeout"`         // 超时时间，单位秒，预留参数，现在默认1分钟
-	Version        string   `json:"version"`         // 版本号，如果 4.4 以上，会使用新的mongoshell
-	ReadPreference string   `json:"read_preference"` // 优先连接的host，primary,secondary,nearest
+	ClusterId      int      `json:"cluster_id"`        // 集群id
+	ClusterType    string   `json:"cluster_type"`      // 集群类型
+	ClusterDomain  string   `json:"cluster_domain"`    // 集群名称
+	Addresses      []string `json:"addresses"`         // ip:port列表
+	SetName        string   `json:"set_name"`          // 如果是集群，指定为空
+	OaUser         string   `json:"oa_user"`           // OA用户名
+	AdminUsername  string   `json:"admin_username"`    // 管理员用户名
+	AdminPassword  string   `json:"admin_password"`    // 管理员密码
+	UserName       string   `json:"username"`          // 用户名
+	Password       string   `json:"password"`          // 密码  MongodbRepo().getPassword()
+	Token          string   `json:"session"`           // session token, 一个随机字符串
+	Command        string   `json:"command"`           // 命令. 例如: "db.stats()". 必须是一个完整的命令
+	Timeout        int      `json:"timeout"`           // 超时时间，单位秒，预留参数，现在默认1分钟
+	Version        string   `json:"version"`           // 版本号，如果 4.4 以上，会使用新的mongoshell
+	ReadPreference string   `json:"read_preference"`   // 优先连接的host，primary,secondary,nearest
+	OneOff         int      `json:"one_off,omitempty"` // 是否只执行一次，如果为1，则不使用session
 }
 
 // StringWithoutPasswd 打印参数，不打印密码
@@ -111,6 +115,9 @@ func parseQueryParams(c *gin.Context) (*QueryParams, error) {
 	if len(param.AdminPassword) == 0 {
 		return nil, fmt.Errorf("bad param, empty AdminPassword")
 	}
+	if param.OneOff != 1 && param.OneOff != 0 {
+		return nil, fmt.Errorf("bad param, invalid OneOff")
+	}
 	return param, nil
 }
 
@@ -124,7 +131,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 
 	param, err := parseQueryParams(c)
 	if err != nil {
-		NewRespHandle(c, nil, logger).SendError(err.Error())
+		NewRespHandle(c, nil, logger).SendError(err.Error(), 0)
 		return
 	}
 
@@ -135,7 +142,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 
 	// 同一个session只能同时运行一个命令，否则会出现输出混乱
 	if !session.RunningLock.TryLock() {
-		resp.SendError(fmt.Sprintf("session %s is busy", param.Token))
+		resp.SendError(fmt.Sprintf("session %s is busy", param.Token), session.ReqCount)
 		return
 	}
 	// 刷新最后运行时间。 用于超时检查
@@ -143,45 +150,50 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	defer session.RunningLock.Unlock()
 
 	if !session.IsStopped() && len(param.Command) == 0 {
-		resp.SendError("bad param, empty command")
+		resp.SendError("bad param, empty command", session.ReqCount)
 		return
 	}
 
 	// Start the session if it is not running
 	err = session.Run(NewMongoShellFromParm(param))
 	if err != nil {
-		resp.SendError(err.Error())
+		resp.SendError(err.Error(), session.ReqCount)
 		return
 	}
 	var v []byte
 
 	// Send the command to the session
 	_, err = session.SendMsg([]byte(param.Command))
-	logger.Info("send msg",
+	logger.Info("SendMsg",
 		slog.String("msg", param.Command),
 		slog.String("token", param.Token),
 		slog.Bool("success", err == nil))
 
 	// Check if the command was sent successfully
 	if err != nil {
-		session.Stop()
-		resp.SendError(err.Error())
+		if !errors.Is(err, CheckInputError) || param.OneOff == 1 {
+			session.Stop()
+		}
+		resp.SendError(err.Error(), session.ReqCount)
 		return
 	}
 
 	v, err = session.ReceiveMsg(maxTimeout)
-	logger.Error("ReceiveMsg", slog.String("resp", string(v)), slog.Any("err", err))
+	logger.Error("ReceiveMsg", slog.String("resp", shortMsg(string(v), 512)), slog.Any("err", err))
 	if err != nil {
 		session.Stop()
 		// 有内容尽量返回.
 		if len(v) > 0 {
-			resp.SendResp(string(v), 0, "")
+			resp.SendResp(string(v), 0, "", session.ReqCount)
 		} else {
-			resp.SendError(err.Error())
+			resp.SendError(err.Error(), session.ReqCount)
 		}
 		return
 	} else {
-		resp.SendResp(string(v), 0, "")
+		resp.SendResp(string(v), 0, "", session.ReqCount)
+		if param.OneOff == 1 {
+			session.Stop()
+		}
 	}
 
 }
