@@ -42,7 +42,7 @@ type Inputter interface {
 }
 
 // NewInputer create a new Inputer.
-func NewInputter(cfg config.IntputConfig) (Inputter, error) {
+func NewInputter(cfg config.SourceConfig) (Inputter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(kafka.Name):
 		return kafka.New(cfg)

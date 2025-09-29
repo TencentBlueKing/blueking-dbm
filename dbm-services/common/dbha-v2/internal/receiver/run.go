@@ -51,7 +51,6 @@ func setupGracefulShutdown(svr *Service) {
 
 // Run run receiver service
 func Run(cmd *cobra.Command, args []string) error {
-
 	viper.SetConfigName("receiver")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./etc")

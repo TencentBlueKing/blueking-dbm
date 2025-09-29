@@ -27,20 +27,27 @@ package receiver
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
 
@@ -51,11 +58,90 @@ const (
 type Service struct {
 	quit         chan struct{}
 	info         discovery.ServiceInfo
+	engine       *gin.Engine
+	httpApmSvr   *http.Server
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
-	inputters    []source.Inputter
-	outputters   []sink.Outputter
-	logger       *zap.Logger
+	sources      []source.Inputter
+	sinks        []sink.Outputter
+	wg           sync.WaitGroup
+	logger       *zap.Logger // only for the gRPC
+}
+
+func (s *Service) Run(ctx context.Context) error {
+	s.info.Name = Name
+	s.info.ID = uuid.New().String()
+	s.info.StartTime = time.Now().Local()
+
+	// create discovery client
+	if err := s.createDiscovery(); err != nil {
+		return err
+	}
+
+	// create sinks
+	if err := s.createSinks(); err != nil {
+		return err
+	}
+
+	// create sources
+	if err := s.createSource(ctx); err != nil {
+		return err
+	}
+
+	// create apm server
+	if err := s.createApmServer(); err != nil {
+		return err
+	}
+
+	if err := haapm.AppStartupMetric.Set(float64(s.info.StartTime.Unix())); err != nil {
+		logger.Warn("failed to update the startup time for this process, errmsg: %s", err)
+	}
+
+	if s.quit == nil {
+		s.quit = make(chan struct{})
+	}
+
+	timerTimeout := 3 * time.Second
+	timer := time.NewTimer(timerTimeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-s.quit:
+			return nil
+
+		case <-ctx.Done():
+			return nil
+
+		case <-timer.C:
+			s.updateInfo()
+			timer.Reset(timerTimeout)
+		}
+	}
+}
+
+func (s *Service) Close() {
+	wg := sync.WaitGroup{}
+
+	for _, inputter := range s.sources {
+		wg.Add(1)
+		go func(in source.Inputter) {
+			defer wg.Done()
+			in.Close()
+		}(inputter)
+	}
+
+	for _, outputer := range s.sinks {
+		wg.Add(1)
+		go func(out sink.Outputter) {
+			wg.Done()
+			out.Close()
+		}(outputer)
+	}
+
+	wg.Wait()
+	close(s.quit)
+	s.quit = nil
 }
 
 func (s *Service) createDiscovery() error {
@@ -102,117 +188,86 @@ func (s *Service) updateInfo() {
 }
 
 func (s *Service) createSource(ctx context.Context) error {
-	if len(config.Cfg.Inputers) == 0 {
-		return gerrors.New(gerrors.InvalidConfiguration, "not set any inputer")
+	if len(config.Cfg.Service.Sources) == 0 {
+		return gerrors.New(gerrors.InvalidConfiguration, "not set any source")
 	}
 
-	for _, inputerCfg := range config.Cfg.Inputers {
-		if !inputerCfg.Enable {
-			logger.Info("the inputer(%s) is disabled", inputerCfg.Name)
+	for _, sourceCfg := range config.Cfg.Service.Sources {
+		if !sourceCfg.Enable {
+			logger.Info("the inputer(%s) is disabled", sourceCfg.Name)
 			continue
 		}
 
-		inputter, err := source.NewInputter(inputerCfg)
+		inputter, err := source.NewInputter(sourceCfg)
 		if err != nil {
-			logger.Warn("create new inputer(%s) failed, errmsg(%v)", inputerCfg.Name, err)
+			logger.Warn("create new inputer(%s) failed, errmsg(%v)", sourceCfg.Name, err)
 			continue
 		}
 
-		err = inputter.Harvest(ctx, s.outputters)
+		err = inputter.Harvest(ctx, s.sinks)
 		if err != nil {
-			logger.Warn("do not start harvest for inputer(%s), errmsg(%v)", inputerCfg.Name, err)
+			logger.Warn("do not start harvest for inputer(%s), errmsg(%v)", sourceCfg.Name, err)
 			continue
 		}
 
-		s.inputters = append(s.inputters, inputter)
+		s.sources = append(s.sources, inputter)
 	}
 
 	return nil
 }
 
 func (s *Service) createSinks() error {
-	if len(config.Cfg.Outputers) == 0 {
-		return gerrors.New(gerrors.InvalidConfiguration, "not set any outputer")
+	if len(config.Cfg.Service.Sinks) == 0 {
+		return gerrors.New(gerrors.InvalidConfiguration, "not set any sink")
 	}
 
-	for _, outputerCfg := range config.Cfg.Outputers {
-		if !outputerCfg.Enable {
-			logger.Info("the outputer(%s) is disabled", outputerCfg.Name)
+	for _, sinkCfg := range config.Cfg.Service.Sinks {
+		if !sinkCfg.Enable {
+			logger.Info("the outputer(%s) is disabled", sinkCfg.Name)
 			continue
 		}
 
-		outputter, err := sink.NewOutputter(outputerCfg)
+		outputter, err := sink.NewOutputter(sinkCfg)
 		if err != nil {
-			logger.Warn("create new outputer(%s) failed, errmsg(%v)", outputerCfg.Name, err)
+			logger.Warn("create new outputer(%s) failed, errmsg(%v)", sinkCfg.Name, err)
 			continue
 		}
 
-		s.outputters = append(s.outputters, outputter)
+		s.sinks = append(s.sinks, outputter)
 	}
 
 	return nil
 }
 
-func (s *Service) Run(ctx context.Context) error {
-	s.info.Name = Name
-	s.info.ID = uuid.New().String()
-	s.info.StartTime = time.Now().Local()
+func (s *Service) createApmServer() error {
+	trace.Setup()
 
-	if err := s.createDiscovery(); err != nil {
-		return err
+	if s.engine == nil {
+		gin.SetMode(gin.ReleaseMode)
+		s.engine = gin.Default()
+		s.engine.Use(otelgin.Middleware("dbha-v2-receiver"))
 	}
 
-	if err := s.createSinks(); err != nil {
-		return err
-	}
-
-	if err := s.createSource(ctx); err != nil {
-		return err
-	}
-
-	if s.quit == nil {
-		s.quit = make(chan struct{})
-	}
-
-	timerTimeout := 3 * time.Second
-	timer := time.NewTimer(timerTimeout)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-s.quit:
-			return nil
-
-		case <-ctx.Done():
-			return nil
-
-		case <-timer.C:
-			s.updateInfo()
-			timer.Reset(timerTimeout)
+	if s.httpApmSvr == nil {
+		s.httpApmSvr = &http.Server{
+			Handler:      s.engine,
+			Addr:         config.Cfg.Service.Apm.ListenAddress,
+			ReadTimeout:  config.Cfg.Service.Apm.ReadTimeout,
+			WriteTimeout: config.Cfg.Service.Apm.WriteTimeout,
 		}
 	}
-}
 
-func (s *Service) Close() {
-	wg := sync.WaitGroup{}
+	apm.InitAPM(s.info.ID, s.info.Name)
+	metric.NewPrometheus("dbha-v2-admin", apm.Metrics).Use(s.engine)
 
-	for _, inputter := range s.inputters {
-		wg.Add(1)
-		go func(in source.Inputter) {
-			defer wg.Done()
-			in.Close()
-		}(inputter)
-	}
+	s.wg.Add(1)
+	go func() {
+		s.wg.Done()
+		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("failed to run apm server, errmsg: %s", err)
+		}
+		logger.Info("exited from the apm server")
+	}()
 
-	for _, outputter := range s.outputters {
-		wg.Add(1)
-		go func(out sink.Outputter) {
-			wg.Done()
-			out.Close()
-		}(outputter)
-	}
-
-	wg.Wait()
-	close(s.quit)
-	s.quit = nil
+	return nil
 }
