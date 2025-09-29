@@ -30,7 +30,7 @@ class RiskMemoListFilter(filters.FilterSet):
             "status": ["exact"],
             "db_type": ["exact"],
             "description": ["icontains"],
-            "biz_inpact": ["exact"],
+            "biz_inpact": ["icontains"],
             "is_special": ["exact"],
             "duration_time": ["exact", "lt", "gt"],
             "creator": ["exact"],
