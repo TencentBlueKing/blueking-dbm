@@ -67,16 +67,32 @@ class FlowOutputHandler:
         flow_summary, __ = FlowSummary.objects.select_for_update().get_or_create(flow_id=flow_id)
         output_data = flow_summary.summary or []
 
+        validated_data = serializer.validated_data
+        # 考虑是否为process_infos 特殊处理表头
+        if validated_data and "process_infos" in data[0]:
+            validated_data = validated_data[0]["process_infos"]
+            item_list = validated_data[0].items()
+
+        else:
+            item_list = serializer.child.fields.items()
+
         # 考虑顺序，获取table_name与对应的index
         table_name__index = {d["table_name"]: i for i, d in enumerate(output_data)}
         if self.slz.table_name not in table_name__index:
-            titles = [{"id": name, "display_name": field.help_text} for name, field in serializer.child.fields.items()]
+            titles = []
+            for name, field in item_list:
+                try:
+                    display_name = field.help_text
+                except AttributeError:
+                    display_name = name
+                titles.append({"id": name, "display_name": display_name})
+
             table_data = {"table_name": self.slz.table_name, "titles": titles, "values": [], "hidden": self.slz.hidden}
             output_data.append(table_data)
             table_data = output_data[-1]
         else:
             table_data = output_data[table_name__index[self.slz.table_name]]
 
-        table_data["values"].extend(serializer.validated_data)
+        table_data["values"].extend(validated_data)
         flow_summary.summary = output_data
         flow_summary.save(update_fields=["summary"])
