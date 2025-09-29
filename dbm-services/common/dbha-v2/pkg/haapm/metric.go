@@ -40,3 +40,21 @@ const (
 	MetricTypeSummary      MetricType = "summary"
 	MetricTypeSummaryVec   MetricType = "summary_vec"
 )
+
+var (
+	AppStartupMetric *HaGauge
+)
+
+const (
+	MetricLabelServiceID   = "service_id"
+	MetricLabelServiceName = "service_name"
+	MetricLabelServiceIP   = "service_ip"
+	MetricLabelServicePort = "service_port"
+	MetricLabelServiceNice = "nice"
+)
+
+func init() {
+	AppStartupMetric = NewHaGauge("dbha_startup_time_sec",
+		"The duration of how long the DBHA-V2 server has been running.",
+		MetricLabelServiceID, MetricLabelServiceName)
+}
