@@ -42,7 +42,7 @@ def autofix_done_polling(ticket_id, max_retries, interval) -> bool:
     @return: True表示自愈成功完成，False表示失败或超时
     """
     start_time = time.time()
-    timeout = interval * max_retries * 60
+    timeout = interval * (max_retries - 1) * 60
 
     for n in range(max_retries):
         try:
@@ -90,7 +90,7 @@ def autofix_ticket_polling(restriction, max_retries, interval) -> Tuple[bool, in
     }
     """
     start_time = time.time()
-    timeout = interval * max_retries * 60
+    timeout = interval * (max_retries - 1) * 60
     for n in range(max_retries):
         try:
             logger.info(_("查询最近自愈单据，轮询第 {}/{} 次".format(n + 1, max_retries)))
@@ -137,7 +137,15 @@ def __is_target_ticket(ticket: Ticket, restriction) -> bool:
     return False
 
 
-def send_drill_alert_to_qywx(city: str, bk_biz_id: int, cluster_domain: str, failure_reason: str, task_status: str):
+def send_drill_alert_to_qywx(
+    city: str,
+    bk_biz_id: int,
+    cluster_domain: str,
+    instance_type: str,
+    drill_ip: str,
+    failure_reason: str,
+    task_status: str,
+):
     """
     发送容灾告警信息到群聊（同自愈配置）
     """
@@ -161,10 +169,11 @@ def send_drill_alert_to_qywx(city: str, bk_biz_id: int, cluster_domain: str, fai
         redis_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis.value)
 
         content = _("=>>   Redis容灾演练异常\n")
-        content += _("业务信息 : {}(#{},{})\n".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr))
-        content += _("业务DBA : (@{})\n".format(redis_dba[0]))
+        content += _("业务信息 : {}(#{}, {})\n".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr))
+        content += _("业务DBA : @{}\n".format(redis_dba[0]))
         content += _("演练城市 : {}\n".format(city))
         content += _("集群域名 : {}\n".format(cluster_domain))
+        content += _("演练类型 : {} - {}".format(instance_type, drill_ip))
         content += _("演练状态 : {}\n".format(task_status))
         content += _("失败原因 : {}\n".format(failure_reason))
         content += _("消息时间 : {}".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
@@ -172,7 +181,7 @@ def send_drill_alert_to_qywx(city: str, bk_biz_id: int, cluster_domain: str, fai
         CmsiHandler(_("Redis容灾演练"), content, msg_ids).send_wecom_robot()
         logger.info(
             _(
-                "Drill alert sent successfully for city: {}, cluster: {}, content: \n{}".format(
+                "Drill alert sent successfully for city: {}, cluster: {}, content: {}".format(
                     city, cluster_domain, content
                 )
             )

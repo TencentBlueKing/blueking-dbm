@@ -131,7 +131,7 @@ class RedisFailoverDrill(BaseFailoverDrill):
                         "cluster_id": cluster.id,
                         "bk_cloud_id": cluster.bk_cloud_id,
                         "cluster_type": cluster.cluster_type,
-                        "types": self.instance_type,
+                        "types": [self.instance_type],
                         self.instance_type: self.get_instance_info(cluster, self.instance_type),
                     }
                 ]
@@ -265,6 +265,8 @@ class RedisFailoverDrill(BaseFailoverDrill):
             city=self.city,
             bk_biz_id=self.bk_biz_id,
             cluster_domain=self.get_immute_domain(),
+            instance_type=self.instance_type,
+            drill_ip=self.get_drill_ip(),
             failure_reason=failure_reason,
             task_status=task_status,
         )
