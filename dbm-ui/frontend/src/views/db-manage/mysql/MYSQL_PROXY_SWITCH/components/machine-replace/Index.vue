@@ -25,6 +25,8 @@
       :key="index">
       <HostColumnGroup
         v-model="item.originProxy"
+        :handle-row-merge="handleRowMerge"
+        :rowspan="item.rowspan"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
       <SpecColumn
@@ -33,10 +35,12 @@
         :current-spec-id-list="item.originProxy.spec_id_list"
         :machine-type="MachineTypes.MYSQL_PROXY"
         required
+        :rowspan="item.rowspan"
         :show-tag="false"
         @batch-edit="handleBatchEditColumn" />
       <ResourceTagColumn
         v-model="item.labels"
+        :rowspan="item.rowspan"
         @batch-edit="handleBatchEditColumn" />
       <AvailableResourceColumn
         :params="{
@@ -46,10 +50,12 @@
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
           spec_id: item.specId,
           labels: item.labels.map((item) => item.id).join(','),
-        }" />
+        }"
+        :rowspan="item.rowspan" />
       <OperationColumn
         v-model:table-data="tableData"
-        :create-row-method="createTableRow" />
+        :create-row-method="createTableRow"
+        :handle-row-merge="handleRowMerge" />
     </EditableRow>
   </EditableTable>
 </template>
@@ -58,7 +64,6 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
 
   import { DBTypes, MachineTypes } from '@common/const';
@@ -75,6 +80,7 @@
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     originProxy: ComponentProps<typeof HostColumnGroup>['modelValue'];
+    rowspan: number;
     specId: number;
   }
 
@@ -87,14 +93,12 @@
       {
         cluster_ids: number[];
         old_nodes: {
-          origin_proxy: {
+          proxy: {
             bk_biz_id: number;
             bk_cloud_id: number;
             bk_host_id: number;
-            instance_address: string;
             ip: string;
             port: number;
-            spec: TendbhaModel['masters'][number]['spec_config'];
           }[];
         };
         origin_proxy_ip: {
@@ -102,12 +106,7 @@
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          spec: TendbhaModel['masters'][number]['spec_config'];
         };
-        related_instances: {
-          cluster_id: number;
-          instance_address: string;
-        }[];
         resource_spec: {
           target_proxy: {
             count: number;
@@ -136,8 +135,8 @@
         bk_host_id: 0,
         bk_idc_city_name: '',
         bk_sub_zone: '',
-        cluster_ids: [],
         ip: '',
+        related_clusters: [],
         related_instances: [],
         role: '',
         spec_config: {},
@@ -145,6 +144,7 @@
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),
+    rowspan: data.rowspan || 1,
     specId: data.specId || 0,
   });
 
@@ -173,6 +173,25 @@
     tableData.value.filter((item) => item.originProxy.bk_host_id).map((item) => item.originProxy),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  // 具备完全相同的集群id列的行数组map
+  let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
+
+  // 行合并
+  const handleRowMerge = () => {
+    sameClusterIdsRowsMap = {};
+    tableData.value.forEach((item) => {
+      Object.assign(item, { rowspan: 1 });
+      const ids = (item.originProxy.related_clusters || []).map((item) => item.id).join(',');
+      if (!sameClusterIdsRowsMap[ids]) {
+        sameClusterIdsRowsMap[ids] = [item];
+      } else {
+        sameClusterIdsRowsMap[ids].push(item);
+      }
+    });
+    Object.values(sameClusterIdsRowsMap).forEach((list) => {
+      Object.assign(list[0], { rowspan: list.length });
+    });
+  };
 
   watch(
     () => props.ticketDetails,
@@ -184,7 +203,7 @@
             return createTableRow({
               labels: (item.resource_spec.target_proxy.labels || []).map((item) => ({ id: Number(item) })),
               originProxy: {
-                ip: item.old_nodes.origin_proxy?.[0]?.ip || '',
+                ip: item.old_nodes.proxy?.[0]?.ip || '',
               },
               specId: item.resource_spec.target_proxy.spec_id,
             });
@@ -249,36 +268,29 @@
         return [];
       }
 
-      return tableData.value.map((item) => ({
-        cluster_ids: item.originProxy.cluster_ids,
+      return Object.values(sameClusterIdsRowsMap).map((rows) => ({
+        cluster_ids: rows[0].originProxy.related_clusters.map((item) => item.id),
         old_nodes: {
-          origin_proxy: item.originProxy.related_instances.map((instance) => ({
+          proxy: rows[0].originProxy.related_instances.map((item) => ({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            bk_cloud_id: instance.bk_cloud_id,
-            bk_host_id: instance.bk_host_id,
-            instance_address: instance.instance_address,
-            ip: instance.ip,
-            port: instance.port,
-            spec: instance.spec_config,
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            ip: item.ip,
+            port: item.port,
           })),
         },
         origin_proxy_ip: {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: item.originProxy.bk_cloud_id,
-          bk_host_id: item.originProxy.bk_host_id,
-          ip: item.originProxy.ip,
-          spec: item.originProxy.spec_config,
+          bk_cloud_id: rows[0].originProxy.bk_cloud_id,
+          bk_host_id: rows[0].originProxy.bk_host_id,
+          ip: rows[0].originProxy.ip,
         },
-        related_instances: item.originProxy.related_instances.map((item) => ({
-          cluster_id: item.cluster_id,
-          instance_address: item.instance_address,
-        })),
         resource_spec: {
           target_proxy: {
-            count: 1,
-            label_names: item.labels.map((item) => item.value),
-            labels: item.labels.map((item) => String(item.id)),
-            spec_id: item.specId,
+            count: rows.length,
+            label_names: rows[0].labels.map((item) => item.value),
+            labels: rows[0].labels.map((item) => String(item.id)),
+            spec_id: rows[0].specId,
           },
         },
       }));

@@ -18,6 +18,7 @@
     :min-width="minWidth"
     :readonly="!selectable"
     :required="required"
+    :rowspan="rowspan"
     :rules="rules">
     <template
       v-if="tooltips"
@@ -93,6 +94,7 @@
     machineType?: MachineTypes;
     minWidth?: number;
     required?: boolean;
+    rowspan?: number;
     selectable?: boolean;
     showTag?: boolean;
     tooltips?: string;
@@ -107,6 +109,7 @@
     machineType: undefined,
     minWidth: 200,
     required: false,
+    rowspan: 1,
     selectable: false,
     showTag: true,
     tooltips: '',

@@ -108,6 +108,9 @@
             role: 'proxy',
           },
         },
+        topoConfig: {
+          countFunc: (item: TendbhaModel) => item.proxies.length,
+        },
       },
       {
         id: 'manualInput',

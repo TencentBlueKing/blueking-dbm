@@ -171,8 +171,9 @@
         const roleListKey = props.role === 'proxy' ? 'proxies' : 'masters';
         modelValue.value = Object.assign({}, new TendbhaModel(currentCluster), {
           related_clusters: [],
-          spec_id_list:
-            (currentCluster[roleListKey] as TendbhaModel['masters'])?.map((item) => item.spec_config.id) || [],
+          spec_id_list: ((currentCluster[roleListKey] as TendbhaModel['masters']) || [])
+            .map((item) => item.spec_config.id)
+            .filter((specId) => Boolean(specId)),
         });
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
