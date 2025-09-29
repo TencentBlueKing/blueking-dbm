@@ -21,24 +21,20 @@
       <PrimaryTable
         :key="tableKey"
         ref="bkTableRef"
-        :max-height="tableMaxHeight"
-        :pagination="pagination"
-        :remote-pagination="remotePagination"
-        :settings="settings"
-        show-overflow
-        :show-settings="showSettings"
-        v-bind="$attrs"
-        @column-sort="handleColumnSortChange"
-        @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange"
-        @row-click="handleRowClick">
-        <component :is="selectColumn" />
+        v-bind="{
+          ...inhertProps,
+          data: tableData.results,
+          maxHeight: tableMaxHeight,
+          showHeader: true,
+          filterRow: null as any,
+        }"
+        @change="handleFilterChange"
+        @row-click="handleRowClick"
+        @sort-change="handleSortChange">
+        <component
+          :is="selectColumn"
+          v-if="selectable" />
         <slot />
-        <template #expandRow="row">
-          <slot
-            name="expandRow"
-            :row="row" />
-        </template>
         <template #empty>
           <slot name="empty">
             <EmptyStatus
@@ -48,20 +44,28 @@
               @refresh="fetchListData" />
           </slot>
         </template>
-        <template
-          v-if="slots.setting"
-          #setting>
-          <slot name="setting" />
-        </template>
       </PrimaryTable>
+      <div class="table-footer">
+        <BkPagination
+          v-bind="pagination"
+          :layout="['total', 'limit', 'list']"
+          @change="handlePageValueChange"
+          @limit-change="handlePageLimitChange" />
+      </div>
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type VNode } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import {
+    type SortOptions,
+    type TableChangeContext,
+    type TableChangeData,
+    type TableProps,
+    type TableRowData,
+    type TableSort,
+  } from 'tdesign-vue-next';
+  import { nextTick, onMounted, type Ref, ref, type VNode } from 'vue';
   import { useRouter } from 'vue-router';
 
   import type { IRequestPayload } from '@services/http';
@@ -73,44 +77,25 @@
 
   import { getOffset } from '@utils';
 
-  import { useStorage } from '@vueuse/core';
-
-  import useSelect from './hooks/use-select.tsx';
+  import { usePagination } from './hooks/use-pagination.ts';
+  import { useSelect } from './hooks/use-select.tsx';
 
   export interface Props {
-    // 是否允许行点击选中
-    allowRowClickSelect?: boolean;
-    clearSelection?: boolean;
-    columns?: InstanceType<typeof Table>['$props']['columns'];
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     disableSelectMethod?: (data: any) => boolean | string;
+    // 固定分页，不通过容器高度自动计算
     fixedPagination?: boolean;
-    // 跨业务
-    ignoreBiz?: boolean;
-    paginationExtra?: {
-      small?: boolean;
-    };
-    // data 数据的主键
-    primaryKey?: string;
     // 是否解析 URL query 参数
     releateUrlQuery?: boolean;
-    remotePagination?: boolean;
-    remoteSort?: boolean;
+    // 是否允许行点击选中
+    rowClickSelectable?: boolean;
+    rowKey: string;
     // 是否开启远程分页
     selectable?: boolean;
     // 默认选中
     selected?: any[];
-    settings?: {
-      checked?: string[];
-      disabled?: string[];
-      size?: string;
-    };
-    // 是否开启跨页全选
-    showSelectAllPage?: boolean;
-    showSettings?: boolean;
-    sortType?: 'ordering' | 'default';
   }
 
   export interface Emits {
@@ -118,6 +103,8 @@
     (e: 'requestFinished', value: any[]): void;
     (e: 'clearSearch'): void;
     (e: 'selection', key: string[], list: any[]): void;
+    (e: 'change', data: TableChangeData, context: TableChangeContext<TableRowData>): void;
+    (e: 'sortChange', sort: TableSort, options: SortOptions<TableRowData>): void;
   }
 
   export interface Slots {
@@ -128,47 +115,52 @@
   }
 
   export interface Exposes {
-    bkTableRef: Ref<InstanceType<typeof Table>>;
     clearSelected: () => void;
-    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void;
-    getAllData: <T>() => Promise<Array<T>>;
+    fetchAllData: <T>() => Promise<Array<T>>;
+    fetchData: (params?: Record<string, any>, loading?: boolean) => void;
     getData: <T>() => Array<T>;
     loading: Ref<boolean>;
     removeSelectByKey: (key: string) => void;
     updateTableKey: () => void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    allowRowClickSelect: false,
-    clearSelection: true,
-    columns: () => [],
+  const props = withDefaults(defineProps<Props & TableProps>(), {
     containerHeight: undefined,
     disableSelectMethod: () => false,
     fixedPagination: false,
-    ignoreBiz: false,
-    paginationExtra: () => ({}),
-    primaryKey: 'id',
     releateUrlQuery: false,
-    remotePagination: true,
-    remoteSort: false,
+    rowClickSelectable: false,
     selectable: false,
     selected: () => [],
     settings: undefined,
-    showSelectAllPage: true,
-    showSettings: false,
-    sortType: 'default',
   });
 
   const emits = defineEmits<Emits>();
-  const slots = defineSlots<Slots>();
-  // defineOptions({
-  //   inheritAttrs: false,
-  // });
+
+  defineSlots<Slots>();
+
+  const inhertProps = computed(() => {
+    const baseProps = { ...props };
+    delete baseProps['containerHeight'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['disableSelectMethod'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['fixedPagination'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['releateUrlQuery'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['rowClickSelectable'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['selectable'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['settings'];
+    delete baseProps['onChange'];
+    // @ts-expect-error 删除不存在的 props
+    delete baseProps['dataSource'];
+    return baseProps;
+  });
 
   const router = useRouter();
-  const { t } = useI18n();
-  const { selectColumn } = useSelect();
-  const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -182,86 +174,57 @@
     previous: '',
     results: [],
   });
-  const isSearching = ref(false);
-  const isAnomalies = ref(false);
-  const rowSelectMemo = shallowRef<Record<string | number, Record<any, any>>>({});
-  const isWholeChecked = ref(false);
-  const pagination = reactive<{
-    align: string;
-    count: number;
-    current: number;
-    layout: Array<string>;
-    limit: number;
-    limitList: Array<number>;
-  }>({
-    align: 'right',
-    count: 0,
-    current: 1,
-    layout: ['total', 'limit', 'list'],
-    limit: paginationLimitCache.value,
-    limitList: [10, 20, 50, 100],
-    ...props.paginationExtra,
-  });
-  // 是否本页全选
-  const isCurrentPageAllSelected = computed(() => {
-    if (isWholeChecked.value) {
-      return false;
-    }
-    const list = tableData.value.results;
-    if (list.length < 1) {
-      return false;
-    }
-    const selectMap = { ...rowSelectMemo.value };
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < list.length; i++) {
-      if (!selectMap[_.get(list[i], props.primaryKey)]) {
-        return false;
-      }
-    }
-    return true;
+
+  const { handleClearWholeSelect, selectColumn, selectedRowMap } = useSelect(props, tableData, {
+    callback: () => {
+      triggerSelection();
+    },
   });
 
+  const {
+    onChange: handlePageValueChange,
+    onLimitChange: handlePageLimitChange,
+    pagination,
+  } = usePagination({
+    callback: () => {
+      fetchListData();
+    },
+  });
+
+  const isSearching = ref(false);
+  const isAnomalies = ref(false);
+  const isWholeChecked = ref(false);
+
   let paramsMemo = {};
-  let baseParamsMemo = {};
   let sortParams = {};
 
   let isReady = false;
   let isPaginationChangeFetch = false;
-
-  watch(
-    () => props.columns,
-    () => {
-      tableKey.value = Date.now().toString();
-    },
-  );
 
   /**
    * 判断是否处于搜索状态
    */
   const getSearchingStatus = () => {
     const searchKeys: string[] = [];
-    const baseParamsKeys = Object.keys(baseParamsMemo);
-
     for (const [key, value] of Object.entries(paramsMemo)) {
-      if (baseParamsKeys.includes(key) || ['', undefined].includes(value as any)) continue;
+      if (['', undefined].includes(value as any)) continue;
 
       searchKeys.push(key);
     }
 
-    return searchKeys.filter((key) => !baseParamsKeys.includes(key)).length > 0;
+    return searchKeys.length > 0;
   };
 
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const triggerSelection = () => {
-    emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
+    emits('selection', Object.keys(selectedRowMap.value), Object.values(selectedRowMap.value));
   };
 
   const fetchListData = (loading = true) => {
     Promise.resolve().then(() => {
       isLoading.value = loading;
       const params = {
-        bk_biz_id: props.ignoreBiz ? undefined : window.PROJECT_CONFIG.BIZ_ID,
         limit: pagination.limit,
         offset: (pagination.current - 1) * pagination.limit,
         ...paramsMemo,
@@ -285,16 +248,12 @@
           isSearching.value = getSearchingStatus();
           isAnomalies.value = false;
 
-          // 默认清空选项
-          if (props.clearSelection) {
-            bkTableRef.value?.clearSelection?.();
-          }
-
           if (!props.fixedPagination && props.releateUrlQuery) {
             router.replace({
               query: replaceSearchParams(params, false),
             });
           }
+
           if (!isPaginationChangeFetch) {
             isWholeChecked.value = false;
             isPaginationChangeFetch = false;
@@ -317,40 +276,22 @@
 
   // 拉取全量数据
   const fetchAllData = async () => {
-    const params = {
+    const { results } = await props.dataSource({
       limit: -1,
       offset: (pagination.current - 1) * pagination.limit,
       ...paramsMemo,
-      ...sortParams,
-    };
-    if (!props.ignoreBiz) {
-      Object.assign(params, {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      });
-    }
-    const { results } = await props.dataSource(params);
+    });
     return results;
   };
 
   watch(
-    () => props.columns,
-    () => {
-      tableKey.value = Date.now().toString();
-    },
-  );
-
-  watch(
     () => props.selected,
     () => {
-      const selectMap = props.selected.reduce<Record<string, any>>((acc, item) => {
-        Object.assign(acc, {
-          [item[props.primaryKey]]: item,
+      selectedRowMap.value = props.selected.reduce<Record<string, any>>((acc, item) => {
+        return Object.assign(acc, {
+          [item[props.rowKey]]: item,
         });
-        return acc;
       }, {});
-      rowSelectMemo.value = {
-        ...selectMap,
-      };
     },
   );
 
@@ -374,157 +315,47 @@
     isReady = true;
   };
 
-  // 全选当前页
-  const handlePageSelect = () => {
-    const selectMap = { ...rowSelectMemo.value };
-    tableData.value.results.forEach((dataItem: any) => {
-      if (props.disableSelectMethod(dataItem)) {
-        return;
-      }
-      selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-    });
-    rowSelectMemo.value = selectMap;
-    isWholeChecked.value = false;
-    triggerSelection();
-  };
-
-  // 切换当前页全选
-  const handleTogglePageSelect = (checked: boolean) => {
-    const selectMap = { ...rowSelectMemo.value };
-    tableData.value.results.forEach((dataItem: any) => {
-      if (checked) {
-        if (!props.disableSelectMethod(dataItem)) {
-          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-        }
-      } else {
-        delete selectMap[_.get(dataItem, props.primaryKey)];
-      }
-    });
-    if (!checked) {
-      isWholeChecked.value = false;
-    }
-    rowSelectMemo.value = selectMap;
-    triggerSelection();
-  };
-
-  // 清空选择
-  const handleClearWholeSelect = () => {
-    rowSelectMemo.value = {};
-    isWholeChecked.value = false;
-    triggerSelection();
-  };
-
-  // 跨页全选
-  const handleWholeSelect = () => {
-    if (!props.showSelectAllPage) {
-      // 屏蔽跨页全选
-      handleTogglePageSelect(true);
-      return;
-    }
-
-    fetchAllData().then((results) => {
-      const selectMap = { ...rowSelectMemo.value };
-      results.forEach((dataItem: any) => {
-        if (props.disableSelectMethod(dataItem)) {
-          return;
-        }
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-      });
-      rowSelectMemo.value = selectMap;
-      isWholeChecked.value = true;
-      triggerSelection();
-    });
-  };
-
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: any) => {
-    if (!props.allowRowClickSelect) {
+  const handleRowClick = (payload: Parameters<NonNullable<TableProps['onRowClick']>>[number]) => {
+    if (!props.rowClickSelectable || !props.selectable) {
       return;
     }
-    const targetElement = event.target as HTMLElement;
+    const targetElement = payload.e.target as HTMLElement;
     if (/bk-button/.test(targetElement.className)) {
       return;
     }
-    if (!props.selectable) {
+
+    if (props.disableSelectMethod(payload.row)) {
       return;
     }
-    if (props.disableSelectMethod(data)) {
-      return;
-    }
-    const selectMap = { ...rowSelectMemo.value };
-    if (!selectMap[_.get(data, props.primaryKey)]) {
-      selectMap[_.get(data, props.primaryKey)] = data;
+    const selectedMap = { ...selectedRowMap.value };
+    if (!selectedMap[_.get(payload.row, props.rowKey)]) {
+      selectedMap[_.get(payload.row, props.rowKey)] = payload.row;
     } else {
-      delete selectMap[_.get(data, props.primaryKey)];
-      isWholeChecked.value = false;
+      delete selectedMap[_.get(payload.row, props.rowKey)];
     }
-    rowSelectMemo.value = selectMap;
+    isWholeChecked.value = false;
+    selectedRowMap.value = selectedMap;
 
     triggerSelection();
   };
 
-  // 勾选单行
-  const handleSelecteRow = (data: any) => {
-    if (!props.selectable) {
+  const handleSortChange = (payload: TableSort) => {
+    if (Array.isArray(payload)) {
       return;
     }
-    if (props.disableSelectMethod(data)) {
-      return;
-    }
-    const selectMap = { ...rowSelectMemo.value };
-    if (!selectMap[_.get(data, props.primaryKey)]) {
-      selectMap[_.get(data, props.primaryKey)] = data;
-    } else {
-      delete selectMap[_.get(data, props.primaryKey)];
-      isWholeChecked.value = false;
-    }
-    rowSelectMemo.value = selectMap;
-
-    triggerSelection();
-  };
-
-  // 排序
-  const handleColumnSortChange = (sortPayload: any) => {
-    if (!props.remoteSort) {
-      return;
-    }
-    const valueMap = {
-      asc: 1,
-      desc: 0,
-      null: undefined,
-    };
-    if (props.sortType === 'ordering') {
+    if (payload) {
       sortParams = {
-        ordering: `${valueMap[sortPayload.type as keyof typeof valueMap] === 0 ? '-' : ''}${sortPayload.column.field}`,
+        ordering: payload.descending ? payload.sortBy : `-${payload.sortBy}`,
       };
     } else {
-      sortParams = {
-        [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
-      };
+      sortParams = {};
     }
+
     fetchListData();
   };
-
-  // 切换每页条数
-  const handlePageLimitChange = (pageLimit: number) => {
-    if (pagination.limit === pageLimit) {
-      return;
-    }
-    pagination.limit = pageLimit;
-    pagination.current = 1;
-    isPaginationChangeFetch = true;
-    paginationLimitCache.value = pageLimit;
-    fetchListData();
-  };
-
-  // 切换页码
-  const handlePageValueChange = (pageValue: number) => {
-    if (pagination.current === pageValue) {
-      return;
-    }
-    pagination.current = pageValue;
-    isPaginationChangeFetch = true;
-    fetchListData();
+  const handleFilterChange = (data: TableChangeData, context: TableChangeContext<TableRowData>) => {
+    emits('change', data, context);
   };
 
   // 情况搜索条件
@@ -540,8 +371,9 @@
       const top = props.containerHeight ? 0 : getOffset(rootRef.value).top;
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
       const pageOffsetBottom = props.containerHeight ? 0 : 20;
+      const paginationHeight = 60;
 
-      const tableRowTotalHeight = totalHeight - top - pageOffsetBottom;
+      const tableRowTotalHeight = totalHeight - top - pageOffsetBottom - paginationHeight;
 
       tableMaxHeight.value = tableRowTotalHeight;
     });
@@ -553,35 +385,29 @@
   });
 
   defineExpose<Exposes>({
-    bkTableRef,
     // 清空选择
     clearSelected() {
-      // bkTableRef.value?.clearSelection();
       handleClearWholeSelect();
     },
+    // 获取全量数据
+    fetchAllData: fetchAllData,
     // 获取远程数据
-    fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
+    fetchData(params = {} as Record<string, any>, loading = true) {
       paramsMemo = {
         ...params,
-        ...baseParams,
       };
-      baseParamsMemo = { ...baseParams };
       if (isReady) {
         pagination.current = 1;
       }
-      setTimeout(() => {
-        fetchListData(loading);
-      });
+      fetchListData(loading);
     },
-    // 获取全量数据
-    getAllData: fetchAllData,
     // 获取表格渲染数据
     getData() {
       return tableData.value.results;
     },
     loading: isLoading,
     removeSelectByKey(key: string) {
-      delete rowSelectMemo.value[key];
+      delete selectedRowMap.value[key];
     },
     updateTableKey() {
       tableKey.value = Date.now().toString();
@@ -590,16 +416,24 @@
 </script>
 <style lang="less">
   .db-table {
-    .head-prepend-row {
+    .table-footer {
+      position: relative;
+      z-index: 1;
       display: flex;
-      height: 30px;
-      background: #ebecf0;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
       align-items: center;
-      justify-content: center;
-    }
 
-    table tbody tr td .vxe-cell {
-      line-height: unset !important;
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
+        }
+      }
     }
   }
 
@@ -607,7 +441,6 @@
     position: relative;
     display: flex;
     align-items: center;
-    width: 64px;
 
     .db-table-whole-check {
       position: relative;

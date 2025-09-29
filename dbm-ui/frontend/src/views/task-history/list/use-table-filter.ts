@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import TicketModel from '@services/model/ticket/ticket';
+import TaskFlowModel from '@services/model/taskflow/taskflow';
 import { getTicketGroupTypes } from '@services/source/ticket';
 import { getUserList } from '@services/source/user';
 
@@ -11,8 +11,7 @@ import { useGlobalBizs } from '@stores';
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultCascader from '@components/db-table/components/MultCascader.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
-
-import MultipleSelect from '@/components/db-table/components/MultipleSelect.vue';
+import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 type ITableFilter = Record<
   string,
@@ -62,9 +61,13 @@ export default () => {
 
   const tableFilter = computed<ITableFilter>(() => {
     return {
-      bk_biz_ids: {
+      bk_biz_id__in: {
         component: markRaw(MultipleSelect),
         name: t('业务'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
+        },
         props: {
           list: globalBizsStore.bizs.map((item) => ({
             label: item.name,
@@ -73,17 +76,13 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      cluster: {
-        component: markRaw(MultipleInput),
-        name: t('集群'),
-        props: {
-          autofocus: true,
-        },
-        showConfirmAndReset: true,
-      },
-      create_at: {
+      created_at: {
         component: markRaw(DatetimeRange),
-        name: t('申请时间'),
+        name: t('执行时间'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
+        },
         props: {
           shortcuts: [
             {
@@ -118,9 +117,13 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      creator: {
+      created_by__in: {
         component: markRaw(MultipleSelect),
-        name: t('申请人'),
+        name: t('执行人'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
+        },
         props: {
           remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
             const requestParams = {};
@@ -141,39 +144,48 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      ids: {
+      root_id__in: {
         component: markRaw(MultipleInput),
         name: t('单号'),
-        props: {
-          autofocus: true,
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
         },
         showConfirmAndReset: true,
       },
-      remark: {
-        name: t('备注'),
+      status__in: {
+        component: markRaw(MultipleSelect),
+        name: t('状态'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
+        },
         props: {
-          autofocus: true,
+          list: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((value: string) => ({
+            label: t(TaskFlowModel.STATUS_TEXT_MAP[value]),
+            value,
+          })),
         },
         showConfirmAndReset: true,
-        type: 'input',
       },
-      status: {
-        list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
-          acc.push({
-            label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
-            value: key,
-          });
-          return acc;
-        }, []),
-        name: t('单据状态'),
-        showConfirmAndReset: true,
-        type: 'multiple',
-      },
-      ticket_type: {
+      ticket_type__in: {
         component: markRaw(MultCascader),
-        name: t('单据类型'),
+        name: t('任务类型'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
+        },
         props: {
           list: ticketTypeGroupList.value,
+        },
+        showConfirmAndReset: true,
+      },
+      uid__in: {
+        component: markRaw(MultipleInput),
+        name: t('关联单据'),
+        popupProps: {
+          attach: 'body',
+          placement: 'bottom',
         },
         showConfirmAndReset: true,
       },

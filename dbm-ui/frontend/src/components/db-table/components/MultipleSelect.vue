@@ -1,9 +1,10 @@
 <template>
   <div :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
-    <div class="t-table__filter-pop-search">
+    <div
+      ref="searchBox"
+      class="t-table__filter-pop-search">
       <Input
         v-model="filterKey"
-        autofocus
         borderless
         clearable
         placeholder="请输入关键字">
@@ -30,9 +31,12 @@
       </div>
     </BkLoading>
     <div
-      v-if="filterKey && renderList.length < 1"
-      class="t-table__filter-pop-search-empty">
-      未搜索到 "{{ filterKey }}" 相关数据
+      v-if="filterKey && renderList.length < 1 && !isRemoteListLoading"
+      class="t-table-filter-empty">
+      <BkException
+        description="搜索为空"
+        scene="part"
+        type="search-empty" />
     </div>
   </div>
 </template>
@@ -52,12 +56,10 @@
       label: string;
       value: number | string;
     }[];
-
     remoteMethod?: (params: {
       defaultValue?: string;
       keyword?: string;
     }) => Promise<{ label: string; value: number | string }[]>;
-    // eslint-disable-next-line vue/no-unused-properties
     remoteSearch?: boolean;
     value?: (number | string)[];
   }
@@ -85,10 +87,14 @@
   const defaultValue = shallowRef<{ label: string; value: number | string }[]>([]);
 
   const wrapperRef = useTemplateRef('wrapper');
+  const searchBoxRef = useTemplateRef('searchBox');
   const localValue = shallowRef(props.value);
   const contentMinWidth = ref(0);
 
   const renderList = computed(() => {
+    if (props.remoteSearch) {
+      return list.value;
+    }
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
     if (!keyword) {
       const modelValueMap = makeMap(defaultValue.value.map((item) => item.value));
@@ -126,4 +132,10 @@
   const handleChange = (value: any) => {
     emits('change', value);
   };
+
+  onMounted(() => {
+    setTimeout(() => {
+      searchBoxRef.value!.querySelector('input')?.focus();
+    }, 100);
+  });
 </script>
