@@ -87,7 +87,7 @@ def failover_drill_unit(city: str, conf: Dict[str, Any]) -> None:
         "max_retries": conf["max_retry"],
         "interval": conf["interval"],
     }
-    timeout_minutes = conf["max_retry"] * conf["interval"]
+    timeout_minutes = (conf["max_retry"] - 1) * conf["interval"]
 
     # 设置轮询限制条件
     polling_restriction = {
@@ -113,4 +113,4 @@ def failover_drill_unit(city: str, conf: Dict[str, Any]) -> None:
             rfod.update_drill_task_report(switch_status_info, True, TaskStatus.SUCCESS)
     else:
         final_task_status = TaskStatus.SWITCH_FAILED if not switch_success else TaskStatus.SWITCHED_NO_AUTOFIX
-        handle_drill_error(rfod, _("没有监测到Redis自愈发生, Timeout: {}min".format(timeout_minutes)), final_task_status)
+        handle_drill_error(rfod, _("没有监测到Redis自愈发生, timeout: {}min".format(timeout_minutes)), final_task_status)
