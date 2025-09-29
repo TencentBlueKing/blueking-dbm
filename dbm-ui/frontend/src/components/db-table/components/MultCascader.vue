@@ -2,11 +2,12 @@
   <div
     ref="menuRef"
     class="db-table-filter-type-mult-cascader"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth + 12}px` : '' }">
-    <div class="t-table__filter-pop-search">
+    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    <div
+      ref="searchBox"
+      class="t-table__filter-pop-search">
       <Input
         v-model="serachKey"
-        autofocus
         borderless
         clearable
         placeholder="请输入关键字">
@@ -63,8 +64,11 @@
     </div>
     <div
       v-if="isSearch && renderSearchList.length < 1"
-      class="bk-quick-search-type-menu-filter-empty">
-      未搜索到 "{{ serachKey }}" 相关数据
+      class="t-table-filter-empty">
+      <BkException
+        description="搜索为空"
+        scene="part"
+        type="search-empty" />
     </div>
   </div>
 </template>
@@ -95,6 +99,7 @@
   const emits = defineEmits<Emits>();
 
   const layoutWrapperRef = useTemplateRef('layoutWrapper');
+  const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
 
   const serachKey = ref('');
@@ -146,6 +151,16 @@
       indeterminate: checked ? false : indeterminate,
     };
   };
+  const calcPanelWidth = () => {
+    nextTick(() => {
+      contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
+    });
+  };
+
+  const handleSelectParent = (item: Props['list'][number]) => {
+    parentKey.value = item.value;
+    calcPanelWidth();
+  };
 
   let isInnerSelfChange = false;
   watch(
@@ -169,6 +184,7 @@
                 [item]: item,
               });
             }, {});
+            handleSelectParent(parentItem);
             return;
           }
         }
@@ -182,15 +198,9 @@
   watch(
     () => props.list,
     () => {
-      nextTick(() => {
-        contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
-      });
+      calcPanelWidth();
     },
   );
-
-  const handleSelectParent = (item: Props['list'][number]) => {
-    parentKey.value = item.value;
-  };
 
   const handleParentChange = (checked: boolean, data: Props['list'][number]['children'][number]) => {
     const latestValueMap = { ...localValueIdMap.value };
@@ -225,7 +235,9 @@
   };
 
   onMounted(() => {
-    contentMinWidth.value = layoutWrapperRef.value!.getBoundingClientRect().width;
+    setTimeout(() => {
+      searchBoxRef.value!.querySelector('input')?.focus();
+    }, 100);
   });
 </script>
 <style lang="less">
@@ -233,6 +245,7 @@
     .layout-wrapper {
       display: flex;
       max-height: 280px;
+      min-width: max-content;
       margin-top: 8px;
       margin-bottom: 8px;
       overflow: hidden;
