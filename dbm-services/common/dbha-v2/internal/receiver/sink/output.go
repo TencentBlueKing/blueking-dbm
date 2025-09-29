@@ -38,7 +38,7 @@ type Outputter interface {
 }
 
 // NewOutputter create a new saver
-func NewOutputter(cfg config.OutputConfig) (Outputter, error) {
+func NewOutputter(cfg config.SinkConfig) (Outputter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(mySQLName):
 		return newMysql(cfg.Endpoints, cfg.User, cfg.Password)

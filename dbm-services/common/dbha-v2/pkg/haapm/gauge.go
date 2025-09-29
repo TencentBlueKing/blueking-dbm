@@ -25,6 +25,7 @@
 package haapm
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,6 +40,8 @@ import (
 //
 // To create HaGauge instances, use NewHaGauge.
 type HaGauge struct {
+	Error error
+
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
@@ -49,123 +52,136 @@ func (m *HaGauge) ToMetric() *metric.Metric {
 }
 
 func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
+	if m.Error != nil {
+		return m
+	}
+
 	if len(m.labelNames) == 0 {
-		panic("Update the gauge value with the new label values.")
+		m.Error = gerrors.New(gerrors.InvalidParameter, "invalid labels")
+		return m
 	}
 
 	for key, val := range lvs {
-		m.labelValues[key] = val
+		if _, ok := m.labelValues[key]; ok {
+			m.labelValues[key] = val
+			continue
+		}
+
+		m.Error = gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", key)
+		return m
 	}
 
+	m.Error = nil
 	return m
 }
 
-func (m *HaGauge) Set(val float64) {
+func (m *HaGauge) Set(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Set(val)
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.GaugeVec).WithLabelValues(values...).Set(val)
-		return
+	if len(m.labelValues) != len(m.labelValues) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Set(val)
+	return m.Error
 }
 
-func (m *HaGauge) Inc() {
+func (m *HaGauge) Inc() error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Inc()
+		return nil
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.GaugeVec).WithLabelValues(values...).Inc()
-		return
+	if len(m.labelValues) != len(m.labelValues) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Inc()
+	return m.Error
 }
 
-func (m *HaGauge) Dec() {
+func (m *HaGauge) Dec() error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Dec()
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.GaugeVec).WithLabelValues(values...).Dec()
-		return
+	if len(m.labelValues) != len(m.labelValues) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Dec()
+	return m.Error
 }
 
-func (m *HaGauge) Add(val float64) {
+func (m *HaGauge) Add(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Add(val)
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.GaugeVec).WithLabelValues(values...).Add(val)
-		return
+	if len(m.labelValues) != len(m.labelValues) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Add(val)
+	return m.Error
 }
 
-func (m *HaGauge) Sub(val float64) {
+func (m *HaGauge) Sub(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Sub(val)
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.GaugeVec).WithLabelValues(values...).Sub(val)
-		return
+	if len(m.labelValues) != len(m.labelValues) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Sub(val)
+	return m.Error
 }
 
-func (m *HaGauge) getLabelValues() []string {
-	values := []string{}
-
-	for _, name := range m.labelNames {
-		if val, ok := m.labelValues[name]; ok {
-			values = append(values, val)
-		}
-	}
-
-	return values
-}
-
-func (m *HaGauge) resetLabelValues() {
-	m.labelValues = map[string]string{}
-	for _, name := range m.labelNames {
-		m.labelValues[name] = "" // set default label value
-	}
+func (m *HaGauge) reset() {
+	m.Error = nil
 }
 
 func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
@@ -185,8 +201,11 @@ func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge.metric.Type = MetricTypeGaugeVec.String()
 	gauge.labelNames = append(gauge.labelNames, labelNames...)
 	gauge.metric.Labels = gauge.labelNames
+	gauge.labelValues = map[string]string{}
+	for _, name := range gauge.labelNames {
+		gauge.labelValues[name] = "" // set default label value
+	}
 
-	gauge.resetLabelValues()
-
+	gauge.reset()
 	return gauge
 }

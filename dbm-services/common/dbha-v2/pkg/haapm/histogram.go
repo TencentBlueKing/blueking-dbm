@@ -25,6 +25,7 @@
 package haapm
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -40,6 +41,8 @@ import (
 //
 // To create HaHistogram instances, use NewHaHistogram.
 type HaHistogram struct {
+	Error error
+
 	metric      *metric.Metric
 	labelNames  []string
 	labelValues map[string]string
@@ -50,52 +53,57 @@ func (m *HaHistogram) ToMetric() *metric.Metric {
 }
 
 func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
+	if m.Error != nil {
+		return m
+	}
+
 	if len(m.labelNames) == 0 {
-		panic("Update the gauge value with the new label values.")
+		m.Error = gerrors.New(gerrors.InvalidParameter, "invalid labels")
+		return m
 	}
 
 	for key, val := range lvs {
-		m.labelValues[key] = val
+		if _, ok := m.labelValues[key]; ok {
+			m.labelValues[key] = val
+			continue
+		}
+
+		m.Error = gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", key)
+		return m
 	}
 
+	m.Error = nil
 	return m
 }
 
-func (m *HaHistogram) Observe(val float64) {
+func (m *HaHistogram) Observe(val float64) error {
+	defer m.reset()
+
+	if m.Error != nil {
+		return m.Error
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Histogram).Observe(val)
-		return
+		return m.Error
 	}
 
-	// Must keep the label value sequence the same as the label names.
-	values := m.getLabelValues()
-
-	if len(values) == len(m.labelNames) && len(m.labelValues) == len(m.labelNames) {
-		m.metric.Collector.(*prometheus.HistogramVec).WithLabelValues(values...).Observe(val)
-		return
+	if len(m.labelValues) != len(m.labelNames) {
+		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+		return m.Error
 	}
 
-	// Reset the label values.
-	m.resetLabelValues()
+	m.metric.Collector.(*prometheus.HistogramVec).With(m.labelValues).Observe(val)
+	return m.Error
 }
 
-func (m *HaHistogram) getLabelValues() []string {
-	values := []string{}
-
-	for _, name := range m.labelNames {
-		if val, ok := m.labelValues[name]; ok {
-			values = append(values, val)
-		}
-	}
-
-	return values
-}
-
-func (m *HaHistogram) resetLabelValues() {
+func (m *HaHistogram) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
 		m.labelValues[name] = "" // set default label value
 	}
+
+	m.Error = nil
 }
 
 func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {

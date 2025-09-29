@@ -25,16 +25,31 @@
 package admin
 
 import (
+	"context"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
+func setupGracefulShutdown(svr *Service) {
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigC
+		logger.Info("shutdown admin server")
+		svr.Close()
+		os.Exit(0)
+	}()
+}
+
 // Run run admin service
 func Run(cmd *cobra.Command, args []string) error {
-
 	viper.SetConfigName("admin")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./etc")
@@ -62,5 +77,11 @@ func Run(cmd *cobra.Command, args []string) error {
 	logger.SetLogger(log)
 
 	logger.Debug("admin configuration:%v", config.Cfg)
-	return nil
+
+	ctx := context.Background()
+	svr := &Service{logger: log.OriginLogger()}
+
+	setupGracefulShutdown(svr)
+
+	return svr.Run(ctx)
 }
