@@ -53,8 +53,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     serializer_class = FlowTaskSerializer
     queryset = FlowTree.objects.all()
     filter_fields = {
-        "uid": ["exact"],
-        "bk_biz_id": ["exact"],
+        "uid": ["exact", "in"],
+        "root_id": ["exact", "in"],
+        "bk_biz_id": ["exact", "in"],
         "status": ["exact", "in"],
         "ticket_type": ["exact", "in"],
         "created_at": ["gte", "lte"],
