@@ -5,7 +5,7 @@ export interface ProxyAdd extends ResourcePoolDetailBase {
     cluster_ids: number[];
     current_proxy_num?: number;
     resource_spec: {
-      new_proxy: {
+      new_proxys: {
         count: number;
         label_names: string[]; // 标签名称列表，单据详情回显用
         labels: string[]; // 标签id列表

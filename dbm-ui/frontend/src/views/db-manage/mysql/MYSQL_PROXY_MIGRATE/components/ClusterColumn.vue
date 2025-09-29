@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="batchCluster.clusters"
+    field="batchCluster.renderText"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -29,7 +29,7 @@
       </span>
     </template>
     <EditableTextarea
-      v-model="localValue"
+      v-model="modelValue.renderText"
       :placeholder="t('请选择或输入集群（多个换行分隔）')"
       @change="handleInputChange" />
   </EditableColumn>
@@ -90,6 +90,7 @@
   const modelValue = defineModel<{
     cities: string[];
     clusters: Array<TendbhaModel>;
+    renderText: string;
     spec_id_list: number[];
   }>({
     required: true,
@@ -98,7 +99,6 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const localValue = ref('');
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
     [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
   }));
@@ -108,8 +108,7 @@
     {
       message: t('集群域名格式不正确'),
       trigger: 'blur',
-      validator: (value: string) =>
-        !value || localValue.value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
+      validator: (value: string) => !value || value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
     },
     {
       message: '',
@@ -119,7 +118,7 @@
           return true;
         }
         const repeats: string[] = [];
-        const list = localValue.value.split(batchSplitRegex);
+        const list = value.split(batchSplitRegex);
         list.forEach((domain, index) => {
           if (index !== list.indexOf(domain)) {
             repeats.push(domain);
@@ -138,7 +137,7 @@
           return true;
         }
         const notFounds: string[] = [];
-        localValue.value.split(batchSplitRegex).forEach((item) => {
+        value.split(batchSplitRegex).forEach((item) => {
           if (!props.selectedMap[item]) {
             notFounds.push(item);
           }
@@ -177,6 +176,7 @@
       {
         cities: [],
         clusters: [],
+        renderText: value,
         spec_id_list: [],
       },
     );
@@ -195,14 +195,12 @@
   watch(
     modelValue,
     () => {
-      if (modelValue.value.clusters.length && !localValue.value) {
-        const domains = modelValue.value.clusters.map((cluster) => cluster.master_domain);
-        localValue.value = domains.join('\n');
+      if (modelValue.value.renderText && !modelValue.value.clusters.length) {
         queryCluster({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_type: ClusterTypes.TENDBHA,
           db_type: DBTypes.MYSQL,
-          exact_domain: domains.join(','),
+          exact_domain: modelValue.value.renderText.replace('\n', ','),
         });
       }
     },

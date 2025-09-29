@@ -6,32 +6,20 @@
       :label="t('目标Proxy')"
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_nodes.origin_proxy?.[0]?.ip || '--' }}
+        {{ data.old_nodes.proxy?.[0]?.ip || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('关联集群实例')"
+      :label="t('关联集群')"
       :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="data?.related_instances">
-          <div
-            v-for="item in data?.related_instances"
-            :key="item.instance_address">
-            <p>
-              {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
-            </p>
-            <p style="color: #979ba5">--{{ item.instance_address }}</p>
-          </div>
-        </template>
-        <template v-else>
-          <div
-            v-for="clusterId in data.cluster_ids"
-            :key="clusterId">
-            <p>
-              {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-            </p>
-          </div>
-        </template>
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId">
+          <p>
+            {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          </p>
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn

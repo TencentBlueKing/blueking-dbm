@@ -34,18 +34,18 @@
       @change="handleChange" />
   </EditableColumn>
   <EditableColumn
-    :label="t('关联集群实例')"
+    :label="t('关联集群')"
     :loading="loading"
     :min-width="200"
-    readonly>
+    readonly
+    :rowspan="rowspan">
     <EditableBlock :placeholder="t('自动生成')">
       <div
-        v-for="item in modelValue.related_instances"
-        :key="item.instance_address">
+        v-for="item in modelValue.related_clusters"
+        :key="item.id">
         <p>
           {{ item.master_domain }}
         </p>
-        <p style="color: #979ba5">--{{ item.instance_address }}</p>
       </div>
     </EditableBlock>
   </EditableColumn>
@@ -58,6 +58,7 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -76,6 +77,8 @@
   export type SelectorItem = IValue;
 
   interface Props {
+    handleRowMerge: () => void;
+    rowspan: number;
     selected: Array<typeof modelValue.value>;
   }
 
@@ -90,8 +93,8 @@
     bk_host_id: number;
     bk_idc_city_name: string;
     bk_sub_zone: string;
-    cluster_ids: number[];
     ip: string;
+    related_clusters: ServiceReturnType<typeof checkInstance>[0]['related_clusters'];
     related_instances: ServiceReturnType<typeof checkInstance>;
     role: string;
     spec_config: TendbhaModel['masters'][number]['spec_config'];
@@ -113,6 +116,9 @@
             label: t('Proxy 主机'),
             role: 'proxy',
           },
+        },
+        topoConfig: {
+          countFunc: (item: TendbhaModel) => item.proxies.length,
         },
       },
       {
@@ -171,13 +177,14 @@
           bk_host_id: hostInfo.bk_host_id,
           bk_idc_city_name: hostInfo.host_info?.bk_idc_city_name || '',
           bk_sub_zone: hostInfo.host_info?.bk_sub_zone || '',
-          cluster_ids: relatedInstances.map((item) => item.cluster_id),
           ip: hostInfo.ip,
+          related_clusters: _.sortBy(hostInfo.related_clusters, 'id'),
           related_instances: relatedInstances,
           role: hostInfo.role,
           spec_config: hostInfo.spec_config,
           spec_id_list: relatedInstances.map((item) => item.spec_config.id),
         };
+        props.handleRowMerge();
       }
     },
   });
@@ -194,8 +201,8 @@
         bk_host_id: 0,
         bk_idc_city_name: '',
         bk_sub_zone: '',
-        cluster_ids: [],
         ip: value,
+        related_clusters: [],
         related_instances: [],
         role: '',
         spec_config: {} as TendbhaModel['masters'][number]['spec_config'],

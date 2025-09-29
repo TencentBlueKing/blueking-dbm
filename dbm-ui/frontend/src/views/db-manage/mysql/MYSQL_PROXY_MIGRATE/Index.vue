@@ -33,8 +33,7 @@
           <SpecColumn
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
-            :current-spec-id-list="item.batchCluster.spec_id_list"
-            :machine-type="MachineTypes.MYSQL_BACKEND"
+            :machine-type="MachineTypes.MYSQL_PROXY"
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
@@ -118,6 +117,7 @@
       {
         cities: [],
         clusters: [],
+        renderText: '',
         spec_id_list: [],
       } as RowData['batchCluster'],
       data.batchCluster,
@@ -136,7 +136,7 @@
 
   const batchInputConfig = [
     {
-      case: 'tendbha.test.dba.db',
+      case: 'tendbha.test.dba.db\\ntendbha.test2.dba.db',
       key: 'master_domain',
       label: t('目标集群'),
     },
@@ -165,9 +165,7 @@
         tableData: infos.map((item) => {
           return createTableRow({
             batchCluster: {
-              clusters: item.cluster_ids.map((clusterId) => ({
-                master_domain: clusters[clusterId].immute_domain,
-              })),
+              renderText: item.cluster_ids.map((clusterId) => clusters[clusterId].immute_domain).join('\n'),
             },
             labels: (item.resource_spec.new_proxy.labels || []).map((item) => ({ id: Number(item) })),
             specId: item.resource_spec.new_proxy.spec_id,
@@ -262,11 +260,7 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              clusters: [
-                {
-                  master_domain: item.master_domain,
-                },
-              ],
+              renderText: item.master_domain,
             },
           }),
         );
@@ -280,31 +274,30 @@
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
-    // const dataList = data.reduce<RowData[]>((acc, item) => {
-    //   acc
-    //     .push
-    //     // createTableRow({
-    //     //   cluster: {
-    //     //     master_domain: item.master_domain,
-    //     //   },
-    //     //   labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
-    //     //   specId: item.spec_name,
-    //     // }),
-    //     ();
-    //   return acc;
-    // }, []);
-    // if (isClear) {
-    //   tableKey.value = random();
-    //   formData.tableData = [...dataList];
-    // } else {
-    //   formData.tableData = [
-    //     ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
-    //     ...dataList,
-    //   ]; // 追加
-    // }
-    // setTimeout(() => {
-    //   tableRef.value?.validate();
-    // }, 200);
+    const dataList = data.reduce<RowData[]>((acc, item) => {
+      acc.push(
+        createTableRow({
+          batchCluster: {
+            renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
+          },
+          labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          specId: item.spec_name,
+        }),
+      );
+      return acc;
+    }, []);
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [
+        ...(formData.tableData[0].batchCluster.clusters.length ? formData.tableData : []),
+        ...dataList,
+      ]; // 追加
+    }
+    setTimeout(() => {
+      tableRef.value?.validate();
+    }, 200);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {
