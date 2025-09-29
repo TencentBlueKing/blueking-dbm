@@ -62,7 +62,7 @@ func APIMetricsMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		// 过滤不需要指标上报的接口
-		if skip := shouldSkip(c); skip {
+		if skip := shouldSkipAPI(c); skip {
 			return
 		}
 
@@ -132,7 +132,7 @@ func setAPIResponseTags(
 }
 
 // shouldSkip 是否忽略指标上报
-func shouldSkip(c *gin.Context) bool {
+func shouldSkipAPI(c *gin.Context) bool {
 	apiName := c.GetString(commconst.APIName)
 	if apiName == "" || IgnoreAPINames[apiName] {
 		slog.Warn("当前接口不需要进行指标统计", "接口名称", apiName)
