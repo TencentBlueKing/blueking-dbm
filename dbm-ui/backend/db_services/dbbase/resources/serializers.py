@@ -102,6 +102,8 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     extra = serializers.IntegerField(help_text=_("额外信息"), required=False)
     # spider额外参数
     spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
+    # 额外过滤角色参数
+    role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
