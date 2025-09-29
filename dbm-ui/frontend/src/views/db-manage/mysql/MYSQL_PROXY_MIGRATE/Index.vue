@@ -155,7 +155,7 @@
   const selected = computed(() => formData.tableData.flatMap((item) => Object.values(item.batchCluster.clusters)));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<Mysql.ResourcePool.ProxyAdd>(TicketTypes.MYSQL_PROXY_ADD, {
+  useTicketDetail<Mysql.ResourcePool.ProxyMigrate>(TicketTypes.MYSQL_PROXY_MIGRATE, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -165,10 +165,15 @@
         tableData: infos.map((item) => {
           return createTableRow({
             batchCluster: {
-              renderText: item.cluster_ids.map((clusterId) => clusters[clusterId].immute_domain).join('\n'),
+              clusters: item.cluster_ids.map(
+                (clusterId) =>
+                  ({
+                    master_domain: clusters[clusterId]?.immute_domain || '',
+                  }) as unknown as TendbhaModel,
+              ),
             },
-            labels: (item.resource_spec.new_proxy.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.new_proxy.spec_id,
+            labels: (item.resource_spec.target_proxys?.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxys?.spec_id,
           });
         }),
       });
@@ -178,19 +183,22 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
-      origin_proxy_ips: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        spec: TendbhaModel['proxies'][0]['spec_config'];
-      }[];
+      old_nodes: {
+        proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+          spec: TendbhaModel['proxies'][0]['spec_config'];
+        }[];
+      };
       related_instances: {
         cluster_id: number;
         instance_address: string;
       }[];
       resource_spec: {
-        target_proxy: {
+        target_proxys: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -223,20 +231,22 @@
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_ids: clusters.map((cluster) => cluster.id),
-          origin_proxy_ips: masters.map((instance) => ({
-            bk_biz_id: instance.bk_biz_id,
-            bk_cloud_id: instance.bk_cloud_id,
-            bk_host_id: instance.bk_host_id,
-            cluster_id: instance.cluster_id,
-            ip: instance.ip,
-            spec: instance.spec_config,
-          })),
+          old_nodes: {
+            proxy: masters.map((instance) => ({
+              bk_biz_id: instance.bk_biz_id,
+              bk_cloud_id: instance.bk_cloud_id,
+              bk_host_id: instance.bk_host_id,
+              ip: instance.ip,
+              port: instance.port,
+              spec: instance.spec_config,
+            })),
+          },
           related_instances: masters.map((instance) => ({
             cluster_id: instance.cluster_id,
             instance_address: instance.instance,
           })),
           resource_spec: {
-            target_proxy: {
+            target_proxys: {
               count: masters.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
@@ -260,7 +270,7 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              renderText: item.master_domain,
+              clusters: [item],
             },
           }),
         );

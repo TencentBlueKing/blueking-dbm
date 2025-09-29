@@ -16,27 +16,30 @@
     :data="ticketDetails.details.infos"
     :show-overflow="false">
     <BkTableColumn
-      fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
+      :label="t('目标Proxy实例')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
+        <span v-if="!data.old_nodes?.proxy.length">--</span>
         <p
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+          v-for="item in data.old_nodes.proxy"
+          v-else
+          :key="item.ip">
+          {{ `${item.ip}:${item.port}` }}
         </p>
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('当前规格')"
-      :min-width="200">
+      :label="t('关联集群')"
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        <p
-          v-for="proxy in data.old_nodes.proxy"
-          :key="proxy.ip">
-          {{ proxy.ip }}
-          {{ proxy.spec?.name ? ` ( ${proxy.spec?.name} )` : '' }}
-        </p>
+        <template v-if="ticketDetails.details.machine_infos?.[data.old_nodes.proxy?.[0].ip]?.related_clusters?.length">
+          <p
+            v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.proxy[0].ip].related_clusters"
+            :key="clusterId">
+            {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
+          </p>
+        </template>
+        <template v-else> -- </template>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -65,6 +68,11 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务连接')">
+      {{ ticketDetails.details.is_safe ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -73,14 +81,16 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyConfChange>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyMigrateIns>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_CONF_CHANGE,
+    name: TicketTypes.MYSQL_PROXY_MIGRATE_INS,
     inheritAttrs: false,
   });
 

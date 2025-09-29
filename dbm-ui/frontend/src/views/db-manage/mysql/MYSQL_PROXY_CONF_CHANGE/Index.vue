@@ -210,8 +210,8 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.target_proxy.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.target_proxy.spec_id,
+            labels: (item.resource_spec.target_proxys.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxys.spec_id,
           });
         }),
       });
@@ -221,15 +221,18 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
       cluster_ids: number[];
-      origin_proxy_ips: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        spec: TendbhaModel['proxies'][0]['spec_config'];
-      }[];
+      old_nodes: {
+        proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port: number;
+          spec: TendbhaModel['proxies'][0]['spec_config'];
+        }[];
+      };
       resource_spec: {
-        target_proxy: {
+        target_proxys: {
           count: number; // proxy 数量
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -250,15 +253,18 @@
       bk_cloud_id: proxy.bk_cloud_id,
       bk_host_id: proxy.bk_host_id,
       ip: proxy.ip,
+      port: proxy.port,
       spec: proxy.spec_config,
     });
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          origin_proxy_ips: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+          old_nodes: {
+            proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+          },
           resource_spec: {
-            target_proxy: {
+            target_proxys: {
               count: item.cluster.proxies!.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),

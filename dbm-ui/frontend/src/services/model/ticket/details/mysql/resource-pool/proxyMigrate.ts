@@ -1,7 +1,7 @@
 import type { ResourcePoolDetailBase } from '../../common';
 import TendbhaModel from '@services/model/mysql/tendbha';
 
-export interface ProxyConfChange extends ResourcePoolDetailBase {
+export interface ProxyMigrate extends ResourcePoolDetailBase {
   infos: {
     cluster_ids: number[];
     old_nodes: {
@@ -14,6 +14,10 @@ export interface ProxyConfChange extends ResourcePoolDetailBase {
         spec: TendbhaModel['proxies'][0]['spec_config'];
       }[];
     };
+    related_instances: {
+      cluster_id: number;
+      instance_address: string;
+    }[];
     resource_spec: {
       target_proxys: {
         count: number; // proxy 数量
