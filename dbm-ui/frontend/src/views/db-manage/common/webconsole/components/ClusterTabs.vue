@@ -199,7 +199,6 @@
 
   onMounted(() => {
     tippyIns = tippy(addTabRef.value as SingleTarget, {
-      appendTo: () => document.body,
       arrow: true,
       content: popRef.value,
       hideOnClick: true,

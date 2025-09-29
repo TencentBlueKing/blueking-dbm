@@ -23,32 +23,8 @@
     </div>
     <div class="content-main">
       <div
-        v-if="clusterInfo"
-        class="content-top">
-        <div class="content-top-start ml-14">
-          <RoleSelect
-            v-model="role"
-            :list="roleList" />
-          <TimeZone v-model="timezone" />
-          <CharacterSet v-model="charset" />
-        </div>
-        <div class="content-top-end">
-          <ClearScreen @change="handleClickClearScreen" />
-          <ExportData @export="handleClickExport" />
-        </div>
-      </div>
-      <KeepAlive>
-        <ConsolePanel
-          v-if="clusterInfo"
-          :key="clusterInfo.id"
-          ref="consolePanelRef"
-          :charset="charset"
-          :cluster="clusterInfo"
-          :role="role"
-          :style="currentFontConfig"
-          :timezone="timezone" />
-      </KeepAlive>
-      <div class="placeholder-main">
+        v-if="!clusterInfo"
+        class="placeholder-main">
         <DbIcon
           class="warn-icon"
           type="attention" />
@@ -60,6 +36,32 @@
           {{ t('立即添加') }}
         </BkButton>
       </div>
+      <template v-else>
+        <div class="content-top">
+          <div class="content-top-start ml-14">
+            <RoleSelect
+              v-model="role"
+              :list="roleList" />
+            <TimeZone v-model="timezone" />
+            <CharacterSet v-model="charset" />
+          </div>
+          <div class="content-top-end">
+            <ClearScreen @change="handleClickClearScreen" />
+            <ExportData @export="handleClickExport" />
+          </div>
+        </div>
+        <KeepAlive>
+          <ConsolePanel
+            v-if="clusterInfo"
+            :key="clusterInfo.id"
+            ref="consolePanelRef"
+            :charset="charset"
+            :cluster="clusterInfo"
+            :role="role"
+            :style="currentFontConfig"
+            :timezone="timezone" />
+        </KeepAlive>
+      </template>
     </div>
   </div>
 </template>
@@ -201,19 +203,17 @@
 </script>
 <style lang="less">
   .tendbcluster-webconsole {
-    display: flex;
-    width: 100%;
-    height: 100%;
+    font-size: 12px;
+    color: #c4c6cc;
     background: #1a1a1a;
+    height: calc(100% - 24px);
+    display: flex;
     flex-direction: column;
     transform: translate(0, 0);
 
     .top-main {
       display: flex;
-      width: 100%;
       height: 40px;
-      font-size: 12px;
-      color: #c4c6cc;
       background: #2e2e2e;
       box-shadow: 0 2px 4px 0 #00000029;
 
@@ -226,7 +226,6 @@
         position: fixed;
         top: 40px;
         z-index: 99;
-        width: 100%;
         height: calc(100% - 40px);
         background: transparent;
       }
@@ -234,18 +233,18 @@
 
     .content-main {
       position: relative;
-      overflow: hidden;
-      flex: 1;
+      height: 100%;
 
       .content-top {
         display: flex;
         height: 32px;
-        font-size: 12px;
-        color: #c4c6cc;
         background: #242424;
         box-shadow: 0 2px 4px 0 #00000029;
         align-items: center;
         justify-content: space-between;
+        position: absolute;
+        width: 100%;
+        z-index: 10;
 
         .content-top-start {
           display: flex;
@@ -258,6 +257,13 @@
         .role-select-trigger {
           width: 108px;
         }
+      }
+
+      .console-panel-main {
+        position: absolute;
+        z-index: 1;
+        top: 32px;
+        height: calc(100% - 32px);
       }
 
       .placeholder-main {

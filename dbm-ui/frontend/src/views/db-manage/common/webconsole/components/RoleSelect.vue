@@ -9,9 +9,6 @@
           <div
             class="role-select-trigger"
             @click="() => (isActive = !isActive)">
-            <!-- <DbIcon
-              class="operate-icon role-select-prefix"
-              type="bk-dbm-icon db-icon-wenjian" /> -->
             <div>{{ selected?.[0]?.label || '' }}</div>
             <DbIcon
               class="operate-icon role-select-append"
@@ -45,11 +42,9 @@
   .role-select-trigger {
     position: relative;
     display: flex;
-    // width: 94px;
-    width: 68px;
+    width: 72px;
     height: 28px;
     align-items: center;
-    // justify-content: center;
 
     .role-select-prefix,
     .role-select-append {
