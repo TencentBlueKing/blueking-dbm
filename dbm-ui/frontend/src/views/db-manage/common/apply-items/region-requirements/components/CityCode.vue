@@ -20,14 +20,43 @@
       required>
       <BkRadioGroup
         v-model="modelValue.city_code"
-        class="region-group">
+        class="region-group"
+        :class="{ 'region-group-flex-direction': commonList?.length }">
+        <div class="region-group-item-box">
+          <div
+            v-for="info of commonList"
+            :key="info.city_code"
+            class="region-group-item">
+            <BkRadioButton :label="info.city_code">
+              {{ info.city_name }}
+            </BkRadioButton>
+          </div>
+          <BkButton
+            v-if="commonList?.length"
+            class="ml-12"
+            size="small"
+            style="font-size: 12px"
+            text
+            theme="primary"
+            @click="handleShowInternalListClick">
+            {{ t('更多地域') }}
+            <DbIcon
+              class="ml-4"
+              style="font-size: 16px"
+              :type="showInternalList ? 'up-big' : 'down-big'" />
+          </BkButton>
+        </div>
         <div
-          v-for="info of radioList"
-          :key="info.city_code"
-          class="region-group-item">
-          <BkRadioButton :label="info.city_code">
-            {{ info.city_name }}
-          </BkRadioButton>
+          v-if="showInternalList"
+          class="region-group-item-box">
+          <div
+            v-for="info of internalList"
+            :key="info.city_code"
+            class="region-group-item">
+            <BkRadioButton :label="info.city_code">
+              {{ info.city_name }}
+            </BkRadioButton>
+          </div>
         </div>
       </BkRadioGroup>
       <span class="region-tips">{{ t('如果对请求延时有要求_请尽量选择靠近接入点的地域') }}</span>
@@ -40,7 +69,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getInfrasCities } from '@services/source/infras';
+  import { getCommonCities } from '@services/source/infras';
 
   import { Affinity } from '@common/const';
 
@@ -54,22 +83,39 @@
 
   const { t } = useI18n();
 
-  const radioList = shallowRef<UnwrapRef<typeof cityList>>();
+  const showInternalList = ref(false);
 
-  const { data: cityList, loading } = useRequest(getInfrasCities);
+  const commonList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['common']>();
+  const internalList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['internal']>();
 
-  watch([cityList, () => modelValue.value.disaster_tolerance_level], () => {
-    if (cityList.value) {
+  const allList = computed(() => {
+    if (cityData.value) {
+      const { common, internal } = cityData.value;
+      return common.concat(internal);
+    }
+    return [];
+  });
+
+  const { data: cityData, loading } = useRequest(getCommonCities);
+
+  watch([cityData, () => modelValue.value.disaster_tolerance_level], () => {
+    if (cityData.value) {
       const showCityDefault = [Affinity.CROSS_RACK, Affinity.MAX_EACH_ZONE_EQUAL, Affinity.NONE].includes(
         modelValue.value.disaster_tolerance_level as Affinity,
       );
       if (showCityDefault) {
-        radioList.value = cityList.value;
+        commonList.value = cityData.value.common;
+        internalList.value = cityData.value.internal;
       } else {
-        radioList.value = cityList.value.filter((cityItem) => cityItem.city_code !== 'default');
+        commonList.value = cityData.value.common.filter((cityItem) => cityItem.city_code !== 'default');
+        internalList.value = cityData.value.internal.filter((cityItem) => cityItem.city_code !== 'default');
         if (modelValue.value.city_code === 'default') {
           modelValue.value.city_code = '';
         }
+      }
+
+      if (commonList.value.length === 0) {
+        showInternalList.value = true;
       }
     }
   });
@@ -77,11 +123,18 @@
   watch(
     () => modelValue.value.city_code,
     () => {
-      modelValue.value.city_name = (cityList.value || []).find(
+      modelValue.value.city_name = allList.value.find(
         (cityItem) => cityItem.city_code === modelValue.value.city_code,
       )?.city_name;
     },
   );
+
+  const handleShowInternalListClick = () => {
+    showInternalList.value = !showInternalList.value;
+    if (!showInternalList.value) {
+      modelValue.value.city_code = '';
+    }
+  };
 </script>
 
 <style lang="less" scoped>
@@ -91,14 +144,17 @@
     }
 
     .region-group {
-      display: flex;
-      align-items: center;
       width: 100% !important;
-      flex-wrap: wrap;
 
       :deep(.bk-radio-button-label) {
         min-width: 100px;
         border-radius: 0;
+      }
+
+      .region-group-item-box {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
       }
 
       .region-group-item {
@@ -106,6 +162,10 @@
         margin-bottom: 4px;
         margin-left: -1px;
       }
+    }
+
+    .region-group-flex-direction {
+      flex-direction: column;
     }
 
     .region-tips {
