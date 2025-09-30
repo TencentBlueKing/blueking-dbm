@@ -42,7 +42,6 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
         related_instances = serializers.ListSerializer(
             help_text=_("关联的实例"), child=serializers.JSONField(), required=False
         )
-        origin_proxy_ip = serializers.JSONField(help_text=_("原始proxy信息"), required=False)
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
@@ -56,7 +55,7 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_scene
-    validator = MySQLController.mysql_proxy_switch_scene.validator
+    validator = None
 
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
