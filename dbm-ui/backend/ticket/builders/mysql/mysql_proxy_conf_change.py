@@ -9,48 +9,27 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
-
-from backend.db_meta.enums import MachineType
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, DisplayInfoSerializer
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
+from backend.ticket.builders.mysql.mysql_proxy_switch import (
+    MysqlProxySwitchDetailSerializer,
+    MysqlProxySwitchResourceParamBuilder,
+)
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class MysqlProxyConfChangeDetailSerializer(MySQLBaseOperateDetailSerializer):
-    class ProxyConfChangeInfoSerializer(DisplayInfoSerializer):
-        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-        origin_proxy_ips = serializers.ListField(help_text=_("资源规格"), child=serializers.JSONField())
-        resource_spec = serializers.JSONField(help_text=_("资源规格"))
-
-    ip_source = serializers.ChoiceField(
-        help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
-    )
-    is_safe = serializers.BooleanField(help_text=_("是否安全模式"), required=False, default=True)
-    infos = serializers.ListField(help_text=_("替换信息"), child=ProxyConfChangeInfoSerializer())
+class MysqlProxyConfChangeDetailSerializer(MysqlProxySwitchDetailSerializer):
+    pass
 
 
 class MysqlProxyConfChangeParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_for_extend_scene
-    validator = MySQLController.mysql_proxy_switch_for_extend_scene.validator
+    validator = None
 
 
-class MysqlProxyConfChangeResourceParamBuilder(BaseOperateResourceParamBuilder):
-    def format(self):
-        self.patch_info_common_affinity(
-            role="target_proxy", remain_machine_type=MachineType.PROXY, replace_key="origin_proxy", tolerance=0.5
-        )
-
-    def post_callback(self):
-        next_flow = self.ticket.next_flow()
-        ticket_data = next_flow.details["ticket_data"]
-        for info in ticket_data["infos"]:
-            info["target_proxy_ips"] = info.pop("target_proxy")
-        next_flow.save(update_fields=["details"])
+class MysqlProxyConfChangeResourceParamBuilder(MysqlProxySwitchResourceParamBuilder):
+    pass
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_CONF_CHANGE, is_apply=True, is_recycle=True)
@@ -61,10 +40,3 @@ class MysqlProxyConfChangeFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyConfChangeDetailSerializer
     inner_flow_builder = MysqlProxyConfChangeParamBuilder
     resource_batch_apply_builder = MysqlProxyConfChangeResourceParamBuilder
-
-    def patch_ticket_detail(self):
-        for info in self.ticket.details["infos"]:
-            info["old_nodes"] = {}
-            origin_proxy_ips = info["origin_proxy_ips"]
-            info["old_nodes"]["origin_proxy"] = origin_proxy_ips
-        super().patch_ticket_detail()
