@@ -81,8 +81,6 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         # 分别初始化父类的init方法
         super().__init__(root_id=root_id, data=data)
         super(TenDBClusterAddNodesFlow, self).__init__(root_id=root_id, data=data)
-        # 计算每个待加入节点的安装介质包
-        self.calc_install_version_for_each_node()
 
     def get_spider_pkg_id_for_tmp_spider_ip(self, cluster_id: int, tmp_spider_ip: str):
         """
@@ -253,6 +251,9 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
         """
         定义TenDB Cluster替换接入层的后端流程
         """
+        # 计算每个待加入节点的安装介质包
+        self.calc_install_version_for_each_node()
+
         # 做转换
         global_data = self.trans_ticket_data()
         pipeline = Builder(root_id=self.root_id, data=global_data)
