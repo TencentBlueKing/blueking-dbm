@@ -572,6 +572,7 @@ export class NormalNode extends Rect {
       const loadingImageStyle = {
         height: 14,
         src: PendingImage,
+        transformOrigin: 'center center',
         width: 14,
         x: this.isSubProcess ? 120 : 113,
         y: -31,
@@ -683,20 +684,14 @@ export class NormalNode extends Rect {
   }
 
   onCreate() {
-    const loadingImage = this.shapeMap.loadingImage;
+    const loadingImage = this.shapeMap.rightTopLoadingImage;
     if (loadingImage) {
-      loadingImage.animate(
-        [
-          { transform: 'rotate(360deg)', transformOrigin: 'center center' },
-          { transform: 'rotate(0deg)', transformOrigin: 'center center' },
-        ],
-        {
-          direction: 'normal',
-          duration: 3000,
-          easing: 'linear',
-          iterations: Infinity,
-        },
-      );
+      loadingImage.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], {
+        direction: 'normal',
+        duration: 3000,
+        easing: 'linear',
+        iterations: Infinity,
+      });
     }
   }
 
