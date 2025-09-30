@@ -139,10 +139,7 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         if isinstance(flow_details, list) and flow_details:
             flow_details = flow_details[0]
 
-        try:
-            flow_detail = flow_details.get("values", [])[0].get("process_infos", [])
-        except IndexError:
-            flow_detail = []
+        flow_detail = flow_details.get("values", [])
 
         if not flow_detail:
             self.log_error(_("下载excel文件失败，未获取到流程id:{}相关的数据").format(root_id))
