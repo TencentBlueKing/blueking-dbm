@@ -9,7 +9,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import ConfigFileEnum, ConfigTypeEnum, MongoDBManagerUser, NameSpaceEnum
 from backend.flow.utils.mongodb import mongodb_password
 from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
-from backend.flow.utils.mongodb.mongodb_repo import MongoRepository
+from backend.flow.utils.mongodb.mongodb_repo import MongoNode, MongoRepository
 
 logger = logging.getLogger("flow")
 
@@ -131,38 +131,84 @@ class MongoUtil:
 
         if len(connect_nodes) == 0:
             raise Exception("cluster_id:{} can not get connect node".format(cluster_id))
+        return MongoUtil._get_mongodb_DRS_args(cluster, connect_nodes, session, command, timeout, read_preference, 0)
 
-        # ip port
-        node = connect_nodes[0]
+    @staticmethod
+    def get_mongodb_DRS_args_direct(cluster_id: int, addr: str, session: str, command: str, timeout: int = 15):
+        """
+        在addr上执行一次性的命令
+        @param cluster_id: 集群id
+        @param addr: 节点地址, 如: 127.0.0.1:27017
+        @param session: session, 用于标识一个请求, 如果是webconsole请求, 请务必保证带有用户id信息.  如果是一次性请示，用当前时间即可.
+        @param command: 命令, 如: show dbs, 首次连接可以为空
+        @param timeout: 超时时间, 单位秒
+        """
+        cluster = MongoRepository().fetch_one_cluster(id=cluster_id)
+        if not cluster:
+            raise Exception("cluster_id:{} not found".format(cluster_id))
+
+        ip, port = addr.split(":")
+        node = MongoNode(ip, int(port), "", cluster.bk_cloud_id, "")
+        return MongoUtil._get_mongodb_DRS_args(cluster, [node], session, command, timeout, "direct", 1)
+
+    @staticmethod
+    def _get_mongodb_DRS_args(
+        cluster: Cluster,
+        connect_nodes: [MongoNode],
+        session: str,
+        command: str,
+        timeout: int = 15,
+        read_preference: str = "",
+        one_off: int = 0,
+    ):
+        """
+        内部方法, 用于获取mongodb DRS参数
+        @param cluster: 集群
+        @param node: 节点
+        @param session: session, 用于标识一个请求, 如果是webconsole请求, 请务必保证带有用户id信息.  如果是一次性请示，用当前时间即可.
+        @param command: 命令, 如: show dbs, 首次连接可以为空
+        @param timeout: 超时时间, 单位秒
+        @param read_preference: 读取策略, 如: primary, secondary, secondaryPreferred, direct
+        @param one_off: int, 是否是一次性请求, 如果是一次性请求, 则需要设置为1
+        """
         adminUserName = MongoDBManagerUser.DbaUser.value
+        node = connect_nodes[0]
         password_out = mongodb_password.MongoDBPassword().get_password_from_db(
             node.ip, node.port, node.bk_cloud_id, adminUserName
         )
 
         if not password_out or "password" not in password_out:
             raise Exception(
-                "can not get webconsole_user password for {}({}:{})".format(cluster_id, node.ip, node.port)
+                "can not get webconsole_user password for {}({}:{})".format(cluster.cluster_id, node.ip, node.port)
             )
         else:
             adminPassword = password_out["password"]
 
         user, pwd, is_created = MongoUtil.cluster_pwd_get_or_create(
-            cluster_id=cluster_id, bk_cloud_id=node.bk_cloud_id, username=MongoDBManagerUser.WebconsoleUser.value
+            cluster_id=cluster.cluster_id,
+            bk_cloud_id=node.bk_cloud_id,
+            username=MongoDBManagerUser.WebconsoleUser.value,
         )
 
         logger.info(
             "cluster_id:{} webconsole user: {}, password: {}, is_created: {}".format(
-                cluster_id, user, "xxx", is_created
+                cluster.cluster_id, user, "xxx", is_created
             )
         )
+
+        # 获取版本号. 如果版本号中没有-，则认为版本号为4.4.25.
+        if cluster.major_version.find("-") == -1:
+            version = "4.4.25"
+        else:
+            version = cluster.major_version.split("-")[-1]
 
         return {
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_id": cluster.cluster_id,
             "cluster_type": cluster.cluster_type,
             "cluster_domain": cluster.immute_domain,
-            "version": cluster.major_version.split("-")[-1],
-            "addresses": [m.addr() for m in connect_nodes],  # 取两个mongos就行
+            "version": version,
+            "addresses": [node.addr() for node in connect_nodes],
             "set_name": cluster.name,
             "command": command,
             "timeout": timeout,
@@ -170,8 +216,9 @@ class MongoUtil:
             "admin_password": adminPassword,
             "username": user,
             "password": pwd,
-            "session": "{}:{}".format(cluster_id, session),
+            "session": "{}:{}".format(cluster.cluster_id, session),
             "read_preference": read_preference,
+            "one_off": one_off,
         }
 
     @staticmethod
