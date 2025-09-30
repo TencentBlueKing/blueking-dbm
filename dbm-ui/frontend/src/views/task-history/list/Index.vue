@@ -366,7 +366,7 @@
       },
     });
 
-    window.open(getBusinessHref(href), '_blank');
+    window.open(getBusinessHref(href, data.bk_biz_id), '_blank');
   };
 </script>
 

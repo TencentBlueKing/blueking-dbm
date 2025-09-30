@@ -38,7 +38,7 @@
         <template #empty>
           <slot name="empty">
             <EmptyStatus
-              :is-anomalies="isAnomalies"
+              :is-anomalies="isRequestFailed"
               :is-searching="isSearching"
               @clear-search="handleClearSearch"
               @refresh="fetchListData" />
@@ -192,7 +192,7 @@
   });
 
   const isSearching = ref(false);
-  const isAnomalies = ref(false);
+  const isRequestFailed = ref(false);
   const isWholeChecked = ref(false);
 
   let paramsMemo = {};
@@ -239,14 +239,14 @@
           permission: 'page',
         });
       }
-      isAnomalies.value = false;
+      isRequestFailed.value = false;
       props
         .dataSource(params, payload)
         .then((data) => {
           tableData.value = data;
           pagination.count = data.count;
           isSearching.value = getSearchingStatus();
-          isAnomalies.value = false;
+          isRequestFailed.value = false;
 
           if (!props.fixedPagination && props.releateUrlQuery) {
             router.replace({
@@ -266,7 +266,7 @@
           console.log('from dbtable error = ', error);
           tableData.value.results = [];
           pagination.count = 0;
-          isAnomalies.value = true;
+          isRequestFailed.value = true;
         })
         .finally(() => {
           isLoading.value = false;

@@ -1,6 +1,7 @@
 <template>
   <div
     ref="root"
+    data-role="calc-render-num"
     style="position: absolute; top: 0; left: 0; width: 100%; height: 0; visibility: hidden">
     <div
       v-if="isShow"
@@ -39,6 +40,8 @@
     default: 0,
     required: true,
   });
+
+  const OVERFLOW_MIN_COUNT = 3;
 
   const currentInstance = getCurrentInstance();
 
@@ -125,6 +128,7 @@
           let calcCount = 0;
           let renderTagTotalWidth = 0;
 
+          // 计算 tag 的宽度总和是否超出容器宽度
           tagRefs.value!.forEach((tag) => {
             renderTagTotalWidth += tag.$el.getBoundingClientRect().width;
             if (renderTagTotalWidth >= maxWidth - calcCount * 4 - 20) {
@@ -133,8 +137,9 @@
             calcCount += 1;
           });
 
-          if (props.valueList.length >= 3) {
-            modelValue.value = Math.max(calcCount, 3);
+          // 筛选值数量大于 OVERFLOW_MIN_COUNT 且超出最大宽度时，最大程度展示 OVERFLOW_MIN_COUNT 个
+          if (props.valueList.length >= OVERFLOW_MIN_COUNT) {
+            modelValue.value = Math.max(calcCount, OVERFLOW_MIN_COUNT);
           } else {
             modelValue.value = props.valueList.length;
           }
