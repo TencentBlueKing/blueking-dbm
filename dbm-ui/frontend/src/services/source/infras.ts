@@ -15,19 +15,26 @@ import http from '../http';
 
 const path = '/apis/infras';
 
+interface CityItem {
+  city_code: string;
+  city_name: string;
+  inventory: number;
+  inventory_tag: string;
+}
+
 /**
  * 查询服务器资源的城市信息
  */
-export function getInfrasCities() {
-  return http.get<
-    {
-      city_code: string;
-      city_name: string;
-      inventory: number;
-      inventory_tag: string;
-    }[]
-  >(`${path}/cities/`);
-}
+export const getInfrasCities = () => http.get<CityItem[]>('/apis/infras/cities/');
+
+/**
+ * 查询服务器资源的常用和非常用城市信息
+ */
+export const getCommonCities = () =>
+  http.get<{
+    common: CityItem[];
+    internal: CityItem[];
+  }>('/apis/infras/cities/list_common_cities/');
 
 /**
  * 查询服务器资源的城市信息
