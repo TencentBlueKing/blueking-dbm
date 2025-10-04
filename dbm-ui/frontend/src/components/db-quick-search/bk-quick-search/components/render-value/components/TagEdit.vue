@@ -41,6 +41,7 @@
         padding-left: 4px;
         margin-left: -4px;
         color: #c4c6cc;
+        white-space: nowrap;
         pointer-events: none;
         background: #fafbfd;
       ">
@@ -64,7 +65,7 @@
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { calcNeedShowValueMenu } from '@components/db-quick-search/bk-quick-search/utils';
 
-  interface Props {
+  export interface Props {
     config: ContextProps['data'][number];
     lastValue: IValue;
     lastValueText: string;

@@ -33,7 +33,10 @@
           left: 0;
           padding-left: 4px;
           margin-left: -4px;
+          overflow: hidden;
           color: #c4c6cc;
+          text-overflow: ellipsis;
+          white-space: nowrap;
           pointer-events: none;
           background: #fafbfd;
         ">
@@ -365,9 +368,13 @@
           }
         }
       } else if (!currentDataConfig.value) {
-        inputValue.value && showSuggestMenu();
+        if (inputValue.value) {
+          showSuggestMenu();
+        }
       } else if (currentDataConfig.value) {
-        isNeedShowValueMenu.value && showValueMenu();
+        if (isNeedShowValueMenu.value) {
+          showValueMenu();
+        }
       }
       latestInputValue = inputValue.value;
     });
