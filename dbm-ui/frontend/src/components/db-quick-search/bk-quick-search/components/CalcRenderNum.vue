@@ -41,8 +41,6 @@
     required: true,
   });
 
-  const OVERFLOW_MIN_COUNT = 3;
-
   const currentInstance = getCurrentInstance();
 
   const rootRef = useTemplateRef('root');
@@ -60,12 +58,15 @@
         isShow.value = false;
         return;
       }
-      const valueTagElList = (
+      const renderValueTagElList = (
         Array.from(currentInstance?.proxy?.$el.parentNode.querySelectorAll('[role="search-value"]')) as HTMLDivElement[]
       ).slice(0, modelValue.value);
+      if (renderValueTagElList.length < 1) {
+        return;
+      }
 
       if (props.fouced) {
-        valueTagElList.forEach((elItem) => {
+        renderValueTagElList.forEach((elItem) => {
           const textEl = elItem.querySelector('.bk-quick-search-value-tag-text') as HTMLDivElement;
           if (textEl) {
             textEl.style.maxWidth = 'unset';
@@ -76,14 +77,17 @@
       }
       const { width: maxWidth } = rootRef.value.getBoundingClientRect();
 
-      const spaceWidth = props.valueList.length > modelValue.value ? 180 : 150;
+      const spaceWidth =
+        props.valueList.length > modelValue.value
+          ? Math.max(modelValue.value * 35 + 80, 130)
+          : Math.max(modelValue.value * 35 + 50, 100);
 
-      const tagMaxWidth = (maxWidth - spaceWidth) / valueTagElList.length;
+      const tagMaxWidth = (maxWidth - spaceWidth) / renderValueTagElList.length;
 
       const longTagList: HTMLDivElement[] = [];
       const smallTagList: HTMLDivElement[] = [];
       let smallWidthOffset = 0;
-      valueTagElList.forEach((elItem) => {
+      renderValueTagElList.forEach((elItem) => {
         const tagRenderWidth = elItem.getBoundingClientRect().width;
         if (tagRenderWidth > tagMaxWidth) {
           longTagList.push(elItem);
@@ -93,7 +97,7 @@
         }
       });
 
-      const longWidthOffset = Math.max(smallWidthOffset / longTagList.length - longTagList.length * 8, 0);
+      const longWidthOffset = Math.max(smallWidthOffset / (longTagList.length || 1) - longTagList.length * 8, 0);
 
       longTagList.forEach((elItem) => {
         const textEl = elItem.querySelector('.bk-quick-search-value-tag-text') as HTMLDivElement;
@@ -103,7 +107,7 @@
 
         const labelWidth = elItem.querySelector('.bk-quick-search-value-tag-label')!.getBoundingClientRect().width;
 
-        textEl.style.maxWidth = `${longWidthOffset + tagMaxWidth - labelWidth}px`;
+        textEl.style.maxWidth = `${Math.max(longWidthOffset + tagMaxWidth - labelWidth, 24)}px`;
       });
       isShow.value = false;
     },
@@ -125,23 +129,45 @@
 
         setTimeout(() => {
           const { width: maxWidth } = rootRef.value!.getBoundingClientRect();
-          let calcCount = 0;
+          let calcRealNeedRenderTagCount = 0;
           let renderTagTotalWidth = 0;
 
           // 计算 tag 的宽度总和是否超出容器宽度
-          tagRefs.value!.forEach((tag) => {
-            renderTagTotalWidth += tag.$el.getBoundingClientRect().width;
-            if (renderTagTotalWidth >= maxWidth - calcCount * 4 - 20) {
-              return;
+          for (const tagInst of tagRefs.value!) {
+            renderTagTotalWidth += tagInst.$el.getBoundingClientRect().width;
+            if (renderTagTotalWidth >= maxWidth - calcRealNeedRenderTagCount * 4 - 20) {
+              break;
             }
-            calcCount += 1;
-          });
+            calcRealNeedRenderTagCount += 1;
+          }
 
-          // 筛选值数量大于 OVERFLOW_MIN_COUNT 且超出最大宽度时，最大程度展示 OVERFLOW_MIN_COUNT 个
-          if (props.valueList.length >= OVERFLOW_MIN_COUNT) {
-            modelValue.value = Math.max(calcCount, OVERFLOW_MIN_COUNT);
-          } else {
+          if (calcRealNeedRenderTagCount === props.valueList.length) {
             modelValue.value = props.valueList.length;
+            return;
+          }
+
+          // 根据最大宽度响应式 tag 渲染策略
+          if (maxWidth < 180) {
+            // 折叠所有 tag
+            modelValue.value = 0;
+          } else if (maxWidth < 280) {
+            // 最大渲染一个 tag
+            const maxCount = 1;
+            const hasEnoughTags = props.valueList.length >= maxCount;
+            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
+          } else if (maxWidth < 400) {
+            // 最大渲染 2 个 tag
+            const maxCount = 2;
+            const hasEnoughTags = props.valueList.length >= maxCount;
+            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
+          } else {
+            // 最大渲染 3 个 tag
+            const maxCount = 3;
+            const hasEnoughTags = props.valueList.length >= maxCount;
+            const minRenderCount = hasEnoughTags ? maxCount : props.valueList.length;
+            modelValue.value = Math.max(calcRealNeedRenderTagCount, minRenderCount);
           }
 
           if (!props.fouced) {

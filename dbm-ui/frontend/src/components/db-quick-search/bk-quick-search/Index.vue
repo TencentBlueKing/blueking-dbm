@@ -165,7 +165,7 @@
 
   const renderTagList = computed(() => {
     const wholeList = [...localSelectValueList.value];
-    if (renderTagCount.value <= 0 || isFouced.value) {
+    if (renderTagCount.value < 0 || isFouced.value) {
       return wholeList;
     }
     return wholeList.slice(0, renderTagCount.value);
