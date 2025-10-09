@@ -104,10 +104,10 @@ class CheckMongoBackupRecordTask:
         tags = {tag.key: tag.value for tag in cluster.tags} if cluster.tags else {}
         v = tags.get("backup", "")
         if v in ["no", "false"]:
-            return True, "skipped by backup:{}".format(v)
+            return True, "skipped by tag backup:{}".format(v)
         v = tags.get("temporary", "")
         if v == "true":
-            return True, "skipped by temporary:{}".format(v)
+            return True, "skipped by tag temporary:{}".format(v)
         return False, ""
 
     def check_cluster(self, cluster: MongoDBCluster, report_day: int):
@@ -291,54 +291,65 @@ class BackupRecordStat:
         except Exception:
             return None, None, None
 
-    def check_incremental_backup_record(self, incr_list: list) -> tuple[str, str]:
+    def check_incremental_backup_record(self, incr_list: list) -> (str, str):
         if not incr_list:
             return ReportStateType.ABNORMAL.value, "no incremental backup record"
 
         # incr_list sort by pitr_binlog_index
         incr_list.sort(key=lambda x: x.get("pitr_binlog_index", -1))
 
+        # 第一个记录不是全备，返回 "skipped"，由上层处理
         if incr_list[0].get("pitr_file_type") != "FULL":
             return ReportStateType.WARNING.value, "skipped"
 
-        max_duration = timedelta(hours=1)
+        max_duration_in_hours = 0
         max_duration_file_name = ""
-        # 检查增量备份记录是否连续
+        full_backup_time_threshold = 8
+        incr_backup_time_threshold = 2
+        # 检查增量备份记录是否连续, 并找出最长的备份时长和备份文件名
+        # 不连续的增量备份记录，返回异常
+        # 备份时长超过阈值，返回警告
+        # abnormal 直接返回, warning 则要继续检查
+        warning_msg = []
         for i, v in enumerate(incr_list):
             start_time, end_time, duration = self.get_backup_time(v)
             # duration 有可能是0，正常
             if not all([start_time, end_time]):
-                return ReportStateType.ABNORMAL.value, "get backup time error for record: {}".format(v)
+                abnormal_msg = f"get backup time error for record: {v}"
+                return ReportStateType.ABNORMAL.value, abnormal_msg
 
+            duration_in_hours = round(duration.total_seconds() / 3600, 2)
+            dev_debug(f"backup_time_in_hours: {duration_in_hours}")
+
+            # first record, full backup
             if i == 0:
-                # 检查全备时长
-                if duration > timedelta(hours=8):
-                    return (ReportStateType.WARNING.value,)
-                    "full backup time too long: {} hours".format(round((duration).total_seconds() / 3600, 2))
+                if duration_in_hours >= full_backup_time_threshold:
+                    warning_msg.append(
+                        f"full backup time too long: {duration_in_hours}, gt {full_backup_time_threshold} hours"
+                    )
+            else:
+                idx = v.get("pitr_binlog_index", -2)
+                prev_idx = incr_list[i - 1].get("pitr_binlog_index", -2)
+                if int(idx) - int(prev_idx) != 1:
+                    abnormal_msg = "incremental backup record not continuous"
+                    return ReportStateType.ABNORMAL.value, abnormal_msg
 
-                continue
+                if duration_in_hours > max_duration_in_hours:
+                    max_duration_in_hours = duration_in_hours
+                    max_duration_file_name = v.get("file_name", "")
 
-            idx = v.get("pitr_binlog_index", -2)
-            prev_idx = incr_list[i - 1].get("pitr_binlog_index", -2)
-            if int(idx) - int(prev_idx) != 1:
-                return ReportStateType.ABNORMAL.value, "incremental backup record not continuous"
-
-            if duration > max_duration:
-                max_duration = duration
-                max_duration_file_name = v.get("file_name")
-
-        if max_duration_file_name != "":
-            dev_debug(
-                "incremental backup time too long: {} hours file_name: {}".format(
-                    (max_duration).total_seconds() / 3600,
-                    max_duration_file_name,
-                )
+        if max_duration_in_hours >= incr_backup_time_threshold:
+            err_msg = (
+                f"incr backup time too long: {max_duration_in_hours} hours, "
+                f"gt {incr_backup_time_threshold} hours, file_name: {max_duration_file_name}"
             )
-            return ReportStateType.WARNING.value, "incremental backup time too long: {} hours file_name: {}".format(
-                round((max_duration).total_seconds() / 3600, 2),
-                max_duration_file_name,
-            )
+            dev_debug(err_msg)
+            warning_msg.append(err_msg)
 
+        # 如果有警告，返回第一个警告
+        if warning_msg:
+            return ReportStateType.WARNING.value, warning_msg[0]
+        # 没有警告，返回正常
         return ReportStateType.NORMAL.value, "ok"
 
 
