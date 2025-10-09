@@ -15,6 +15,8 @@ import humanize
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.models import BKCity, LogicalCity
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.constants import IpSource
@@ -61,6 +63,25 @@ def list_cities() -> List[LCityModel]:
         city_name = _("随机") if city.name == "default" else city.name
         cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
     return cities
+
+
+def list_common_cities():
+    """返回常用城市列表"""
+    cities = []
+    common_cities = []
+    commit_city_list = SystemSettings.get_setting_value(
+        key=SystemSettingsEnum.COMMON_CITIES.value,
+        default=[],
+    )
+    for city in LogicalCity.objects.all().order_by("-name"):
+        city_code = city.name
+        # 如果是default，则前端展示为无地域
+        city_name = _("随机") if city.name == "default" else city.name
+        if city_code in commit_city_list:
+            common_cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
+        else:
+            cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
+    return cities, common_cities
 
 
 def list_logic_cities() -> List:
