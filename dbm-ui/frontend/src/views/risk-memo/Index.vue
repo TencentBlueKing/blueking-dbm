@@ -50,6 +50,9 @@
     { label: t('业务风险'), name: 'biz_risk' },
     { label: t('业务特殊要求'), name: 'special_demand' },
   ];
+  watch(isSpecial, () => {
+    currentRiskId.value = 0;
+  });
 
   const handleChooseRiskItem = (id: number) => {
     currentRiskId.value = id;

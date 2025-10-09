@@ -1,7 +1,8 @@
 <template>
   <div
-    v-if="isEditorMode"
-    class="db-editor-main">
+    ref="editorWraperRef"
+    class="db-editor-main"
+    :class="{ 'is-readonly': !isEditorMode }">
     <Toolbar
       :default-config="toolbarConfig"
       :editor="editorRef"
@@ -14,10 +15,6 @@
       :style="{ height: `${editorHeight}px` }"
       @on-created="handleCreated" />
   </div>
-  <div
-    v-else
-    v-bk-xss-html="editorHtml"
-    class="editor-content-view"></div>
 </template>
 <script setup lang="ts">
   import Cookies from 'js-cookie';
@@ -63,6 +60,8 @@
     default: '',
   });
 
+  const editorWraperRef = ref<HTMLDivElement>();
+
   // 编辑器实例，必须用 shallowRef
   const editorRef = shallowRef();
 
@@ -89,15 +88,30 @@
 
   const mode = 'default';
 
+  watch(
+    isEditorMode,
+    () => {
+      setTimeout(() => {
+        const editTextareaDom = editorWraperRef.value!.querySelector('div[id^="w-e-textarea"]');
+        if (editTextareaDom) {
+          editTextareaDom.setAttribute('contenteditable', isEditorMode.value ? 'true' : 'false');
+        }
+
+        if (isEditorMode.value) {
+          editorRef.value?.focus(true);
+        }
+      });
+    },
+    { immediate: true },
+  );
+
   const handleCreated = (editor: any) => {
     editorRef.value = editor; // 记录 editor 实例，必须！
   };
 
   // 组件销毁时，也及时销毁编辑器
   onBeforeUnmount(() => {
-    const editor = editorRef.value;
-    if (editor == null) return;
-    editor.destroy();
+    editorRef.value?.destroy();
   });
 </script>
 <style lang="less">
@@ -108,60 +122,30 @@
     &.w-e-full-screen-container {
       z-index: 999;
     }
-  }
 
-  .editor-content-view {
-    background: #f5f7fa;
-    border-radius: 8px;
-    padding: 16px;
-    position: relative;
-    font-family: MicrosoftYaHei;
-    color: #313238;
-  }
+    &.is-readonly {
+      padding: 0;
 
-  .editor-content-view p,
-  .editor-content-view li {
-    white-space: pre-wrap; /* 保留空格 */
-  }
+      [id^='w-e-element'] {
+        margin: 0;
+      }
 
-  .editor-content-view blockquote {
-    border-left: 8px solid #d0e5f2;
-    padding: 10px 10px;
-    margin: 10px 0;
-    background-color: #f1f1f1;
-  }
+      div[id^='w-e-textarea'] {
+        padding: 0;
+      }
 
-  .editor-content-view code {
-    font-family: monospace;
-    background-color: #eee;
-    padding: 3px;
-    border-radius: 3px;
-  }
-  .editor-content-view pre > code {
-    display: block;
-    padding: 10px;
-  }
+      div[data-w-e-toolbar='true'] {
+        display: none;
+      }
 
-  .editor-content-view table {
-    border-collapse: collapse;
-  }
-  .editor-content-view td,
-  .editor-content-view th {
-    border: 1px solid #ccc;
-    min-width: 50px;
-    height: 20px;
-  }
-  .editor-content-view th {
-    background-color: #f1f1f1;
-  }
+      div[data-w-e-textarea='true'] {
+        height: auto !important;
+      }
 
-  .editor-content-view ul,
-  .editor-content-view ol {
-    padding-left: 20px;
-  }
-
-  .editor-content-view input[type='checkbox'] {
-    margin-right: 5px;
+      .w-e-text-container {
+        background: transparent;
+      }
+    }
   }
 
   .edit-follow-up {

@@ -109,7 +109,6 @@
       <span>{{ isSpecial ? t('请先在左侧新建要求') : t('请先在左侧新建风险') }}</span>
     </BkException>
   </div>
-
   <CloseRisk
     v-model:is-show="isShowCloseRisk"
     :data="riskMemoDetail"
@@ -264,6 +263,8 @@
     () => {
       if (props.riskId) {
         runGetRiskMemoDetail({ risk_id: props.riskId });
+      } else {
+        riskMemoDetail.value = undefined;
       }
     },
     {
