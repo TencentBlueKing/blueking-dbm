@@ -324,8 +324,6 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 	msg := bytes.NewBuffer(buf)
 	ctxTimeout, procTimeout := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	_ = procTimeout // 暂时不用
-	checkCone := time.Tick(100 * time.Millisecond)
-	checkConeCount := 0
 	bytesTotal := 0
 	for {
 		select {
@@ -342,6 +340,7 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 			bytesTotal += n
 			// 超过了bufSize
 			if werr != nil {
+				r.logger.Error("msg.Write", slog.Any("err", werr))
 				return msg.Bytes(), werr
 			}
 			if bytesTotal > maxRespSize {
@@ -349,7 +348,6 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 					slog.Int("maxRespSize", maxRespSize), slog.String("data", shortMsg(string(v), 512)))
 				return nil, fmt.Errorf("excess data size %dMB", maxRespSize/1024/1024)
 			}
-			checkConeCount = 0
 
 			if endFlag {
 				// delete EndOfOutput
@@ -360,14 +358,9 @@ func (r *MongoShell) ReceiveMsg(timeout int64) (out []byte, err error) {
 			}
 
 		case <-ctxTimeout.Done():
-			r.logger.Info("ctxTimeout.Done")
+			r.logger.Info("ctxTimeout.Done timeout", slog.Int64("timeout", timeout))
 			return msg.Bytes(), fmt.Errorf("timeout") // 返回超时或取消原因
-		case <-checkCone:
-			checkConeCount += 1
-			if msg.Len() > 0 && checkConeCount > 4 {
-				r.logger.Info("timeout", slog.Int("msgLen", msg.Len()))
-				return msg.Bytes(), nil
-			}
+
 		}
 	}
 

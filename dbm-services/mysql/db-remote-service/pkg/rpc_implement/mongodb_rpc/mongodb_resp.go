@@ -19,12 +19,14 @@ type QueryResp struct {
 	ErrorMsg        string `json:"error_msg"`         // 错误信息
 	DebugInfo       string `json:"debug_info"`        // session信息
 	SessionReqCount int    `json:"session_req_count"` // 请求次数
+	RequestId       string `json:"request_id"`        // 请求id
 }
 
 type respHandle struct {
-	c      *gin.Context
-	param  *QueryParams
-	logger *slog.Logger
+	c         *gin.Context
+	param     *QueryParams
+	logger    *slog.Logger
+	requestId string
 }
 
 func (r *respHandle) SendResp(data string, code int, errMsg string, sessionReqCount int) {
@@ -45,6 +47,7 @@ func (r *respHandle) SendResp(data string, code int, errMsg string, sessionReqCo
 		slog.String("errMsg", errMsg),
 		slog.String("debugInfo", debugInfo),
 		slog.Int("sessionReqCount", sessionReqCount),
+		slog.String("requestId", r.requestId),
 	)
 	r.c.JSON(http.StatusOK, QueryResp{
 		Code:            code,
@@ -52,6 +55,7 @@ func (r *respHandle) SendResp(data string, code int, errMsg string, sessionReqCo
 		Data:            data,
 		DebugInfo:       debugInfo,
 		SessionReqCount: sessionReqCount,
+		RequestId:       r.requestId,
 	})
 }
 
@@ -62,9 +66,10 @@ func (r *respHandle) SendError(errMsg string, sessionReqCount int) {
 
 func NewRespHandle(c *gin.Context, param *QueryParams, logger *slog.Logger) *respHandle {
 	return &respHandle{
-		c:      c,
-		param:  param,
-		logger: logger,
+		c:         c,
+		param:     param,
+		logger:    logger,
+		requestId: c.GetHeader("X-Request-ID"),
 	}
 }
 
