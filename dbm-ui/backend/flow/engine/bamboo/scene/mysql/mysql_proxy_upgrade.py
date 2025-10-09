@@ -10,19 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
-from collections import defaultdict
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.enums.instance_phase import InstancePhase
-from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
+from backend.flow.consts import DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -31,7 +31,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQ
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name, proxy_version_parse
+from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 
 logger = logging.getLogger("flow")
@@ -69,32 +69,22 @@ class MySQLProxyLocalUpgradeFlow(object):
         # 统一下发文件
         # 声明子流程
         for upgrade_info in self.upgrade_cluster_list:
-            cluster_ids = upgrade_info["cluster_ids"]
+            # Ensure deterministic order of cluster processing
+            cluster_ids = sorted(upgrade_info["cluster_ids"])
             pkg_id = upgrade_info["pkg_id"]
             proxy_pkg = Package.objects.get(id=pkg_id)
-            logger.info("param pkg_id:{},get the pkg name: {}".format(pkg_id, proxy_pkg.name))
-            new_proxy_version_num = proxy_version_parse(proxy_pkg.name)
+            logger.info("param pkg_id:{}, get the pkg name: {}".format(pkg_id, proxy_pkg.name))
             clusters = Cluster.objects.filter(id__in=cluster_ids)
+            sub_process_name = _("{} 升级").format(",".join([c.immute_domain for c in clusters]))
             proxies = ProxyInstance.objects.filter(cluster__in=clusters)
-            if len(proxies) <= 0:
-                raise DBMetaException(message=_("根据cluster ids:{}法找到对应的proxy实例").format(cluster_ids))
             bk_cloud_id = clusters[0].bk_cloud_id
             sub_flow_context = copy.deepcopy(self.data)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-            ports_map = defaultdict(list)
             proxy_ips = []
-            # 元数据版本检查
+            # 收集proxy实例的端口和IP信息
             for proxy_instance in proxies:
-                current_version = proxy_version_parse(proxy_instance.version)
-                if current_version >= new_proxy_version_num:
-                    logger.error(
-                        "the upgrade version {} needs to be larger than the current verion {}".format(
-                            new_proxy_version_num, current_version
-                        )
-                    )
-                    raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
-                ports_map[proxy_instance.machine.ip].append(proxy_instance.port)
                 proxy_ips.append(proxy_instance.machine.ip)
+            proxy_ips = list(set(proxy_ips))
             # 切换前做预检测
             if not self.force_upgrade:
                 check_db_connect_sub_flow_list = []
@@ -128,22 +118,22 @@ class MySQLProxyLocalUpgradeFlow(object):
                     )
                 ),
             )
-            for index, (proxy_ip, ports) in enumerate(ports_map.items()):
+            for index, proxy_ip in enumerate(proxy_ips):
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_proxy_subflow(
                         bk_cloud_id=bk_cloud_id,
                         ip=proxy_ip,
                         pkg_id=pkg_id,
                         proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
-                        proxy_ports=ports,
+                        cluster_ids=cluster_ids,
                         force_upgrade=True,
                     )
                 )
                 # 最后一个节点无需再确认
-                if index < len(ports_map) - 1:
+                if index < len(proxy_ips) - 1:
                     sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("本地升级proxy版本")))
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=sub_process_name))
         proxy_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         proxy_upgrade_pipeline.run_pipeline()
         return
@@ -154,17 +144,14 @@ class MySQLProxyLocalUpgradeFlow(object):
         bk_cloud_id: int,
         pkg_id: int,
         proxy_version: str,
-        proxy_ports: list = None,
+        cluster_ids: List[int] = None,
         force_upgrade: bool = True,
     ):
         """
         定义upgrade mysql proxy 的flow
         """
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-        cluster = {"proxy_ports": proxy_ports, "pkg_id": pkg_id, "force_upgrade": force_upgrade}
-        exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
-        exec_act_kwargs.exec_ip = ip
-        exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_payload.__name__
+
         sub_pipeline.add_act(
             act_name=_("更新proxy instance status -> upgrade"),
             act_component_code=MySQLDBMetaComponent.code,
@@ -175,37 +162,93 @@ class MySQLProxyLocalUpgradeFlow(object):
                 )
             ),
         )
-        # 执行本地升级
+        # 解压介质，更新软连接
+        exec_act_kwargs = ExecActuatorKwargs(
+            cluster={
+                "proxy_ports": [0, 1, 2],
+                "pkg_id": pkg_id,
+            },
+            bk_cloud_id=bk_cloud_id,
+        )
+
+        exec_act_kwargs.exec_ip = ip
+        exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_relink_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("执行本地升级"),
+            act_name=_("[整机行为]替换介质软链"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        # 更新proxy instance version 信息
-        act_list = []
-        act_list.append(
-            {
-                "act_name": _("更新proxy version meta信息"),
-                "act_component_code": MySQLDBMetaComponent.code,
-                "kwargs": asdict(
+        # 实例执行本地升级
+        proxy_ins_sub_pipelines = []
+        proxy_ports = []
+        for cluster_id in cluster_ids:
+            cluster = Cluster.objects.get(id=cluster_id)
+            proxy_ins = ProxyInstance.objects.get(cluster=cluster, machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
+            proxy_ports.append(proxy_ins.port)
+            proxy_ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            disable_entry_process = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.DISABLE,
+                param={
+                    "cluster_id": cluster_id,
+                    "port": proxy_ins.port,
+                    "del_ips": [ip],
+                },
+            )
+            enable_entry_process = BuildEntrysManageSubflow(
+                root_id=self.root_id,
+                ticket_data=self.data,
+                op_type=DnsOpType.CREATE,
+                param={
+                    "cluster_id": cluster_id,
+                    "port": proxy_ins.port,
+                    "add_ips": [ip],
+                },
+            )
+            proxy_ins_sub_pipeline.add_sub_pipeline(sub_flow=disable_entry_process)
+            exec_act_kwargs = ExecActuatorKwargs(
+                cluster={"proxy_ports": [proxy_ins.port], "pkg_id": pkg_id, "force_upgrade": force_upgrade},
+                bk_cloud_id=bk_cloud_id,
+            )
+            exec_act_kwargs.exec_ip = ip
+            exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_payload.__name__
+            proxy_ins_sub_pipeline.add_act(
+                act_name=_("[{}:{}] 重启proxy,refresh backend").format(ip, proxy_ins.port),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
+            proxy_ins_sub_pipeline.add_act(
+                act_name=_("更新proxy version meta信息"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.update_proxy_instance_version.__name__,
-                        cluster={"proxy_ip": ip, "version": proxy_version},
+                        cluster={"proxy_ip": ip, "version": proxy_version, "port": proxy_ins.port},
                     )
                 ),
-            }
-        )
-        act_list.append(
-            {
-                "act_name": _("更新proxy instance status -> online"),
-                "act_component_code": MySQLDBMetaComponent.code,
-                "kwargs": asdict(
+            )
+            proxy_ins_sub_pipeline.add_sub_pipeline(sub_flow=enable_entry_process)
+            proxy_ins_sub_pipeline.add_act(
+                act_name=_("更新proxy instance status -> online"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.update_proxy_instance_status.__name__,
-                        cluster={"proxy_ip": ip, "phase": InstancePhase.ONLINE, "status": InstanceStatus.RUNNING},
+                        cluster={
+                            "proxy_ip": ip,
+                            "phase": InstancePhase.ONLINE,
+                            "status": InstanceStatus.RUNNING,
+                            "port": proxy_ins.port,
+                        },
                     )
                 ),
-            }
+            )
+            proxy_ins_sub_pipelines.append(
+                proxy_ins_sub_pipeline.build_sub_process(sub_name=_("{}:{}实例升级").format(ip, proxy_ins.port))
+            )
+        sub_pipeline.add_parallel_sub_pipeline(proxy_ins_sub_pipelines)
+        return sub_pipeline.build_sub_process(
+            sub_name=_("{}:[{}]proxy实例升级").format(ip, ",".join(map(str, proxy_ports)))
         )
-        sub_pipeline.add_parallel_acts(act_list)
-        return sub_pipeline.build_sub_process(sub_name=_("{}proxy实例升级").format(ip))

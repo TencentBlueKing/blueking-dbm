@@ -1170,18 +1170,30 @@ class MySQLDBMeta(object):
         升级后更新proxy版本信息
         """
         with atomic():
-            ProxyInstance.objects.filter(
-                machine__ip=self.cluster["proxy_ip"],
-            ).update(version=self.cluster["version"])
+            if self.cluster.get("port"):
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                    port=self.cluster["port"],
+                ).update(version=self.cluster["version"])
+            else:
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                ).update(version=self.cluster["version"])
 
     def update_proxy_instance_status(self):
         """
         更新proxy状态
         """
         with atomic():
-            ProxyInstance.objects.filter(
-                machine__ip=self.cluster["proxy_ip"],
-            ).update(phase=self.cluster["phase"], status=self.cluster["status"])
+            if self.cluster.get("port"):
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                    port=self.cluster["port"],
+                ).update(phase=self.cluster["phase"], status=self.cluster["status"])
+            else:
+                ProxyInstance.objects.filter(
+                    machine__ip=self.cluster["proxy_ip"],
+                ).update(phase=self.cluster["phase"], status=self.cluster["status"])
 
     def update_mysql_instance_version(self):
         """

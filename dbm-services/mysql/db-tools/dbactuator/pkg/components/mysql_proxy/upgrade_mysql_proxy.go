@@ -131,6 +131,7 @@ func (p *UpgradeProxyComp) checkAppProcessist() (err error) {
 // ReplaceMedium 替换介质
 func (p *UpgradeProxyComp) ReplaceMedium() (err error) {
 	logger.Info("解压新版的介质")
+	p.installPath = cst.UsrLocal
 	pkgAbPath := p.Params.Medium.GetAbsolutePath()
 	if output, err := osutil.StandardShellCommand(false, fmt.Sprintf("cd %s && tar zxf %s -C ./ ", p.installPath,
 		pkgAbPath)); err != nil {

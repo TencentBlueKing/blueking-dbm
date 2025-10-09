@@ -795,6 +795,8 @@ class DnsOpType(str, StructuredEnum):
     CLB_CHANGE_WEIGHT = EnumField("clb_change_weight", _("clb修改权重"))
     CLB_DISABLE_RS = EnumField("clb_disable_rs", _("clb_disable_rs"))
     CLB_ENABLE_RS = EnumField("clb_enable_rs", _("clb_enable_rs"))
+    DISABLE = EnumField("disable", _("disable"))
+    ENABLE = EnumField("enable", _("enable"))
 
 
 class ManagerOpType(str, StructuredEnum):
