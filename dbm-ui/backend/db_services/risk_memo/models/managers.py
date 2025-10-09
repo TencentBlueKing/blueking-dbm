@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 
 from django.db import models
 
@@ -13,7 +13,7 @@ class RiskMemoManager(models.Manager):
         if validated_data["status"] == Status.DONE.value:
             # 如果当前状态转为结项 补充结项信息
             risk.final_content = validated_data.pop("final_content", "")
-            risk.final_time = datetime.datetime.now(datetime.timezone.utc)
+            risk.final_time = datetime.now(timezone.utc)
             risk.finished_by = request.user.username
             risk.status = validated_data["status"]
             risk.duration_time = (risk.final_time - risk.create_at).total_seconds()
