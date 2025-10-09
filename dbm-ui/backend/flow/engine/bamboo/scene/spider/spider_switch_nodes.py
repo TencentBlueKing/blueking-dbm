@@ -177,26 +177,30 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             )
 
         # 在做一下容灾级别检查，因为flow validator 只能做前置检验，这是没有申请到机器，所以只能在flow构建时判断
-
+        # spider_slave角色不做容灾检查
         # 计算出剩余spider节点
-        remaining_spiders = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=spider_role).exclude(
-            machine__ip__in=[i["ip"] for i in old_spider_hosts]
-        )
+        if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+            remaining_spiders = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=spider_role
+            ).exclude(machine__ip__in=[i["ip"] for i in old_spider_hosts])
 
-        check_hosts = [
-            {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
-            for i in remaining_spiders
-        ]
-        if len(new_spider_hosts + check_hosts) > 1:
-            # 大于1做亲和性检测
-            if not BaseValidator.check_disaster_tolerance_level(cluster, new_spider_hosts + check_hosts):
-                raise CheckDisasterToleranceException(
-                    message=_(
-                        "[{}]集群spider节点不满足容灾要求[{}]，请检查，替换后后预期节点信息:{}".format(
-                            cluster.immute_domain, cluster.disaster_tolerance_level, new_spider_hosts + check_hosts
+            check_hosts = [
+                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                for i in remaining_spiders
+            ]
+            if len(new_spider_hosts + check_hosts) > 1:
+                # 大于1做亲和性检测
+                if not BaseValidator.check_disaster_tolerance_level(cluster, new_spider_hosts + check_hosts):
+                    raise CheckDisasterToleranceException(
+                        message=_(
+                            "[{}]集群{}节点不满足容灾要求[{}]，请检查，替换后后预期节点信息:{}".format(
+                                cluster.immute_domain,
+                                spider_role,
+                                cluster.disaster_tolerance_level,
+                                new_spider_hosts + check_hosts,
+                            )
                         )
                     )
-                )
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=sub_flow_context)
 
