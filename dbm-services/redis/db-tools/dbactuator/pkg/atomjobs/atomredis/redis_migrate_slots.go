@@ -498,21 +498,24 @@ func (job *ClusterMigrateSlots) ReBalanceCluster() error {
 		runningMasterList = append(runningMasterList, nodeItem)
 		totalBalance += nodeItem.Balance()
 	}
-	for totalBalance > 0 {
-		for _, node01 := range allRunningMasters {
-			nodeItem := node01
-			if nodeItem.Balance() < 0 && totalBalance > 0 {
-				t01 := nodeItem.Balance() - 1
-				nodeItem.SetBalance(t01)
-				totalBalance -= 1
-			}
-		}
-	}
+
+	// 先排序
 	sort.Slice(runningMasterList, func(i, j int) bool {
 		a := runningMasterList[i]
 		b := runningMasterList[j]
 		return a.Balance() < b.Balance()
 	})
+
+	// 逆序遍历，将余下的slot均摊到每个节点，减少需要变动的slot
+	runningMasterIndex := allRunningCnt - 1
+	for totalBalance > 0 && runningMasterIndex > 0 {
+		nodeItem := runningMasterList[runningMasterIndex]
+		// slot迁入节点，多迁入一个。 slot迁出节点，少迁出一个
+		t01 := nodeItem.Balance() - 1
+		nodeItem.SetBalance(t01)
+		totalBalance -= 1
+		runningMasterIndex -= 1
+	}
 
 	for _, node01 := range runningMasterList {
 		nodeItem := node01
