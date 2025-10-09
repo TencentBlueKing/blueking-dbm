@@ -157,6 +157,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     CLUSTER_LOAD_RULE = EnumField("CLUSTER_LOAD_RULE", _("集群负载判定配置"))
     # 平台管理运营数据开关
     OPERATION_DATA_SWITCH = EnumField("OPERATION_DATA_SWITCH", _("运营数据开关"))
+    # 常用城市配置
+    COMMON_CITIES = EnumField("COMMON_CITIES", _("常用城市配置"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
