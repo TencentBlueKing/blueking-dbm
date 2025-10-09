@@ -26,6 +26,7 @@ from .host import (
     list_cap_specs_ssd,
     list_cap_specs_tendisplus,
     list_cities,
+    list_common_cities,
     list_host_specs,
     list_logic_cities,
     list_subzones,
@@ -64,6 +65,19 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
     def list_cities(self, requests, *args, **kwargs):
         serializer = serializers.CitySLZ(list_cities(), many=True)
         return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询服务器资源的常用城市信息"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_common_cities(self, requests, *args, **kwargs):
+        cities, common_cities = list_common_cities()
+        resp_data = {
+            "common": serializers.CitySLZ(common_cities, many=True).data,
+            "internal": serializers.CitySLZ(cities, many=True).data,
+        }
+        return Response(resp_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询逻辑城市映射关系"),
