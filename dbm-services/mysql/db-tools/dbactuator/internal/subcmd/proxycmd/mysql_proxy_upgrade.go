@@ -45,6 +45,27 @@ func NewMySQLProxyUpgradeAct() *cobra.Command {
 	return cmd
 }
 
+func NewMySQLProxyUpgradeRelinkAct() *cobra.Command {
+	act := MySQLProxyUpgradeAct{
+		BaseOptions: subcmd.GBaseOptions,
+	}
+	cmd := &cobra.Command{
+		Use:   "upgrade-relink",
+		Short: "mysql-proxy版本重新链接",
+		Example: fmt.Sprintf("dbactuator proxy upgrade-relink %s %s", subcmd.CmdBaseExampleStr,
+			subcmd.ToPrettyJson(act.Service.Example())),
+		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(act.Init())
+			util.CheckErr(act.Relink())
+		},
+	}
+	return cmd
+}
+
+func (c *MySQLProxyUpgradeAct) Relink() error {
+	return c.Service.ReplaceMedium()
+}
+
 // Init prepare run env
 func (c *MySQLProxyUpgradeAct) Init() (err error) {
 	if err = c.Deserialize(&c.Service.Params); err != nil {
@@ -66,10 +87,10 @@ func (c *MySQLProxyUpgradeAct) Run() error {
 			FunName: "前置检查",
 			Func:    c.Service.PreCheck,
 		},
-		{
-			FunName: "升级替换介质包",
-			Func:    c.Service.ReplaceMedium,
-		},
+		// {
+		// 	FunName: "升级替换介质包",
+		// 	Func:    c.Service.ReplaceMedium,
+		// },
 		{
 			FunName: "重启proxy",
 			Func:    c.Service.RestartProxy,

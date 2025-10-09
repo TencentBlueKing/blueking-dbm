@@ -98,6 +98,25 @@ class ProxyActPayload(object):
             },
         }
 
+    def get_proxy_upgrade_relink_payload(self, **kwargs) -> dict:
+        """
+        local upgrade mysql proxy
+        """
+        proxy_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
+        return {
+            "db_type": DBActuatorTypeEnum.Proxy.value,
+            "action": DBActuatorActionEnum.UpgradeRelink.value,
+            "payload": {
+                "general": {"runtime_account": self.proxy_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["proxy_ports"],
+                    "pkg": proxy_pkg.name,
+                    "pkg_md5": proxy_pkg.md5,
+                },
+            },
+        }
+
     def get_proxy_upgrade_payload(self, **kwargs) -> dict:
         """
         local upgrade mysql proxy

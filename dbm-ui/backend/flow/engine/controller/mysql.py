@@ -77,6 +77,7 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_migr
     MySQLProxySwitchForMigrateValidator,
 )
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_validator import MySQLProxySwitchValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_upgrade_validator import MySQLProxyUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.validate.base_validate import validates_with
 
@@ -580,6 +581,7 @@ class MySQLController(BaseController):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
 
+    @validates_with(MySQLProxyUpgradeValidator)
     def mysql_proxy_upgrade_scene(self):
         """
         添加mysql_proxy实例场景(新flow编排)

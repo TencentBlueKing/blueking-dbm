@@ -30,6 +30,7 @@ class MysqlProxyUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlProxyUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_upgrade_scene
+    validator = MySQLController.mysql_proxy_upgrade_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_UPGRADE)
