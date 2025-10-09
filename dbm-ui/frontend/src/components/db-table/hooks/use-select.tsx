@@ -1,19 +1,24 @@
-import { Checkbox, Popover } from 'bkui-vue';
-import { defineComponent, ref, shallowRef } from 'vue';
+import { Popover } from 'bkui-vue';
+import _ from 'lodash';
+import { Checkbox } from 'tdesign-vue-next';
+import { defineComponent, getCurrentInstance, type Ref, ref, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { TableColumn } from '@blueking/table';
+import { TableColumn } from '@blueking/tdesign-ui';
 
 import DbIcon from '@components/db-icon/index';
 
-import { type Props } from '../IndexNew.vue';
-import _ from 'lodash';
+import { type Exposes, type Props } from '../IndexNew.vue';
 
-export const useSelect = (props: Props, tableData: Record<string, any>[]) => {
+export const useSelect = (
+  props: Props,
+  tableData: Ref<{ results: Record<string, any>[] }>,
+  options?: { callback: () => void },
+) => {
   const { t } = useI18n();
+  const currentInstance = getCurrentInstance();
 
-  const showSelectAllPage = ref(false);
-  const rowSelectMap = shallowRef<Record<string | number, Record<any, any>>>({});
+  const selectedRowMap = shallowRef<Record<string | number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
 
   // 是否本页全选
@@ -21,66 +26,82 @@ export const useSelect = (props: Props, tableData: Record<string, any>[]) => {
     if (isWholeChecked.value) {
       return false;
     }
-    if (tableData.length < 1) {
+    if (tableData.value.results.length < 1) {
       return false;
     }
-    const selectMap = { ...rowSelectMap.value };
+    const selectedMap = { ...selectedRowMap.value };
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < tableData.length; i++) {
-      if (!selectMap[_.get(tableData[i], props.primaryKey)]) {
+    for (let i = 0; i < tableData.value.results.length; i++) {
+      if (!selectedMap[_.get(tableData.value.results[i], props.rowKey)]) {
         return false;
       }
     }
     return true;
   });
 
-  const handleClearWholeSelect = () => {
-    rowSelectMap.value = {};
-    isWholeChecked.value = false;
-  };
-
   const handleTogglePageSelect = (checked: boolean) => {
-    const selectMap = { ...rowSelectMap.value };
-    tableData.forEach((dataItem: any) => {
+    const selectedMap = { ...selectedRowMap.value };
+    tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
         if (!props.disableSelectMethod?.(dataItem)) {
-          selectMap[_.get(dataItem, props.primaryKey || 'id')] = dataItem;
+          selectedMap[_.get(dataItem, props.rowKey)] = dataItem;
         }
       } else {
-        delete selectMap[_.get(dataItem, props.primaryKey || 'id')];
+        delete selectedMap[_.get(dataItem, props.rowKey)];
       }
     });
-    if (!checked) {
-      isWholeChecked.value = false;
-    }
-    rowSelectMap.value = selectMap;
+    isWholeChecked.value = false;
+    selectedRowMap.value = selectedMap;
+    options?.callback();
   };
 
   const handleWholeSelect = () => {
-    console.log('handleWholeSelect');
+    (currentInstance!.exposeProxy as Exposes).fetchAllData().then((results) => {
+      const selectedMap = { ...selectedRowMap.value };
+      results.forEach((dataItem: any) => {
+        if (props.disableSelectMethod?.(dataItem)) {
+          return;
+        }
+        selectedMap[_.get(dataItem, props.rowKey)] = dataItem;
+      });
+      selectedRowMap.value = selectedMap;
+      isWholeChecked.value = true;
+      options?.callback();
+    });
   };
 
-  const handlePageSelect = () => {
-    const selectMap = { ...rowSelectMap.value };
-    tableData.forEach((dataItem: any) => {
-      if (props.disableSelectMethod?.(dataItem)) {
-        return;
-      }
-      selectMap[_.get(dataItem, props.primaryKey || 'id')] = dataItem;
-    });
-    rowSelectMap.value = selectMap;
+  const handleSelect = (rowData: Record<string, any>) => {
+    const selectedMap = { ...selectedRowMap.value };
+    if (selectedMap[_.get(rowData, props.rowKey)]) {
+      delete selectedMap[_.get(rowData, props.rowKey)];
+    } else {
+      selectedMap[_.get(rowData, props.rowKey)] = rowData;
+    }
     isWholeChecked.value = false;
+    selectedRowMap.value = selectedMap;
+    options?.callback();
+  };
+
+  const handleClearWholeSelect = () => {
+    selectedRowMap.value = {};
+    isWholeChecked.value = false;
+    options?.callback();
   };
 
   const selectColumn = defineComponent({
     setup() {
       return () => (
-        <TableColumn>
+        <TableColumn
+          colKey='selection'
+          fixed='left'
+          width={60}>
           {{
-            default: () => (
-              <div>
-                <Checkbox />
-              </div>
+            default: ({ row }: { row: any }) => (
+              <Checkbox
+                modelValue={Boolean(selectedRowMap.value[row[props.rowKey]])}
+                style='width: 16px; height: 16px;'
+                onChange={() => handleSelect(row)}
+              />
             ),
             title: () => (
               <div class='db-table-select-cell'>
@@ -94,48 +115,47 @@ export const useSelect = (props: Props, tableData: Record<string, any>[]) => {
                     {isCurrentPageAllSelected.value ? (
                       <Checkbox
                         key='page'
-                        label={true}
                         modelValue={true}
+                        style='width: 16px;'
                         onChange={handleTogglePageSelect}
                       />
                     ) : (
                       <Checkbox
                         key='all'
+                        style='width: 16px;'
                         onChange={handleWholeSelect}
-                      />
-                    )}
-                    {showSelectAllPage.value && (
-                      <Popover
-                        v-slots={{
-                          content: () => (
-                            <div class='db-table-select-plan'>
-                              <div
-                                class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
-                                onClick={handlePageSelect}>
-                                {t('本页全选')}
-                              </div>
-                              <div
-                                class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
-                                onClick={handleWholeSelect}>
-                                {t('跨页全选')}
-                              </div>
-                            </div>
-                          ),
-                          default: () => (
-                            <DbIcon
-                              class='select-menu-flag'
-                              type='down-big'
-                            />
-                          ),
-                        }}
-                        arrow={false}
-                        placement='bottom-start'
-                        theme='light db-table-select-menu'
-                        trigger='hover'
                       />
                     )}
                   </>
                 )}
+                <Popover
+                  v-slots={{
+                    content: () => (
+                      <div class='db-table-select-plan'>
+                        <div
+                          class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
+                          onClick={() => handleTogglePageSelect(true)}>
+                          {t('本页全选')}
+                        </div>
+                        <div
+                          class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
+                          onClick={handleWholeSelect}>
+                          {t('跨页全选')}
+                        </div>
+                      </div>
+                    ),
+                    default: () => (
+                      <DbIcon
+                        class='select-menu-flag'
+                        type='down-big'
+                      />
+                    ),
+                  }}
+                  arrow={false}
+                  placement='bottom-start'
+                  theme='light db-table-select-menu'
+                  trigger='hover'
+                />
               </div>
             ),
           }}
@@ -145,8 +165,9 @@ export const useSelect = (props: Props, tableData: Record<string, any>[]) => {
   });
 
   return {
+    handleClearWholeSelect,
     isWholeChecked,
-    rowSelectMap,
     selectColumn,
+    selectedRowMap,
   };
 };
