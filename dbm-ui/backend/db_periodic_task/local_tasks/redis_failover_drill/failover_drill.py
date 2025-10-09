@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from copy import deepcopy
 from typing import Dict, List
 
 from django.utils.translation import ugettext as _
@@ -63,6 +64,7 @@ class RedisFailoverDrill(BaseFailoverDrill):
         self.city_map = city_map
         self.failover_drill_info = {}
         self.instance_type = instance_type
+        self.target_instances = []
         self.init_report()
 
     @staticmethod
@@ -143,18 +145,21 @@ class RedisFailoverDrill(BaseFailoverDrill):
         获取演练目标主机的ip
         目前Redis演练只对一台Proxy或Backend进行
         """
-        if self.instance_type == FailoverDrillTargetType.PROXY:
-            return self.failover_drill_info["drill_infos"][0]["proxy"]["ip"]
-        elif self.instance_type == FailoverDrillTargetType.BACKEND:
-            return self.failover_drill_info["drill_infos"][0]["backend"]["ip"]
-        else:
-            raise ValueError("Proxy or backend is not set in failover drill info")
+        if not self.failover_drill_info:
+            return "<IP not set>"
+        if self.instance_type not in FailoverDrillTargetType.valid_types():
+            raise ValueError(_(f"Invalid instance_type: {self.instance_type}"))
+
+        return self.failover_drill_info["drill_infos"][0][self.instance_type]["ip"]
 
     def create_run_failover_drill_ticket(self):
         """
         构建参数，创建并执行容灾演练单据，返回待观察的实例
         """
         self.get_failover_drill_params()
+        self.target_instances = (
+            self.get_drill_instances()
+        )  # For later checks, in case targets are switched and deleted.
         FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
             drill_info=_("容灾演练单据执行信息： {}").format(self.failover_drill_info)
         )
@@ -200,8 +205,7 @@ class RedisFailoverDrill(BaseFailoverDrill):
             "error": "",
         }
         """
-        drill_instances = self.get_drill_instances()
-
+        drill_instances = deepcopy(self.target_instances)
         drill_ip = self.get_drill_ip()
         dbha_infos = {
             "error": "",
@@ -233,7 +237,7 @@ class RedisFailoverDrill(BaseFailoverDrill):
         """
         更新 DBHA 信息
         """
-        instances = self.get_drill_instances()
+        instances = deepcopy(self.target_instances)
         rpt = FailoverDrillReport.objects.get(main_task_id=self.main_task_id)
 
         start_times = []

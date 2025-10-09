@@ -84,7 +84,6 @@ def autofix_ticket_polling(restriction, max_retries, interval) -> Tuple[bool, in
     轮询是否出现自愈单据
     restriction: {
         "bk_biz_id": int,
-        "cluster_id": int,
         "ip": str,
         "earliest_create_allowed": datetime,
     }
@@ -127,14 +126,10 @@ def __is_target_ticket(ticket: Ticket, restriction) -> bool:
     if ticket.create_at < earliest_create_at:
         return False
 
-    infos = ticket.details["infos"]
-    for info in infos:
-        contains_cluster = any(cluster_id == restriction["cluster_id"] for cluster_id in info["cluster_ids"])
-        contains_ip = any(slave["ip"] == restriction["ip"] for slave in info["redis_slave"])
-        if contains_cluster and contains_ip:
-            return True
+    recycle_hosts = ticket.details["recycle_hosts"]
+    contains_ip = any(ip == restriction["ip"] for ip in recycle_hosts["ip"])
 
-    return False
+    return contains_ip
 
 
 def send_drill_alert_to_qywx(
