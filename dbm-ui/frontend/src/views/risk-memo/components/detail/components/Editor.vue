@@ -24,6 +24,6 @@
     meta: {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     },
-    server: 'apis/risk_memo/images/',
+    server: '/apis/risk_memo/images/',
   };
 </script>
