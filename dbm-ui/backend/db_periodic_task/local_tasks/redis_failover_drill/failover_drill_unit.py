@@ -92,7 +92,6 @@ def failover_drill_unit(city: str, conf: Dict[str, Any]) -> None:
     # 设置轮询限制条件
     polling_restriction = {
         "bk_biz_id": rfod.bk_biz_id,
-        "cluster_id": cluster.id,
         "ip": rfod.get_drill_ip(),
         "earliest_create_allowed": drill_start_time,
     }

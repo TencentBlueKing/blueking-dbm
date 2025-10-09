@@ -22,6 +22,10 @@ class FailoverDrillTargetType:
     PROXY = "proxy"
     BACKEND = "backend"
 
+    @classmethod
+    def valid_types(cls):
+        return [cls.PROXY, cls.BACKEND]
+
 
 class BaseFailoverDrill:
     def __init__(
