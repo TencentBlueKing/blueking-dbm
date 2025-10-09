@@ -27,6 +27,9 @@ from backend.flow.plugins.components.collections.mysql.create_user import Create
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_report import MysqlChecksumReportComponent
+from backend.flow.plugins.components.collections.mysql.mysql_master_slave_relationship_check import (
+    MysqlMasterSlaveRelationshipCheckServiceComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddTempUserKwargs,
@@ -132,6 +135,18 @@ class SpiderChecksumFlow(object):
             sub_data = copy.deepcopy(self.data)
             sub_data.pop("infos")
             sub_pipeline = SubBuilder(root_id=self.root_id, data={**info, **sub_data, **ran_str_obj})
+
+            check_repl_acts = []
+            for sd in info["shards"]:
+                check_repl_acts.append(
+                    {
+                        "act_name": _("检查元数据信息是否存在主备关系"),
+                        "act_component_code": MysqlMasterSlaveRelationshipCheckServiceComponent.code,
+                        "kwargs": {"master": sd["master"], "slaves": sd["slaves"]},
+                    }
+                )
+
+            sub_pipeline.add_parallel_acts(acts_list=check_repl_acts)
 
             sub_pipeline.add_act(
                 act_name=_("定时"),
