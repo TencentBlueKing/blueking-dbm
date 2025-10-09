@@ -34,7 +34,6 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 		initLogger()
-
 		slog.Debug("run", slog.Any("runtime config", config.RuntimeConfig))
 		slog.Debug("run", slog.Any("log config", config.LogConfig))
 

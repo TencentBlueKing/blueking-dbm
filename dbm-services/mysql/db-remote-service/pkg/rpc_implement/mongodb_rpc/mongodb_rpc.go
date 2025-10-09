@@ -1,11 +1,10 @@
 package mongodb_rpc
 
 import (
+	"dbm-services/mysql/db-remote-service/pkg/mylogger"
 	"dbm-services/mysql/db-remote-service/pkg/rpc_implement/mongodb_rpc/session"
 	"fmt"
 	"log/slog"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -19,30 +18,11 @@ var (
 	poolOnce sync.Once
 )
 
-func replaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
-	if a.Key == slog.SourceKey {
-		if src, ok := a.Value.Any().(*slog.Source); ok {
-			shortPath := ""
-			fullPath := src.File
-			seps := strings.Split(fullPath, "/")
-			shortPath = strings.Join(seps[len(seps)-2:], "/")
-			src.File = shortPath
-			lastSlash := strings.LastIndex(src.Function, "/")
-			src.Function = src.Function[lastSlash+1:]
-			a.Value = slog.AnyValue(src)
-		}
-	}
-	return a
-}
-
 func getPool() (*slog.Logger, *session.Pool) {
 	// Create a new pool if it does not exist
 	poolOnce.Do(func() {
-		opt := &slog.HandlerOptions{
-			AddSource:   true,
-			ReplaceAttr: replaceSourceAttr,
-		}
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, opt))
+		mylogger.InitMongoLoggerOnce()
+		logger = mylogger.GetMongoLogger()
 		pool = session.NewPool(logger.With("service", "mongo_rpc"))
 		go pool.CheckTimeout(3600)
 	})
@@ -128,6 +108,12 @@ const maxTimeout = 115               // 115s
 func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	// Get the session pool && logger
 	_, myPool := getPool()
+	requestId := c.GetHeader("X-Request-ID")
+	logger.Info("NewRequest",
+		slog.String("ClientIP", c.ClientIP()),
+		slog.String("UserAgent", c.Request.UserAgent()),
+		slog.String("RequestURI", c.Request.RequestURI),
+		slog.String("requestId", requestId))
 
 	param, err := parseQueryParams(c)
 	if err != nil {
@@ -167,6 +153,7 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 	logger.Info("SendMsg",
 		slog.String("msg", param.Command),
 		slog.String("token", param.Token),
+		slog.String("requestId", requestId),
 		slog.Bool("success", err == nil))
 
 	// Check if the command was sent successfully
@@ -177,9 +164,11 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 		resp.SendError(err.Error(), session.ReqCount)
 		return
 	}
+	timeout := getTimeout(param.Timeout, maxTimeout)
+	v, err = session.ReceiveMsg(timeout)
+	logger.Info("ReceiveMsg", slog.String("resp", shortMsg(string(v), 512)),
+		slog.Any("err", err), slog.String("requestId", requestId))
 
-	v, err = session.ReceiveMsg(maxTimeout)
-	logger.Error("ReceiveMsg", slog.String("resp", shortMsg(string(v), 512)), slog.Any("err", err))
 	if err != nil {
 		session.Stop()
 		// 有内容尽量返回.
@@ -196,4 +185,21 @@ func (r *MongoRPCEmbed) DoCommand(c *gin.Context) {
 		}
 	}
 
+}
+
+// getTimeout 获取超时时间
+// 如果timeout为0，则返回maxTimeout
+// 如果timeout大于maxTimeout，则返回maxTimeout
+// 如果timeout小于0，则返回maxTimeout
+func getTimeout(timeout int, maxTimeout int) int64 {
+	if timeout == 0 {
+		return int64(maxTimeout)
+	}
+	if timeout > maxTimeout {
+		return int64(maxTimeout)
+	}
+	if timeout < 0 {
+		return int64(maxTimeout)
+	}
+	return int64(timeout)
 }

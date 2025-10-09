@@ -3,6 +3,7 @@ package mongodb_rpc
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -101,29 +102,111 @@ func TestMongoRPCEmbed_DoCommand(t *testing.T) {
 	}
 }
 
+func TestMongoRPCEmbed_OneSession(t *testing.T) {
+	t1 := time.Now()
+	token := "token1" + t1.Format("20060102150405")
+	var x = 100
+	runRpcCommand_test(t, token, fmt.Sprintf("var x = %d; \n use test%d", x, x), "", 0, 3)
+	for range 5 {
+		cmdResult, err := runRpcCommand_test(t, token, "x = x + 1; print(x, db); ", "", 0, 3)
+		if err != nil {
+			t.Fatalf("Failed to run command: %v", err)
+		}
+		x++
+		if strings.Contains(cmdResult.Data, fmt.Sprintf("%d", x)) {
+			t.Logf("ok, want %d, got %s", x, cmdResult.Data)
+		} else {
+			t.Fatalf("want %d, got %s", x, cmdResult.Data)
+		}
+	}
+}
+
+func TestMongoRPCEmbed_BadCommand(t *testing.T) {
+	t1 := time.Now()
+	token := "token1" + t1.Format("20060102150405")
+	var x = 101
+	runRpcCommand_test(t, token, fmt.Sprintf("var x = %d; \n use test%d", x, x), "", 0, 3)
+	for range 5 {
+		cmdResult, err := runRpcCommand_test(t, token, "x = x + 1; print(x, db); \n var y=1;use abc;", "", 0, 3)
+		if err != nil {
+			t.Fatalf("Failed to run command: %v", err)
+		}
+		x++
+		wants := []string{fmt.Sprintf("%d", x), "unexpected token:"}
+		for _, want := range wants {
+			if strings.Contains(cmdResult.Data, want) {
+				t.Logf("ok, want %s, got %s", want, cmdResult.Data)
+			} else {
+				t.Fatalf("want %s, got %s", want, cmdResult.Data)
+			}
+		}
+	}
+}
+
 // TestMongoRPCEmbed_DoCommand_Maxsize测试最大数据量限制
 func TestMongoRPCEmbed_DoCommand_Maxsize(t *testing.T) {
 	t1 := time.Now()
-	cmdResult, err := runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "print('xxxx\\n'.repeat(32*1024*1024))", "direct", 0, 3)
+	cmdResult, err := runRpcCommand_test(t,
+		"token"+t1.Format("20060102150405"),
+		"print('xxxx\\n'.repeat(32*1024*1024))", "direct", 0, 15)
 	if err != nil {
-		t.Fatalf("Failed to run command: %v", err)
+		t.Fatalf("Failed to run command. cmdResult: %+v, err: %v", cmdResult, err)
 	}
 	if cmdResult.Code == 0 && strings.Contains(cmdResult.Data, "excess data size") {
 		t.Logf("cmdResult: %+v", cmdResult)
 	} else {
-		t.Fatalf("Failed to run command: %v", cmdResult)
+		t.Fatalf("Failed to run command. cmdResult: %+v, err: %v", cmdResult, err)
+	}
+}
+
+// TestMongoRPCEmbed_DoCommand_Maxsize测试最大数据量限制
+func TestMongoRPCEmbed_DoCommand_Timeout(t *testing.T) {
+	t1 := time.Now()
+	runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "use stressdb1;", "direct", 0, 1)
+	cmdResult, err := runRpcCommand_test(t, "token"+t1.Format("20060102150405"),
+		"sleep(3000);print('hello');", "direct", 0, 2)
+	if err != nil {
+		t.Fatalf("Failed to run command. cmdResult: %+v, err: %v", cmdResult, err)
+	}
+	if cmdResult.Code != 0 {
+		t.Fatalf("Failed to run x command. cmdResult: %+v", cmdResult)
+	}
+	if strings.Contains(cmdResult.Data, "timeout") {
+		t.Logf("ok")
+	} else {
+		t.Fatalf("Failed to run command. cmdResult: %+v, err: %v", cmdResult, err)
 	}
 }
 
 // TestMongoRPCEmbed_DoCommand_Maxsize测试最大数据量限制
 func TestMongoRPCEmbed_DoCommand_BigData(t *testing.T) {
 	t1 := time.Now()
-	runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "use stressdb1;", "direct", 0, 3)
-	cmdResult, err := runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "db.room1.find().limit(10).toArray()", "direct", 0, 3)
+	runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "use stressdb1;", "direct", 0, 1)
+	cmdResult, err := runRpcCommand_test(t, "token"+t1.Format("20060102150405"),
+		"db.room1.find().limit(10).toArray()", "direct", 0, 3)
+	if err != nil {
+		t.Fatalf("Failed to run command. cmdResult: %+v, err: %v", cmdResult, err)
+	}
+	if cmdResult.Code != 0 {
+		t.Fatalf("Failed to run x command. cmdResult: %+v", cmdResult)
+	}
+	t.Logf("cmdResult: %+v", cmdResult)
+}
+
+// TestMongoRPCEmbed_DoCommand_Oneoff 测试oneoff
+func TestMongoRPCEmbed_DoCommand_Oneoff(t *testing.T) {
+	t1 := time.Now()
+
+	cmdResult, err := runRpcCommand_test(t, "token"+t1.Format("20060102150405"), "db.isMaster().primary", "direct", 1, 3)
 	if err != nil {
 		t.Fatalf("Failed to run command: %v", err)
 	}
 	if cmdResult.Code != 0 {
 		t.Fatalf("Failed to run x command: %v", cmdResult)
+	}
+
+	want := os.Getenv("MONGO_ADDR")
+	if strings.TrimSpace(cmdResult.Data) != want {
+		t.Fatalf("Expected primary to be '%s', got '%v'", want, cmdResult.Data)
 	}
 }
