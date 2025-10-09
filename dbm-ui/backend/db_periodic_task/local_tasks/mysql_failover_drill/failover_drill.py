@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
+from django.db.models import F, Value
+from django.db.models.functions import Concat
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
@@ -16,7 +18,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
-from backend.db_services.cmdb.biz import get_resource_biz
+from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
 from backend.db_services.dbresource.exceptions import (
     ResourceApplyException,
     ResourceApplyInsufficientException,
@@ -24,6 +26,7 @@ from backend.db_services.dbresource.exceptions import (
 )
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.constants import ResourceApplyErrCode, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.basic import generate_root_id
@@ -418,6 +421,54 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             self.update_drill_task_report(info)
             raise ResourceReturnException(info)
 
+        # 转移cc模块
+        self.transfer_host_service()
+
+    def get_host_ids(self):
+        """
+        获取主机ID列表
+        """
+        return [host["host_id"] for host in self.reimport_resource_info.get("hosts", [])]
+
+    def transfer_host_service(self):
+        """
+        主机cc模块转移
+        """
+        bk_biz_id = get_resource_biz()
+        bk_module_ids = [get_or_create_resource_module()]
+        bk_host_ids = self.get_host_ids()
+        update_host_properties = {
+            "dbm_meta": [],
+            "need_monitor": False,
+            "update_operator": False,
+        }
+        operate_collector_action = None
+
+        try:
+            cc_manage = CcManage(bk_biz_id=bk_biz_id, cluster_type="")
+            cc_manage.transfer_host_module(
+                bk_host_ids=bk_host_ids,
+                target_module_ids=bk_module_ids,
+                update_host_properties=update_host_properties,
+                operate_collector_action=operate_collector_action,
+            )
+        except Exception as e:
+            info = _("主机{}转移目标模块{}失败, {}").format(bk_host_ids, bk_module_ids, e)
+            self.update_drill_task_report(info)
+
+    def update_drill_task_report(self, info: str, status: bool = False, task_status: str = "failed"):
+        """
+        用来更新于容灾演练任务有关的信息，不涉及dbha相关信息
+        @param task_status:
+        @param info:
+        @param status:
+        @return:
+        """
+        # 拼接字符串时 使用Concat 与 Value
+        FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(
+            status=status, task_info=Concat(F("task_info"), Value("\n-- "), Value(info)), task_status=task_status
+        )
+
     def update_dbha_report(self, dbha_infos, status):
         """
         用于更新dbha相关信息
@@ -430,9 +481,9 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             if instance_type in dbha_infos:
                 dbha_info = dbha_infos[instance_type]
                 q.dbha_info = dbha_info
-                q.dbha_status = getattr(dbha_info, "status", "failed")
-                q.switch_start_time = getattr(dbha_info, "switch_start_time", None)
-                q.switch_finished_time = getattr(dbha_info, "switch_finished_time", None)
+                q.dbha_status = dbha_info.get("status", "failed")
+                q.switch_start_time = dbha_info.get("switch_start_time", None)
+                q.switch_finished_time = dbha_info.get("switch_finished_time", None)
 
             else:
                 q.dbha_info = dbha_infos["error"]
