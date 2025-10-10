@@ -75,7 +75,7 @@ export function queryBizClusterAttrs(params: {
       }[]
     >
   >(`${path}/query_biz_cluster_attrs/`, params, {
-    cache: 1000,
+    cache: true,
   });
 }
 

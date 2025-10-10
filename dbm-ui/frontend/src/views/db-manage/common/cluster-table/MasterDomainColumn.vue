@@ -1,12 +1,11 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-master-domain-column"
-    :field="field"
+    col-key="master_domain"
     fixed="left"
-    :label="label"
     :min-width="columnMinWidth"
-    visiable>
-    <template #header>
+    :title="label">
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -25,21 +24,21 @@
         {{ label }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: IRowData }">
+    <template #default="{ row }: { row: IRowData }">
       <MasterDomainCell
         :cluster-type="clusterType"
-        :data="data"
+        :data="row"
         :db-type="dbType"
         @go-detail="handleToDetails"
         @refresh="handleRefresh">
         <template #append>
           <slot
             name="append"
-            v-bind="{ data }" />
+            v-bind="{ data: row }" />
         </template>
       </MasterDomainCell>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import type { VNode } from 'vue';
@@ -47,27 +46,25 @@
 
   import { DBTypes } from '@common/const';
 
-  import DbTable from '@components/db-table/index.vue';
-
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import MasterDomainCell from './components/MasterDomainCell.vue';
   import useColumnCopy from './hooks/useColumnCopy';
+  import type { Expose as ClusterTableExpose } from './Index.vue';
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
     clusterType: clusterType;
     dbType?: DBTypes;
-    field: string;
     // eslint-disable-next-line vue/no-unused-properties
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    getTableInstance: () => ClusterTableExpose | null;
     isFilter: boolean;
     label: string;
     selectedList: ClusterModel<clusterType>[];
   }
 
   export interface Emits {
-    (e: 'go-detail', params: number, event: MouseEvent): void;
+    (e: 'go-detail', clusterId: number, event: MouseEvent): void;
     (e: 'refresh'): void;
   }
 
@@ -108,7 +105,6 @@
       display: none;
       margin-top: 1px;
       margin-left: 4px;
-      color: @primary-color;
       cursor: pointer;
     }
   }

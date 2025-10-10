@@ -65,8 +65,6 @@
 </script>
 <style lang="less">
   td.cluster-list-operation-column {
-    .vxe-cell {
-      padding: 0 !important;
-    }
+    padding: 0 !important;
   }
 </style>

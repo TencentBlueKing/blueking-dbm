@@ -23,7 +23,7 @@
       <ClusterBatchOperation
         v-db-console="'mongodb.sharedClusterList.batchOperation'"
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchData" />
       <span
         v-bk-tooltips="{
@@ -41,34 +41,29 @@
       <DropdownExportExcel
         v-db-console="'mongodb.sharedClusterList.export'"
         :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
-        :has-selected="hasSelected"
-        :ids="selectedIds"
+        :has-selected="isSelected"
+        :ids="selectedIdList"
         type="mongodb" />
       <ClusterIpCopy
         v-db-console="'mongodb.sharedClusterList.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        class="header-action-search-select"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
+      :bk-ui-settings="tableSetting"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data-source="getMongoList"
-      :settings="tableSetting"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection"
-      @setting-change="updateTableSettings">
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
           <template #default="{ data }: { data: MongodbModel }">
@@ -186,9 +181,9 @@
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           field="master_domain"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('访问入口')"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails"
           @refresh="fetchData">
           <template #append="{ data }">
@@ -204,28 +199,25 @@
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           field="mongo_config"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="ConfigSvr"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           field="mongos"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="Mongos"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
           field="mongodb"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="ShardSvr"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
@@ -234,7 +226,7 @@
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.MONGODB"
     :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
-    :selected="selected"
+    :selected="selectedList"
     @success="handleClearSelected" />
   <ExcelAuthorize
     v-model:is-show="excelAuthorizeShow"
@@ -255,19 +247,15 @@
 </template>
 
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { getMongoList } from '@services/source/mongodb';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -283,15 +271,15 @@
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useAddClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import AccessEntry from '@views/db-manage/mongodb/common/cluster-operations/AccessEntry.vue';
   import ShardClusterDetail from '@views/db-manage/mongodb/common/shared-cluster-detail/Index.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
-
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.MONGO_SHARED_CLUSTER);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.MONGODB,
     {
@@ -299,171 +287,43 @@
     },
   );
   const { handleAddClb } = useAddClb<{ cluster_id: number }>(ClusterTypes.MONGO_SHARED_CLUSTER);
-  const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchData(),
-    searchType: ClusterTypes.MONGO_SHARED_CLUSTER,
-  });
+
   const {
     clusterDetailClose: handleDetailClose,
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('MongoDBSharedClusterDetail');
+  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<MongodbModel>();
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
-  const selected = ref<MongodbModel[]>([]);
   const accessEntryInfoShow = ref(false);
   const accessEntryInfo = ref<MongodbModel | undefined>();
-  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
-  const searchSelectData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      async: false,
-      id: 'name',
-      multiple: true,
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
   const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.MONGODB_SHARED_CLUSTER_SETTINGS,
     {
-      checked: [
-        'cluster_name',
-        'master_domain',
-        'status',
-        'cluster_stats',
-        'major_version',
-        'disaster_tolerance_level',
-        'region',
-        'mongo_config',
-        'mongos',
-        'mongodb',
-        'tag',
-      ],
       disabled: ['master_domain'],
     },
   );
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  const fetchData = () => {
+    tableRef.value!.fetchData(searchValue.value);
   };
+
+  watch(searchValue, () => {
+    setTimeout(() => {
+      fetchData();
+      tableRef.value!.clearSelected();
+    });
+  });
 
   const handleApply = () => {
     router.push({
@@ -475,16 +335,12 @@
     });
   };
 
-  const handleSelection = (key: unknown, list: MongodbModel[]) => {
-    selected.value = list;
-  };
-
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
   };
 
   const handleClearSelected = () => {
-    selected.value = [];
+    selectedList.value = [];
   };
 
   const handleShowAccessEntry = (data: MongodbModel) => {
@@ -512,46 +368,18 @@
     window.open(routeInfo.href, '_blank');
   };
 
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
     fetchData();
-  };
-
-  const fetchData = () => {
-    tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-      cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
   };
 </script>
 <style lang="less">
   .mongodb-shared-cluster-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .header-action-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
-
-      .header-action-deploy-time {
-        width: 300px;
-        margin-left: 8px;
-      }
     }
   }
 

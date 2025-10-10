@@ -50,7 +50,7 @@
 
   import useMenuList from './hooks/useMenuList';
 
-  interface Props {
+  export interface Props {
     // eslint-disable-next-line vue/no-unused-properties
     list?: {
       label: string;

@@ -15,7 +15,7 @@
   import { ElConfigProvider, ElDatePickerPanel } from 'element-plus';
   import zhCn from 'element-plus/es/locale/lang/zh-cn';
 
-  interface Props {
+  export interface Props {
     shortcuts?: {
       text: string;
       value: () => [Date, Date];

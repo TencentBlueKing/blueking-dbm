@@ -124,18 +124,16 @@
   .render-head-copy {
     width: 100%;
 
-    &:hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
     [class*='db-icon'] {
-      display: none;
       margin-top: 1px;
       margin-left: 4px;
-      color: @primary-color;
       cursor: pointer;
+
+      &:hover {
+        [class*='db-icon'] {
+          color: @primary-color;
+        }
+      }
     }
 
     .is-active {

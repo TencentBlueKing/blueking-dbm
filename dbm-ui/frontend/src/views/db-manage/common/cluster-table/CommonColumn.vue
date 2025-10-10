@@ -1,98 +1,81 @@
 <template>
-  <BkTableColumn
-    field="major_version"
-    :filter="{
-      list: columnAttrs.major_version,
-      checked: columnCheckedMap.major_version,
-    }"
-    :label="t('版本')"
+  <TableColumn
+    col-key="major_version"
+    :filter="columnFilter?.['major_version']"
     :min-width="150"
-    show-overflow>
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.major_version || '--' }}
+    :title="t('版本')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.major_version || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="disaster_tolerance_level"
-    :label="t('容灾要求')"
+  </TableColumn>
+  <TableColumn
+    col-key="disaster_tolerance_level"
     :min-width="160"
-    show-overflow>
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.disasterToleranceLevelName || '--' }}
+    :title="t('容灾要求')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.disasterToleranceLevelName || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="region"
-    :filter="{
-      list: columnAttrs.region,
-      checked: columnCheckedMap.region,
-    }"
-    :label="t('地域园区')"
-    :min-width="100">
-    <template #default="{ data }: { data: IRowData }">
-      <div>{{ data.regionDisplay }}</div>
-      <TextOverflowLayout>{{ data.clusterSubzonesDisplay }}</TextOverflowLayout>
+  </TableColumn>
+  <TableColumn
+    col-key="region"
+    :filter="columnFilter?.['region']"
+    :min-width="150"
+    :title="t('地域园区')">
+    <template #default="{ row }: { row: IRowData }">
+      <div>{{ row.regionDisplay }}</div>
+      <TextOverflowLayout>{{ row.clusterSubzonesDisplay }}</TextOverflowLayout>
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="cluster_spec"
-    :label="t('规格')"
+  </TableColumn>
+  <TableColumn
+    col-key="cluster_spec"
     :min-width="180"
-    show-overflow>
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.cluster_spec.spec_name || '--' }}
+    :title="t('规格')">
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.cluster_spec.spec_name || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="bk_cloud_id"
-    :filter="{
-      list: columnAttrs.bk_cloud_id,
-      checked: columnCheckedMap.bk_cloud_id,
-    }"
-    :label="t('管控区域')"
-    show-overflow
+  </TableColumn>
+  <TableColumn
+    col-key="bk_cloud_id"
+    :filter="columnFilter?.['bk_cloud_id']"
+    :title="t('管控区域')"
     :width="120">
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.bk_cloud_name ? `${row.bk_cloud_name}[${row.bk_cloud_id}]` : '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="creator"
-    :label="t('创建人')"
-    show-overflow
+  </TableColumn>
+  <TableColumn
+    col-key="creator"
+    :filter="columnFilter?.['creator']"
+    :title="t('创建人')"
     :width="140">
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.creator || '--' }}
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.creator || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="create_at"
-    :label="t('部署时间')"
-    show-overflow
+  </TableColumn>
+  <TableColumn
+    col-key="create_at"
+    :filter="columnFilter?.['create_at']"
     sort
+    :title="t('部署时间')"
     :width="250">
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.createAtDisplay || '--' }}
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.createAtDisplay || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="cluster_time_zone"
-    :filter="{
-      list: columnAttrs.time_zone,
-      checked: columnCheckedMap.time_zone,
-    }"
-    :label="t('时区')"
-    show-overflow
+  </TableColumn>
+  <TableColumn
+    col-key="time_zone"
+    :filter="columnFilter?.['time_zone']"
+    :title="t('时区')"
     :width="100">
-    <template #default="{ data }: { data: IRowData }">
-      {{ data.cluster_time_zone || '--' }}
+    <template #default="{ row }: { row: IRowData }">
+      {{ row.cluster_time_zone || '--' }}
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
 
-  import { useLinkQueryColumnSerach } from '@hooks';
+  import { useClusterColumnFilter } from '@hooks';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -105,23 +88,13 @@
   export type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   type IRowData = ClusterModel<T>;
 
-  const { columnAttrs, columnCheckedMap } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => handleRefresh(),
-    searchType: props.clusterType,
+  const { data: columnFilter } = useClusterColumnFilter({
+    cluster_attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'] as const,
+    cluster_type: props.clusterType,
   });
-
-  const handleRefresh = () => {
-    emits('refresh');
-  };
 </script>

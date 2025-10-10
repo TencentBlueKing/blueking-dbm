@@ -1,25 +1,27 @@
 <template>
-  <BkTableColumn
-    field="tag"
-    :label="t('标签')"
+  <TableColumn
+    col-key="tag"
+    :filter="columnFilter?.['tag']"
+    :title="t('标签')"
     :width="200">
-    <template #default="{ data }: { data: IRowData }">
+    <template #default="{ row }: { row: IRowData }">
       <ClusterTag
-        :data="data"
+        :data="row"
         mode="vertical"
         @success="handleOperateSuccess" />
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
+
+  import { useClusterColumnFilter } from '@hooks';
 
   import ClusterTag from '@components/cluster-tag/index.vue';
 
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props {
-    // eslint-disable-next-line vue/no-unused-properties
     clusterType: ISupportClusterType;
   }
 
@@ -27,11 +29,15 @@
 
   type IRowData = ClusterModel<T>;
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const { data: columnFilter } = useClusterColumnFilter({
+    cluster_type: props.clusterType,
+  });
 
   const handleOperateSuccess = () => {
     emits('refresh');

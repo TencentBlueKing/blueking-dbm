@@ -24,36 +24,32 @@
       <ClusterBatchOperation
         v-db-console="'kafka.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.KAFKA"
-        :selected="selected"
-        @success="fetchTableData" />
+        :selected="selectedList"
+        @success="fetchData" />
       <DropdownExportExcel
         v-db-console="'kafka.clusterManage.export'"
-        :ids="selectedIds"
+        :ids="selectedIdList"
         type="kafka" />
       <ClusterIpCopy
         v-db-console="'kafka.clusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        :data="serachData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
+      :bk-ui-settings="tableSetting"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.KAFKA"
       :data-source="dataSource"
-      :settings="tableSetting"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection"
-      @setting-change="updateTableSettings">
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.KAFKA">
           <template #default="{ data }: { data: KafkaModel }">
@@ -169,30 +165,28 @@
           :cluster-type="ClusterTypes.KAFKA"
           field="master_domain"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('访问入口')"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
+          @refresh="fetchData" />
       </template>
       <template #role>
         <RoleColumn
           :cluster-type="ClusterTypes.KAFKA"
           field="zookeeper"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="Zookeeper"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.KAFKA"
           field="broker"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="Broker"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
@@ -200,12 +194,12 @@
       v-if="operationData"
       v-model:is-show="isShowExpandsion"
       :cluster-data="operationData"
-      @change="fetchTableData" />
+      @change="fetchData" />
     <ClusterShrink
       v-if="operationData"
       v-model:is-show="isShowShrink"
       :cluster-data="operationData"
-      @change="fetchTableData" />
+      @change="fetchData" />
     <TopicRebalance
       v-if="operationData"
       v-model:is-show="isShowRebalance"
@@ -236,21 +230,17 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { ref, shallowRef } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import KafkaModel from '@services/model/kafka/kafka';
   import { getKafkaList } from '@services/source/kafka';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -264,22 +254,22 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/kafka/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import TopicRebalance from './components/TopicRebalance.vue';
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.KAFKA);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.KAFKA,
     {
-      onSuccess: () => fetchTableData(),
+      onSuccess: () => fetchData(),
     },
   );
 
@@ -289,178 +279,34 @@
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('KafkaDetail');
-
-  const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchTableData(),
-    searchType: ClusterTypes.KAFKA,
-  });
+  const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<KafkaModel>();
 
   const dataSource = getKafkaList;
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowRebalance = ref(false);
   const isShowPassword = ref(false);
-  const selected = ref<KafkaModel[]>([]);
-  const tagSearchValue = ref<Record<string, any>>({});
 
   const operationData = shallowRef<KafkaModel>();
 
   const getTableInstance = () => tableRef.value;
 
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
-  const serachData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.KAFKA_TABLE_SETTINGS, {
-    checked: [
-      'domain',
-      'status',
-      'cluster_stats',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'zookeeper',
-      'broker',
-      'tag',
-    ],
     disabled: ['master_domain'],
   });
 
+  const fetchData = () => {
+    tableRef.value?.fetchData(searchValue.value);
+  };
+
   watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return serachData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return serachData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  const handleSelection = (data: unknown, list: KafkaModel[]) => {
-    selected.value = list;
-  };
-
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchTableData();
-  };
-
-  const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData({
-      ...searchParams,
-      ...tagSearchValue.value,
-      ...sortValue,
+    setTimeout(() => {
+      fetchData();
+      tableRef.value!.clearSelected();
     });
-  };
+  });
 
   // 申请实例
   const handleGoApply = () => {
@@ -499,28 +345,18 @@
   const handleHidePassword = () => {
     isShowPassword.value = false;
   };
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchData();
+  };
 </script>
 <style lang="less">
   .kafka-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 </style>

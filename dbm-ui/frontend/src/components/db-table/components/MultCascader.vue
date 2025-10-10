@@ -2,71 +2,74 @@
   <div
     ref="menuRef"
     class="db-table-filter-type-mult-cascader"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div
       ref="searchBox"
       class="t-table__filter-pop-search">
       <Input
-        v-model="serachKey"
+        v-model="filterKey"
+        autofocus
         borderless
         clearable
         placeholder="请输入关键字">
         <template #prefix-icon> <SearchIcon /></template>
       </Input>
     </div>
-    <div
-      ref="layoutWrapper"
-      class="layout-wrapper">
+    <BkLoading :loading="isRemoteListLoading">
       <div
-        v-if="isSearch && renderSearchList.length > 0"
-        key="search"
-        class="search-wrapper">
+        ref="layoutWrapper"
+        class="layout-wrapper">
         <div
-          v-for="(item, index) in renderSearchList"
-          :key="index"
-          class="value-item"
-          @click="() => handleChange(item)">
-          <Checkbox
-            :checked="Boolean(localValueIdMap[item.value])"
-            style="pointer-events: none" />
-          {{ item.searchLabel }}
-        </div>
-      </div>
-      <template v-if="!isSearch">
-        <div class="parent-wrapper">
+          v-if="isSearch && renderSearchList.length > 0"
+          key="search"
+          class="search-wrapper">
           <div
-            v-for="item in list"
-            :key="item.value"
-            class="value-item"
-            :class="{ active: item.value === parentKey }"
-            @click="() => handleSelectParent(item)">
-            <Checkbox
-              v-bind="calcParentCheckStatus(item)"
-              @change="(value) => handleParentChange(value, item)" />
-            {{ item.label }}
-          </div>
-        </div>
-        <div
-          :key="parentKey"
-          class="children-wrapper">
-          <div
-            v-for="item in childrenList"
-            :key="item.value"
+            v-for="(item, index) in renderSearchList"
+            :key="index"
             class="value-item"
             @click="() => handleChange(item)">
             <Checkbox
               :checked="Boolean(localValueIdMap[item.value])"
               style="pointer-events: none" />
-            {{ item.label }}
+            {{ item.searchLabel }}
           </div>
         </div>
-      </template>
-    </div>
+        <template v-if="!isSearch">
+          <div class="parent-wrapper">
+            <div
+              v-for="item in list"
+              :key="item.value"
+              class="value-item"
+              :class="{ active: item.value === expanedParent?.value }"
+              @click="() => handleExpaneParent(item)">
+              <Checkbox
+                v-bind="calcParentCheckStatus(item)"
+                @change="(value) => handleParentChange(value, item)" />
+              {{ item.label }}
+            </div>
+          </div>
+          <div
+            :key="expanedParent?.value"
+            class="children-wrapper">
+            <div
+              v-for="item in expanedParent?.children"
+              :key="item.value"
+              class="value-item"
+              @click="() => handleChange(item)">
+              <Checkbox
+                :checked="Boolean(localValueIdMap[item.value])"
+                style="pointer-events: none" />
+              {{ item.label }}
+            </div>
+          </div>
+        </template>
+      </div>
+    </BkLoading>
     <div
       v-if="isSearch && renderSearchList.length < 1"
       class="t-table-filter-empty">
       <BkException
-        description="搜索为空"
+        :description="t('搜索为空')"
         scene="part"
         type="search-empty" />
     </div>
@@ -77,45 +80,59 @@
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, Input } from 'tdesign-vue-next';
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  export type IResult = string | number;
+  import useMenuList from './hooks/useMenuList';
 
-  export interface Props {
-    list: {
-      children: {
-        label: string;
-        value: string | number;
-      }[];
+  export interface IListItem {
+    children: {
       label: string;
       value: string | number;
     }[];
-    value?: IResult[];
+    label: string;
+    value: string | number;
   }
 
-  type Emits = (e: 'change', value: IResult[]) => void;
+  export interface Props {
+    // 可以选择任意一项
+    checkStrictly?: boolean;
+    list?: IListItem[];
+    // eslint-disable-next-line vue/no-unused-properties
+    remoteMethod?: (params: { defaultValue?: string; keyword?: string }) => Promise<IListItem[]>;
+    // eslint-disable-next-line vue/no-unused-properties
+    remoteSearch?: boolean;
+    value?: string;
+  }
 
-  const props = defineProps<Props>();
+  type Emits = (e: 'change', value: string) => void;
+
+  const props = withDefaults(defineProps<Props>(), {
+    checkStrictly: false,
+    list: undefined,
+    remoteMethod: undefined,
+    remoteSearch: false,
+    value: '',
+  });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
+  const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IListItem>(props);
 
   const layoutWrapperRef = useTemplateRef('layoutWrapper');
   const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
+  const expanedParent = ref<IListItem>();
+  const localValueIdMap = shallowRef<Record<string, IListItem['value']>>({});
 
-  const serachKey = ref('');
-  const parentKey = ref<string | number>(props.list[0]!.value);
-  const localValueIdMap = shallowRef<Record<string, IResult>>({});
-
-  const isSearch = computed(() => Boolean(serachKey.value && _.trim(serachKey.value)));
-  const childrenList = computed(() => _.find(props.list, (item) => item.value === parentKey.value)?.children || []);
-
+  const isSearch = computed(() => Boolean(filterKey.value && _.trim(filterKey.value)));
   const renderSearchList = computed(() => {
-    const keyword = `${serachKey.value || ''}`.trim().toLowerCase();
+    const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
     if (!keyword) {
       return [];
     }
 
-    return props.list.reduce(
+    return list.value.reduce(
       (result, parentItem) => {
         parentItem.children.forEach((childItem) => {
           if (childItem.label.toLowerCase().includes(keyword)) {
@@ -127,15 +144,19 @@
         });
         return result;
       },
-      [] as {
-        label: string;
+      [] as ({
         searchLabel: string;
-        value: IResult;
-      }[],
+      } & IListItem['children'][number])[],
     );
   });
 
-  const calcParentCheckStatus = (parentData: Props['list'][number]) => {
+  const calcParentCheckStatus = (parentData: IListItem) => {
+    if (props.checkStrictly) {
+      return {
+        checked: Boolean(localValueIdMap.value[parentData.value]),
+        indeterminate: false,
+      };
+    }
     let indeterminate = false;
     let checked = true;
     parentData.children.forEach((item) => {
@@ -151,76 +172,102 @@
       indeterminate: checked ? false : indeterminate,
     };
   };
+
   const calcPanelWidth = () => {
     nextTick(() => {
       contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
     });
   };
 
-  const handleSelectParent = (item: Props['list'][number]) => {
-    parentKey.value = item.value;
-    calcPanelWidth();
-  };
-
   let isInnerSelfChange = false;
   watch(
     () => props.value,
     () => {
+      console.log('props.valueprops.valueprops.value = ', props.value);
       if (isInnerSelfChange) {
         isInnerSelfChange = false;
         return;
       }
-      if (!props.value || props.value.length < 1) {
+      if (!props.value) {
         localValueIdMap.value = {};
         return;
       }
-      const currentValue = props.value[0];
-      for (const parentItem of props.list) {
-        for (const childItem of parentItem.children) {
-          if (childItem.value === currentValue) {
-            parentKey.value = parentItem.value;
-            localValueIdMap.value = props.value.reduce((result, item) => {
-              return Object.assign(result, {
-                [item]: item,
-              });
-            }, {});
-            handleSelectParent(parentItem);
-            return;
-          }
-        }
-      }
+      localValueIdMap.value = props.value.split(',').reduce((result, item) => {
+        return Object.assign(result, {
+          [item]: item,
+        });
+      }, {});
     },
     {
       immediate: true,
     },
   );
 
-  watch(
-    () => props.list,
-    () => {
-      calcPanelWidth();
-    },
-  );
-
-  const handleParentChange = (checked: boolean, data: Props['list'][number]['children'][number]) => {
-    const latestValueMap = { ...localValueIdMap.value };
-    const childrenList = _.find(props.list, (item) => item.value === data.value)?.children || [];
-
-    childrenList.forEach((item) => {
-      if (checked) {
-        latestValueMap[item.value] = item.value;
-      } else {
-        delete latestValueMap[item.value];
-      }
-    });
-
-    localValueIdMap.value = latestValueMap;
-
-    isInnerSelfChange = true;
-    emits('change', Object.values(latestValueMap));
+  const handleExpaneParent = (item: IListItem) => {
+    expanedParent.value = item;
+    calcPanelWidth();
   };
 
-  const handleChange = (data: Props['list'][number]['children'][number]) => {
+  watch(
+    list,
+    () => {
+      if (list.value.length < 1) {
+        return;
+      }
+
+      if (!props.value) {
+        handleExpaneParent(list.value[0]);
+      } else {
+        const currentValue = props.value.split(',')[0];
+        for (const parentItem of list.value) {
+          if (props.checkStrictly && parentItem.value === currentValue) {
+            handleExpaneParent(parentItem);
+            break;
+          }
+          for (const childItem of parentItem.children) {
+            if (childItem.value === currentValue) {
+              handleExpaneParent(parentItem);
+              break;
+            }
+          }
+        }
+      }
+      calcPanelWidth();
+    },
+    {
+      immediate: true,
+    },
+  );
+  const triggerChange = () => {
+    isInnerSelfChange = true;
+    emits('change', Object.values(localValueIdMap.value).join(','));
+  };
+
+  const handleParentChange = (checked: boolean, data: IListItem) => {
+    const latestValueMap = { ...localValueIdMap.value };
+
+    console.log('checkedcheckedcheckedchecked = ', checked);
+    if (props.checkStrictly) {
+      // 父级可以作为值被选中
+      if (checked) {
+        latestValueMap[data.value] = data.value;
+      } else {
+        delete latestValueMap[data.value];
+      }
+    } else {
+      data.children.forEach((item) => {
+        if (checked) {
+          latestValueMap[item.value] = item.value;
+        } else {
+          delete latestValueMap[item.value];
+        }
+      });
+    }
+    localValueIdMap.value = latestValueMap;
+    triggerChange();
+  };
+
+  const handleChange = (data: IListItem['children'][number]) => {
     const latestValueMap = { ...localValueIdMap.value };
 
     if (localValueIdMap.value[data.value]) {
@@ -230,11 +277,11 @@
     }
     localValueIdMap.value = latestValueMap;
 
-    isInnerSelfChange = true;
-    emits('change', Object.values(latestValueMap));
+    triggerChange();
   };
 
   onMounted(() => {
+    calcPanelWidth();
     setTimeout(() => {
       searchBoxRef.value!.querySelector('input')?.focus();
     }, 100);

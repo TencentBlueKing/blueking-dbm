@@ -36,7 +36,6 @@ const singleRoutes: RouteRecordRaw[] = [
         path: 'single-cluster-list',
         name: 'OracleSingleClusterList',
         meta: {
-          fullscreen: true,
           navName: t('【Oracle】单节点集群管理'),
         },
         component: () => import('@views/db-manage/oracle/single-cluster-list/Index.vue'),
@@ -67,7 +66,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'ha-cluster-list',
         name: 'OracleHaClusterList',
         meta: {
-          fullscreen: true,
           navName: t('【Oracle】主从集群管理'),
           skeleton: 'clusterList',
         },
