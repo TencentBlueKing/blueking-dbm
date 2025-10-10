@@ -1,7 +1,7 @@
 <template>
   <div
     class="bk-quick-search-type-mult-cascader"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"
@@ -38,8 +38,8 @@
             v-for="item in list"
             :key="item.value"
             class="value-item"
-            :class="{ active: item.value === parentKey }"
-            @click="() => handleSelectParent(item)">
+            :class="{ active: item.value === expanedParent?.value }"
+            @click="() => handleExpaneParent(item)">
             <Checkbox
               v-bind="calcParentCheckStatus(item)"
               @change="(value) => handleParentChange(value, item)" />
@@ -47,10 +47,10 @@
           </div>
         </div>
         <div
-          :key="parentKey"
+          :key="expanedParent?.value"
           class="children-wrapper">
           <div
-            v-for="item in childrenList"
+            v-for="item in expanedParent?.children"
             :key="item.value"
             class="value-item"
             @click="() => handleChange(item)">
@@ -83,7 +83,11 @@
   import useMenuList from '../hooks/useMenuList';
 
   interface Props {
+    // 可以选择任意一项
+    checkStrictly?: boolean;
     config: ContextProps['data'][number];
+    // showAllLevels——是否显示选中项的完整路径（控制值回显的效果）
+    showAllLevels?: boolean;
   }
 
   interface IResult {
@@ -91,9 +95,14 @@
     value: string | number;
   }
 
+  type IListItem = { children: IResult[] } & IResult;
+
   type Emits = (e: 'change', value: IResult[]) => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    checkStrictly: false,
+    showAllLevels: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -101,19 +110,14 @@
     default: () => [],
   });
 
-  const {
-    filterKey,
-    list,
-    loading: isRemoteListLoading,
-  } = useMenuList<{ children: IResult[] } & IResult>(props.config);
+  const { filterKey, list, loading: isRemoteListLoading } = useMenuList<IListItem>(props.config);
 
   const layoutRef = useTemplateRef('layout');
-  const parentKey = ref<string | number>('');
+  const expanedParent = ref<IListItem>();
   const localValueIdMap = shallowRef<Record<string, IResult>>({});
   const contentMinWidth = ref(0);
 
   const isSearching = computed(() => Boolean(filterKey.value && _.trim(filterKey.value)));
-  const childrenList = computed(() => _.find(list.value, (item) => item.value === parentKey.value)?.children || []);
 
   const renderSearchList = computed(() => {
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
@@ -123,6 +127,13 @@
 
     return list.value.reduce(
       (result, parentItem) => {
+        if (props.checkStrictly && parentItem.label.toLowerCase().includes(keyword)) {
+          result.push({
+            label: parentItem.label,
+            searchLabel: parentItem.label,
+            value: parentItem.value,
+          });
+        }
         parentItem.children.forEach((childItem) => {
           if (childItem.label.toLowerCase().includes(keyword)) {
             result.push({
@@ -142,6 +153,12 @@
   });
 
   const calcParentCheckStatus = (parentData: { children: IResult[] } & IResult) => {
+    if (props.checkStrictly) {
+      return {
+        checked: Boolean(localValueIdMap.value[parentData.value]),
+        indeterminate: false,
+      };
+    }
     let indeterminate = false;
     let checked = true;
     parentData.children.forEach((item) => {
@@ -163,6 +180,11 @@
       contentMinWidth.value = Math.max(layoutRef.value!.getBoundingClientRect().width, contentMinWidth.value);
     });
   };
+
+  const getResultValue = (data: IResult) => ({
+    label: props.showAllLevels ? `${expanedParent.value?.label}/${data.label}` : data.label,
+    value: data.value,
+  });
 
   let isInnerSelfChange = false;
   watch(
@@ -195,13 +217,17 @@
       }
 
       if (modelValue.value.length < 1) {
-        parentKey.value = list.value[0]!.value;
+        handleExpaneParent(list.value[0]);
       } else {
         const currentValue = modelValue.value[0]!.value;
         for (const parentItem of list.value) {
+          if (props.checkStrictly && parentItem.value === currentValue) {
+            handleExpaneParent(parentItem);
+            break;
+          }
           for (const childItem of parentItem.children) {
             if (childItem.value === currentValue) {
-              parentKey.value = parentItem.value;
+              handleExpaneParent(parentItem);
               break;
             }
           }
@@ -214,21 +240,35 @@
     },
   );
 
-  const handleSelectParent = (item: IResult) => {
-    parentKey.value = item.value;
+  const handleExpaneParent = (item: IListItem) => {
+    expanedParent.value = item;
     calcPanelWidth();
   };
 
-  const handleParentChange = (checked: boolean, data: IResult) => {
+  const handleParentChange = (checked: boolean, data: IListItem) => {
     const latestValueMap = { ...localValueIdMap.value };
-    const childrenList = _.find(list.value, (item) => item.value === data.value)?.children || [];
-    childrenList.forEach((item) => {
+
+    if (props.checkStrictly) {
+      // 父级可以作为值被选中
       if (checked) {
-        latestValueMap[item.value] = item;
+        latestValueMap[data.value] = {
+          label: data.label,
+          value: data.value,
+        };
       } else {
-        delete latestValueMap[item.value];
+        delete latestValueMap[data.value];
       }
-    });
+    } else {
+      // 只能选择叶子节点
+      data.children.forEach((item) => {
+        if (checked) {
+          latestValueMap[item.value] = getResultValue(item);
+        } else {
+          delete latestValueMap[item.value];
+        }
+      });
+    }
+
     localValueIdMap.value = latestValueMap;
 
     isInnerSelfChange = true;
@@ -241,7 +281,7 @@
     if (localValueIdMap.value[data.value]) {
       delete latestValueMap[data.value];
     } else {
-      latestValueMap[data.value] = data;
+      latestValueMap[data.value] = getResultValue(data);
     }
     localValueIdMap.value = latestValueMap;
 
@@ -250,7 +290,7 @@
   };
 
   onMounted(() => {
-    contentMinWidth.value = layoutRef.value!.getBoundingClientRect().width;
+    calcPanelWidth();
   });
 </script>
 <style lang="less">
