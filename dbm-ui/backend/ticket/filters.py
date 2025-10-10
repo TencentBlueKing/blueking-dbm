@@ -35,7 +35,8 @@ class TicketListFilter(filters.FilterSet):
             "bk_biz_id": ["exact"],
             "ticket_type": ["exact", "in"],
             "create_at": ["gte", "lte"],
-            "creator": ["exact"],
+            "creator": ["exact", "in"],
+            "group": ["exact", "in"],
         }
 
     def filter_cluster(self, queryset, name, value):
