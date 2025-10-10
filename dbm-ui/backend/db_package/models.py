@@ -18,6 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
+from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.constants import PackageMode, PackageType
 from backend.db_package.exceptions import PackageNotExistException, VersionNoNotExistException
 from backend.flow.consts import MediumEnum
@@ -26,6 +27,8 @@ from backend.flow.consts import MediumEnum
 class Package(AuditedModel):
     name = models.CharField(_("文件名"), max_length=LEN_LONG)
     version = models.CharField(_("版本号"), max_length=LEN_NORMAL)
+
+    # 和新版本管理的信息是重复的, 后续可以删掉
     pkg_type = models.CharField(_("安装包类型"), choices=PackageType.get_choices(), max_length=LEN_SHORT)
     db_type = models.CharField(
         _("存储类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default=DBType.MySQL.value
@@ -41,6 +44,12 @@ class Package(AuditedModel):
     # package独立出时间字段
     create_at = models.DateTimeField(_("创建时间"), default=timezone.now)
     update_at = models.DateTimeField(_("更新时间"), default=timezone.now)
+
+    # 新版本管理
+    db_version = models.ForeignKey(DBVersion, on_delete=models.PROTECT, blank=True, null=True)
+    # os 信息
+    permit_os = models.JSONField(blank=True, null=True, help_text=_("os 列表"), default=list)
+    permit_os_type = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("os 类型"))
 
     class Meta:
         verbose_name_plural = verbose_name = _("介质包（Package）")
