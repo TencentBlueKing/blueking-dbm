@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from datetime import datetime, timezone
-
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
@@ -27,8 +25,6 @@ class RiskMemoSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation["biz_inpact"] = representation["biz_inpact"].split(",")
         representation["inpact_cluster"] = representation["inpact_cluster"].split(",")
-        now_time = datetime.now(timezone.utc)
-        representation["duration_time"] = (now_time - representation["create_at"]).total_seconds()
         return representation
 
 
@@ -48,8 +44,6 @@ class RiskMemoDtailSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation["biz_inpact"] = representation["biz_inpact"].split(",")
         representation["inpact_cluster"] = representation["inpact_cluster"].split(",")
-        now_time = datetime.now(timezone.utc)
-        representation["duration_time"] = (now_time - representation["create_at"]).total_seconds()
         return representation
 
 
