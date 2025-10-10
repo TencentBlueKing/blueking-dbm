@@ -157,6 +157,12 @@ export default (props: any) => {
 
   const deviceClassList = shallowRef<ServiceReturnType<typeof fetchDeviceClass>['results']>([]);
   useRequest(fetchDeviceClass, {
+    defaultParams: [
+      {
+        limit: -1,
+        offset: 0,
+      },
+    ],
     onSuccess(data) {
       deviceClassList.value = data.results;
     },
