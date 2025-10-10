@@ -23,12 +23,15 @@
         ref="bkTableRef"
         v-bind="{
           ...inhertProps,
+          bkUiSettings,
+          filterValue,
           data: tableData.results,
           maxHeight: tableMaxHeight,
           showHeader: true,
           filterRow: null as any,
         }"
-        @change="handleFilterChange"
+        @bk-ui-settings-change="handleDisplayColumnsChange"
+        @filter-change="handleFilterChanges"
         @row-click="handleRowClick"
         @sort-change="handleSortChange">
         <component
@@ -40,9 +43,12 @@
             <EmptyStatus
               :is-anomalies="isRequestFailed"
               :is-searching="isSearching"
-              @clear-search="handleClearSearch"
+              @clear-search="handleClearFilter"
               @refresh="fetchListData" />
           </slot>
+        </template>
+        <template #bkUiAppearanceSettings>
+          <slot name="bkUiAppearanceSettings" />
         </template>
       </PrimaryTable>
       <div class="table-footer">
@@ -50,7 +56,19 @@
           v-bind="pagination"
           :layout="['total', 'limit', 'list']"
           @change="handlePageValueChange"
-          @limit-change="handlePageLimitChange" />
+          @limit-change="handlePageLimitChange">
+          <template
+            v-if="selectedCount > 0"
+            #limitAppend>
+            <I18nT
+              class="ml-8"
+              keypath="已选择n条"
+              scope="global"
+              tag="span">
+              <span class="number">{{ selectedCount }}</span>
+            </I18nT>
+          </template>
+        </BkPagination>
       </div>
     </BkLoading>
   </div>
@@ -58,6 +76,7 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import {
+    type FilterValue,
     type SortOptions,
     type TableChangeContext,
     type TableChangeData,
@@ -66,7 +85,10 @@
     type TableSort,
   } from 'tdesign-vue-next';
   import { nextTick, onMounted, type Ref, ref, type VNode } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useRouter } from 'vue-router';
+
+  import { PrimaryTable } from '@blueking/tdesign-ui';
 
   import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
@@ -81,10 +103,12 @@
   import { useSelect } from './hooks/use-select.tsx';
 
   export interface Props {
+    bkUiSettings?: ComponentProps<typeof PrimaryTable>['bkUiSettings'];
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
     disableSelectMethod?: (data: any) => boolean | string;
+    filterValue?: Record<string, string>;
     // 固定分页，不通过容器高度自动计算
     fixedPagination?: boolean;
     // 是否解析 URL query 参数
@@ -105,9 +129,12 @@
     (e: 'selection', key: string[], list: any[]): void;
     (e: 'change', data: TableChangeData, context: TableChangeContext<TableRowData>): void;
     (e: 'sortChange', sort: TableSort, options: SortOptions<TableRowData>): void;
+    (e: 'filterChange', filterValue: FilterValue): void;
+    (e: 'bkUiSettingsChange', payload: Props['bkUiSettings']): void;
   }
 
   export interface Slots {
+    bkUiAppearanceSettings: () => VNode;
     default: () => VNode;
     empty: () => VNode;
     expandRow: () => VNode;
@@ -125,8 +152,10 @@
   }
 
   const props = withDefaults(defineProps<Props & TableProps>(), {
+    bkUiSettings: undefined,
     containerHeight: undefined,
     disableSelectMethod: () => false,
+    filterValue: undefined,
     fixedPagination: false,
     releateUrlQuery: false,
     rowClickSelectable: false,
@@ -155,6 +184,7 @@
     // @ts-expect-error 删除不存在的 props
     delete baseProps['settings'];
     delete baseProps['onChange'];
+    delete baseProps['onFilterChange'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['dataSource'];
     return baseProps;
@@ -194,6 +224,7 @@
   const isSearching = ref(false);
   const isRequestFailed = ref(false);
   const isWholeChecked = ref(false);
+  const selectedCount = computed(() => Object.keys(selectedRowMap.value).length);
 
   let paramsMemo = {};
   let sortParams = {};
@@ -354,13 +385,18 @@
 
     fetchListData();
   };
-  const handleFilterChange = (data: TableChangeData, context: TableChangeContext<TableRowData>) => {
-    emits('change', data, context);
+
+  const handleDisplayColumnsChange = (payload: Props['bkUiSettings']) => {
+    emits('bkUiSettingsChange', payload);
+  };
+
+  const handleFilterChanges = (filterValue: FilterValue) => {
+    emits('filterChange', filterValue);
   };
 
   // 情况搜索条件
-  const handleClearSearch = () => {
-    emits('clearSearch');
+  const handleClearFilter = () => {
+    emits('filterChange', {});
   };
 
   const calcTableHeight = () => {

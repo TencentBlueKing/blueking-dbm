@@ -30,19 +30,10 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/kafka/Index.vue'),
     children: [
-      // {
-      //   name: 'KafkaApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请Kafka集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/kafka/apply/Index.vue'),
-      // },
       {
         path: 'list/:clusterId?',
         name: 'KafkaList',
         meta: {
-          fullscreen: true,
           navName: t('Kafka_集群管理'),
         },
         component: () => import('@views/db-manage/kafka/list/Index.vue'),

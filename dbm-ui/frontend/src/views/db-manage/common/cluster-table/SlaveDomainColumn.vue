@@ -4,7 +4,7 @@
     col-key="slave_domain"
     :min-width="280"
     :title="t('从访问入口')">
-    <template #header>
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -38,8 +38,6 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import DbTable from '@components/db-table/index.vue';
-
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import SlaveDomainCell, {
@@ -47,12 +45,13 @@
     copyDomainPort,
     type ISupportClusterType,
   } from './components/SlaveDomainCell.vue';
+  import type { Expose as ClusterTableExpose } from './Index.vue';
   import type { ClusterModel } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    getTableInstance: () => ClusterTableExpose | null;
     isFilter: boolean;
     selectedList: ClusterModel<clusterType>[];
   }
@@ -91,20 +90,6 @@
 </script>
 <style lang="less">
   .cluster-table-slave-domain-column {
-    &:hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
     .layout-append {
       align-self: flex-start;
       height: 26px;

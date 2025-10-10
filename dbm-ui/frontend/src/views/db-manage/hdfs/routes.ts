@@ -30,19 +30,10 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/hdfs/Index.vue'),
     children: [
-      // {
-      //   name: 'HdfsApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请HDFS集群部署'),
-      //   },
-      //   component: () => import('@views/db-manage/hdfs/apply/Index.vue'),
-      // },
       {
         path: 'list/:clusterId?',
         name: 'HdfsList',
         meta: {
-          fullscreen: true,
           navName: t('HDFS_集群管理'),
         },
         component: () => import('@/views/db-manage/hdfs/list/Index.vue'),

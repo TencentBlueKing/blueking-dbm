@@ -23,7 +23,7 @@
       <ClusterBatchOperation
         v-db-console="'tendbCluster.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.TENDBCLUSTER"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchTableData" />
       <span
         v-bk-tooltips="{
@@ -40,377 +40,366 @@
       </span>
       <DropdownExportExcel
         v-db-console="'tendbCluster.clusterManage.export'"
-        :ids="selectedIds"
+        :ids="selectedIdList"
         type="spider" />
       <ClusterIpCopy
         v-db-console="'tendbCluster.clusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
-    <div class="table-wrapper">
-      <ClusterTable
-        ref="tableRef"
-        :cluster-id="clusterId"
-        :cluster-type="ClusterTypes.TENDBCLUSTER"
-        :data-source="fetchData"
-        :settings="settings"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleTableSelected"
-        @setting-change="updateTableSettings">
-        <template #operation>
-          <OperationColumn :cluster-type="ClusterTypes.TENDBCLUSTER">
-            <template #default="{ data }: { data: TendbClusterModel }">
-              <div v-db-console="'mysql.haClusterList.authorize'">
-                <BkButton
-                  :disabled="data.isOffline"
-                  text
-                  @click="() => handleShowAuthorize([data])">
-                  {{ t('授权') }}
-                </BkButton>
-              </div>
-              <div v-db-console="'tendbCluster.clusterManage.webconsole'">
-                <AuthRouterLink
-                  action-id="tendbcluster_webconsole"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_webconsole"
-                  :resource="data.id"
-                  target="_blank"
-                  :to="{
-                    name: 'SpiderWebconsole',
-                    query: {
-                      clusterId: data.id,
-                    },
-                  }">
-                  Webconsole
-                </AuthRouterLink>
-              </div>
-              <div v-db-console="'tendbCluster.clusterManage.exportData'">
+    <ClusterTable
+      ref="clusterTable"
+      :bk-ui-settings="settings"
+      :cluster-id="clusterId"
+      :cluster-type="ClusterTypes.TENDBCLUSTER"
+      :data-source="fetchData"
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
+      <template #operation>
+        <OperationColumn :cluster-type="ClusterTypes.TENDBCLUSTER">
+          <template #default="{ data }: { data: TendbClusterModel }">
+            <div v-db-console="'mysql.haClusterList.authorize'">
+              <BkButton
+                :disabled="data.isOffline"
+                text
+                @click="() => handleShowAuthorize([data])">
+                {{ t('授权') }}
+              </BkButton>
+            </div>
+            <div v-db-console="'tendbCluster.clusterManage.webconsole'">
+              <AuthRouterLink
+                action-id="tendbcluster_webconsole"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_webconsole"
+                :resource="data.id"
+                target="_blank"
+                :to="{
+                  name: 'SpiderWebconsole',
+                  query: {
+                    clusterId: data.id,
+                  },
+                }">
+                Webconsole
+              </AuthRouterLink>
+            </div>
+            <div v-db-console="'tendbCluster.clusterManage.exportData'">
+              <AuthButton
+                action-id="tendbcluster_dump_data"
+                :disabled="data.isOffline"
+                :permission="data.permission.tendbcluster_dump_data"
+                :resource="data.id"
+                text
+                @click="() => handleShowDataExportSlider(data)">
+                {{ t('导出数据') }}
+              </AuthButton>
+            </div>
+            <div
+              v-bk-tooltips="{
+                disabled: data.spider_mnt.length > 0,
+                content: t('无运维节点'),
+              }"
+              v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
+              <AuthButton
+                action-id="tendbcluster_spider_mnt_destroy"
+                :disabled="data.spider_mnt.length === 0 || data.isOffline"
+                :permission="data.permission.tendbcluster_spider_mnt_destroy"
+                :resource="data.id"
+                text
+                @click="handleRemoveMNT(data)">
+                {{ t('下架运维节点') }}
+              </AuthButton>
+            </div>
+            <div
+              v-bk-tooltips="{
+                disabled: data.spider_slave.length > 0,
+                content: t('无只读集群'),
+              }"
+              v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
+              <AuthButton
+                action-id="tendb_spider_slave_destroy"
+                :disabled="data.spider_slave.length === 0 || data.isOffline"
+                :permission="data.permission.tendb_spider_slave_destroy"
+                :resource="data.id"
+                text
+                @click="handleDestroySlave(data)">
+                {{ t('下架只读集群') }}
+              </AuthButton>
+            </div>
+            <div
+              v-if="!data.isOnlineCLBMaster"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_dump_data"
+                  action-id="tendbcluster_add_clb"
                   :disabled="data.isOffline"
-                  :permission="data.permission.tendbcluster_dump_data"
+                  :permission="data.permission.tendbcluster_add_clb"
                   :resource="data.id"
                   text
-                  @click="() => handleShowDataExportSlider(data)">
-                  {{ t('导出数据') }}
+                  @click="
+                    () =>
+                      handleAddClb({
+                        details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
+                      })
+                  ">
+                  {{ t('启用 Spider Master 负载均衡（CLB）') }}
                 </AuthButton>
-              </div>
-              <div
-                v-bk-tooltips="{
-                  disabled: data.spider_mnt.length > 0,
-                  content: t('无运维节点'),
-                }"
-                v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="!data.isOnlineCLBSlave"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendbcluster_spider_mnt_destroy"
-                  :disabled="data.spider_mnt.length === 0 || data.isOffline"
-                  :permission="data.permission.tendbcluster_spider_mnt_destroy"
+                  action-id="tendbcluster_add_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.tendbcluster_add_clb"
                   :resource="data.id"
                   text
-                  @click="handleRemoveMNT(data)">
-                  {{ t('下架运维节点') }}
+                  @click="
+                    () =>
+                      handleAddClb({
+                        details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
+                      })
+                  ">
+                  {{ t('启用 Spider Slave 负载均衡（CLB）') }}
                 </AuthButton>
-              </div>
-              <div
-                v-bk-tooltips="{
-                  disabled: data.spider_slave.length > 0,
-                  content: t('无只读集群'),
-                }"
-                v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLBMaster"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="tendb_spider_slave_destroy"
-                  :disabled="data.spider_slave.length === 0 || data.isOffline"
-                  :permission="data.permission.tendb_spider_slave_destroy"
+                  action-id="tendbcluster_clb_bind_domain"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.tendbcluster_clb_bind_domain"
                   :resource="data.id"
                   text
-                  @click="handleDestroySlave(data)">
-                  {{ t('下架只读集群') }}
-                </AuthButton>
-              </div>
-              <div
-                v-if="!data.isOnlineCLBMaster"
-                v-db-console="'common.clb'">
-                <OperationBtnStatusTips
-                  :data="data"
-                  :disabled="!data.isOffline">
-                  <AuthButton
-                    action-id="tendbcluster_add_clb"
-                    :disabled="data.isOffline"
-                    :permission="data.permission.tendbcluster_add_clb"
-                    :resource="data.id"
-                    text
-                    @click="
-                      () =>
-                        handleAddClb({
-                          details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_master' },
-                        })
-                    ">
-                    {{ t('启用 Spider Master 负载均衡（CLB）') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-if="!data.isOnlineCLBSlave"
-                v-db-console="'common.clb'">
-                <OperationBtnStatusTips
-                  :data="data"
-                  :disabled="!data.isOffline">
-                  <AuthButton
-                    action-id="tendbcluster_add_clb"
-                    :disabled="data.isOffline"
-                    :permission="data.permission.tendbcluster_add_clb"
-                    :resource="data.id"
-                    text
-                    @click="
-                      () =>
-                        handleAddClb({
-                          details: { cluster_id: data.id, bk_cloud_id: data.bk_cloud_id, spider_role: 'spider_slave' },
-                        })
-                    ">
-                    {{ t('启用 Spider Slave 负载均衡（CLB）') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-if="data.isOnlineCLBMaster"
-                v-db-console="'common.clb'">
-                <OperationBtnStatusTips
-                  :data="data"
-                  :disabled="!data.isOffline">
-                  <AuthButton
-                    action-id="tendbcluster_clb_bind_domain"
-                    :disabled="data.isOffline"
-                    :permission="data.permission.tendbcluster_clb_bind_domain"
-                    :resource="data.id"
-                    text
-                    @click="
-                      () =>
-                        handleBindOrUnbindClb(
-                          {
-                            details: {
-                              cluster_id: data.id,
-                              bk_cloud_id: data.bk_cloud_id,
-                              spider_role: 'spider_master',
-                            },
+                  @click="
+                    () =>
+                      handleBindOrUnbindClb(
+                        {
+                          details: {
+                            cluster_id: data.id,
+                            bk_cloud_id: data.bk_cloud_id,
+                            spider_role: 'spider_master',
                           },
-                          data.dns_to_clb,
-                        )
-                    ">
-                    {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-if="data.isOnlineCLBSlave"
-                v-db-console="'common.clb'">
-                <OperationBtnStatusTips
-                  :data="data"
-                  :disabled="!data.isOffline">
-                  <AuthButton
-                    action-id="tendbcluster_clb_bind_domain"
-                    :disabled="data.isOffline"
-                    :permission="data.permission.tendbcluster_clb_bind_domain"
-                    :resource="data.id"
-                    text
-                    @click="
-                      () =>
-                        handleBindOrUnbindClb(
-                          {
-                            details: {
-                              cluster_id: data.id,
-                              bk_cloud_id: data.bk_cloud_id,
-                              spider_role: 'spider_slave',
-                            },
+                        },
+                        data.dns_to_clb,
+                      )
+                  ">
+                  {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnlineCLBSlave"
+              v-db-console="'common.clb'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="tendbcluster_clb_bind_domain"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.tendbcluster_clb_bind_domain"
+                  :resource="data.id"
+                  text
+                  @click="
+                    () =>
+                      handleBindOrUnbindClb(
+                        {
+                          details: {
+                            cluster_id: data.id,
+                            bk_cloud_id: data.bk_cloud_id,
+                            spider_role: 'spider_slave',
                           },
-                          data.dns_to_clb,
-                        )
-                    ">
-                    {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-if="data.isOnline"
-                v-db-console="'tendbCluster.clusterManage.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="tendbcluster_enable_disable"
-                    :disabled="Boolean(data.operationTicketId)"
-                    :permission="data.permission.tendbcluster_enable_disable"
-                    :resource="data.id"
-                    text
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-if="data.isOffline"
-                v-db-console="'tendbCluster.clusterManage.enable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="tendbcluster_enable_disable"
-                    :disabled="data.isStarting"
-                    :permission="data.permission.tendbcluster_enable_disable"
-                    :resource="data.id"
-                    text
-                    @click="handleEnableCluster([data])">
-                    {{ t('启用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'tendbCluster.clusterManage.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    action-id="tendbcluster_destroy"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.tendbcluster_destroy"
-                    :resource="data.id"
-                    text
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <ClusterDomainDnsRelation :data="data">
-                <BkButton text>
-                  {{ t('手动配置域名 DNS 记录') }}
-                </BkButton>
-              </ClusterDomainDnsRelation>
-            </template>
-          </OperationColumn>
-        </template>
-        <template #masterDomain>
-          <MasterDomainColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="master_domain"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :label="t('主访问入口')"
-            :selected-list="selected"
-            @go-detail="handleToDetails"
-            @refresh="fetchTableData">
-            <template #append="{ data }">
-              <div
-                v-if="data.isOnlineCLBMaster"
-                class="ml-4">
-                <ClusterEntryPanel
-                  clb-role="master_entry"
-                  :cluster-id="data.id"
-                  entry-type="clb"
-                  :panel-width="350" />
-              </div>
-            </template>
-          </MasterDomainColumn>
-        </template>
-        <template #slaveDomain>
-          <SlaveDomainColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :selected-list="selected">
-            <template #append="{ data }">
-              <div
-                v-if="data.isOnlineCLBSlave"
-                class="ml-4">
-                <ClusterEntryPanel
-                  clb-role="slave_entry"
-                  :cluster-id="data.id"
-                  entry-type="clb"
-                  :panel-width="350" />
-              </div>
-            </template>
-          </SlaveDomainColumn>
-        </template>
-        <template #role>
-          <RoleColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="spider_master"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="Spider Master"
-            :search-ip="searchIp"
-            :selected-list="selected"
-            @go-detail="handleToDetails">
-            <template #nodeTag="{ data }">
-              <BkTag
-                v-if="clusterPrimaryMap[data.ip]"
-                class="is-primary"
-                size="small">
-                Primary
-              </BkTag>
-            </template>
-          </RoleColumn>
-          <RoleColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="spider_slave"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="Spider Slave"
-            :search-ip="searchIp"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="spider_mnt"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :label="t('运维节点')"
-            :search-ip="searchIp"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="remote_db"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="RemoteDB"
-            :search-ip="searchIp"
-            :selected-list="selected"
-            @go-detail="handleToDetails">
-            <template #default="{ data }: { data: TendbClusterModel['remote_db'][number] }">
-              {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
-            </template>
-          </RoleColumn>
-          <RoleColumn
-            :cluster-type="ClusterTypes.TENDBCLUSTER"
-            field="remote_dr"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="RemoteDR"
-            :search-ip="searchIp"
-            :selected-list="selected"
-            @go-detail="handleToDetails">
-            <template #default="{ data }: { data: TendbClusterModel['remote_dr'][number] }">
-              {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
-            </template>
-          </RoleColumn>
-        </template>
-        <template #moduleNames>
-          <ModuleNameColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
-        </template>
-      </ClusterTable>
-    </div>
+                        },
+                        data.dns_to_clb,
+                      )
+                  ">
+                  {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOnline"
+              v-db-console="'tendbCluster.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="tendbcluster_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.tendbcluster_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-if="data.isOffline"
+              v-db-console="'tendbCluster.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="tendbcluster_enable_disable"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.tendbcluster_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'tendbCluster.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="tendbcluster_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.tendbcluster_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <ClusterDomainDnsRelation :data="data">
+              <BkButton text>
+                {{ t('手动配置域名 DNS 记录') }}
+              </BkButton>
+            </ClusterDomainDnsRelation>
+          </template>
+        </OperationColumn>
+      </template>
+      <template #masterDomain>
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :label="t('主访问入口')"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails"
+          @refresh="fetchTableData">
+          <template #append="{ data }">
+            <div
+              v-if="data.isOnlineCLBMaster"
+              class="ml-4">
+              <ClusterEntryPanel
+                clb-role="master_entry"
+                :cluster-id="data.id"
+                entry-type="clb"
+                :panel-width="350" />
+            </div>
+          </template>
+        </MasterDomainColumn>
+      </template>
+      <template #slaveDomain>
+        <SlaveDomainColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :selected-list="selectedList">
+          <template #append="{ data }">
+            <div
+              v-if="data.isOnlineCLBSlave"
+              class="ml-4">
+              <ClusterEntryPanel
+                clb-role="slave_entry"
+                :cluster-id="data.id"
+                entry-type="clb"
+                :panel-width="350" />
+            </div>
+          </template>
+        </SlaveDomainColumn>
+      </template>
+      <template #role>
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_master"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="Spider Master"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="clusterPrimaryMap[data.ip]"
+              class="is-primary"
+              size="small">
+              Primary
+            </BkTag>
+          </template>
+        </RoleColumn>
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_slave"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="Spider Slave"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_mnt"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :label="t('运维节点')"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="remote_db"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="RemoteDB"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails">
+          <template #default="{ data }: { data: TendbClusterModel['remote_db'][number] }">
+            {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
+          </template>
+        </RoleColumn>
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="remote_dr"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="RemoteDR"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails">
+          <template #default="{ data }: { data: TendbClusterModel['remote_dr'][number] }">
+            {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }})
+          </template>
+        </RoleColumn>
+      </template>
+      <template #moduleNames>
+        <ModuleNameColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+      </template>
+    </ClusterTable>
   </div>
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.TENDBCLUSTER"
     :cluster-types="[ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave']"
-    :selected="selected"
+    :selected="selectedList"
     @success="handleClearSelected" />
   <ExcelAuthorize
     v-model:is-show="excelAuthorizeShow"
@@ -433,7 +422,7 @@
 <script setup lang="tsx">
   import { Checkbox } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -441,14 +430,10 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getTendbClusterList, getTendbclusterPrimary } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings, useTicketMessage } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -467,16 +452,18 @@
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useAddClb, useBindOrUnbindClb, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/tendb-cluster/common/cluster-detail/Index.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, messageWarn } from '@utils';
+  import { messageWarn } from '@utils';
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.TENDBCLUSTER);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBCLUSTER,
     {
@@ -496,118 +483,25 @@
   }>(ClusterTypes.TENDBCLUSTER);
 
   const {
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchTableData(),
-    searchType: ClusterTypes.TENDBCLUSTER,
-  });
-
-  const {
     clusterDetailClose: handleDetailClose,
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('tendbClusterDetail');
+  const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<TendbClusterModel>();
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false);
   const currentData = ref<TendbClusterModel>();
-  const selected = ref<TendbClusterModel[]>([]);
   const clusterPrimaryMap = ref<Record<string, boolean>>({});
-  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
-
-  const searchSelectData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
-  const searchIp = computed<string[]>(() => {
-    const ipObj = searchValue.value.find((item) => item.id === 'ip');
-    if (ipObj && ipObj.values) {
-      return [ipObj.values[0].id];
-    }
-    return [];
-  });
 
   const { run: getSpiderClusterPrimaryRun } = useRequest(getTendbclusterPrimary, {
     manual: true,
@@ -638,76 +532,21 @@
     },
   });
 
-  watch(searchValue, () => {
-    tableRef.value?.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  const fetchTableData = () => {
+    tableRef.value?.fetchData(searchValue.value);
   };
+
+  watch(searchValue, () => {
+    setTimeout(() => {
+      tableRef.value?.clearSelected();
+
+      fetchTableData();
+    });
+  });
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
-    checked: [
-      'master_domain',
-      'slave_domain',
-      'status',
-      'cluster_stats',
-      'spider_master',
-      'spider_slave',
-      'spider_mnt',
-      'remote_db',
-      'remote_dr',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'spec_name',
-      'bk_cloud_id',
-      'tag',
-    ],
     disabled: ['master_domain'],
   });
-
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchTableData();
-  };
-
-  const fetchTableData = () => {
-    tableRef.value?.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
-
-    return Promise.resolve([]);
-  };
 
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
@@ -806,18 +645,14 @@
     });
   };
 
-  const handleTableSelected = (data: unknown, list: TendbClusterModel[]) => {
-    selected.value = list;
-  };
-
   const handleShowAuthorize = (list: TendbClusterModel[] = []) => {
     clusterAuthorizeShow.value = true;
-    selected.value = list;
+    selectedList.value = list;
   };
 
   const handleClearSelected = () => {
     tableRef.value!.clearSelected();
-    selected.value = [];
+    selectedList.value = [];
   };
 
   const handleShowDataExportSlider = (data: TendbClusterModel) => {
@@ -828,28 +663,19 @@
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
   };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchTableData();
+  };
 </script>
 <style lang="less">
   .spider-manage-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .operations {
       display: flex;
       margin-bottom: 16px;
       flex-wrap: wrap;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 

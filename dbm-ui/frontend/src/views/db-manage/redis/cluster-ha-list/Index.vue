@@ -23,36 +23,32 @@
       <ClusterBatchOperation
         v-db-console="'redis.haClusterManage.batchOperation'"
         :cluster-type="ClusterTypes.REDIS_INSTANCE"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchData" />
       <DropdownExportExcel
-        :ids="selectedIds"
+        :ids="selectedIdList"
         type="redis" />
       <ClusterIpCopy
         v-db-console="'redis.haClusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        class="operations-right"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
+      :bk-ui-settings="settings"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.REDIS_INSTANCE"
       :data-source="getRedisList"
       :disable-select-method="disableSelectMethod"
-      :settings="settings"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection"
-      @setting-change="updateTableSettings">
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.REDIS_INSTANCE">
           <template #default="{ data }: { data: RedisModel }">
@@ -238,9 +234,9 @@
           :cluster-type="ClusterTypes.REDIS_INSTANCE"
           field="master_domain"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('主访问入口')"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails"
           @refresh="fetchData">
           <template #append="{ data }">
@@ -255,27 +251,25 @@
         <SlaveDomainColumn
           :cluster-type="ClusterTypes.REDIS_INSTANCE"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
-          :selected-list="selected" />
+          :is-filter="isSearching"
+          :selected-list="selectedList" />
       </template>
       <template #role>
         <RoleColumn
           :cluster-type="ClusterTypes.REDIS_INSTANCE"
           field="redis_master"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="Master"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.REDIS_INSTANCE"
           field="redis_slave"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           label="Slave"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
       <template #moduleNames>
@@ -305,22 +299,19 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
-  import DbTable from '@components/db-table/index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -335,22 +326,16 @@
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useOperateClusterBasic, useRedisClusterListToToolbox } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterDetail from '@views/db-manage/redis/common/cluster-ha-detail/Index.vue';
   import ClusterPassword from '@views/db-manage/redis/common/cluster-operations/ClusterPassword.vue';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
-
-  enum ClusterNodeKeys {
-    PROXY = 'proxy',
-    REDIS_MASTER = 'redis_master',
-    REDIS_SLAVE = 'redis_slave',
-  }
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.REDIS);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS_INSTANCE,
     {
@@ -360,167 +345,12 @@
   const { handleToToolbox } = useRedisClusterListToToolbox();
 
   const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => fetchData(),
-    searchType: ClusterTypes.REDIS,
-  });
-
-  const {
     clusterDetailClose: handleDetailClose,
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('redisClusterHaDetail');
-
-  const tableRef = ref<InstanceType<typeof DbTable>>();
-  const tagSearchValue = ref<Record<string, any>>({});
-
-  const getTableInstance = () => tableRef.value;
-
-  const selected = shallowRef<RedisModel[]>([]);
-
-  /** 查看密码 */
-  const passwordState = reactive({
-    fetchParams: {
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_id: -1,
-      db_type: DBTypes.REDIS,
-      type: DBTypes.REDIS,
-    },
-    isShow: false,
-  });
-
-  const searchSelectData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      async: false,
-      id: 'name',
-      multiple: true,
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
-  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.REDIS_HA_TABLE_SETTINGS, {
-    checked: [
-      'master_domain',
-      'status',
-      'cluster_stats',
-      ClusterNodeKeys.REDIS_MASTER,
-      ClusterNodeKeys.REDIS_SLAVE,
-      'cluster_type_name',
-      'major_version',
-      'module_names',
-      'region',
-      'tag',
-    ],
-    disabled: ['master_domain'],
-  });
-
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
-  };
+  const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<RedisModel>();
 
   const disableSelectMethod = (data: RedisModel) => {
     if (data.operations?.length > 0) {
@@ -533,20 +363,33 @@
     return false;
   };
 
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchData();
-  };
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
+  const getTableInstance = () => tableRef.value;
+  /** 查看密码 */
+  const passwordState = reactive({
+    fetchParams: {
+      bk_biz_id: globalBizsStore.currentBizId,
+      cluster_id: -1,
+      db_type: DBTypes.REDIS,
+      type: DBTypes.REDIS,
+    },
+    isShow: false,
+  });
+
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.REDIS_HA_TABLE_SETTINGS, {
+    disabled: ['master_domain'],
+  });
 
   const fetchData = () => {
-    const params = {
-      ...getSearchSelectorParams(searchValue.value),
-      cluster_type: ClusterTypes.REDIS_INSTANCE,
-      ...tagSearchValue.value,
-      ...sortValue,
-    };
-    tableRef.value!.fetchData(params);
+    tableRef.value!.fetchData(searchValue.value);
   };
+
+  watch(searchValue, () => {
+    setTimeout(() => {
+      fetchData();
+      tableRef.value!.clearSelected();
+    });
+  });
 
   /**
    * 申请实例
@@ -559,10 +402,6 @@
         from: route.name as string,
       },
     });
-  };
-
-  const handleSelection = (data: unknown, list: RedisModel[]) => {
-    selected.value = list;
   };
 
   const handleShowPassword = (id: number) => {
@@ -579,29 +418,19 @@
     });
     window.open(url.href);
   };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchData();
+  };
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .redis-cluster-ha-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-
     .operation-box {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 
