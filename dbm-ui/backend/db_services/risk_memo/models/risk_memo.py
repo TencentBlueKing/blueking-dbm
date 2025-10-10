@@ -39,7 +39,7 @@ class RiskMemo(AuditedModel):
     duration_time = models.IntegerField(default=0)
     # 结项字段
     finalist = models.CharField(max_length=64, default="", help_text=_("结项人"))
-    final_time = models.CharField(max_length=32, null=True, blank=True, help_text=_("结项时间"))  # type: ignore
+    final_time = models.DateTimeField(blank=True, null=True, help_text=_("结项时间"))
     final_content = models.TextField(null=True, blank=True, help_text=_("结项内容"))
 
     objects = RiskMemoManager()

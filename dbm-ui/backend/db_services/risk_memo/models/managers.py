@@ -22,7 +22,7 @@ class RiskMemoManager(models.Manager):
         # 如果当前状态是已结项 触发重启时 清除掉结项信息
         elif risk.status == Status.DONE.value and validated_data["status"] != Status.DONE.value:
             risk.final_content = ""
-            risk.final_time = ""
+            risk.final_time = None
             risk.finished_by = ""
             risk.duration_time = 0
             risk.status = validated_data["status"]
