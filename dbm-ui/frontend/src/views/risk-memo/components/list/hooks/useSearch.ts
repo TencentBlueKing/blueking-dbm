@@ -112,6 +112,12 @@ export default function useSearch(
     );
   };
 
+  onMounted(() => {
+    searchValue.value = {
+      status: 'backlog',
+    };
+  });
+
   return {
     searchSelectData,
     searchValue,

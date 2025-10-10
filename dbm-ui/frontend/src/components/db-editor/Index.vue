@@ -92,13 +92,10 @@
     isEditorMode,
     () => {
       setTimeout(() => {
-        const editTextareaDom = editorWraperRef.value!.querySelector('div[id^="w-e-textarea"]');
-        if (editTextareaDom) {
-          editTextareaDom.setAttribute('contenteditable', isEditorMode.value ? 'true' : 'false');
-        }
-
         if (isEditorMode.value) {
           editorRef.value?.focus(true);
+        } else {
+          editorRef.value?.disable();
         }
       });
     },
