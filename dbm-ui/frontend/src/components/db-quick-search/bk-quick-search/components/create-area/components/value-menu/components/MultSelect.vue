@@ -2,7 +2,7 @@
   <div
     ref="root"
     class="bk-quick-search-type-mult-select"
-    :style="{ width: contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
+    :style="{ 'min-width': contentMinWidth > 0 ? `${contentMinWidth}px` : '' }">
     <div class="bk-quick-search-value-panel-filter-box">
       <Input
         v-model="filterKey"

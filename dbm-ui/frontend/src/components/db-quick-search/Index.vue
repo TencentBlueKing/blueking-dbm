@@ -46,7 +46,7 @@
         });
       } else if (currentDataConfig.type === 'multiple' || currentDataConfig.type === 'multiple-cascader') {
         Object.assign(result, {
-          [currentDataConfig.id]: item.values.map((value) => value.value),
+          [currentDataConfig.id]: item.values.map((value) => value.value).join(','),
         });
       } else {
         Object.assign(result, {
@@ -137,8 +137,26 @@
             .then((data) => {
               // 备选数据结构
               // 级联
-              if (data.length > 0 && _.isArray(data[0]!.children)) {
-                return data.reduce((result, item) => result.concat(item.children || []), [] as IValue['values']);
+              if (
+                data.length > 0 &&
+                (searchItemConfig.type === 'cascader' || searchItemConfig.type === 'multiple-cascader')
+              ) {
+                const result: { label: string; value: string | number }[] = [];
+                data.forEach((parentItem) => {
+                  result.push({
+                    label: parentItem.label,
+                    value: parentItem.value,
+                  });
+                  (parentItem.children || []).forEach((childItem) => {
+                    result.push({
+                      label: searchItemConfig.props?.showAllLevels
+                        ? `${parentItem.label}/${childItem.label}`
+                        : childItem.label,
+                      value: childItem.value,
+                    });
+                  });
+                });
+                return result;
               }
               return data;
             })
