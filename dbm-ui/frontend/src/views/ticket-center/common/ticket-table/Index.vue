@@ -11,6 +11,7 @@
         :filter-row="(null as any)"
         :filter-value="quickSearchValue"
         :max-height="tableMaxHeight"
+        resizable
         :row-class-name="rowClass"
         row-key="id"
         title-ellipsis

@@ -84,7 +84,7 @@
 
   import useMenuList from './hooks/useMenuList';
 
-  interface IListItem {
+  export interface IListItem {
     children: {
       label: string;
       value: string | number;
@@ -151,6 +151,12 @@
   });
 
   const calcParentCheckStatus = (parentData: IListItem) => {
+    if (props.checkStrictly) {
+      return {
+        checked: Boolean(localValueIdMap.value[parentData.value]),
+        indeterminate: false,
+      };
+    }
     let indeterminate = false;
     let checked = true;
     parentData.children.forEach((item) => {
@@ -166,6 +172,7 @@
       indeterminate: checked ? false : indeterminate,
     };
   };
+
   const calcPanelWidth = () => {
     nextTick(() => {
       contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
@@ -176,6 +183,7 @@
   watch(
     () => props.value,
     () => {
+      console.log('props.valueprops.valueprops.value = ', props.value);
       if (isInnerSelfChange) {
         isInnerSelfChange = false;
         return;
@@ -237,6 +245,8 @@
 
   const handleParentChange = (checked: boolean, data: IListItem) => {
     const latestValueMap = { ...localValueIdMap.value };
+
+    console.log('checkedcheckedcheckedchecked = ', checked);
     if (props.checkStrictly) {
       // 父级可以作为值被选中
       if (checked) {
