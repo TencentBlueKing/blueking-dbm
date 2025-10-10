@@ -116,17 +116,17 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 			}
 		}
 	} else {
-		c.Disk.MatchTotalStorageSize(db)
 		if cmutil.IsNotEmpty(c.MountPoint) {
 			mp := path.Clean(c.MountPoint)
 			if cmutil.IsNotEmpty(c.DiskType) {
 				db.Where(model.JSONQuery("storage_device").Equals(c.DiskType, mp, "disk_type"))
-			} else {
-				db.Where(model.JSONQuery("storage_device").KeysContains([]string{mp}))
 			}
+			db.Where(model.JSONQuery("storage_device").NumRange(c.Disk.Min, c.Disk.Max, mp, "size"))
+			return
 		} else if cmutil.IsNotEmpty(c.DiskType) {
 			db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
 		}
+		c.Disk.MatchTotalStorageSize(db)
 	}
 }
 
