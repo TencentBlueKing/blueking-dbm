@@ -14,7 +14,7 @@ class RiskMemoManager(models.Manager):
             # 如果当前状态转为结项 补充结项信息
             risk.final_content = validated_data.pop("final_content", "")
             risk.final_time = datetime.now(timezone.utc)
-            risk.finished_by = request.user.username
+            risk.finalist = request.user.username
             risk.status = validated_data["status"]
             risk.duration_time = (risk.final_time - risk.create_at).total_seconds()
             risk.save()
@@ -23,7 +23,7 @@ class RiskMemoManager(models.Manager):
         elif risk.status == Status.DONE.value and validated_data["status"] != Status.DONE.value:
             risk.final_content = ""
             risk.final_time = None
-            risk.finished_by = ""
+            risk.finalist = ""
             risk.duration_time = 0
             risk.status = validated_data["status"]
             risk.save()
