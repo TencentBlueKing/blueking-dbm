@@ -101,8 +101,8 @@ def autofix_ticket_polling(restriction, max_retries, interval) -> Tuple[bool, in
             if result[0]:
                 return result
 
-        except Exception:
-            logger.exception("Unexpected error when polling ticket {}".format(restriction))
+        except Exception as e:
+            logger.exception("Unexpected error when polling ticket {}, error: {}".format(restriction, e))
 
         if timeout < time.time() - start_time:
             break
@@ -126,8 +126,11 @@ def __is_target_ticket(ticket: Ticket, restriction) -> bool:
     if ticket.create_at < earliest_create_at:
         return False
 
-    recycle_hosts = ticket.details["recycle_hosts"]
-    contains_ip = any(ip == restriction["ip"] for ip in recycle_hosts["ip"])
+    contains_ip = any(
+        any(proxy["ip"] == restriction["ip"] for proxy in info.get("proxy"))
+        or any(redis_slave["ip"] == restriction["ip"] for redis_slave in info.get("redis_slave"))
+        for info in ticket.details["infos"]
+    )
 
     return contains_ip
 
