@@ -94,6 +94,8 @@ class TaskStatus:
     GENERATED = "generated"
     # 已申请资源
     RESOURCE_APPLIED = "resource_applied"
+    # 资源不足
+    RESOURCE_INSUFFICIENT = "resource_insufficient"
     # 资源申请失败
     RESOURCE_APPLIED_FAILED = "resource_applied_failed"
     # 提交任务成功

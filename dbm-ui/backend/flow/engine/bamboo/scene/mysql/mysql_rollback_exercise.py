@@ -172,7 +172,10 @@ class MySQLRollbackExerciseFlow(object):
         # 初始化安装mysql
         pipeline.add_sub_pipeline(
             MySQLSingleApplyFlow(root_id=self.root_id, data=install_ticket).deploy_mysql_single_flow(
-                origin_cluster_domain=cluster_class.immute_domain
+                origin_cluster_domain=cluster_class.immute_domain,
+                with_collect_sysinfo=False,
+                with_push_config=False,
+                with_exporter_config=False,
             )
         )
         # 屏蔽告警
