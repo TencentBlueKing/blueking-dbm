@@ -14,8 +14,8 @@
     <BkResizeLayout
       class="content-main"
       collapsible
-      :initial-divide="336"
-      :min="336"
+      :initial-divide="460"
+      :min="460"
       placement="left">
       <template #aside>
         <RiskList

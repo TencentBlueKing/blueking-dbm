@@ -32,16 +32,42 @@
         </BkPopConfirm>
       </div>
       <div class="basic-info-main">
-        <div
-          v-for="(info, index) in basicInfoList"
-          :key="index"
-          class="info-item">
-          <div class="name">{{ info.name }}</div>
+        <div class="info-item">
+          <div class="name">{{ t('业务') }}</div>
           <div class="ml-4 mr-4">:</div>
           <div
             v-overflow-tips
             class="value">
-            {{ info.value }}
+            {{ riskMemoDetail?.bk_biz_id ? bizIdObjectMap[riskMemoDetail?.bk_biz_id] : '--' }}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="name">{{ t('创建人') }}</div>
+          <div class="ml-4 mr-4">:</div>
+          <div
+            v-overflow-tips
+            class="value">
+            {{ riskMemoDetail?.creator || '--' }}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="name">{{ t('创建时间') }}</div>
+          <div class="ml-4 mr-4">:</div>
+          <div
+            v-overflow-tips
+            class="value">
+            {{ utcDisplayTime(riskMemoDetail?.create_at) }}
+          </div>
+        </div>
+        <div
+          v-if="!isSpecial"
+          class="info-item">
+          <div class="name">{{ t('持续时间') }}</div>
+          <div class="ml-4 mr-4">:</div>
+          <div
+            v-overflow-tips
+            class="value">
+            {{ durationTimeDisplay }}
           </div>
         </div>
       </div>
@@ -116,6 +142,7 @@
     @close-success="handleGetUpdateDetail" />
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -124,6 +151,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+
+  import { useIntervalFn } from '@vueuse/core';
 
   import AddFollowUp from './components/AddFollowUp.vue';
   import BasicInfo from './components/basic-info/Index.vue';
@@ -155,6 +184,7 @@
   const activeTab = ref('detail');
   const isShowCloseRisk = ref(false);
   const recordList = ref<FollowUpList>([]);
+  const durationTimeDisplay = ref(getCostTimeDisplay(0));
 
   const isRiskDone = computed(() => riskMemoDetail.value?.status === 'done');
   const statusTextDisplay = computed(() => {
@@ -169,31 +199,6 @@
     return t('已结项');
   });
 
-  const basicInfoList = computed(() => {
-    const list = [
-      {
-        name: t('业务'),
-        value: riskMemoDetail.value?.bk_biz_id ? bizIdObjectMap[riskMemoDetail.value?.bk_biz_id] : '--',
-      },
-      {
-        name: t('创建人'),
-        value: riskMemoDetail.value?.creator,
-      },
-      {
-        name: t('创建时间'),
-        value: utcDisplayTime(riskMemoDetail.value?.create_at),
-      },
-      {
-        name: t('持续时间'),
-        value: getCostTimeDisplay(riskMemoDetail.value?.duration_time || 0),
-      },
-    ];
-    if (props.isSpecial) {
-      list.pop();
-    }
-    return list;
-  });
-
   const {
     data: riskMemoDetail,
     loading: detailLoading,
@@ -206,6 +211,12 @@
       handleGetUpdateDetail();
     },
   });
+
+  // 计时
+  const { pause, resume } = useIntervalFn(() => {
+    const duratiopn = Math.floor(Date.now() / 1000) - dayjs(riskMemoDetail.value?.create_at).valueOf() / 1000;
+    durationTimeDisplay.value = getCostTimeDisplay(duratiopn);
+  }, 1000);
 
   const tabList = [
     {
@@ -259,6 +270,26 @@
   );
 
   watch(
+    () => [riskMemoDetail.value?.status, props.isSpecial],
+    () => {
+      if (props.isSpecial) {
+        pause();
+        return;
+      }
+
+      if (riskMemoDetail.value?.status === 'done') {
+        pause();
+        const duration =
+          dayjs(riskMemoDetail.value.final_time).valueOf() / 1000 -
+          dayjs(riskMemoDetail.value.create_at).valueOf() / 1000;
+        durationTimeDisplay.value = getCostTimeDisplay(duration);
+      } else {
+        resume();
+      }
+    },
+  );
+
+  watch(
     () => props.riskId,
     () => {
       if (props.riskId) {
@@ -293,6 +324,10 @@
     runGetRiskMemoDetail({ risk_id: props.riskId });
     emits('updateSuccess');
   };
+
+  onBeforeUnmount(() => {
+    pause();
+  });
 </script>
 <style lang="less">
   .risk-detail-info-main {

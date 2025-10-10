@@ -19,6 +19,7 @@
       ref="editValueRef"
       v-model="localValue"
       class="value-edit-main"
+      :maxlength="500"
       :resize="false"
       :rows="3"
       :type="textArea ? 'textarea' : 'input'"

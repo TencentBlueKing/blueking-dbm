@@ -195,7 +195,9 @@
     () => {
       searchParams = {};
       currentRiskId.value = 0;
-      searchValue.value = {};
+      searchValue.value = {
+        status: 'backlog',
+      };
       handleGetRiskMemoList();
     },
     {

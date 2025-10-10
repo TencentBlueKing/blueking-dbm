@@ -19,15 +19,18 @@ export const getRiskMemoList = (params: {
       {
         biz_inpact: string[];
         bk_biz_id: number;
+        create_at: string;
         db_type: string;
         description: string;
         duration_time: number;
+        final_time: string;
         id: number;
         inpact_cluster: string[];
         is_special: boolean;
         level: string;
         name: string;
         status: string;
+        update_at: string;
       }[]
     >
   >(`${path}/`, params);

@@ -33,16 +33,20 @@
     <div
       v-if="!isSpecial"
       class="time-display">
-      {{ t('持续时间') }}：{{ getCostTimeDisplay(data.duration_time) }}
+      <span>{{ t('持续时间') }}：{{ durationTimeDisplay }}</span>
+      <span class="ml-6">{{ t('最近更新') }}：{{ utcDisplayTime(data.update_at) }}</span>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { getCostTimeDisplay } from '@utils';
+  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+
+  import { useIntervalFn } from '@vueuse/core';
 
   import { type RiskMemoItem } from '../Index.vue';
 
@@ -61,8 +65,42 @@
 
   const { t } = useI18n();
 
+  const durationTimeDisplay = ref(getCostTimeDisplay(0));
+
   const isFinished = computed(() => props.data.status === 'done');
   const bizInpactList = computed(() => props.data.biz_inpact.map((item) => props.effectBizLabelMap[item] || ''));
+
+  // 计时
+  const { pause, resume } = useIntervalFn(() => {
+    const duratiopn = Math.floor(Date.now() / 1000) - dayjs(props.data.create_at).valueOf() / 1000;
+    durationTimeDisplay.value = getCostTimeDisplay(duratiopn);
+  }, 1000);
+
+  watch(
+    () => [props.data.status, props.isSpecial],
+    () => {
+      if (props.isSpecial) {
+        pause();
+        return;
+      }
+
+      if (props.data.status === 'done') {
+        pause();
+        const duration = dayjs(props.data.final_time).valueOf() / 1000 - dayjs(props.data.create_at).valueOf() / 1000;
+        durationTimeDisplay.value = getCostTimeDisplay(duration);
+      } else {
+        // 进行中的动态更新
+        resume();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  onBeforeUnmount(() => {
+    pause();
+  });
 </script>
 <style lang="less">
   .risk-info-item {
@@ -119,9 +157,9 @@
       -webkit-box-orient: vertical;
       -moz-box-orient: vertical;
       box-orient: vertical;
-      -webkit-line-clamp: 2;
-      -moz-line-clamp: 2;
-      line-clamp: 2;
+      -webkit-line-clamp: 6;
+      -moz-line-clamp: 6;
+      line-clamp: 6;
       overflow: hidden;
       text-overflow: ellipsis;
       line-height: 20px;
