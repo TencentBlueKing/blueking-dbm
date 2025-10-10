@@ -172,6 +172,7 @@
       indeterminate: checked ? false : indeterminate,
     };
   };
+
   const calcPanelWidth = () => {
     nextTick(() => {
       contentMinWidth.value = Math.max(layoutWrapperRef.value!.getBoundingClientRect().width, contentMinWidth.value);
