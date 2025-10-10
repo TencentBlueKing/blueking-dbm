@@ -31,6 +31,7 @@ from backend.ticket.constants import InstanceType
 from backend.ticket.models import InstanceOperateRecord
 
 from ...constants import DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
+from .db_version import DBVersion
 from .machine import Machine
 
 
@@ -132,6 +133,9 @@ class StorageInstance(InstanceMixin, AuditedModel):
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
     is_stand_by = models.BooleanField(default=True, help_text=_("多 slave 的备选标志"))
 
+    # 新版本管理
+    db_version = models.ForeignKey(DBVersion, on_delete=models.PROTECT, blank=True, null=True)
+
     class Meta:
         verbose_name = verbose_name_plural = _("存储实例(StorageInstance)")
         unique_together = (
@@ -180,6 +184,9 @@ class ProxyInstance(InstanceMixin, AuditedModel):
     name = models.CharField(max_length=255, default="", blank=True, null=True)
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("实例所在的时区"))
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
+
+    # 新版本管理
+    db_version = models.ForeignKey(DBVersion, on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("代理实例(ProxyInstance)")
