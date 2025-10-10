@@ -108,7 +108,7 @@
         id: number;
         master_domain: string;
       }[];
-    };
+    } & TendbhaModel;
     current_version: string;
     target_version: {
       pkg_id: number;
@@ -119,18 +119,24 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_type: ClusterTypes.TENDBHA,
-      id: 0,
-      master_domain: '',
-      related_clusters: [],
-    },
+  const createTableRow = (data = {} as DeepPartial<RowData>) => ({
+    cluster: Object.assign(
+      {
+        cluster_type: '',
+        id: 0,
+        master_domain: '',
+        related_clusters: [],
+      } as unknown as RowData['cluster'],
+      data.cluster,
+    ),
     current_version: data.current_version || '',
-    target_version: data.target_version || {
-      pkg_id: 0,
-      target_package: '',
-    },
+    target_version: Object.assign(
+      {
+        pkg_id: 0,
+        target_package: '',
+      },
+      data.target_version,
+    ),
   });
 
   const defaultData = () => ({
@@ -217,10 +223,7 @@
         acc.push(
           createTableRow({
             cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
               master_domain: item.master_domain,
-              related_clusters: [],
             },
             current_version: item.proxies[0]?.version,
           }),
