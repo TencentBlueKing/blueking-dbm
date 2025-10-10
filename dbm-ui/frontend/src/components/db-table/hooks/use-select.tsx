@@ -92,7 +92,7 @@ export const useSelect = (
     setup() {
       return () => (
         <TableColumn
-          colKey='selection'
+          colKey='row-select'
           fixed='left'
           resizable={false}
           width={60}>

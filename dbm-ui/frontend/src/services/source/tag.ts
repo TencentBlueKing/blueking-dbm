@@ -1,26 +1,29 @@
 import ResourceTagModel from '@services/model/db-resource/ResourceTag';
 import type { ListBase } from '@services/types/listBase';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/tag';
 
 /**
  * 查询资源标签
  */
-export function listTag(params: {
-  bind_ips?: string[];
-  bk_biz_id?: number;
-  bk_biz_ids?: string; // 业务ID列表，逗号分隔
-  creator?: string;
-  ids?: string;
-  limit?: number;
-  offset?: number;
-  ordering?: string;
-  type: 'resource' | 'cluster';
-  value?: string;
-}) {
-  return http.get<ListBase<ResourceTagModel[]>>(`${path}/`, params).then((res) => ({
+export function listTag(
+  params: {
+    bind_ips?: string[];
+    bk_biz_id?: number;
+    bk_biz_ids?: string; // 业务ID列表，逗号分隔
+    creator?: string;
+    ids?: string;
+    limit?: number;
+    offset?: number;
+    ordering?: string;
+    type: 'resource' | 'cluster';
+    value?: string;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<ListBase<ResourceTagModel[]>>(`${path}/`, params, payload).then((res) => ({
     ...res,
     results: res.results.map((item: ResourceTagModel) => new ResourceTagModel(item)),
   }));

@@ -1,7 +1,7 @@
 <template>
   <TableColumn
     class-name="cluster-table-master-domain-column"
-    :col-key="field"
+    col-key="master_domain"
     fixed="left"
     :min-width="columnMinWidth"
     :title="label">
@@ -46,27 +46,25 @@
 
   import { DBTypes } from '@common/const';
 
-  import DbTable from '@components/db-table/index.vue';
-
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import MasterDomainCell from './components/MasterDomainCell.vue';
   import useColumnCopy from './hooks/useColumnCopy';
+  import type { Expose as ClusterTableExpose } from './Index.vue';
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
     clusterType: clusterType;
     dbType?: DBTypes;
-    field: string;
     // eslint-disable-next-line vue/no-unused-properties
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    getTableInstance: () => ClusterTableExpose | null;
     isFilter: boolean;
     label: string;
     selectedList: ClusterModel<clusterType>[];
   }
 
   export interface Emits {
-    (e: 'go-detail', params: number, event: MouseEvent): void;
+    (e: 'go-detail', clusterId: number, event: MouseEvent): void;
     (e: 'refresh'): void;
   }
 
@@ -94,21 +92,3 @@
     emits('refresh');
   };
 </script>
-<style lang="less">
-  .cluster-table-master-domain-column {
-    &:hover,
-    .is-hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-</style>

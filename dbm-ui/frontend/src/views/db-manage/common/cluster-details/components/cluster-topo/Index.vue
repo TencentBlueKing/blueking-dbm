@@ -3,7 +3,8 @@
     <div class="action-box">
       <BkRadioGroup
         v-model="viewType"
-        type="capsule">
+        type="capsule"
+        @change="handleViewTypeChange">
         <BkRadioButton label="table">
           {{ t('表格视图') }}
         </BkRadioButton>
@@ -38,14 +39,19 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type { ClusterListNode } from '@services/types';
+
+  import { useUrlSearch } from '@hooks';
 
   import { ClusterInstStatusKeys, DBTypes } from '@common/const';
 
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
   import { execCopy, messageWarn } from '@utils';
+
+  import { URL_CLUSTER_TOPO_VIEW_TYPE_KEY } from '../../constants';
 
   import ViewTable from './components/ViewTable.vue';
   import ViewTopo from './components/ViewTopo.vue';
@@ -60,8 +66,11 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+  const { getSearchParams } = useUrlSearch();
 
-  const viewType = ref('table');
+  const viewType = ref(String(route.query[URL_CLUSTER_TOPO_VIEW_TYPE_KEY] || 'table'));
 
   const handleNotAliveHostIp = () => {
     const ipList = _.uniq(
@@ -98,6 +107,15 @@
         n: ipList.length,
       }),
     );
+  };
+
+  const handleViewTypeChange = (value: string) => {
+    router.replace({
+      query: {
+        ...getSearchParams(),
+        [URL_CLUSTER_TOPO_VIEW_TYPE_KEY]: value,
+      },
+    });
   };
 </script>
 <style lang="less">
