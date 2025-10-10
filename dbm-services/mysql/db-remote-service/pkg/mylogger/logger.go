@@ -84,6 +84,7 @@ func createLogger(logFileDir string, console bool, json bool, debug bool, dbType
 	return logger
 }
 
+// replaceSourceAttr 替换源文件路径和函数名
 func replaceSourceAttr(groups []string, a slog.Attr) slog.Attr {
 	if a.Key == slog.SourceKey {
 		if src, ok := a.Value.Any().(*slog.Source); ok {
