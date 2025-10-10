@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import copy
 import logging
 from typing import Dict, List, Optional, Set
 
@@ -17,11 +18,14 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_cluster_subflow,
+)
 from backend.flow.plugins.components.collections.common.clone_priv_rules_to_other_biz import (
     ClonePrivRulesToOtherComponent,
 )
 from backend.flow.plugins.components.collections.common.generate_config_version import GenerateConfigVersionComponent
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.transfer_cluster_meta_to_other_biz import (
     TransferClusterMetaToOtherBizComponent,
     UpdateClusterDnsBelongAppComponent,
@@ -140,9 +144,27 @@ class TransferMySQLClusterToOtherBizFlow(object):
                     "method": "GenerateAndPublish",
                 },
             )
-
-        p.add_act(act_name=_("请先跑一下集群标准化，完成之后确认"), act_component_code=PauseComponent.code, kwargs={})
-
+        # 标准化集群
+        cloud_cluster_ids = [cluster.id for cluster in clusters]
+        p.add_sub_pipeline(
+            sub_flow=standardize_mysql_cluster_by_cluster_subflow(
+                root_id=self.root_id,
+                data=copy.deepcopy(self.data),
+                bk_cloud_id=bk_cloud_id,
+                bk_biz_id=self.target_biz_id,
+                cluster_ids=list(set(cloud_cluster_ids)),
+                departs=ALLDEPARTS,
+                with_deploy_binary=self.data.get("with_deploy_binary", True),
+                with_push_config=self.data.get("with_push_config", True),
+                with_collect_sysinfo=False,
+                with_actuator=True,
+                with_bk_plugin=self.data.get("with_deploy_binary", True),
+                with_cc_standardize=self.data.get("with_cc_standardize", False),
+                with_instance_standardize=self.data.get("with_instance_standardize", False),
+                with_backup_client=self.data.get("with_deploy_binary", True),
+                with_exporter_config=self.data.get("with_push_config", True),
+            )
+        )
         p.add_act(
             act_name=_("更新dns记录归属业务"),
             act_component_code=UpdateClusterDnsBelongAppComponent.code,
