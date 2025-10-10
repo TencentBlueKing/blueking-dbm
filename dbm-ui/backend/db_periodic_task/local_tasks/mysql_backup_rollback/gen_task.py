@@ -299,10 +299,14 @@ def gen_rollback_task():
         backup_record = model_to_dict(backup_result)
         backup_record["backup_source"] = MySQLBackupSource.REMOTE.value
         # 解析JSON字段
-        tsk_backup_record = {}
-        tsk_backup_record["binlog_info"] = json.loads(backup_record["binlog_info"])
-        tsk_backup_record["file_list"] = json.loads(backup_record["file_list"])
-        tsk_backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
+        try:
+            tsk_backup_record = {}
+            tsk_backup_record["binlog_info"] = json.loads(backup_record["binlog_info"])
+            tsk_backup_record["file_list"] = json.loads(backup_record["file_list"])
+            tsk_backup_record["extra_fields"] = json.loads(backup_record["extra_fields"])
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON fields: {e}, backup_record: {backup_record}")
+            continue
 
         # task 需要填充的字段
         time_zone = tsk_backup_record["extra_fields"].get("time_zone", "")
@@ -358,6 +362,9 @@ def gen_rollback_task():
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
                 logger.error(_("资源不足申请失败，请前往补货后重试{}").format(resp.get("message")))
+                task.task_status = TaskStatus.RESOURCE_INSUFFICIENT
+                task.task_info = _("需要的最小磁盘大小是{}GB".format(min_disk_size))
+                task.save()
                 continue
             elif resp["code"] in ResourceApplyErrCode.get_values():
                 logger.error(
