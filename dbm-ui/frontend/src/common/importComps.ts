@@ -63,6 +63,7 @@ import '@blueking/tdesign-ui/vue3/index.css';
 import UserSelector from '@patch/user-selector/selector.vue';
 
 import('@blueking/table/vue3/vue3.css');
+document.documentElement.setAttribute('theme-mode', 'light');
 
 export const setGlobalComps = (app: App<Element>) => {
   app.component('EditableTable', EditableTable);

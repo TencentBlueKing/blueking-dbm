@@ -215,7 +215,6 @@ const renderRoutes = [
         path: 'cluster-list/:clusterId?',
         name: 'tendbClusterList',
         meta: {
-          fullscreen: true,
           navName: t('TendbCluster分布式集群_集群管理'),
         },
         component: () => import('@views/db-manage/tendb-cluster/cluster-list/Index.vue'),

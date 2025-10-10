@@ -203,6 +203,7 @@
   .dbm-tag-block {
     position: relative;
     display: block;
+    overflow: hidden;
     word-break: keep-all;
     white-space: nowrap;
 
@@ -219,6 +220,7 @@
     }
 
     .bk-tag {
+      max-width: calc(100% - 40px);
       margin-right: 0;
       margin-left: 0;
 

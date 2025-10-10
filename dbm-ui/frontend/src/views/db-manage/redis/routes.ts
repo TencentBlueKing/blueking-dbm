@@ -174,7 +174,6 @@ const redisDatabaseHaList = {
   path: 'cluster-ha',
   name: 'DatabaseRedisHa',
   meta: {
-    fullscreen: true,
     navName: t('Redis 主从管理'),
   },
   redirect: {
@@ -186,7 +185,6 @@ const redisDatabaseHaList = {
       path: 'list/:clusterId?',
       name: 'DatabaseRedisHaList',
       meta: {
-        fullscreen: true,
         navName: t('Redis 主从管理'),
       },
       component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
@@ -219,7 +217,6 @@ const routes: RouteRecordRaw[] = [
         path: 'cluster',
         name: 'redisCluster',
         meta: {
-          fullscreen: true,
           navName: t('Redis_集群管理'),
         },
         redirect: {
@@ -231,7 +228,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'DatabaseRedisList',
             meta: {
-              fullscreen: true,
               navName: t('Redis_集群管理'),
             },
             component: () => import('@/views/db-manage/redis/cluster-list/Index.vue'),

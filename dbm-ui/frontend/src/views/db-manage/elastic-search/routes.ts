@@ -34,7 +34,6 @@ const routes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'EsList',
         meta: {
-          fullscreen: true,
           navName: t('ES_集群管理'),
         },
         component: () => import('@views/db-manage/elastic-search/list/Index.vue'),
