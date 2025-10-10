@@ -521,7 +521,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
             # 集群id
-            "id": Q(id=query_params.get("id")),
+            "id": Q(id__in=query_params.get("id", "").split(",")),
             # 集群名/别名
             "name": (
                 Q(name__in=query_params.get("name", "").split(","))
@@ -537,7 +537,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 集群id列表
             "cluster_ids": Q(id__in=query_params.get("cluster_ids", "").split(",")),
             # 创建者
-            "creator": Q(creator__icontains=query_params.get("creator")),
+            "creator": Q(creator__in=query_params.get("creator", "").split(",")),
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             # 管控区域
@@ -545,7 +545,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 状态
             "status": Q(status__in=query_params.get("status", "").split(",")),
             # 时区
-            "time_zone": Q(time_zone=query_params.get("time_zone", "").split(",")),
+            "time_zone": Q(time_zone__in=query_params.get("time_zone", "").split(",")),
             # 主域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain__in=query_params.get("exact_domain", "").split(",")),
             # 域名
@@ -554,6 +554,10 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "tag_ids": Q(tags__in=query_params.get("tag_ids", "").split(",")),
             # 标签key过滤
             "tag_keys": Q(tags__key__in=query_params.get("tag_keys", "").split(",")),
+            # 起始时间
+            "created_at__gte": Q(created_at__gte=query_params.get("created_at__gte", "")),
+            # 截至时间
+            "created_at__lte": Q(created_at__lte=query_params.get("created_at__lte", "")),
         }
 
         filter_params_map.update(inner_filter_params_map)
