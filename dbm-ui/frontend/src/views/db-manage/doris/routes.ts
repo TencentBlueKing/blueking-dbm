@@ -34,7 +34,6 @@ const routes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'DorisList',
         meta: {
-          fullscreen: true,
           navName: t('【Doris】集群管理'),
         },
         component: () => import('@views/db-manage/doris/list/Index.vue'),

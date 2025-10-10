@@ -45,20 +45,3 @@
     emits('refresh');
   };
 </script>
-<style lang="less">
-  tr.vxe-body--row {
-    &:hover {
-      .cluster-table-alias-column {
-        .cluster-alias-name-edit-btn {
-          display: inline-block;
-        }
-      }
-    }
-  }
-
-  .cluster-table-alias-column {
-    .cluster-alias-name-edit-btn {
-      display: none;
-    }
-  }
-</style>

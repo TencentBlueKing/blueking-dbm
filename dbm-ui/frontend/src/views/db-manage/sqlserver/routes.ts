@@ -51,7 +51,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'SqlServerHaClusterList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer主从集群管理'),
             },
             component: () => import('@views/db-manage/sqlserver/ha-cluster-list/Index.vue'),
@@ -83,7 +82,6 @@ const routes: RouteRecordRaw[] = [
             path: 'list/:clusterId?',
             name: 'SqlServerSingleClusterList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer单节点集群管理'),
             },
             component: () => import('@views/db-manage/sqlserver/single-cluster-list/Index.vue'),

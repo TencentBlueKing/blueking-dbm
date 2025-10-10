@@ -1,11 +1,11 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-role-column"
-    :col-key="field"
+    :col-key="`${field as string}`"
     :min-width="minWidth"
     :show-overflow="false"
     :title="label">
-    <template #header>
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -44,7 +44,7 @@
         </template>
       </RoleCell>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType, F extends keyof ClusterModel<T>">
   import _ from 'lodash';
@@ -52,20 +52,19 @@
 
   import type { ClusterListNode } from '@services/types';
 
-  import DbTable from '@components/db-table/index.vue';
-
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
 
   import RoleCell from './components/RoleCell.vue';
+  import type { Expose as ClusterTableExpose } from './Index.vue';
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
     field: F;
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    getTableInstance: () => ClusterTableExpose | null;
     isFilter: boolean;
     label: string;
     minWidth?: number;
@@ -142,18 +141,3 @@
     emits('go-detail', id, event);
   };
 </script>
-<style lang="less">
-  .cluster-table-role-column {
-    &:hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-</style>

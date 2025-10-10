@@ -52,13 +52,6 @@ export default () => {
     }[]
   >([]);
 
-  const userList = shallowRef<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
-
   const tableFilter = computed<ITableFilter>(() => {
     return {
       bk_biz_id__in: {
@@ -195,14 +188,6 @@ export default () => {
   useRequest(getTicketGroupTypes, {
     onSuccess(data) {
       ticketTypeGroupList.value = data;
-    },
-  });
-  useRequest(getUserList, {
-    onSuccess(data) {
-      userList.value = data.results.map((item) => ({
-        label: item.display_name,
-        value: item.username,
-      }));
     },
   });
 

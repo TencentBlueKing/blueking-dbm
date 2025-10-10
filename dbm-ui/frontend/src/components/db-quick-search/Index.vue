@@ -35,6 +35,34 @@
     return baseProps;
   });
 
+  const parseCascaderValues = (item: IValue) => {
+    const parseValue = (value: string) => {
+      // important: 优化分割符
+      const splitCode = '=';
+      if (value.includes(splitCode)) {
+        return value.split('=') as [string, string];
+      }
+      return [item.id, value] as [string, string];
+    };
+
+    const keyValueMap: Record<string, string[]> = {};
+    item.values.forEach((valueItem) => {
+      const [key, value] = parseValue(`${valueItem.value}`);
+      if (!keyValueMap[key]) {
+        keyValueMap[key] = [];
+      }
+      keyValueMap[key].push(value);
+    });
+    return Object.entries(keyValueMap).reduce(
+      (result, [key, value]) => {
+        return Object.assign(result, {
+          [key]: value.join(','),
+        });
+      },
+      {} as Record<string, string>,
+    );
+  };
+
   const formatResult = (data: IValue[]) => {
     return data.reduce<Record<string, string>>((result, item) => {
       const currentDataConfig = _.find(props.data, (config) => config.id === item.id)!;
@@ -44,9 +72,10 @@
           [`${currentDataConfig.id}__lte`]: item.values[1]!.value,
           [`${currentDataConfig.id}`]: `${item.values[0]!.value},${item.values[1]!.value}`,
         });
-      } else if (currentDataConfig.type === 'multiple' || currentDataConfig.type === 'multiple-cascader') {
+      } else if (currentDataConfig.type === 'cascader' || currentDataConfig.type === 'multiple-cascader') {
         Object.assign(result, {
           [currentDataConfig.id]: item.values.map((value) => value.value).join(','),
+          ...parseCascaderValues(item),
         });
       } else {
         Object.assign(result, {

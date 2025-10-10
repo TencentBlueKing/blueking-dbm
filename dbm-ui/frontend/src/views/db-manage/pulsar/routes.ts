@@ -42,7 +42,6 @@ const routes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'PulsarList',
         meta: {
-          fullscreen: true,
           navName: t('Pulsar集群管理'),
         },
         component: () => import('@/views/db-manage/pulsar/list/Index.vue'),

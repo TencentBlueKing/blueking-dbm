@@ -1,13 +1,12 @@
 import { useI18n } from 'vue-i18n';
 
-import DbTable from '@components/db-table/index.vue';
-
 import { execCopy, messageWarn } from '@utils';
 
+import type { Expose as ClusterTableExpose } from '../Index.vue';
 import type { ClusterModel, ISupportClusterType } from '../types';
 
 export default <T extends ISupportClusterType>(props: {
-  getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+  getTableInstance: () => ClusterTableExpose | null;
   selectedList: ClusterModel<T>[];
 }) => {
   const { t } = useI18n();
