@@ -1,12 +1,10 @@
 <template>
-  <BkTableColumn
+  <TableColumn
     class-name="cluster-table-slave-domain-column"
-    field="slave_domain"
-    :label="t('从访问入口')"
+    col-key="slave_domain"
     :min-width="280"
-    :show-overflow="false"
-    visiable>
-    <template #header>
+    :title="t('从访问入口')">
+    <template #title>
       <RenderHeadCopy
         :config="[
           {
@@ -25,22 +23,20 @@
         {{ t('从访问入口') }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: IRowData }">
-      <SlaveDomainCell :data="data">
+    <template #default="{ row }: { row: IRowData }">
+      <SlaveDomainCell :data="row">
         <template #append>
           <slot
             name="append"
-            v-bind="{ data }" />
+            v-bind="{ data: row }" />
         </template>
       </SlaveDomainCell>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-
-  import DbTable from '@components/db-table/index.vue';
 
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
@@ -49,12 +45,13 @@
     copyDomainPort,
     type ISupportClusterType,
   } from './components/SlaveDomainCell.vue';
+  import type { Expose as ClusterTableExpose } from './Index.vue';
   import type { ClusterModel } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    getTableInstance: () => ClusterTableExpose | null;
     isFilter: boolean;
     selectedList: ClusterModel<clusterType>[];
   }
@@ -93,20 +90,6 @@
 </script>
 <style lang="less">
   .cluster-table-slave-domain-column {
-    &:hover {
-      [class*='db-icon'] {
-        display: inline !important;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
     .layout-append {
       align-self: flex-start;
       height: 26px;

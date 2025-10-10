@@ -24,202 +24,192 @@
       <ClusterBatchOperation
         v-db-console="'hdfs.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.HDFS"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'hdfs.clusterManage.export'"
-        :ids="selectedIds"
+        :ids="selectedIdList"
         type="hdfs" />
       <ClusterIpCopy
         v-db-console="'hdfs.clusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        :data="serachData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
-    <div class="table-wrapper">
-      <ClusterTable
-        ref="tableRef"
-        :cluster-id="clusterId"
-        :cluster-type="ClusterTypes.HDFS"
-        :data-source="dataSource"
-        :settings="tableSetting"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <template #operation>
-          <OperationColumn :cluster-type="ClusterTypes.HDFS">
-            <template #default="{ data }: { data: HdfsModel }">
-              <div v-db-console="'hdfs.clusterManage.manage'">
-                <a
-                  :href="data.access_url"
-                  target="_blank">
-                  WebUI
-                </a>
-              </div>
-              <div v-db-console="'hdfs.clusterManage.getAccess'">
+    <ClusterTable
+      ref="clusterTable"
+      :bk-ui-settings="tableSetting"
+      :cluster-id="clusterId"
+      :cluster-type="ClusterTypes.HDFS"
+      :data-source="dataSource"
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
+      <template #operation>
+        <OperationColumn :cluster-type="ClusterTypes.HDFS">
+          <template #default="{ data }: { data: HdfsModel }">
+            <div v-db-console="'hdfs.clusterManage.manage'">
+              <a
+                :href="data.access_url"
+                target="_blank">
+                WebUI
+              </a>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.getAccess'">
+              <AuthButton
+                action-id="hdfs_access_entry_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.hdfs_access_entry_view"
+                :resource="data.id"
+                text
+                @click="handleShowPassword(data)">
+                {{ t('获取访问方式') }}
+              </AuthButton>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.scaleUp'">
+              <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="hdfs_access_entry_view"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.hdfs_access_entry_view"
+                  action-id="hdfs_scale_up"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.hdfs_scale_up"
                   :resource="data.id"
                   text
-                  @click="handleShowPassword(data)">
-                  {{ t('获取访问方式') }}
+                  @click="handleShowExpansion(data)">
+                  {{ t('扩容') }}
                 </AuthButton>
-              </div>
-              <div v-db-console="'hdfs.clusterManage.scaleUp'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_scale_up"
-                    :disabled="data.operationDisabled"
-                    :permission="data.permission.hdfs_scale_up"
-                    :resource="data.id"
-                    text
-                    @click="handleShowExpansion(data)">
-                    {{ t('扩容') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'hdfs.clusterManage.scaleDown'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_shrink"
-                    :disabled="data.operationDisabled"
-                    :permission="data.permission.hdfs_shrink"
-                    :resource="data.id"
-                    text
-                    @click="handleShowShrink(data)">
-                    {{ t('缩容') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.scaleDown'">
+              <OperationBtnStatusTips :data="data">
                 <AuthButton
-                  action-id="hdfs_view"
-                  :disabled="data.isOffline"
-                  :permission="data.permission.hdfs_view"
+                  action-id="hdfs_shrink"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.hdfs_shrink"
                   :resource="data.id"
                   text
-                  @click="handleShowSettings(data)">
-                  {{ t('查看访问配置') }}
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
                 </AuthButton>
-              </div>
-              <div
-                v-if="data.isOffline"
-                v-db-console="'hdfs.clusterManage.enable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_enable_disable"
-                    class="mr-8"
-                    :disabled="data.isStarting"
-                    :permission="data.permission.hdfs_enable_disable"
-                    :resource="data.id"
-                    text
-                    @click="handleEnableCluster([data])">
-                    {{ t('启用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div
-                v-else
-                v-db-console="'hdfs.clusterManage.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="hdfs_enable_disable"
-                    :disabled="Boolean(data.operationTicketId)"
-                    :permission="data.permission.hdfs_enable_disable"
-                    :resource="data.id"
-                    text
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'hdfs.clusterManage.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    action-id="hdfs_destroy"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.hdfs_destroy"
-                    :resource="data.id"
-                    text
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </div>
-              <ClusterDomainDnsRelation :data="data">
-                <BkButton text>
-                  {{ t('手动配置域名 DNS 记录') }}
-                </BkButton>
-              </ClusterDomainDnsRelation>
-            </template>
-          </OperationColumn>
-        </template>
-        <template #masterDomain>
-          <MasterDomainColumn
-            :cluster-type="ClusterTypes.HDFS"
-            field="master_domain"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :label="t('访问入口')"
-            :selected-list="selected"
-            @go-detail="handleToDetails"
-            @refresh="fetchTableData" />
-        </template>
-        <template #role>
-          <RoleColumn
-            :cluster-type="ClusterTypes.HDFS"
-            field="hdfs_namenode"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="NameNode"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.HDFS"
-            field="hdfs_zookeeper"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="Zookeeper"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.HDFS"
-            field="hdfs_journalnode"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="Journalnode"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.HDFS"
-            field="hdfs_datanode"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            label="DataNode"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-        </template>
-      </ClusterTable>
-    </div>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.viewAccessConfiguration'">
+              <AuthButton
+                action-id="hdfs_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.hdfs_view"
+                :resource="data.id"
+                text
+                @click="handleShowSettings(data)">
+                {{ t('查看访问配置') }}
+              </AuthButton>
+            </div>
+            <div
+              v-if="data.isOffline"
+              v-db-console="'hdfs.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="hdfs_enable_disable"
+                  class="mr-8"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.hdfs_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div
+              v-else
+              v-db-console="'hdfs.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="hdfs_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.hdfs_enable_disable"
+                  :resource="data.id"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'hdfs.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="hdfs_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.hdfs_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </div>
+            <ClusterDomainDnsRelation :data="data">
+              <BkButton text>
+                {{ t('手动配置域名 DNS 记录') }}
+              </BkButton>
+            </ClusterDomainDnsRelation>
+          </template>
+        </OperationColumn>
+      </template>
+      <template #masterDomain>
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.HDFS"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :label="t('访问入口')"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails"
+          @refresh="fetchTableData" />
+      </template>
+      <template #role>
+        <RoleColumn
+          :cluster-type="ClusterTypes.HDFS"
+          field="hdfs_namenode"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="NameNode"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.HDFS"
+          field="hdfs_zookeeper"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="Zookeeper"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.HDFS"
+          field="hdfs_journalnode"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="Journalnode"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.HDFS"
+          field="hdfs_datanode"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          label="DataNode"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+      </template>
+    </ClusterTable>
     <ClusterExpansion
       v-if="operationData"
       v-model:is-show="isShowExpandsion"
@@ -267,20 +257,16 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
   import { getHdfsList } from '@services/source/hdfs';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -297,14 +283,14 @@
   import ClusterDetail from '@views/db-manage/hdfs/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/hdfs/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/hdfs/common/shrink/Index.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import ClusterSettings from './components/cluster-settings/Index.vue';
 
   const route = useRoute();
   const { t } = useI18n();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.HDFS);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.HDFS, {
     onSuccess: () => fetchTableData(),
   });
@@ -314,182 +300,37 @@
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('hdfsDetail');
+  const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<HdfsModel>();
 
   const router = useRouter();
 
-  const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchTableData(),
-    searchType: ClusterTypes.HDFS,
-  });
-
   const dataSource = getHdfsList;
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isShowSettings = ref(false);
-  const tagSearchValue = ref<Record<string, any>>({});
-  const selected = ref<HdfsModel[]>([]);
 
   const operationData = shallowRef<HdfsModel>();
 
   const getTableInstance = () => tableRef.value;
 
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
-  const serachData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.HDFS_TABLE_SETTINGS, {
-    checked: [
-      'status',
-      'cluster_stats',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'hdfs_namenode',
-      'hdfs_zookeeper',
-      'hdfs_journalnode',
-      'hdfs_datanode',
-      'tag',
-    ],
     disabled: ['master_domain'],
   });
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return serachData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return serachData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchTableData();
-  };
-
   const fetchTableData = () => {
-    const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value?.fetchData({
-      ...searchParams,
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
+    tableRef.value?.fetchData(searchValue.value);
   };
 
-  const handleSelection = (data: any, list: HdfsModel[]) => {
-    selected.value = list;
-  };
+  watch(searchValue, () => {
+    setTimeout(() => {
+      fetchTableData();
+      tableRef.value!.clearSelected();
+    });
+  });
 
   // 集群提单
   const handleGoApply = () => {
@@ -527,28 +368,19 @@
     operationData.value = clusterData;
     isShowSettings.value = true;
   };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchTableData();
+  };
 </script>
 <style lang="less">
   .hdfs-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 </style>

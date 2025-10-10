@@ -24,37 +24,33 @@
       <ClusterBatchOperation
         v-db-console="'doris.clusterManage.batchOperation'"
         :cluster-type="ClusterTypes.DORIS"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchTableData" />
       <DropdownExportExcel
         v-db-console="'doris.clusterManage.batchOperation'"
-        :has-selected="hasSelected"
-        :ids="selectedIds"
+        :has-selected="isSelected"
+        :ids="selectedIdList"
         type="doris" />
       <ClusterIpCopy
         v-db-console="'doris.clusterManage.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        :data="serachData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
     <ClusterTable
-      ref="tableRef"
+      ref="clusterTable"
+      :bk-ui-settings="tableSetting"
       :cluster-id="clusterId"
       :cluster-type="ClusterTypes.DORIS"
       :data-source="getDorisList"
-      :settings="tableSetting"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @column-sort="columnSortChange"
-      @selection="handleSelection"
-      @setting-change="updateTableSettings">
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
       <template #operation>
         <OperationColumn :cluster-type="ClusterTypes.DORIS">
           <template #default="{ data }: { data: DorisModel }">
@@ -157,9 +153,9 @@
           :cluster-type="ClusterTypes.DORIS"
           field="domain"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('访问入口')"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails"
           @refresh="fetchTableData" />
       </template>
@@ -168,37 +164,33 @@
           :cluster-type="ClusterTypes.DORIS"
           field="doris_follower"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('Follower节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
           field="doris_observer"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('Observer节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
           field="doris_backend_hot"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('热节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
         <RoleColumn
           :cluster-type="ClusterTypes.DORIS"
           field="doris_backend_cold"
           :get-table-instance="getTableInstance"
-          :is-filter="isFilter"
+          :is-filter="isSearching"
           :label="t('冷节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected"
+          :selected-list="selectedList"
           @go-detail="handleToDetails" />
       </template>
     </ClusterTable>
@@ -238,19 +230,15 @@
 </template>
 
 <script setup lang="ts">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import DorisModel from '@services/model/doris/doris';
   import { getDorisList } from '@services/source/doris';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -267,13 +255,13 @@
   import ClusterDetail from '@views/db-manage/doris/common/cluster-detail/Index.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.DORIS);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.DORIS,
     {
@@ -287,178 +275,31 @@
     showDetail: isShowDetail,
   } = useGoClusterDetail('DorisDetail');
 
-  const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchTableData(),
-    searchType: ClusterTypes.DORIS,
-  });
+  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<DorisModel>();
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
-  const tagSearchValue = ref<Record<string, any>>({});
 
-  const selected = shallowRef<DorisModel[]>([]);
   const operationData = shallowRef<DorisModel>();
 
   const getTableInstance = () => tableRef.value;
 
-  const serachData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.DORIS_TABLE_SETTINGS, {
-    checked: [
-      'domain',
-      'cluster_name',
-      'bk_cloud_id',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'status',
-      'doris_follower',
-      'doris_observer',
-      'doris_backend_hot',
-      'doris_backend_cold',
-      'cluster_time_zone',
-      'tag',
-    ],
     disabled: ['domain'],
   });
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return serachData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return serachData.value.find((set) => set.id === item.id)?.children || [];
-  };
-
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchTableData();
-  };
-
   const fetchTableData = () => {
-    tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
+    tableRef.value!.fetchData(searchValue.value);
   };
 
-  const handleSelection = (key: any, list: DorisModel[]) => {
-    selected.value = list;
-  };
+  watch(searchValue, () => {
+    setTimeout(() => {
+      fetchTableData();
+      tableRef.value!.clearSelected();
+    });
+  });
 
   // 申请实例
   const handleGoApply = () => {
@@ -491,29 +332,20 @@
   const handleHidePassword = () => {
     isShowPassword.value = false;
   };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchTableData();
+  };
 </script>
 
 <style lang="less">
   .doris-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 500px;
-      }
     }
   }
 </style>

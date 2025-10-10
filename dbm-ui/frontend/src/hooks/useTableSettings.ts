@@ -19,8 +19,6 @@ interface Settings {
   size?: 'medium' | 'mini' | 'small';
 }
 
-// type TableSettingKeys = keyof Settings;
-
 /**
  * 用户个人配置表头字段
  */
@@ -38,12 +36,13 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   /**
    * 更新表头设置
    */
-  const updateTableSettings = (updateSettings: Settings) => {
+  const updateTableSettings = (payload: { columns: string[]; fontSize: string; rowSize: string }) => {
     userProfileStore.updateProfile({
       label: key,
       values: {
-        checked: updateSettings.checked,
-        size: updateSettings.size,
+        checked: payload.columns,
+        fontSize: payload.fontSize,
+        rowSize: payload.rowSize,
       },
     });
   };

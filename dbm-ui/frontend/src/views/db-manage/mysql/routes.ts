@@ -82,7 +82,6 @@ const singleRoutes: RouteRecordRaw[] = [
     path: 'tendbsingle',
     name: 'tendbsingle',
     meta: {
-      fullscreen: true,
       navName: t('MySQL单节点_集群管理'),
       skeleton: 'clusterList',
     },
@@ -95,7 +94,6 @@ const singleRoutes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'DatabaseTendbsingle',
         meta: {
-          fullscreen: true,
           navName: t('MySQL单节点_集群管理'),
           skeleton: 'clusterList',
         },
@@ -119,7 +117,6 @@ const haRoutes: RouteRecordRaw[] = [
     path: 'tendbha',
     name: 'tendbha',
     meta: {
-      fullscreen: true,
       navName: t('MySQL主从集群_集群管理'),
       skeleton: 'clusterList',
     },
@@ -132,7 +129,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'list/:clusterId?',
         name: 'DatabaseTendbha',
         meta: {
-          fullscreen: true,
           navName: t('MySQL主从集群_集群管理'),
           skeleton: 'clusterList',
         },

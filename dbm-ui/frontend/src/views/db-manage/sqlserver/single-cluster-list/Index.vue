@@ -10,7 +10,7 @@
       <ClusterBatchOperation
         v-db-console="'sqlserver.singleClusterList.batchOperation'"
         :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-        :selected="selected"
+        :selected="selectedList"
         @success="fetchData" />
       <BkButton
         v-db-console="'sqlserver.singleClusterList.importAuthorize'"
@@ -20,124 +20,116 @@
       <DropdownExportExcel
         v-db-console="'sqlserver.singleClusterList.export'"
         export-type="cluster"
-        :has-selected="hasSelected"
-        :ids="selectedIds"
+        :has-selected="isSelected"
+        :ids="selectedIdList"
         type="sqlserver_single" />
       <ClusterIpCopy
         v-db-console="'sqlserver.singleClusterList.batchCopy'"
-        :selected="selected" />
-      <TagSearch @search="handleTagSearch" />
-      <DbSearchSelect
-        class="header-select"
-        :data="searchSelectData"
-        :get-menu-list="getMenuList"
-        :model-value="searchValue"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="searchValue"
+        :data="quickSearchData"
+        parse-url
         :placeholder="t('请输入或选择条件搜索')"
-        unique-select
-        :validate-values="validateSearchValues"
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto" />
     </div>
-    <div class="table-wrapper">
-      <ClusterTable
-        ref="tableRef"
-        :cluster-id="clusterId"
-        :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-        :data-source="getSingleClusterList"
-        :settings="settings"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <template #operation>
-          <OperationColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE">
-            <template #default="{ data }: { data: SqlServerSingleModel }">
-              <div v-db-console="'sqlserver.singleClusterList.authorize'">
+    <ClusterTable
+      ref="clusterTable"
+      :bk-ui-settings="settings"
+      :cluster-id="clusterId"
+      :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+      :data-source="getSingleClusterList"
+      :filter-value="searchValue"
+      @bk-ui-settings-change="updateTableSettings"
+      @filter-change="handleFilterChange"
+      @selection="handleSelection">
+      <template #operation>
+        <OperationColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE">
+          <template #default="{ data }: { data: SqlServerSingleModel }">
+            <div v-db-console="'sqlserver.singleClusterList.authorize'">
+              <BkButton
+                text
+                @click="handleShowAuthorize([data])">
+                {{ t('授权') }}
+              </BkButton>
+            </div>
+            <div v-db-console="'sqlserver.singleClusterList.enable'">
+              <OperationBtnStatusTips :data="data">
                 <BkButton
+                  :disabled="data.isStarting"
                   text
-                  @click="handleShowAuthorize([data])">
-                  {{ t('授权') }}
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
                 </BkButton>
-              </div>
-              <div v-db-console="'sqlserver.singleClusterList.enable'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    :disabled="data.isStarting"
-                    text
-                    @click="handleEnableCluster([data])">
-                    {{ t('启用') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'sqlserver.singleClusterList.reset'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    :disabled="!data.isOffline"
-                    text
-                    @click="handleResetCluster(data)">
-                    {{ t('重置') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'sqlserver.singleClusterList.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                    text
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </div>
-              <div v-db-console="'sqlserver.singleClusterList.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    text
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </div>
-              <ClusterDomainDnsRelation :data="data">
-                <BkButton text>
-                  {{ t('手动配置域名 DNS 记录') }}
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'sqlserver.singleClusterList.reset'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="!data.isOffline"
+                  text
+                  @click="handleResetCluster(data)">
+                  {{ t('重置') }}
                 </BkButton>
-              </ClusterDomainDnsRelation>
-            </template>
-          </OperationColumn>
-        </template>
-        <template #masterDomain>
-          <MasterDomainColumn
-            :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-            field="master_domain"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :label="t('主访问入口')"
-            :selected-list="selected"
-            @go-detail="handleToDetails"
-            @refresh="fetchData" />
-        </template>
-        <template #role>
-          <RoleColumn
-            :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
-            field="storages"
-            :get-table-instance="getTableInstance"
-            :is-filter="isFilter"
-            :label="t('实例')"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected"
-            @go-detail="handleToDetails" />
-        </template>
-        <template #moduleNames>
-          <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
-        </template>
-      </ClusterTable>
-    </div>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'sqlserver.singleClusterList.disable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </div>
+            <div v-db-console="'sqlserver.singleClusterList.delete'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </div>
+            <ClusterDomainDnsRelation :data="data">
+              <BkButton text>
+                {{ t('手动配置域名 DNS 记录') }}
+              </BkButton>
+            </ClusterDomainDnsRelation>
+          </template>
+        </OperationColumn>
+      </template>
+      <template #masterDomain>
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :label="t('主访问入口')"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails"
+          @refresh="fetchData" />
+      </template>
+      <template #role>
+        <RoleColumn
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+          field="storages"
+          :get-table-instance="getTableInstance"
+          :is-filter="isSearching"
+          :label="t('实例')"
+          :selected-list="selectedList"
+          @go-detail="handleToDetails" />
+      </template>
+      <template #moduleNames>
+        <ModuleNameColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
+      </template>
+    </ClusterTable>
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
@@ -167,20 +159,16 @@
 </template>
 
 <script setup lang="tsx">
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
   import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
-  import { getUserList } from '@services/source/user';
 
-  import { useLinkQueryColumnSerach, useTableSettings } from '@hooks';
+  import { useClusterQuickSearch, useTableSettings } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
-
-  import DbTable from '@components/db-table/index.vue';
-  import TagSearch from '@components/tag-search/index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
@@ -196,17 +184,17 @@
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import useGoClusterDetail from '@views/db-manage/hooks/useGoClusterDetail';
   import ClusterReset from '@views/db-manage/sqlserver/common/cluster-operations/cluster-reset/Index.vue';
   import ClusterDetail from '@views/db-manage/sqlserver/common/single-cluster-detail/Index.vue';
-
-  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const router = useRouter();
   const route = useRoute();
 
   const { t } = useI18n();
 
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.SQLSERVER_SINGLE);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.SQLSERVER,
     {
@@ -215,38 +203,17 @@
   );
 
   const {
-    batchSearchIpInatanceList,
-    clearSearchValue,
-    columnFilterChange,
-    columnSortChange,
-    handleSearchValueChange,
-    isFilter,
-    searchAttrs,
-    searchValue,
-    sortValue,
-    validateSearchValues,
-  } = useLinkQueryColumnSerach({
-    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    defaultSearchItem: {
-      id: 'domain',
-      name: t('访问入口'),
-    },
-    fetchDataFn: () => fetchData(),
-    searchType: ClusterTypes.SQLSERVER_SINGLE,
-  });
-
-  const {
     clusterDetailClose: handleDetailClose,
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
   } = useGoClusterDetail('SqlServerSingleClusterDetail');
+  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<SqlServerSingleModel>();
 
-  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false);
   const currentData = ref<SqlServerSingleModel>();
-  const selected = ref<SqlServerSingleModel[]>([]);
 
   /** 集群授权 */
   const authorizeShow = ref(false);
@@ -259,126 +226,23 @@
       master_domain: string;
     }[]
   >([]);
-  const tagSearchValue = ref<Record<string, any>>({});
 
   const getTableInstance = () => tableRef.value;
 
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map((item) => item.id));
-
-  const searchSelectData = computed(() => [
-    {
-      async: false,
-      id: 'domain',
-      multiple: true,
-      name: t('访问入口'),
-    },
-    {
-      async: false,
-      id: 'instance',
-      multiple: true,
-      name: t('IP 或 IP:Port'),
-    },
-    {
-      id: 'cluster_ids',
-      multiple: true,
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      multiple: true,
-      name: t('集群名称'),
-    },
-    {
-      children: searchAttrs.value.bk_cloud_id,
-      id: 'bk_cloud_id',
-      multiple: true,
-      name: t('管控区域'),
-    },
-    {
-      children: [
-        {
-          id: 'normal',
-          name: t('正常'),
-        },
-        {
-          id: 'abnormal',
-          name: t('异常'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      children: searchAttrs.value.db_module_id,
-      id: 'db_module_id',
-      multiple: true,
-      name: t('模块'),
-    },
-    {
-      children: searchAttrs.value.major_version,
-      id: 'major_version',
-      multiple: true,
-      name: t('版本'),
-    },
-    {
-      children: searchAttrs.value.region,
-      id: 'region',
-      multiple: true,
-      name: t('地域'),
-    },
-    {
-      id: 'creator',
-      name: t('创建人'),
-    },
-    {
-      children: searchAttrs.value.time_zone,
-      id: 'time_zone',
-      multiple: true,
-      name: t('时区'),
-    },
-  ]);
-
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SQLSERVER_SINGLE_TABLE_SETTINGS, {
-    checked: ['master_domain', 'status', 'cluster_stats', 'storages', 'db_module_id', 'major_version', 'region', 'tag'],
     disabled: ['master_domain'],
   });
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
-
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
-    }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map((value) => value.id);
-      return searchSelectData.value.filter((item) => !selected.includes(item.id));
-    }
-
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then((res) =>
-        res.results.map((item) => ({
-          id: item.username,
-          name: item.username,
-        })),
-      );
-    }
-
-    // 不需要远层加载
-    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
+  const fetchData = () => {
+    tableRef.value!.fetchData(searchValue.value);
   };
+
+  watch(searchValue, () => {
+    setTimeout(() => {
+      fetchData();
+      tableRef.value!.clearSelected();
+    });
+  });
 
   const handleResetCluster = (data: SqlServerSingleModel) => {
     currentData.value = data;
@@ -390,25 +254,8 @@
     isShowExcelAuthorize.value = true;
   };
 
-  const handleTagSearch = (params: Record<string, any>) => {
-    tagSearchValue.value = params;
-    fetchData();
-  };
-
-  const fetchData = () => {
-    tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-      ...tagSearchValue.value,
-      ...sortValue,
-    });
-  };
-
-  const handleSelection = (key: any, list: SqlServerSingleModel[]) => {
-    selected.value = list;
-  };
-
   const handleClearSelected = () => {
-    selected.value = [];
+    selectedList.value = [];
     authorizeSelected.value = [];
   };
 
@@ -429,64 +276,19 @@
       },
     });
   };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchData();
+  };
 </script>
 <style lang="less">
-  @import '@styles/mixins.less';
-
   .sqlserver-single-cluster-list {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 16px;
       gap: 8px;
-
-      .tag-search-main {
-        margin-left: auto;
-      }
-
-      .header-select {
-        flex: 1;
-        max-width: 500px;
-      }
-    }
-
-    td .vxe-cell {
-      .db-icon-copy,
-      .db-icon-link,
-      .db-icon-visible1 {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      .operations-more {
-        .db-icon-more {
-          display: block;
-          font-size: @font-size-normal;
-          font-weight: bold;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
-          }
-        }
-      }
-    }
-
-    td:hover {
-      .db-icon-copy,
-      .db-icon-link,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
     }
   }
 </style>
