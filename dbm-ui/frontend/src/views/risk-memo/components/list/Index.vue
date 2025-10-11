@@ -1,13 +1,16 @@
 <template>
   <div class="risk-list-main">
     <div class="operate-main">
-      <BkButton
+      <AuthButton
         v-if="!isPlatformPage && !isTodoPage"
+        action-id="risk_memo_create"
+        :biz-id="bizId"
         theme="primary"
         @click="handleAddRisk">
         {{ isSpecial ? t('新建要求') : t('新建风险') }}
-      </BkButton>
+      </AuthButton>
       <DbQuickSearch
+        :key="renderSearchKey"
         v-model="searchValue"
         :data="searchSelectData"
         :placeholder="t('请选择条件搜索')"
@@ -23,26 +26,36 @@
           v-for="item in riskList"
           :key="item.id"
           :data="item"
+          :db-id-name-map="dbIdNameMap"
           :effect-biz-label-map="effectBizLabelMap"
           :is-active="item.id === currentRiskId"
           :is-special="isSpecial"
           @click="() => handleChooseRiskMemoItem(item.id)" />
       </ScrollFaker>
-      <BkException
-        v-else
-        class="mt-20"
-        scene="part"
-        type="empty">
-        <span>{{ isSpecial ? t('暂无要求') : t('暂无风险') }}</span>
-        <span class="ml-4 mr-4">,</span>
-        <BkButton
-          size="small"
-          text
-          theme="primary"
-          @click="handleAddRisk">
-          {{ t('立即新建') }}
-        </BkButton>
-      </BkException>
+      <template v-else>
+        <BkException
+          v-if="isSearching"
+          class="mt-20"
+          scene="part"
+          type="search-empty">
+          <span>{{ t('搜索为空') }}</span>
+        </BkException>
+        <BkException
+          v-else
+          class="mt-20"
+          scene="part"
+          type="empty">
+          <span>{{ isSpecial ? t('暂无要求') : t('暂无风险') }}</span>
+          <span class="ml-4 mr-4">,</span>
+          <BkButton
+            size="small"
+            text
+            theme="primary"
+            @click="handleAddRisk">
+            {{ t('立即新建') }}
+          </BkButton>
+        </BkException>
+      </template>
     </div>
     <BkPagination
       v-model="pagination.current"
@@ -61,11 +74,14 @@
     @success="handleCreateRiskSucess" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getBizInpactList, getRiskMemoList } from '@services/source/riskMemo';
+
+  import { DBTypeInfos } from '@common/const';
 
   import CreateRisk from './components/CreateRisk.vue';
   import RiskItem from './components/RiskItem.vue';
@@ -74,7 +90,7 @@
   export type RiskMemoItem = ServiceReturnType<typeof getRiskMemoList>['results'][number];
 
   interface Props {
-    isSpecial: boolean;
+    isSpecial?: boolean;
   }
 
   type Emits = (e: 'chooseItem', value: number) => void;
@@ -91,6 +107,7 @@
   const emits = defineEmits<Emits>();
 
   const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
   const currentRiskId = ref(0);
@@ -101,10 +118,10 @@
     current: 1,
     limit: 15,
   });
+  const renderSearchKey = ref(0);
 
   const isPlatformPage = computed(() => route.name === 'RiskMemoGlobal');
   const isTodoPage = computed(() => route.name === 'RiskMemoTodos');
-
   const effectBizLabelMap = computed(() =>
     effectBizLabels.value?.reduce<Record<string, string>>(
       (dataMap, item) =>
@@ -124,6 +141,16 @@
     }
     return excludes;
   });
+  const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
+
+  const dbIdNameMap = Object.values(DBTypeInfos).reduce<Record<string, string>>(
+    (dataMap, item) =>
+      Object.assign(dataMap, {
+        [item.id]: item.name,
+      }),
+    {},
+  );
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   let searchParams: Record<string, string> = {};
 
@@ -139,15 +166,25 @@
           const index = data.results.findIndex((item) => item.id === currentRiskId.value);
           if (index !== -1) {
             currentRiskId.value = data.results[index].id;
+          } else {
+            currentRiskId.value = data.results[0].id;
           }
         } else {
           currentRiskId.value = data.results[0].id;
+        }
+        emits('chooseItem', currentRiskId.value);
+        handleChooseRiskMemoItem(currentRiskId.value);
+      } else {
+        if (isSearching.value) {
+          emits('chooseItem', -1);
+        } else {
+          emits('chooseItem', 0);
         }
       }
     },
   });
 
-  const { searchSelectData, searchValue } = useSearch(props.isSpecial, effectBizLabels.value, excludeSearchIds.value);
+  const { searchSelectData, searchValue } = useSearch(props, effectBizLabels, excludeSearchIds);
 
   watch(
     searchValue,
@@ -159,6 +196,27 @@
           }),
         {},
       );
+      const query = {
+        ...route.query,
+        ...searchParams,
+      };
+      const searchKeys = [
+        'bk_biz_id',
+        'name__icontains',
+        'db_type',
+        'biz_inpact__icontains',
+        'description__icontains',
+        'creator',
+        'id',
+        'follow_user',
+        'status',
+      ];
+      searchKeys.forEach((key) => {
+        if (!searchParams[key]) {
+          delete query[key];
+        }
+      });
+      router.replace({ query });
       handleSearch(searchParams);
     },
     {
@@ -187,7 +245,9 @@
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       });
     }
-    runGetRiskMemoList(params);
+    runGetRiskMemoList(params, {
+      permission: 'page',
+    });
   };
 
   watch(
@@ -199,9 +259,7 @@
         status: 'backlog',
       };
       handleGetRiskMemoList();
-    },
-    {
-      immediate: true,
+      renderSearchKey.value++;
     },
   );
 
@@ -218,6 +276,9 @@
 
   const handleChooseRiskMemoItem = (id: number) => {
     currentRiskId.value = id;
+    const query = _.cloneDeep(route.query);
+    query.id = `${id}`;
+    router.replace({ query });
   };
 
   const handleAddRisk = () => {
@@ -233,6 +294,18 @@
     pagination.value.current = currentPage;
     handleGetRiskMemoList();
   };
+
+  onMounted(() => {
+    if (Object.keys(route.query).length > 0) {
+      searchValue.value = {
+        ...route.query,
+      };
+    } else {
+      searchValue.value = {
+        status: 'backlog',
+      };
+    }
+  });
 
   defineExpose<Exposes>({
     refresh: handleGetRiskMemoList,

@@ -9,11 +9,16 @@
         class="value-display"
         :data="renderTags"
         :style="{ width: `${value.length * 46}px` }" />
-      <DbIcon
+      <AuthTemplate
         v-if="!readonly"
-        class="edit-main"
-        type="edit"
-        @click="handleClickEdit" />
+        action-id="risk_memo_manage"
+        :biz-id="bizId"
+        :permission="managePermission">
+        <DbIcon
+          class="edit-main"
+          type="edit"
+          @click="handleClickEdit" />
+      </AuthTemplate>
     </div>
     <BkSelect
       v-else
@@ -44,6 +49,8 @@
   import TagBlock from '@components/tag-block/Index.vue';
 
   interface Props {
+    bizId?: number;
+    managePermission?: boolean;
     readonly?: boolean;
     value?: string[];
   }
@@ -51,6 +58,8 @@
   type Emits = (e: 'change', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: 0,
+    managePermission: true,
     readonly: false,
     value: () => [],
   });

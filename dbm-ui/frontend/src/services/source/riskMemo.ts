@@ -1,19 +1,23 @@
 import RiskMemoDetailModel from '@services/model/risk-memo/risk-memo-detail';
 import type { ListBase } from '@services/types';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/risk_memo';
 
 // 业务风险/业务特殊要求列表
-export const getRiskMemoList = (params: {
-  bk_biz_id?: number;
-  is_assist?: boolean;
-  is_special: boolean;
-  limit?: number;
-  offset?: number;
-  platform?: boolean;
-}) => {
+export const getRiskMemoList = (
+  params: {
+    bk_biz_id?: number;
+    id?: number;
+    is_assist?: boolean;
+    is_special: boolean;
+    limit?: number;
+    offset?: number;
+    platform?: boolean;
+  },
+  payload = {} as IRequestPayload,
+) => {
   return http.get<
     ListBase<
       {
@@ -24,6 +28,7 @@ export const getRiskMemoList = (params: {
         description: string;
         duration_time: number;
         final_time: string;
+        followup_update_at: string;
         id: number;
         inpact_cluster: string[];
         is_special: boolean;
@@ -33,7 +38,7 @@ export const getRiskMemoList = (params: {
         update_at: string;
       }[]
     >
-  >(`${path}/`, params);
+  >(`${path}/`, params, payload);
 };
 
 // 业务风险/业务特殊要求详情

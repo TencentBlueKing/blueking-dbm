@@ -9,7 +9,7 @@ export default class RiskMemoDetail {
   description: string;
   duration_time: number;
   final_content: string;
-  final_time: number;
+  final_time: string;
   finalist: string;
   follow_ups: {
     content: string;
@@ -21,6 +21,7 @@ export default class RiskMemoDetail {
     update_at: string;
     updater: string;
   }[];
+  followup_update_at: string;
   id: number;
   inpact_cluster: string[];
   is_special: boolean;
@@ -43,6 +44,7 @@ export default class RiskMemoDetail {
     this.final_time = payload.final_time;
     this.finalist = payload.finalist;
     this.follow_ups = payload.follow_ups;
+    this.followup_update_at = payload.followup_update_at;
     this.id = payload.id;
     this.inpact_cluster = payload.inpact_cluster;
     this.is_special = payload.is_special;

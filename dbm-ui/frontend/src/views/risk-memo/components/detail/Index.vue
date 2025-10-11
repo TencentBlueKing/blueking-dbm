@@ -1,140 +1,162 @@
 <template>
   <div
+    v-if="riskMemoDetail"
     v-bk-loading="{ loading: detailLoading }"
+    class="risk-detail-info-main"
     style="height: 100%">
-    <div
-      v-if="riskMemoDetail"
-      class="risk-detail-info-main">
-      <div class="title-operate-main">
-        <div class="title">{{ riskMemoDetail?.name || '--' }}</div>
-        <BkTag
-          class="status"
-          :theme="!isRiskDone ? 'success' : ''">
-          {{ statusTextDisplay }}
-        </BkTag>
-        <BkButton
-          v-if="!isRiskDone"
-          size="small"
-          @click="handleClickCloseRisk"
-          >{{ isSpecial ? t('标记为失效') : t('结项') }}</BkButton
-        >
-        <BkPopConfirm
-          v-else
-          :confirm-config="{ loading: updateLoading }"
-          :confirm-text="t('重启')"
-          :content="isSpecial ? t('重启后，将恢复正常使用') : t('重启后，将恢复重新开放跟进内容')"
-          placement="bottom-start"
-          :title="isSpecial ? t('确认重启该要求？') : t('确认重启该跟进该风险？')"
-          trigger="click"
-          :width="280"
-          @confirm="handleReopenRisk">
-          <BkButton size="small">{{ t('重启') }}</BkButton>
-        </BkPopConfirm>
-      </div>
-      <div class="basic-info-main">
-        <div class="info-item">
-          <div class="name">{{ t('业务') }}</div>
-          <div class="ml-4 mr-4">:</div>
-          <div
-            v-overflow-tips
-            class="value">
-            {{ riskMemoDetail?.bk_biz_id ? bizIdObjectMap[riskMemoDetail?.bk_biz_id] : '--' }}
-          </div>
-        </div>
-        <div class="info-item">
-          <div class="name">{{ t('创建人') }}</div>
-          <div class="ml-4 mr-4">:</div>
-          <div
-            v-overflow-tips
-            class="value">
-            {{ riskMemoDetail?.creator || '--' }}
-          </div>
-        </div>
-        <div class="info-item">
-          <div class="name">{{ t('创建时间') }}</div>
-          <div class="ml-4 mr-4">:</div>
-          <div
-            v-overflow-tips
-            class="value">
-            {{ utcDisplayTime(riskMemoDetail?.create_at) }}
-          </div>
-        </div>
-        <div
-          v-if="!isSpecial"
-          class="info-item">
-          <div class="name">{{ t('持续时间') }}</div>
-          <div class="ml-4 mr-4">:</div>
-          <div
-            v-overflow-tips
-            class="value">
-            {{ durationTimeDisplay }}
-          </div>
-        </div>
-      </div>
-      <div class="tab-operate-main">
-        <div
-          v-for="tab in tabList"
-          :key="tab.id"
-          class="tab-item"
-          :class="{ 'is-active': tab.id === activeTab }"
-          @click="() => handleChooseTab(tab.id)">
-          {{ tab.label }}
-        </div>
-      </div>
-      <div
-        v-if="activeTab === 'detail'"
-        class="operate-content-main">
-        <ScrollFaker>
-          <div class="risk-detail-main">
-            <div class="info-title">{{ t('基础信息') }}</div>
-            <BasicInfo
-              :data="riskMemoDetail"
-              :is-special="isSpecial"
-              @update-success="handleGetUpdateDetail" />
-            <div class="info-title mt-30 mb-12">{{ t('添加跟进') }}</div>
-            <AddFollowUp
-              :is-risk-done="isRiskDone"
-              :risk-id="riskId"
-              @success="handleGetUpdateDetail" />
-            <div class="info-title mt-24 mb-16">
-              <span>{{ t('跟进记录') }}</span>
-              <span>（{{ recordCount }}）</span>
-              <BkTag
-                class="time-sort"
-                @click="handleClickSort">
-                <span class="mr-6">{{ isDescending ? t('时间倒序') : t('时间正序') }}</span>
-                <DbIcon
-                  v-if="isDescending"
-                  type="sortupshengxu" />
-                <DbIcon
-                  v-else
-                  type="sortdownjiangxu" />
-              </BkTag>
-            </div>
-            <FollowUpRecordItem
-              v-for="(item, index) in recordList"
-              :key="`${item.id}_${index}`"
-              :data="item"
-              :is-risk-done="isRiskDone"
-              :risk-id="riskId"
-              :show-line="index !== recordList.length - 1"
-              @update-success="handleGetUpdateDetail" />
-          </div>
-        </ScrollFaker>
-      </div>
-      <div
+    <div class="title-operate-main">
+      <div class="title">{{ riskMemoDetail?.name || '--' }}</div>
+      <BkTag
+        class="status"
+        :theme="!isRiskDone ? 'success' : ''">
+        {{ statusTextDisplay }}
+      </BkTag>
+      <AuthButton
+        v-if="!isRiskDone"
+        action-id="risk_memo_manage"
+        :biz-id="riskMemoDetail.bk_biz_id"
+        :permission="riskMemoManagePermission"
+        size="small"
+        @click="handleClickCloseRisk">
+        {{ isSpecial ? t('标记为失效') : t('结项') }}
+      </AuthButton>
+      <BkPopConfirm
         v-else
-        class="operate-records-main">
-        <OperationRecord :risk-id="riskMemoDetail.id" />
+        :confirm-config="{ loading: updateLoading }"
+        :confirm-text="t('重启')"
+        :content="isSpecial ? t('重启后，将恢复正常使用') : t('重启后，将恢复重新开放跟进内容')"
+        placement="bottom-start"
+        :popover-options="{
+          disabled: !riskMemoManagePermission,
+        }"
+        :title="isSpecial ? t('确认重启该要求？') : t('确认重启该跟进该风险？')"
+        trigger="click"
+        :width="280"
+        @confirm="handleReopenRisk">
+        <AuthButton
+          action-id="risk_memo_manage"
+          :biz-id="riskMemoDetail.bk_biz_id"
+          :permission="riskMemoManagePermission"
+          size="small">
+          {{ t('重启') }}
+        </AuthButton>
+      </BkPopConfirm>
+    </div>
+    <div class="basic-info-main">
+      <div class="info-item">
+        <div class="name">{{ t('业务') }}</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ riskMemoDetail?.bk_biz_id ? bizIdMap.get(riskMemoDetail?.bk_biz_id)?.name : '--' }}
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="name">{{ t('创建人') }}</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ riskMemoDetail?.creator || '--' }}
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="name">{{ t('创建时间') }}</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ utcDisplayTime(riskMemoDetail?.create_at) }}
+        </div>
+      </div>
+      <div
+        v-if="!isSpecial"
+        class="info-item">
+        <div class="name">{{ t('持续时间') }}</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ durationTimeDisplay }}
+        </div>
+      </div>
+      <div class="info-item">
+        <div class="name">{{ t('最近更新') }}</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ latestUpdateDisplay }}
+        </div>
       </div>
     </div>
-    <BkException
+    <div class="tab-operate-main">
+      <div
+        v-for="tab in tabList"
+        :key="tab.id"
+        class="tab-item"
+        :class="{ 'is-active': tab.id === activeTab }"
+        @click="() => handleChooseTab(tab.id)">
+        {{ tab.label }}
+      </div>
+    </div>
+    <div
+      v-if="activeTab === 'detail'"
+      class="operate-content-main">
+      <div class="risk-detail-main">
+        <div class="info-title">{{ t('基础信息') }}</div>
+        <BasicInfo
+          :data="riskMemoDetail"
+          :is-special="isSpecial"
+          :manage-permission="riskMemoManagePermission"
+          @update-success="handleGetUpdateDetail" />
+        <div class="info-title mt-30 mb-12">{{ t('添加跟进') }}</div>
+        <AddFollowUp
+          :biz-id="riskMemoDetail.bk_biz_id"
+          :is-risk-done="isRiskDone"
+          :manage-permission="riskMemoManagePermission"
+          :risk-id="riskId"
+          @success="handleGetUpdateDetail" />
+        <div class="info-title mt-24 mb-16">
+          <span>{{ t('跟进记录') }}</span>
+          <span>（{{ recordCount }}）</span>
+          <BkTag
+            class="time-sort"
+            @click="handleClickSort">
+            <span class="mr-6">{{ isDescending ? t('时间倒序') : t('时间正序') }}</span>
+            <DbIcon
+              v-if="isDescending"
+              type="sortupshengxu" />
+            <DbIcon
+              v-else
+              type="sortdownjiangxu" />
+          </BkTag>
+        </div>
+        <FollowUpRecordItem
+          v-for="(item, index) in recordList"
+          :key="`${item.id}_${index}`"
+          :biz-id="riskMemoDetail.bk_biz_id"
+          :data="item"
+          :is-risk-done="isRiskDone"
+          :manage-permission="riskMemoManagePermission"
+          :risk-id="riskId"
+          :show-line="index !== recordList.length - 1"
+          @update-success="handleGetUpdateDetail" />
+      </div>
+    </div>
+    <div
       v-else
-      class="detail-empty-main"
-      type="empty">
-      <span>{{ isSpecial ? t('请先在左侧新建要求') : t('请先在左侧新建风险') }}</span>
-    </BkException>
+      class="operate-records-main">
+      <OperationRecord :risk-id="riskMemoDetail.id" />
+    </div>
   </div>
+  <BkException
+    v-else
+    class="detail-empty-main"
+    type="empty">
+    <span>{{ emptyTip }}</span>
+  </BkException>
   <CloseRisk
     v-model:is-show="isShowCloseRisk"
     :data="riskMemoDetail"
@@ -146,6 +168,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { simpleCheckAllowed } from '@services/source/iam';
   import { getRiskMemoDetail, updateRiskStatus } from '@services/source/riskMemo';
 
   import { useGlobalBizs } from '@stores';
@@ -176,7 +199,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const { bizIdObjectMap } = useGlobalBizs();
+  const { bizIdMap } = useGlobalBizs();
   const { t } = useI18n();
 
   const recordCount = ref(0);
@@ -198,6 +221,28 @@
 
     return t('已结项');
   });
+  const emptyTip = computed(() => {
+    if (props.riskId === -1) {
+      return props.isSpecial ? t('未选择要求') : t('未选择风险');
+    }
+
+    if (props.isSpecial) {
+      return t('请先在左侧新建要求');
+    }
+
+    return t('请先在左侧新建风险');
+  });
+  const latestUpdateDisplay = computed(() => {
+    if (riskMemoDetail.value?.final_time) {
+      return utcDisplayTime(riskMemoDetail.value.final_time);
+    }
+
+    if (riskMemoDetail.value?.followup_update_at) {
+      return utcDisplayTime(riskMemoDetail.value.followup_update_at);
+    }
+
+    return utcDisplayTime(riskMemoDetail.value?.create_at);
+  });
 
   const {
     data: riskMemoDetail,
@@ -210,6 +255,10 @@
     onSuccess: () => {
       handleGetUpdateDetail();
     },
+  });
+
+  const { data: riskMemoManagePermission, run: runSimpleCheckAllowed } = useRequest(simpleCheckAllowed, {
+    manual: true,
   });
 
   // 计时
@@ -251,14 +300,14 @@
         if (riskMemoDetail.value!.final_content) {
           list.unshift({
             content: riskMemoDetail.value.final_content,
-            create_at: riskMemoDetail.value.update_at,
+            create_at: riskMemoDetail.value.final_time,
             creator: riskMemoDetail.value.updater,
             id: 0,
             is_follow_up_owner: true,
             isEnd: true,
             risk: riskMemoDetail.value.id,
-            update_at: '',
-            updater: '',
+            update_at: riskMemoDetail.value.update_at,
+            updater: riskMemoDetail.value.updater,
           });
         }
         recordList.value = list;
@@ -292,10 +341,25 @@
   watch(
     () => props.riskId,
     () => {
-      if (props.riskId) {
+      if (props.riskId > 0) {
         runGetRiskMemoDetail({ risk_id: props.riskId });
       } else {
         riskMemoDetail.value = undefined;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => riskMemoDetail.value?.bk_biz_id,
+    (bizId) => {
+      if (bizId) {
+        runSimpleCheckAllowed({
+          action_id: 'risk_memo_manage',
+          bk_biz_id: bizId,
+        });
       }
     },
     {
@@ -373,6 +437,7 @@
       font-size: 12px;
       margin-top: 4px;
       margin-bottom: 16px;
+      flex-wrap: wrap;
 
       .info-item {
         display: flex;
@@ -426,6 +491,13 @@
     .operate-records-main {
       flex: 1;
       overflow: hidden;
+    }
+  }
+
+  .detail-empty-main {
+    margin-top: 100px;
+    .bk-exception-footer {
+      margin-top: -50px;
     }
   }
 </style>

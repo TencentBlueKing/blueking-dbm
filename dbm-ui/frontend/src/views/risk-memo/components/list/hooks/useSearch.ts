@@ -12,17 +12,16 @@ import DbQuickSearch from '@components/db-quick-search/Index.vue';
 export type QuickSearchProps = ComponentProps<typeof DbQuickSearch>;
 
 export default function useSearch(
-  isSpecial = false,
-  effectBizLabels = [] as {
-    label: string;
-    value: string;
-  }[],
-  exclude: string[] = [],
+  props = { isSpecial: false },
+  effectBizLabels = ref<
+    | {
+        label: string;
+        value: string;
+      }[]
+    | undefined
+  >([]),
+  exclude = ref<string[]>([]),
 ) {
-  const props = {
-    exclude,
-    isSpecial,
-  };
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
 
@@ -69,7 +68,7 @@ export default function useSearch(
       },
       {
         id: 'biz_inpact__icontains',
-        list: effectBizLabels,
+        list: effectBizLabels.value,
         name: t('影响范围'),
         type: 'multiple',
       },
@@ -85,6 +84,10 @@ export default function useSearch(
         type: 'single',
       },
       {
+        id: 'id',
+        name: 'ID',
+      },
+      {
         id: 'follow_user',
         name: t('跟进人'),
         remoteMethod: requestUserList,
@@ -92,7 +95,7 @@ export default function useSearch(
         type: 'single',
       },
     ];
-    return list.filter((item) => !props.exclude.includes(item.id));
+    return list.filter((item) => !exclude.value.includes(item.id));
   });
 
   const requestUserList = (params: { defaultValue?: string; keyword?: string }) => {
@@ -111,12 +114,6 @@ export default function useSearch(
       })),
     );
   };
-
-  onMounted(() => {
-    searchValue.value = {
-      status: 'backlog',
-    };
-  });
 
   return {
     searchSelectData,

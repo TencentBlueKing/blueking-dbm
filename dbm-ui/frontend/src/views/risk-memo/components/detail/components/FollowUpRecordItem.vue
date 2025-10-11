@@ -27,11 +27,16 @@
           <div
             v-if="!isRiskDone && data.is_follow_up_owner && !data.isStart"
             class="operate-main">
-            <div
-              class="operate-item"
-              @click="handleClickEdit">
-              <DbIcon type="edit" />
-            </div>
+            <AuthTemplate
+              action-id="risk_memo_manage"
+              :biz-id="bizId"
+              :permission="managePermission">
+              <div
+                class="operate-item"
+                @click="handleClickEdit">
+                <DbIcon type="edit" />
+              </div>
+            </AuthTemplate>
             <BkPopConfirm
               :confirm-config="{
                 theme: 'danger',
@@ -44,13 +49,30 @@
               trigger="click"
               :width="288"
               @confirm="handleDelete">
-              <div class="operate-item">
-                <DbIcon type="delete" />
-              </div>
+              <AuthTemplate
+                action-id="risk_memo_manage"
+                :biz-id="bizId"
+                :permission="managePermission">
+                <div class="operate-item">
+                  <DbIcon type="delete" />
+                </div>
+              </AuthTemplate>
             </BkPopConfirm>
           </div>
         </div>
-        <div class="time-display">{{ utcDisplayTime(data.create_at) }}</div>
+        <div class="time-display">
+          <span>{{ utcDisplayTime(data.create_at) }}</span>
+          <template v-if="!isRiskDone && !data.isStart && data.create_at !== data.update_at">
+            <span class="ml-4 mr-4">(</span>
+            <I18nT
+              keypath="people于date修改了跟进内容"
+              tag="span">
+              <span>{{ data.updater }}</span>
+              <span>{{ utcDisplayTime(data.update_at) }}</span>
+            </I18nT>
+            <span class="ml-4 mr-4">)</span>
+          </template>
+        </div>
       </div>
       <template v-if="!data.isStart">
         <RiskMemoEditor
@@ -97,8 +119,10 @@
   import RiskMemoEditor from './Editor.vue';
 
   interface Props {
+    bizId?: number;
     data: FollowUpList[number];
     isRiskDone: boolean;
+    managePermission?: boolean;
     riskId: number;
     showLine?: boolean;
   }
@@ -106,6 +130,7 @@
   type Emits = (e: 'updateSuccess') => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: 0,
     showLine: true,
   });
 

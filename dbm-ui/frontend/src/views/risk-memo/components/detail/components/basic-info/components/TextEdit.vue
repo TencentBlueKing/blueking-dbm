@@ -8,11 +8,16 @@
       <div class="value-display">
         {{ localValue }}
       </div>
-      <DbIcon
+      <AuthTemplate
         v-if="!readonly"
-        class="edit-main"
-        type="edit"
-        @click="handleClickEdit" />
+        action-id="risk_memo_manage"
+        :biz-id="bizId"
+        :permission="managePermission">
+        <DbIcon
+          class="edit-main"
+          type="edit"
+          @click="handleClickEdit" />
+      </AuthTemplate>
     </div>
     <BkInput
       v-else
@@ -36,6 +41,8 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
+    bizId?: number;
+    managePermission?: boolean;
     readonly?: boolean;
     textArea?: boolean;
     value?: string;
@@ -44,6 +51,8 @@
   type Emits = (e: 'change', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: 0,
+    managePermission: true,
     readonly: false,
     textArea: false,
     value: '',

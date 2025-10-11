@@ -34,14 +34,17 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
 
   import RiskDetail from './components/detail/Index.vue';
   import RiskList from './components/list/Index.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
+  const route = useRoute();
 
   const riskListRef = ref<InstanceType<typeof RiskList>>();
-  const activePanel = ref('biz_risk');
+  const activePanel = ref((route.query.tab as string) || 'biz_risk');
   const currentRiskId = ref(0);
 
   const isSpecial = computed(() => activePanel.value === 'special_demand');
@@ -50,9 +53,23 @@
     { label: t('业务风险'), name: 'biz_risk' },
     { label: t('业务特殊要求'), name: 'special_demand' },
   ];
-  watch(isSpecial, () => {
-    currentRiskId.value = 0;
-  });
+
+  watch(
+    activePanel,
+    () => {
+      nextTick(() => {
+        router.push({
+          query: {
+            status: 'backlog',
+            tab: activePanel.value,
+          },
+        });
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChooseRiskItem = (id: number) => {
     currentRiskId.value = id;
