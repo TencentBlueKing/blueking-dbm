@@ -51,12 +51,12 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     """
 
     action_permission_map = {
-        ("list",): [ListRiskMemoPermission()],
-        ("update", "create", "retrieve", "update_risk_status"): [RiskMemoPermission()],
-        ("get_risk_operate_records", "get_biz_inpact_list", "images"): [],
+        ("list"): [ListRiskMemoPermission()],
+        ("update", "create", "update_risk_status"): [RiskMemoPermission()],
+        ("get_risk_operate_records", "get_biz_inpact_list", "images", "retrieve"): [],
     }
 
-    queryset = RiskMemo.objects.all().order_by("-create_at")
+    queryset = RiskMemo.objects.all().order_by("-update_at")
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = RiskMemoSerializer
     filter_class = RiskMemoListFilter
@@ -70,7 +70,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
         queryset = (
             RiskMemo.objects.all()
             .annotate(followup_update_at=Coalesce(Subquery(followup_update_at_subquery), None))
-            .order_by("-create_at")
+            .order_by("-followup_update_at", "-update_at")
         )
         return queryset
 
