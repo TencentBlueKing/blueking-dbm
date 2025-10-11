@@ -118,7 +118,7 @@
   </BkTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
     <InfoItem :label="t('备份源：')">
       {{ backupSourceMap[ticketDetails.details.backup_source] }}

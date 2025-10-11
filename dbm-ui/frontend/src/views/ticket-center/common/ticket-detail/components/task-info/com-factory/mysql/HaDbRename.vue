@@ -36,8 +36,8 @@
     </BkTableColumn>
   </BkTable>
   <InfoList>
-    <InfoItem :label="t('忽略业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    <InfoItem :label="t('检查业务连接')">
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>
