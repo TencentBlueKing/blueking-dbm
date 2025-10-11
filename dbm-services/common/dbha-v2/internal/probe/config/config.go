@@ -58,6 +58,7 @@ type Configuration struct {
 	Name       string            `yaml:"name"      mapstructure:"name"`
 	Version    string            `yaml:"version"   mapstructure:"version"`
 	ServiceID  string            `yaml:"serviceID" mapstructure:"serviceID"`
+	PIDFile    string            `yaml:"pidFile"   mapstructure:"pidFile"`
 	Reporters  []ReporterConfig  `yaml:"reporter"  mapstructure:"reporter"`
 	Harvesters []HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
 	Log        LogConfig         `yaml:"log"       mapstructure:"log"`
