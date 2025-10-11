@@ -81,7 +81,7 @@ type CloudCertificate struct {
 	SecretKey   string `yaml:"secret_key" mapstructure:"secret_key"`
 } // load configuration file
 
-func init() {
+func InitConfig() {
 	log.Println("init config")
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")

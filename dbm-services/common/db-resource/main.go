@@ -111,6 +111,8 @@ func init() {
 		logger.Fatal("Init Logger Failed %s", err.Error())
 		return
 	}
+	config.InitConfig()
+	model.InitModel()
 }
 
 // LocalCron define local crontab
