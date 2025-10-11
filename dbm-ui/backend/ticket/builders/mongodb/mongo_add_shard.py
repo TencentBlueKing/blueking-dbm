@@ -72,7 +72,7 @@ class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
                 add_group = int(info["add_shards_num"] / info["node_replicaset_count"])  # 新增组数
                 info["mongo_add_shards"] = []
                 for i in range(add_group):
-                    info["mongo_add_shards"] = info["mongo_add_shards"].append(info.pop(f"mongodb_{i}"))
+                    info["mongo_add_shards"].append(info.pop(f"mongodb_{i}"))
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_SHARD, is_apply=True)
