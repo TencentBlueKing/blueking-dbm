@@ -349,7 +349,7 @@ def gen_rollback_task():
             if storage_engine == "innodb":
                 data_dir_size_mb = data_dir_size_mb * 1.3
             else:
-                data_dir_size_mb = data_dir_size_mb * 2.3
+                data_dir_size_mb = data_dir_size_mb * 4.3
             logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
             min_disk_size = int(data_dir_size_mb / 1024)
             logger.info(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
