@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import List
 
+from backend import env
 from backend.iam_app.dataclass import ResourceEnum, ResourceMeta
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.handlers.drf_perm.base import (
@@ -60,7 +61,7 @@ class RiskMemoPermission(ResourceActionPermission):
         # 详情 -- 业务管理; 禁用、编辑 -- 风险管理
         if view.action == "retrieve":
             self.actions = [ActionEnum.DB_MANAGE]
-        elif view.action in ["disable", "update"]:
+        elif view.action in ["disable", "update", "update_risk_status"]:
             self.actions = [ActionEnum.RISK_MEMO_MANAGE]
 
-        return [get_request_key_id(request, "bk_biz_id")]
+        return [get_request_key_id(request, "bk_biz_id") or env.DBA_APP_BK_BIZ_ID]

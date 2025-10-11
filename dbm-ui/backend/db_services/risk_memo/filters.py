@@ -24,6 +24,7 @@ class RiskMemoListFilter(filters.FilterSet):
     class Meta:
         model = RiskMemo
         fields = {
+            "id": ["exact"],
             "name": ["icontains"],
             "bk_biz_id": ["exact"],
             "level": ["exact"],
