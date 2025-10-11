@@ -9,10 +9,10 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
@@ -186,16 +186,20 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
         """
         检查MySQL主从实例的版本一致性
 
-        校验逻辑：
-        1. 遍历所有待升级的集群信息
-        2. 对每个集群，分别检查主实例和从实例的版本
-        3. 确保主从实例版本一致
-        4. 如果发现版本不一致，记录错误信息
+        仅对 TenDBHA 架构的集群执行此检查。
 
         返回：
         - list: 错误信息列表，如果没有错误则返回空列表
         """
-        return self._iterate_clusters(self._check_cluster_master_slave_version)
+
+        def checker(cluster, cluster_id, context_data=None):
+            # 仅 TenDBHA 集群需要主从一致性检查
+            if cluster.cluster_type != ClusterType.TENDB_HA:
+                logger.info(_("跳过非 TenDBHA 集群 {} 的主从版本检查").format(cluster_id))
+                return []
+            return self._check_cluster_master_slave_version(cluster, cluster_id, context_data)
+
+        return self._iterate_clusters(checker)
 
     def _check_cluster_upgrade_version(self, cluster, cluster_id, target_version):
         """检查单个集群的升级版本兼容性"""
@@ -205,7 +209,9 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
         logger.info(_("检查集群 {} 的版本兼容性").format(cluster_name))
 
         # 只获取集群的主实例进行版本检查
-        master_instances = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.BACKEND_MASTER)
+        master_instances = StorageInstance.objects.filter(
+            cluster=cluster, instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+        )
 
         if not master_instances.exists():
             error_msg = _("集群 {} 没有找到主实例").format(cluster_name)
@@ -377,7 +383,7 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
             error_msg = _("存在重复的集群ID: {}").format(", ".join(map(str, duplicate_clusters)))
             raise DuplicateClusterIDException(error_msg)
 
-        # 阶段3 检查MySQL主从版本一致性
+        # 阶段3 检查MySQL主从版本一致性（仅 TenDBHA）
         master_slave_version_errors = self.pre_check_mysql_master_slave_version()
         if master_slave_version_errors:
             # MySQL主从版本一致性检查失败，抛出专门的异常
