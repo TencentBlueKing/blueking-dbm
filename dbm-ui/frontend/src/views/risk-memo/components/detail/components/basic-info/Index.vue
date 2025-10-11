@@ -8,6 +8,8 @@
         <span class="mr-8 ml-4">:</span>
         <div class="value-main">
           <TextEdit
+            :biz-id="data.bk_biz_id"
+            :manage-permission="managePermission"
             :readonly="isRiskDone"
             :value="data.name"
             @change="(value) => handleDetailChange('name', value)" />
@@ -20,6 +22,8 @@
         <span class="mr-8 ml-4">:</span>
         <div class="value-main">
           <DbEdit
+            :biz-id="data.bk_biz_id"
+            :manage-permission="managePermission"
             operate-type="select"
             :readonly="isRiskDone"
             :value="data.db_type"
@@ -34,6 +38,8 @@
         <span class="mr-8 ml-4">:</span>
         <div class="value-main">
           <BizInpactEdit
+            :biz-id="data.bk_biz_id"
+            :manage-permission="managePermission"
             :readonly="isRiskDone"
             :value="data.biz_inpact"
             @change="(value) => handleDetailChange('biz_inpact', value)" />
@@ -45,6 +51,8 @@
       <span class="mr-8 ml-4">:</span>
       <div class="value-main">
         <TextEdit
+          :biz-id="data.bk_biz_id"
+          :manage-permission="managePermission"
           :readonly="isRiskDone"
           text-area
           :value="data.description"
@@ -58,6 +66,7 @@
         <ClusterEdit
           :biz-id="data.bk_biz_id"
           :db-type="data.db_type"
+          :manage-permission="managePermission"
           :readonly="isRiskDone"
           :value="data.inpact_cluster"
           @change="(value) => handleDetailChange('inpact_cluster', value)" />
@@ -82,6 +91,7 @@
   interface Props {
     data?: RiskMemoDetailModel;
     isSpecial?: boolean;
+    managePermission?: boolean;
   }
 
   type Emits = (e: 'updateSuccess') => void;
@@ -89,6 +99,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({}) as RiskMemoDetailModel,
     isSpecial: false,
+    managePermission: true,
   });
 
   const emits = defineEmits<Emits>();

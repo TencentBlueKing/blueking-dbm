@@ -20,21 +20,27 @@
         {{ t('进行中') }}
       </BkTag>
     </div>
-    <TagBlock
-      v-if="!isSpecial"
-      class="tag-list"
-      :data="bizInpactList"
-      size="small" />
+    <div class="tag-list">
+      <div class="db-tag">{{ dbIdNameMap[data.db_type] || '--' }}</div>
+      <TagBlock
+        v-if="!isSpecial"
+        class="inpact-list"
+        :data="bizInpactList"
+        size="small" />
+    </div>
+
     <div
       v-overflow-tips
       class="desc">
       {{ data.description }}
     </div>
-    <div
-      v-if="!isSpecial"
-      class="time-display">
-      <span>{{ t('持续时间') }}：{{ durationTimeDisplay }}</span>
-      <span class="ml-6">{{ t('最近更新') }}：{{ utcDisplayTime(data.update_at) }}</span>
+    <div class="time-display">
+      <span
+        v-if="!isSpecial"
+        class="mr-6">
+        {{ t('持续时间') }}：{{ durationTimeDisplay }}
+      </span>
+      <span>{{ t('最近更新') }}：{{ latestUpdateDisplay }}</span>
     </div>
   </div>
 </template>
@@ -52,12 +58,14 @@
 
   interface Props {
     data: RiskMemoItem;
+    dbIdNameMap?: Record<string, string>;
     effectBizLabelMap?: Record<string, string>;
     isActive?: boolean;
     isSpecial?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    dbIdNameMap: () => ({}),
     effectBizLabelMap: () => ({}),
     isActive: false,
     isSpecial: false,
@@ -69,6 +77,18 @@
 
   const isFinished = computed(() => props.data.status === 'done');
   const bizInpactList = computed(() => props.data.biz_inpact.map((item) => props.effectBizLabelMap[item] || ''));
+
+  const latestUpdateDisplay = computed(() => {
+    if (props.data.final_time) {
+      return utcDisplayTime(props.data.final_time);
+    }
+
+    if (props.data.followup_update_at) {
+      return utcDisplayTime(props.data.followup_update_at);
+    }
+
+    return utcDisplayTime(props.data.create_at);
+  });
 
   // 计时
   const { pause, resume } = useIntervalFn(() => {
@@ -147,6 +167,25 @@
     .tag-list {
       width: 100%;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+
+      .db-tag {
+        height: 16px;
+        background: #c4c6cc;
+        border-radius: 2px;
+        font-size: 10px;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        padding: 0 4px;
+        margin-right: 4px;
+      }
+
+      .inpact-list {
+        flex: 1;
+        overflow: hidden;
+      }
     }
 
     .desc {

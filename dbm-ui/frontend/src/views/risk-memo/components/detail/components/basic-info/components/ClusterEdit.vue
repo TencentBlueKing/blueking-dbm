@@ -11,11 +11,16 @@
         class="value-display">
         {{ displayText }}
       </div>
-      <DbIcon
+      <AuthTemplate
         v-if="!readonly"
-        class="edit-main"
-        type="edit"
-        @click="handleClickEdit" />
+        action-id="risk_memo_manage"
+        :biz-id="bizId"
+        :permission="managePermission">
+        <DbIcon
+          class="edit-main"
+          type="edit"
+          @click="handleClickEdit" />
+      </AuthTemplate>
     </div>
     <BkSelect
       v-else
@@ -48,6 +53,7 @@
   interface Props {
     bizId?: number;
     dbType?: DBTypes;
+    managePermission?: boolean;
     readonly?: boolean;
     value?: string[];
   }
@@ -57,6 +63,7 @@
   const props = withDefaults(defineProps<Props>(), {
     bizId: undefined,
     dbType: undefined,
+    managePermission: true,
     readonly: false,
     value: () => [],
   });

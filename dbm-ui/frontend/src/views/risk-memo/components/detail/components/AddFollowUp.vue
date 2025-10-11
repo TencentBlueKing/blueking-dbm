@@ -1,12 +1,15 @@
 <template>
   <div class="add-follow-up-main">
-    <BkButton
+    <AuthButton
       v-if="!showEdit"
       v-bk-tooltips="{
-        disabled: !isRiskDone,
+        disabled: !managePermission || !isRiskDone,
         content: t('已结项的风险，不能添加跟进'),
       }"
+      action-id="risk_memo_manage"
+      :biz-id="bizId"
       :disabled="isRiskDone"
+      :permission="managePermission"
       text
       theme="primary"
       @click="handleAddFollowUp">
@@ -16,7 +19,7 @@
         style="font-size: 12px">
         {{ t('添加') }}
       </span>
-    </BkButton>
+    </AuthButton>
     <div
       v-else
       class="edit-follow-up-main">
@@ -54,15 +57,20 @@
   import RiskMemoEditor from './Editor.vue';
 
   interface Props {
+    bizId?: number;
     isRiskDone?: boolean;
+    managePermission?: boolean;
     riskId: number;
   }
 
   type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: 0,
     isRiskDone: false,
+    managePermission: true,
   });
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
