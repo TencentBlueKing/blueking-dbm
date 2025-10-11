@@ -59,7 +59,8 @@ class ReportBaseViewSet(AuditedModelViewSet):
 
     def summary_state_count(self):
         queryset = self.filter_queryset(self.get_queryset())
-        state_count_info = queryset.values("state").annotate(count=Count("state"))
+        # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
+        state_count_info = queryset.order_by().values("state").annotate(count=Count("state"))
         state_map = {state: 0 for state in ReportStateType.get_values()}
         state_map.update({info["state"]: info["count"] for info in state_count_info})
         return state_map
