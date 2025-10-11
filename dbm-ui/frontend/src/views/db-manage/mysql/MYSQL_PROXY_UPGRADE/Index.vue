@@ -48,8 +48,8 @@
       <BkFormItem>
         <BkCheckbox
           v-model="formData.force"
-          :false-label="false"
-          true-label>
+          false-label
+          :true-label="false">
           <span
             v-bk-tooltips="t('存在业务连接时需要人工确认')"
             class="safe-action-text">
@@ -134,7 +134,7 @@
   });
 
   const defaultData = () => ({
-    force: true,
+    force: false,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
