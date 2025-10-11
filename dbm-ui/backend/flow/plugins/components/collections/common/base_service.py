@@ -21,6 +21,8 @@ from django.utils.translation import ugettext as _
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
+from backend.bk_dataview.prometheus import metrics
+from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
@@ -162,6 +164,9 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 返回响应
         return ExcelHandler.response(wb, excel_name)
 
+    @setup_gauge([metrics.pipeline_node_execute_running_count], labels=node_label_func)
+    @setup_histogram([metrics.pipeline_node_execute_duration_histogram], labels=node_label_func)
+    @setup_counter([metrics.pipeline_node_execute_failed_total], labels=node_label_func, check=lambda res: not res)
     def execute(self, data, parent_data):
         self.active_language(data)
 
@@ -179,6 +184,9 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
     def _execute(self, data, parent_data):
         raise NotImplementedError()
 
+    @setup_gauge([metrics.pipeline_node_execute_running_count], labels=node_label_func)
+    @setup_histogram([metrics.pipeline_node_schedule_duration_histogram], labels=node_label_func)
+    @setup_counter([metrics.pipeline_node_execute_failed_total], labels=node_label_func, check=lambda res: not res)
     def schedule(self, data, parent_data, callback_data=None):
         self.active_language(data)
 

@@ -600,11 +600,15 @@ GRAFANA = {
     "BACKEND_CLASS": "backend.bk_dataview.grafana.backends.api.APIHandler",
 }
 
+# 自定义上报监控配置
+if env.BKAPP_MONITOR_REPORTER_ENABLE:
+    from backend.bk_dataview.prometheus import config
+    config.monitor_celery_report_config()
+    config.monitor_web_report_config()
+
 # 全局启用 pyinstrument，或者在url后面加上?profile=1
 # PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')
 
 # 开启DEBUG_TOOL_BAR，需要内联IP
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
-
-
