@@ -15,7 +15,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache
 
 logger = logging.getLogger("root")
@@ -30,7 +30,7 @@ class DBModule(AuditedModel):
     db_module_name = models.CharField(default="", max_length=200)
     alias_name = models.CharField(default="", max_length=200, help_text=_("dbmodule 别名,用于生成域名"))
     db_module_id = models.BigAutoField(primary_key=True)
-    cluster_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
 
     class Meta:
         verbose_name = verbose_name_plural = _("DB模块(DBModule)")
