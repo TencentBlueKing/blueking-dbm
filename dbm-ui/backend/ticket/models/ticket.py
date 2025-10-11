@@ -18,6 +18,8 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
+from backend.bk_dataview.prometheus import metrics
+from backend.bk_dataview.prometheus.handlers import observe
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
@@ -285,22 +287,23 @@ class Ticket(AuditedModel):
 
         from backend.ticket.builders import BuilderFactory
 
-        with transaction.atomic():
-            config = {"send_msg_config": send_msg_config or {}, "helpers": helpers or []}
-            ticket = Ticket.objects.create(
-                group=BuilderFactory.get_builder_cls(ticket_type).group,
-                creator=creator,
-                updater=creator,
-                bk_biz_id=bk_biz_id,
-                ticket_type=ticket_type,
-                remark=remark,
-                details=details,
-                config=config,
-            )
-            logger.info(_("正在自动创建单据，单据详情: {}").format(ticket.__dict__))
-            builder = BuilderFactory.create_builder(ticket)
-            builder.patch_ticket_detail()
-            builder.init_ticket_flows()
+        with observe(metrics.ticket_create_duration_histogram, bk_biz_id=bk_biz_id, ticket_type=ticket_type):
+            with transaction.atomic():
+                config = {"send_msg_config": send_msg_config or {}, "helpers": helpers or []}
+                ticket = Ticket.objects.create(
+                    group=BuilderFactory.get_builder_cls(ticket_type).group,
+                    creator=creator,
+                    updater=creator,
+                    bk_biz_id=bk_biz_id,
+                    ticket_type=ticket_type,
+                    remark=remark,
+                    details=details,
+                    config=config,
+                )
+                logger.info(_("正在自动创建单据，单据详情: {}").format(ticket.__dict__))
+                builder = BuilderFactory.create_builder(ticket)
+                builder.patch_ticket_detail()
+                builder.init_ticket_flows()
 
         if auto_execute:
             # 开始单据流程

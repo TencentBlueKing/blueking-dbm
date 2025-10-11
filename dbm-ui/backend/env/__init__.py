@@ -149,6 +149,24 @@ BKMONITOR_URL = get_type_env(key="BKMONITOR_URL", _type=str, default="")
 # 监控处理套餐 Bearer Token
 BKMONITOR_BEARER_TOKEN = get_type_env(key="BKMONITOR_BEARER_TOKEN", _type=str, default=SECRET_KEY[:16])
 
+# 可观测配置
+# 是否启用自定义上报
+BKAPP_MONITOR_REPORTER_ENABLE = get_type_env(key="BKAPP_MONITOR_REPORTER_ENABLE", default=False, _type=bool)
+# 监控 Data ID
+BKAPP_MONITOR_REPORTER_DATA_ID = get_type_env(key="BKAPP_MONITOR_REPORTER_DATA_ID", default=0, _type=int)
+# 自定义上报 Token
+BKAPP_MONITOR_REPORTER_ACCESS_TOKEN = get_type_env(key="BKAPP_MONITOR_REPORTER_ACCESS_TOKEN", default="", _type=str)
+# 上报唯一标志符
+BKAPP_MONITOR_REPORTER_TARGET = get_type_env(key="BKAPP_MONITOR_REPORTER_TARGET", default="prod", _type=str)
+# 上报地址
+BKAPP_MONITOR_REPORTER_URL = get_type_env(key="BKAPP_MONITOR_REPORTER_URL", default="", _type=str)
+# 上报间隔
+BKAPP_MONITOR_REPORTER_REPORT_INTERVAL = get_type_env(
+    key="BKAPP_MONITOR_REPORTER_REPORT_INTERVAL", default=10, _type=int
+)
+# 块大小
+BKAPP_MONITOR_REPORTER_CHUNK_SIZE = get_type_env(key="BKAPP_MONITOR_REPORTER_CHUNK_SIZE", default=200, _type=int)
+
 # mysql-crond 相关
 MYSQL_CROND_BEAT_PATH = get_type_env(
     key="MYSQL_CROND_BEAT_PATH", _type=str, default="/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"

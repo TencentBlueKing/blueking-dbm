@@ -20,6 +20,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from backend.bk_dataview.prometheus import metrics
+from backend.bk_dataview.prometheus.handlers import observe
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
@@ -177,19 +179,21 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     def perform_create(self, serializer):
         ticket_type = self.request.data["ticket_type"]
+        bk_biz_id = self.request.data["bk_biz_id"]
         ignore_duplication = self.request.data.get("ignore_duplication") or False
         # 如果不允许忽略重复提交，则进行校验
         if not ignore_duplication:
             self.verify_duplicate_ticket(ticket_type, self.request.data["details"])
 
-        with transaction.atomic():
-            # 设置单据类别 TODO: 这里会请求两次数据库，是否考虑group参数让前端传递
-            ticket = super().perform_create(serializer)
-            serializer.save(group=BuilderFactory.get_builder_cls(ticket_type).group)
-            # 初始化builder类
-            builder = BuilderFactory.create_builder(ticket)
-            builder.patch_ticket_detail()
-            builder.init_ticket_flows()
+        with observe(metrics.ticket_create_duration_histogram, bk_biz_id=bk_biz_id, ticket_type=ticket_type):
+            with transaction.atomic():
+                # 设置单据类别 TODO: 这里会请求两次数据库，是否考虑group参数让前端传递
+                ticket = super().perform_create(serializer)
+                serializer.save(group=BuilderFactory.get_builder_cls(ticket_type).group)
+                # 初始化builder类
+                builder = BuilderFactory.create_builder(ticket)
+                builder.patch_ticket_detail()
+                builder.init_ticket_flows()
 
         TicketFlowManager(ticket=ticket).run_next_flow()
 
