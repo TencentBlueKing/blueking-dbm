@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from bkstorages.backends.bkrepo import BKRepoStorage
+from django.db.models import OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
@@ -27,7 +29,7 @@ from backend.db_services.risk_memo.constants import (
 )
 from backend.db_services.risk_memo.filters import RiskMemoListFilter, RiskOpRecordListFilter
 from backend.db_services.risk_memo.handler import log_operation
-from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskOperateRecord
+from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskMemoFollowUp, RiskOperateRecord
 from backend.db_services.risk_memo.serializers import (
     RiskMemoDtailSerializer,
     RiskMemoSerializer,
@@ -58,6 +60,19 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = RiskMemoSerializer
     filter_class = RiskMemoListFilter
+
+    def get_queryset(self):
+        # queryset获取关联跟进的最新update_at
+        followup_update_at_subquery = (
+            RiskMemoFollowUp.objects.filter(risk=OuterRef("pk")).order_by("-update_at").values("update_at")[:1]
+        )
+
+        queryset = (
+            RiskMemo.objects.all()
+            .annotate(followup_update_at=Coalesce(Subquery(followup_update_at_subquery), None))
+            .order_by("-create_at")
+        )
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "retrieve":

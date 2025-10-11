@@ -291,7 +291,13 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         query_serializer=DownloadExcelSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=DownloadExcelSerializer)
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=DownloadExcelSerializer,
+        pagination_class=None,
+        filter_backends=None,
+    )
     def excel_download(self, request):
         # 获取root_id缓存数据
         validated_data = self.params_validate(self.get_serializer_class())
