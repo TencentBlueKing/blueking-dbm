@@ -17,9 +17,14 @@ from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskMemoFol
 
 
 class RiskMemoSerializer(serializers.ModelSerializer):
+    followup_update_at = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = RiskMemo
         exclude = ["creator", "updater"]
+        extra_kwargs = {
+            "followup_update_at": {"read_only": True},
+        }
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -44,6 +49,9 @@ class RiskMemoDtailSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation["biz_inpact"] = representation["biz_inpact"].split(",")
         representation["inpact_cluster"] = representation["inpact_cluster"].split(",")
+        representation["followup_update_at"] = (
+            representation["follow_ups"][0]["update_at"] if representation.get("follow_ups") else None
+        )
         return representation
 
 
