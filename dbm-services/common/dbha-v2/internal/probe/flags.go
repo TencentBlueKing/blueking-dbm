@@ -26,4 +26,6 @@ package probe
 
 var (
 	ConfigFilePath = ""
+	StopTimeout    = uint(5)
+	ForceStop      = false
 )
