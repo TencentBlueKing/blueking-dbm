@@ -269,6 +269,7 @@ class MySQLRollbackExerciseFlow(object):
                 bk_cloud_id=cluster_class.bk_cloud_id,
                 domain=master_domain,
                 bk_biz_id=self.rollback_to_bk_biz_id,
+                skip_clean_surrounding_config=True,
             )
         )
         # 退还资源到资源池

@@ -192,7 +192,9 @@ class MySQLSingleDestroyFlow(object):
         mysql_single_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         mysql_single_destroy_pipeline.run_pipeline(is_drop_random_user=False)
 
-    def destroy_mysql_single_subflow(self, ip, port, bk_cloud_id, bk_biz_id, domain):
+    def destroy_mysql_single_subflow(
+        self, ip, port, bk_cloud_id, bk_biz_id, domain, skip_clean_surrounding_config: bool
+    ):
         """下架MySQL单节点集群子流程
 
         Args:
@@ -229,20 +231,20 @@ class MySQLSingleDestroyFlow(object):
                 )
             ),
         )
-
-        sub_pipeline.add_act(
-            act_name=_("清理实例级别周边配置"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    exec_ip=ip,
-                    cluster_type=ClusterType.TenDBSingle,
-                    bk_cloud_id=bk_cloud_id,
-                    cluster={"backend_port": port},
-                    get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
-                )
-            ),
-        )
+        if not skip_clean_surrounding_config:
+            sub_pipeline.add_act(
+                act_name=_("清理实例级别周边配置"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        cluster_type=ClusterType.TenDBSingle,
+                        bk_cloud_id=bk_cloud_id,
+                        cluster={"backend_port": port},
+                        get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
+                    )
+                ),
+            )
 
         sub_pipeline.add_act(
             act_name=_("卸载mysql实例"),
