@@ -1,6 +1,7 @@
 name: probe
 version: v2.0.0
 serviceID: ""
+pidFile: /var/log/dbha/probe.pid
 
 reporter:
   - name: gse
