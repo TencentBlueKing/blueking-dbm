@@ -25,6 +25,7 @@ package probe
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
+	"dbm-services/common/dbha-v2/pkg/pidfile"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,15 +46,17 @@ func setupGracefulShutdown(p *Probe) {
 
 	go func() {
 		<-sigC
+		err := pidfile.DeletePIDFile(config.Cfg.PIDFile)
+		if err != nil {
+			logger.Error("%v", err)
+		}
 		logger.Info("shutdown probe")
 		p.Close()
 		os.Exit(0)
 	}()
 }
 
-// Run run probe
-func Run(cmd *cobra.Command, args []string) error {
-
+func initProbeLogger() error {
 	viper.SetConfigName("probe")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./etc")
@@ -79,6 +83,23 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
+	return nil
+}
+
+func runProbeService() error {
+	if logger.Log() == nil {
+		return fmt.Errorf("logger is not initialized")
+	}
+
+	logger.Info("%s starting as process %d from %s",
+		os.Args[0], os.Getpid(), viper.ConfigFileUsed())
+	pidFile, err := pidfile.CreatePIDFile(config.Cfg.PIDFile)
+	if err != nil {
+		return err
+	}
+	/* Notice: the pid file should be kept until process exits */
+	defer pidFile.Close()
+
 	logger.Debug("probe config. %v", config.Cfg)
 
 	clientID, err := machine.ID()
@@ -97,4 +118,12 @@ func Run(cmd *cobra.Command, args []string) error {
 	setupGracefulShutdown(p)
 
 	return p.Run(ctx)
+}
+
+// Run run probe
+func Run(cmd *cobra.Command, args []string) error {
+	if err := initProbeLogger(); err != nil {
+		return err
+	}
+	return runProbeService()
 }
