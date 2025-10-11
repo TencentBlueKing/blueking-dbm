@@ -535,7 +535,9 @@ func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbR
 	logger.Info("the anti-affinity is %s", o.Affinity)
 	if len(o.SpecialHostIds) > 0 {
 		for _, v := range items {
-			picker.SatisfiedHostIds = append(picker.SatisfiedHostIds, v.BkHostID)
+			if slices.Contains(o.SpecialHostIds, v.BkHostID) {
+				picker.SatisfiedHostIds = append(picker.SatisfiedHostIds, v.BkHostID)
+			}
 		}
 		picker.Count = len(o.SpecialHostIds)
 		return nil

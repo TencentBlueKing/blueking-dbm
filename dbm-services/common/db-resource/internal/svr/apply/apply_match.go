@@ -49,8 +49,8 @@ func (c *PickerObject) PickerRandom() {
 // PickerSameSubZone 同园区资源匹配
 func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 	// 如果设置了容忍度，使用机架均衡分配策略
-	if c.Tolerance >= 0 && c.MaxPerRack > 0 {
-		c.PickerSameSubZoneBalanced(cross_switch)
+	if c.Tolerance > 0 && c.MaxPerRack > 0 {
+		c.PickerSameSubZoneBalanced()
 		return
 	}
 
@@ -81,7 +81,7 @@ func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 }
 
 // PickerSameSubZoneBalanced 同园区机架均衡资源匹配
-func (c *PickerObject) PickerSameSubZoneBalanced(cross_switch bool) {
+func (c *PickerObject) PickerSameSubZoneBalanced() {
 	sortSubZones := c.sortSubZoneNum(false)
 	if len(sortSubZones) == 0 {
 		return
@@ -103,16 +103,16 @@ func (c *PickerObject) PickerSameSubZoneBalanced(cross_switch bool) {
 		c.ExistLinkNetdeviceIds = []string{}
 
 		// 使用机架均衡分配策略
-		if c.pickerSameSubZoneRackBalanced(subzone, cross_switch) {
+		if c.pickerSameSubZoneRackBalanced(subzone) {
 			return
 		}
 	}
 }
 
 // pickerSameSubZoneRackBalanced 在同园区内进行机架均衡分配
-func (c *PickerObject) pickerSameSubZoneRackBalanced(subzone string, cross_switch bool) bool {
+func (c *PickerObject) pickerSameSubZoneRackBalanced(subzone string) bool {
 	// 输出机架分配开始信息
-	c.logRackAllocationStart(subzone, cross_switch)
+	c.logRackAllocationStart(subzone)
 
 	roundCount := 0
 	for !c.PickerDone() {
@@ -140,7 +140,7 @@ func (c *PickerObject) pickerSameSubZoneRackBalanced(subzone string, cross_switc
 			}
 
 			// 尝试从该机架分配一台机器
-			if c.pickerOneFromRack(subzone, rackId, cross_switch) {
+			if c.pickerOneFromRack(subzone, rackId) {
 				allocated = true
 				logger.Info("✅ 成功从机架 %s 分配一台机器，当前总分配: %d/%d，机架当前机器数: %d",
 					rackId, len(c.SatisfiedHostIds), c.Count, c.GetRackCurrentTotal(rackId))
@@ -170,7 +170,7 @@ func (c *PickerObject) pickerSameSubZoneRackBalanced(subzone string, cross_switc
 }
 
 // pickerOneFromRack 从指定机架中分配一台机器
-func (c *PickerObject) pickerOneFromRack(subzone, rackId string, cross_switch bool) bool {
+func (c *PickerObject) pickerOneFromRack(subzone, rackId string) bool {
 	pq, ok := c.PriorityElements[subzone]
 	if !ok || pq.Len() == 0 {
 		return false
@@ -200,15 +200,6 @@ func (c *PickerObject) pickerOneFromRack(subzone, rackId string, cross_switch bo
 			tempItems = append(tempItems, item)
 			continue
 		}
-
-		// 跨交换机检查
-		if cross_switch {
-			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
-				tempItems = append(tempItems, item)
-				continue
-			}
-		}
-
 		// 检查是否已经被选中
 		if slices.Contains(c.SatisfiedHostIds, v.BkHostId) {
 			tempItems = append(tempItems, item)
@@ -1029,10 +1020,10 @@ func (c *PickerObject) getCampusCapacity(campus string) int {
 }
 
 // logRackAllocationStart 输出机架分配开始信息
-func (c *PickerObject) logRackAllocationStart(subzone string, crossSwitch bool) {
+func (c *PickerObject) logRackAllocationStart(subzone string) {
 	logger.Info("🏗️  === 开始机架级资源分配 ===")
 	logger.Info("🏢 目标园区: %s", subzone)
-	logger.Info("📋 分配参数: 申请数量=%d, 跨交换机=%t", c.Count, crossSwitch)
+	logger.Info("📋 分配参数: 申请数量=%d, 跨交换机=%t", c.Count)
 
 	if c.Tolerance >= 0 {
 		logger.Info("⚖️  均衡策略: 容忍度=%.2f, 每机架最大=%d", c.Tolerance, c.MaxPerRack)
