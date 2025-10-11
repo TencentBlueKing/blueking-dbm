@@ -25,7 +25,7 @@
     v-bind="props" />
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
-      {{ ticketDetails.details.force ? t('是') : t('否') }}
+      {{ !ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
 </template>
