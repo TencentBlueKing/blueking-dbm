@@ -8,12 +8,21 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from typing import List, Optional
+
 from backend.components import DRSApi
 from backend.flow.consts import MYSQL_SYS_USER, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 
 
-def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: bool = False, is_proxy: bool = False):
+def check_client_connection(
+    bk_cloud_id: int,
+    instances: list,
+    is_filter_sleep: bool = False,
+    is_proxy: bool = False,
+    filter_hosts: Optional[List[str]] = None,
+    long_query_time: int = -1,
+):
     """
     通过drs接口检测实例是否存在用户线程
     @param bk_cloud_id: 操作的云区域
@@ -40,17 +49,25 @@ def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: 
         UserName.MONITOR.value,
         UserName.REPL.value,
         UserName.YW.value,
+        "event_scheduler",
+        "system user",
     ]
     # 对于tendb-cluster集群的实例，这里不考虑过滤内置账号的session，因为执行ddl时候，实例会存在内置账号session
     # 过滤会有风险
     users = ",".join(
         ["'" + str(x) + "'" for x in MYSQL_SYS_USER + admin_user_name_list + get_mysql_sys_users(bk_cloud_id)]
     )
+    if long_query_time > 0:
+        is_filter_sleep = True
     if is_filter_sleep:
         check_sql = f"select * from information_schema.processlist where command != 'Sleep' and User not in ({users})"
     else:
         check_sql = f"select * from information_schema.processlist where User not in ({users})"
-
+    if filter_hosts:
+        host_values = ",".join([f"'{str(x)}'" for x in filter_hosts])
+        check_sql += f" and Host not in ({host_values})"
+    if long_query_time > 0:
+        check_sql += f" and Time > {long_query_time}"
     res = DRSApi.rpc(
         {
             "addresses": instances,
