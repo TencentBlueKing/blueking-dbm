@@ -86,7 +86,8 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGO_CONFIG"
-                  style="width: 314px" />
+                  style="width: 314px"
+                  :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -116,7 +117,8 @@
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGOS"
-                  style="width: 314px" />
+                  style="width: 314px"
+                  :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -138,7 +140,9 @@
               v-model:apply-schema="applySchema"
               v-model:spec-data="mongoConfigSpecData"
               :params="{
+                city_code: formData.details.city_code,
                 bk_biz_id: formData.bk_biz_id,
+                sub_zone_ids: formData.details.sub_zone_ids,
                 bk_cloud_id: formData.details.bk_cloud_id,
               }" />
           </BkFormItem>

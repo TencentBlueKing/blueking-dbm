@@ -171,7 +171,8 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_bookkeeper"
-                    style="width: 314px" />
+                    style="width: 314px"
+                    :subzone-ids="formdata.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -201,7 +202,8 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_zookeeper"
-                    style="width: 314px" />
+                    style="width: 314px"
+                    :subzone-ids="formdata.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
@@ -233,7 +235,8 @@
                     :cloud-id="formdata.details.bk_cloud_id"
                     cluster-type="pulsar"
                     machine-type="pulsar_broker"
-                    style="width: 314px" />
+                    style="width: 314px"
+                    :subzone-ids="formdata.details.sub_zone_ids" />
                 </BkFormItem>
                 <BkFormItem
                   :label="t('数量')"
