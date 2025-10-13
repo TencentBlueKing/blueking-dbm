@@ -125,6 +125,7 @@ class KafkaReplaceFlow(object):
         self.data["factor"] = int(kafka_config["factor"])
         self.data["old_zookeeper_conf"] = kafka_config["zookeeper_conf"]
         self.data["zookeeper_conf"] = self.data["old_zookeeper_conf"]
+        self.data["no_security"] = int(kafka_config["no_security"])
 
         # get username
         query_params = {

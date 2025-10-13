@@ -166,7 +166,7 @@ func GenReassignmentJSON(conn *zk.Conn, zkHost string, root string, xBrokerIds [
 		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, tempIds, planJSONFile)
 
 	logger.Info("extraCmd, %s", extraCmd)
-	output, _ := osutil.ExecShellCommand(false, extraCmd)
+	output, _ := osutil.ExecShellCommandJ(false, extraCmd)
 	logger.Info("output: %s", output)
 	b, err := os.ReadFile(planJSONFile)
 	if err != nil {
@@ -232,7 +232,7 @@ func GenReplaceReassignmentJSON(conn *zk.Conn, zkHost string, root string, oldBr
 		cst.DefaultReassignPartitionsBin, cst.DefaultKafkaEnv, zk, ids, planJSONFile)
 
 	logger.Info("extraCmd, %s", extraCmd)
-	output, _ := osutil.ExecShellCommand(false, extraCmd)
+	output, _ := osutil.ExecShellCommandJ(false, extraCmd)
 	logger.Info("output: %s", output)
 	b, err := os.ReadFile(planJSONFile)
 	if err != nil {
@@ -340,7 +340,7 @@ func DoReassignPartitions(zk string, jsonFile string) error {
 		cst.DefaultReassignPartitionsBin,
 		zk, jsonFile, speedLimit)
 	logger.Info("extraCmd: %s", extraCmd)
-	output, _ := osutil.ExecShellCommand(false, extraCmd)
+	output, _ := osutil.ExecShellCommandJ(false, extraCmd)
 	logger.Info("output %s", output)
 	logger.Info("Doing patitions reassignment, default speed rate is 30MB/s")
 	logger.Info("Changing the rate, please rerun [%s] with other rate", extraCmd)
@@ -349,7 +349,7 @@ func DoReassignPartitions(zk string, jsonFile string) error {
 
 // CheckReassignPartitions TODO
 func CheckReassignPartitions(zk string, jsonFile string) (output string, err error) {
-	extraCmd := fmt.Sprintf(`%s --zookeeper %s --reassignment-json-file %s --verify|egrep -v 'Status|successfully'|tail`,
+	extraCmd := fmt.Sprintf(`%s --zookeeper %s --reassignment-json-file %s --verify|grep -Ev 'Status|successfully'|tail`,
 		cst.DefaultReassignPartitionsBin,
 		zk, jsonFile)
 	logger.Info("cmd: [%s]", extraCmd)
@@ -423,11 +423,11 @@ func GenerateReassginFile(zk, topic, idStrs, host string) error {
 	}
 	extraCmd := fmt.Sprintf(
 		`%s  --zookeeper %s  --topics-to-move-json-file %s \
-		--broker-list %s --generate | egrep -A1 ^Proposed|egrep -v ^Proposed`,
+		--broker-list %s --generate | grep -E -A1 ^Proposed|grep -E -v ^Proposed`,
 		cst.DefaultReassignPartitionsBin,
 		zk, topicFile, idStrs)
 	logger.Info("cmd: [%s]", extraCmd)
-	output, err := osutil.ExecShellCommand(false, extraCmd)
+	output, err := osutil.ExecShellCommandJ(false, extraCmd)
 	if err != nil {
 		logger.Error("生成迁移计划失败, %v", err)
 		return err
