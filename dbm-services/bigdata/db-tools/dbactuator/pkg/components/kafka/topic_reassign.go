@@ -74,7 +74,7 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 	// Get list of topics
 	cmd := fmt.Sprintf("%s --list --zookeeper %s", cst.DefaultTopicBin, zkStr)
 	logger.Info("Executing command to get topic list: %s", cmd)
-	output, err := osutil.ExecShellCommand(false, cmd)
+	output, err := osutil.ExecShellCommandJ(false, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to get topic list: %w", err)
 	}
@@ -163,7 +163,7 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 		cmd = fmt.Sprintf("%s --broker-list %s --topics-to-move-json-file %s --generate --zookeeper %s",
 			cst.DefaultReassignPartitionsBin, brokerListStr, topicJSONFile, zkStr)
 		logger.Info("Executing command to generate reassignment plan: %s", cmd)
-		output, err := osutil.ExecShellCommand(false, cmd)
+		output, err := osutil.ExecShellCommandJ(false, cmd)
 		if err != nil {
 			return fmt.Errorf("failed to generate reassignment plan: %w", err)
 		}

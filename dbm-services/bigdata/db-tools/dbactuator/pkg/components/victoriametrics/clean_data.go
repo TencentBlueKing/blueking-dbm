@@ -53,7 +53,7 @@ func (d *CleanDataComp) CleanData() (err error) {
 
 	// 强杀进程
 	extraCmd :=
-		`ps -ef | egrep 'supervisord|node_exporter|telegraf|vminsert|vmstorage|vmselect'| ` +
+		`ps -ef | grep -E 'supervisord|node_exporter|telegraf|vminsert|vmstorage|vmselect'| ` +
 			`grep -v grep |awk {'print "kill -9 " $2'}|sh`
 	logger.Info("强杀进程, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
