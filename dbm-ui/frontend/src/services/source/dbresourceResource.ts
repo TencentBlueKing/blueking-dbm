@@ -183,6 +183,7 @@ export function getSpecResourceCount(params: {
   city?: string;
   resource_type?: string;
   spec_ids: number[];
+  sub_zone_ids?: string[];
 }) {
   return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
 }
