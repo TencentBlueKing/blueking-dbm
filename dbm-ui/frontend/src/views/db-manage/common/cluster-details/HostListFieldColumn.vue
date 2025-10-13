@@ -72,7 +72,8 @@
   </TableColumn>
   <TableColumn
     col-key="host_info.bk_cpu_architecture"
-    :title="t('CPU_核_')">
+    :title="t('CPU_核_')"
+    :width="100">
     <template #default="{ row }: { row: IRowData }">
       {{ row.host_info.bk_cpu || '--' }}
     </template>

@@ -115,7 +115,7 @@
       </I18nT>
     </BkAlert>
     <HostTable
-      ref="dbTableRef"
+      ref="hostTableRef"
       :data-source="dataSource"
       :db-type="DBTypes.PULSAR"
       @request-success="handleRequestSuccess"
@@ -217,11 +217,11 @@
   const { t } = useI18n();
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
-  const dbTableRef = ref<InstanceType<typeof HostTable>>();
+  const hostTableRef = ref<InstanceType<typeof HostTable>>();
   const { fetchData, handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(
     DBTypes.PULSAR,
     {
-      tableRef: dbTableRef,
+      tableRef: hostTableRef,
     },
   );
 
@@ -315,12 +315,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    copyAllIp(dbTableRef.value!.getData());
+    copyAllIp(hostTableRef.value!.getData());
   };
 
   // 复制异常 IP
   const handleCopeFailed = () => {
-    copyNotAliveIp(dbTableRef.value!.getData());
+    copyNotAliveIp(hostTableRef.value!.getData());
   };
 
   // 复制已选 IP

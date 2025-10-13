@@ -31,13 +31,13 @@
         @change="handleSearchValueChange" />
     </div>
     <HostTable
-      ref="dbTable"
+      ref="hostTableRef"
       :data-source="dataSource"
-      :db-type="clusterTypeInfos[props.clusterType].dbType"
+      :db-type="dbType"
       @request-success="handleRequestSuccess"
       @selection="handleSelectChange">
       <HostListFieldColumn
-        :db-type="clusterTypeInfos[clusterType].dbType"
+        :db-type="dbType"
         :role-list="roleList" />
     </HostTable>
   </div>
@@ -46,7 +46,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { clusterTypeInfos } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
@@ -63,18 +63,18 @@
 
   const props = defineProps<Props>();
 
+  const dbType =
+    props.clusterType === ClusterTypes.REDIS_CLUSTER ? DBTypes.REDIS : clusterTypeInfos[props.clusterType].dbType;
+
   const { t } = useI18n();
 
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
   const requestHandler = useClusterMachineList(props.clusterType);
 
-  const dbTableRef = ref<InstanceType<typeof HostTable>>();
-  const { handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(
-    clusterTypeInfos[props.clusterType].dbType,
-    {
-      tableRef: dbTableRef,
-    },
-  );
+  const hostTableRef = ref<InstanceType<typeof HostTable>>();
+  const { handleSearchValueChange, quickSearchData, quickSearchValue } = useHostSearchSelect(dbType, {
+    tableRef: hostTableRef,
+  });
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({
@@ -109,11 +109,11 @@
   };
 
   const handleNotAliveHostIp = () => {
-    copyNotAliveIp(dbTableRef.value!.getData() || []);
+    copyNotAliveIp(hostTableRef.value!.getData() || []);
   };
 
   const handleAllHostIp = () => {
-    copyAllIp(dbTableRef.value!.getData() || []);
+    copyAllIp(hostTableRef.value!.getData() || []);
   };
 </script>
 <style lang="less">
