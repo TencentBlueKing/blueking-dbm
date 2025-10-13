@@ -93,14 +93,15 @@
 </script>
 <style lang="less">
   .db-edit-value-main {
-    width: 100%;
     display: flex;
-    align-items: center;
+    width: 100%;
     font-size: 12px;
+    align-items: center;
 
     .display-mian {
-      width: 100%;
       display: flex;
+      width: 100%;
+      margin-top: 0;
       align-items: center;
 
       &:hover {
@@ -110,12 +111,10 @@
       }
 
       .value-display {
-        flex: 1;
-        flex-grow: 0;
-        flex-shrink: 1;
-        flex-basis: auto;
+        flex: 0 1 auto;
         max-width: calc(100% - 20px);
         overflow-wrap: break-word;
+        word-break: break-all;
       }
 
       .tags-display {
@@ -123,13 +122,13 @@
       }
 
       .edit-main {
+        display: none;
         width: 12px;
         height: 12px;
-        color: #979ba5;
-        font-size: 12px;
-        cursor: pointer;
         margin-left: 4px;
-        display: none;
+        font-size: 12px;
+        color: #979ba5;
+        cursor: pointer;
 
         &:hover {
           color: #3a84ff;

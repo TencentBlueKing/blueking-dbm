@@ -86,12 +86,12 @@
     height: 100%;
 
     .header-tab {
-      background: #fff;
-      box-shadow: 0 3px 4px 0 #0000000a;
-      margin-top: -2px;
       position: relative;
       z-index: 999;
       padding-left: 24px;
+      margin-top: -2px;
+      background: #fff;
+      box-shadow: 0 3px 4px 0 #0000000a;
 
       .bk-tab-header {
         border-bottom: none;
@@ -103,9 +103,13 @@
     }
 
     .content-main {
-      flex: 1;
-      overflow: hidden;
       display: flex;
+      overflow: hidden;
+      flex: 1;
+
+      .bk-resize-layout-aside {
+        border-right: none;
+      }
     }
   }
 </style>

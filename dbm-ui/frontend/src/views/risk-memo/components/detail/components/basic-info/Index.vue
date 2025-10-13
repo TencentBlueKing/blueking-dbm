@@ -1,9 +1,7 @@
 <template>
   <div class="basic-indo-main">
     <div class="effect-infos">
-      <div
-        class="item-mian"
-        style="width: 30%">
+      <div class="item-main">
         <div class="item-title">{{ isSpecial ? t('标题') : t('风险名称') }}</div>
         <span class="mr-8 ml-4">:</span>
         <div class="value-main">
@@ -16,24 +14,8 @@
         </div>
       </div>
       <div
-        class="item-mian ml-12 mr-12"
-        style="width: 25%">
-        <div class="item-title">{{ isSpecial ? t('涉及 DB') : t('影响 DB') }}</div>
-        <span class="mr-8 ml-4">:</span>
-        <div class="value-main">
-          <DbEdit
-            :biz-id="data.bk_biz_id"
-            :manage-permission="managePermission"
-            operate-type="select"
-            :readonly="isRiskDone"
-            :value="data.db_type"
-            @change="(value) => handleDetailChange('db_type', value)" />
-        </div>
-      </div>
-      <div
         v-if="!isSpecial"
-        class="item-mian"
-        style="width: 45%">
+        class="item-main">
         <div class="item-title">{{ t('业务影响') }}</div>
         <span class="mr-8 ml-4">:</span>
         <div class="value-main">
@@ -57,6 +39,19 @@
           text-area
           :value="data.description"
           @change="(value) => handleDetailChange('description', value)" />
+      </div>
+    </div>
+    <div class="normal-info">
+      <div class="item-title">{{ isSpecial ? t('涉及 DB') : t('影响 DB') }}</div>
+      <span class="mr-8 ml-4">:</span>
+      <div class="value-main">
+        <DbEdit
+          :biz-id="data.bk_biz_id"
+          :manage-permission="managePermission"
+          operate-type="select"
+          :readonly="isRiskDone"
+          :value="data.db_type"
+          @change="(value) => handleDetailChange('db_type', value)" />
       </div>
     </div>
     <div class="normal-info">
@@ -131,41 +126,43 @@
 </script>
 <style lang="less">
   .basic-indo-main {
-    font-size: 12px;
     margin-top: 18px;
-    .effect-infos {
-      width: 100%;
-      display: flex;
+    font-size: 12px;
 
-      .item-mian {
+    .effect-infos {
+      display: flex;
+      width: 100%;
+
+      .item-main {
         display: flex;
-        align-items: center;
+        flex: 1;
 
         .item-title {
-          color: #4d4f56;
           min-width: 48px;
+          color: #4d4f56;
           text-align: right;
         }
 
         .value-main {
-          flex: 1;
           overflow: hidden;
+          flex: 1;
         }
       }
     }
 
     .normal-info {
-      width: 100%;
       display: flex;
+      width: 100%;
       margin-top: 12px;
-      align-items: center;
 
       .item-title {
+        width: 48px;
         color: #4d4f56;
       }
 
       .value-main {
         flex: 1;
+        overflow: hidden;
       }
     }
   }
