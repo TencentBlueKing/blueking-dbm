@@ -4,7 +4,7 @@ import type { DetailBase, DetailClusters } from '../common';
 
 /**
  * Mysql 定点构造
- * v2版本分出两种单据：MYSQL_FIXPOINT(构造) 和 MYSQL_ROLLBACK(回档)
+ * v2版本分出三种单据：MYSQL_FIXPOINT_EXIST_CLUSTER(构造到已有集群)、MYSQL_FIXPOINT_NEW_CLUSTER(构造到新集群)、MYSQL_ROLLBACK(回档)
  */
 export interface RollbackCluster extends DetailBase {
   clusters: DetailClusters;

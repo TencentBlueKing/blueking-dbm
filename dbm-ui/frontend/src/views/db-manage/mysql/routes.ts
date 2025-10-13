@@ -73,7 +73,8 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级
   createRouteItem(TicketTypes.MYSQL_MIGRATE_UPGRADE, t('版本升级')), // 主从-存储层-迁移升级
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
-  createRouteItem(TicketTypes.MYSQL_FIXPOINT, t('构造')),
+  createRouteItem(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, t('构造')),
+  createRouteItem(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, t('构造')),
 ];
 
 const singleRoutes: RouteRecordRaw[] = [

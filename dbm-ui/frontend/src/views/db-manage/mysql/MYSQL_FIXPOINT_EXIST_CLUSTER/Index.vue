@@ -1,38 +1,6 @@
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="
-        t(
-          '通过全备 + binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态。数据可以构造到新临时单节点，可以选择已有的集群',
-        )
-      " />
-    <BkForm
-      ref="formRef"
-      class="mb-24 toolbox-form"
-      form-type="vertical"
-      :model="formData">
-      <BkFormItem
-        :label="t('时区')"
-        required>
-        <TimeZonePicker style="width: 450px" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('构造类型')"
-        required>
-        <BkRadioGroup
-          v-model="formData.rollbackType"
-          style="width: 450px"
-          type="card">
-          <BkRadioButton label="BUILD_INTO_EXIST_CLUSTER">
-            {{ t('在已有集群上构造数据') }}
-          </BkRadioButton>
-          <BkRadioButton label="BUILD_INTO_NEW_CLUSTER">
-            {{ t('在新集群上构造数据') }}
-          </BkRadioButton>
-        </BkRadioGroup>
-      </BkFormItem>
+  <FixpointWrapper>
+    <SmartAction>
       <BkFormItem
         :label="t('构造方式')"
         required>
@@ -110,22 +78,10 @@
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
-            v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
             v-model="item.targetCluster"
             :cluster="item.cluster"
             :selected="selectedTargetClusters" />
-          <SingleResourceHostColumn
-            v-if="formData.rollbackType === 'BUILD_INTO_NEW_CLUSTER'"
-            v-model="item.newHost"
-            :cluster="item.cluster"
-            field="newHost.ip"
-            :label="t('新集群主机')"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
           <ConflictDbColumn
-            v-if="formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER'"
             v-model="item.affectDb"
             :disabled="diabledEdit(item)"
             :row-data="item" />
@@ -135,27 +91,27 @@
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </FixpointWrapper>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -169,13 +125,11 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -187,6 +141,7 @@
 
   import BackupRecordColumn from './components/backup-record-column/Index.vue';
   import ConflictDbColumn from './components/conflict-db-column/Index.vue';
+  import FixpointWrapper from './components/FixpointWrapper.vue';
   import TargetClusterColumn from './components/target-cluster-column/Index.vue';
   import TimeBackupRecordColumn from './components/time-backup-record-column/Index.vue';
 
@@ -196,15 +151,12 @@
     backupTime: string;
     cluster: TendbhaModel;
     databases: string[];
-    newHost: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     tables: string[];
     targetCluster: TendbhaModel;
   }
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = computed(() => {
     const base = [
@@ -228,26 +180,17 @@
         key: 'tables',
         label: t('源表'),
       },
+      {
+        case: 'tendbha.test2.dba.db',
+        key: 'targetCluster',
+        label: t('目标集群'),
+      },
     ];
     if (formData.rollbackMethod === 'TIME') {
       base.splice(1, 0, {
         case: '2025-08-24T23:59:59',
         key: 'backupTime',
         label: t('回档时间'),
-      });
-    }
-    if (formData.rollbackType === 'BUILD_INTO_EXIST_CLUSTER') {
-      base.push({
-        case: 'tendbha.test2.dba.db',
-        key: 'targetCluster',
-        label: t('目标集群'),
-      });
-    }
-    if (formData.rollbackType === 'BUILD_INTO_NEW_CLUSTER') {
-      base.push({
-        case: '192.168.10.2',
-        key: 'newHost',
-        label: t('新集群主机'),
       });
     }
     return base;
@@ -265,15 +208,6 @@
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
-    newHost: Object.assign(
-      {
-        bk_biz_id: currentBizId,
-        bk_cloud_id: 0,
-        bk_host_id: 0,
-        ip: '',
-      } as RowData['newHost'],
-      data.newHost,
-    ),
     tables: (data.tables || []) as string[],
     targetCluster: Object.assign(
       {
@@ -284,14 +218,12 @@
     ),
   });
 
-  const formRef = useTemplateRef('formRef');
   const editableTableRef = useTemplateRef('editableTableRef');
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
     payload: createTickePayload(),
     rollbackMethod: 'BACKUPID',
-    rollbackType: 'BUILD_INTO_EXIST_CLUSTER',
     tableData: [createTableRow()],
   });
   const formData = reactive(defaultData());
@@ -304,7 +236,7 @@
     formData.tableData.filter((item) => item.targetCluster.id).map((item) => item.targetCluster),
   );
 
-  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_FIXPOINT, {
+  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -313,7 +245,6 @@
         backupSource: infos[0].backup_source,
         payload: createTickePayload(ticketDetail),
         rollbackMethod: infos[0].rollback_time ? 'TIME' : 'BACKUPID',
-        rollbackType: ticketDetail.details.rollback_cluster_type,
       });
       nextTick(() => {
         formData.tableData = infos.map((item) =>
@@ -324,9 +255,6 @@
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
             databases: item.databases,
-            newHost: {
-              ip: item.resource_spec?.rollback_host?.hosts[0]?.ip || '',
-            },
             tables: item.tables,
             targetCluster: {
               master_domain: clusters[item.target_cluster_id]?.immute_domain || '',
@@ -369,11 +297,11 @@
     }[];
     ip_source?: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
     rollback_cluster_type: string;
-  }>(TicketTypes.MYSQL_FIXPOINT);
+  }>(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER);
 
   // 切换构造类型/方式、备份源时重置表格
   watch(
-    () => [formData.rollbackType, formData.rollbackMethod, formData.backupSource],
+    () => [formData.rollbackMethod, formData.backupSource],
     () => {
       tableKey.value = random();
       formData.tableData = [createTableRow()];
@@ -455,9 +383,6 @@
           master_domain: item.master_domain,
         } as TendbhaModel,
         databases: item.databases ? item.databases.split(',') : [],
-        newHost: {
-          ip: item.newHost || '',
-        } as RowData['newHost'],
         tables: item.tables ? item.tables.split(',') : [],
         targetCluster: {
           master_domain: item.targetCluster || '',
@@ -476,7 +401,7 @@
   };
 
   const handleSubmit = () => {
-    Promise.all([formRef.value!.validate(), editableTableRef.value!.validate()]).then(() =>
+    editableTableRef.value!.validate().then(() =>
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
@@ -488,33 +413,15 @@
             database_list: item.backupRecord.database_list,
             databases: item.databases,
             databases_ignore: [],
-            resource_spec: item.newHost.ip
-              ? {
-                  rollback_host: {
-                    count: 1,
-                    hosts: [
-                      {
-                        bk_biz_id: item.newHost.bk_biz_id,
-                        bk_cloud_id: item.newHost.bk_cloud_id,
-                        bk_host_id: item.newHost.bk_host_id,
-                        ip: item.newHost.ip,
-                      },
-                    ],
-                    spec_id: 0,
-                  },
-                }
-              : undefined,
             // 指定时间构造需要传
             rollback_time:
               formData.rollbackMethod === 'TIME' && item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
             rollback_type: `${formData.backupSource.toLocaleUpperCase()}_AND_${formData.rollbackMethod}`,
             tables: item.tables,
             tables_ignore: [],
-            target_cluster_id: item.targetCluster.id || undefined,
+            target_cluster_id: item.targetCluster.id,
           })),
-          // 只有在回档新集群选项，才传递此参数
-          ip_source: formData.rollbackType === 'BUILD_INTO_NEW_CLUSTER' ? 'resource_pool' : undefined,
-          rollback_cluster_type: formData.rollbackType,
+          rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
         },
         ...formData.payload,
       }),
