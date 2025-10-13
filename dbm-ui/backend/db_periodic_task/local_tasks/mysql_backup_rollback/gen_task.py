@@ -17,7 +17,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Union
 
-from django.db.models import Count, Q
+from django.db.models import Count, F, Func, Q
 from django.forms.models import model_to_dict
 from django.utils import timezone as django_timezone
 from django.utils.translation import gettext as _
@@ -211,7 +211,11 @@ def cluster_has_backup_record(cluster_id: int) -> bool:
 
     # 使用 NOT IN 查询未演练的备份记录，LIMIT 1 找到第一条就返回
     backup_query_start = time.time()
-    query = MysqlBackupResult.objects.filter(conditions)
+    query = (
+        MysqlBackupResult.objects.filter(conditions)
+        .annotate(json_valid=Func(F("extra_fields"), function="JSON_VALID"))
+        .filter(json_valid=1)
+    )
 
     if exercised_backup_ids:
         # 排除已演练的备份ID
@@ -279,6 +283,8 @@ def gen_rollback_task():
         # 查询备份记录，直接排除已回档的备份ID
         backup_results = (
             MysqlBackupResult.objects.filter(conditions)
+            .annotate(json_valid=Func(F("extra_fields"), function="JSON_VALID"))
+            .filter(json_valid=1)
             .exclude(backup_id__in=exercised_backup_ids)
             .order_by("backup_consistent_time")[:10]
         )
@@ -730,7 +736,7 @@ def _collect_valid_candidates(cluster_biz_map, target_tendbcluster, target_tendb
 
             # 检查集群是否有有效的备份记录
             backup_start = time.time()
-            logger.debug(_("检查集群{}:{} 是否有备份记录").format(cluster.immute_domain, cluster.id))
+            logger.debug(_("检查集群{}:{} 是否有有效的备份记录").format(cluster.immute_domain, cluster.id))
             has_backup = cluster_has_backup_record(cluster.id)
             backup_check_time += time.time() - backup_start
 
