@@ -323,6 +323,7 @@ def gen_rollback_task():
         storage_engine = tsk_backup_record["extra_fields"].get("storage_engine", "innodb")
         backup_id = backup_record["backup_id"]
         backup_file_size_gb = bytes_to_gb(backup_record["total_filesize"])
+        backup_type = (backup_record.get("backup_type", ""),)
 
         # 打印备份信息
         logger.info("exercise backup_record: {}".format(backup_record))
@@ -341,7 +342,7 @@ def gen_rollback_task():
             backup_total_size=int(backup_file_size_gb),
             backup_host=backup_record.get("backup_host", ""),
             backup_host_role=backup_record.get("mysql_role", ""),
-            backup_type=backup_record.get("backup_type", ""),
+            backup_type=backup_type,
             backup_tool=backup_tool,
             time_zone=time_zone,
             task_id=root_id,
@@ -353,7 +354,9 @@ def gen_rollback_task():
         if data_dir_size_mb > 0:
             # 扩大1.5倍并转换为GB (MB转GB需要除以1024)
             if storage_engine == "innodb":
-                data_dir_size_mb = data_dir_size_mb * 1.3
+                data_dir_size_mb = data_dir_size_mb * 1.6
+                if backup_type == "logical":
+                    data_dir_size_mb = data_dir_size_mb * 2.6
             else:
                 data_dir_size_mb = data_dir_size_mb * 4.3
             logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
