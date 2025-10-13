@@ -126,7 +126,8 @@
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.MONGODB"
               :machine-type="MachineTypes.MONGODB"
-              style="width: 314px" />
+              style="width: 314px"
+              :subzone-ids="formData.details.sub_zone_ids" />
             <span class="input-desc ml-32">
               {{ t('共需n台', [hostNumber]) }} ,
               <BkPopover

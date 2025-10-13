@@ -55,7 +55,8 @@
                   :city="formdata.details.city_code"
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="tendbcluster"
-                  machine-type="proxy" />
+                  machine-type="proxy"
+                  :subzone-ids="formdata.details.sub_zone_ids" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -76,9 +77,11 @@
               ref="specBackendRef"
               v-model="formdata.details.resource_spec.backend_group"
               :biz-id="formdata.bk_biz_id"
+              :city-code="formdata.details.city_code"
               :cloud-id="formdata.details.bk_cloud_id"
               db-type="tendbcluster"
-              machine-type="backend" />
+              machine-type="backend"
+              :subzone-ids="formdata.details.sub_zone_ids" />
           </BkFormItem>
           <BkFormItem
             :label="t('访问端口')"
@@ -150,7 +153,6 @@
   import { Affinity, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import BackendQPSSpec from '@views/db-manage/common/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
@@ -159,6 +161,8 @@
   import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements/Index.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+
+  import BackendQPSSpec from './components/BackendQPSSpec.vue';
 
   const route = useRoute();
   const router = useRouter();
