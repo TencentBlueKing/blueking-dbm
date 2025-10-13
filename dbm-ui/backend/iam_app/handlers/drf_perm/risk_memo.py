@@ -35,7 +35,7 @@ class ListRiskMemoPermission(BizOrGlobalResourceActionPermission):
     def instance_ids_getter(self, request, view):
 
         # 如果是个人视角查看，则不鉴权
-        if "is_assist" in request.query_params:
+        if "platform" not in request.query_params:
             self.actions = self.resource_meta = None
             return []
 
@@ -53,14 +53,18 @@ class RiskMemoPermission(ResourceActionPermission):
         super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
 
     def instance_ids_getter(self, request, view):
-        # 创建动作 -- 告警屏蔽创建鉴权
+        # 创建动作 -- 风险备忘录创建鉴权
         if view.action == "create":
             self.actions = [ActionEnum.RISK_MEMO_CREATE]
             # return [get_request_key_id(request, "bk_biz_id")]
 
         # 详情 -- 业务管理; 禁用、编辑 -- 风险管理
         if view.action == "retrieve":
-            self.actions = [ActionEnum.DB_MANAGE]
+            if "platform" not in request.query_params:
+                self.actions = self.resource_meta = None
+                return []
+            self.actions = [ActionEnum.RISK_MEMO_VIEW]
+            self.resource_meta = ResourceEnum.BUSINESS
         elif view.action in ["disable", "update", "update_risk_status"]:
             self.actions = [ActionEnum.RISK_MEMO_MANAGE]
 

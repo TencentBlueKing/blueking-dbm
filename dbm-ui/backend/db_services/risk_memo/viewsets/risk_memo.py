@@ -51,9 +51,9 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
     """
 
     action_permission_map = {
-        ("list"): [ListRiskMemoPermission()],
-        ("update", "create", "update_risk_status"): [RiskMemoPermission()],
-        ("get_risk_operate_records", "get_biz_inpact_list", "images", "retrieve"): [],
+        ("list",): [ListRiskMemoPermission()],
+        ("update", "create", "update_risk_status", "retrieve"): [RiskMemoPermission()],
+        ("get_risk_operate_records", "get_biz_inpact_list", "images"): [],
     }
 
     queryset = RiskMemo.objects.all().order_by("-update_at")
