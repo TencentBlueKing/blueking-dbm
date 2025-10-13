@@ -474,11 +474,9 @@
   };
 
   const handeClear = () => {
-    if (modelValue.value?.backup_id) {
-      checkedBackupId.value = undefined;
-      modelValue.value = undefined;
-      localValue.value = undefined;
-    }
+    checkedBackupId.value = undefined;
+    modelValue.value = undefined;
+    localValue.value = undefined;
   };
 
   const handleClose = () => {

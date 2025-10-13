@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('支持构造回档、库表闪回、记录级闪回')" />
+      :title="t('在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回')" />
     <BkForm
       ref="formRef"
       class="mb-24 toolbox-form"
@@ -110,6 +110,7 @@
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
           <ConflictDbColumn
+            v-model="item.affectDb"
             :disabled="diabledEdit(item)"
             :row-data="item" />
           <OperationColumn
@@ -172,6 +173,7 @@
   import { random } from '@utils';
 
   interface RowData {
+    affectDb: string[];
     backupRecord: ComponentProps<typeof BackupRecordColumn>['modelValue'];
     backupTime: string;
     cluster: TendbhaModel;
@@ -217,6 +219,7 @@
   });
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
+    affectDb: (data.affectDb || []) as string[],
     backupRecord: Object.assign({} as RowData['backupRecord'], data.backupRecord),
     backupTime: data.backupTime || '',
     cluster: Object.assign(
@@ -317,7 +320,7 @@
 
   const diabledEdit = (row: RowData) => {
     // 只要备份方式选择的是物理备份，则库，表字段默认填充*，且不可编辑
-    if (row.backupRecord.backup_type === 'physical') {
+    if (row.backupRecord?.backup_type === 'physical') {
       return true;
     }
     // 指定时间构造数据，库，表字段默认填充*，且不可编辑
