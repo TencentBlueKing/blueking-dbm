@@ -96,7 +96,8 @@ def update_host_property():
         if events:
             last_cursor = events[-1].get("bk_cursor", "")
             if last_cursor:
-                cache.set("machine_cursor", last_cursor)
+                # 缓存过期时间需大于定时执行时间
+                cache.set("machine_cursor", last_cursor, timeout=62 * 60)
 
         machine_fields = [
             ("bk_os_name", "bk_os_name"),
@@ -120,7 +121,10 @@ def update_host_property():
 
         host_updates = {
             event["bk_detail"]["bk_host_id"]: {
-                field_name: event["bk_detail"].get(detail_name)
+                # 确保包含_id的字段不为None 否则更新会出错
+                field_name: 0
+                if (field_name.endswith("_id") and event["bk_detail"].get(detail_name) is None)
+                else event["bk_detail"].get(detail_name)
                 for field_name, detail_name in machine_fields + dirty_machine_fields
             }
             for event in events
@@ -141,6 +145,8 @@ def update_host_property():
             Machine.objects.bulk_update(
                 machines_to_update, fields=[field for field, __ in machine_fields if hasattr(Machine, field)]
             )
+            for machine in machines_to_update:
+                logger.info("Updated Machine ID %s: %s", machine.bk_host_id, machine.ip)
 
         dirty_machines_to_update = update_hosts(dirty_machines, host_updates)
         if dirty_machines_to_update:
@@ -148,6 +154,8 @@ def update_host_property():
                 dirty_machines_to_update,
                 fields=[field for field, __ in dirty_machine_fields if hasattr(DirtyMachine, field)],
             )
+            for machine in dirty_machines_to_update:
+                logger.info("Updated Dirty Machine ID %s: %s", machine.bk_host_id, machine.ip)
 
     except Exception as e:
         logger.exception(f"Error during sync_update_host_property: {e}")
