@@ -155,7 +155,8 @@
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.REDIS"
               :machine-type="MachineTypes.REDIS_TENDIS_CACHE"
-              style="width: 314px" />
+              style="width: 314px"
+              :subzone-ids="formData.details.sub_zone_ids" />
           </BkFormItem>
           <BkFormItem
             class="service"
