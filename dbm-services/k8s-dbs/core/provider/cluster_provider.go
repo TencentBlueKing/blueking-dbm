@@ -215,6 +215,11 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
 	}
 
+	// check termination policy,default is Delete
+	if request.TerminationPolicy == "" {
+		request.TerminationPolicy = coreconst.Delete
+	}
+
 	// save audit log
 	addedRequestEntity, err := metautil.SaveAuditLog(c.reqRecordProvider, request, ctx.RequestType)
 	if err != nil {
