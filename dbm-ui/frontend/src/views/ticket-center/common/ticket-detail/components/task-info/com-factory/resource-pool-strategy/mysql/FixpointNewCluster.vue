@@ -151,7 +151,7 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.MYSQL_FIXPOINT,
+    name: TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER,
     inheritAttrs: false,
   });
 

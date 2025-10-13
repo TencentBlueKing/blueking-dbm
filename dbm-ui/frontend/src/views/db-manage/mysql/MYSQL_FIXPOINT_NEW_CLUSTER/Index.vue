@@ -1,53 +1,21 @@
 <template>
-  <SmartAction class="db-toolbox">
-    <BkAlert
-      class="mb-20"
-      closable
-      :title="t('在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回')" />
-    <BkForm
-      ref="formRef"
-      class="mb-24 toolbox-form"
-      form-type="vertical"
-      :model="formData">
+  <FixpointWrapper>
+    <SmartAction>
       <BkFormItem
-        :label="t('时区')"
-        required>
-        <TimeZonePicker style="width: 450px" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('回档类型')"
-        required>
-        <BkRadioGroup
-          v-model="formData.rollbackType"
-          style="width: 450px"
-          type="card"
-          @change="handleFlashbackTypeChange">
-          <BkRadioButton label="BUILD_INTO_METACLUSTER">
-            {{ t('构造回档') }}
-          </BkRadioButton>
-          <BkRadioButton label="TABLE_FLASHBACK">
-            {{ t('库表闪回回档') }}
-          </BkRadioButton>
-          <BkRadioButton label="RECORD_FLASHBACK">
-            {{ t('记录级闪回回档') }}
-          </BkRadioButton>
-        </BkRadioGroup>
-      </BkFormItem>
-      <BkFormItem
-        :label="t('回档方式')"
+        :label="t('构造方式')"
         required>
         <CardCheckbox
           v-model="formData.rollbackMethod"
           :desc="t('使用备份文件构造数据')"
           icon="bk-dbm-icon db-icon-form"
-          :title="t('指定备份记录回档')"
+          :title="t('指定备份记录构造数据')"
           true-value="BACKUPID" />
         <CardCheckbox
           v-model="formData.rollbackMethod"
           class="ml-8"
           :desc="t('使用指定的时间最近的 全备+binlog 构造数据')"
           icon="bk-dbm-icon db-icon-time"
-          :title="t('指定时间回档')"
+          :title="t('指定时间构造数据')"
           true-value="TIME" />
       </BkFormItem>
       <BkFormItem
@@ -109,43 +77,47 @@
             field="tables"
             :label="t('源表')"
             @batch-edit="handleBatchEdit" />
-          <ConflictDbColumn
-            v-model="item.affectDb"
-            :disabled="diabledEdit(item)"
-            :row-data="item" />
+          <SingleResourceHostColumn
+            v-model="item.newHost"
+            :cluster="item.cluster"
+            field="newHost.ip"
+            :label="t('新集群主机')"
+            :params="{
+              for_bizs: [currentBizId, 0],
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
       <TicketPayload v-model="formData.payload" />
-    </BkForm>
-    <template #action>
-      <BkButton
-        class="mr-8 w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
+      <template #action>
         <BkButton
-          class="ml-8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
+          class="mr-8 w-88"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
         </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml-8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </FixpointWrapper>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { type Mysql } from '@services/model/ticket/ticket';
@@ -154,12 +126,12 @@
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -167,23 +139,24 @@
   import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
   import BackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/backup-record-column/Index.vue';
-  import ConflictDbColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/conflict-db-column/Index.vue';
+  import FixpointWrapper from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/FixpointWrapper.vue';
   import TimeBackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/time-backup-record-column/Index.vue';
 
   import { random } from '@utils';
 
   interface RowData {
-    affectDb: string[];
     backupRecord: ComponentProps<typeof BackupRecordColumn>['modelValue'];
     backupTime: string;
     cluster: TendbhaModel;
     databases: string[];
+    newHost: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     tables: string[];
   }
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
-  const router = useRouter();
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = computed(() => {
     const base = [
@@ -207,6 +180,11 @@
         key: 'tables',
         label: t('源表'),
       },
+      {
+        case: '192.168.10.2',
+        key: 'newHost',
+        label: t('新集群主机'),
+      },
     ];
     if (formData.rollbackMethod === 'TIME') {
       base.splice(1, 0, {
@@ -219,7 +197,6 @@
   });
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    affectDb: (data.affectDb || []) as string[],
     backupRecord: Object.assign({} as RowData['backupRecord'], data.backupRecord),
     backupTime: data.backupTime || '',
     cluster: Object.assign(
@@ -230,17 +207,24 @@
       data.cluster,
     ),
     databases: (data.databases || []) as string[],
+    newHost: Object.assign(
+      {
+        bk_biz_id: currentBizId,
+        bk_cloud_id: 0,
+        bk_host_id: 0,
+        ip: '',
+      } as RowData['newHost'],
+      data.newHost,
+    ),
     tables: (data.tables || []) as string[],
   });
 
-  const formRef = useTemplateRef('formRef');
   const editableTableRef = useTemplateRef('editableTableRef');
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
     payload: createTickePayload(),
     rollbackMethod: 'BACKUPID',
-    rollbackType: 'BUILD_INTO_METACLUSTER',
     tableData: [createTableRow()],
   });
   const formData = reactive(defaultData());
@@ -250,7 +234,7 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_ROLLBACK, {
+  useTicketDetail<Mysql.ResourcePool.RollbackCluster>(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { clusters, infos } = details;
@@ -259,7 +243,6 @@
         backupSource: infos[0].backup_source,
         payload: createTickePayload(ticketDetail),
         rollbackMethod: infos[0].rollback_time ? 'TIME' : 'BACKUPID',
-        rollbackType: ticketDetail.details.rollback_cluster_type,
       });
       nextTick(() => {
         formData.tableData = infos.map((item) =>
@@ -270,6 +253,9 @@
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
             databases: item.databases,
+            newHost: {
+              ip: item.resource_spec?.rollback_host?.hosts[0]?.ip || '',
+            },
             tables: item.tables,
           }),
         );
@@ -279,6 +265,8 @@
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     infos: {
+      // 受影响db，仅前端展示用
+      affect_db?: string[]; // 如果是回档到原集群 or 已有集群，需要填此参数
       backup_id: string;
       backup_source: BackupSourceType;
       backupinfo: BackupLogRecord; // 如果备份类型为REMOTE_AND_BACKUPID提供集群备份信息
@@ -307,9 +295,9 @@
     }[];
     ip_source?: 'resource_pool'; // 只有在回档新集群选项，才传递此参数
     rollback_cluster_type: string;
-  }>(TicketTypes.MYSQL_ROLLBACK);
+  }>(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER);
 
-  // 切换构造方式、备份源时重置表格
+  // 切换构造类型/方式、备份源时重置表格
   watch(
     () => [formData.rollbackMethod, formData.backupSource],
     () => {
@@ -328,21 +316,6 @@
       return true;
     }
     return false;
-  };
-
-  const handleFlashbackTypeChange = (type: string) => {
-    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
-      router.push({
-        name: TicketTypes.MYSQL_FLASHBACK,
-        query: {
-          type,
-        },
-      });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
-      router.push({
-        name: TicketTypes.MYSQL_ROLLBACK,
-      });
-    }
   };
 
   const handleChangeRowData = (row: RowData) => {
@@ -408,6 +381,9 @@
           master_domain: item.master_domain,
         } as TendbhaModel,
         databases: item.databases ? item.databases.split(',') : [],
+        newHost: {
+          ip: item.newHost || '',
+        } as RowData['newHost'],
         tables: item.tables ? item.tables.split(',') : [],
       }),
     );
@@ -423,7 +399,7 @@
   };
 
   const handleSubmit = () => {
-    Promise.all([formRef.value!.validate(), editableTableRef.value!.validate()]).then(() =>
+    editableTableRef.value!.validate().then(() =>
       createTicketRun({
         details: {
           infos: formData.tableData.map((item) => ({
@@ -434,17 +410,32 @@
             database_list: item.backupRecord.database_list,
             databases: item.databases,
             databases_ignore: [],
+            resource_spec: item.newHost.ip
+              ? {
+                  rollback_host: {
+                    count: 1,
+                    hosts: [
+                      {
+                        bk_biz_id: item.newHost.bk_biz_id,
+                        bk_cloud_id: item.newHost.bk_cloud_id,
+                        bk_host_id: item.newHost.bk_host_id,
+                        ip: item.newHost.ip,
+                      },
+                    ],
+                    spec_id: 0,
+                  },
+                }
+              : undefined,
             // 指定时间构造需要传
             rollback_time:
               formData.rollbackMethod === 'TIME' && item.backupTime ? formatDateToUTC(item.backupTime) : undefined,
             rollback_type: `${formData.backupSource.toLocaleUpperCase()}_AND_${formData.rollbackMethod}`,
             tables: item.tables,
             tables_ignore: [],
-            target_cluster_id: item.cluster.id || undefined,
           })),
           // 只有在回档新集群选项，才传递此参数
-          ip_source: formData.rollbackType === 'BUILD_INTO_NEW_CLUSTER' ? 'resource_pool' : undefined,
-          rollback_cluster_type: formData.rollbackType,
+          ip_source: 'resource_pool',
+          rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
         },
         ...formData.payload,
       }),

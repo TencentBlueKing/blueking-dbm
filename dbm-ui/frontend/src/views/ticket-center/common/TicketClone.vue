@@ -55,7 +55,8 @@
     [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongo 整机替换
     [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongo 缩容接入层
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
-    [TicketTypes.MYSQL_FIXPOINT]: TicketTypes.MYSQL_FIXPOINT, // mysql 构造
+    [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER]: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, // mysql 构造
+    [TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER]: TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, // mysql 构造
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: TicketTypes.MYSQL_MIGRATE_CLUSTER, // Mysql 迁移主从
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: TicketTypes.MYSQL_MIGRATE_UPGRADE, // MySQL 迁移升级
     [TicketTypes.MYSQL_PROXY_ADD]: TicketTypes.MYSQL_PROXY_ADD, // Mysql 添加Proxy
@@ -116,7 +117,7 @@
     [TicketTypes.MYSQL_CLUSTER_STANDARDIZE]: TicketTypes.MYSQL_CLUSTER_STANDARDIZE, // mysql 集群标准化
     [TicketTypes.MYSQL_DATA_MIGRATE]: TicketTypes.MYSQL_DATA_MIGRATE, // Mysql DB克隆
     [TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES]: '', // Mysql excel 授权
-    [TicketTypes.MYSQL_FIXPOINT]: TicketTypes.MYSQL_FIXPOINT, // mysql 构造
+    [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER]: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, // mysql 构造
     [TicketTypes.MYSQL_FLASHBACK]: TicketTypes.MYSQL_FLASHBACK, // Mysql 闪回
     [TicketTypes.MYSQL_HA_APPLY]: 'SelfServiceApplyHa', // Mysql 主从部署
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, // Mysql 库表备份

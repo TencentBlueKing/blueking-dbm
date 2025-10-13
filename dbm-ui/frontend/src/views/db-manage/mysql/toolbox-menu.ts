@@ -65,8 +65,9 @@ export default [
   {
     children: [
       {
+        bind: [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER],
         dbConsoleValue: 'mysql.toolbox.fixpoint',
-        id: TicketTypes.MYSQL_FIXPOINT,
+        id: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER,
         name: t('构造'),
         parentId: 'fileback',
       },
