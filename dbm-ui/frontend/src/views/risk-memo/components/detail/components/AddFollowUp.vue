@@ -13,10 +13,12 @@
       text
       theme="primary"
       @click="handleAddFollowUp">
-      <DbIcon type="plus-fill" />
+      <DbIcon
+        style="font-size: 16px"
+        type="plus-fill" />
       <span
         class="ml-6"
-        style="font-size: 12px">
+        style="font-size: 14px">
         {{ t('添加') }}
       </span>
     </AuthButton>

@@ -210,18 +210,20 @@
       flex-direction: column;
       align-items: center;
       margin-right: 8px;
+
       .sign-main {
-        width: 40px;
         display: flex;
-        justify-content: center;
+        width: 40px;
         font-size: 40px;
+        justify-content: center;
 
         .circle-status-main {
           width: 16px;
           height: 16px;
-          border-radius: 50%;
           background-color: #979ba5;
           border: solid 4px #f5f7fa;
+          border-radius: 50%;
+
           &.is-start {
             background-color: #3a84ff;
             border-color: #f0f5ff;
@@ -255,6 +257,7 @@
           }
 
           .title-display {
+            font-size: 14px;
             font-weight: 700;
             color: #313238;
           }
@@ -263,39 +266,39 @@
             display: flex;
 
             .operate-item {
+              display: flex;
               width: 20px;
               height: 14px;
-              border-radius: 8px;
               color: #979ba5;
-              display: flex;
+              cursor: pointer;
+              border-radius: 8px;
               align-items: center;
               justify-content: center;
-              cursor: pointer;
 
               &:hover {
-                background: #3a84ff;
                 color: #fff;
+                background: #3a84ff;
               }
             }
           }
         }
+
         .time-display {
-          color: #979ba5;
-          height: 20px;
           height: 20px;
           line-height: 20px;
+          color: #979ba5;
         }
       }
 
       .editor-content-view {
+        position: relative;
         width: 100%;
+        padding: 16px;
         overflow: auto;
+        font-family: MicrosoftYaHei, Arial, sans-serif;
+        color: #313238;
         background: #f5f7fa;
         border-radius: 8px;
-        padding: 16px;
-        position: relative;
-        font-family: MicrosoftYaHei;
-        color: #313238;
       }
     }
   }

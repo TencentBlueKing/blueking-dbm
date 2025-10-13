@@ -30,14 +30,19 @@
     </div>
 
     <div
-      v-overflow-tips
+      ref="descRef"
+      v-bk-tooltips="{
+        content: data.description,
+        disabled: !isShowToolTip,
+        extCls: 'risk-memo-desc-tooltips',
+      }"
       class="desc">
       {{ data.description }}
     </div>
     <div class="time-display">
       <span
         v-if="!isSpecial"
-        class="mr-6">
+        class="mr-16">
         {{ t('持续时间') }}：{{ durationTimeDisplay }}
       </span>
       <span>{{ t('最近更新') }}：{{ latestUpdateDisplay }}</span>
@@ -73,7 +78,9 @@
 
   const { t } = useI18n();
 
+  const descRef = ref<HTMLElement>();
   const durationTimeDisplay = ref(getCostTimeDisplay(0));
+  const isShowToolTip = ref(false);
 
   const isFinished = computed(() => props.data.status === 'done');
   const bizInpactList = computed(() => props.data.biz_inpact.map((item) => props.effectBizLabelMap[item] || ''));
@@ -118,19 +125,32 @@
     },
   );
 
+  onMounted(() => {
+    const resizeObserver = new ResizeObserver(() => {
+      const descScrollHeight = descRef.value!.scrollHeight;
+      isShowToolTip.value = descScrollHeight > 120;
+    });
+    resizeObserver.observe(descRef.value!);
+
+    onBeforeUnmount(() => {
+      resizeObserver.unobserve(descRef.value!);
+      resizeObserver.disconnect();
+    });
+  });
+
   onBeforeUnmount(() => {
     pause();
   });
 </script>
 <style lang="less">
   .risk-info-item {
-    width: 100%;
-    padding: 12px 12px 8px 12px;
     display: flex;
-    flex-direction: column;
+    width: 100%;
+    padding: 12px 12px 8px;
     cursor: pointer;
-    border-radius: 2px;
     border-bottom: 1px solid #eaebf0;
+    border-radius: 2px;
+    flex-direction: column;
 
     &:hover {
       background-color: #f0f1f5;
@@ -150,65 +170,71 @@
     }
 
     .title-main {
-      width: 100%;
       display: flex;
-      align-items: center;
+      width: 100%;
       margin-bottom: 8px;
+      align-items: center;
 
       .title {
-        font-weight: 700;
-        flex: 1;
         overflow: hidden;
+        font-weight: 700;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 1;
       }
     }
 
     .tag-list {
+      display: flex;
       width: 100%;
       margin-bottom: 4px;
-      display: flex;
       align-items: center;
 
       .db-tag {
+        display: flex;
         height: 16px;
+        padding: 0 4px;
+        font-size: 10px;
+        color: #fff;
         background: #c4c6cc;
         border-radius: 2px;
-        font-size: 10px;
-        color: #ffffff;
-        display: flex;
         align-items: center;
-        padding: 0 4px;
-        margin-right: 4px;
       }
 
       .inpact-list {
         flex: 1;
         overflow: hidden;
+
+        .bk-tag {
+          margin-left: 4px;
+        }
       }
     }
 
     .desc {
-      flex: 1;
       display: -webkit-box;
       display: -moz-box;
-      display: box;
+      overflow: hidden;
+      line-height: 20px;
+      text-overflow: ellipsis;
+      word-break: break-all;
       -webkit-box-orient: vertical;
-      -moz-box-orient: vertical;
-      box-orient: vertical;
+      flex: 1;
       -webkit-line-clamp: 6;
       -moz-line-clamp: 6;
       line-clamp: 6;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 20px;
     }
 
     .time-display {
-      font-size: 12px;
       margin-top: 8px;
-      font-family: ArialMT;
+      font-family: ArialMT, Arial, sans-serif;
+      font-size: 12px;
       color: #979ba5;
     }
+  }
+
+  .risk-memo-desc-tooltips {
+    width: 600px;
+    word-break: break-all;
   }
 </style>

@@ -1,6 +1,5 @@
 <template>
   <div
-    ref="editorWraperRef"
     class="db-editor-main"
     :class="{ 'is-readonly': !isEditorMode }">
     <Toolbar
@@ -40,7 +39,7 @@
       'group-more-style',
       'bgColor',
       'fontFamily',
-      'fontSize',
+      // 'fontSize',
       'lineHeight',
       'todo',
       'group-indent',
@@ -59,8 +58,6 @@
   const editorHtml = defineModel<string>({
     default: '',
   });
-
-  const editorWraperRef = ref<HTMLDivElement>();
 
   // 编辑器实例，必须用 shallowRef
   const editorRef = shallowRef();
@@ -106,8 +103,19 @@
     editorRef.value = editor; // 记录 editor 实例，必须！
   };
 
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.keyCode === 27 || e.key === 'Escape') {
+      editorRef.value?.unFullScreen();
+    }
+  };
+
+  onMounted(() => {
+    document.addEventListener('keyup', handleEscape);
+  });
+
   // 组件销毁时，也及时销毁编辑器
   onBeforeUnmount(() => {
+    document.removeEventListener('keyup', handleEscape);
     editorRef.value?.destroy();
   });
 </script>
@@ -118,6 +126,10 @@
 
     &.w-e-full-screen-container {
       z-index: 999;
+    }
+
+    .w-e-text-container {
+      font-size: 14px; /* 设置编辑器基础字体大小 */
     }
 
     &.is-readonly {
@@ -147,8 +159,8 @@
 
   .edit-follow-up {
     .operate-btn-main {
-      margin-top: 12px;
       display: flex;
+      margin-top: 12px;
       gap: 8px;
     }
   }

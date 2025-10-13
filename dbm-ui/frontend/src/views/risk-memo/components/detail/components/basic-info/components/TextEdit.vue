@@ -23,12 +23,16 @@
       v-else
       ref="editValueRef"
       v-model="localValue"
+      :autosize="{
+        minRows: 3,
+        maxRows: 22,
+      }"
       class="value-edit-main"
       :maxlength="500"
       :resize="false"
-      :rows="3"
       :type="textArea ? 'textarea' : 'input'"
       @blur="handleBlur"
+      @enter="handleEnter"
       @input="handleInput" />
     <DbIcon
       v-if="isError"
@@ -98,14 +102,20 @@
     }
     isEdit.value = false;
   };
+
+  const handleEnter = () => {
+    if (!props.textArea) {
+      handleBlur();
+    }
+  };
 </script>
 <style lang="less">
   .text-edit-value-main {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    font-size: 12px;
     position: relative;
+    display: flex;
+    width: 100%;
+    font-size: 12px;
+    align-items: center;
 
     &.is-error {
       .value-edit-main {
@@ -114,9 +124,10 @@
     }
 
     .display-mian {
-      width: 100%;
       display: flex;
+      width: 100%;
       align-items: center;
+      margin-top: -3px;
 
       &:hover {
         .edit-main {
@@ -125,22 +136,20 @@
       }
 
       .value-display {
-        flex: 1;
-        flex-grow: 0;
-        flex-shrink: 1;
-        flex-basis: auto;
+        flex: 0 1 auto;
         max-width: calc(100% - 20px);
+        line-height: 20px;
         overflow-wrap: break-word;
       }
 
       .edit-main {
+        display: none;
         width: 12px;
         height: 12px;
-        color: #979ba5;
-        font-size: 12px;
-        cursor: pointer;
         margin-left: 4px;
-        display: none;
+        font-size: 12px;
+        color: #979ba5;
+        cursor: pointer;
 
         &:hover {
           color: #3a84ff;
@@ -155,11 +164,11 @@
     .error-icon {
       position: absolute;
       top: 50%;
-      transform: translateY(-50%);
       right: 8px;
-      color: #ea3636;
       font-size: 14px;
+      color: #ea3636;
       cursor: pointer;
+      transform: translateY(-50%);
     }
   }
 </style>

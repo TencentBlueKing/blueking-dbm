@@ -124,11 +124,11 @@
 </script>
 <style lang="less">
   .biz-edit-value-main {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    font-size: 12px;
     position: relative;
+    display: flex;
+    width: 100%;
+    font-size: 12px;
+    align-items: center;
 
     &.is-error {
       .bk-select-tag {
@@ -141,9 +141,10 @@
     }
 
     .display-mian {
-      width: 100%;
       display: flex;
+      width: 100%;
       align-items: center;
+      margin-top: -3px;
 
       &:hover {
         .edit-main {
@@ -161,13 +162,13 @@
       }
 
       .edit-main {
+        display: none;
         width: 12px;
         height: 12px;
-        color: #979ba5;
-        font-size: 12px;
-        cursor: pointer;
         margin-left: 4px;
-        display: none;
+        font-size: 12px;
+        color: #979ba5;
+        cursor: pointer;
 
         &:hover {
           color: #3a84ff;
@@ -182,12 +183,12 @@
     .error-icon {
       position: absolute;
       top: 50%;
-      transform: translateY(-50%);
       right: 8px;
-      color: #ea3636;
-      font-size: 14px;
-      cursor: pointer;
       z-index: 9;
+      font-size: 14px;
+      color: #ea3636;
+      cursor: pointer;
+      transform: translateY(-50%);
     }
   }
 </style>

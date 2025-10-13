@@ -74,6 +74,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-draft:before {
 	content: "\e145";
 }
+.db-icon-qw:before {
+	content: "\e24c";
+}
 .db-icon-todolist:before {
 	content: "\e146";
 }
@@ -527,6 +530,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-revoke:before {
 	content: "\e1b3";
 }
+.db-icon-shezhi:before {
+	content: "\e24b";
+}
 .db-icon-en:before {
 	content: "\e1b4";
 }
@@ -826,4 +832,10 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-touxiang:before {
 	content: "\e24a";
+}
+.db-icon-yewugailan:before {
+	content: "\e24d";
+}
+.db-icon-shujujiance:before {
+	content: "\e24e";
 }
