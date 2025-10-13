@@ -322,7 +322,7 @@
           infos: Object.values(sameClusterIdsRowsMap).map((rows) => ({
             cluster_ids: [rows[0].originProxy.cluster_id],
             old_nodes: {
-              proxy: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>((acc, row) => {
+              proxy: rows.reduce<Mysql.ResourcePool.ProxyMigrateIns['infos'][0]['old_nodes']['proxy']>((acc, row) => {
                 acc.push({
                   bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
                   bk_cloud_id: row.originProxy.bk_cloud_id,

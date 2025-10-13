@@ -256,7 +256,6 @@
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port: number;
           spec: TendbhaModel['masters'][number]['spec_config'];
         }[];
       };
@@ -341,15 +340,12 @@
             cluster_ids: rows[0].originProxy.related_clusters.map((item) => item.id),
             old_nodes: {
               proxy: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>((acc, item) => {
-                item.originProxy.related_instances.forEach((instance) => {
-                  acc.push({
-                    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                    bk_cloud_id: instance.bk_cloud_id,
-                    bk_host_id: instance.bk_host_id,
-                    ip: instance.ip,
-                    port: instance.port,
-                    spec: instance.spec_config,
-                  });
+                acc.push({
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                  bk_cloud_id: item.originProxy.bk_cloud_id,
+                  bk_host_id: item.originProxy.bk_host_id,
+                  ip: item.originProxy.ip,
+                  spec: item.originProxy.spec_config,
                 });
                 return acc;
               }, []),

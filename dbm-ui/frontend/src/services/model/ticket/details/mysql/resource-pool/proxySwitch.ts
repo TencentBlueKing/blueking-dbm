@@ -24,7 +24,6 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        port: number;
         spec: TendbhaModel['masters'][number]['spec_config'];
       }[];
     };
