@@ -77,9 +77,7 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector, {
-    type TicketSpecInfo,
-  } from '@views/db-manage/common/cluster-spec-plan-selector/Index.vue';
+  import ClusterSpecPlanSelector, { type TicketSpecInfo } from './components/cluster-spec-plan-selector/Index.vue';
 
   export type { TicketSpecInfo };
 

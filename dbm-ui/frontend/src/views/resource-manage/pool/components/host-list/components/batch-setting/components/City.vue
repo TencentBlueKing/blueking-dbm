@@ -50,7 +50,9 @@
 
   const { t } = useI18n();
 
-  const { data: cityList, loading: isLoading } = useRequest(listLogicCities);
+  const { data: cityData, loading: isLoading } = useRequest(listLogicCities);
+
+  const cityList = computed(() => cityData.value?.filter((item) => item.bk_idc_city_name !== 'default'));
 
   defineExpose<Expose>({
     getValue() {

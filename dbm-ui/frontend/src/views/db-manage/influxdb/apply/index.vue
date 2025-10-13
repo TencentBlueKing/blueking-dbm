@@ -102,7 +102,8 @@
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="influxdb"
                   machine-type="influxdb"
-                  style="width: 314px" />
+                  style="width: 314px"
+                  :subzone-ids="formdata.details.sub_zone_ids" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
