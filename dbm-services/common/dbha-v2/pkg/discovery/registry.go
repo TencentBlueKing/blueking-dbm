@@ -66,7 +66,7 @@ func (r *Registry) grant(ctx context.Context) error {
 
 	leaseResp, err := r.client.Grant(ctx, r.ttl)
 	if err != nil {
-		return gerrors.New(gerrors.OperationFailure, err.Error())
+		return gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 	r.leaseID = leaseResp.ID
 
@@ -75,7 +75,7 @@ func (r *Registry) grant(ctx context.Context) error {
 	keepAliveResp, err := r.client.KeepAlive(ctx, r.leaseID)
 	if err != nil {
 		r.client.Close()
-		return gerrors.New(gerrors.OperationFailure, err.Error())
+		return gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 	r.keepAliveChan = keepAliveResp
 
@@ -148,7 +148,7 @@ func (r *Registry) SetService(ctx context.Context, value string) error {
 	_, err := r.client.Put(ctx, r.rootKey, value, clientv3.WithLease(r.leaseID))
 	if err != nil {
 		logger.Warn("registry set service put failed, lease-id: %v errmsg: %v", r.leaseID, err)
-		return gerrors.New(gerrors.ComponentFailure, err.Error())
+		return gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 
 	return nil
@@ -186,7 +186,7 @@ func (r *Registry) Set(ctx context.Context, key, value string) error {
 
 	_, err := r.client.Put(ctx, key, value)
 	if err != nil {
-		return gerrors.New(gerrors.OperationFailure, err.Error())
+		return gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 
 	return nil

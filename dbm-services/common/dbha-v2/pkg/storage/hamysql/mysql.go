@@ -41,7 +41,7 @@ type DB struct {
 func createDatabase(opts *options) (*gorm.DB, error) {
 	gdb, err := gorm.Open(mysql.New(opts.RootDBConfig()), &gorm.Config{})
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "failed to connect the mysql, %v", err)
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to connect the mysql, %v", err)
 	}
 
 	if opts.dbName == "" {
@@ -51,7 +51,7 @@ func createDatabase(opts *options) (*gorm.DB, error) {
 	sql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", opts.dbName)
 	err = gdb.Exec(sql).Error
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "failed to create the database(%s), %v", opts.dbName, err)
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to create the database(%s), %v", opts.dbName, err)
 	}
 
 	return gorm.Open(mysql.New(opts.Config()), &gorm.Config{})
@@ -77,10 +77,10 @@ func New(opts ...Option) (*DB, error) {
 	gdb, err = createDatabase(&db.opts)
 	if err != nil {
 		if db.opts.dbName == "" {
-			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 		}
 
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "gorm open the db(%s) failure, %v", db.opts.dbName, err)
+		return nil, gerrors.Newf(gerrors.MysqlFailure, "gorm open the db(%s) failure, %v", db.opts.dbName, err)
 	}
 
 	db.gdb = gdb

@@ -230,7 +230,7 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 
 	resp, err := d.client.Get(ctx, key)
 	if err != nil {
-		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+		return nil, gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 
 	if len(resp.Kvs) == 0 {
@@ -255,7 +255,7 @@ func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][
 	resp, err := d.client.Get(ctx, key, clientv3.WithPrefix())
 
 	if err != nil {
-		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+		return nil, gerrors.New(gerrors.EtcdFailure, err.Error())
 	}
 
 	kvs := map[string][]byte{}

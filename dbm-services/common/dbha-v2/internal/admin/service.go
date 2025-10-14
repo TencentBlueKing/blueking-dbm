@@ -256,9 +256,9 @@ func (s *Service) createApmServer() error {
 	if s.httpApmSvr == nil {
 		s.httpApmSvr = &http.Server{
 			Handler:      s.engine,
-			Addr:         config.Cfg.Service.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Service.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Service.Apm.WriteTimeout,
+			Addr:         config.Cfg.Apm.ListenAddress,
+			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+			WriteTimeout: config.Cfg.Apm.WriteTimeout,
 		}
 	}
 

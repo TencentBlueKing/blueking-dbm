@@ -81,13 +81,13 @@ func newMysql(endpoints, user, password string) (*mysql, error) {
 func (s *mysql) Save(msg *Message) error {
 	mysqlMetric := &haprobe.MySQLMetric{}
 	if err := json.Unmarshal([]byte(msg.Data), mysqlMetric); err != nil {
-		return gerrors.Newf(gerrors.InvalidJSOIN, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
+		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
 	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
 
 	if len(mysqlMetric.Databases) == 0 {
-		return gerrors.Newf(gerrors.InvalidJSOIN, "unmarshal a mysql metric message failed, topic(%s), data(%v)",
+		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), data(%v)",
 			msg.Topic, *mysqlMetric)
 	}
 

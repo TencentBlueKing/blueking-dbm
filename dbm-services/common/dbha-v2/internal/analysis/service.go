@@ -131,7 +131,7 @@ func (s *Service) Run(ctx context.Context) error {
 func (s *Service) Close() {
 	s.wflow.Close()
 	if s.httpApmSvr != nil {
-		timeout := max(config.Cfg.Service.Apm.ReadTimeout, config.Cfg.Service.Apm.WriteTimeout)
+		timeout := max(config.Cfg.Apm.ReadTimeout, config.Cfg.Apm.WriteTimeout)
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -181,9 +181,9 @@ func (s *Service) createApmServer() error {
 	if s.httpApmSvr == nil {
 		s.httpApmSvr = &http.Server{
 			Handler:      s.engine,
-			Addr:         config.Cfg.Service.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Service.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Service.Apm.WriteTimeout,
+			Addr:         config.Cfg.Apm.ListenAddress,
+			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+			WriteTimeout: config.Cfg.Apm.WriteTimeout,
 		}
 	}
 
@@ -256,7 +256,7 @@ func (s *Service) createNotifier() error {
 }
 
 func (s *Service) createWorkflow(ctx context.Context) error {
-	wflow, err := workflow.New(config.Cfg.Workflow, s.discoveryCli, s.db)
+	wflow, err := workflow.New(s.discoveryCli, s.db)
 	if err != nil {
 		return err
 	}

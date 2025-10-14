@@ -76,7 +76,7 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 
 	if err != nil {
 		logger.Error("failed to new grpc client. errmsg(%v)", err)
-		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+		return nil, gerrors.New(gerrors.GrpcFailure, err.Error())
 	}
 
 	ctxBase, cancel := context.WithCancel(ctx)
@@ -215,7 +215,7 @@ func (r *ReceiverClient) monitorConnection() {
 					return
 				}
 
-				if e, ok := err.(*gerrors.Error); ok && e.Code() != gerrors.NetConnectionBroken {
+				if e, ok := err.(*gerrors.Error); ok && e.Code() != gerrors.NetException {
 					return
 				}
 
@@ -243,7 +243,7 @@ func (r *ReceiverClient) register() error {
 
 	if err := r.stream.Send(msg); err != nil {
 		if err == io.EOF {
-			return gerrors.New(gerrors.NetConnectionBroken, err.Error())
+			return gerrors.New(gerrors.NetException, err.Error())
 		}
 
 		return gerrors.New(gerrors.NetException, err.Error())
@@ -256,7 +256,7 @@ func (r *ReceiverClient) SendMessage(content []byte) error {
 	r.mutex.RLock()
 	if r.closed {
 		r.mutex.RUnlock()
-		return gerrors.New(gerrors.NetConnectionBroken, "client is closed")
+		return gerrors.New(gerrors.NetException, "client is closed")
 	}
 
 	if r.stream == nil {
