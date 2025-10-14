@@ -19,21 +19,32 @@ limitations under the License.
 
 package metric
 
-// BaseMetricTags 基础标签
-type BaseMetricTags struct {
-	APIName    string
-	Method     string
-	Status     string
-	BkUserName string
-	BkAppCode  string
-	ResultCode string
-	Result     string
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+// ClusterAPITotalMetric cluster api 计数统计指标
+const ClusterAPITotalMetric = "k8s_dbs_cluster_api_total"
+
+var ClusterAPITotalMetricTags = []string{
+	"api_name",
+	"method",
+	"k8s_cluster_name",
+	"namespace",
+	"cluster_name",
+	"bk_username",
+	"bk_app_code",
+	"status",
+	"code",
+	"result",
 }
 
-// ClusterAPIMetricTags 集群 API 标签
-type ClusterAPIMetricTags struct {
-	K8sClusterName string
-	Namespace      string
-	ClusterName    string
-	BaseMetricTags
-}
+// ClusterAPITotalCounter Cluster API 请求总数
+var ClusterAPITotalCounter = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: ClusterAPITotalMetric,
+		Help: "Total number of cluster api by api_name, result and status code",
+	},
+	ClusterAPITotalMetricTags,
+)

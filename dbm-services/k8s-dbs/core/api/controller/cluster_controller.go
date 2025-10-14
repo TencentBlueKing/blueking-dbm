@@ -245,9 +245,8 @@ func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
 
 // VolumeExpansion 磁盘扩容
 func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterVExpansion)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterVExpansion)
 	err := ctx.ShouldBindJSON(request)
 	if err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
@@ -267,7 +266,6 @@ func (c *ClusterController) VolumeExpansion(ctx *gin.Context) {
 
 // DescribeOpsRequest 查看 opsRequest 详情
 func (c *ClusterController) DescribeOpsRequest(ctx *gin.Context) {
-	// 设置 apiName
 	ctx.Set(commconst.APIName, commconst.APIOpsRequestDesc)
 	request := &coreentity.Request{}
 	err := ctx.ShouldBindJSON(request)
@@ -313,19 +311,17 @@ func (c *ClusterController) GetOpsRequestStatus(ctx *gin.Context) {
 
 // CreateCluster 创建集群
 func (c *ClusterController) CreateCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterCreate)
-	request := coreentity.Request{}
+	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterCreate)
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		api.HandleValidationError(ctx, err, request)
 		return
 	}
-
 	dbsCtx := &commentity.DbsContext{
 		BkAuth:      &request.BKAuth,
 		RequestType: coreconst.CreateCluster,
 	}
-	if err := c.clusterProvider.CreateCluster(dbsCtx, &request); err != nil {
+	if err := c.clusterProvider.CreateCluster(dbsCtx, request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError, err))
 		return
 	}
@@ -334,9 +330,8 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 
 // DeleteCluster 删除集群
 func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterDelete)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterDelete)
 	err := ctx.ShouldBindJSON(request)
 	if err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
@@ -356,9 +351,8 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 
 // DescribeCluster 获取集群详情
 func (c *ClusterController) DescribeCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterDesc)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterDesc)
 	err := ctx.ShouldBindJSON(request)
 	if err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
@@ -540,4 +534,11 @@ func (c *ClusterController) getClusterComponents(clusterMetaEntity *metaentity.K
 		}
 	}
 	return nil, fmt.Errorf("failed to find cluster topologies")
+}
+
+// setAPIRequestContext 设置 api 请求上下文
+func (c *ClusterController) setAPIRequestContext(ctx *gin.Context, request *coreentity.Request, apiName string) {
+	ctx.Set(commconst.APIName, apiName)
+	ctx.Set(commconst.IsClusterAPI, true)
+	ctx.Set(commconst.ClusterAPIRequestEntity, request)
 }
