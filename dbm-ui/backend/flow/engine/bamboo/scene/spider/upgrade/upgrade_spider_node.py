@@ -24,6 +24,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClu
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
     PauseWithTicketLockCheckComponent,
 )
@@ -105,8 +106,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
         self.uid = data["uid"]  # 用户ID
         self.bk_biz_id = data["bk_biz_id"]  # 业务ID
         self.force_upgrade = data.get("force", False)  # 是否强制升级
+        self.is_check_process = data.get("is_check_process", True)
+        self.is_safe = data.get("is_check_process", True)
         self.data = data  # 原始数据
         self.upgrade_local = data.get("upgrade_local", False)  # 是否本地升级
+        self.pause_when_upgrade_half = data.get("pause_when_upgrade_half", False)
         # 提取所有涉及的集群ID，去重后保存
         self.cluster_ids = list(set([i["cluster_id"] for i in self.data["infos"]]))
 
@@ -189,7 +193,9 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             spider_master_ins = get_spider_master_instances(spiders_to_upgrade)
 
             # 切换前做预检测
-            add_spider_upgrade_check_act(sub_pipeline, cluster_id, spider_master_ins, bk_cloud_id, self.force_upgrade)
+            add_spider_upgrade_check_act(
+                sub_pipeline, cluster_id, spider_master_ins, bk_cloud_id, self.is_check_process
+            )
 
             # 提前下发文件
             add_spider_media_download_act(sub_pipeline, spider_ips, pkg_id, bk_cloud_id)
@@ -240,6 +246,8 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             part1 = spider_master_upgrade_pipelines[:mid]
             part2 = spider_master_upgrade_pipelines[mid:]
             sub_pipeline.add_parallel_sub_pipeline(part1)
+            if self.pause_when_upgrade_half:
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_parallel_sub_pipeline(part2)
             # 更新集群模块信息
             if new_db_module_id != cluster.db_module_id:
@@ -392,6 +400,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                     reduce_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
                     spider_reduced_to_count_snapshot=0,
                     is_check_min_count=False,
+                    is_check_process=self.is_check_process,
                 )
             )
 

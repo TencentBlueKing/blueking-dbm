@@ -48,7 +48,12 @@ logger = logging.getLogger("flow")
 
 
 def master_and_slave_switch_v2(
-    root_id: str, ticket_data: dict, cluster: Cluster, cluster_info: dict, check_client_conn=True
+    root_id: str,
+    ticket_data: dict,
+    cluster: Cluster,
+    cluster_info: dict,
+    check_client_conn=True,
+    is_verify_checksum=True,
 ):
     """
     定义成对迁移完成，做成对切换的子流程(子流程是已集群维度做成对切换)
@@ -89,7 +94,7 @@ def master_and_slave_switch_v2(
         root_id=root_id,
         cluster=cluster,
         is_check_client_conn=check_client_conn,
-        is_verify_checksum=True,
+        is_verify_checksum=is_verify_checksum,
         check_client_conn_inst=[
             f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
             f"{cluster_info['old_slave_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",

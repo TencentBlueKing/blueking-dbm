@@ -77,7 +77,9 @@ class TendbClusterUpgradeFlow(object):
         self.ticket_data = ticket_data
         #  仅添加从库。不切换。不复制账号
         self.add_slave_only = self.ticket_data.get("add_slave_only", False)
-        self.check_client_conn = not self.ticket_data.get("force", False)
+        # self.check_client_conn = not self.ticket_data.get("force", False)
+        self.is_check_process = self.ticket_data.get("is_check_process", True)
+        self.is_verify_checksum = self.ticket_data.get("is_verify_checksum", True)
 
     def __pre_check(self):
         """
@@ -209,7 +211,8 @@ class TendbClusterUpgradeFlow(object):
                 created_by=created_by,
                 force_uninstall=False,
                 ticket_type=self.ticket_data["ticket_type"],
-                check_client_conn=self.check_client_conn,
+                check_client_conn=self.is_check_process,
+                is_verify_checksum=self.is_verify_checksum,
             )
             sub_flows.append(subflow)
 
@@ -232,6 +235,7 @@ def tendbha_cluster_upgrade_subflow(
     force_uninstall: bool,
     ticket_type: str,
     check_client_conn: bool,
+    is_verify_checksum: bool,
 ):
     """
     一主多从，整个集群升级
@@ -408,6 +412,7 @@ def tendbha_cluster_upgrade_subflow(
         old_ro_slave_ips=old_ro_slave_ips,
         new_ro_slave_ips=new_ro_slave_ips,
         check_client_conn=check_client_conn,
+        is_verify_checksum=is_verify_checksum,
     )
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ms_switch_sub_flows)
 
@@ -1031,6 +1036,7 @@ def build_ms_pair_switch_sub_pipelines(
     old_ro_slave_ips: list,
     new_ro_slave_ips: list,
     check_client_conn: bool,
+    is_verify_checksum: bool,
 ):
     switch_sub_pipeline_list = []
     for cluster_id in relation_cluster_ids:
@@ -1060,6 +1066,7 @@ def build_ms_pair_switch_sub_pipelines(
                 cluster=cluster_model,
                 cluster_info=copy.deepcopy(cluster_info),
                 check_client_conn=check_client_conn,
+                is_verify_checksum=is_verify_checksum,
             )
         )
         switch_sub_pipeline.add_act(

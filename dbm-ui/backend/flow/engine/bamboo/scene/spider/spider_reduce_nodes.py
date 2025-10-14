@@ -145,6 +145,7 @@ class TenDBClusterReduceNodesFlow(object):
         spider_reduced_to_count_snapshot: int,
         is_check_min_count: bool = True,
         is_check_disaster_tolerance_level: bool = True,
+        is_check_process: bool = True,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -190,7 +191,7 @@ class TenDBClusterReduceNodesFlow(object):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
         # 预检测
-        if self.data["is_safe"]:
+        if is_check_process:
             sub_pipeline.add_act(
                 act_name=_("检测回收Spider端连接情况"),
                 act_component_code=CheckClientConnComponent.code,
@@ -262,6 +263,7 @@ class TenDBClusterReduceNodesFlow(object):
                     spider_reduced_hosts=info["spider_reduced_hosts"],
                     reduce_spider_role=info["reduce_spider_role"],
                     spider_reduced_to_count_snapshot=info["spider_reduced_to_count"],
+                    is_check_process=self.data.get("is_check_process", True),
                 )
             )
 
