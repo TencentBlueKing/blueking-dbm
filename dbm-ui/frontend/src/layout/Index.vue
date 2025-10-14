@@ -177,7 +177,13 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'bussinessDashboard', 'AlarmEvents'],
+    [menuEnum.observableManage]: [
+      'DBHASwitchEvents',
+      'inspectionManage',
+      'monitorAlarm',
+      'bussinessDashboard',
+      'RiskMemo',
+    ],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -186,6 +192,7 @@
       'ticketSelfManage',
       'InspectionTodos',
       'platformAlarmEventsTodo',
+      'RiskMemoTodos',
     ],
     [menuEnum.platformManage]: [
       'platformTaskManage',
@@ -195,6 +202,7 @@
       'platformAlarmEvents',
       'ServiceStatus',
       'DashboradManage',
+      'RiskMemoGlobal',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
