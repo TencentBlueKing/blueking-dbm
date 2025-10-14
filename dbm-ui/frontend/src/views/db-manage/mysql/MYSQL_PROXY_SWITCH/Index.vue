@@ -350,15 +350,19 @@
                 return acc;
               }, []),
             },
-            origin_proxys: [
-              {
-                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-                bk_cloud_id: rows[0].originProxy.bk_cloud_id,
-                bk_host_id: rows[0].originProxy.bk_host_id,
-                ip: rows[0].originProxy.ip,
-                spec: rows[0].originProxy.spec_config,
+            origin_proxys: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>(
+              (acc, item) => {
+                acc.push({
+                  bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                  bk_cloud_id: item.originProxy.bk_cloud_id,
+                  bk_host_id: item.originProxy.bk_host_id,
+                  ip: item.originProxy.ip,
+                  spec: item.originProxy.spec_config,
+                });
+                return acc;
               },
-            ],
+              [],
+            ),
             resource_spec: {
               target_proxys: {
                 count: rows.length,
