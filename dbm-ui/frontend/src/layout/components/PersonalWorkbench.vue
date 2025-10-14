@@ -42,6 +42,16 @@
         </span>
         <span class="ticket-count">{{ manageCount }}</span>
       </BkMenuItem>
+      <BkMenuItem
+        key="RiskMemoTodos"
+        v-db-console="'personalWorkbench.RiskMemoTodos'">
+        <template #icon>
+          <DbIcon type="file" />
+        </template>
+        <span>
+          {{ t('风险备忘录') }}
+        </span>
+      </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'personalWorkbench'"

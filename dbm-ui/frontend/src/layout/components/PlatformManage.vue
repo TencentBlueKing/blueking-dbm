@@ -87,6 +87,12 @@
         </template>
         {{ t('服务状态') }}
       </BkMenuItem>
+      <BkMenuItem key="RiskMemoGlobal">
+        <template #icon>
+          <DbIcon type="file" />
+        </template>
+        {{ t('风险备忘录') }}
+      </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
       v-if="dashboardList && dashboardList.length > 0"
