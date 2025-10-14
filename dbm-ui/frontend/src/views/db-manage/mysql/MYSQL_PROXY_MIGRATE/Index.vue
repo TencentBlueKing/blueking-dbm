@@ -193,6 +193,14 @@
           spec: TendbhaModel['proxies'][0]['spec_config'];
         }[];
       };
+      origin_proxys: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port: number;
+        spec: TendbhaModel['masters'][number]['spec_config'];
+      }[];
       related_instances: {
         cluster_id: number;
         instance_address: string;
@@ -241,6 +249,14 @@
               spec: instance.spec_config,
             })),
           },
+          origin_proxys: masters.map((instance) => ({
+            bk_biz_id: instance.bk_biz_id,
+            bk_cloud_id: instance.bk_cloud_id,
+            bk_host_id: instance.bk_host_id,
+            ip: instance.ip,
+            port: instance.port,
+            spec: instance.spec_config,
+          })),
           related_instances: masters.map((instance) => ({
             cluster_id: instance.cluster_id,
             instance_address: instance.instance,

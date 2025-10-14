@@ -231,6 +231,14 @@
           spec: TendbhaModel['proxies'][0]['spec_config'];
         }[];
       };
+      origin_proxys: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port: number;
+        spec: TendbhaModel['masters'][number]['spec_config'];
+      }[];
       resource_spec: {
         target_proxys: {
           count: number; // proxy 数量
@@ -263,6 +271,7 @@
           old_nodes: {
             proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           },
+          origin_proxys: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           resource_spec: {
             target_proxys: {
               count: item.cluster.proxies!.length,

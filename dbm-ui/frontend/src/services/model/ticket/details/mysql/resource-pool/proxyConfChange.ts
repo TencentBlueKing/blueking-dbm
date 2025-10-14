@@ -14,6 +14,14 @@ export interface ProxyConfChange extends ResourcePoolDetailBase {
         spec: TendbhaModel['proxies'][0]['spec_config'];
       }[];
     };
+    origin_proxys: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+      port: number;
+      spec: TendbhaModel['masters'][number]['spec_config'];
+    }[];
     resource_spec: {
       target_proxys: {
         count: number; // proxy 数量
