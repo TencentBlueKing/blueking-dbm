@@ -62,7 +62,8 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("添加信息"), child=InfoSerializer())
-    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
+    is_check_process = serializers.BooleanField(help_text=_("是否做安全检测"), default=True)
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检查主从数据校验结果"), default=True)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
