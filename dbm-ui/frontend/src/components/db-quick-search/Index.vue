@@ -60,7 +60,6 @@
 
   if (props.parseUrl) {
     const routeQuery = route.query;
-
     modelValue.value = props.data.reduce((result, configItem) => {
       if (routeQuery[`${configItem.id}__gte`] && routeQuery[`${configItem.id}__lte`]) {
         Object.assign(result, {

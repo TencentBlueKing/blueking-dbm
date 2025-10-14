@@ -74,6 +74,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-draft:before {
 	content: "\e145";
 }
+.db-icon-qw:before {
+	content: "\e24c";
+}
 .db-icon-todolist:before {
 	content: "\e146";
 }
@@ -527,6 +530,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-revoke:before {
 	content: "\e1b3";
 }
+.db-icon-shezhi:before {
+	content: "\e24b";
+}
 .db-icon-en:before {
 	content: "\e1b4";
 }
@@ -793,4 +799,43 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-difuzai:before {
 	content: "\e232";
+}
+.db-icon-shengji:before {
+	content: "\e240";
+}
+.db-icon-yibiaopan:before {
+	content: "\e241";
+}
+.db-icon-bushushenqing:before {
+	content: "\e247";
+}
+.db-icon-fenpianjiqun:before {
+	content: "\e245";
+}
+.db-icon-fubenji:before {
+	content: "\e242";
+}
+.db-icon-zhucong:before {
+	content: "\e244";
+}
+.db-icon-xunjiandaiban:before {
+	content: "\e246";
+}
+.db-icon-yibandanju:before {
+	content: "\e243";
+}
+.db-icon-sortupshengxu:before {
+	content: "\e248";
+}
+.db-icon-sortdownjiangxu:before {
+	content: "\e249";
+}
+.db-icon-touxiang:before {
+	content: "\e24a";
+}
+.db-icon-yewugailan:before {
+	content: "\e24d";
+}
+.db-icon-shujujiance:before {
+	content: "\e24e";
 }

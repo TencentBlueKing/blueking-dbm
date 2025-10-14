@@ -5,13 +5,15 @@
     <template v-if="data && data.length">
       <BkTag
         v-for="item in renderData"
-        :key="item">
+        :key="item"
+        :size="size">
         {{ item }}
       </BkTag>
       <BkTag
         v-if="moreTagCount > 0"
         key="more"
-        ref="moreRef">
+        ref="moreRef"
+        :size="size">
         +{{ moreTagCount }}
       </BkTag>
       <div
@@ -29,7 +31,8 @@
       style="position: absolute; word-break: keep-all; white-space: nowrap; visibility: hidden">
       <BkTag
         v-for="item in data"
-        :key="item">
+        :key="item"
+        :size="size">
         {{ item }}
       </BkTag>
     </div>
@@ -39,7 +42,8 @@
         class="dbm-tag-block-more-panel">
         <BkTag
           v-for="item in data.slice(renderData.length)"
-          :key="item">
+          :key="item"
+          :size="size">
           {{ item }}
         </BkTag>
       </div>
@@ -57,11 +61,13 @@
   interface Props {
     copyenable?: boolean;
     data: Array<string>;
+    size?: 'default' | 'small';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     copyenable: false,
     max: 0,
+    size: 'default',
   });
 
   const { t } = useI18n();
