@@ -52,15 +52,25 @@
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BkFormItem>
+      <BkFormItem class="mb-8">
         <BkCheckbox
-          v-model="formData.force"
-          false-label
-          :true-label="false">
+          v-model="formData.is_check_process"
+          :false-label="false"
+          true-label>
           <span
             v-bk-tooltips="t('存在业务连接时需要人工确认')"
             class="safe-action-text">
             {{ t('检查业务连接') }}
+          </span>
+        </BkCheckbox>
+      </BkFormItem>
+      <BkFormItem v-if="wrapperController.roleType === 'haStorageLayer'">
+        <BkCheckbox
+          v-model="formData.is_verify_checksum"
+          :false-label="false"
+          true-label>
+          <span>
+            {{ t('检查主从数据校验结果') }}
           </span>
         </BkCheckbox>
       </BkFormItem>
@@ -164,7 +174,8 @@
   });
 
   const defaultData = () => ({
-    force: false,
+    is_check_process: true,
+    is_verify_checksum: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -222,34 +233,36 @@
   };
 
   useTicketDetail<Mysql.LocalUpgrade>(TicketTypes.MYSQL_LOCAL_UPGRADE, {
-    onSuccess(ticketDetails) {
-      const { clusters, force, infos } = ticketDetails.details;
+    onSuccess(ticketDetail) {
+      const { clusters, infos } = ticketDetail.details;
       const isSingle = clusters[infos[0].cluster_ids[0]].cluster_type === (ClusterTypes.TENDBSINGLE as string);
       wrapperController.value.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
       if (infos.length > 0) {
-        formData.force = force;
-        formData.tableData = infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_ids[0]];
-          return createTableRow({
-            cluster: {
-              master_domain: clusterInfo.immute_domain,
-            },
-            new_db_module_id: item.new_db_module_id,
-            pkg_id: item.pkg_id,
-            target_version: {
-              charset: item.display_info.charset,
-              db_module_name: item.display_info.target_module_name,
-              db_version: item.display_info.target_version,
-              pkg_name: item.display_info.target_package,
-            },
-          });
+        Object.assign(formData, {
+          ...createTickePayload(ticketDetail),
+          is_check_process: ticketDetail.details.is_check_process,
+          is_verify_checksum: ticketDetail.details.is_verify_checksum,
+          tableData: ticketDetail.details.infos.map((item) =>
+            createTableRow({
+              cluster: {
+                master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              },
+              new_db_module_id: item.new_db_module_id,
+              pkg_id: item.pkg_id,
+              target_version: {
+                charset: item.display_info.charset,
+                db_module_name: item.display_info.target_module_name,
+                db_version: item.display_info.target_version,
+                pkg_name: item.display_info.target_package,
+              },
+            }),
+          ),
         });
       }
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    force: boolean;
     infos: {
       cluster_ids: number[];
       display_info: {
@@ -264,6 +277,8 @@
       new_db_module_id: number;
       pkg_id: number;
     }[];
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
   }>(TicketTypes.MYSQL_LOCAL_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
@@ -287,7 +302,6 @@
     if (result) {
       createTicketRun({
         details: {
-          force: formData.force,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
@@ -302,6 +316,8 @@
             new_db_module_id: item.new_db_module_id,
             pkg_id: item.pkg_id,
           })),
+          is_check_process: formData.is_check_process,
+          is_verify_checksum: formData.is_verify_checksum,
         },
         ...formData.payload,
       });
