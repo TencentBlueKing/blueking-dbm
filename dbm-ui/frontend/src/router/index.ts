@@ -30,6 +30,7 @@ import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
+import getRiskMemoRoutes from '@views/risk-memo/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getServiceStatusRoutes from '@views/service-status/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
@@ -103,6 +104,7 @@ export default () => {
   getResourceManageRoutes();
   getDashborderRoutes();
   getDbManageRoutes();
+  getRiskMemoRoutes();
 
   const routes = [
     {
