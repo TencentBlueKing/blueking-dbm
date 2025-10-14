@@ -30,12 +30,14 @@ class TransFileInWindowsService(BkJobService):
         """
         执行传输文件的原子任务。目前文件传输支持两个模式：1：第三方cos原文件传输 2：服务器之间文件传输
         kwargs.get('file_type') 参数用来控传输模式，如果等于1，则采用服务之间的文件传输。否则都作为第三方cos原文件传输
+        kwargs.get("is_rolling", False) 参数控制是否启动文件串行滚动下发模式，仅支持服务器之间文件传输场景
         """
         kwargs = data.get_one_of_inputs("kwargs")
         root_id = kwargs["root_id"]
         node_id = kwargs["node_id"]
         node_name = kwargs["node_name"]
         target_hosts = kwargs["target_hosts"]
+        is_rolling = kwargs.get("is_rolling", False)
 
         if not target_hosts:
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(target_hosts))
@@ -78,6 +80,16 @@ class TransFileInWindowsService(BkJobService):
             "account_alias": "system",
             "target_server": {"ip_list": target_hosts},
         }
+        # 如果启动滚动文件模式传输，携带滚动配置
+        if is_rolling:
+            payload["rolling_config"] = {
+                "type": 2,  # 1-传输目标；2-源文件
+                "mode": 1,  # 1-执行失败则暂停；2-忽略失败，自动滚动下一批；3-人工确认
+                "file_source": {
+                    "max_execute_object_num_in_batch": 1,
+                    "max_file_num_of_single_execute_object": 1,
+                },
+            }
 
         self.log_debug(_("[{}] 下发介质包参数：{}").format(node_name, payload))
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=target_hosts)
