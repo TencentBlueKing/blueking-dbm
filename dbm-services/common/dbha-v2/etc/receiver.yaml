@@ -6,12 +6,12 @@ discovery:
   user: root
   password: dbhatest
 
-service:
-  apm:
-    readTimeout: 10s
-    writeTimeout: 10s
-    listenAddress: http://127.0.0.1:8081
+apm:
+  readTimeout: 10s
+  writeTimeout: 10s
+  listenAddress: http://127.0.0.1:8081
 
+service:
   source:
     - name: probe
       enable: false

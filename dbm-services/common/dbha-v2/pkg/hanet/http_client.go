@@ -149,7 +149,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 	}
 
 	if errReq != nil {
-		err = gerrors.NewE(gerrors.HttpRequestFailed, err)
+		err = gerrors.NewE(gerrors.HttpRequestFailure, err)
 		return
 	}
 
@@ -160,7 +160,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 
 	rsp, errDo := c.cli.Do(req)
 	if errDo != nil {
-		err = gerrors.NewE(gerrors.HttpRequestFailed, errDo)
+		err = gerrors.NewE(gerrors.HttpRequestFailure, errDo)
 		return
 	}
 
@@ -174,7 +174,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 
 	resp, errRead := io.ReadAll(rsp.Body)
 	if errRead != nil {
-		err = gerrors.NewE(gerrors.HttpRequestFailed, errRead)
+		err = gerrors.NewE(gerrors.HttpRequestFailure, errRead)
 		return
 	}
 

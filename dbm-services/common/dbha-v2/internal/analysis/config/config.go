@@ -55,6 +55,16 @@ type WorkflowConfig struct {
 	DbmApiSwapTendisCluster DbmApi        `yaml:"dbmApiSwapTendisCluster" mapstructure:"dbmApiSwapTendisCluster"`
 }
 
+// DetectorConfig detector's configuration
+type DetectorConfig struct {
+	Ssh struct {
+		Port     int           `yaml:"port"       mapstructure:"port"`
+		User     string        `yaml:"user"       mapstructure:"user"`
+		Password string        `yaml:"password"   mapstructure:"password"`
+		Timeout  time.Duration `yaml:"timeout"    mapstructure:"timeout"`
+	} `yaml:"ssh" mapstructure:"ssh"`
+}
+
 // MonitorConfig monitor's configuration
 type MonitorConfig struct {
 	DataID            uint64 `yaml:"dataID"            mapstructure:"dataID"`
@@ -70,13 +80,11 @@ type StorageConfig struct {
 	Password string `yaml:"password"  mapstructure:"password"`
 }
 
-// ServiceConfig service's configuration
-type ServiceConfig struct {
-	Apm struct {
-		ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
-		WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
-		ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
-	} `yaml:"apm" mapstructure:"apm"`
+// ApmConfig Apm's configuration
+type ApmConfig struct {
+	ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
+	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
 }
 
 // LogConfig log configuration
@@ -92,9 +100,10 @@ type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
+	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Workflow  WorkflowConfig  `yaml:"workflow"  mapstructure:"workflow"`
+	Detector  DetectorConfig  `yaml:"detector" mapstructure:"detector"`
 	Monitor   MonitorConfig   `yaml:"monitor"   mapstructure:"monitor"`
-	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

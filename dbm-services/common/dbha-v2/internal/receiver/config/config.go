@@ -35,6 +35,13 @@ type DiscoveryConfig struct {
 	Password string `yaml:"password" mapstructure:"password"`
 }
 
+// ApmConfig apm's configuration
+type ApmConfig struct {
+	ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
+	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+}
+
 // SourceConfig define the information of data input stream.
 type SourceConfig struct {
 	Name            string        `yaml:"name"            mapstructure:"name"`
@@ -60,12 +67,6 @@ type SinkConfig struct {
 
 // ServiceConfig service's configuration
 type ServiceConfig struct {
-	Apm struct {
-		ReadTimeout   time.Duration `yaml:"readTimeout" mapstructure:"readTimeout"`
-		WriteTimeout  time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
-		ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
-	} `yaml:"apm" mapstructure:"apm"`
-
 	Sources []SourceConfig `yaml:"source" mapstructure:"source"`
 	Sinks   []SinkConfig   `yaml:"sink" mapstructure:"sink"`
 }
@@ -83,6 +84,7 @@ type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
+	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
