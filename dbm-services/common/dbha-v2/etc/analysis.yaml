@@ -6,6 +6,11 @@ discovery:
   user: root
   password: 1234567890
 
+apm:
+  readTimeout: 10s
+  writeTimeout: 10s
+  listenAddress: http://127.0.0.1:8081
+
 workflow:
   lockBusinessWaitTimeout: 5s
   scanTimeout: 60s
@@ -32,17 +37,18 @@ workflow:
     timeout: 10s
     token: ""
 
+detector:
+  ssh:
+    port: 22
+    user: root
+    password: 123456789
+    timeout: 10s
+
 monitor:
   dataID: 0
   accessToken: ""
   bkMonitorBeat: ""
   bkMonitorEndpoint: 127.0.0.1:9090
-
-service:
-  apm:
-    readTimeout: 10s
-    writeTimeout: 10s
-    listenAddress: http://127.0.0.1:8081
 
 storage:
   endpoint: tcp://127.0.0.1:3306

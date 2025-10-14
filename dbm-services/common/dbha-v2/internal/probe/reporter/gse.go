@@ -51,7 +51,7 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 
 	if err != nil {
 		logger.Error("do not create gse agent, endpoint(%s), %v", cfg.Endpoint, err)
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "create agent client failed, %v", err)
+		return nil, gerrors.Newf(gerrors.BkGseFailure, "create GSE agent client failed, %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.ConnTimeout)
@@ -61,7 +61,7 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 		logger.Error("do not connect with agent, endpoint(%s), connection timeout(%v), %v", cfg.Endpoint,
 			cfg.ConnTimeout, err)
 
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "do not connect with agent, %v", err)
+		return nil, gerrors.Newf(gerrors.BkGseFailure, "do not connect with GSE agent, %v", err)
 	}
 	g := &gse{
 		cfg:      cfg,
@@ -82,7 +82,7 @@ func (g *gse) Post(ctx context.Context, content []byte) error {
 	defer cancel()
 
 	if err := g.agentCli.ReportData(ctxTimeout, uint32(g.cfg.DataID), content); err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "report data to agent failed, dataID(%d), %v", g.cfg.DataID, err)
+		return gerrors.Newf(gerrors.BkGseFailure, "report data to GSE agent failed, dataID(%d), %v", g.cfg.DataID, err)
 	}
 
 	return nil

@@ -6,6 +6,11 @@ discovery:
   user: root
   password: dbhatest
 
+apm:
+  readTimeout: 10s
+  writeTimeout: 10s
+  listenAddress: http://127.0.0.1:8081
+
 dbmApi:
   - name: metadata
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
@@ -30,12 +35,6 @@ dbmApi:
     method: post
     timeout: 10s
     token: ""
-
-service:
-  apm:
-    readTimeout: 10s
-    writeTimeout: 10s
-    listenAddress: http://127.0.0.1:8081
 
 storage:
   endpoint: tcp://127.0.0.1:3306

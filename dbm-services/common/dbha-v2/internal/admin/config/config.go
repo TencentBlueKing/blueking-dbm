@@ -35,6 +35,13 @@ type DiscoveryConfig struct {
 	Password string `yaml:"password" mapstructure:"password"`
 }
 
+// ApmConfig apm's configuration
+type ApmConfig struct {
+	ReadTimeout   time.Duration `yaml:"readTimeout" mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
+	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+}
+
 // DbmApi the API config of the DBM metadata
 type DbmApi struct {
 	Name    string        `yaml:"name"    mapstructure:"name"`
@@ -42,15 +49,6 @@ type DbmApi struct {
 	Token   string        `yaml:"token"   mapstructure:"token"`
 	Method  string        `yaml:"method"  mapstructure:"method"`
 	Timeout time.Duration `yaml:"timeout" mapstructure:"timeout"`
-}
-
-// ServiceConfig service's configuration
-type ServiceConfig struct {
-	Apm struct {
-		ReadTimeout   time.Duration `yaml:"readTimeout" mapstructure:"readTimeout"`
-		WriteTimeout  time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
-		ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
-	} `yaml:"apm" mapstructure:"apm"`
 }
 
 // StorageConfig dbha database configuration
@@ -73,7 +71,7 @@ type Configuration struct {
 	Name      string          `yaml:"name"      mapstructure:"name"`
 	Version   string          `yaml:"version"   mapstructure:"version"`
 	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
+	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	DbmApis   []DbmApi        `yaml:"dbmApi"    mapstructure:"dbmApi"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
