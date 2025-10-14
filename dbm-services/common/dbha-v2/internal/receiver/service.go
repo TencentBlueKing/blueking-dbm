@@ -251,14 +251,14 @@ func (s *Service) createApmServer() error {
 	if s.httpApmSvr == nil {
 		s.httpApmSvr = &http.Server{
 			Handler:      s.engine,
-			Addr:         config.Cfg.Service.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Service.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Service.Apm.WriteTimeout,
+			Addr:         config.Cfg.Apm.ListenAddress,
+			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+			WriteTimeout: config.Cfg.Apm.WriteTimeout,
 		}
 	}
 
 	apm.InitAPM(s.info.ID, s.info.Name)
-	metric.NewPrometheus("dbha-v2-admin", apm.Metrics).Use(s.engine)
+	metric.NewPrometheus("dbha-v2-receiver", apm.Metrics).Use(s.engine)
 
 	s.wg.Add(1)
 	go func() {

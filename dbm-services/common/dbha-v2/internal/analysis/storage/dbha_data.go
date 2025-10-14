@@ -51,7 +51,7 @@ func (ha *DbhaData) GetBizIDs() ([]int, error) {
 		Group(hamodel.DbmMetadataFieldBkBizID).Find(&bkBizIDs).Error
 
 	if err != nil {
-		return bkBizIDs, gerrors.NewE(gerrors.ComponentFailure, err)
+		return bkBizIDs, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
 	return bkBizIDs, nil
@@ -71,7 +71,7 @@ func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int) (metaDat
 			Limit(batchCnt).Find(&batches).Error
 
 		if err != nil {
-			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 		}
 
 		readCnt := len(batches)
@@ -120,7 +120,7 @@ func (ha *DbhaData) ReadDbMetricsWithDbInstances(dbInstances []*DbInstance,
 		Find(&dbMetrics).Error
 
 	if queryErr != nil {
-		err = gerrors.NewE(gerrors.ComponentFailure, queryErr)
+		err = gerrors.NewE(gerrors.MysqlFailure, queryErr)
 		return
 	}
 
@@ -149,7 +149,7 @@ func (ha *DbhaData) ReadDbEventWithDbInstances(dbInstances []*DbInstance,
 		Order(fmt.Sprintf("%s asc", hamodel.DbEventFieldUpdatedAt)).Find(&events).Error
 
 	if err != nil {
-		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
 	return
@@ -168,7 +168,7 @@ func (ha *DbhaData) ReadAllDbEvent(batchCnt int, offsetDuration time.Duration) (
 			Limit(batchCnt).Find(&batches).Error
 
 		if err != nil {
-			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 		}
 
 		readCnt := len(batches)
@@ -230,7 +230,7 @@ func (ha *DbhaData) ReadAllDbEventWithoutMetadata(batchCnt int, offsetDuration t
 			Find(&batches).Error
 
 		if err != nil {
-			return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+			return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 		}
 
 		readCnt := len(batches)
@@ -252,7 +252,7 @@ func (ha *DbhaData) ReadAllDbEventWithoutMetadata(batchCnt int, offsetDuration t
 func (ha *DbhaData) SaveSwitchingLog(records ...*hamodel.DbSwitchingLog) error {
 	err := ha.DB.DB().Model(&hamodel.DbSwitchingLog{}).CreateInBatches(records, 100).Error
 	if err != nil {
-		return gerrors.NewE(gerrors.ComponentFailure, err)
+		return gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
 	return err
@@ -266,7 +266,7 @@ func (ha *DbhaData) ReadSwitchingStrategyWithBkBizID(bkBizID int) ([]*hamodel.Db
 
 	query := ha.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
 	if e := query.Where(cond, bkBizID).Find(&strategies).Error; e != nil {
-		return nil, gerrors.NewE(gerrors.ComponentFailure, e)
+		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}
 
 	return strategies, nil
@@ -279,7 +279,7 @@ func (ha *DbhaData) ReadSkipDbInstancesWithBkBizID(bkBizID int) ([]*hamodel.Skip
 
 	query := ha.DB.DB().Model(&hamodel.SkipDbInstance{})
 	if err := query.Where(cond, bkBizID).Find(&skipDbInstances).Error; err != nil {
-		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
 	return skipDbInstances, nil

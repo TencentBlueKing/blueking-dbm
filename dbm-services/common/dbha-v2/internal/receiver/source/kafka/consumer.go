@@ -134,7 +134,7 @@ func New(cfg config.SourceConfig) (*consumer, error) {
 	endpoints := strings.Split(cfg.Endpoints, constant.Delimiter)
 	group, err := sarama.NewConsumerGroup(endpoints, kafkaConsumerGroupID, cliCfg)
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.ComponentFailure, "create kafka client failed, errmsg: %v", err)
+		return nil, gerrors.Newf(gerrors.KafkaFailure, "create kafka client failed, errmsg: %v", err)
 	}
 
 	kInputer := &consumer{

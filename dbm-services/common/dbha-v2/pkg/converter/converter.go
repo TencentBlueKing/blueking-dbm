@@ -101,5 +101,5 @@ func To[T any](v interface{}) (T, error) {
 	}
 
 	var zero T
-	return zero, gerrors.Newf(gerrors.OperationFailure, "can not convert %T to %T", v, zero)
+	return zero, gerrors.Newf(gerrors.Failure, "can not convert %T to %T", v, zero)
 }

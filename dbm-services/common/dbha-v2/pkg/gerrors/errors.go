@@ -36,23 +36,33 @@ const (
 	Success
 	Timeout
 	Exited
+
 	NotFound
 	NotExists
 	NetException
-	NetConnectionBroken
 	QueueFull
-	InvalidParameter
-	InvalidURL
-	InvalidJSOIN
-	InvalidYAML
-	InvalidHttpMethod
-	InvalidConfiguration
-	InternalServerFailure
-	HttpRequestFailed
 	Unimplemented
 	Unsupported
-	OperationFailure
-	ComponentFailure
+
+	InvalidParameter
+	InvalidUrl
+	InvalidJson
+	InvalidYaml
+	InvalidHttpMethod
+	InvalidConfiguration
+
+	InternalServerFailure
+	HttpRequestFailure
+
+	ProbeFailure
+
+	BkMonitorFailure
+	BkGseFailure
+	KafkaFailure
+	GrpcFailure
+	SshFailure
+	EtcdFailure
+	MysqlFailure
 )
 
 type Error struct {
