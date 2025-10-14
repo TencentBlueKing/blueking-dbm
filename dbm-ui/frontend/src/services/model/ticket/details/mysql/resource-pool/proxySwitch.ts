@@ -11,14 +11,6 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
   infos: {
     cluster_ids: number[];
     old_nodes: {
-      origin_proxy?: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        port: number;
-        spec: TendbhaModel['masters'][number]['spec_config'];
-      }[];
       proxy: {
         bk_biz_id: number;
         bk_cloud_id: number;
@@ -31,12 +23,14 @@ export interface ProxySwitch extends ResourcePoolDetailBase {
       cluster_id: number;
       instance_address: string;
     }[];
-    origin_proxy_ip: {
+    origin_proxys: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-    };
+      port: number;
+      spec: TendbhaModel['masters'][number]['spec_config'];
+    }[];
     resource_spec: {
       target_proxys: {
         count: number;

@@ -259,13 +259,13 @@
           spec: TendbhaModel['masters'][number]['spec_config'];
         }[];
       };
-      origin_proxy_ip: {
+      origin_proxys: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
         spec: TendbhaModel['masters'][number]['spec_config'];
-      };
+      }[];
       related_instances?: {
         cluster_id: number;
         instance_address: string;
@@ -350,13 +350,15 @@
                 return acc;
               }, []),
             },
-            origin_proxy_ip: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: rows[0].originProxy.bk_cloud_id,
-              bk_host_id: rows[0].originProxy.bk_host_id,
-              ip: rows[0].originProxy.ip,
-              spec: rows[0].originProxy.spec_config,
-            },
+            origin_proxys: [
+              {
+                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                bk_cloud_id: rows[0].originProxy.bk_cloud_id,
+                bk_host_id: rows[0].originProxy.bk_host_id,
+                ip: rows[0].originProxy.ip,
+                spec: rows[0].originProxy.spec_config,
+              },
+            ],
             resource_spec: {
               target_proxys: {
                 count: rows.length,

@@ -20,6 +20,14 @@ export interface ProxyMigrateIns extends ResourcePoolDetailBase {
         spec: TendbhaModel['masters'][number]['spec_config'];
       }[];
     };
+    origin_proxys: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+      port: number;
+      spec: TendbhaModel['masters'][number]['spec_config'];
+    }[];
     related_instances?: {
       cluster_id: number;
       instance_address: string;
