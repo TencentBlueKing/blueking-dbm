@@ -202,7 +202,7 @@ func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
 			i.BackupMethod = config.BackupNonFullByRegular
 		}
 	}
-	i.IsStandby = VarIsStandby
+	//i.IsStandby = VarIsStandby
 }
 
 func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {

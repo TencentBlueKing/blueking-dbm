@@ -11,6 +11,7 @@
 package cmutil
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -71,6 +72,12 @@ type DiskPartInfo struct {
 	InodesTotal       uint64  `json:"inodes_total"`
 	InodesUsed        uint64  `json:"inodes_used"`
 	InodesUsedPercent float64 `json:"inodes_used_percent"`
+}
+
+func (i *DiskPartInfo) String() string {
+	return fmt.Sprintf("DiskPartInfo{Path:%s,Mountpoint:%s Total: %d, Free:%d, Used:%d, UsedTotal:%d, Reserved:%d, "+
+		"UsedPercent:%.4f, InodesUsedPercent:%.4f}",
+		i.Path, i.Mountpoint, i.Total, i.Free, i.Used, i.UsedTotal, i.Reserved, i.UsedPercent, i.InodesUsedPercent)
 }
 
 // GetDiskPartInfo 获取目录的信息

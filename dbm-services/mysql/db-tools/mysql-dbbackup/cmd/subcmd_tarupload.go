@@ -44,14 +44,14 @@ var uploadCmd = &cobra.Command{
 		defer func() {
 			cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", cst.DbbackupGoInstallPath)
 		}()
-		if err = tarAndUpload(cmd, args); err != nil {
+		if err = remoteTarAndUpload(cmd, args); err != nil {
 			return err
 		}
 		return nil
 	},
 }
 
-func tarAndUpload(cmd *cobra.Command, args []string) (err error) {
+func remoteTarAndUpload(cmd *cobra.Command, args []string) (err error) {
 	if err = logger.InitLog("dbbackup_tar.log"); err != nil {
 		return err
 	}
@@ -103,6 +103,7 @@ func tarBackupData(indexFilePath string, cnf *config.BackupConfig) (err error) {
 	if err != nil {
 		return err
 	}
+	logReport.RemoteSide = true
 	// 初始化 reportLogger，后续可通过 dbareport.Report 来调用
 	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err

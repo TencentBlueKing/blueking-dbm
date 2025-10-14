@@ -14,9 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samber/lo"
-
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -33,12 +32,12 @@ type BackupRunner struct {
 	glibcVersion  string
 	// dataDirSize bytes
 	dataDirSize uint64
-	// backupTypeFixed string
+	// show slave status 信息，如果有
+	slaveStatusInfo *mysqlcomm.SlaveStatus
 }
 
 // ExecuteBackup execute dump backup command
 func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-	// get mysql version from mysql server, and then set env variables
 	db, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return nil, err
@@ -62,12 +61,16 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 	if err := dumper.initConfig(r.mysqlVersion, logBinDisabled); err != nil {
 		return nil, err
 	}
-
+	metaInfo.IsStandby = dbareport.VarIsStandby
 	// BuildDumper 里面会修正备份方式，所以 SetEnv 要放在后面执行
 	if envErr := SetEnv(cnf.Public.BackupType, r.mysqlVersion); envErr != nil {
 		return nil, envErr
 	}
-
+	// 考虑到 role 更新可能没那么及时，不论 master slave 都会去尝试获取 show slave status : master ip/port
+	slaveStatusInfo, err := mysqlconn.ShowMysqlSlaveStatus(db)
+	if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
+		logger.Log.Warnf("show slave status failed for %d: %v", cnf.Public.MysqlPort, err)
+	}
 	// needn't set timeout for slave
 	if err = dumper.Execute(ctx); err != nil {
 		// when backup failed, we try to get processlist for later analyze
@@ -78,18 +81,28 @@ func (r *BackupRunner) ExecuteBackup(ctx context.Context, cnf *config.BackupConf
 	if err = dumper.PrepareBackupMetaInfo(cnf, metaInfo); err != nil {
 		return nil, err
 	}
-	// 如果是 slave 节点，提前获取他的 master_host, master_port
-	// 考虑到 role 更新可能没那么及时，这里如果是 master 也会去尝试获取 show slave status : master ip/port
-	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater, cst.RoleMaster}, strings.ToLower(cnf.Public.MysqlRole)) {
-		masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
-		if err != nil && lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
-			logger.Log.Warnf("show slave status failed for %d: %v", cnf.Public.MysqlPort, err)
+	// 物理备份完成之后，重新获取一下 slave status
+	if cnf.Public.BackupType == cst.BackupPhysical {
+		slaveStatusInfo, err = mysqlconn.ShowMysqlSlaveStatus(db)
+		if err != nil && !strings.EqualFold(cnf.Public.MysqlRole, cst.RoleMaster) {
+			logger.Log.Warnf("show slave status failed for physical %d: %v", cnf.Public.MysqlPort, err)
 		}
+	}
+	if slaveStatusInfo != nil && slaveStatusInfo.MasterHost != "" {
 		if metaInfo.BinlogInfo.ShowSlaveStatus == nil {
 			metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{}
 		}
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
-		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = slaveStatusInfo.MasterHost
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = slaveStatusInfo.MasterPort
+		// 修正 backup_consistent_time, 在有从库延迟的情况下，从库的备份一致性时间点 要减去延迟时间
+		// 在 stop slave 情况下，Seconds_Behind_Master=NULL，无法获取一致性时间，默认不处理
+		if slaveStatusInfo.SecondsBehindMaster.Int64 > 5 {
+			fixedBackupConsistentTime := metaInfo.BackupConsistentTime.Add(
+				-time.Duration(slaveStatusInfo.SecondsBehindMaster.Int64) * time.Second)
+			metaInfo.BackupConsistentTime = fixedBackupConsistentTime
+			logger.Log.Infof("backup_consistent_time is fixed for %d=[%s] original=[%s]",
+				cnf.Public.MysqlPort, fixedBackupConsistentTime.String(), metaInfo.BackupConsistentTime.String())
+		}
 	}
 	// get datadir size
 	if metaInfo.IsFullBackup {

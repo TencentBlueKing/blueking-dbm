@@ -105,15 +105,15 @@ func (c *RotateBinlogComp) Start() (err error) {
 			continue
 		}
 		var backupClient backup.BackupClient
-		if inst.backupEnable {
-			if backupClient, err = backup.InitBackupClient(); err != nil {
-				err = errs.WithMessagef(err, "init backup_client")
-				logger.Error("%+v", err.Error())
-				errRet = errors.Join(errRet, err)
-				continue
-			}
-			inst.backupClient = backupClient // if nil, ignore backup
-		} else {
+
+		if backupClient, err = backup.InitBackupClient(); err != nil {
+			err = errs.WithMessagef(err, "init backup_client")
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
+			continue
+		}
+		inst.backupClient = backupClient // if nil, ignore backup
+		if !inst.backupEnable {
 			logger.Info("instance %d backup_client is disabled", inst.Port)
 		}
 
@@ -301,7 +301,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 				sizeToFree := binlogSizeMB - maxBinlogSizeAllowedMB
 				if sizeToFree > inst.rotate.sizeToFreeMB {
 					inst.rotate.sizeToFreeMB = sizeToFree
-					inst.rotate.sizeToFreeBurstMB = sizeToFree // 一定会清理这么多，不论是否上传
+					inst.rotate.sizeToFreeMBBurst = sizeToFree // 一定会清理这么多，不论是否上传
 				}
 				logger.Info("plan to free space: %+v", inst.rotate)
 			}
@@ -315,6 +315,11 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		if diskPart.UsedPercent < maxDiskUsedPctAllowed {
 			continue
 		}
+		maxDiskUsedPctAllowedBurst := viper.GetFloat64("public.max_disk_used_pct_burst") / float64(100)
+		maxDiskUsedAllowedMBBurst := cast.ToUint64(maxDiskUsedPctAllowedBurst*float64(diskPart.Total)) / 1024 / 1024
+		diskPartSizeToFreeMBBurst := int64((diskPart.UsedTotal / 1024 / 1024) - maxDiskUsedAllowedMBBurst)
+		portSizeToFreeMBBurst := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMBBurst)
+
 		diskPartSizeToFreeMB := int64((diskPart.UsedTotal / 1024 / 1024) - maxDiskUsedAllowedMB)
 		portSizeToFreeMB := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMB)
 		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d UsedTotalMB:%d expectFreeMB:%d",
@@ -323,6 +328,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		for _, inst := range diskPartInst[diskPartName] {
 			if portSizeToFreeMB[inst.Port] > inst.rotate.sizeToFreeMB {
 				inst.rotate.sizeToFreeMB = portSizeToFreeMB[inst.Port]
+				inst.rotate.sizeToFreeMBBurst = portSizeToFreeMBBurst[inst.Port]
 				logger.Info("plan to free space fixed: %+v", inst.rotate)
 			}
 		}

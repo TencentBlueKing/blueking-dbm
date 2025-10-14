@@ -12,10 +12,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 )
 
 // DirDuSize get directory size like du
@@ -32,6 +34,29 @@ func DirDuSize(path string) (int64, error) {
 		return err
 	})
 	return totalSize, err
+}
+
+// DirFileStatsList get directory file list and size
+// 升序
+func DirFileStatsList(path string) (int64, []os.FileInfo, error) {
+	var totalSize int64
+	var fileInfoList []os.FileInfo
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			totalSize += info.Size()
+			fileInfoList = append(fileInfoList, info)
+		}
+		return err
+	})
+	sort.Slice(fileInfoList, func(i, j int) bool {
+		seqI := cast.ToInt(strings.LastIndex(fileInfoList[i].Name(), ".")) + 1
+		seqJ := cast.ToInt(strings.LastIndex(fileInfoList[j].Name(), ".")) + 1
+		return seqI < seqJ
+	})
+	return totalSize, fileInfoList, err
 }
 
 // DoDuCmd 执行du命令

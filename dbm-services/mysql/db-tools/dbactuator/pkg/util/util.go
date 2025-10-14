@@ -221,15 +221,28 @@ func GetSuffixWithLenAndSep(strList []string, separator string, maxlen int) []st
 	return seqList
 }
 
-// SortSplitPartFiles 切割文件排序，升序
+// SortStringWithSuffixAsc 切割文件排序，升序
 // separator 是最后一个分隔符
-func SortSplitPartFiles(strList []string, separator string) []string {
+func SortStringWithSuffixAsc(strList []string, separator string) []string {
 	sort.Slice(strList, func(i, j int) bool {
 		iNumSuffixStr := LastElement(strings.Split(strList[i], separator))
 		iNumSuffix := cmutil.StringToInt(iNumSuffixStr)
 		jNumSuffixStr := LastElement(strings.Split(strList[j], separator))
 		jNumSuffix := cmutil.StringToInt(jNumSuffixStr)
 		return iNumSuffix < jNumSuffix
+	})
+	return strList
+}
+
+// SortStringWithSuffixDesc 切割文件排序，降序
+// separator 是最后一个分隔符
+func SortStringWithSuffixDesc(strList []string, separator string) []string {
+	sort.Slice(strList, func(i, j int) bool {
+		iNumSuffixStr := LastElement(strings.Split(strList[i], separator))
+		iNumSuffix := cmutil.StringToInt(iNumSuffixStr)
+		jNumSuffixStr := LastElement(strings.Split(strList[j], separator))
+		jNumSuffix := cmutil.StringToInt(jNumSuffixStr)
+		return iNumSuffix > jNumSuffix
 	})
 	return strList
 }

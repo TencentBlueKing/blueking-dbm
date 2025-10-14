@@ -52,9 +52,9 @@ func InitLog(logFileName string) (err error) {
 		f.Close()
 	}
 	Log.SetOutput(&lumberjack.Logger{
-		Filename:   logFile,
-		MaxSize:    50, // megabytes
-		MaxBackups: 3,
+		Filename: logFile,
+		//MaxSize:    50, // megabytes
+		MaxBackups: 5,
 		MaxAge:     28,    // days
 		Compress:   false, // disabled by default
 	})

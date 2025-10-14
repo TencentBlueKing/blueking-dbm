@@ -273,7 +273,10 @@ func ShowMysqlSlaveStatus(db *sql.DB) (result *mysqlcomm.SlaveStatus, err error)
 	if err := dbx.Unsafe().GetContext(ctx, result, "show slave status"); err != nil {
 		return nil, errors.WithMessage(err, "show slave status")
 	}
-
+	if result.MasterHost == "" {
+		// 返回 nil
+		return nil, errors.New("this is master")
+	}
 	return
 }
 

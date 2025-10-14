@@ -36,7 +36,11 @@ type PublicCfg struct {
 	KeepPolicy         string `json:"keep_policy" mapstructure:"keep_policy"`
 	MaxBinlogTotalSize string `json:"max_binlog_total_size" mapstructure:"max_binlog_total_size"`
 	// MaxDiskUsedPct 100 制
-	MaxDiskUsedPct float64 `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required"`
+	MaxDiskUsedPct float64 `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required,lte=99"`
+	// max_disk_used_burst_pct 如果文件来不及上传，会转存一部分文件到 binlog_wait_upload 目录
+	// 这个配置约束 突破 max_disk_used_pct 后，最大允许的磁盘使用率。这个值是一定不会突破
+	MaxDiskUsedBurstPct float64 `json:"max_disk_used_pct_burst" mapstructure:"max_disk_used_pct_burst"`
+
 	// 本地 binlog 最大保留时间，超过会直接删除
 	MaxKeepDuration string `json:"max_keep_duration" mapstructure:"max_keep_duration"`
 	// MaxOldDaysToUpload 多久时间以内的 binlog 才上传到备份系统
@@ -83,6 +87,7 @@ func initConfigDefault() {
 	viper.SetDefault("public.max_binlog_total_size", "2000g")
 	viper.SetDefault("public.backup_enable", "auto")
 	viper.SetDefault("public.max_old_days_to_upload", 7)
+	viper.SetDefault("public.max_disk_used_pct_burst", 90)
 }
 
 // InitConfig 读取 main.yaml 配置
@@ -105,6 +110,10 @@ func InitConfig(confFile string) (*Config, error) {
 	}
 	if configObj.Public.MaxOldDaysToUpload == 0 {
 		configObj.Public.MaxOldDaysToUpload = 7
+	}
+	if configObj.Public.MaxDiskUsedBurstPct < configObj.Public.MaxDiskUsedPct {
+		configObj.Public.MaxDiskUsedBurstPct = configObj.Public.MaxDiskUsedPct
+		viper.SetDefault("public.max_disk_used_pct_burst", configObj.Public.MaxDiskUsedPct)
 	}
 
 	//logger.Debug("ConfigObj: %+v", ConfigObj)

@@ -122,10 +122,9 @@ func (f *BackupIndexFile) ValidateFiles() error {
 	if f.tarfileBasename != f.backupIndexBasename {
 		logger.Warn("tar file has different prefix %s with index", f.tarfileBasename, f.backupIndexBasename)
 	}
-	sort.Strings(f.splitParts)
-	f.splitParts = util.SortSplitPartFiles(f.splitParts, "_")
-
 	sort.Strings(f.tarParts)
+	//sort.Strings(f.splitParts)
+	f.splitParts = util.SortStringWithSuffixAsc(f.splitParts, "_")
 
 	if len(f.splitParts) >= 2 { // 校验文件是否连续
 		fileSeqList := util.GetSuffixWithLenAndSep(f.splitParts, "_", 0)

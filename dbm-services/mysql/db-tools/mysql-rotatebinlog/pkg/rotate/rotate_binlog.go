@@ -111,9 +111,9 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 // Remove, Backup, Purge
 func (i *ServerObj) FreeSpace() (err error) {
 	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024           // MB to bytes
-	sizeToFreeBytesBurst := i.rotate.sizeToFreeBurstMB * 1024 * 1024 // MB to bytes
+	sizeToFreeBytesBurst := i.rotate.sizeToFreeMBBurst * 1024 * 1024 // MB to bytes
 	logger.Info("plan to free port %d binlog bytes %d", i.Port, sizeToFreeBytes)
-	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesBurst, true); err != nil {
+	if err = i.rotate.Remove(sizeToFreeBytes, sizeToFreeBytesBurst, i); err != nil {
 		logger.Error("Remove %+v", err)
 	}
 	if err = i.PurgeIndex(); err != nil {
@@ -163,7 +163,7 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 	for _, fi := range files {
 		if !reFilename.MatchString(fi.Name()) {
 			if !strings.HasSuffix(fi.Name(), ".index") {
-				logger.Warn("illegal binlog file name %s", fi.Name())
+				//logger.Warn("illegal binlog file name %s", fi.Name())
 			}
 			continue
 		} else {
@@ -180,11 +180,12 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			)
 		}
 	}
-	// 确认排序
-	sort.Slice(
-		i.binlogFiles,
-		func(m, n int) bool { return i.binlogFiles[m].Filename < i.binlogFiles[n].Filename },
-	) // 升序
+	// 确认排序, 升序
+	sort.Slice(i.binlogFiles, func(m, n int) bool {
+		seqI := cast.ToInt(strings.LastIndex(i.binlogFiles[m].Filename, "."))
+		seqJ := cast.ToInt(strings.LastIndex(i.binlogFiles[n].Filename, "."))
+		return seqI < seqJ
+	})
 	//logger.Info("getBinlogFilesLocal: %+v", i.binlogFiles)
 	return i.binlogDir, i.binlogFiles, nil
 }
