@@ -331,7 +331,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             # 如果机器类型是spider，则考虑spider master
             elif remain_machine_type == MachineType.SPIDER.value:
                 spider_masters = ProxyInstance.objects.select_related("machine").filter(
-                    common_filters, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+                    common_filters, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
                 )
                 for spider_master in spider_masters:
                     cluster__remain_hosts_map[spider_master.cluster.first().id].append(spider_master.machine)
