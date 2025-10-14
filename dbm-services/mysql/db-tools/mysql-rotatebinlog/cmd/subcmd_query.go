@@ -36,7 +36,7 @@ var queryCmd = &cobra.Command{
 		//var whereMap = make(map[string]interface{})
 		sqlBuilder := sq.Select(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
+			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id", "binlog_dir",
 		).From(binlogInst.TableName())
 
 		if port, _ := cmd.Flags().GetInt("port"); port != 0 {
@@ -69,7 +69,7 @@ var queryCmd = &cobra.Command{
 			{Number: 2, Name: "DBRole", AutoMerge: true},
 		})
 		tw.AppendHeader(table.Row{"Port", "DBRole", "Filename", "Filesize", "FileMtime", "StopTime",
-			"BackupTaskId", "BackupStatus", "StatusMsg", "ClusterId", "Host"})
+			"BackupTaskId", "BackupStatus", "StatusMsg", "ClusterId", "Host", "BinlogDir"})
 		for _, fi := range files {
 			if fi != nil {
 				tw.AppendRow([]interface{}{
@@ -84,6 +84,7 @@ var queryCmd = &cobra.Command{
 					models.IBStatusMap[fi.BackupStatus],
 					fi.ClusterId,
 					fi.Host,
+					printBinlogDirMaxLength(fi.BinlogDir, 20),
 				})
 			}
 		}
@@ -91,6 +92,13 @@ var queryCmd = &cobra.Command{
 		tw.Render()
 		return nil
 	},
+}
+
+func printBinlogDirMaxLength(str string, maxLengh int) string {
+	if len(str) > maxLengh {
+		str = "..." + str[len(str)-maxLengh:]
+	}
+	return str
 }
 
 func init() {

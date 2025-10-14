@@ -51,8 +51,8 @@ type MysqlBackupResultModel struct {
 	BackupMethod         string    `json:"backup_method" db:"backup_method" gorm:"column:backup_method;type:varchar(32)"`
 
 	BinlogInfo   json.RawMessage `json:"binlog_info" db:"binlog_info" gorm:"column:binlog_info;type:text;NOT NULL"`
-	FileList     json.RawMessage `json:"file_list" db:"file_list" gorm:"column:file_list;type:text;NOT NULL"`
-	ExtraFields  json.RawMessage `json:"extra_fields" db:"extra_fields" gorm:"column:extra_fields;type:text;NOT NULL"`
+	FileList     json.RawMessage `json:"file_list" db:"file_list" gorm:"column:file_list;type:longtext;NOT NULL"`
+	ExtraFields  json.RawMessage `json:"extra_fields" db:"extra_fields" gorm:"column:extra_fields;type:longtext;NOT NULL"`
 	BackupStatus string          `json:"backup_status" db:"backup_status" gorm:"column:backup_status;type:varchar(32);NOT NULL"`
 }
 

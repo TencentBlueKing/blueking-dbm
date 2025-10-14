@@ -209,6 +209,10 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		if remoteConfig.EnableRemote {
 			cnf.BackupToRemote = *remoteConfig
 		}
+		if cnf.BackupToRemote.EnableRemote {
+			// 备份到远程时，关闭本地磁盘空间检查
+			cnf.Public.NoCheckDiskSpace = true
+		}
 		cnf.SetConfigFilePath(f) // 给 remote backup 用的
 
 		var maxTimeoutSeconds int64 = 10 * 24 * 86400 // 最大允许单个备份任务跑 10 天
@@ -271,6 +275,8 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	return nil
 }
 
+// run backup
+// BeforeDump -> ExecuteBackup -> backupTarAndUpload
 func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	runner := backupexe.BackupRunner{}
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
@@ -389,8 +395,6 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 }
 
 func initSshClient(cnf *config.BackupConfig) (sshClient *sshgo.Client, err error) {
-	// 备份到远程时，关闭本地磁盘空间检查
-	cnf.Public.NoCheckDiskSpace = true
 	logger.Log.Infof("Save backup to remote: %s:%d %s",
 		cnf.BackupToRemote.SshHost, cnf.BackupToRemote.SshPort, cnf.BackupToRemote.SaveDir)
 	// write metaInfo to draft file
@@ -421,8 +425,10 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 	if cnf.BackupToRemote.NcPort == 0 {
 		cnf.BackupToRemote.NcPort = cnf.Public.MysqlPort + 100
 	}
+	remoteDbbackupHome := backupexe.ExecuteHome + "-remote" // /home/mysql/dbbackup-go-remote
+	remoteDbbackupBin := filepath.Join(remoteDbbackupHome, "dbbackup")
 	param := map[string]string{
-		"dbbackupHome": backupexe.ExecuteHome,
+		"dbbackupHome": remoteDbbackupHome,
 	}
 	tpl, err := template.ParseFS(assets.TemplateFS, "nc_starter.sh.tmpl")
 	if err != nil {
@@ -444,9 +450,8 @@ func prepareBackupToRemote(cnf *config.BackupConfig, sshClient *sshgo.Client) (e
 	if err = sshClient.Upload(ncStarterScriptName, remoteNcStarterScriptName); err != nil {
 		return err
 	}
+	_, _ = sshClient.Run("chmod +x " + remoteNcStarterScriptName)
 	// 如果目标机器 dbbackup-go 介质不存在，传输过去
-	remoteDbbackupHome := backupexe.ExecuteHome + "-remote" // /home/mysql/dbbackup-go-remote
-	remoteDbbackupBin := filepath.Join(remoteDbbackupHome, "dbbackup")
 	if output, err := sshClient.Run("ls " + remoteDbbackupBin); err != nil {
 		if !strings.Contains(string(output), "No such file or directory") {
 			return errors.WithMessagef(err, "check bin exists %s, output: %s", remoteDbbackupBin, string(output))
@@ -550,7 +555,7 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 		return errors.Errorf("config file path is empty")
 	}
 
-	// tar and split by remote
+	// tar and split on remote
 	remoteDbbackupBin := filepath.Join(backupexe.ExecuteHome+"-remote", "dbbackup")
 	remoteCmd, _ := sshClient.Command(remoteDbbackupBin, "tar-upload",
 		"--config", remoteConfigFile,
@@ -574,6 +579,7 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 	if oldIndexFileMd5 == newIndexFileMd5 {
 		return errors.Errorf("index file %s md5 expect to be changed by remote, please check", indexFilePath)
 	}
+	logReport.RemoteSide = false
 	if err = logReport.ReportBackupResult(indexFilePath, false, false); err != nil {
 		logger.Log.Error("failed to report backup result, err: ", err)
 		return err
@@ -582,6 +588,8 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 	return nil
 }
 
+// backupTarAndUpload 上传备份文件到远程
+// Tar + ReportBackupResult(upload)
 func backupTarAndUpload(
 	cnf *config.BackupConfig,
 	indexFilePath string,
@@ -639,8 +647,11 @@ func backupTarAndUpload(
 		}
 	}
 	defer func() {
-		if err2 := logReport.ReportToLocalBackup(indexFilePath); err2 != nil {
-			logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err2)
+		if !logReport.RemoteSide {
+			err2 := logReport.ReportToLocalBackup(indexFilePath)
+			if err2 != nil {
+				logger.Log.Warnf("failed to write %d local_backup_report, err: %s. ignore", metaInfo.BackupPort, err2)
+			}
 		}
 	}()
 	// 只有 standby 实例 才需要上报（非 standby 默认是不 report, 不 upload）

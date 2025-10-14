@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
+
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -79,6 +79,9 @@ type RecoverBinlog struct {
 	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/123456/binlog"`
 	// binlog列表
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
+	// SimpleBinlogFiles 是否是精简 binlog files 文件列表
+	// 精简模式，在 binlog_files 里面只需要指定 binlog 文件的开始和结束 2 个文件。如果传递了全部 files 也 ok
+	SimpleBinlogFiles bool `json:"simple_binlog_files"`
 	// binlog 解析所在目录，存放运行日志
 	WorkDir string `json:"work_dir" validate:"required" example:"/data/dbbak/"`
 	WorkID  string `json:"work_id" example:"123456"`
@@ -239,8 +242,7 @@ exit $retcode
 	}
 	defer fi.Close()
 	if r.RecoverOpt.Flashback {
-		sort.Sort(sort.Reverse(sort.StringSlice(r.BinlogFiles))) // 降序
-		// sort.Slice(sqlFiles, func(i, j int) bool { return sqlFiles[i] > sqlFiles[j] }) // 降序
+		r.BinlogFiles = util.SortStringWithSuffixDesc(r.BinlogFiles, ".")
 	}
 	if tpl, err := template.New("").Parse(importBinlogTmpl); err != nil {
 		return errors.Wrap(err, "write import script")
@@ -321,7 +323,7 @@ func (r *RecoverBinlog) Init() error {
 		return err
 	}
 	if r.ParseConcurrency == 0 {
-		r.ParseConcurrency = 1
+		r.ParseConcurrency = 8
 	}
 	// 检查目标实例连接性
 	if r.RecoverOpt.Flashback || !r.ParseOnly {
@@ -339,6 +341,23 @@ func (r *RecoverBinlog) Init() error {
 	if r.RecoverOpt.Flashback && !r.ParseOnly {
 		return errors.New("flashback=true must have parse_only=true")
 	}
+	//if r.SimpleBinlogFiles {
+	// 20250928 这里解决出现传递的 binlog 文件太多，超过命令行参数大小。
+	// 现在允许传输的 binlog文件只传输 2 个：起始和结束，这里自动补齐中间的 binlog，减少参数长度
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
+	fileSeqList := util.GetSuffixWithLenAndSep(r.BinlogFiles, ".", 0)
+	if leakInts, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil &&
+		(len(leakInts) > 100 || len(r.BinlogFiles) == 2) {
+		logger.Warn("simple_binlog_files=true found %d missing binlog files", len(leakInts))
+		var leakFiles []string
+		for _, intVal := range leakInts {
+			binlogFileName := constructBinlogFilename(r.BinlogFiles[0], intVal)
+			leakFiles = append(leakFiles, binlogFileName)
+		}
+		logger.Warn("add binlog file to list: %v", leakFiles)
+		r.BinlogFiles = lo.Uniq(append(r.BinlogFiles, leakFiles...))
+	}
+	//}
 	return nil
 }
 
@@ -523,7 +542,10 @@ func (r *RecoverBinlog) checkBinlogFiles() error {
 	}
 
 	// 检查 binlog 文件连续性
-	sort.Strings(r.BinlogFiles)
+	//sort.Slice(r.BinlogFiles, func(i, j int) bool {
+	//		return getSequenceFromFilename(r.BinlogFiles[i]) < getSequenceFromFilename(r.BinlogFiles[j])
+	//})
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 	fileSeqList := util.GetSuffixWithLenAndSep(r.BinlogFiles, ".", 0)
 	if leakInts, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil {
 		logger.Warn("binlog leak number: %v", leakInts)
@@ -541,7 +563,7 @@ func (r *RecoverBinlog) checkBinlogFiles() error {
 			return errors.WithMessage(err, util.SliceErrorsToError(binlogFilesErrs).Error())
 		} else {
 			r.BinlogFiles = append(r.BinlogFiles, leakFiles...)
-			slices.Sort(r.BinlogFiles)
+			r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 		}
 		//return err
 	}
@@ -612,7 +634,7 @@ func (r *RecoverBinlog) PreCheck() error {
 		if binlogFiles, err := r.GetBinlogFilesFromDir(r.BinlogDir, nameParts[0]+"."); err != nil {
 			return errors.WithMessagef(err, "get binlog files from %s", r.BinlogDir)
 		} else {
-			r.BinlogFiles = binlogFiles
+			r.BinlogFiles = lo.Uniq(append(r.BinlogFiles, binlogFiles...))
 		}
 		return r.checkBinlogFiles()
 	}
@@ -624,7 +646,7 @@ func (r *RecoverBinlog) PreCheck() error {
 // binlog结束点：最后一个binlog end_time > 过滤条件 stop_time
 func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
-	sort.Strings(r.BinlogFiles)
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
 
 	// 如果传入了 start_file，第一个binlog很好找
 	if r.BinlogStartFile != "" {

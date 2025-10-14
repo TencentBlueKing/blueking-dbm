@@ -47,6 +47,8 @@ type BackupLogReport struct {
 	FileType string `json:"file_type"`
 	// TaskId backup task_id
 	TaskId string `json:"task_id"`
+	// RemoteSide 当前命令是否允许在远端机器上
+	RemoteSide bool `json:"-"`
 
 	cfg *config.BackupConfig
 }
@@ -350,7 +352,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string) error {
 }
 
 // ReportBackupResult Report BackupLogReport info
-// run ExecuteBackupClient to upload to remote
+// run ExecuteBackupClient to upload to backup-system
 // report backup to db
 // report backup to log file
 func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload bool) error {
@@ -391,6 +393,9 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 			}
 		}
 	}
+	if uploadErr != nil {
+		return uploadErr
+	}
 
 	// report backup record
 	//  index file 里面是完整的信息，上报日志以及写 local_backup_report，无需包含文件包含内容
@@ -402,21 +407,19 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 	metaInfo.FileList = fileListSimple
 	Report().Result.Println(metaInfo)
 
-	if uploadErr != nil {
-		return uploadErr
-	}
-
-	reportCore, err := core.NewCore(int64(metaInfo.BkCloudId), core.DefaultRetryOpts...)
-	if err != nil {
-		return errors.WithMessagef(err, "report backup result")
-	}
-	var ev = MysqlBackupResultEvent(*metaInfo)
-	logger.Log.Infof("backup result event: %s", ev.String())
-	if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
-		// TODO if failed, need save to local and report it later
-		return reportErr
-	} else {
-		logger.Log.Infof("report backup result success, resp: %s", string(resp))
+	if !r.RemoteSide {
+		reportCore, err := core.NewCore(int64(metaInfo.BkCloudId), core.DefaultRetryOpts...)
+		if err != nil {
+			return errors.WithMessagef(err, "report backup result")
+		}
+		var ev = MysqlBackupResultEvent(*metaInfo)
+		logger.Log.Infof("backup result event: %s", ev.String())
+		if resp, reportErr := reapi.SyncReport(reportCore, &ev); reportErr != nil {
+			// TODO if failed, need save to local and report it later
+			return reportErr
+		} else {
+			logger.Log.Infof("report backup result success, resp: %s", string(resp))
+		}
 	}
 
 	privFile := strings.Replace(indexFilePath, ".index", ".priv", 1)

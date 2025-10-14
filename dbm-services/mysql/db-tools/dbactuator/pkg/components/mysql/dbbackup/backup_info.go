@@ -216,7 +216,7 @@ func (i *InfoFileDetail) getFullFileListFromInfo(checkMD5 bool) error {
 	if i.backupFiles == nil {
 		i.backupFiles = make(map[string][]string)
 	}
-	i.backupFiles[MYSQL_FULL_BACKUP] = util.SortSplitPartFiles(fullFileNames, ".")
+	i.backupFiles[MYSQL_FULL_BACKUP] = util.SortStringWithSuffixAsc(fullFileNames, ".")
 	return nil
 }
 

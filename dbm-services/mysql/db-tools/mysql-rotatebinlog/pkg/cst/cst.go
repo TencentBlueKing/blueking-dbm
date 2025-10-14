@@ -40,3 +40,5 @@ const (
 var BackupEnableAllowed = []string{BackupEnableTrue, BackupEnableFalse, BackupEnableAuto, ""}
 
 const OldRotateDir = "/home/mysql/rotate_logbin"
+
+const BinlogUploadStageDir = "binlog_upload_stage"
