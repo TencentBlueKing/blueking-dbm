@@ -4,7 +4,8 @@
     :class="{ 'is-error': isError }">
     <div
       v-if="!isEdit"
-      class="display-mian">
+      class="display-mian"
+      :class="{ 'is-effect-all': isEffectAll }">
       <BkTag v-if="isEffectAll">{{ t('全部') }}</BkTag>
       <div
         v-else
@@ -178,12 +179,17 @@
     .display-mian {
       display: flex;
       width: 100%;
-      align-items: center;
       margin-top: -3px;
 
-      &:hover {
+      &.is-effect-all {
+        margin-top: -4px;
+
+        .bk-tag {
+          padding: 3px 8px 0;
+        }
+
         .edit-main {
-          display: block;
+          margin-top: 7px;
         }
       }
 
@@ -199,9 +205,8 @@
       }
 
       .edit-main {
-        display: none;
-        width: 12px;
-        height: 12px;
+        display: block;
+        margin-top: 4px;
         margin-left: 4px;
         font-size: 12px;
         color: #979ba5;

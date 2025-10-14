@@ -44,6 +44,15 @@
     </div>
     <div class="basic-info-main">
       <div class="info-item">
+        <div class="name">ID</div>
+        <div class="ml-4 mr-4">:</div>
+        <div
+          v-overflow-tips
+          class="value">
+          {{ riskMemoDetail?.id }}
+        </div>
+      </div>
+      <div class="info-item">
         <div class="name">{{ t('业务') }}</div>
         <div class="ml-4 mr-4">:</div>
         <div
@@ -395,18 +404,18 @@
 </script>
 <style lang="less">
   .risk-detail-info-main {
-    flex: 1;
+    display: flex;
     height: 100%;
-    background: #fff;
     padding: 18px 24px;
     overflow: hidden;
-    display: flex;
+    background: #fff;
+    flex: 1;
     flex-direction: column;
 
     .risk-detail-main {
       .info-title {
-        font-weight: 700;
         font-size: 14px;
+        font-weight: 700;
         color: #313238;
 
         .time-sort {
@@ -420,38 +429,38 @@
       align-items: center;
 
       .title {
-        font-weight: 700;
         font-size: 16px;
+        font-weight: 700;
         color: #313238;
       }
 
       .status {
-        margin-left: 8px;
         margin-right: 4px;
+        margin-left: 8px;
       }
     }
 
     .basic-info-main {
       display: flex;
-      align-items: center;
-      font-size: 12px;
       margin-top: 4px;
       margin-bottom: 16px;
+      font-size: 12px;
+      align-items: center;
       flex-wrap: wrap;
 
       .info-item {
         display: flex;
         align-items: center;
-        margin-right: 32px;
+        margin-right: 26px;
 
         .name {
           color: #979ba5;
         }
 
         .value {
-          color: #4d4f56;
           max-width: 300px;
           overflow: hidden;
+          color: #4d4f56;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -462,23 +471,23 @@
       display: flex;
       width: 100%;
       height: 42px;
-      background: #f0f1f5;
-      font-size: 14px;
       margin-bottom: 16px;
+      font-size: 14px;
+      background: #f0f1f5;
       user-select: none;
 
       .tab-item {
+        display: flex;
         width: 104px;
         height: 42px;
-        display: flex;
+        cursor: pointer;
+        border-radius: 4px 4px 0 0;
         align-items: center;
         justify-content: center;
-        border-radius: 4px 4px 0 0;
-        cursor: pointer;
 
         &.is-active {
-          background: #fff;
           color: #3a84ff;
+          background: #fff;
         }
       }
     }
@@ -496,6 +505,7 @@
 
   .detail-empty-main {
     margin-top: 100px;
+
     .bk-exception-footer {
       margin-top: -50px;
     }

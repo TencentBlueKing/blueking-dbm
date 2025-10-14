@@ -132,6 +132,14 @@
       font-size: 14px; /* 设置编辑器基础字体大小 */
     }
 
+    .w-e-toolbar {
+      .w-e-bar-item {
+        &:last-child {
+          margin-left: auto;
+        }
+      }
+    }
+
     &.is-readonly {
       padding: 0;
 

@@ -143,18 +143,15 @@
     .display-mian {
       display: flex;
       width: 100%;
-      align-items: center;
       margin-top: -3px;
-
-      &:hover {
-        .edit-main {
-          display: block;
-        }
-      }
 
       .value-display {
         max-width: calc(100% - 120px);
         overflow: hidden;
+
+        .bk-tag {
+          padding: 2px 8px 0;
+        }
       }
 
       .tags-display {
@@ -162,9 +159,8 @@
       }
 
       .edit-main {
-        display: none;
-        width: 12px;
-        height: 12px;
+        display: block;
+        margin-top: 7px;
         margin-left: 4px;
         font-size: 12px;
         color: #979ba5;

@@ -104,12 +104,6 @@
       margin-top: 0;
       align-items: center;
 
-      &:hover {
-        .edit-main {
-          display: block;
-        }
-      }
-
       .value-display {
         flex: 0 1 auto;
         max-width: calc(100% - 20px);
@@ -122,9 +116,6 @@
       }
 
       .edit-main {
-        display: none;
-        width: 12px;
-        height: 12px;
         margin-left: 4px;
         font-size: 12px;
         color: #979ba5;
