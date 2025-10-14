@@ -520,6 +520,15 @@ class RedisClusterVersionUpdateOnline(object):
             "can_write_before_switch": True,
             "sync_type": SyncType.SYNC_MS.value,
         }
+
+        # 切换前的检查
+        act_kwargs.cluster["switch_info"] = pairs_to_switch
+        act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_precheck_4_scene.__name__
+        target_pipeline.add_act(
+            act_name=_("切换检查-{}-{}").format(cluster_meta_data["immute_domain"], first_master_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
         # 先将 old_slave 切换成 new_master
         act_kwargs.cluster["switch_info"] = pairs_to_switch
         act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
@@ -902,7 +911,6 @@ class RedisClusterVersionUpdateOnline(object):
             # 执行切换
             # slave执行 slaveof no one
             # 关闭master
-            acts_list = []
             act_kwargs.cluster = {
                 "db_version": "",  # 每个redisinstance主从架构immute_domain等不一样
                 "immute_domain": "",
@@ -917,19 +925,40 @@ class RedisClusterVersionUpdateOnline(object):
                 },
                 "switch_info": [],
             }
+            acts_list = []
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_precheck_4_scene.__name__
+            for cluster in master_meta["clusters"]:
+                precheck_args = deepcopy(act_kwargs)
+                tmp_cluster_meta = get_cluster_info_by_cluster_id(cluster["cluster_id"])
+                precheck_args.cluster["cluster_id"] = tmp_cluster_meta["cluster_id"]
+                precheck_args.cluster["db_version"] = tmp_cluster_meta["major_version"]
+                precheck_args.cluster["immute_domain"] = tmp_cluster_meta["immute_domain"]
+                precheck_args.cluster["cluster_type"] = tmp_cluster_meta["cluster_type"]
+                precheck_args.cluster["switch_info"] = tmp_cluster_meta["master_slave_ins_pairs"]
+                acts_list.append(
+                    {
+                        "act_name": _("切换检查-{}-提升前的".format(tmp_cluster_meta["immute_domain"])),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(precheck_args),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            acts_list = []
             act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
             for cluster in master_meta["clusters"]:
+                switch_args = deepcopy(act_kwargs)
                 tmp_cluster_meta = get_cluster_info_by_cluster_id(cluster["cluster_id"])
-                act_kwargs.cluster["cluster_id"] = tmp_cluster_meta["cluster_id"]
-                act_kwargs.cluster["db_version"] = tmp_cluster_meta["major_version"]
-                act_kwargs.cluster["immute_domain"] = tmp_cluster_meta["immute_domain"]
-                act_kwargs.cluster["cluster_type"] = tmp_cluster_meta["cluster_type"]
-                act_kwargs.cluster["switch_info"] = tmp_cluster_meta["master_slave_ins_pairs"]
+                switch_args.cluster["cluster_id"] = tmp_cluster_meta["cluster_id"]
+                switch_args.cluster["db_version"] = tmp_cluster_meta["major_version"]
+                switch_args.cluster["immute_domain"] = tmp_cluster_meta["immute_domain"]
+                switch_args.cluster["cluster_type"] = tmp_cluster_meta["cluster_type"]
+                switch_args.cluster["switch_info"] = tmp_cluster_meta["master_slave_ins_pairs"]
                 acts_list.append(
                     {
                         "act_name": _("{}-slave提升为master".format(tmp_cluster_meta["immute_domain"])),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(act_kwargs),
+                        "kwargs": asdict(switch_args),
                     }
                 )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
