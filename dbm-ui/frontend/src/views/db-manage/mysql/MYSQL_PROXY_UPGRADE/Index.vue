@@ -47,9 +47,9 @@
       </EditableTable>
       <BkFormItem>
         <BkCheckbox
-          v-model="formData.force"
-          false-label
-          :true-label="false">
+          v-model="formData.is_check_process"
+          :false-label="false"
+          true-label>
           <span
             v-bk-tooltips="t('存在业务连接时需要人工确认')"
             class="safe-action-text">
@@ -140,7 +140,7 @@
   });
 
   const defaultData = () => ({
-    force: false,
+    is_check_process: true,
     payload: createTickePayload(),
     tableData: [createTableRow()],
   });
@@ -182,32 +182,30 @@
   };
 
   useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
-    onSuccess(ticketDetails) {
-      const { clusters, force, infos } = ticketDetails.details;
+    onSuccess(ticketDetail) {
+      const { clusters, infos } = ticketDetail.details;
       if (infos.length > 0) {
-        formData.force = force;
-        formData.tableData = infos.map((item) => {
-          const clusterInfo = clusters[item.cluster_ids[0]];
-          return createTableRow({
-            cluster: {
-              cluster_type: clusterInfo.cluster_type,
-              id: clusterInfo.id,
-              master_domain: clusterInfo.immute_domain,
-              related_clusters: [],
-            },
-            current_version: item.display_info.current_version,
-            target_version: {
-              pkg_id: item.pkg_id,
-              target_package: item.display_info.target_package,
-            },
-          });
+        Object.assign(formData, {
+          ...createTickePayload(ticketDetail),
+          is_check_process: ticketDetail.details.is_check_process,
+          tableData: ticketDetail.details.infos.map((item) =>
+            createTableRow({
+              cluster: {
+                master_domain: clusters[item.cluster_ids[0]].immute_domain,
+              },
+              current_version: item.display_info.current_version,
+              target_version: {
+                pkg_id: item.pkg_id,
+                target_package: item.display_info.target_package,
+              },
+            }),
+          ),
         });
       }
     },
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    force: boolean;
     infos: {
       cluster_ids: number[];
       display_info: {
@@ -216,6 +214,7 @@
       };
       pkg_id: number;
     }[];
+    is_check_process: boolean;
   }>(TicketTypes.MYSQL_PROXY_UPGRADE);
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
@@ -240,7 +239,6 @@
     if (result) {
       createTicketRun({
         details: {
-          force: formData.force,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
@@ -249,6 +247,7 @@
             },
             pkg_id: item.target_version.pkg_id,
           })),
+          is_check_process: formData.is_check_process,
         },
         ...formData.payload,
       });
