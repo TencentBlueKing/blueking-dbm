@@ -2,7 +2,8 @@ import type { ResourcePoolDetailBase } from '../../common';
 
 export interface MigrateUpgrade extends ResourcePoolDetailBase {
   backup_source: 'local' | 'remote';
-  force: boolean;
+  is_check_process: boolean;
+  is_verify_checksum: boolean;
   infos: {
     cluster_ids: number[];
     display_info: {
