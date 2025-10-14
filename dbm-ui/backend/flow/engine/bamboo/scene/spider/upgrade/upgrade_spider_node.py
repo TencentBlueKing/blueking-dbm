@@ -193,9 +193,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             spider_master_ins = get_spider_master_instances(spiders_to_upgrade)
 
             # 切换前做预检测
-            add_spider_upgrade_check_act(
-                sub_pipeline, cluster_id, spider_master_ins, bk_cloud_id, self.is_check_process
-            )
+            add_spider_upgrade_check_act(sub_pipeline, spider_master_ins, bk_cloud_id, self.is_check_process)
 
             # 提前下发文件
             add_spider_media_download_act(sub_pipeline, spider_ips, pkg_id, bk_cloud_id)
