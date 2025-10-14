@@ -62,6 +62,7 @@ class MySQLProxyLocalUpgradeFlow(object):
         self.uid = data["uid"]
         self.upgrade_cluster_list = data["infos"]
         self.force_upgrade = data.get("force", True)
+        self.is_check_process = data.get("is_check_process", True)
 
     def upgrade_mysql_proxy_flow(self):
         proxy_upgrade_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -96,26 +97,25 @@ class MySQLProxyLocalUpgradeFlow(object):
                 ports_map[proxy_instance.machine.ip].append(proxy_instance.port)
                 proxy_ips.append(proxy_instance.machine.ip)
             # 切换前做预检测
-            if not self.force_upgrade:
-                check_db_connect_sub_flow_list = []
-                for cluster_id in cluster_ids:
-                    cluster_obj = Cluster.objects.get(id=cluster_id)
-                    ps = ProxyInstance.objects.filter(cluster=cluster_obj)
-                    proxy_ins = []
-                    for p in ps:
-                        admin_port = p.port + 1000
-                        proxy_ins.append(f"{p.machine.ip}:{admin_port}")
-                    sub_build = check_sub_flow(
-                        uid=self.uid,
-                        root_id=self.root_id,
-                        cluster=cluster_obj,
-                        is_check_client_conn=True,
-                        is_proxy=True,
-                        check_client_conn_inst=proxy_ins,
-                    )
-                check_db_connect_sub_flow_list.append(sub_build)
-                if len(check_db_connect_sub_flow_list) > 0:
-                    sub_pipeline.add_parallel_sub_pipeline(check_db_connect_sub_flow_list)
+            check_db_connect_sub_flow_list = []
+            for cluster_id in cluster_ids:
+                cluster_obj = Cluster.objects.get(id=cluster_id)
+                ps = ProxyInstance.objects.filter(cluster=cluster_obj)
+                proxy_ins = []
+                for p in ps:
+                    admin_port = p.port + 1000
+                    proxy_ins.append(f"{p.machine.ip}:{admin_port}")
+                sub_build = check_sub_flow(
+                    uid=self.uid,
+                    root_id=self.root_id,
+                    cluster=cluster_obj,
+                    is_check_client_conn=self.is_check_process,
+                    is_proxy=True,
+                    check_client_conn_inst=proxy_ins,
+                )
+            check_db_connect_sub_flow_list.append(sub_build)
+            if len(check_db_connect_sub_flow_list) > 0:
+                sub_pipeline.add_parallel_sub_pipeline(check_db_connect_sub_flow_list)
             # 提前下发文件
             sub_pipeline.add_act(
                 act_name=_("下发升级的安装包"),

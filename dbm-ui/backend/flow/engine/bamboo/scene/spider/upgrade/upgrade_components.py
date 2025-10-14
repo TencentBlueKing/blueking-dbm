@@ -346,9 +346,7 @@ def add_spider_disable_alarm_shield_act(sub_pipeline) -> None:
     sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
 
 
-def add_spider_upgrade_check_act(
-    sub_pipeline, cluster_id: int, spider_master_ins: List, bk_cloud_id: int, force_upgrade: bool
-) -> None:
+def add_spider_upgrade_check_act(sub_pipeline, spider_master_ins: List, bk_cloud_id: int, check_process: bool) -> None:
     """
     添加spider升级检查活动
 
@@ -359,7 +357,7 @@ def add_spider_upgrade_check_act(
         bk_cloud_id: 云区域ID
         force_upgrade: 是否强制升级
     """
-    if not force_upgrade:
+    if check_process:
         sub_pipeline.add_act(
             act_name=_("检查Master Spider端连接情况"),
             act_component_code=CheckClientConnComponent.code,
