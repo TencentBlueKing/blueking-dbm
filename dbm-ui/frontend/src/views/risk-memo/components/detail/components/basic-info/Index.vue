@@ -18,7 +18,9 @@
         class="item-main">
         <div class="item-title">{{ t('业务影响') }}</div>
         <span class="mr-8 ml-4">:</span>
-        <div class="value-main">
+        <div
+          class="value-main"
+          style="margin-top: -2px">
           <BizInpactEdit
             :biz-id="data.bk_biz_id"
             :manage-permission="managePermission"

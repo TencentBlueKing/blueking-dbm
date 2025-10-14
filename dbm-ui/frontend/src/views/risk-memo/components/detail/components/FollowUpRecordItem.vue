@@ -86,6 +86,10 @@
           <RiskMemoEditor v-model="editorHtml" />
           <div class="operate-btn-main">
             <BkButton
+              v-bk-tooltips="{
+                disabled: editorHtml !== data.content,
+                content: t('暂无改动，无需保存'),
+              }"
               class="w-88"
               :disabled="editorHtml === data.content"
               :loading="updateLoading"
@@ -241,7 +245,6 @@
     .record-content-main {
       flex: 1;
       margin-bottom: 24px;
-      overflow: hidden;
 
       .record-info {
         margin-bottom: 8px;
@@ -295,7 +298,7 @@
         width: 100%;
         padding: 16px;
         overflow: auto;
-        font-family: MicrosoftYaHei, Arial, sans-serif;
+        font-family: MicrosoftYaHei, sans-serif;
         color: #313238;
         background: #f5f7fa;
         border-radius: 8px;

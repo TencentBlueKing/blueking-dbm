@@ -28,7 +28,6 @@
         :data="bizInpactList"
         size="small" />
     </div>
-
     <div
       ref="descRef"
       v-bk-tooltips="{
@@ -177,7 +176,9 @@
 
       .title {
         overflow: hidden;
+        font-size: 14px;
         font-weight: 700;
+        color: #313238;
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
