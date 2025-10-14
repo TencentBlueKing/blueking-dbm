@@ -101,7 +101,7 @@ func (m *MySql) connectMySql() ([]*hamysql.DB, []*haprobe.DbEvent, error) {
 	}
 
 	if len(dbs) == 0 {
-		return nil, events, gerrors.New(gerrors.ComponentFailure, "no usable mysql db operator")
+		return nil, events, gerrors.New(gerrors.MysqlFailure, "no usable mysql db operator")
 	}
 
 	return dbs, events, nil

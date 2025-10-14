@@ -174,7 +174,7 @@ func PostBKMonitor(timeout time.Duration, edatas ...*EventData) error {
 
 	datas, err := json.Marshal(event)
 	if err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "marshal event data failed, %v", err)
+		return gerrors.Newf(gerrors.BkMonitorFailure, "marshal event data failed, %v", err)
 	}
 
 	cmd := exec.CommandContext(ctx, bkMonitorBeat, []string{
@@ -192,7 +192,7 @@ func PostBKMonitor(timeout time.Duration, edatas ...*EventData) error {
 
 	if err = cmd.Run(); err != nil {
 		logger.Error("post bkmonitor event failed, stdout(%s), stderr(%s), %v", stdout.String(), stderr.String(), err)
-		return gerrors.Newf(gerrors.ComponentFailure, "post bkmonitor event failed, %v", err)
+		return gerrors.Newf(gerrors.BkMonitorFailure, "post bkmonitor event failed, %v", err)
 	}
 
 	return nil

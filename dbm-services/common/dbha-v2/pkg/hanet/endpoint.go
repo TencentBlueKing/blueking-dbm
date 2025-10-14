@@ -45,7 +45,7 @@ type Endpoint struct {
 func NewEndpoint(dsn string) (*Endpoint, error) {
 	parsedURL, err := url.Parse(dsn)
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidURL, "invalid DSN(%s)", dsn)
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid DSN(%s)", dsn)
 	}
 
 	epoint := &Endpoint{}
@@ -53,7 +53,7 @@ func NewEndpoint(dsn string) (*Endpoint, error) {
 	epoint.Host = parsedURL.Hostname()
 	port, err := strconv.Atoi(parsedURL.Port())
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidURL, "invalid port in DSN(%s)", dsn)
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid port in DSN(%s)", dsn)
 	}
 	epoint.Port = port
 

@@ -78,7 +78,7 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 
 	if err != nil {
 		logger.Error("create admin grpc client failed. errmsg(%v)", err)
-		return nil, gerrors.New(gerrors.ComponentFailure, err.Error())
+		return nil, gerrors.New(gerrors.GrpcFailure, err.Error())
 	}
 
 	ctxBase, cancel := context.WithCancel(ctx)
@@ -242,7 +242,7 @@ func (a *AdminClient) HeartbeatRequest(req *proto.HeartbeatRequest) (*proto.Hear
 	defer a.mutex.RUnlock()
 
 	if a.closed {
-		return nil, gerrors.New(gerrors.NetConnectionBroken, "admin client connection broken")
+		return nil, gerrors.New(gerrors.GrpcFailure, "admin client connection broken")
 	}
 
 	return a.client.Heartbeat(a.ctx, req)
@@ -252,7 +252,7 @@ func (a *AdminClient) WatchConfigRequest(req *proto.ProbeConfigRequest) (chan *p
 	a.mutex.RLock()
 	if a.closed {
 		a.mutex.RUnlock()
-		return nil, gerrors.New(gerrors.NetConnectionBroken, "admin client is closed")
+		return nil, gerrors.New(gerrors.GrpcFailure, "admin client is closed")
 	}
 
 	if a.stream == nil {

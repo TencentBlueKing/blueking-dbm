@@ -56,7 +56,7 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 	cli.createEtcdClient = func() (*clientv3.Client, error) {
 		etcdCli, err := clientv3.New(cli.opts.Config())
 		if err != nil {
-			return nil, gerrors.Newf(gerrors.ComponentFailure, "%v", err)
+			return nil, gerrors.Newf(gerrors.EtcdFailure, "%v", err)
 		}
 
 		return etcdCli, nil
@@ -107,7 +107,7 @@ func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
 
 	session, err := concurrency.NewSession(etcdCli)
 	if err != nil {
-		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
 	muKey := c.opts.registryRootKeyPrefix + "/mutex/" + key
@@ -130,7 +130,7 @@ func (c Client) CreateElection(name string) (ConcurrencyElection, error) {
 
 	session, err := concurrency.NewSession(etcdCli)
 	if err != nil {
-		return nil, gerrors.NewE(gerrors.ComponentFailure, err)
+		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
 	electionKey := c.opts.registryRootKeyPrefix + "/election/leader/" + name

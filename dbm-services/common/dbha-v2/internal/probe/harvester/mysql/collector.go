@@ -121,7 +121,7 @@ func collectMySQLInfo(db *gorm.DB, dbMetric *haprobe.DatabaseMetric) error {
 func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 	cpuPercent, err := cpu.Percent(1*time.Second, false)
 	if err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "failed to obtain CPU percent, %v", err)
+		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU percent, %v", err)
 	}
 
 	if len(cpuPercent) == 0 {
@@ -130,7 +130,7 @@ func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 
 	cpuTimes, err := cpu.Times(false)
 	if err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "failed to obtain CPU time, %v", err)
+		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU time, %v", err)
 	}
 
 	if len(cpuTimes) == 0 {
@@ -150,7 +150,7 @@ func obtainCPUMetrics(systemMetric *haprobe.HostMetric) error {
 
 	load, err := load.Avg()
 	if err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "failed to obtain CPU load average, %v", err)
+		return gerrors.Newf(gerrors.Failure, "failed to obtain CPU load average, %v", err)
 	}
 
 	systemMetric.CpuLoad1 = load.Load1

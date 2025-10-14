@@ -49,7 +49,7 @@ type Migrator struct {
 
 func (m *Migrator) createDatabase(db *hamysql.DB) error {
 	if err := db.DB().AutoMigrate(tables...); err != nil {
-		return gerrors.Newf(gerrors.ComponentFailure, "auto migrate failed, %v", err)
+		return gerrors.Newf(gerrors.MysqlFailure, "auto migrate failed, %v", err)
 	}
 
 	return nil
