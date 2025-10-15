@@ -23,7 +23,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
-from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import get_cluster_info
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -115,7 +115,7 @@ class MySQLMasterFailOverFlow(object):
                 sub_sub_flow_context["change_master_force"] = True
 
                 # 获取对应的集群信息
-                cluster = MySQLMasterSlaveSwitchFlow.get_cluster_info(
+                cluster = get_cluster_info(
                     cluster_id=cluster_id,
                     bk_biz_id=sub_sub_flow_context["bk_biz_id"],
                     new_master_ip=info["slave_ip"]["ip"],
