@@ -1,9 +1,9 @@
 package atommongodb
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"encoding/json"
 	"fmt"
@@ -110,7 +110,7 @@ func (s *instOpJob) Run() error {
 
 func (s *instOpJob) doStartDbmon() error {
 	startSh := "/home/mysql/bk-dbmon/start.sh"
-	_, _, _, err := mycmd.New(startSh).Run(time.Second * 60)
+	_, err := mycmd.New(startSh).Run(time.Second * 60)
 	if err != nil {
 		return errors.Wrap(err, "start dbmon failed")
 	}
@@ -119,7 +119,8 @@ func (s *instOpJob) doStartDbmon() error {
 
 func (s *instOpJob) doStopDbmon() error {
 	stopSh := "/home/mysql/bk-dbmon/stop.sh"
-	_, _, _, err := mycmd.New(stopSh).Run(time.Second * 600)
+	ret, err := mycmd.New(stopSh).Run(time.Second * 600)
+	s.runtime.Logger.Info("exec %s, exitCode:%d, err:%v", ret.Cmdline, ret.ExitCode, err)
 	if err != nil {
 		return errors.Wrap(err, "stop dbmon failed")
 	}
