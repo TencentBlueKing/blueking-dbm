@@ -210,7 +210,7 @@
       if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
         return;
       }
-      if (props.selectable && modelValue.value) {
+      if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
         const isExist = specList.value.some((item) => item.spec_id === modelValue.value);
         if (!isExist && specList.value.length) {
           modelValue.value = 0;
@@ -260,8 +260,8 @@
   }
 
   .spec-column-option {
-    width: 100%;
     display: flex;
+    width: 100%;
     justify-content: space-between;
   }
 </style>

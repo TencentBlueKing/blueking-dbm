@@ -34,9 +34,9 @@
       @change="handleInputChange" />
   </EditableColumn>
   <InstanceSelector
-    :key="clusterType"
     v-model:is-show="showSelector"
     :cluster-types="['mongoCluster']"
+    hide-manual-input
     :selected="selectedIps"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -127,22 +127,6 @@
                 }),
             },
           },
-          {
-            tableConfig: {
-              getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
-                getMongoInstancesList({
-                  ...params,
-                  cluster_type: props.clusterType,
-                }),
-            },
-            topoConfig: {
-              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
-                getMongoTopoList({
-                  ...params,
-                  cluster_type: props.clusterType,
-                }),
-            },
-          },
         ],
       }) as unknown as Record<ClusterTypes, PanelListType>,
   );
@@ -188,6 +172,7 @@
             .map((cluster) => ({
               id: cluster.id,
               master_domain: cluster.master_domain,
+              region: cluster.region,
             }))
             .filter((cluster) => cluster.master_domain !== item.master_domain),
           shard: item.shard,
@@ -206,7 +191,7 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       cluster_id: 0,
-      cluster_type: ClusterTypes.MONGO_REPLICA_SET as MongodbInstanceModel['cluster_type'],
+      cluster_type: '' as MongodbInstanceModel['cluster_type'],
       ip: value,
       machine_type: '' as MongodbInstanceModel['machine_type'],
       master_domain: '',
@@ -216,6 +201,7 @@
     };
     if (value) {
       queryHost({
+        cluster_type: props.clusterType,
         instance_address: value,
       });
     }

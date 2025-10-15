@@ -14,7 +14,6 @@
 <template>
   <PrimaryTable
     :data="tableData"
-    ellipsis
     row-key="ip"
     :rowspan-and-colspan="rowspanAndColspan">
     <TableColumn
@@ -53,8 +52,6 @@
 
   const { t } = useI18n();
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
-
   const spanInfo: {
     rowIndex: number;
     rowspan: number;
@@ -75,7 +72,7 @@
         }
       });
       spanInfo.push({
-        rowIndex: mergeCells.value.length ? mergeCells.value[mergeCells.value.length - 1].rowspan : 0,
+        rowIndex: spanInfo.length ? spanInfo[spanInfo.length - 1].rowspan : 0,
         rowspan: item.mongo_config.length + item.mongodb.length + item.mongos.length,
       });
       return results;

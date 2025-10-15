@@ -12,19 +12,66 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
     <TableColumn
-      col-key="immute_domain"
-      :title="t('目标分片集群')" />
+      col-key="cluster_id"
+      fixed="left"
+      :min-width="250"
+      :title="t('目标分片集群')">
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+      </template>
+    </TableColumn>
     <TableColumn
-      col-key="node_type"
-      :title="t('扩容节点类型')" />
+      col-key="current_mongos_num"
+      :title="t('当前数量（台）')"
+      :width="120">
+    </TableColumn>
     <TableColumn
-      col-key="sepc_name"
-      :title="t('扩容规格')" />
+      col-key="resource_spec_count"
+      :title="t('扩容数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.resource_spec.mongos.count }}
+      </template>
+    </TableColumn>
     <TableColumn
-      col-key="add_shard_num"
-      :title="t('扩容数量（台）')" />
+      col-key="final_spec_count"
+      :title="t('最终数量（台）')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ row.current_mongos_num + row.resource_spec.mongos.count }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="spec_id"
+      :title="t('扩容规格')"
+      :width="120">
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.specs[row.resource_spec.mongos.spec_id].name }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.mongos?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.mongos.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TableColumn>
   </PrimaryTable>
 </template>
 
@@ -39,30 +86,14 @@
     ticketDetails: TicketModel<Mongodb.AddMongos>;
   }
 
-  interface RowData {
-    add_shard_num: number;
-    immute_domain: string;
-    node_type: string;
-    sepc_name: string;
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.MONGODB_ADD_MONGOS,
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { clusters, infos, specs } = props.ticketDetails.details;
-
-  const tableData = ref<RowData[]>([]);
-
-  tableData.value = infos.map((item) => ({
-    add_shard_num: item.resource_spec.mongos.count,
-    immute_domain: clusters[item.cluster_id].immute_domain,
-    node_type: 'mongos',
-    sepc_name: specs[item.resource_spec.mongos.spec_id].name,
-  }));
 </script>

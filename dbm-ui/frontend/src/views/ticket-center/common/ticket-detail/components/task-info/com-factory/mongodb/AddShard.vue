@@ -20,7 +20,7 @@
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
-      <template #default="{ row }: { row: RowData }">
+      <template #default="{row}: {row: RowData}">
         {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
     </TableColumn>
@@ -38,7 +38,7 @@
       col-key="cluster_type"
       :title="t('最终集群分片数')"
       :width="120">
-      <template #default="{ row }: { row: RowData }">
+      <template #default="{row}: {row: RowData}">
         {{ row.current_shards_num + row.add_shards_num }}
       </template>
     </TableColumn>
@@ -56,7 +56,7 @@
       col-key="resource_spec.mongodb.spec_id"
       :min-width="200"
       :title="t('规格')">
-      <template #default="{ row }: { row: RowData }">
+      <template #default="{row}: {row: RowData}">
         {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
       </template>
     </TableColumn>
@@ -64,8 +64,27 @@
       col-key="resource_spec.mongodb.count"
       :title="t('新增机器（组）')"
       :width="120">
-      <template #default="{ row }: { row: RowData }">
+      <template #default="{row}: {row: RowData}">
         {{ row.add_shards_num / row.single_host_shard_num }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec.mongodb.label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.mongodb?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.mongodb.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </template>
     </TableColumn>
   </PrimaryTable>

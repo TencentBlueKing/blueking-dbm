@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import http from '@services/http';
+import type { ListBase, MachineRelatedInstance } from '@services/types';
 
 const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/mongodb/bizs/${bizId}/toolbox`;
 
@@ -46,4 +47,30 @@ export function getClusterNetTcpResult(params: { job_instance_id: number }) {
     }[];
     finished: boolean;
   }>(`${getRootPath()}/get_cluster_net_tcp_result/`, params);
+}
+
+/**
+ * 查询分片信息
+ */
+export function getMongoShard(params: {
+  bk_biz_id: number;
+  cluster_id?: number;
+  limit?: number;
+  offset?: number;
+  shard_names?: string; // 逗号分隔
+}) {
+  return http.get<
+    ListBase<
+      {
+        cluster_id: number;
+        disaster_tolerance_level: string;
+        major_version: string;
+        master_domain: string;
+        region: string;
+        related_instance: MachineRelatedInstance[];
+        shard_name: string;
+        shard_node_count: number;
+      }[]
+    >
+  >(`${getRootPath()}/get_mongo_shard/`, params);
 }

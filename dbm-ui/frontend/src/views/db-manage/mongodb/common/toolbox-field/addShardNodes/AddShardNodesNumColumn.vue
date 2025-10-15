@@ -1,15 +1,14 @@
 <template>
   <EditableColumn
-    :append-rules="rules"
     :disabled-method="() => !clusterId"
-    field="target_num"
-    :label="t('扩容至（节点数）')"
+    field="add_shard_nodes_num"
+    :label="t('扩容节点数')"
     required
-    :width="200">
+    :width="150">
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="t('扩容至（节点数）')"
+        :title="t('扩容节点数')"
         type="number-input"
         @change="handleBatchEditChange">
         <span
@@ -22,7 +21,7 @@
     </template>
     <EditableInput
       v-model="modelValue"
-      :min="min"
+      :min="1"
       type="number" />
   </EditableColumn>
 </template>
@@ -33,7 +32,6 @@
 
   interface Props {
     clusterId: number;
-    min: number;
   }
 
   interface Emits {
@@ -41,24 +39,11 @@
     (e: 'change'): void;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<number>();
 
   const { t } = useI18n();
-
-  const rules = [
-    {
-      message: t('必须大于当前节点数'),
-      trigger: 'change',
-      validator: (value: number) => value > props.min,
-    },
-    {
-      message: t('不能少于n台', { n: 3 }),
-      trigger: 'change',
-      validator: (value: number) => value >= 3,
-    },
-  ];
 
   const showBatchEdit = ref(false);
 
@@ -67,7 +52,7 @@
   };
 
   const handleBatchEditChange = (value: string[] | string) => {
-    emits('batch-edit', value as string, 'target_num');
+    emits('batch-edit', value as string, 'add_shard_nodes_num');
   };
 </script>
 
