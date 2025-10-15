@@ -13,8 +13,9 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_RANGE_DAYS
-from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.builders.common.constants import MySQLBackupSource, MySQLBackupType
 from backend.ticket.builders.common.field import DBTimezoneField
+from backend.utils.time import str2datetime
 
 from . import mock_data
 
@@ -22,6 +23,12 @@ from . import mock_data
 class BackupLogSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     days = serializers.IntegerField(help_text=_("查询时间间隔"), default=BACKUP_LOG_RANGE_DAYS, required=False)
+    backup_method = serializers.ChoiceField(
+        help_text=_("备份类型"),
+        choices=MySQLBackupType.get_choices(),
+        required=False,
+        default="default",
+    )
 
 
 class BackupLogTendbResponseSerializer(serializers.Serializer):
@@ -45,6 +52,39 @@ class BackupLogRollbackTimeSerializer(serializers.Serializer):
     backup_source = serializers.ChoiceField(
         help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
     )
+    backup_method = serializers.ChoiceField(
+        help_text=_("备份类型"),
+        choices=MySQLBackupType.get_choices(),
+        required=False,
+        default="default",
+    )
+
+
+class FilterBackupLogSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    deadlines_days = serializers.IntegerField(help_text=_("指定备份天数前数据"), required=False)
+    latest_time = serializers.DateTimeField(help_text=_("备份最迟的时间"), required=False)
+    backup_method = serializers.ChoiceField(
+        help_text=_("过滤备份类型"),
+        choices=MySQLBackupType.get_choices(),
+        required=False,
+    )
+    is_full_backup = serializers.BooleanField(help_text=_("是否为全备"), required=False, default=False)
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
+    )
+
+    def validate(self, data):
+        # 为备份方法提供默认值并将其转换为列表
+        default_backup_methods = "full_by_ticket,full_by_regular,partial_by_ticket"
+        backup_method = data.get("backup_method", default_backup_methods)
+        data["backup_method"] = backup_method.split(",")
+
+        # 处理 last_time 字段并将其转换为 datetime 对象
+        latest_time = data.get("latest_time")
+        data["latest_time"] = str2datetime(latest_time) if latest_time else None
+
+        return data
 
 
 class BackupLogRollbackTimeTendbResponseSerializer(serializers.Serializer):

@@ -88,6 +88,17 @@ class MySQLBackupSource(str, StructuredEnum):
     REMOTE = EnumField("remote", _("远程"))
 
 
+class MySQLBackupType(str, StructuredEnum):
+    """
+    库备份的类型
+    """
+
+    FULL_BY_TICKET = EnumField("full_by_ticket", _("单据全库备份"))
+    PARTIAL_BY_TICKET = EnumField("partial_by_ticket", _("单据库表备份"))
+    FULL_BY_REGULAR = EnumField("full_by_regular", _("例行全备"))
+    NON_FULL_BY_REGULAR = EnumField("non_full_by_regular", _("例行非全备"))
+
+
 class MySQLChecksumTicketMode(str, StructuredEnum):
     """
     数据校验后修复执行类型
