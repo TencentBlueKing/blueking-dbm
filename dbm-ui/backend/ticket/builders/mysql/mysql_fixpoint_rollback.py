@@ -157,8 +157,13 @@ class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     retry_type = FlowRetryType.MANUAL_RETRY
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT, is_apply=True)
-class MysqlFixPointFlowBuilder(MysqlFixPointRollbackFlowBuilder):
+@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_NEW_CLUSTER, is_apply=True)
+class MysqlFixPointFlowNewClusterBuilder(MysqlFixPointRollbackFlowBuilder):
+    inner_flow_name = _("定点构造执行")
+
+
+@builders.BuilderFactory.register(TicketType.MYSQL_FIXPOINT_EXIST_CLUSTER, is_apply=True)
+class MysqlFixPointFlowExistClusterBuilder(MysqlFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 

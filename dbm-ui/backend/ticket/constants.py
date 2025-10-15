@@ -266,7 +266,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
     MYSQL_ROLLBACK = TicketEnumField("MYSQL_ROLLBACK", _("MySQL 构造回档"), _("回档"))
-    MYSQL_FIXPOINT = TicketEnumField("MYSQL_FIXPOINT", _("MySQL 定点构造V2"), _("构造"))
+    MYSQL_FIXPOINT_NEW_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_NEW_CLUSTER", _("MySQL 数据构造到新集群"), _("构造"))
+    MYSQL_FIXPOINT_EXIST_CLUSTER = TicketEnumField("MYSQL_FIXPOINT_EXIST_CLUSTER", _("MySQL 数据构造到已有集群"), _("构造"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
     # deprecated
