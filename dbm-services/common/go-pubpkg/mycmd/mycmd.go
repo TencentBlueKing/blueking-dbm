@@ -9,10 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 type Password string
@@ -107,6 +104,9 @@ func (c *CmdBuilder) GetCmdLine2(replacePassword bool) string {
 
 // GetCmd Get cmd and args
 func (c *CmdBuilder) GetCmd() (bin string, args []string) {
+	if len(c.Args) == 0 {
+		return "", nil
+	}
 	bin = c.Args[0].(string)
 	args = make([]string, 0, len(c.Args)-1)
 	for _, argItem := range c.Args[1:] {
@@ -118,39 +118,18 @@ func (c *CmdBuilder) GetCmd() (bin string, args []string) {
 // RunByBash Exec cmd by bash with timeout. and return exitCode, stdout, stderr, error
 func (c *CmdBuilder) RunByBash(suUser string, timeout time.Duration) (exitCode int, stdout, stderr string, err error) {
 	cmdLine := c.GetCmdLine(suUser, false)
-	return RunCmdByBash(cmdLine, "", nil, timeout)
+	return RunCmdByBash(cmdLine, nil, timeout)
 }
 
-// Run Exec with timeout. and return exitCode, stdout, stderr, error
-func (c *CmdBuilder) Run(timeout time.Duration) (exitCode int, stdout, stderr string, err error) {
-	cmd, args := c.GetCmd()
-	return RunCmd(cmd, args, "", nil, timeout)
+// Run2 Exec with timeout. and return ExecResult. set stdout, stderr to bytes.buffer
+// stdout: bytes.Buffer, stderr: bytes.Buffer
+// ret.GetStdout() return stdout.String()
+// ret.GetStderr() return stderr.String()
+func (c *CmdBuilder) Run(timeout time.Duration) (*ExecResult, error) {
+	return c.Run3(timeout, bytes.NewBuffer(nil), bytes.NewBuffer(nil))
 }
 
-// Run2 Exec with timeout. and return ExecResult
-func (c *CmdBuilder) Run2(timeout time.Duration) (*ExecResult, error) {
-	bin, args := c.GetCmd()
-	ctx := context.Background()
-	if timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-	}
-	stdoutBuffer := bytes.Buffer{}
-	stderrBuffer := bytes.Buffer{}
-	var ret = NewExecResult(&stdoutBuffer, &stderrBuffer)
-	ret.Start = time.Now()
-	cmd := exec.CommandContext(ctx, bin, args...)
-	cmd.Stdout = ret.Stdout
-	cmd.Stderr = ret.Stderr
-	err := cmd.Run()
-	ret.End = time.Now()
-	ret.Cmdline = c.GetCmdLine("", false)
-	return ret, err
-
-}
-
-// Run3 Exec with timeout. and return ExecResult
+// Run3 Exec with timeout, stdout, stderr. and return ExecResult. set stdout, stderr to
 func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*ExecResult, error) {
 	bin, args := c.GetCmd()
 	ctx := context.Background()
@@ -159,9 +138,13 @@ func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*Exe
 		ctx, cancel = context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 	}
-	stdoutBuffer := bytes.Buffer{}
-	stderrBuffer := bytes.Buffer{}
-	var ret = NewExecResult(&stdoutBuffer, &stderrBuffer)
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	var ret = NewExecResult(stdout, stderr)
 	ret.Start = time.Now()
 	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Stdout = stdout
@@ -169,44 +152,11 @@ func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*Exe
 	err := cmd.Run()
 	ret.End = time.Now()
 	ret.Cmdline = c.GetCmdLine("", false)
+	if cmd.ProcessState != nil {
+		ret.ExitCode = cmd.ProcessState.ExitCode()
+	} else {
+		ret.ExitCode = -1
+	}
+	ret.Err = err
 	return ret, err
-
-}
-
-// RunBackground run in background
-func (c *CmdBuilder) RunBackground(outputFileName string) (pid int, err error) {
-	bin, args := c.GetCmd()
-	cmd := exec.Command(bin, args...)
-	// 设置进程属性，使其在 Go 程序退出后继续运行
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-
-	if outputFileName != "" {
-		var outputFile *os.File
-		if outputFile, err = os.Create(outputFileName); err != nil {
-			err = errors.Wrap(err, "os.Create output.log")
-			return
-		} else {
-			defer outputFile.Close()
-			cmd.Stdout = outputFile
-			cmd.Stderr = outputFile
-		}
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		err = errors.Wrap(err, "cmd.Start")
-		return
-	}
-	pid = cmd.Process.Pid
-	// 确保命令在后台运行
-	err = cmd.Process.Release()
-	if err != nil {
-		err = errors.Wrap(err, "cmd.Process.Release")
-		return
-	}
-
-	return pid, err
-
 }

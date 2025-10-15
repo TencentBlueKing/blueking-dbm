@@ -1,8 +1,8 @@
 package logical
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/config"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/util"
 	"fmt"
