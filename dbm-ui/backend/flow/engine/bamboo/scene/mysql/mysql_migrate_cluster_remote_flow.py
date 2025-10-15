@@ -11,13 +11,14 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.configuration.constants import DBType, MySQLMonitorPauseTime
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
@@ -37,9 +38,11 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
@@ -259,6 +262,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                     "infos": [],
                 },
             }
+
+            instances = []
             sync_data_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
                 cluster_model = Cluster.objects.get(id=cluster_id)
@@ -283,6 +288,14 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
                 cluster["charset"] = self.data["charset"]
                 cluster["backup_source"] = self.ticket_data["backup_source"]
+
+                instances.extend(
+                    [
+                        "{}:{}".format(cluster["new_slave_ip"], cluster["new_slave_port"]),
+                        "{}:{}".format(cluster["new_master_ip"], cluster["new_master_port"]),
+                    ]
+                )
+
                 checksum_info["details"]["infos"] = []
                 checksum_info["details"]["infos"].append(
                     {
@@ -505,21 +518,27 @@ class MySQLMigrateClusterRemoteFlow(object):
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
                 )
+            # === 主流程 ===
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
-            # 同步配置
-            # tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_mycnf_sub_pipeline_list)
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": str(instances),
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        }
+                    ],
+                },
+            )
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
-            # 新机器安装周边组件
-            # 这时候新机器一个是repeater, 一个是slave
-            instances = [
-                "{}:{}".format(ip, port)
-                for ip in [self.data["new_master_ip"], self.data["new_slave_ip"]]
-                for port in self.data["ports"]
-            ]
-            # 不能部署备份
-            # 不然这些未启用机器的备份可能会污染正式集群
+            # 不能部署备份,不然这些未启用机器的备份可能会污染正式集群
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -534,19 +553,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_cc_standardize=False,
                     with_instance_standardize=False,
                 )
-            )
-
-            tendb_migrate_pipeline.add_act(
-                act_name=_("屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
-                        port=0,
-                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
-                    )
-                ),
             )
 
             # 人工确认切换迁移实例, 释放解除之前的prox替换单据互斥
@@ -578,18 +584,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_cc_standardize=False,
                 )
             )
-
             tendb_migrate_pipeline.add_act(
-                act_name=_("解除屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
-                        port=0,
-                        enable=True,
-                    )
-                ),
+                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
 
             if use_for_upgrade:

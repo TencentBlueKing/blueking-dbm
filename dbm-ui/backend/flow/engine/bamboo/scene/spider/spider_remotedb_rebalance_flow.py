@@ -183,11 +183,11 @@ class TenDBRemoteRebalanceFlow(object):
                 cluster = {
                     "new_master_ip": node["master"]["ip"],
                     "new_slave_ip": node["slave"]["ip"],
-                    "cluster_id": cluster_info["cluster_id"],
-                    "bk_cloud_id": cluster_info["bk_cloud_id"],
-                    "bk_biz_id": cluster_info["bk_biz_id"],
+                    "cluster_id": cluster_class.id,
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
+                    "bk_biz_id": cluster_class.bk_biz_id,
                     "ports": cluster_info["ports"],
-                    "version": cluster_info["cluster"]["major_version"],
+                    "version": cluster_class.major_version,
                 }
                 install_sub_pipeline.add_act(
                     act_name=_("写入初始化实例的db_meta元信息"),
@@ -338,7 +338,7 @@ class TenDBRemoteRebalanceFlow(object):
             )
             switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换remote node 节点")))
 
-            # 阶段6: 主机级别卸载实例,卸载指定ip下的所有实例
+            # 阶段5: 主机级别卸载实例,卸载指定ip下的所有实例
             uninstall_svr_sub_pipeline_list = []
             machines = cluster_info["masters"] + cluster_info["slaves"]
             for ip in machines:
@@ -354,7 +354,7 @@ class TenDBRemoteRebalanceFlow(object):
                         )
                     ),
                 )
-                ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_info["cluster_id"]}
+                ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_class.id}
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("整机卸载前删除元数据"),
                     act_component_code=SpiderDBMetaComponent.code,
@@ -373,7 +373,7 @@ class TenDBRemoteRebalanceFlow(object):
                     kwargs=asdict(
                         ClearMachineKwargs(
                             exec_ip=ip,
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
                 )
@@ -385,6 +385,8 @@ class TenDBRemoteRebalanceFlow(object):
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
                 )
+
+            # === 主流程 ===
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
             tendb_migrate_pipeline.add_act(
@@ -460,10 +462,10 @@ class TenDBRemoteRebalanceFlow(object):
 
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
-            # # 卸载remote节点
+            # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_all_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_id"]))
+                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(cluster_class.id))
             )
 
         # 运行流程

@@ -12,6 +12,7 @@ import copy
 import logging.config
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -35,6 +36,8 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -462,15 +465,29 @@ class MySQLMigrateSingleFlow(object):
                 )
             ]
 
-            # 安装实例
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
-
-            # 数据同步
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
-            # 新机器安装周边组件
+            # === 主流程 ===
             instances = [
                 "{}{}{}".format(self.data["new_orphan_ip"], IP_PORT_DIVIDER, port) for port in self.data["ports"]
             ]
+            # 安装实例
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": str(instances),
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [self.data["new_orphan_ip"]],
+                        }
+                    ],
+                },
+            )
+            # 数据同步
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             # 不能部署备份
             # 不然这些未启用机器的备份可能会污染正式集群
             tendb_migrate_pipeline.add_sub_pipeline(
@@ -488,7 +505,7 @@ class MySQLMigrateSingleFlow(object):
 
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
-
+            #  todo tendbSingle 安装周边选择哪些插件
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -509,18 +526,8 @@ class MySQLMigrateSingleFlow(object):
                     with_cc_standardize=False,
                 )
             )
-
             tendb_migrate_pipeline.add_act(
-                act_name=_("解除屏蔽监控 {}").format(self.data["new_orphan_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ips=[self.data["new_orphan_ip"]],
-                        port=0,
-                        enable=True,
-                    )
-                ),
+                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
 
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
