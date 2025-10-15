@@ -52,8 +52,9 @@
    * 资源池协议的单据
    */
   const resourcePoolTickets = {
-    [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongo 整机替换
     [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongo 缩容接入层
+    [TicketTypes.MONGODB_REPLICASET_CUTOFF]: TicketTypes.MONGODB_REPLICASET_CUTOFF, // mongo 副本集整机替换
+    [TicketTypes.MONGODB_SHARD_CUTOFF]: TicketTypes.MONGODB_SHARD_CUTOFF, // mongo 分片整机替换
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER]: TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, // mysql 构造
     [TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER]: TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, // mysql 构造
@@ -95,16 +96,19 @@
     [TicketTypes.KAFKA_APPLY]: 'KafkaApply',
     [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
     [TicketTypes.MONGODB_ADD_SHARD]: TicketTypes.MONGODB_ADD_SHARD, // 分片集群增加分片数
-    [TicketTypes.MONGODB_ADD_SHARD_NODES]: TicketTypes.MONGODB_ADD_SHARD_NODES, // 扩容 Shard 节点数
     [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
     [TicketTypes.MONGODB_EXEC_SCRIPT_APPLY]: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, // mongo 脚本执行
     [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
     [TicketTypes.MONGODB_PITR_RESTORE]: TicketTypes.MONGODB_PITR_RESTORE, // mongo 定点构造
     [TicketTypes.MONGODB_REDUCE_SHARD_NODES]: TicketTypes.MONGODB_REDUCE_SHARD_NODES, // 缩容 Shard 节点数
     [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS,
+    [TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES]: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, // 扩容副本集集群 Shard 节点数
     [TicketTypes.MONGODB_REPLICASET_APPLY]: 'MongoDBReplicaSetApply',
+    [TicketTypes.MONGODB_REPLICASET_MIGRATE]: TicketTypes.MONGODB_REPLICASET_MIGRATE, // mongodb 副本集集群迁移
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
+    [TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES]: TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES, // 扩容分片集群 Shard 节点数
     [TicketTypes.MONGODB_SHARD_APPLY]: 'MongoDBSharedClusterApply',
+    [TicketTypes.MONGODB_SHARD_MIGRATE]: TicketTypes.MONGODB_SHARD_MIGRATE, // mongodb 分片集群迁移
     [TicketTypes.MYSQL_ADD_CLB]: 'DatabaseTendbha', // mysql 启用clb',
     [TicketTypes.MYSQL_ADD_SLAVE]: TicketTypes.MYSQL_ADD_SLAVE, // Mysql 添加从库
     [TicketTypes.MYSQL_AUTHORIZE_RULES]: 'PermissionRules', // Mysql 授权

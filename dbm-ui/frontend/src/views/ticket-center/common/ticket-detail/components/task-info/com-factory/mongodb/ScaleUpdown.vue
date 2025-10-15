@@ -12,26 +12,57 @@
 -->
 
 <template>
-  <PrimaryTable :data="dataList">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
     <TableColumn
-      col-key="immute_domain"
-      :title="t('目标分片集群')" />
+      col-key="cluster_id"
+      fixed="left"
+      :min-width="340"
+      :title="t('目标集群')">
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
+      </template>
+    </TableColumn>
     <TableColumn
-      col-key="target_spec"
+      col-key="resource_spec"
+      :min-width="120"
       :title="t('目标资源规格')">
-      <template #default="{ row }">
-        <span>{{ row.target_spec || '--' }}</span>
+      <template #default="{row}: {row: RowData}">
+        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id].name }}
       </template>
     </TableColumn>
     <TableColumn
       col-key="shard_node_count"
-      :title="t('目标Shard节点数')" />
+      :title="t('目标 Shard 节点数')">
+    </TableColumn>
     <TableColumn
       col-key="shard_machine_group"
-      :title="t('目标机器组数')" />
+      :title="t('目标机器组数')">
+    </TableColumn>
     <TableColumn
       col-key="shards_num"
-      :title="t('分片数')" />
+      :title="t('分片数')">
+    </TableColumn>
+    <TableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row }: { row: RowData }">
+        <template v-if="row.resource_spec.mongodb?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.mongodb.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TableColumn>
   </PrimaryTable>
 </template>
 
@@ -42,6 +73,8 @@
 
   import { TicketTypes } from '@common/const';
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   interface Props {
     ticketDetails: TicketModel<Mongodb.ScaleUpdown>;
   }
@@ -51,18 +84,7 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const dataList = computed(() => {
-    const { clusters, infos, specs } = props.ticketDetails.details;
-    return infos.map((item) => ({
-      immute_domain: clusters[item.cluster_id].immute_domain,
-      shard_machine_group: item.shard_machine_group,
-      shard_node_count: item.shard_node_count,
-      shards_num: item.shards_num,
-      target_spec: specs[item.resource_spec.mongodb.spec_id].name,
-    }));
-  });
 </script>

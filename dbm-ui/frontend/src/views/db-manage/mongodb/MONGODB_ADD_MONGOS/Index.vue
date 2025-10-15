@@ -15,15 +15,20 @@
   <SmartAction>
     <div class="proxy-scale-up-page">
       <BkAlert
+        class="mb-16"
         closable
         theme="info"
         :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -39,15 +44,22 @@
               :tab-list-config="tabListConfig"
               @batch-edit="handleClusterBatchEdit" />
             <EditableColumn
-              :label="t('扩容节点类型')"
+              :label="t('当前数量（台）')"
               readonly
-              :width="200">
-              <EditableBlock>mongos</EditableBlock>
+              :width="150">
+              <EditableBlock> {{ item.cluster.id ? item.cluster.mongos.length : '' }}</EditableBlock>
             </EditableColumn>
-            <!-- <SpecSelectColumn
-              v-model="item.spec_id"
-              :bk-cloud-id="item.cluster.bk_cloud_id"
-              :current-spec-ids="item.cluster.mongos.length ? [item.cluster.mongos[0].spec_config.id] : []" /> -->
+            <AddProxyNumColumn
+              v-model="item.add_proxy_num"
+              @batch-edit="handleBatchEdit" />
+            <EditableColumn
+              :label="t('最终数量（台）')"
+              readonly
+              :width="150">
+              <EditableBlock>
+                {{ item.cluster.id ? item.cluster.mongos.length + item.add_proxy_num : '' }}
+              </EditableBlock>
+            </EditableColumn>
             <SpecColumn
               v-model="item.spec_id"
               :cluster-type="DBTypes.MONGODB"
@@ -58,9 +70,17 @@
               required
               selectable
               @batch-edit="handleBatchEdit" />
-            <TargetNumColumn
-              v-model="item.target_num"
+            <ResourceTagColumn
+              v-model="item.labels"
               @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+                spec_id: item.spec_id,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -92,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -103,28 +124,35 @@
 
   import { type TabItem } from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-column/Index.vue';
 
-  // import SpecSelectColumn from './components/spec-select-column/Index.vue';
-  import TargetNumColumn from './components/TargetNumColumn.vue';
+  import { random } from '@utils';
+
+  import AddProxyNumColumn from './components/AddProxyNumColumn.vue';
 
   export interface IDataRow {
+    add_proxy_num: number;
     cluster: {
       bk_cloud_id: number;
       cluster_type: string;
       id: number;
       master_domain: string;
       mongos: MongodbModel['mongos'];
+      region: string;
     };
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     spec_id: number;
-    target_num: string;
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
+    add_proxy_num: values.add_proxy_num || 1,
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
@@ -132,11 +160,12 @@
         id: 0,
         master_domain: '',
         mongos: [] as MongodbModel['mongos'],
+        region: '',
       },
       values.cluster,
     ),
+    labels: (values.labels || []) as IDataRow['labels'],
     spec_id: values.spec_id || 0,
-    target_num: values.target_num || '',
   });
 
   const createDefaultFormData = () => ({
@@ -145,6 +174,29 @@
   });
 
   const { t } = useI18n();
+
+  const batchInputConfig = [
+    {
+      case: 'mongodb.test.dba.db',
+      key: 'domain',
+      label: t('目标分片集群'),
+    },
+    {
+      case: '1',
+      key: 'count',
+      label: t('扩容数量（台）'),
+    },
+    {
+      case: '2核_4G_50G',
+      key: 'spec_name',
+      label: t('扩容规格'),
+    },
+    {
+      case: '标签1,标签2',
+      key: 'labels',
+      label: t('资源标签'),
+    },
+  ];
 
   useTicketDetail<Mongodb.AddMongos>(TicketTypes.MONGODB_ADD_MONGOS, {
     onSuccess(ticketDetail) {
@@ -155,11 +207,12 @@
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((infoItem) =>
           createRowData({
+            add_proxy_num: infoItem.resource_spec.mongos.count,
             cluster: {
               master_domain: clusters[infoItem.cluster_id].immute_domain,
             } as IDataRow['cluster'],
+            labels: (infoItem.resource_spec.mongos.labels || []).map((item) => ({ id: Number(item) })),
             spec_id: infoItem.resource_spec.mongos.spec_id,
-            target_num: `${infoItem.resource_spec.mongos.count}`,
           }),
         ),
       });
@@ -172,6 +225,8 @@
       resource_spec: {
         mongos: {
           count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -192,6 +247,10 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const tableKey = ref(random());
+
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
@@ -204,9 +263,12 @@
         details: {
           infos: formData.tableData.map((tableItem) => ({
             cluster_id: tableItem.cluster.id,
+            current_mongos_num: tableItem.cluster.mongos.length,
             resource_spec: {
               mongos: {
-                count: Number(tableItem.target_num),
+                count: tableItem.add_proxy_num,
+                label_names: tableItem.labels.map((item) => item.value),
+                labels: tableItem.labels.map((item) => String(item.id)),
                 spec_id: tableItem.spec_id,
               },
             },
@@ -231,6 +293,7 @@
               id: item.id,
               master_domain: item.master_domain,
               mongos: item.mongos,
+              region: item.region,
             },
           }),
         );
@@ -247,6 +310,25 @@
         [field]: value,
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        add_proxy_num: item.count ? Number(item.count) : 1,
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+        spec_id: item.spec_name,
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
   };
 
   // 重置

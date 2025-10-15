@@ -1,10 +1,10 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="target_num"
+    field="add_proxy_num"
     :label="t('扩容数量（台）')"
     required
-    :width="200">
+    :width="150">
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
@@ -37,7 +37,7 @@
   }
 
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<number>();
 
   const { t } = useI18n();
 
@@ -55,7 +55,7 @@
   };
 
   const handleBatchEditChange = (value: string[] | string) => {
-    emits('batch-edit', value as string, 'target_num');
+    emits('batch-edit', value as string, 'add_proxy_num');
   };
 </script>
 

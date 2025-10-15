@@ -87,6 +87,17 @@
               label="当前规格"
               :machine-type="MachineTypes.MONGODB"
               required />
+            <ResourceTagColumn
+              v-model="item.labels"
+              @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.cluster.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.MONGODB, 'PUBLIC'],
+                spec_id: item.cluster.current_spec_id,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <EditableColumn
               :label="t('新增机器（组）')"
               readonly
@@ -126,6 +137,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -136,6 +148,8 @@
   import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -164,9 +178,10 @@
       shard_num: number;
       single_host_shard_num: number;
     };
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
   }
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     add_shards_num: values.add_shards_num || 1,
     cluster: Object.assign(
       {
@@ -187,6 +202,7 @@
       },
       values.cluster,
     ),
+    labels: (values.labels || []) as IDataRow['labels'],
   });
 
   const createDefaultFormData = () => ({
@@ -210,6 +226,7 @@
             cluster: {
               master_domain: clusterItem?.immute_domain || '',
             } as IDataRow['cluster'],
+            labels: (infoItem.resource_spec.mongodb.labels || []).map((item) => ({ id: Number(item) })),
           });
         }),
       });
@@ -229,6 +246,8 @@
       resource_spec: {
         mongodb: {
           count: number; // 台数
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
           spec_id: number;
         };
       };
@@ -251,6 +270,8 @@
   ];
 
   const editableTableRef = useTemplateRef('editableTableRef');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const tableKey = ref(random());
 
@@ -345,6 +366,8 @@
                 count:
                   getAddMachinePair(tableRow.add_shards_num, tableRow.cluster.single_host_shard_num) *
                   tableRow.cluster.shard_node_count, // 机器组数 * 每片节点数
+                label_names: tableRow.labels.map((item) => item.value),
+                labels: tableRow.labels.map((item) => String(item.id)),
                 spec_id: tableRow.cluster.current_spec_id,
               },
             },
