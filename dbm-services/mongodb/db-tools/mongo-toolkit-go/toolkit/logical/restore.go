@@ -2,7 +2,7 @@ package logical
 
 import (
 	"bufio"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"fmt"
@@ -288,7 +288,7 @@ func UntarFile(resultFile string) (dstDir string, err error) {
 		}
 	}
 
-	_, err = untarCmd.Run2(time.Hour * 24)
+	_, err = untarCmd.Run(time.Hour * 24)
 	if err != nil {
 		err = fmt.Errorf("cmd:%s return err %v", untarCmd.GetCmdLine2(true), err)
 		return
