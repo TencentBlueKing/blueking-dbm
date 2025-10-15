@@ -45,9 +45,10 @@
             v-model:slaves="item.slaves"
             v-model:table-data="formData.tableData"
             :cluster="item.cluster"
+            :create-table-row="createTableRow"
+            :handle-row-merge="handleRowMerge"
             :rowspan="item.rowspan"
-            @batch-edit="handleBatchEdit"
-            @change="handleRowMerge" />
+            @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.db_patterns"
             :cluster-id="item.cluster?.id"
@@ -76,7 +77,8 @@
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
+            :create-row-method="createTableRow"
+            :handle-row-merge="handleRowMerge" />
         </EditableRow>
       </EditableTable>
       <BkFormItem
@@ -188,7 +190,6 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -436,7 +437,9 @@
       if (!selectedMap.value[cluster.master_domain]) {
         acc.push(
           createTableRow({
-            cluster,
+            cluster: {
+              master_domain: cluster.master_domain,
+            } as TendbClusterModel,
           }),
         );
       }

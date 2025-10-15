@@ -52,6 +52,8 @@
   export interface Props<IRow> {
     // eslint-disable-next-line vue/require-default-prop
     createRowMethod?: () => IRow;
+    // eslint-disable-next-line vue/require-default-prop
+    handleRowMerge?: () => void;
     minRow?: number;
   }
 
@@ -77,6 +79,10 @@
     if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, props.createRowMethod!());
     }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
+    }
   };
 
   const handleRemove = () => {
@@ -86,6 +92,10 @@
     const rowIndex = columnRef.value!.getRowIndex();
     if (rowIndex > -1) {
       tableData.value.splice(rowIndex, 1);
+    }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
     }
   };
 
@@ -97,6 +107,10 @@
     if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]!));
       editTableContext!.validateByRowIndex(newRowIndex);
+    }
+
+    if (props.handleRowMerge) {
+      props.handleRowMerge();
     }
   };
 </script>
