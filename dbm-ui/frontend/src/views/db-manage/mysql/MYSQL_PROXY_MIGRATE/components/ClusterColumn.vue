@@ -53,7 +53,7 @@
           {{ cluster.master_domain }}
         </p>
         <p
-          v-for="instance in cluster.masters"
+          v-for="instance in cluster.proxies"
           :key="instance.bk_instance_id"
           style="color: #979ba5">
           --{{ instance.instance }}
