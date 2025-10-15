@@ -39,6 +39,7 @@ class ExtensionType(str, StructuredEnum):
     DBHA = EnumField("DBHA", _("数据库高可用服务"))
     REDIS_DTS = EnumField("REDIS_DTS", _("Redis DTS服务"))
     CONSOLE_DUMP_CENTER = EnumField("CONSOLE_DUMP_CENTER", _("控制台转储中心"))
+    MONGODB_EXPORT_CENTER = EnumField("MONGODB_EXPORT_CENTER", _("MongoDB 数据导出中心"))
 
 
 class ExtensionServiceStatus(str, StructuredEnum):
