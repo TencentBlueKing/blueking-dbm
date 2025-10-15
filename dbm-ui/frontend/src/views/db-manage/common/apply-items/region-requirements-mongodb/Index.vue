@@ -79,7 +79,7 @@
       }
 
       // 跨园区（强）/ 跨园区（弱）
-      if ([Affinity.CROS_SUBZONE, Affinity.MAJORITY_ELECTION_DISTRI].includes(affinity as Affinity)) {
+      if ([Affinity.CROSS_SUBZONE_STRONG, Affinity.CROSS_SUBZONE_WEAK].includes(affinity as Affinity)) {
         return {
           affinity,
           location_spec: {

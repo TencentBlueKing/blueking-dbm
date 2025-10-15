@@ -240,7 +240,7 @@
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: Affinity.MAJORITY_ELECTION_DISTRI,
+      disaster_tolerance_level: Affinity.CROSS_SUBZONE_WEAK,
       ip_source: 'resource_pool',
       oplog_percent: 10,
       resource_spec: {
