@@ -89,6 +89,7 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
+    MongoDataExportApiView,
     MongoDBClusterAddShardView,
     MongoDBClusterMigrateView,
     MongoDBCreateUserView,
@@ -364,6 +365,7 @@ urlpatterns = [
     url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),
     url(r"^scene/cluster_create$", ClusterInstallApiView.as_view()),
     url(r"^scene/mongo_backup$", MongoBackupApiView.as_view()),
+    url(r"^scene/mongo_data_export$", MongoDataExportApiView.as_view()),
     url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
     url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
     url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),

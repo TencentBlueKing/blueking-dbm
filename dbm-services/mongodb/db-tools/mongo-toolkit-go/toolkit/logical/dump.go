@@ -59,7 +59,7 @@ func Dump(option *DumpOption) {
 		filter := NewNsFilter(option.Args.PartialArgs.DbList, option.Args.PartialArgs.IgnoreDbList,
 			option.Args.PartialArgs.ColList, option.Args.PartialArgs.IgnoreColList)
 
-		cmdLineList, cmdLine, _, nCol, err := helper.DumpPartial(tmpPath, "dump.log", filter)
+		cmdLineList, cmdLine, _, nCol, err := helper.DumpPartial(tmpPath, "dump.log", filter, nil)
 		if err != nil {
 			log.Errorf("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
 			return
@@ -125,7 +125,7 @@ func NewMongoDumpHelper(host *mymongo.MongoHost, dumpBin, user, pass, authDb str
 // 2. 备份多个表 :  --excludeCollection tableName1 --excludeCollection tableName2 ...
 
 // DumpPartial  逻辑备份 指定库表
-func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter) (
+func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter, query *string) (
 	cmdLineList []string, cmdLine string, dbColList []DbCollection, nCol int, err error) {
 	// 如果filter为nil，请使用LogicalDumpAll
 	if filter == nil {
@@ -144,7 +144,7 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 			continue
 		}
 		nCol += len(dbRow.Col)
-		if cmdLine, err = m.dumpDbCol(outDir, logFileName, dbRow.Db, dbRow.Col, dbRow.notMachCol); err != nil {
+		if cmdLine, err = m.dumpDbCol(outDir, logFileName, dbRow.Db, dbRow.Col, dbRow.notMachCol, query); err != nil {
 			return
 		}
 		cmdLineList = append(cmdLineList, cmdLine)
@@ -153,7 +153,7 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 }
 
 func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
-	dbName string, colList []string, excludeColList []string) (cmdLine string, err error) {
+	dbName string, colList []string, excludeColList []string, query *string) (cmdLine string, err error) {
 	dumpCmd := mycmd.New(m.MongoDumpBin,
 		"-u", m.User,
 		"-p", mycmd.Password(m.Pass),
@@ -164,6 +164,9 @@ func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 
 	if len(colList) == 1 {
 		dumpCmd.Append("--collection", mycmd.Val(colList[0]))
+		if query != nil {
+			dumpCmd.Append("--query", mycmd.Val(*query))
+		}
 	} else if len(excludeColList) > 0 {
 		for _, col := range excludeColList {
 			dumpCmd.Append("--excludeCollection", mycmd.Val(col))

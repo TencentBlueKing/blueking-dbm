@@ -158,7 +158,7 @@ func (s *backupJob) doLogicalBackup() error {
 		filter := logical.NewNsFilter(
 			partialArgs.DbList, partialArgs.IgnoreDbList,
 			partialArgs.ColList, partialArgs.IgnoreColList)
-		_, lastCmdLine, dbColList, _, err := helper.DumpPartial(tmpPath, "dump.log", filter)
+		_, lastCmdLine, dbColList, _, err := helper.DumpPartial(tmpPath, "dump.log", filter, nil)
 
 		if err != nil {
 			s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", lastCmdLine, err)

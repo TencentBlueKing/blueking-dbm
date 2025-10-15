@@ -569,6 +569,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
     Backup = EnumField("mongodb_backup", _("mongodb_backup"))
+    DataExport = EnumField("mongodb_data_export")
     RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
     Restore = EnumField("mongodb_restore", _("mongodb_restore"))
     PitRestore = EnumField("mongodb_pitr_restore", _("mongodb_pitr_restore"))
@@ -1035,6 +1036,9 @@ class MongoDBBackupFileTagEnum(str, StructuredEnum):
     HALF_YEAR_BACKUP = EnumField("half_year_backup", _("6个月"))
     A_YEAR_BACKUP = EnumField("a_year_backup", _("1年"))
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份(3年)"))
+
+
+MONGODB_DATA_EXPORT_PATH = "mongodb-data-export/{biz}"
 
 
 class InstanceFuncAliasEnum(str, StructuredEnum):

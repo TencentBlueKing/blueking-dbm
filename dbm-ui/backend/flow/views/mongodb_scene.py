@@ -69,6 +69,21 @@ class MongoRestoreApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class MongoDataExportApiView(FlowTestView):
+    """
+    Mongo Data Export Api
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        mongo_data_export
+        """
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).mongo_data_export()
+        return Response({"root_id": root_id})
+
+
 class MongoPitrRestoreApiView(FlowTestView):
     """
     Mongo PitrRestore Api
