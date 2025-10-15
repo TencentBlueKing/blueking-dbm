@@ -39,6 +39,7 @@ type YamlMongoDBConf struct {
 	Security *Security `yaml:"security,omitempty"`
 }
 
+// Write 用于常见IO
 func (y *YamlMongoDBConf) Write(filePath string) error {
 	content, err := y.GetConfContent()
 	if err != nil {
@@ -47,13 +48,17 @@ func (y *YamlMongoDBConf) Write(filePath string) error {
 	return os.WriteFile(filePath, content, 0644)
 }
 
+// Security 字段
 type Security struct {
 	KeyFile string `yaml:"keyFile,omitempty"`
 }
 
+// Sharding 字段
 type Sharding struct {
 	ClusterRole string `yaml:"clusterRole,omitempty"`
 }
+
+// Replication 字段
 type Replication struct {
 	OplogSizeMB int    `yaml:"oplogSizeMB"`
 	ReplSetName string `yaml:"replSetName"`

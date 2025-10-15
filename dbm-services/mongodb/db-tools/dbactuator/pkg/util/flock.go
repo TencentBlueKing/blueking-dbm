@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrAcquireLock TODO
 var ErrAcquireLock = errors.New("could not acquire lock")
 
 // GetFileLock 获取文件锁. filePath.0 filePath.1 filePath.2 ...

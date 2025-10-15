@@ -286,7 +286,7 @@ func (r *MongoDReplace) primaryStepDown() error {
 }
 
 // shutdownSourceProcess 关闭源端mongod进程  取消
-//func (r *MongoDReplace) shutdownSourceProcess() error {
+// func (r *MongoDReplace) shutdownSourceProcess() error {
 //	flag, _, _ := common.CheckMongoService(r.ConfParams.Port)
 //	if flag == false {
 //		r.runtime.Logger.Info("source mongod process has been shut")
@@ -300,7 +300,7 @@ func (r *MongoDReplace) primaryStepDown() error {
 //	}
 //	r.runtime.Logger.Info("shutdown source mongod process successfully")
 //	return nil
-//}
+// }
 
 // removeSource 复制集中移除source
 func (r *MongoDReplace) removeSource() error {

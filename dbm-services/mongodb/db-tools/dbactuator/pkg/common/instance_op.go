@@ -33,6 +33,7 @@ type Instance struct {
 	InstanceType  string `json:"instanceType"` // mongos or shard or configsvr
 }
 
+// NewInstance TODO
 func NewInstance(ip string, port int, user, pass, instanceType string) *Instance {
 	return &Instance{
 		IP:            ip,
@@ -233,6 +234,7 @@ func (inst *InstanceOp) RsRemoveMember(toRemoveMember string) error {
 	return nil
 }
 
+// IsMaster TODO
 func (inst *Instance) IsMaster() (*mymongo.IsMasterResult, error) {
 	client, err := inst.Connect()
 	if err != nil {
@@ -262,6 +264,7 @@ func (inst *InstanceOp) IsRunning() (pid int, portIsUsing bool, err error) {
 	return
 }
 
+// ExecJs TODO
 func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	var sb strings.Builder
 	sb.WriteString("db = connect('" + inst.IP + ":" + strconv.Itoa(inst.Port) + "/admin');\n")
@@ -276,6 +279,7 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", js, code, stdOut, stdErr))
 }
 
+// GrantRolesToUser TODO
 func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 	for i, role := range roles {
 		roles[i] = fmt.Sprintf(`'%s'`, role)
@@ -285,6 +289,7 @@ func (inst *InstanceOp) GrantRolesToUser(user string, roles []string) error {
 	return errors.Wrap(err, "GrantRolesToUser")
 }
 
+// DoFlushRouterConfig TODO
 func (inst *InstanceOp) DoFlushRouterConfig() error {
 	return inst.ExecJs("db.adminCommand({flushRouterConfig: 1});", 300)
 }

@@ -100,6 +100,7 @@ from backend.flow.views.mongodb_scene import (
     MongoDBIncreaseMongoSView,
     MongoDBIncreaseNodeView,
     MongoDBInstanceDeInstallView,
+    MongoDBInstanceMigrateView,
     MongoDBInstanceRestartView,
     MongoDBReduceMongoSView,
     MongoDBReduceNodeView,
@@ -384,6 +385,7 @@ urlpatterns = [
     url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
     url(r"^scene/multi_instance_deinstall$", MongoDBInstanceDeInstallView.as_view()),
     url(r"^scene/multi_cluster_add_shard$", MongoDBClusterAddShardView.as_view()),
+    url(r"^scene/multi_instance_migrate$", MongoDBInstanceMigrateView.as_view()),
     # mongodb end
     # oracle start
     url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),

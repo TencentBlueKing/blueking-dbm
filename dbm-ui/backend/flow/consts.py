@@ -582,6 +582,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     MongoInstanceOp = EnumField("mongodb_instance_op", _("mongodb_instance_op"))
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
+    MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):

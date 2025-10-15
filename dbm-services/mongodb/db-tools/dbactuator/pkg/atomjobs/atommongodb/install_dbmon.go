@@ -82,7 +82,7 @@ func (job *installDbmonJob) Run() error {
 	})
 }
 
-// DeleteBadLink 删除坏链接
+// deleteBadLink 删除坏链接
 func (job *installDbmonJob) deleteBadLink() error {
 	for _, dir := range []string{
 		"/home/mysql/bk-dbmon",
@@ -448,6 +448,7 @@ func fileMd5Eq(file1, file2 string) bool {
 	return v1 == v2
 }
 
+// getPIDByPort TODO
 // require root user or users process can access
 func getPIDByPort(port string) (string, error) {
 	cmd := exec.Command("lsof", "-i", ":"+port, "-t", "-sTCP:LISTEN")
