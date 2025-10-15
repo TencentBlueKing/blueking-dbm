@@ -1,5 +1,3 @@
-export * from './addMongos';
-export * from './addShard';
 export * from './addShardNodes';
 export * from './authorizeRules';
 export * from './backup';
@@ -19,6 +17,5 @@ export * from './removeNs';
 export * from './replicasetApply';
 export * as ResourcePool from './resource-pool/index';
 export * from './restore';
-export * from './scaleUpdown';
 export * from './shardApply';
 export * from './temporaryDestroy';

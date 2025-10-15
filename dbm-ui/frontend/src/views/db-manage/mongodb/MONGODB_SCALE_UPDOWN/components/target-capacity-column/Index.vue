@@ -114,6 +114,8 @@
       id: number;
       master_domain: string;
       mongodb: MongodbModel['mongodb'];
+      mongodb_machine_num: number;
+      mongodb_machine_pair: number;
       shard_node_count: number;
       shard_num: number;
     };
