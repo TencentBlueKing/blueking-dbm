@@ -1,11 +1,12 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"fmt"
 	"log"
@@ -140,16 +141,14 @@ const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
 func (inst *InstanceOp) DoStart(mode string) error {
 	switch mode {
 	case "auth":
-		_, _, _, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port)).Run(time.Second * 60)
+		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port)).Run3(time.Second*60, nil, nil)
 		return err
 	case "noauth":
-		_, _, _, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port), "noauth").Run(time.Second * 60)
+		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port), "noauth").Run3(time.Second*60, nil, nil)
 		return err
 	default:
 		return errors.New("unknown mode " + mode)
 	}
-
-	return nil
 }
 
 // DoStartAsStandAlone 启动为单节点
@@ -272,11 +271,15 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	sb.WriteString(js)
 	sb.WriteString("\n")
 	jsCode := sb.String()
-	code, stdOut, stdErr, err :=
-		mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
-			Run(time.Second * time.Duration(timeout))
-	log.Printf("ExecJs %s return %d %s %s", js, code, stdOut, stdErr)
-	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", js, code, stdOut, stdErr))
+	o, err := mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
+		Run3(time.Second*time.Duration(timeout), bytes.NewBuffer(nil), bytes.NewBuffer(nil))
+
+	if err != nil {
+		return errors.Wrap(err, "ExecJs")
+	}
+
+	log.Printf("ExecJs %s return %d %s %s", js, o.ExitCode, o.GetStdout(), o.GetStderr())
+	return errors.Wrap(err, fmt.Sprintf("ExecJs %s return %d %s %s", js, o.ExitCode, o.GetStdout(), o.GetStderr()))
 }
 
 // GrantRolesToUser TODO
