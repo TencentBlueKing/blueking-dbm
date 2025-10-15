@@ -287,6 +287,18 @@ class ActionEnum:
         common_labels=[],
     )
 
+    PLATFROM_RISK_MEMO_VIEW = ActionMeta(
+        id="platform_risk_memo_view",
+        name=_("全局风险备忘录查看"),
+        name_en="platform_risk_memo_view",
+        type="view",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
     MYSQL_DBCONSOLE = ActionMeta(
         id="mysql_dbconsole",
         name=_("MySQL 管理控制台"),
@@ -2115,6 +2127,30 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
         subgroup=_("监控策略"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RISK_MEMO_CREATE = ActionMeta(
+        id="risk_memo_create",
+        name=_("风险创建"),
+        name_en="risk_memo_create",
+        type="create",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("风险备忘录"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RISK_MEMO_MANAGE = ActionMeta(
+        id="risk_memo_manage",
+        name=_("风险管理"),
+        name_en="risk_memo_manage",
+        type="manage",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        subgroup=_("风险备忘录"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
