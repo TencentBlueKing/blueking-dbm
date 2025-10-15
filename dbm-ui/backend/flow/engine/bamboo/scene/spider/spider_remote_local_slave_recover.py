@@ -11,13 +11,14 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
-from backend.configuration.constants import DBType, MySQLMonitorPauseTime
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
@@ -27,11 +28,12 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_ip_subflow,
 )
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
-from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -40,7 +42,6 @@ from backend.flow.plugins.components.collections.spider.switch_remote_spt_routin
 )
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
-    CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -154,16 +155,23 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                 )
 
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("屏蔽监控 {}").format(target_slave.ip_port),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[target_slave.machine.ip],
-                            port=target_slave.port,
-                            minutes=MySQLMonitorPauseTime.RESTORE_DATA,
-                        )
-                    ),
+                    act_name=_("屏蔽告警24小时"),
+                    act_component_code=AddAlarmShieldComponent.code,
+                    kwargs={
+                        "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                        "description": cluster_class.immute_domain,
+                        "dimensions": [
+                            {
+                                "name": "instance_host",
+                                "values": [target_slave.machine.ip],
+                            },
+                            {
+                                "name": "instance_port",
+                                "values": [target_slave.port],
+                            },
+                        ],
+                    },
                 )
 
                 sync_data_sub_pipeline.add_act(
@@ -290,6 +298,9 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                         )
                     ),
                 )
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
+                )
                 sync_data_sub_pipeline_list.append(
                     sync_data_sub_pipeline.build_sub_process(
                         _("{} shard {} 原地重建").format(target_slave.ip_port, shard_id)
@@ -328,17 +339,6 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     with_instance_standardize=False,
                     with_bk_plugin=False,
                 )
-            )
-            tendb_migrate_pipeline.add_act(
-                act_name=_("解除屏蔽监控 {}").format(self.data["slave_ip"]),
-                act_component_code=MysqlCrondMonitorControlComponent.code,
-                kwargs=asdict(
-                    CrondMonitorKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        exec_ips=[self.data["slave_ip"]],
-                        port=0,
-                    )
-                ),
             )
             tendb_migrate_pipeline_all_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}".format(self.data["slave_ip"])))

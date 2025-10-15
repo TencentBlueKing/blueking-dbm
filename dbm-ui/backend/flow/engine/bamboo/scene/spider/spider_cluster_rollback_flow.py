@@ -9,10 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import datetime
 import logging
 import uuid
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
@@ -36,15 +36,14 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBackupInfoFailedException,
 )
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.remotedb_node_priv_recover import RemoteDbPrivRecoverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
-    CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -61,7 +60,7 @@ logger = logging.getLogger("flow")
 
 class TenDBRollBackDataFlow(object):
     """
-    TenDB 后端节点主从成对迁移
+    TenDBCluster 回档流程
     """
 
     def __init__(self, root_id: str, ticket_data: Optional[Dict]):
@@ -76,7 +75,7 @@ class TenDBRollBackDataFlow(object):
 
     def tendb_rollback_data(self):  # noqa C901
         """
-        tendb rollback data
+        tendbCluster 回档到指定集群。要求源集群和目标集群必须相同的shard数
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [i["source_cluster_id"] for i in self.ticket_data["infos"]]
@@ -174,13 +173,14 @@ class TenDBRollBackDataFlow(object):
                     )
                 ),
             )
+
             tendb_rollback_pipeline.add_act(
-                act_name=_("屏蔽 {} 告警".format(clusters_info["target_immute_domain"])),
+                act_name=_("屏蔽告警24小时"),
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs={
-                    "begin_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "end_time": (datetime.datetime.now() + datetime.timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
-                    "description": clusters_info["target_immute_domain"],
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": target_cluster.immute_domain,
                     "dimensions": [
                         {
                             "name": "instance_host",
@@ -189,6 +189,7 @@ class TenDBRollBackDataFlow(object):
                     ],
                 },
             )
+
             cluster = {
                 "host": clusters_info["target"]["dbctl_ip"],
                 "port": clusters_info["target"]["spider_port"],
@@ -276,18 +277,7 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-                spd_sub_pipeline.add_act(
-                    act_name=_("解除监控屏蔽 {}").format(spider_node["instance"]),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=target_cluster.bk_cloud_id,
-                            exec_ips=[spider_node["ip"]],
-                            port=spider_node["port"],
-                            enable=True,
-                        )
-                    ),
-                )
+
                 ins_sub_pipeline_list.append(
                     spd_sub_pipeline.build_sub_process(sub_name=_("{} spider节点恢复".format(spider_node["instance"])))
                 )
@@ -504,18 +494,6 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-                ins_sub_pipeline.add_act(
-                    act_name=_("解除监控屏蔽 {}").format(shard_id),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=target_cluster.bk_cloud_id,
-                            exec_ips=[remote_node["new_master"]["ip"], remote_node["new_slave"]["ip"]],
-                            port=remote_node["new_master"]["port"],
-                            enable=True,
-                        )
-                    ),
-                )
                 ins_sub_pipeline_list.append(
                     ins_sub_pipeline.build_sub_process(sub_name=_("{} 分片主从恢复".format(shard_id)))
                 )
@@ -535,6 +513,9 @@ class TenDBRollBackDataFlow(object):
                         is_update_trans_data=False,
                     )
                 ),
+            )
+            tendb_rollback_pipeline.add_act(
+                act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
             tendb_rollback_list.append(
                 tendb_rollback_pipeline.build_sub_process(

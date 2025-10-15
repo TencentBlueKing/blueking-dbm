@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from django.db.models import Q
@@ -33,14 +33,14 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow i
 )
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
-from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckSlaveStatusKwargs,
-    CrondMonitorKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
@@ -67,7 +67,7 @@ class MySQLRollbackDataFlow(object):
 
     def rollback_data_flow(self):
         """
-        定义重建slave节点的流程
+        tendbHa tendbCluster 回档数据,回档到的目标集群没安装周边
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
@@ -231,6 +231,26 @@ class MySQLRollbackDataFlow(object):
             storages = rollback_class.storageinstance_set.all()
             rollback_pipeline_list = []
             change_master_pipeline_list = []
+            sub_pipeline.add_act(
+                act_name=_("屏蔽告警24小时"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    "begin_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": (datetime.now() + timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S"),
+                    "description": cluster_class.immute_domain,
+                    "dimensions": [
+                        {
+                            "name": "instance_host",
+                            "values": [s.machine.ip for s in storages],
+                        },
+                        {
+                            "name": "instance_port",
+                            "values": [master.port],
+                        },
+                    ],
+                },
+            )
+
             for rollback_storage in storages:
                 if not check_storage_database(
                     rollback_class.bk_cloud_id, rollback_storage.machine.ip, rollback_storage.port
@@ -305,19 +325,6 @@ class MySQLRollbackDataFlow(object):
                         ),
                     )
 
-                # 屏蔽监控，停止从库备份
-                rollback_pipeline.add_act(
-                    act_name=_("屏蔽监控 {}").format(rollback_storage.ip_port),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[rollback_storage.machine.ip],
-                            port=rollback_storage.port,
-                        )
-                    ),
-                )
-
                 if self.data["all_database_rollback"]:
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
@@ -381,18 +388,6 @@ class MySQLRollbackDataFlow(object):
                                 )
                             ),
                         )
-                change_master_pipeline.add_act(
-                    act_name=_("解除监控屏蔽 {}").format(rollback_storage.ip_port),
-                    act_component_code=MysqlCrondMonitorControlComponent.code,
-                    kwargs=asdict(
-                        CrondMonitorKwargs(
-                            bk_cloud_id=cluster_class.bk_cloud_id,
-                            exec_ips=[rollback_storage.machine.ip],
-                            port=rollback_storage.port,
-                            enable=True,
-                        )
-                    ),
-                )
                 change_master_pipeline_list.append(
                     change_master_pipeline.build_sub_process(
                         sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
@@ -401,6 +396,7 @@ class MySQLRollbackDataFlow(object):
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
+            sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
             sub_pipeline_list.append(
                 sub_pipeline.build_sub_process(sub_name=_("定点回档到{}".format(rollback_class.immute_domain)))
             )
