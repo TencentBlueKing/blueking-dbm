@@ -679,8 +679,17 @@ def _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_suc
 
 def _collect_all_clusters(cluster_biz_map, recover_success_map, count, num):
     """收集所有集群 - 最低优先级兜底"""
+    ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
+    ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
+    exclude_condition = Q()
+    if ignored_biz_ids:
+        exclude_condition |= Q(bk_biz_id__in=ignored_biz_ids)
+    if ignored_cluster_ids:
+        exclude_condition |= Q(id__in=ignored_cluster_ids)
     if count <= num * 3:
-        clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
+        clusters = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA]).exclude(
+            exclude_condition
+        )
         fallback_clusters = 0
 
         for cluster in clusters:
