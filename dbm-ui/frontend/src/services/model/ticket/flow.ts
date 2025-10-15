@@ -106,6 +106,7 @@ export default class Flow<
     hidden: boolean; // 为true则不展示，适用于excel下载的上下文
     table_name: string;
     titles: {
+      table_display_name?: string;
       display_name: string;
       id: string;
     }[];
