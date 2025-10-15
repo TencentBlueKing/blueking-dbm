@@ -17,21 +17,96 @@
         </div> -->
       </div>
     </div>
-    <BkTable
-      :cell-class="setCellClass"
-      class="table-content"
-      :columns="columns"
+    <PrimaryTable
       :data="tableData"
-      height="100%"
-      row-hover="auto"
-      show-overflow-tooltip>
-    </BkTable>
+      row-key="attribute"
+      :rowspan-and-colspan="rowspanAndColspan">
+      <TableColumn
+        :class-name="getColumnClassName"
+        col-key="attribute"
+        :title="t('Tendis 架构')"
+        :width="120">
+      </TableColumn>
+      <TableColumn
+        :class-name="getColumnClassName"
+        :col-key="ClusterTypes.TWEMPROXY_REDIS_INSTANCE"
+        :title="t('TendisCache 集群')">
+        <template #title>
+          <div>
+            <span>{{ t('TendisCache 集群') }}</span>
+            <div
+              v-if="recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE"
+              class="recommend-head-tip">
+              <div class="tip-text">{{ t('推荐') }}</div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ row }: {row: RowData}">
+          {{ row.value[ClusterTypes.TWEMPROXY_REDIS_INSTANCE].text }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        :class-name="getColumnClassName"
+        :col-key="ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
+        :title="t('TendisSSD 集群')">
+        <template #title>
+          <div>
+            <span>{{ t('TendisSSD 集群') }}</span>
+            <div
+              v-if="recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
+              class="recommend-head-tip">
+              <div class="tip-text">{{ t('推荐') }}</div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ row }: {row: RowData}">
+          {{ row.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        :class-name="getColumnClassName"
+        :col-key="ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER"
+        :title="t('Tendisplus 集群')">
+        <template #title>
+          <div>
+            <span>{{ t('Tendisplus 集群') }}</span>
+            <div
+              v-if="recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER"
+              class="recommend-head-tip">
+              <div class="tip-text">{{ t('推荐') }}</div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ row }: {row: RowData}">
+          {{ row.value[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].text }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        :class-name="getColumnClassName"
+        :col-key="ClusterTypes.PREDIXY_REDIS_CLUSTER"
+        :title="t('原生 Redis Cluster')">
+        <template #title>
+          <div>
+            <span>{{ t('原生 Redis Cluster') }}</span>
+            <div
+              v-if="recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER"
+              class="recommend-head-tip">
+              <div class="tip-text">{{ t('推荐') }}</div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ row }: {row: RowData}">
+          {{ row.value[ClusterTypes.PREDIXY_REDIS_CLUSTER].text }}
+        </template>
+      </TableColumn>
+    </PrimaryTable>
   </div>
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
+
+  import type { BaseTableCol } from '@blueking/tdesign-ui';
 
   import { ClusterTypes } from '@common/const';
 
@@ -45,89 +120,30 @@
 
   const { t } = useI18n();
 
-  const columns = [
-    {
-      field: 'attribute',
-      label: t('Tendis 架构'),
-      resizable: false,
-    },
-    {
-      className: (row: RowData) =>
-        !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE ? 'recommend-head' : '',
-      colspan: ({ rowIndex }: { rowIndex: number }) => (rowIndex === tableData.length - 1 ? 4 : 1),
-      field: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_REDIS_INSTANCE].text,
-      renderHead: () => (
-        <>
-          <span>{t('TendisCache 集群')}</span>
-          {props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE && (
-            <div class='recommend-head-tip'>
-              <div class='tip-text'>{t('推荐')}</div>
-            </div>
-          )}
-        </>
-      ),
-    },
-    {
-      className: (row: RowData) =>
-        !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE ? 'recommend-head' : '',
-      field: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text,
-      renderHead: () => (
-        <>
-          <span>{t('TendisSSD 集群')}</span>
-          {props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE && (
-            <div class='recommend-head-tip'>
-              <div class='tip-text'>{t('推荐')}</div>
-            </div>
-          )}
-        </>
-      ),
-    },
-    {
-      className: (row: RowData) =>
-        !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER ? 'recommend-head' : '',
-      field: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].text,
-      renderHead: () => (
-        <>
-          <span>{t('Tendisplus 集群')}</span>
-          {props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER && (
-            <div class='recommend-head-tip'>
-              <div class='tip-text'>{t('推荐')}</div>
-            </div>
-          )}
-        </>
-      ),
-    },
-    {
-      className: (row: RowData) =>
-        !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER ? 'recommend-head' : '',
-      field: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_REDIS_CLUSTER].text,
-      renderHead: () => (
-        <>
-          <span>{t('原生 Redis Cluster')}</span>
-          {props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER && (
-            <div class='recommend-head-tip'>
-              <div class='tip-text'>{t('推荐')}</div>
-            </div>
-          )}
-        </>
-      ),
-    },
-  ];
-
-  const setCellClass = (column: Column, colIndex: number, row: RowData, rowIndex: number) => {
-    const classList = [];
-
-    if (column.field === 'attribute') {
-      classList.push('attribute-cell');
-    } else if (row.value[column.field as string].type) {
-      classList.push(`${row.value[column.field as string].type}-cell`);
+  const getColumnClassName = ({
+    col,
+    colIndex,
+    row,
+    rowIndex,
+  }: {
+    col: BaseTableCol<RowData>;
+    colIndex: number;
+    row: RowData;
+    rowIndex: number;
+  }) => {
+    if (!row.value) {
+      return props.recommendArchitectrue === col.colKey ? ['head-cell'] : [];
     }
 
-    if (props.recommendArchitectrue === (column.field as string) && rowIndex !== tableData.length - 1) {
+    const classList: string[] = [];
+
+    if (col.colKey === 'attribute') {
+      classList.push('attribute-cell');
+    } else if (row.value[col.colKey as string].type) {
+      classList.push(`${row.value[col.colKey as string].type}-cell`);
+    }
+
+    if (props.recommendArchitectrue === (col.colKey as string) && rowIndex !== tableData.length - 1) {
       classList.push('recommend-cell');
       if (rowIndex === tableData.length - 2) {
         classList.push('recommend-cell-last-row');
@@ -138,18 +154,31 @@
       classList.push('colspan-row');
     }
 
+    classList.push('text-line-feed');
+
     return classList;
+  };
+
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    if (rowIndex === tableData.length - 1 && colIndex === 1) {
+      console.log(rowIndex, tableData.length);
+      return {
+        colspan: 4,
+        rowspan: 1,
+      };
+    }
+    return {};
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .recommend-architecture-table {
     .table-head {
       display: flex;
-      align-items: center;
+      margin-bottom: 16px;
       font-size: 12px;
       color: #63656e;
-      margin-bottom: 16px;
+      align-items: center;
 
       .color-tip {
         display: flex;
@@ -181,7 +210,7 @@
 
         .color-tip-item-disadvantage {
           .color-tip-item-square {
-            background-color: #ffeeee;
+            background-color: #fee;
             border-color: #ff5656;
           }
         }
@@ -195,64 +224,61 @@
       }
     }
 
-    :deep(.attribute-cell) {
-      background-color: #f5f7fa;
-      color: #313238 !important;
-    }
-
-    :deep(.advantage-cell) {
-      background-color: #f2fff4;
-    }
-
-    :deep(.disadvantage-cell) {
-      background-color: #ffeeee;
-    }
-
-    :deep(.developing-cell) {
-      background-color: #fff4e2;
-    }
-
-    :deep(.recommend-cell) {
-      border-left: solid 2px #1cab88;
-      border-right: solid 2px #1cab88;
-    }
-
-    :deep(.recommend-cell-last-row) {
-      border-bottom: solid 2px #1cab88;
-    }
-
-    :deep(.recommend-head) {
+    .head-cell {
       border: solid 2px #1cab88;
       border-bottom: none;
     }
 
-    :deep(.recommend-head-tip) {
+    .attribute-cell {
+      color: #313238 !important;
+      background-color: #f5f7fa;
+    }
+
+    .advantage-cell {
+      background-color: #f2fff4;
+    }
+
+    .disadvantage-cell {
+      background-color: #fee;
+    }
+
+    .developing-cell {
+      background-color: #fff4e2;
+    }
+
+    .recommend-cell {
+      border-right: solid 2px #1cab88;
+      border-left: solid 2px #1cab88;
+    }
+
+    .recommend-cell-last-row {
+      border-bottom: solid 2px #1cab88;
+    }
+
+    .recommend-head {
+      border: solid 2px #1cab88;
+      border-bottom: none;
+    }
+
+    .recommend-head-tip {
       position: absolute;
-      right: 0;
       top: 0;
+      right: 0;
       width: 30%;
 
       .tip-text {
-        color: #ffffff;
         height: 28px;
         padding: 0 4px;
-        text-align: center;
         line-height: 28px;
+        color: #fff;
+        text-align: center;
         background: #1cab88;
         // border-radius: 4px 4px 0 0;
       }
     }
 
-    :deep(.colspan-row) {
-      display: none;
-    }
-
-    :deep(.bk-table) {
-      .vxe-cell {
-        white-space: break-spaces;
-        line-height: 20px;
-        padding: 8px 16px;
-      }
+    .text-line-feed {
+      white-space: pre-line;
     }
   }
 </style>
