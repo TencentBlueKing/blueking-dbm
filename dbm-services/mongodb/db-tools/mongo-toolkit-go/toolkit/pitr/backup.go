@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/util"
 	"fmt"
@@ -369,9 +369,9 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		cwd, _ := os.Getwd()
 		//	2019-12-17T18:01:40.883+0800	firstTS=(1576576891 1)
 		//	2019-12-17T18:01:40.883+0800	lastTS=(1576576891 1)
-		if exitCode, o, e, err := mycmd.NewCmdBuilder().Append("mv", workdir, outputDirname).
-			Run(cmdMaxTimeout); exitCode != 0 || err != nil {
-			log.Fatalf("chdir %s, Rename %s %s, o: %s, e: %s err: %v", cwd, workdir, outputDirname, o, e, err)
+		if o, err := mycmd.New("mv", workdir, outputDirname).Run(cmdMaxTimeout); err != nil {
+			log.Fatalf("chdir %s, Rename %s %s, o: %s, e: %s err: %v",
+				cwd, workdir, outputDirname, o, o.GetStderr(), err)
 		}
 
 		// $output_dir = "mongodump-$name-FULL-$nodeip-$port-$ymdh-$suffix";
@@ -383,8 +383,8 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 
 		fNameObj.SetSuffix(fmt.Sprintf(".%s", tarSuffix))
 		tarFile := strings.Join([]string{outputDirname, tarSuffix}, ".")
-		tarCmd := mycmd.NewCmdBuilder().Append(tarBin, tarArg, tarFile, outputDirname)
-		_, _, _, err = tarCmd.Run(cmdMaxTimeout)
+		tarCmd := mycmd.New(tarBin, tarArg, tarFile, outputDirname)
+		_, err = tarCmd.Run(cmdMaxTimeout)
 		if err != nil {
 			log.Warnf("DoCommand %s return err %v", tarCmd.GetCmdLine("", true), err)
 		} else {
@@ -520,10 +520,10 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		zstdCmd := mycmd.New(
 			MustFindBinPath("zstd", consts.GetDbTool("mongotools")), "--rm", path.Join(workdir, originFile))
 		log.Infof("DoCommand %s workdir: %s", zstdCmd.GetCmdLine("", true), workdir)
-		exitCode, stdout, stderr, err := zstdCmd.Run(cmdMaxTimeout)
+		o, err := zstdCmd.Run(cmdMaxTimeout)
 		if err != nil {
 			log.Errorf("DoCommand %s workdir: %s return err %v stdout: %s stderr: %s exitCode: %d",
-				zstdCmd.GetCmdLine("", true), workdir, err, stdout, stderr, exitCode)
+				zstdCmd.GetCmdLine("", true), workdir, err, o.GetStdout(), o.GetStderr(), o.ExitCode)
 			return nil, err
 		}
 		originFile = originFile + ".zst"
