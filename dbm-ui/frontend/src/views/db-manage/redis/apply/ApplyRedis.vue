@@ -1006,12 +1006,3 @@
     }
   }
 </style>
-
-<style lang="less">
-  .recommend-architecture-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 51px);
-      overflow-y: auto;
-    }
-  }
-</style>
