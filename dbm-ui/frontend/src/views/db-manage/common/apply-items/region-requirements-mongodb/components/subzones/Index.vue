@@ -63,7 +63,7 @@
       return ContentItemKey.RANDOM_SELECTABLE_OR_SINGLE;
     }
     if (
-      [Affinity.CROS_SUBZONE, Affinity.CROSS_RACK, Affinity.MAJORITY_ELECTION_DISTRI].includes(
+      [Affinity.CROSS_RACK, Affinity.CROSS_SUBZONE_STRONG, Affinity.CROSS_SUBZONE_WEAK].includes(
         props.disasterToleranceLevel as Affinity,
       ) ||
       (props.disasterToleranceLevel === Affinity.NONE && props.cityCode === 'default')

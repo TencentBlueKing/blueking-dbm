@@ -67,11 +67,11 @@ export interface InstanceInfos {
       min: number;
     };
     storage_spec: {
+      mount_point: string;
       size: number;
       type: string;
-      mount_point: string;
     }[];
   };
-  spec_id: number;
+  // spec_id: number;
   status: string;
 }

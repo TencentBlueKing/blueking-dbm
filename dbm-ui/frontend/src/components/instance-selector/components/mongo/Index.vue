@@ -106,7 +106,6 @@
     disabledRowConfig?: TableConfigType['disabledRowConfig'];
     filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
     firsrColumn?: TableConfigType['firsrColumn'];
-
     getTableList: NonNullable<TableConfigType['getTableList']>;
     // eslint-disable-next-line vue/no-unused-properties
     getTopoList: NonNullable<TopoConfigType['getTopoList']>;
@@ -120,6 +119,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     countFunc: undefined,
+    customColums: undefined,
     disabledRowConfig: undefined,
     filterClusterId: undefined,
     firsrColumn: undefined,

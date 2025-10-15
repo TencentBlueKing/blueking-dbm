@@ -125,7 +125,7 @@ export default class Mongodb extends ClusterBase {
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
     this.machine_type = payload.machine_type;
-    this.machine_instance_num = payload.machine_instance_num;
+    this.machine_instance_num = payload.machine_instance_num; // 单机部署实例数
     this.mongodb_machine_num = payload.mongodb_machine_num;
     this.mongodb_machine_pair = payload.mongodb_machine_pair;
     this.mongo_config = payload.mongo_config;

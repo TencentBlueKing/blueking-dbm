@@ -83,6 +83,7 @@
   const props = withDefaults(defineProps<Props>(), {
     activePanelId: 'tendbcluster',
     clusterId: undefined,
+    customColums: undefined,
     disabledRowConfig: undefined,
     firsrColumn: undefined,
     isManul: false,
