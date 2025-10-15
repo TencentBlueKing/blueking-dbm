@@ -1,7 +1,7 @@
 package psutil
 
 import (
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
+	"dbm-services/common/go-pubpkg/mycmd"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,15 +15,19 @@ func GetPidByPort(port int, logger *zap.Logger) (pid int, err error) {
 	lsofCmd := mycmd.NewCmdBuilder().Append("lsof", "-i",
 		fmt.Sprintf(":%d", port), "-t", "-sTCP:LISTEN")
 
-	cmdCode, cmdStdOut, cmdStdErr, cmdErr := lsofCmd.Run(time.Second * 60)
+	o, err := lsofCmd.Run(time.Second * 60)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to get pid")
+	}
+	if logger != nil {
+		logger.Info(fmt.Sprintf("lsofCmd: %s, code: %d, stdout: %s, stderr: %s, err: %v",
+			lsofCmd.GetCmdLine2(true), o.ExitCode, o.GetStdout(), o.GetStderr(), o.Err))
+	}
 
-	logger.Info(fmt.Sprintf("lsofCmd: %s, code: %d, stdout: %s, stderr: %s, err: %v",
-		lsofCmd.GetCmdLine2(true), cmdCode, cmdStdOut, cmdStdErr, cmdErr))
-
-	if cmdStdOut == "" {
+	if o.GetStdout() == "" {
 		return 0, fmt.Errorf("failed to get pid")
 	}
-	cmdStdOut = strings.TrimSuffix(cmdStdOut, "\n")
+	cmdStdOut := strings.TrimSuffix(o.GetStdout(), "\n")
 	if pid, err = strconv.Atoi(cmdStdOut); err != nil {
 		return 0, errors.Wrap(err, "failed to convert pid")
 	}

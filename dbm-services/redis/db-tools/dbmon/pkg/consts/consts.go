@@ -271,11 +271,3 @@ func IsRedisMetaRole(metaRole string) bool {
 	}
 	return false
 }
-
-// IsMongo TODO
-func IsMongo(clusterType string) bool {
-	if clusterType == MongoTypeShardedCluster || clusterType == MongoTypeReplicaSet || clusterType == MongoTypeStandalone {
-		return true
-	}
-	return false
-}

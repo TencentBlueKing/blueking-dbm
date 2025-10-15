@@ -2,8 +2,8 @@
 package dstatjob
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"fmt"
 	"os"
 	"path"

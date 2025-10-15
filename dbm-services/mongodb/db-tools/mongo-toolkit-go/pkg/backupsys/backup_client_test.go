@@ -3,6 +3,8 @@ package backupsys
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_splitLines(t *testing.T) {
@@ -33,11 +35,11 @@ func Test_splitLines(t *testing.T) {
 	// splitLines(buffer bytes.Buffer) (map[string]string, error)
 	for _, tt := range tests {
 		buff := bytes.NewBufferString(tt.args)
-		v, err := splitLines(*buff)
-		t.Logf("name: %s v: err: %v", tt.name, err)
-		for k, vv := range v {
-			t.Logf("k: %q v: %q", k, vv)
-		}
+		v, err := splitLines(buff)
+		assert.NoError(t, err)
+		assert.Equal(t, tt.wantValue, v[tt.wantKey])
+		t.Logf("name: %s v: %v", tt.name, v)
+
 	}
 
 }

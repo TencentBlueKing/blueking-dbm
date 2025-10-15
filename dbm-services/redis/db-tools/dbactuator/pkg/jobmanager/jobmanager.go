@@ -226,7 +226,10 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisSceneSyncPrams().Name()] = atomredis.NewRedisSceneSyncPrams
 		m.atomJobMapper[atomsys.NewRestartExporter().Name()] = atomsys.NewRestartExporter
 		// 迁移
-		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] = atomredis.NewRedisReuploadOldBackupRecords
+		m.atomJobMapper[atomredis.NewRedisReuploadOldBackupRecords().Name()] =
+			atomredis.NewRedisReuploadOldBackupRecords
+		// 内存分析
+		m.atomJobMapper[atomsys.NewKeyStat().Name()] = atomsys.NewKeyStat
 
 	})
 }

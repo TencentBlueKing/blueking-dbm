@@ -184,7 +184,7 @@ func removeOldFile(pattern string, maxTimeSeconds int64, logger *zap.Logger) err
 /*
 # get_pid_by_port
 # tlinux 2.2/2.6测试ok.  lsof -i :27003 -t -sTCP:LISTEN
-#lsofCmd := mycmd.NewCmdBuilder().Append("lsof", "-i", fmt.Sprintf(":%d", port), "-t", "-sTCP:LISTEN")
+#lsofCmd := NewCmdBuilder().Append("lsof", "-i", fmt.Sprintf(":%d", port), "-t", "-sTCP:LISTEN")
 */
 func checkPortInUse(port int) (bool, error) {
 	tcpRows, err := linuxproc.ProcNetTcp(nil)

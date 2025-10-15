@@ -48,8 +48,16 @@ func (e *MyExec) Prepare(timeout time.Duration, stdout, stderr any, appendLog bo
 		e.CancelFunc = cancel
 		e.ExecHandle = exec.CommandContext(ctx, cmd, args...)
 	}
-	e.SetStdout(stdout, appendLog)
-	e.SetStderr(stderr, appendLog)
+	if stdout != nil {
+		if err := e.SetStdout(stdout, appendLog); err != nil {
+			return err
+		}
+	}
+	if stderr != nil {
+		if err := e.SetStderr(stderr, appendLog); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -121,6 +129,24 @@ func (e *MyExec) SetStdin(stdin any) error {
 		e.ExecHandle.Stdin = v
 	default:
 		return errors.New("stdin is not a valid type")
+	}
+	return nil
+}
+
+// ConnectStdin connects the standard input of the current command to the standard output of the other command
+// e2: other command
+// returns error
+func (e *MyExec) ConnectStdin(e2 *MyExec) error {
+	stdout, err := e2.ExecHandle.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	switch v := stdout.(type) {
+	case io.ReadCloser:
+		e.ExecHandle.Stdin = v
+	default:
+		return errors.New("out1 is not a valid type")
 	}
 	return nil
 }

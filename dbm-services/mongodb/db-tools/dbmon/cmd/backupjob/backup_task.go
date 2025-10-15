@@ -1,8 +1,8 @@
 package backupjob
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"fmt"
 	"strconv"
 	"time"
@@ -88,13 +88,13 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 	cmdLine := cb.GetCmdLine2(false)
 	logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
-	o, err := cb.Run2(time.Hour * 24)
+	o, err := cb.Run(time.Hour * 24)
 	logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",
 			cmdLine,
 			o.End.Sub(o.Start).Seconds(),
-			o.OutBuf.String(),
-			o.ErrBuf.String()))
+			o.GetStdout(),
+			o.GetStderr()))
 
 	return err
 }

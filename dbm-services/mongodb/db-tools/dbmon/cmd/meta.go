@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"fmt"
 	"slices"
 	"time"
@@ -118,10 +118,13 @@ func delMetaMain() {
 
 	if left == 0 {
 		mylog.Logger.Info("all servers deleted, stop dbmon, please wait for 2 minutes")
-		_, stdOut, stdErr, err := mycmd.New("/bin/sh", "/home/mysql/bk-dbmon/stop.sh").Run(2 * time.Minute)
+		o, err := mycmd.New("/bin/sh", "/home/mysql/bk-dbmon/stop.sh").Run(2 * time.Minute)
+		if err != nil {
+			mylog.Logger.Fatal("stop dbmon fail", zap.Error(err))
+		}
 		mylog.Logger.Info("stop dbmon",
-			zap.String("stdout", stdOut),
-			zap.String("stderr", stdErr),
+			zap.String("stdout", o.GetStdout()),
+			zap.String("stderr", o.GetStderr()),
 			zap.Error(err))
 	}
 

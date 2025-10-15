@@ -1,13 +1,13 @@
 package atommongodb
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/backupsys"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/report"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/logical"
@@ -226,11 +226,9 @@ func (s *backupJob) doLogicalBackup() error {
 		return errors.Wrap(err, "chdir")
 	}
 
-	tarCmd := mycmd.New("tar", "cvf", tarPath, tmpDir)
-	var exitCode int
-	exitCode, _, _, err = tarCmd.Run(time.Hour * 24)
-	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), exitCode, err)
-	if exitCode != 0 {
+	ret, err := mycmd.New("tar", "cvf", tarPath, tmpDir).Run(time.Hour * 24)
+	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", ret.Cmdline, ret.ExitCode, err)
+	if ret.ExitCode != 0 {
 		return errors.Wrap(err, "tar")
 	}
 	if err = s.removeDir(tmpDir); err != nil {

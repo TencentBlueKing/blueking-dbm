@@ -1,12 +1,12 @@
 package atommongodb
 
 import (
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"dbm-services/mongodb/db-tools/dbmon/config"
-	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mycmd"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -343,9 +343,11 @@ func (job *installDbmonJob) startDbmon() error {
 	} else {
 		job.runtime.Logger.Info("bk-dbmon is not running")
 	}
-	cmd := mycmd.New("/home/mysql/bk-dbmon/start.sh")
-	job.runtime.Logger.Info("exec %s", cmd.GetCmdLine2(false))
-	cmd.Run(30 * time.Second)
+	ret, err := mycmd.New("/home/mysql/bk-dbmon/start.sh").Run(30 * time.Second)
+	job.runtime.Logger.Info("exec %s, exitCode:%d, err:%v", ret.Cmdline, ret.ExitCode, err)
+	if err != nil || ret.ExitCode != 0 {
+		return errors.Wrap(err, "start.sh")
+	}
 
 	pid, err = dbmonIsRunning(consts.BkDbmonBin)
 	if err != nil || pid <= 0 {
@@ -407,14 +409,14 @@ func untarMedia(prevFile, newFile, dstDir string) (skipped bool, err error) {
 	var o *mycmd.ExecResult
 	if strings.HasSuffix(newFile, ".tar.gz") {
 		tarCmd := mycmd.New("tar", "-xzf", newFile, "-C", dstDir)
-		o, err = tarCmd.Run2(time.Hour)
+		o, err = tarCmd.Run(time.Hour)
 		if err != nil {
 			err = errors.Errorf("untar failed cmd:%s, err:%v", o.Cmdline, err)
 			return
 		}
 	} else {
 		cpCmd := mycmd.New("cp", newFile, dstDir)
-		o, err = cpCmd.Run2(time.Hour)
+		o, err = cpCmd.Run(time.Hour)
 		if err != nil {
 			err = errors.Errorf("untar failed cmd:%s, err:%v", o.Cmdline, err)
 			return
@@ -429,7 +431,7 @@ func cpfile(src, dst string) error {
 		return errors.New("src not exists")
 	}
 	cpCmd := mycmd.New("cp", src, dst)
-	o, err := cpCmd.Run2(time.Minute * 10)
+	o, err := cpCmd.Run(time.Minute * 10)
 	if err != nil {
 		return errors.Errorf("cmd:%s, err:%v", o.Cmdline, err)
 	}

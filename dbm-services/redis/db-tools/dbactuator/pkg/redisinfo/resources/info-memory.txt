@@ -1,0 +1,9 @@
+# Memory
+used_memory:55347544
+used_memory_human:52.78M
+used_memory_rss:49123328
+used_memory_peak:55939360
+used_memory_peak_human:53.35M
+used_memory_lua:33792
+mem_fragmentation_ratio:0.89
+mem_allocator:jemalloc-3.6.0
