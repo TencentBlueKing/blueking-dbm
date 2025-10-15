@@ -199,7 +199,7 @@
         bk_host_id: number;
         ip: string;
         port: number;
-        spec: TendbhaModel['masters'][number]['spec_config'];
+        spec: TendbhaModel['proxies'][number]['spec_config'];
       }[];
       related_instances: {
         cluster_id: number;
@@ -223,12 +223,12 @@
       return;
     }
     const clusters: TendbhaModel[] = [];
-    const masters: Array<{ cluster_id: number } & TendbhaModel['masters'][number]> = [];
+    const proxies: Array<{ cluster_id: number } & TendbhaModel['proxies'][number]> = [];
     formData.tableData.forEach((row) => {
       row.batchCluster.clusters.forEach((cluster) => {
         clusters.push(cluster);
-        cluster.masters.forEach((master) => {
-          masters.push({
+        cluster.proxies.forEach((master) => {
+          proxies.push({
             ...master,
             cluster_id: cluster.id,
           });
@@ -240,7 +240,7 @@
         infos: formData.tableData.map((item) => ({
           cluster_ids: clusters.map((cluster) => cluster.id),
           old_nodes: {
-            proxy: masters.map((instance) => ({
+            proxy: proxies.map((instance) => ({
               bk_biz_id: instance.bk_biz_id,
               bk_cloud_id: instance.bk_cloud_id,
               bk_host_id: instance.bk_host_id,
@@ -249,7 +249,7 @@
               spec: instance.spec_config,
             })),
           },
-          origin_proxys: masters.map((instance) => ({
+          origin_proxys: proxies.map((instance) => ({
             bk_biz_id: instance.bk_biz_id,
             bk_cloud_id: instance.bk_cloud_id,
             bk_host_id: instance.bk_host_id,
@@ -257,13 +257,13 @@
             port: instance.port,
             spec: instance.spec_config,
           })),
-          related_instances: masters.map((instance) => ({
+          related_instances: proxies.map((instance) => ({
             cluster_id: instance.cluster_id,
             instance_address: instance.instance,
           })),
           resource_spec: {
             target_proxys: {
-              count: masters.length,
+              count: proxies.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
               spec_id: item.specId,
