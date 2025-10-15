@@ -186,7 +186,7 @@ func (s *restoreJob) doLogicalRestore() error {
 	return nil
 }
 
-// removeDbmSysNs
+// removeDbmSysNs TODO
 // 删除掉 admin/gcs.backup文件
 // 删除掉 test/dbmon_heartbeat文件
 // 删除掉 test/dbmon_heartbeat文件

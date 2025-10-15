@@ -86,7 +86,7 @@ func (s *pitrRecoverJob) Run() error {
 	return nil
 }
 
-// restartAsStandAlone
+// restartAsStandAlone TODO
 func (s *pitrRecoverJob) restartAsStandAlone() error {
 	op := common.NewInstanceOp(s.param.IP,
 		s.param.Port,
