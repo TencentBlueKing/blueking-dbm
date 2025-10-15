@@ -83,10 +83,10 @@
         <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
           <PopoverCopy class="copy-btn">
-            <div @click="() => handleCopy('slave', 'ip')">
+            <div @click="() => handleCopy('master', 'ip')">
               {{ t('复制IP') }}
             </div>
-            <div @click="() => handleCopy('slave', 'instance')">
+            <div @click="() => handleCopy('master', 'instance')">
               {{ t('复制实例') }}
             </div>
           </PopoverCopy>
