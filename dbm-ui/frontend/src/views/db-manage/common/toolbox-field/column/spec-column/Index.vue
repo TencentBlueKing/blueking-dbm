@@ -208,7 +208,7 @@
   watch(
     () => [modelValue.value, props.currentSpecIdList],
     (newValue, oldValue) => {
-      if (props.selectable && modelValue.value) {
+      if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
         const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
         if (!isExist) {
           modelValue.value = 0;

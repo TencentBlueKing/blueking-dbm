@@ -1,5 +1,6 @@
-import type { DetailBase, DetailClusters } from './common';
 import type ReplenishModel from '@services/model/db-resource/Replenish';
+
+import type { DetailBase, DetailClusters, DetailSpecs } from './common';
 
 export interface ResourcePoolRecycleHost {
   bk_agent_id: string;
@@ -70,9 +71,10 @@ export interface ResourcePoolDetailBase extends DetailBase, Omit<ResourcePoolRec
     ip_dest: 'resource';
   };
   ip_source: 'resource_pool';
+  specs: DetailSpecs;
 }
 
 /**
  * 资源池补货
  */
-export interface ResourcePoolReplenish extends ReplenishModel {}
+export type ResourcePoolReplenish = ReplenishModel;

@@ -122,10 +122,15 @@
     () => {
       if (!modelValue.value.id && modelValue.value.master_domain) {
         modelValue.value.id = 0;
-        runFilterClusters({
+
+        const params = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
-        });
+        };
+        if (props.clusterTypes.length === 1) {
+          Object.assign(params, { cluster_type: props.clusterTypes[0] });
+        }
+        runFilterClusters(params);
       }
       if (!modelValue.value.master_domain) {
         modelValue.value.id = 0;

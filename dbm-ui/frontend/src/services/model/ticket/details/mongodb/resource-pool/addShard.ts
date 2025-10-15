@@ -1,7 +1,6 @@
-import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
+import type { ResourcePoolDetailBase } from '../../resource-pool';
 
-export interface AddShard extends DetailBase {
-  clusters: DetailClusters;
+export interface AddShard extends ResourcePoolDetailBase {
   infos: {
     add_shards_num: number; // 新增分片数
     city_code: string;
@@ -14,11 +13,11 @@ export interface AddShard extends DetailBase {
     resource_spec: {
       mongodb: {
         count: number; // 台数
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
     single_host_shard_num: number; // 展示用
   }[];
-  ip_source: 'resource_pool';
-  specs: DetailSpecs;
 }

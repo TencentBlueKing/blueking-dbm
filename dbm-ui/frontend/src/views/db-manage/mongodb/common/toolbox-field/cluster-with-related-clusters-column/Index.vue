@@ -73,6 +73,8 @@
       id: number;
       master_domain: string;
     }[];
+    // eslint-disable-next-line vue/require-default-prop
+    setCurrentSpecIdMethod?: (data: MongodbModel) => number;
   }
 
   type Emits = (e: 'batch-edit', value: MongodbModel[]) => void;
@@ -131,7 +133,9 @@
     manual: true,
     onSuccess(data) {
       if (data.length > 0) {
-        [modelValue.value] = data;
+        modelValue.value = Object.assign(data[0]!, {
+          current_spec_id: props.setCurrentSpecIdMethod ? props.setCurrentSpecIdMethod(data[0]!) : 0,
+        });
       }
     },
   });

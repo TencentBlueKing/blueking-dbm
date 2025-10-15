@@ -14,62 +14,70 @@
 <template>
   <TicketInfoTable
     :data="ticketDetails.details.infos"
-    row-key="cluster_id">
+    row-key="cluster_ids">
     <TicketInfoTableColumn
-      col-key="cluster_id"
+      col-key="cluster_ids"
       fixed="left"
-      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id]?.immute_domain"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map(clusterId => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="250"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
+        <div
+          v-for="item in row.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </div>
       </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="current_shards_num"
-      :title="t('当前集群分片数')"
-      :width="120">
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="add_shards_num"
-      :title="t('新增集群分片数')"
-      :width="120">
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_type"
-      :title="t('最终集群分片数')"
-      :width="120">
+      :title="t('集群类型')"
+      :width="200">
       <template #default="{ row }: { row: RowData }">
-        {{ row.current_shards_num + row.add_shards_num }}
+        {{ ticketDetails.details.clusters[row.cluster_ids[0]].cluster_type_name }}
       </template>
-    </TicketInfoTableColumn>
-    <TicketInfoTableColumn
-      col-key="single_host_shard_num"
-      :title="t('单机分片数')"
-      :width="120">
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="current_shard_nodes_num"
-      :title="t('每片节点数')"
-      :width="120">
+      :title="t('当前节点数')">
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="resource_spec.mongodb.spec_id"
-      :min-width="200"
-      :title="t('规格')">
+      col-key="add_shard_nodes_num"
+      :title="t('扩容节点数')">
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="add_shard_nodes_num"
+      :min-width="120"
+      :title="t('最终节点数')">
       <template #default="{ row }: { row: RowData }">
-        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
+        {{ row.current_shard_nodes_num + row.add_shard_nodes_num }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="resource_spec.mongodb.count"
-      :title="t('新增机器（组）')"
-      :width="120">
+      col-key="resource_spec.shard_nodes.label_names"
+      :min-width="200"
+      :title="t('资源标签')">
       <template #default="{ row }: { row: RowData }">
-        {{ row.add_shards_num / row.single_host_shard_num }}
+        <template v-if="row.resource_spec.shard_nodes?.label_names?.length">
+          <BkTag
+            v-for="item in row.resource_spec.shard_nodes.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接')">
+      {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -79,14 +87,16 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.AddShard>;
+    ticketDetails: TicketModel<Mongodb.ResourcePool.ReplicaAddShardNodes>;
   }
 
   defineOptions({
-    name: TicketTypes.MONGODB_ADD_SHARD,
+    name: TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES,
     inheritAttrs: false,
   });
 

@@ -234,7 +234,7 @@
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       db_app_abbr: '',
       db_version: '',
-      disaster_tolerance_level: Affinity.MAJORITY_ELECTION_DISTRI,
+      disaster_tolerance_level: Affinity.CROSS_SUBZONE_WEAK,
       ip_source: 'resource_pool',
       node_count: 3,
       node_replica_count: 1,
