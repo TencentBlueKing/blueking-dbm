@@ -44,7 +44,7 @@
           ...item,
           titles: item.titles.map((item) => ({
             field: item.id,
-            label: item.display_name,
+            label: item.table_display_name || item.display_name,
           })),
         };
       });
