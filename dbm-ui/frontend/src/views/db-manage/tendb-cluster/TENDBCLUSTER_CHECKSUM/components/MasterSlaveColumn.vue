@@ -46,31 +46,35 @@
     field="slaves"
     :label="t('校验从库')"
     :min-width="180"
+    :readonly="scope === 'all'"
     :required="scope !== 'all'">
-    <EditableBlock class="tendbcluster-checksum-render-slave-box">
-      <div v-if="scope === 'all'">
-        {{ t('全部') }}
-      </div>
-      <div v-else>
-        <div class="render-slaves">
-          <p
-            v-for="instance in selected"
-            :key="instance">
-            {{ instance }}
-          </p>
-        </div>
-        <div
-          v-if="selected.length < 1 || selected.every((item) => !item)"
-          class="bk-editable-text-content-placeholder"
-          @click="handleShowSelector">
+    <EditableBlock>
+      <div
+        v-if="slaves.length === 0 && scope !== 'all'"
+        class="tendbcluster-checksum-slave-default"
+        @click="handleShowSelector">
+        <div class="tendbcluster-checksum-placeholder">
           {{ t('请选择') }}
         </div>
+        <DbIcon
+          class="angle-down render-slaves-icon"
+          size="small"
+          type="bk-dbm-icon db-icon-down-big" />
       </div>
+
+      <div v-if="scope === 'all'">{{ t('全部') }}</div>
       <div
-        v-if="selected.length > 0 && scope !== 'all'"
-        class="edit-btn"
+        v-else
+        class="tendbcluster-checksum-slave-selected"
         @click="handleShowSelector">
-        <DbIcon type="edit" />
+        <p
+          v-for="instance in slaves"
+          :key="instance.instance_address">
+          {{ instance.instance_address }}
+        </p>
+        <DbIcon
+          class="edit-btn"
+          type="edit" />
       </div>
     </EditableBlock>
   </EditableColumn>
@@ -98,12 +102,11 @@
     @change="handleChange" />
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
+  import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   import { ClusterTypes } from '@common/const';
 
@@ -114,9 +117,6 @@
   } from '@components/instance-selector/Index.vue';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
-
-  type SlaveItem = ServiceReturnType<typeof getTendbclusterInstanceList>['results'][0];
-  type MasterItem = SlaveItem['related_pair_instance'];
 
   interface InstanceInfo {
     bk_biz_id: number;
@@ -141,13 +141,12 @@
 
   interface Props {
     cluster: TendbClusterModel;
-    rowspan?: number;
+    createTableRow: (data: Partial<RowData>) => RowData;
+    handleRowMerge: () => void;
+    rowspan: number;
   }
 
-  interface Emits {
-    (e: 'batch-edit', value: string, field: string): void;
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'batch-edit', value: string, field: string) => void;
 
   const props = defineProps<Props>();
 
@@ -195,16 +194,47 @@
       ({
         [ClusterTypes.TENDBCLUSTER]: [
           {
-            name: t('主库故障主机'),
+            name: t('从库'),
             tableConfig: {
               firsrColumn: {
                 field: 'instance_address',
                 label: 'slave',
                 role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
               },
+              roleFilterList: {
+                list: [
+                  {
+                    text: 'backend_slave',
+                    value: 'backend_slave',
+                  },
+                  {
+                    text: 'backend_repeater',
+                    value: 'backend_repeater',
+                  },
+                  {
+                    text: 'remote_slave',
+                    value: 'remote_slave',
+                  },
+                  {
+                    text: 'remote_repeater',
+                    value: 'remote_repeater',
+                  },
+                ],
+              },
             },
             topoConfig: {
               filterClusterId: props.cluster.id,
+            },
+          },
+          {
+            id: 'manualInput',
+            name: t('手动输入'),
+            tableConfig: {
+              firsrColumn: {
+                field: 'instance_address',
+                label: 'slave',
+                role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
+              },
             },
           },
         ],
@@ -218,20 +248,6 @@
     return '';
   };
 
-  const { run: fetchData } = useRequest(getTendbclusterInstanceList, {
-    manual: true,
-    onSuccess(data) {
-      if (slaves.value.length && data.results.length > 0) {
-        const slavesMap = Object.fromEntries(slaves.value.map((slave) => [slave.instance_address, true]));
-        const instances = data.results.filter((item) => slavesMap[item.instance_address]);
-        selected.value = instances.map((item) => item.instance_address);
-        handleChange({
-          [ClusterTypes.TENDBCLUSTER]: instances,
-        } as unknown as InstanceSelectorValues<IValue>);
-      }
-    },
-  });
-
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;
   };
@@ -244,55 +260,7 @@
     isShowInstanceSelector.value = true;
   };
 
-  /**
-   * 辅助查找实例所在行
-   */
-  const masterRowIndex: Record<string, number> = {};
-
-  /**
-   * 转换master数据
-   */
-  const generateMaster = (data: MasterItem) => ({
-    bk_biz_id: data.bk_biz_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance,
-    ip: data.ip,
-    port: data.port,
-  });
-
-  /**
-   * 转换slave单项数据
-   */
-  const generateSlave = (data: IValue) => ({
-    bk_biz_id: data.bk_biz_id,
-    bk_cloud_id: data.bk_cloud_id,
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address,
-    ip: data.ip,
-    port: data.port,
-  });
-
-  const handleAppend = (data: { master: RowData['master']; slaves: RowData['slaves'] }) => {
-    tableData.value.forEach((item, index) => {
-      masterRowIndex[item.master.instance_address] = index;
-    });
-
-    const rowIndex = columnRef.value!.getRowIndex();
-    const existIndex = masterRowIndex[data.master.instance_address];
-    if (existIndex > -1) {
-      tableData.value[existIndex] = Object.assign(_.cloneDeep(tableData.value[rowIndex]), {
-        slaves: _.sortBy(
-          _.uniqBy([...tableData.value[existIndex].slaves, ...data.slaves], 'instance_address'),
-          'instance_address',
-        ),
-      });
-    } else {
-      tableData.value.splice(rowIndex + 1, 0, Object.assign(_.cloneDeep(tableData.value[rowIndex]), data));
-    }
-  };
-
-  const handleChange = (payload: InstanceSelectorValues<IValue>) => {
+  const handleChange = async (payload: InstanceSelectorValues<IValue>) => {
     const selectedInstances = payload[ClusterTypes.TENDBCLUSTER];
 
     if (!selectedInstances.length) {
@@ -307,28 +275,67 @@
       };
       return;
     }
-    // 以master分组
-    const masterGroup = _.groupBy(selectedInstances, (item) => item.related_pair_instance.instance);
-    // 当前行的主库
-    const currentMaster = selectedInstances[0].related_pair_instance;
-    // 当前行的从库
-    const currentSlaves = masterGroup[currentMaster.instance];
-    slaves.value = currentSlaves.map((item) => generateSlave(item));
-    master.value = generateMaster(currentMaster);
-    // 追加其他行
-    Object.entries(masterGroup).forEach(([master, slaves]) => {
-      if (master !== currentMaster.instance) {
-        const masterInfo = masterGroup[master][0].related_pair_instance;
-        handleAppend({
-          master: generateMaster(masterInfo),
-          slaves: slaves.map((item) => generateSlave(item)),
-        });
-      }
+
+    // 选中的从库信息, instance -> slave info
+    const slaveInfo = selectedInstances.reduce<Record<string, TendbclusterInstanceModel>>((acc, item) => {
+      Object.assign(acc, {
+        [item.instance_address]: item,
+      });
+      return acc;
+    }, {});
+
+    // 获取主从实例对信息
+    const { instances } = await getRemoteMachineInstancePair({
+      bk_biz_id: props.cluster.bk_biz_id,
+      instances: selectedInstances.map((item) => item.instance_address),
     });
-    selected.value = currentSlaves.map((item) => item.instance_address);
+
+    // 主库信息, instance -> master info
+    const masterInfo: Record<string, ServiceReturnType<typeof getRemoteMachineInstancePair>['instances'][string]> = {};
+    // 按主库分组, master -> [slave, slave, ...]
+    const groupByMaster: Record<string, string[]> = {};
+    Object.entries(instances).forEach(([slave, master]) => {
+      if (!masterInfo[master.instance]) {
+        masterInfo[master.instance] = master;
+      }
+      if (!groupByMaster[master.instance]) {
+        groupByMaster[master.instance] = [];
+      }
+      groupByMaster[master.instance].push(slave);
+    });
+
+    const list = Object.values(masterInfo).map((master) =>
+      props.createTableRow({
+        cluster: props.cluster,
+        master: {
+          bk_biz_id: master.bk_biz_id,
+          bk_cloud_id: master.bk_cloud_id,
+          bk_host_id: master.bk_host_id,
+          instance_address: master.instance,
+          ip: master.ip,
+          port: master.port,
+        },
+        scope: 'partial',
+        slaves: groupByMaster[master.instance].map((slave) => {
+          const info = slaveInfo[slave];
+          return {
+            bk_biz_id: info.bk_biz_id,
+            bk_cloud_id: info.bk_cloud_id,
+            bk_host_id: info.bk_host_id,
+            instance_address: info.instance_address,
+            ip: info.ip,
+            port: info.port,
+          };
+        }),
+      }),
+    );
+
+    const rowIndex = columnRef.value!.getRowIndex();
+
+    tableData.value.splice(rowIndex, 1, ...list);
 
     // 触发行合并
-    emits('change');
+    props.handleRowMerge();
   };
 
   const handleChangeScope = (value: string) => {
@@ -353,28 +360,43 @@
   };
 
   watch(
-    () => props.cluster.id,
+    slaves,
     () => {
-      if (props.cluster.id) {
-        fetchData({
-          cluster_id: props.cluster.id,
-          role: 'backend_slave,backend_repeater,remote_slave,remote_repeater',
-        });
-      }
+      selectorSelected.value = {
+        [ClusterTypes.TENDBCLUSTER]: slaves.value.map((item) => ({
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          instance_address: item.instance_address,
+          ip: item.ip,
+          port: item.port,
+        })),
+      } as unknown as InstanceSelectorValues<IValue>;
     },
     {
       immediate: true,
     },
   );
-
-  watch(slaves, (newList, oldList) => {
-    if (newList.length !== oldList.length) {
-      selected.value = slaves.value.map((item) => item.instance_address);
-    }
-  });
 </script>
 <style lang="less">
-  .tendbcluster-checksum-render-slave-box {
+  .tendbcluster-checksum-slave-default {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+
+    .tendbcluster-checksum-placeholder {
+      color: #c4c6cc;
+    }
+
+    .render-slaves-icon {
+      font-size: 15px;
+      color: #979ba5;
+    }
+  }
+
+  .tendbcluster-checksum-slave-selected {
     cursor: pointer;
 
     .render-slaves {
