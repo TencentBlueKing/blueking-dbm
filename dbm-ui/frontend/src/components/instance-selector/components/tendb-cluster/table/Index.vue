@@ -25,6 +25,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
+        :height="500"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
         :show-overflow="false"
