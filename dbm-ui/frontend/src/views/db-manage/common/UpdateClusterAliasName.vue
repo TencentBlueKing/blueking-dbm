@@ -10,7 +10,8 @@
       class="cluster-alias-name-edit-btn"
       :class="{
         'is-active': isActive,
-      }">
+      }"
+      role="table-cell-operation">
       <AuthButton
         :action-id="actionId"
         :permission="checkEditPermission(data)"

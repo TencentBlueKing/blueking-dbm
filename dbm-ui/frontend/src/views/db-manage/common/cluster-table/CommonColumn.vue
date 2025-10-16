@@ -31,7 +31,14 @@
     :min-width="180"
     :title="t('规格')">
     <template #default="{ row }: { row: IRowData }">
-      {{ row.cluster_spec.spec_name || '--' }}
+      <template v-if="row.cluster_spec.spec_name">
+        <TextOverflowLayout
+          v-for="spaceName in row.cluster_spec.spec_name.split(',')"
+          :key="spaceName">
+          {{ spaceName }}
+        </TextOverflowLayout>
+      </template>
+      <span v-else> -- </span>
     </template>
   </TableColumn>
   <TableColumn
@@ -57,7 +64,7 @@
     :filter="columnFilter?.['create_at']"
     sort
     :title="t('部署时间')"
-    :width="250">
+    :width="180">
     <template #default="{ row }: { row: IRowData }">
       {{ row.createAtDisplay || '--' }}
     </template>

@@ -61,7 +61,7 @@ export function filterClusters<
 export function queryBizClusterAttrs(params: {
   bk_biz_id: number;
   cluster_attrs?: string;
-  cluster_type: ClusterTypes;
+  cluster_type: string;
   instances_attrs?: string;
   limit?: number;
   offset?: number;

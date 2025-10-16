@@ -7,22 +7,24 @@ import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
 
 import { ClusterTypes } from '@common/const';
+import { domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 const clusterAttrs = ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'] as const;
 
-export const useClusterQuickSearch = (cluster_type: ClusterTypes) => {
+export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[]) => {
   const { t } = useI18n();
 
   const searchValue = ref<Record<string, string>>({});
   const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
 
   const getBizClusterAttrs = (attr: (typeof clusterAttrs)[number]) => {
+    console.log('cluster_type', cluster_type);
     return queryBizClusterAttrs({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: clusterAttrs.join(','),
-      cluster_type: cluster_type,
+      cluster_type: Array.isArray(cluster_type) ? cluster_type.join(',') : cluster_type,
     }).then((data) => {
       return data[attr].map((item) => ({
         label: item.text,
@@ -36,12 +38,18 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes) => {
       id: 'domain',
       name: t('访问入口'),
       type: 'multiple-input',
+      validator: (value) => {
+        return domainRegex.test(value) || domainPort.test(value);
+      },
     },
 
     {
       id: 'instance',
       name: t('IP 或 IP:Port'),
       type: 'multiple-input',
+      validator: (value) => {
+        return ipPort.test(value) || ipv4.test(value);
+      },
     },
     {
       id: 'tag',
@@ -85,6 +93,10 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes) => {
       id: 'name',
       name: t('集群名称'),
       type: 'multiple-input',
+      validator: (value) => {
+        // 排除IP和IP:Port和域名和域名:Port
+        return !ipPort.test(value) && !ipv4.test(value) && !domainRegex.test(value) && !domainPort.test(value);
+      },
     },
     {
       id: 'status',

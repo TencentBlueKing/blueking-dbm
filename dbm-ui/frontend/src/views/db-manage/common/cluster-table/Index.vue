@@ -1,7 +1,6 @@
 <template>
   <div ref="root">
     <DbTable
-      :key="refreshKey"
       ref="tableRef"
       v-bind="$attrs"
       :bk-ui-settings="bkUiSettings"
@@ -73,8 +72,6 @@
   import { useI18n } from 'vue-i18n';
 
   import DbTable from '@components/db-table/IndexNew.vue';
-
-  import { random } from '@utils';
 
   import ClusterAliasColumn from './ClusterAliasColumn.vue';
   import ClusterNameColumn from './ClusterNameColumn.vue';
@@ -155,14 +152,14 @@
 
   const emits = defineEmits<Emits<T>>();
 
-  const slots = defineSlots<Slots>();
+  defineSlots<Slots>();
 
-  const getRowClass = (data: { id: number; isNew: boolean; isOnline: boolean }) => {
+  const getRowClass = (data: { id: number; isNew: boolean; isOffline: boolean }) => {
     const classList = [];
     if (data.isNew) {
       classList.push('is-new');
     }
-    if (!data.isOnline) {
+    if (data.isOffline) {
       classList.push('is-offline');
     }
     if (data.id === props.clusterId) {
@@ -178,7 +175,6 @@
 
   let fetchDataParams: Record<string, any> = {};
   const rootRef = useTemplateRef('root');
-  const refreshKey = ref('0');
   const viewMode = ref<IViewMode>(userProfileStore.profile[TABLE_VIEW_MODE_SETTING_KEY] || 'drawer');
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isFilter = ref(false);
@@ -209,18 +205,6 @@
     tableRef.value?.fetchData(fetchDataParams);
     isFilter.value = Object.keys(fetchDataParams).length > 0;
   };
-
-  watch(
-    slots,
-    () => {
-      setTimeout(() => {
-        refreshKey.value = random();
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const handleRefresh = () => {
     fetchData();
@@ -273,8 +257,7 @@
 
     thead {
       [class*='db-icon'] {
-        margin-top: 1px;
-        margin-left: 4px;
+        margin-left: 8px;
         cursor: pointer;
 
         &:hover {
@@ -283,22 +266,42 @@
       }
     }
 
-    tr {
-      &.is-new {
-        td {
-          background-color: #f3fcf5 !important;
-        }
-      }
+    [role='table-cell-operation'] {
+      display: none;
+      margin-left: 4px;
+      cursor: pointer;
 
-      &.is-offline {
-        .bk-button.bk-button-primary.is-text {
+      &:hover {
+        color: #3a84ff;
+      }
+    }
+
+    tbody {
+      tr {
+        &.is-new {
+          td {
+            background-color: #f3fcf5 !important;
+          }
+        }
+
+        &.is-offline {
           color: #c4c6cc !important;
-        }
-      }
 
-      &.is-selected-row {
-        td {
-          background: #ebf2ff !important;
+          .bk-button.bk-button-primary.is-text {
+            color: #c4c6cc !important;
+          }
+        }
+
+        &.is-selected-row {
+          td {
+            background: #ebf2ff !important;
+          }
+        }
+
+        &:hover {
+          [role='table-cell-operation'] {
+            display: inline-block;
+          }
         }
       }
     }

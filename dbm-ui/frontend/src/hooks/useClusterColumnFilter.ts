@@ -219,6 +219,15 @@ export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof
       ...params,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: params.cluster_attrs?.join(','),
+      cluster_type:
+        params.cluster_type === ClusterTypes.REDIS
+          ? [
+              ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+              ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+              ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+              ClusterTypes.PREDIXY_REDIS_CLUSTER,
+            ].join(',')
+          : params.cluster_type,
       instances_attrs: params.instances_attrs?.join(''),
     });
   } else {
