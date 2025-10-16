@@ -12,6 +12,8 @@ import itertools
 import logging
 from typing import List
 
+from bk_audit.log.models import AuditContext
+from celery import shared_task
 from django.utils.translation import ugettext as _
 from rest_framework.permissions import BasePermission
 
@@ -21,14 +23,16 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import (
     BizDBTypeResourceActionPermission,
+    CommonInstance,
     IAMPermission,
     MoreResourceActionPermission,
     RejectPermission,
     ResourceActionPermission,
+    bk_audit_client,
 )
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.exceptions import ApprovalWrongOperatorException
 from backend.ticket.models import Ticket, TicketFlowsConfig
 from backend.utils.basic import get_target_items_from_details
@@ -234,3 +238,44 @@ def ticket_flows_config_permission(action, request):
             )
 
     return [permission]
+
+
+@shared_task
+def add_ticket_audit_event(ticket_id):
+    """
+    添加单据审计事件
+    目前只有在任务开始执行和任务执行失败/终止的时候才上报事件
+    """
+    audit_ticket_status = [TicketStatus.RUNNING, TicketStatus.SUCCEEDED, TicketStatus.FAILED, TicketStatus.TERMINATED]
+    ticket = Ticket.objects.get(id=ticket_id)
+
+    # 非审计状态，忽略
+    if ticket.status not in audit_ticket_status:
+        return
+    # 无集群ID，忽略
+    cluster_ids = fetch_cluster_ids(ticket.details)
+    if not cluster_ids:
+        return
+    # 获取单据执行相关的iam资源
+    action = BuilderFactory.ticket_type__iam_action.get(ticket.ticket_type)
+    resource_meta = action.related_resource_types[0]
+    resources = resource_meta.batch_create_instances(cluster_ids)
+    # 按照资源上报事件
+    event_data = {
+        "username": ticket.creator,
+        "bk_biz_id": ticket.bk_biz_id,
+        "ticket_type": ticket.ticket_type,
+        "status": ticket.status,
+        "ticket_id": ticket.id,
+    }
+    for resource in resources:
+        try:
+            bk_audit_client.add_event(
+                action=action,
+                resource_type=resource,
+                audit_context=AuditContext(**event_data),
+                instance=CommonInstance(resource.attribute),
+                extend_data=event_data,
+            )
+        except TypeError as e:
+            logger.error("bk audit add event error...%s", e)
