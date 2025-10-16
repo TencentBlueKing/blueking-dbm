@@ -28,6 +28,7 @@ import (
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -115,6 +116,8 @@ func init() {
 	config.InitConfig()
 	model.InitModel()
 	bk.InitCCClient()
+	// 依赖 InitConfig 的云厂商初始化，避免在 init() 读取到空配置
+	tencent.InitTencentCloud()
 }
 
 // LocalCron define local crontab
