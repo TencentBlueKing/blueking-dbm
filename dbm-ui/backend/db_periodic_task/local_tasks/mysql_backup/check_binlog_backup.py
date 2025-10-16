@@ -16,7 +16,7 @@ from blueapps.core.celery.celery import app
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.constants import BACKUP_TASK_SUCCESS
-from backend.db_report.enums import MysqlBackupCheckSubType
+from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
@@ -109,5 +109,6 @@ def _check_binlog_backup(cluster_type, date_str):
                 status=False,
                 msg="binlog is not consecutive:{}".format(shard_binlog_stat),
                 subtype=MysqlBackupCheckSubType.BinlogSeq.value,
+                state=ReportStateType.ABNORMAL.value,
                 failed_days=failed_days,
             )
