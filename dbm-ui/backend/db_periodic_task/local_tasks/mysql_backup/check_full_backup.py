@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_report.enums import MysqlBackupCheckSubType
+from backend.db_report.enums import MysqlBackupCheckSubType, ReportStateType
 from backend.db_report.models import MysqlBackupCheckReport, MysqlBackupProgress
 
 from .bklog_query import ClusterBackup
@@ -224,10 +224,11 @@ def _check_tendbha_full_backup(date_str: str):
                     cluster=c.immute_domain,
                     cluster_type=ClusterType.TenDBHA,
                     status=False,
-                    msg="no success full backup found",
+                    msg="no success full backup found" + "\n" + detail_failed,
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    state=ReportStateType.ABNORMAL.value,
                     host=" | ".join(host_failed),
-                    status_detail=detail_failed,
+                    # status_detail=detail_failed,
                     failed_days=failed_days,
                 )
             else:
@@ -239,6 +240,7 @@ def _check_tendbha_full_backup(date_str: str):
                     status=True,
                     msg="success",
                     subtype=MysqlBackupCheckSubType.FullBackup.value,
+                    state=ReportStateType.NORMAL.value,
                 )
         except json.decoder.JSONDecodeError as e:
             logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))

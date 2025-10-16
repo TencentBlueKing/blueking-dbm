@@ -28,7 +28,7 @@ const (
 func parseByPercona(db, query string) (*Response, error) {
 	pq.ReplaceNumbersInWords = false
 	resp := &Response{
-		QueryString: query,
+		//QueryString: query, // 原始的 sql 不返回了
 		QueryLength: len(query),
 	}
 	digestText := pq.Fingerprint(query)
