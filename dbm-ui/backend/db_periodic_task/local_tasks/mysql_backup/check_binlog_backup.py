@@ -71,14 +71,14 @@ def _check_binlog_backup(cluster_type, date_str):
         # todo 需要获取集群的 master 分片实例，或者分片数
         # c.tendbclusterstorageset_set.all()
 
-        items = backup.query_binlog_from_bklog(start_time, end_time)
+        items = backup.query_binlog_from_dbreport(start_time, end_time)
         instance_binlogs = defaultdict(list)
         # ip-port : {[不连续的值],[]}
         shard_binlog_stat = {}
         for i in items:
-            instance = "{}:{}".format(i.get("mysql_host"), i.get("mysql_port"))
-            if i.get("backup_status") == BACKUP_TASK_SUCCESS:
-                instance_binlogs[instance].append(i.get("file_name"))
+            instance = "{}:{}".format(i.host, i.port)
+            if i.backup_status == BACKUP_TASK_SUCCESS:
+                instance_binlogs[instance].append(i.filename)
             else:
                 instance_binlogs[instance].append("binlog.000001")  # 人为触发不连续
 
