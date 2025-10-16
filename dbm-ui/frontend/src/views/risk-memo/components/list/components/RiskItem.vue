@@ -40,7 +40,12 @@
       class="desc">
       {{ data.description }}
     </div>
-    <div class="time-display">
+    <div
+      v-if="showBiz"
+      class="info-display">
+      {{ t('业务') }}：{{ bizIdMap.get(data.bk_biz_id)?.name || '--' }}
+    </div>
+    <div class="info-display">
       <span
         v-if="!isSpecial"
         class="mr-16">
@@ -53,6 +58,8 @@
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+
+  import { useGlobalBizs } from '@stores';
 
   import TagBlock from '@components/tag-block/Index.vue';
 
@@ -68,6 +75,7 @@
     effectBizLabelMap?: Record<string, string>;
     isActive?: boolean;
     isSpecial?: boolean;
+    showBiz?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -75,9 +83,11 @@
     effectBizLabelMap: () => ({}),
     isActive: false,
     isSpecial: false,
+    showBiz: false,
   });
 
   const { t } = useI18n();
+  const { bizIdMap } = useGlobalBizs();
 
   const descRef = ref<HTMLElement>();
   const durationTimeDisplay = ref(getCostTimeDisplay(0));
@@ -228,10 +238,9 @@
       line-clamp: 6;
     }
 
-    .time-display {
+    .info-display {
       margin-top: 8px;
       font-family: ArialMT, Arial, sans-serif;
-      font-size: 12px;
       color: #979ba5;
     }
   }
