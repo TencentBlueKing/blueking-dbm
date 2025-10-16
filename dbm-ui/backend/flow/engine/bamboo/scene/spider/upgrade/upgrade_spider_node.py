@@ -332,10 +332,11 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             )
 
         # 先执行扩容spider master实例
-        sub_pipeline.add_sub_pipeline(
+        expand_sub_pipelines = []
+        expand_sub_pipelines.append(
             self.add_spider_nodes_with_cluster(
                 cluster_id=cluster_id,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
                 add_spider_hosts=spider_master_ip_list,
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=new_pkg_id,
@@ -344,7 +345,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
 
         # 再执行扩容spider slave实例, 如果spider slave集群存在
         if spider_slave_ip_list:
-            sub_pipeline.add_sub_pipeline(
+            expand_sub_pipelines.append(
                 self.add_spider_nodes_with_cluster(
                     cluster_id=cluster_id,
                     add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
@@ -353,7 +354,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                     global_pkg_id=new_pkg_id,
                 )
             )
-
+        sub_pipeline.add_parallel_sub_pipeline(expand_sub_pipelines)
         # 释放对单据的互斥锁
         # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
         sub_pipeline.add_act(
@@ -377,9 +378,9 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                 )
             ),
         )
-
+        reduce_sub_pipelines = []
         # 缩容spider master 节点
-        sub_pipeline.add_sub_pipeline(
+        reduce_sub_pipelines.append(
             self.reduce_spider_nodes_with_cluster(
                 cluster_id=cluster_id,
                 spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_master],
@@ -391,7 +392,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
 
         # 缩容spider slave 节点
         if old_spider_slave:
-            sub_pipeline.add_sub_pipeline(
+            reduce_sub_pipelines.append(
                 self.reduce_spider_nodes_with_cluster(
                     cluster_id=cluster_id,
                     spider_reduced_hosts=[{"ip": s.machine.ip} for s in old_spider_slave],
@@ -401,7 +402,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
                     is_check_process=self.is_check_process,
                 )
             )
-
+        sub_pipeline.add_parallel_sub_pipeline(reduce_sub_pipelines)
         # 更新集群模块信息
         add_cluster_module_update_act(sub_pipeline, cluster_id, new_db_module_id)
 
