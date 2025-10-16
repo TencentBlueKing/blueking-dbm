@@ -48,6 +48,7 @@
             v-model="item.specId"
             :cluster-type="DBTypes.MYSQL"
             :current-spec-id-list="item.cluster.spec_id_list"
+            disabled-current-spec
             :machine-type="MachineTypes.MYSQL_PROXY"
             required
             selectable
