@@ -379,14 +379,17 @@ class MySQLRollbackDataFlow(object):
                                 )
                             ),
                         )
-                change_master_pipeline_list.append(
-                    change_master_pipeline.build_sub_process(
-                        sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                    else:
+                        raise Exception(_("备份类型{}不支持").format(backup_type))
+                    change_master_pipeline_list.append(
+                        change_master_pipeline.build_sub_process(
+                            sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                        )
                     )
-                )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
+            if len(change_master_pipeline_list) > 0:
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=change_master_pipeline_list)
             sub_pipeline.add_act(act_name=_("解除告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={})
             sub_pipeline_list.append(
                 sub_pipeline.build_sub_process(sub_name=_("定点回档到{}".format(rollback_class.immute_domain)))

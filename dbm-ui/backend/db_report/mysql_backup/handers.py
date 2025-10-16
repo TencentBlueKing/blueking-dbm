@@ -424,12 +424,15 @@ class MySQLBackupHandler:
         """
         获取指定备份信息用于别分使用
         """
+        backup_id = backup_info["backup_id"]
         binlog_info = backup_info["binlog_info"]
         result = {}
         if end_time is None:
             end_time = datetime.now().astimezone()
         if start_time > end_time:
-            result["query_binlog_error"] = _("备份时间点:{} 大于 回滚时间点:{}".format(start_time, end_time))
+            result["query_binlog_error"] = _(
+                "backup_id {} 备份时间点:{} 大于 回滚时间点:{}".format(backup_id, start_time, end_time)
+            )
             return result
         if minute_range > 0:
             logger.info(_("指定binlog查询时间冗余宽度 {} 分钟").format(minute_range))
@@ -446,8 +449,8 @@ class MySQLBackupHandler:
 
             if binlog_info is None or len(binlog_list) == 0:
                 if binlog_list is None or len(binlog_list) == 0:
-                    result["query_binlog_error"] = _("原备份节点{} 查询不到binlog").format(
-                        binlog_info["show_master_status"]["master_host"]
+                    result["query_binlog_error"] = _("backup_id {} 原备份节点{} 查询不到binlog").format(
+                        backup_id, binlog_info["show_master_status"]["master_host"]
                     )
                     return result
             result["binlog_start_file"] = binlog_info["show_master_status"]["binlog_file"]
@@ -457,7 +460,9 @@ class MySQLBackupHandler:
             if "show_slave_status" in binlog_info.keys() and binlog_info.get("show_slave_status", None) is not None:
                 # 备份信息来自从节点，从 show_slave_status 中获取主节点信息
                 if binlog_info["show_slave_status"].get("master_host", "") == "":
-                    result["query_binlog_error"] = _("show slave status 没有 master_host 信息")
+                    result["query_binlog_error"] = _("backup_id {} show slave status 没有 master_host 信息").format(
+                        backup_id
+                    )
                     return result
                 binlog_list = self.get_binlog_backup_infos(
                     binlog_info["show_slave_status"]["master_host"],
@@ -468,20 +473,22 @@ class MySQLBackupHandler:
                 )
                 if binlog_info is None or len(binlog_list) == 0:
                     if binlog_list is None or len(binlog_list) == 0:
-                        result["query_binlog_error"] = _("原备份节点{} 查询不到binlog").format(
-                            binlog_info["show_slave_status"]["master_host"]
+                        result["query_binlog_error"] = _("backup_id {} 原备份节点{} 查询不到binlog").format(
+                            backup_id, binlog_info["show_slave_status"]["master_host"]
                         )
                         return result
                 result["binlog_start_file"] = binlog_info["show_slave_status"]["binlog_file"]
                 result["binlog_start_pos"] = binlog_info["show_slave_status"]["binlog_pos"]
             else:
-                result["query_binlog_error"] = _("找不到 show slave status 信息")
+                result["query_binlog_error"] = _("backup_id {} 找不到 show slave status 信息").format(backup_id)
                 return result
         logger.info("master binlog is:", binlog_list)
         result["binlog_task_ids"] = [i["task_id"] for i in binlog_list]
         binlog_files = [i["filename"] for i in binlog_list]
         if result["binlog_start_file"] not in binlog_files:
-            result["query_binlog_error"] = _("查不到起始binlog文件 {}").format(result["binlog_start_file"])
+            result["query_binlog_error"] = _("backup_id {} 查不到起始binlog文件 {}").format(
+                backup_id, result["binlog_start_file"]
+            )
         # 可添加从binlog_start_file开始完后判断日志连续性...
         result["binlog_files_list"] = binlog_files
         # result["binlog_files"] = ",".join(binlog_files)
