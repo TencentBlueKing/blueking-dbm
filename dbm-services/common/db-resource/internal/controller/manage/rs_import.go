@@ -147,7 +147,6 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 // DoImport do import
 func DoImport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
-	var derr error
 	var diskResp bk.GetDiskResp
 	var notFoundHosts []string
 	var bkHostIds []int
@@ -157,10 +156,10 @@ func DoImport(param ImportMachParam, requestId string) (resp *ImportHostResp, er
 	if len(targetHosts) == 0 {
 		return resp, nil
 	}
-	ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
-	if derr != nil {
-		logger.Error("query cc info from cmdb failed %s", derr.Error())
-		resp.GetDiskInfoJobErrMsg = derr.Error()
+	ccHostsInfo, notFoundHosts, err = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
+	if err != nil {
+		logger.Error("query cc info from cmdb failed %s", err.Error())
+		resp.GetDiskInfoJobErrMsg = err.Error()
 		return resp, err
 	}
 	if len(notFoundHosts) >= len(param.Hosts) {
