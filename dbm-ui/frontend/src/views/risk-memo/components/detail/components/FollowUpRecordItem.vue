@@ -135,6 +135,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     bizId: 0,
+    managePermission: true,
     showLine: true,
   });
 

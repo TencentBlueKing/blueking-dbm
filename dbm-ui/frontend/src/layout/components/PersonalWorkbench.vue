@@ -43,6 +43,7 @@
         <span class="ticket-count">{{ manageCount }}</span>
       </BkMenuItem>
       <BkMenuItem
+        v-if="userProfileStore.isDba"
         key="RiskMemoTodos"
         v-db-console="'personalWorkbench.RiskMemoTodos'">
         <template #icon>

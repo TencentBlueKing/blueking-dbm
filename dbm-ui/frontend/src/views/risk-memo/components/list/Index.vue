@@ -30,6 +30,7 @@
           :effect-biz-label-map="effectBizLabelMap"
           :is-active="item.id === currentRiskId"
           :is-special="isSpecial"
+          :show-biz="isTodoPage || isPlatformPage"
           @click="() => handleChooseRiskMemoItem(item.id)" />
       </ScrollFaker>
       <template v-else>
@@ -139,6 +140,10 @@
     if (props.isSpecial) {
       excludes.push('biz_inpact__icontains');
     }
+    if (isTodoPage.value) {
+      excludes.push('status');
+    }
+
     return excludes;
   });
   const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
@@ -258,7 +263,6 @@
       searchValue.value = {
         status: 'backlog',
       };
-      handleGetRiskMemoList();
       renderSearchKey.value++;
     },
   );
@@ -313,10 +317,10 @@
 </script>
 <style lang="less">
   .risk-list-main {
+    display: flex;
     width: 100%;
     height: 100%;
     padding: 12px 16px 16px 24px;
-    display: flex;
     flex-direction: column;
 
     .operate-main {

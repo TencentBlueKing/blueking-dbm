@@ -115,6 +115,7 @@
       display: flex;
       overflow: hidden;
       flex: 1;
+      border: none;
 
       .bk-resize-layout-aside {
         border-color: transparent;
