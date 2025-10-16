@@ -19,7 +19,8 @@ var cpf *profile.ClientProfile
 // TencentDisker TODO
 var TencentDisker BcsClient
 
-func init() {
+// InitTencentCloud 初始化腾讯云 SDK 相关配置（需在 InitConfig 之后调用）
+func InitTencentCloud() {
 	if config.AppConfig.CloudCertificate != nil {
 		credential = common.NewCredential(
 			config.AppConfig.CloudCertificate.SecretId,
