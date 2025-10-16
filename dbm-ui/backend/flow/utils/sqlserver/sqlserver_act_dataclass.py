@@ -58,6 +58,7 @@ class P2PFileForWindowKwargs(ValidateHandler):
     @attributes cluster_id 传输模式
     @attributes is_trans_log_backup 是否自动查询日志备份
     @attributes is_trans_full_backup 是否自动查询全量备份
+    @attributes is_rolling 是否开启文件滚动传输模式
     """
 
     source_hosts: List[Host] = field(metadata={"validate": validate_hosts})
@@ -68,6 +69,7 @@ class P2PFileForWindowKwargs(ValidateHandler):
     cluster_id: int = 0
     is_trans_log_backup: bool = True
     is_trans_full_backup: bool = True
+    is_rolling: bool = False
 
 
 @dataclass()
@@ -136,7 +138,8 @@ class ExecLoginKwargs:
     """
     定义执行exec_sqlserver_login活动节点的私有变量结构体
     @attributes cluster_id 集群id
-    @attributes exec_mode 操作类型
+    @attributes exec_mode 权限的操作类型
+    @attributes exec_ip 执行ip
     """
 
     cluster_id: int
@@ -304,24 +307,28 @@ class CheckDBExistKwargs:
     """
 
     cluster_id: str
-    check_dbs: list = field(default_factory=list)
+    check_dbs: List[str] = field(default_factory=list)
 
 
 @dataclass
 class UpdateWindowGseConfigKwargs:
     """
     定义变更gse参数的配置私有变量结构体
+    @attributes bk_cloud_id 云区域ID
+    @attributes ips 待处理的ip列表
     """
 
     bk_cloud_id: int
-    ips: list
+    ips: List[str]
 
 
 @dataclass
 class CheckSlaveSyncStatusKwargs:
     """
     定义sqlserver_check_rebuild_slave私有变量结构体
+    @attributes cluster_id 集群ID
+    @attributes fix_slave_host 待修复的slave host
     """
 
     cluster_id: int
-    fix_slave_host: list
+    fix_slave_host: List[str]

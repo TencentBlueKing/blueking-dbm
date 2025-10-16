@@ -449,6 +449,7 @@ class SqlserverDTSFlow(BaseFlow):
 
         if source_instance.machine.ip != target_master_instance.machine.ip:
             # 源和目标不在同一台机器上，则利用job传输备份文件
+            # 这里启动文件滚动传输模式
             sub_pipeline.add_act(
                 act_name=_("传送文件到目标机器[{}]".format(target_master_instance.machine.ip)),
                 act_component_code=SqlserverTransBackupFileFor2P2Component.code,
@@ -460,6 +461,7 @@ class SqlserverDTSFlow(BaseFlow):
                         ],
                         file_target_path=target_restore_path,
                         cluster_id=source_cluster.id,
+                        is_rolling=True,
                     ),
                 ),
             )
