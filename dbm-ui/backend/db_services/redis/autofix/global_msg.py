@@ -24,7 +24,7 @@ def GetOrSaveSwitchWait(ip, srst):
     if not RedisConn.exists(k):
         RedisConn.hset(k, "ip", ip)
         RedisConn.hset(k, "start", datetime2timestamp(datetime.datetime.now(timezone.utc)))
-        RedisConn.hset(k, "err", srst)
+        RedisConn.hset(k, "err", str(srst))  # log: redis.exceptions.DataError: Invalid input of type: 'dict'.
         RedisConn.hset(k, "counter", 1)
         RedisConn.expire(k, SWITCH_MAX_WAIT_SECONDS * 10)
     else:
