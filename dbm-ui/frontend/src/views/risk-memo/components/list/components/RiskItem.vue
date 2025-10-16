@@ -49,24 +49,25 @@
       <span
         v-if="!isSpecial"
         class="mr-16">
-        {{ t('持续时间') }}：{{ durationTimeDisplay }}
+        <span>{{ t('持续时间') }}：</span>
+        <DurationDisplay
+          :end-time="data.final_time"
+          :start-time="data.create_at" />
       </span>
       <span>{{ t('最近更新') }}：{{ latestUpdateDisplay }}</span>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import { useGlobalBizs } from '@stores';
 
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+  import { utcDisplayTime } from '@utils';
 
-  import { useIntervalFn } from '@vueuse/core';
-
+  import DurationDisplay from '../../DurationDisplay.vue';
   import { type RiskMemoItem } from '../Index.vue';
 
   interface Props {
@@ -90,7 +91,6 @@
   const { bizIdMap } = useGlobalBizs();
 
   const descRef = ref<HTMLElement>();
-  const durationTimeDisplay = ref(getCostTimeDisplay(0));
   const isShowToolTip = ref(false);
 
   const isFinished = computed(() => props.data.status === 'done');
@@ -108,34 +108,6 @@
     return utcDisplayTime(props.data.create_at);
   });
 
-  // 计时
-  const { pause, resume } = useIntervalFn(() => {
-    const duratiopn = Math.floor(Date.now() / 1000) - dayjs(props.data.create_at).valueOf() / 1000;
-    durationTimeDisplay.value = getCostTimeDisplay(duratiopn);
-  }, 1000);
-
-  watch(
-    () => [props.data.status, props.isSpecial],
-    () => {
-      if (props.isSpecial) {
-        pause();
-        return;
-      }
-
-      if (props.data.status === 'done') {
-        pause();
-        const duration = dayjs(props.data.final_time).valueOf() / 1000 - dayjs(props.data.create_at).valueOf() / 1000;
-        durationTimeDisplay.value = getCostTimeDisplay(duration);
-      } else {
-        // 进行中的动态更新
-        resume();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
   onMounted(() => {
     const resizeObserver = new ResizeObserver(() => {
       const descScrollHeight = descRef.value!.scrollHeight;
@@ -147,10 +119,6 @@
       resizeObserver.unobserve(descRef.value!);
       resizeObserver.disconnect();
     });
-  });
-
-  onBeforeUnmount(() => {
-    pause();
   });
 </script>
 <style lang="less">
