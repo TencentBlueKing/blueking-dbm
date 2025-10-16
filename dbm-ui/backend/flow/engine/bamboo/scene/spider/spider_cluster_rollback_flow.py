@@ -419,7 +419,8 @@ class TenDBRollBackDataFlow(object):
 
                 ins_sub_pipeline.add_parallel_sub_pipeline(data_restore_sub_list)
                 if remote_node["new_master"]["instance"] != remote_node["new_slave"]["instance"]:
-                    if shard_backup_info.get("backup_type", "") == MySQLBackupTypeEnum.PHYSICAL.value:
+                    backup_type = shard_backup_info.get("backup_type", "")
+                    if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
                         change_master_info = {
                             "target_ip": remote_node["new_master"]["ip"],
                             "target_port": remote_node["new_master"]["port"],
@@ -434,7 +435,7 @@ class TenDBRollBackDataFlow(object):
                                 root_id=self.root_id, uid=self.ticket_data["uid"], cluster_info=change_master_info
                             )
                         )
-                    else:
+                    elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
                         ins_sub_pipeline.add_act(
                             act_name=_("从库start slave {}").format(remote_node["new_slave"]["instance"]),
                             act_component_code=MySQLExecuteRdsComponent.code,
@@ -447,6 +448,8 @@ class TenDBRollBackDataFlow(object):
                                 )
                             ),
                         )
+                    else:
+                        raise Exception(_("备份类型{}不支持").format(backup_type))
 
                 # 如果备份是物理备份，spider层的路由账号需要恢复
                 if shard_backup_info.get("backup_type", "") == MySQLBackupTypeEnum.PHYSICAL.value:
