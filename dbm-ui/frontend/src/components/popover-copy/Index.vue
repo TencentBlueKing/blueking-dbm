@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <div class="dbm-popover-copy">
+  <div
+    class="dbm-popover-copy"
+    role="table-cell-operation">
     <DbIcon
       ref="copyRootRef"
       :class="{ 'is-active': isActive }"

@@ -434,7 +434,12 @@
   const route = useRoute();
   const router = useRouter();
 
-  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch(ClusterTypes.REDIS);
+  const { isSearching, quickSearchData, searchValue } = useClusterQuickSearch([
+    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+  ]);
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS,
     {

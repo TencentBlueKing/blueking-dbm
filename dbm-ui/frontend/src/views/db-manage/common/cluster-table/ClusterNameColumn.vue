@@ -117,20 +117,3 @@
     execCopy(clusterName, t('复制成功，共n条', { n: 1 }));
   };
 </script>
-<style lang="less">
-  .cluster-table-cluster-name-column {
-    &:hover {
-      [class*='db-icon'] {
-        display: block;
-      }
-    }
-
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-  }
-</style>
