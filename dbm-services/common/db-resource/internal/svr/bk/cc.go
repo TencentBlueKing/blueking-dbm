@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -32,8 +34,8 @@ var BkNodeManClient *cc.Client
 // CCModuleFields TODO
 var CCModuleFields []string
 
-// init TODO
-func init() {
+// init CCClient
+func InitCCClient() {
 	var err error
 	BkCmdbClient, err = NewClient(config.AppConfig.BkCmdbApiUrl)
 	if err != nil {
@@ -112,25 +114,44 @@ func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofo
 			})
 			if resp != nil {
 				logger.Info("respone request id is %s,message:%s,code:%d", resp.RequestId, resp.Message, resp.Code)
+				// 检查API响应状态码
+				if resp.Code != 0 {
+					logger.Error("QueryListBizHosts API returned error code: %d, message: %s", resp.Code, resp.Message)
+					return errors.Errorf("API error code: %d, message: %s", resp.Code, resp.Message)
+				}
 			}
 			if errx != nil {
-				logger.Error("QueryListBizHosts failed %s", errx.Error())
+				logger.Error("QueryListBizHosts failed for bizId:%d, hosts:%v, error:%s", bizId, hosts, errx.Error())
 				return errx
 			}
 			ccHosts = append(ccHosts, data.Info...)
 			return nil
 		})
+		// 如果重试失败，立即返回错误
+		if err != nil {
+			logger.Error("BatchQueryHostsInfo failed after retries for bizId:%d, hosts:%v, error:%s", bizId, hosts, err.Error())
+			return nil, nil, err
+		}
 	}
+
+	// 构建查找映射
 	searchMap := make(map[string]struct{})
 	for _, host := range allhosts {
 		searchMap[host] = struct{}{}
 	}
+
+	// 标记已找到的主机
 	for _, hf := range ccHosts {
 		delete(searchMap, hf.InnerIP)
-		logger.Info("cc info %v", hf)
 	}
+
+	// 收集未找到的主机
 	for host := range searchMap {
 		nofoundHosts = append(nofoundHosts, host)
 	}
-	return ccHosts, nofoundHosts, err
+
+	logger.Info("BatchQueryHostsInfo completed for bizId:%d, total hosts:%d, found:%d, not found:%d",
+		bizId, len(allhosts), len(ccHosts), len(nofoundHosts))
+
+	return ccHosts, nofoundHosts, nil
 }

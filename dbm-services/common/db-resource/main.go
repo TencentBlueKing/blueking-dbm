@@ -27,6 +27,7 @@ import (
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
+	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -113,6 +114,7 @@ func init() {
 	}
 	config.InitConfig()
 	model.InitModel()
+	bk.InitCCClient()
 }
 
 // LocalCron define local crontab
