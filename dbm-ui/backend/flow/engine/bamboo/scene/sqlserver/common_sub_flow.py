@@ -638,6 +638,7 @@ def sync_dbs_for_cluster_sub_flow(
                 target_hosts=sync_slaves,
                 file_target_path=backup_path,
                 cluster_id=cluster.id,
+                is_rolling=True,
             ),
         ),
     )
