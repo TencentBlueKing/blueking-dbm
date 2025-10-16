@@ -656,23 +656,22 @@ def _collect_unpracticed_clusters(exclude_biz_ids, exclude_cluster_id, cluster_b
 
 def _collect_practiced_clusters(exclude_cluster_id, cluster_biz_map, recover_success_map, count, num):
     """收集已演练的集群 - 中等优先级"""
-    if count <= num * 3:
-        # 只排除集群ID，不排除业务ID（因为这些是已演练过的集群）
-        clusters = Cluster.objects.exclude(
-            id__in=exclude_cluster_id,
-        ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
+    # 只排除集群ID，不排除业务ID（因为这些是已演练过的集群）
+    clusters = Cluster.objects.exclude(
+        id__in=exclude_cluster_id,
+    ).filter(cluster_type__in=[ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
-        practiced_clusters = 0
-        for cluster in clusters:
-            recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
-            # 降低已演练集群的优先级，与从未演练集群拉开更大差距
-            priority = max(1000 - recover_success_cnt * 100, 200)  # 优先级范围 200-1000
-            heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
-            practiced_clusters += 1
-            count += 1
+    practiced_clusters = 0
+    for cluster in clusters:
+        recover_success_cnt = recover_success_map.get(cluster.immute_domain, 0)
+        # 降低已演练集群的优先级，与从未演练集群拉开更大差距
+        priority = max(1000 - recover_success_cnt * 100, 200)  # 优先级范围 200-1000
+        heapq.heappush(cluster_biz_map[cluster.bk_biz_id], Task(priority, cluster))
+        practiced_clusters += 1
+        count += 1
 
-        if practiced_clusters > 0:
-            logger.info(_("收集了 {} 个已演练过的集群作为候补").format(practiced_clusters))
+    if practiced_clusters > 0:
+        logger.info(_("收集了 {} 个已演练过的集群作为候补").format(practiced_clusters))
 
     return count
 
