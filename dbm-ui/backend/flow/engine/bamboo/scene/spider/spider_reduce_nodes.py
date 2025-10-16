@@ -247,7 +247,9 @@ class TenDBClusterReduceNodesFlow(object):
                 spider_role=reduce_spider_role,
             )
         )
-        return sub_pipeline.build_sub_process(sub_name=_("[{}]减少spider节点流程".format(cluster.immute_domain)))
+        return sub_pipeline.build_sub_process(
+            sub_name=_("[{}]减少{}节点流程".format(cluster.immute_domain, reduce_spider_role))
+        )
 
     def reduce_spider_nodes(self):
         """
