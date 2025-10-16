@@ -20,25 +20,19 @@ limitations under the License.
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
-	"log"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
-
 	commutil "k8s-dbs/common/util"
-
-	terminalentity "k8s-dbs/terminal/entity"
-
 	dbserrors "k8s-dbs/errors"
-
 	metaprovider "k8s-dbs/metadata/provider"
+	terminalentity "k8s-dbs/terminal/entity"
+	terminalutil "k8s-dbs/terminal/util"
 )
 
 // TerminalProvider TerminalProvider 结构体
@@ -50,7 +44,7 @@ type TerminalProvider struct {
 func (k *TerminalProvider) OpenTerminal(
 	entity *terminalentity.TerminalEntity,
 	conn *websocket.Conn,
-	c *gin.Context,
+	_ *gin.Context,
 ) error {
 	// 1. 获取集群配置
 	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
@@ -66,91 +60,163 @@ func (k *TerminalProvider) OpenTerminal(
 		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
 	}
 
-	// 3. 构造 exec 请求
-	req := k8sClient.ClientSet.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(entity.PodName).
-		Namespace(entity.Namespace).
-		SubResource("exec")
-
-	// 可以允许 entity 传入自定义 command，默认为 /bin/bash
-	command := []string{"sh"}
-	/*if len(entity.Command) > 0 {
-		command = entity.Command
-	}*/
-
-	req.VersionedParams(&corev1.PodExecOptions{
-		Command: command,
-		Stdin:   true,
-		Stdout:  true,
-		Stderr:  true,
-		TTY:     true, // 可由前端控制是否开启 TTY
-	}, scheme.ParameterCodec)
-
-	// 4. 创建 SPDY Executor
-	exec, err := remotecommand.NewSPDYExecutor(k8sClient.RestConfig, "POST", req.URL())
+	// 3. 创建持久 shell
+	shell, err := terminalutil.NewShell(k8sClient, entity.Namespace, entity.PodName)
 	if err != nil {
-		writeWSMessage(conn, fmt.Sprintf("[ERROR] 创建 SPDY Executor 失败: %v", err))
-		return fmt.Errorf("创建 SPDY Executor 失败: %w", err)
+		writeWSMessage(conn, fmt.Sprintf("[ERROR] 创建持久 shell 失败: %v", err))
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+	defer shell.Close()
+
+	// 4. 初始化：获取用户名和初始 cwd
+	userResult := shell.Execute("whoami")
+	userName := "root"
+	if userResult.Error == nil {
+		userName = strings.TrimSpace(userResult.Output)
 	}
 
-	// 5. 执行交互式流：WebSocket <-> Pod Shell (stdin/stdout/stderr)
-	err = exec.StreamWithContext(c.Request.Context(), remotecommand.StreamOptions{
-		Stdin:  &wsStdin{conn},
-		Stdout: &wsStdout{conn},
-		Stderr: &wsStdout{conn},
-		Tty:    true,
-	})
+	session := terminalutil.NewTerminalSession(entity.PodName, userName)
+	session.SetCwd(shell.GetCwd())
 
-	if err != nil {
-		writeWSMessage(conn, fmt.Sprintf("[ERROR] Stream 执行失败: %v", err))
-		return fmt.Errorf("stream 执行失败: %w", err)
+	// 5. 发送初始化消息
+	initMsg := terminalentity.WebSocketMessage{
+		Type: terminalentity.MessageInit,
+		Data: terminalentity.InitData{User: userName, Host: entity.PodName, Prompt: session.BuildPrompt()},
 	}
+	_ = conn.WriteJSON(initMsg)
 
-	return nil
+	// 6. 循环处理 WebSocket 消息
+	for {
+		var msg terminalentity.WebSocketMessage
+		err := conn.ReadJSON(&msg)
+		if err != nil {
+			slog.Error("读取消息失败", "error", err)
+			continue
+		}
+
+		switch msg.Type {
+		case terminalentity.MessageCommand:
+			var cd terminalentity.CommandData
+			_ = decodeData(msg.Data, &cd)
+			k.handleCommand(conn, shell, session, cd.Input)
+
+		case terminalentity.MessageTabComplete:
+			var td terminalentity.TabCompleteData
+			_ = decodeData(msg.Data, &td)
+			k.handleTabComplete(conn, shell, msg.ID, td.Input)
+		}
+	}
 }
 
-// 辅助函数：向 WebSocket 发送文本消息
+// completeCommand 将输入和补全结果合并成完整命令
+func completeCommand(input string, completion string) string {
+	input = strings.TrimRight(input, " \t")
+	if input == "" {
+		return completion
+	}
+
+	// 找到最后一个 token 的起始位置
+	idx := strings.LastIndexAny(input, " \t")
+	if idx == -1 {
+		// 整个输入就是一个 token，直接替换
+		return completion
+	}
+
+	// 替换最后一个 token
+	return input[:idx+1] + completion
+}
+
+// handleCommand 处理命令执行
+func (k *TerminalProvider) handleCommand(
+	conn *websocket.Conn,
+	shell *terminalutil.Shell,
+	session *terminalutil.TerminalSession,
+	input string,
+) {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return
+	}
+
+	// 如果是纯 clear 命令，直接返回 clear 消息，不执行
+	if input == "clear" {
+		resp := terminalentity.WebSocketMessage{
+			Type: terminalentity.MessageClear,
+			Data: terminalentity.OutputData{Output: "", Prompt: session.BuildPrompt()},
+		}
+		_ = conn.WriteJSON(resp)
+		return
+	}
+
+	// 在持久 shell 中执行命令
+	result := shell.Execute(input)
+
+	if result.Error != nil {
+		slog.Error("执行命令失败", "error", result.Error, "input", input)
+		// 返回错误信息
+		resp := terminalentity.WebSocketMessage{
+			Type: terminalentity.MessageOutput,
+			Data: terminalentity.OutputData{
+				Output: fmt.Sprintf("错误: %v\n", result.Error),
+				Prompt: session.BuildPrompt(),
+			},
+		}
+		_ = conn.WriteJSON(resp)
+		return
+	}
+
+	// 更新 cwd
+	if result.Cwd != "" {
+		session.SetCwd(result.Cwd)
+	}
+
+	// 返回输出
+	resp := terminalentity.WebSocketMessage{
+		Type: terminalentity.MessageOutput,
+		Data: terminalentity.OutputData{Output: result.Output, Prompt: session.BuildPrompt()},
+	}
+	_ = conn.WriteJSON(resp)
+}
+
+// handleTabComplete 处理 Tab 补全
+func (k *TerminalProvider) handleTabComplete(
+	conn *websocket.Conn,
+	shell *terminalutil.Shell,
+	msgID string,
+	input string,
+) {
+	// 在持久 shell 中执行补全
+	results := shell.Complete(input)
+
+	// 当只有一个补全结果时，将补全结果替换为完整命令
+	completions := results
+	if len(results) == 1 {
+		fullCommand := completeCommand(input, results[0])
+		completions = []string{fullCommand}
+	}
+
+	resp := terminalentity.WebSocketMessage{
+		Type: terminalentity.MessageTabCompleteResult,
+		ID:   msgID,
+		Data: terminalentity.TabCompleteResultData{Input: input, Completions: completions},
+	}
+	_ = conn.WriteJSON(resp)
+}
+
+// writeWSMessage 向 WebSocket 发送文本消息
 func writeWSMessage(conn *websocket.Conn, msg string) {
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(msg)); err != nil {
-		log.Printf("[WebSocket] 写入消息失败: %v", err)
+		slog.Error("写入消息失败", "error", err)
 	}
 }
 
-// --- WebSocket --> Pod Stdin (客户端输入发送到容器) ---
-// wsStdin 实现了 io.Reader，用于从 WebSocket 读取客户端输入，作为容器的 stdin
-type wsStdin struct {
-	conn *websocket.Conn
-}
-
-// Read 从 WebSocket 读取消息，并将数据拷贝到 p 中，供 remotecommand 使用
-func (w *wsStdin) Read(p []byte) (n int, err error) {
-	_, data, err := w.conn.ReadMessage()
-	fmt.Printf("[STDOUT] 收到客户端输入: %s\n", string(p)) // 调试用
+// decodeData 解码数据
+func decodeData(src interface{}, dst interface{}) error {
+	b, err := json.Marshal(src)
 	if err != nil {
-		return 0, err
+		return err
 	}
-
-	// 关键点：确保输入以换行符结尾
-	if !strings.HasSuffix(string(data), "\n") {
-		data = append(data, '\n')
-	}
-	return copy(p, data), nil
-}
-
-// --- Pod Stdout/Stderr --> WebSocket (容器输出发送到客户端) ---
-// wsStdout 实现了 io.Writer，用于将容器的 stdout/stderr 写入到 WebSocket 客户端
-type wsStdout struct {
-	conn *websocket.Conn
-}
-
-func (w *wsStdout) Write(p []byte) (n int, err error) {
-	fmt.Printf("[STDOUT] 收到容器输出: %s\n", string(p)) // 调试用
-	err = w.conn.WriteMessage(websocket.BinaryMessage, p)
-	if err != nil {
-		return 0, err
-	}
-	return len(p), nil
+	return json.Unmarshal(b, dst)
 }
 
 // NewTerminalProvider 创建 TerminalProvider 实例
