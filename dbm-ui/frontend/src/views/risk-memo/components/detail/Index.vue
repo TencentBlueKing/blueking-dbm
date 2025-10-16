@@ -87,7 +87,9 @@
         <div
           v-overflow-tips
           class="value">
-          {{ durationTimeDisplay }}
+          <DurationDisplay
+            :end-time="riskMemoDetail?.final_time"
+            :start-time="riskMemoDetail?.create_at" />
         </div>
       </div>
       <div class="info-item">
@@ -173,7 +175,6 @@
     @close-success="handleGetUpdateDetail" />
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -182,9 +183,9 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+  import { utcDisplayTime } from '@utils';
 
-  import { useIntervalFn } from '@vueuse/core';
+  import DurationDisplay from '../DurationDisplay.vue';
 
   import AddFollowUp from './components/AddFollowUp.vue';
   import BasicInfo from './components/basic-info/Index.vue';
@@ -216,7 +217,6 @@
   const activeTab = ref('detail');
   const isShowCloseRisk = ref(false);
   const recordList = ref<FollowUpList>([]);
-  const durationTimeDisplay = ref(getCostTimeDisplay(0));
 
   const isRiskDone = computed(() => riskMemoDetail.value?.status === 'done');
   const statusTextDisplay = computed(() => {
@@ -270,12 +270,6 @@
     manual: true,
   });
 
-  // 计时
-  const { pause, resume } = useIntervalFn(() => {
-    const duratiopn = Math.floor(Date.now() / 1000) - dayjs(riskMemoDetail.value?.create_at).valueOf() / 1000;
-    durationTimeDisplay.value = getCostTimeDisplay(duratiopn);
-  }, 1000);
-
   const tabList = [
     {
       id: 'detail',
@@ -324,26 +318,6 @@
     },
     {
       immediate: true,
-    },
-  );
-
-  watch(
-    () => [riskMemoDetail.value?.status, props.isSpecial],
-    () => {
-      if (props.isSpecial) {
-        pause();
-        return;
-      }
-
-      if (riskMemoDetail.value?.status === 'done') {
-        pause();
-        const duration =
-          dayjs(riskMemoDetail.value.final_time).valueOf() / 1000 -
-          dayjs(riskMemoDetail.value.create_at).valueOf() / 1000;
-        durationTimeDisplay.value = getCostTimeDisplay(duration);
-      } else {
-        resume();
-      }
     },
   );
 
