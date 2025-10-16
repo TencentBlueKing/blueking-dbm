@@ -194,7 +194,7 @@
   watch(
     searchValue,
     () => {
-      const searchParams = Object.entries(searchValue.value).reduce<Record<string, string>>(
+      searchParams = Object.entries(searchValue.value).reduce<Record<string, string>>(
         (dataMap, [key, value]) =>
           Object.assign(dataMap, {
             [key]: typeof value === 'string' ? value : value.join(','),
@@ -230,19 +230,20 @@
   );
 
   const handleGetRiskMemoList = () => {
-    const params = {
+    const params: { tab?: string } & ServiceParameters<typeof getRiskMemoList> = {
       ...searchParams,
       is_special: props.isSpecial,
       limit: pagination.value.limit,
       offset: (pagination.value.current - 1) * pagination.value.limit,
     };
+    delete params.tab;
     if (isPlatformPage.value) {
       Object.assign(params, {
         platform: true,
       });
     } else if (isTodoPage.value) {
       Object.assign(params, {
-        is_assist: true,
+        is_assist: route.query.is_assist === 'true',
         status: 'backlog',
       });
     } else {
