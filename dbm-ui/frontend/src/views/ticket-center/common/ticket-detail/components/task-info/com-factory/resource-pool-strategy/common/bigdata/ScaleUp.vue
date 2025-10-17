@@ -44,14 +44,17 @@
       <InfoItem
         v-if="item.isManulSelect"
         :label="t('已选IP')">
-        <BkTable :data="item.hostList">
-          <BkTableColumn
-            field="ip"
-            :label="t('节点 IP')" />
-          <BkTableColumn
-            field="bk_disk"
-            :label="t('磁盘容量(G)')" />
-        </BkTable>
+        <PrimaryTable
+          :data="item.hostList"
+          ellipsis
+          row-key="ip">
+          <TableColumn
+            col-key="ip"
+            :title="t('节点 IP')" />
+          <TableColumn
+            col-key="bk_disk"
+            :title="t('磁盘容量(G)')" />
+        </PrimaryTable>
       </InfoItem>
     </InfoList>
   </div>

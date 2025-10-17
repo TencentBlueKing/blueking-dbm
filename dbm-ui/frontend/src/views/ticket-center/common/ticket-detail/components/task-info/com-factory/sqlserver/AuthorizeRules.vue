@@ -19,15 +19,15 @@
     <InfoItem
       :label="t('权限明细')"
       style="flex: 1 0 100%">
-      <BkTable
+      <PrimaryTable
         class="sqlserver-permission-table"
         :data="ruleList"
-        :show-overflow="false">
-        <BkTableColumn
-          field="user"
-          :label="t('账号名称')"
+        row-key="username">
+        <TableColumn
+          col-key="user"
+          :title="t('账号名称')"
           :width="200">
-          <template #default="{ data }: { data: dataItem }">
+          <template #default="{ row:data }: { row: dataItem }">
             <div
               class="sqlserver-permission-cell"
               @click="() => handleToggleExpand(data)">
@@ -39,12 +39,12 @@
               <div class="user-name">{{ data.username }}</div>
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="access_db"
-          :label="t('访问 DB')"
-          :min-width="300">
-          <template #default="{ data }: { data: dataItem }">
+        </TableColumn>
+        <TableColumn
+          col-key="access_db"
+          :min-width="300"
+          :title="t('访问 DB')">
+          <template #default="{ row:data }: { row: dataItem }">
             <div
               v-for="(rule, ruleIndex) in getRenderList(data)"
               :key="ruleIndex"
@@ -52,8 +52,8 @@
               <BkTag>{{ rule.access_db }}</BkTag>
             </div>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>

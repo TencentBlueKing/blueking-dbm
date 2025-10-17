@@ -12,22 +12,23 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="ip"
-      :label="t('待替换的主机')" />
-    <BkTableColumn
-      field="role"
-      :label="t('角色类型')" />
-    <BkTableColumn
-      field="cluster_domain"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="spec_name"
-      :label="t('规格需求')" />
-  </BkTable>
+    ellipsis
+    row-key="ip">
+    <TableColumn
+      col-key="ip"
+      :title="t('待替换的主机')" />
+    <TableColumn
+      col-key="role"
+      :title="t('角色类型')" />
+    <TableColumn
+      col-key="cluster_domain"
+      :title="t('所属集群')" />
+    <TableColumn
+      col-key="spec_name"
+      :title="t('规格需求')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">
@@ -50,7 +51,8 @@
 
   const { t } = useI18n();
 
-  const tableData = computed(
-    () => props.ticketDetails.details.infos?.flatMap((info) => info.display_info?.data ?? []) ?? [],
-  );
+  const tableData = computed(() => {
+    const data = props.ticketDetails.details.infos?.flatMap((info) => info.display_info?.data ?? []) ?? [];
+    return data;
+  });
 </script>

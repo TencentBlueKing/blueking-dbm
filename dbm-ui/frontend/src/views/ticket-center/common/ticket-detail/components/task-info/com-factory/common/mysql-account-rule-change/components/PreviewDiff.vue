@@ -26,14 +26,17 @@
       :is-active="collapseActive.accessDb"
       mode="collapse"
       :title="t('访问DB变更前后对比')">
-      <BkTable :data="accessDbData">
-        <BkTableColumn
-          field="oldAccessDb"
-          :label="t('变更前')" />
-        <BkTableColumn
-          field="newAccessDb"
-          :label="t('变更后')" />
-      </BkTable>
+      <PrimaryTable
+        :data="accessDbData"
+        ellipsis
+        row-key="oldAccessDb">
+        <TableColumn
+          col-key="oldAccessDb"
+          :title="t('变更前')" />
+        <TableColumn
+          col-key="newAccessDb"
+          :title="t('变更后')" />
+      </PrimaryTable>
     </DbCard>
     <DbCard
       v-model:collapse="collapseActive.privilege"
@@ -49,16 +52,18 @@
           <span style="color: #ea3636">{{ deleteCount }}</span>
         </I18nT>
       </template>
-      <BkTable
+      <PrimaryTable
         class="privilege-table"
         :data="privilegeData"
-        :merge-cells="mergeCells">
-        <BkTableColumn
+        ellipsis
+        row-key="beforePrivilege"
+        :rowspan-and-colspan="rowspanAndColspan">
+        <TableColumn
           class-name="cell-bold"
-          field="privilegeDisplay"
-          :label="t('权限类型')" />
-        <BkTableColumn :label="t('变更前')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          col-key="privilegeDisplay"
+          :title="t('权限类型')" />
+        <TableColumn :title="t('变更前')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div v-if="data.beforePrivilege">
               <span>{{ data.beforePrivilege }}</span>
               <span
@@ -69,11 +74,11 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
+        </TableColumn>
+        <TableColumn
           class-name="cell-privilege"
-          :label="t('变更后')">
-          <template #default="{ data }: { data: PrivilegeRow }">
+          :title="t('变更后')">
+          <template #default="{ row: data }: { row: PrivilegeRow }">
             <div
               v-if="data.afterPrivilege"
               :class="[data.diffType]">
@@ -86,8 +91,8 @@
             </div>
             <span v-else>--</span>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </DbCard>
   </div>
 </template>
@@ -180,53 +185,58 @@
     );
   };
 
-  watch(
-    () => props.ticketDetails,
-    () => {
-      const {
-        access_db: accessDb,
-        account_id: accountId,
-        last_account_rules: lastAccountRules,
-        privilege,
-      } = props.ticketDetails.details;
-      rulesFormData.beforeChange = lastAccountRules;
-      rulesFormData.afterChange = {
-        access_db: accessDb,
-        account_id: accountId,
-        privilege,
-      };
+  const {
+    access_db: accessDb,
+    account_id: accountId,
+    last_account_rules: lastAccountRules,
+    privilege,
+  } = props.ticketDetails.details;
+  rulesFormData.beforeChange = lastAccountRules;
+  rulesFormData.afterChange = {
+    access_db: accessDb,
+    account_id: accountId,
+    privilege,
+  };
+
+  const dmlData = getPrivilegeData('dml');
+  const ddlData = getPrivilegeData('ddl');
+  const globData = getPrivilegeData('glob');
+  mergeCells.value = [
+    {
+      col: 0,
+      colspan: 1,
+      row: 0,
+      rowspan: dmlData.length,
     },
     {
-      immediate: true,
+      col: 0,
+      colspan: 1,
+      row: dmlData.length,
+      rowspan: ddlData.length,
     },
-  );
+    {
+      col: 0,
+      colspan: 1,
+      row: dmlData.length + ddlData.length,
+      rowspan: globData.length,
+    },
+  ];
+  privilegeData.value = [...dmlData, ...ddlData, ...globData];
 
-  watchEffect(() => {
-    const dmlData = getPrivilegeData('dml');
-    const ddlData = getPrivilegeData('ddl');
-    const globData = getPrivilegeData('glob');
-    mergeCells.value = [
-      {
-        col: 0,
-        colspan: 1,
-        row: 0,
-        rowspan: dmlData.length,
-      },
-      {
-        col: 0,
-        colspan: 1,
-        row: dmlData.length,
-        rowspan: ddlData.length,
-      },
-      {
-        col: 0,
-        colspan: 1,
-        row: dmlData.length + ddlData.length,
-        rowspan: globData.length,
-      },
-    ];
-    privilegeData.value = [...dmlData, ...ddlData, ...globData];
-  });
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    if (colIndex === 0) {
+      if (rowIndex === 0) {
+        return { rowspan: dmlData.length };
+      }
+      if (rowIndex === dmlData.length) {
+        return { rowspan: ddlData.length };
+      }
+      if (rowIndex === dmlData.length + ddlData.length) {
+        return { rowspan: globData.length };
+      }
+    }
+    return {};
+  };
 </script>
 
 <style lang="less" scoped>

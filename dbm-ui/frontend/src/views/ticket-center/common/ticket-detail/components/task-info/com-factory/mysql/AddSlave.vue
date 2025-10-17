@@ -12,30 +12,30 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="new_slave.ip">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="clusterId in data.cluster_ids"
+          v-for="clusterId in row.cluster_ids"
           :key="clusterId"
           style="line-height: 20px">
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.new_slave.ip }}
+    </TableColumn>
+    <TableColumn :title="t('新从库主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.new_slave.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份源')">
+    </TableColumn>
+    <TableColumn :title="t('备份源')">
       <template #default>
         {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

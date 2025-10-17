@@ -12,17 +12,17 @@
 -->
 
 <template>
-  <BkTable
-    border
+  <PrimaryTable
+    bordered
     :data="tableData"
-    :merge-cells="mergeCells"
     :row-class-name="generateRowClass"
-    :show-overflow="false">
-    <BkTableColumn
-      field="ip"
-      :label="t('目标主机')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    row-key="ip"
+    :rowspan-and-colspan="rowspanAndColspan">
+    <TableColumn
+      col-key="ip"
+      :min-width="150"
+      :title="t('目标主机')">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.ip || '--' }}</p>
         <div
           v-if="data?.related_slave_ip"
@@ -31,12 +31,12 @@
           <p>-- {{ data?.related_slave_ip }}</p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="role"
-      :label="t('角色类型')"
-      :min-width="150">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="role"
+      :min-width="150"
+      :title="t('角色类型')">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.role || '--' }}</p>
         <p
           v-if="data?.related_slave_ip"
@@ -44,20 +44,20 @@
           redis_slave
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_domain"
-      :label="t('所属集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_domain"
+      :min-width="250"
+      :title="t('所属集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <p class="has-related">{{ data.cluster_domain || '--' }}</p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="spec_config"
-      :label="t('规格需求')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="spec_config"
+      :min-width="200"
+      :title="t('规格需求')">
+      <template #default="{ row: data }: { row: RowData }">
         <div class="has-related">
           {{ data.spec_config?.name || '--' }}
           <SpecDetailPopover
@@ -81,8 +81,8 @@
           </SpecDetailPopover>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">
@@ -119,7 +119,6 @@
     spec_config: DetailSpecs[number];
   }
 
-  const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
   const ipInfoMap = reactive<Record<string, RowData>>({});
   const tableData = ref<RowData[]>([]);
 
@@ -130,68 +129,70 @@
     return '';
   };
 
-  watch(
-    () => props.ticketDetails.details,
-    () => {
-      const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
-      if (!infos.length || !recycleHosts.length) {
-        return;
+  const spanInfo: {
+    rowIndex: number;
+    rowspan: number;
+  }[] = [];
+  const { clusters, infos, recycle_hosts: recycleHosts, specs } = props.ticketDetails.details;
+  if (infos.length && recycleHosts.length) {
+    const generateData = (
+      list: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
+      role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
+      clusterIds: number[],
+    ) => {
+      if (list?.length) {
+        _.uniqBy(list, 'ip').forEach((hostInfo) => {
+          const clusterInfo = clusters[clusterIds[0]];
+          const ip = hostInfo.master_ip || hostInfo.ip;
+          const specId = hostInfo.master_spec_id || hostInfo.spec_id;
+          const isRelatedSlave = !!hostInfo.master_ip; // 是否是关联带出的slave
+          if (!ipInfoMap[ip]) {
+            Object.assign(ipInfoMap, {
+              [ip]: {
+                cluster_domain: clusterInfo.immute_domain,
+                ip,
+                role,
+                spec_config: specs[specId],
+              },
+            });
+          } else if (isRelatedSlave) {
+            ipInfoMap[ip].related_slave_ip = hostInfo.ip;
+            ipInfoMap[ip].related_slave_spec = specs[specId];
+          }
+        });
       }
+    };
 
-      const generateData = (
-        list: Redis.ResourcePool.ClusterCutoff['infos'][0]['redis_master'],
-        role: keyof Redis.ResourcePool.ClusterCutoff['infos'][0]['old_nodes'],
-        clusterIds: number[],
-      ) => {
-        if (list?.length) {
-          _.uniqBy(list, 'ip').forEach((hostInfo) => {
-            const clusterInfo = clusters[clusterIds[0]];
-            const ip = hostInfo.master_ip || hostInfo.ip;
-            const specId = hostInfo.master_spec_id || hostInfo.spec_id;
-            const isRelatedSlave = !!hostInfo.master_ip; // 是否是关联带出的slave
-            if (!ipInfoMap[ip]) {
-              Object.assign(ipInfoMap, {
-                [ip]: {
-                  cluster_domain: clusterInfo.immute_domain,
-                  ip,
-                  role,
-                  spec_config: specs[specId],
-                },
-              });
-            } else if (isRelatedSlave) {
-              ipInfoMap[ip].related_slave_ip = hostInfo.ip;
-              ipInfoMap[ip].related_slave_spec = specs[specId];
-            }
-          });
-        }
+    infos.forEach((infoItem) => {
+      generateData(infoItem.old_nodes.redis_master, 'redis_master', infoItem.cluster_ids);
+      generateData(infoItem.old_nodes.redis_slave, 'redis_slave', infoItem.cluster_ids);
+      generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
+    });
+
+    const list = Object.values(ipInfoMap);
+    const domainCounter: Record<string, number> = {};
+    list.forEach((rowData, index) => {
+      const domain = rowData.cluster_domain;
+      domainCounter[domain] = (domainCounter[domain] || 0) + 1;
+      if (domainCounter[domain] > 1) {
+        spanInfo.push({
+          rowIndex: index + 1 - domainCounter[domain],
+          rowspan: domainCounter[domain],
+        });
+      }
+    });
+    tableData.value = list;
+  }
+
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
+    if (spanItem) {
+      return {
+        rowspan: spanItem.rowspan,
       };
-
-      infos.forEach((infoItem) => {
-        generateData(infoItem.old_nodes.redis_master, 'redis_master', infoItem.cluster_ids);
-        generateData(infoItem.old_nodes.redis_slave, 'redis_slave', infoItem.cluster_ids);
-        generateData(infoItem.old_nodes.proxy, 'proxy', infoItem.cluster_ids);
-      });
-
-      const list = Object.values(ipInfoMap);
-      const domainCounter: Record<string, number> = {};
-      list.forEach((rowData, index) => {
-        const domain = rowData.cluster_domain;
-        domainCounter[domain] = (domainCounter[domain] || 0) + 1;
-        if (domainCounter[domain] > 1) {
-          mergeCells.value.push({
-            col: 2,
-            colspan: 1,
-            row: index + 1 - domainCounter[domain],
-            rowspan: domainCounter[domain],
-          });
-        }
-      });
-      tableData.value = list;
-    },
-    {
-      immediate: true,
-    },
-  );
+    }
+    return {};
+  };
 </script>
 <style lang="less">
   .visible-icon {

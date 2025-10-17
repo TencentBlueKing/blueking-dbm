@@ -12,32 +12,34 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容节点类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('扩容节点类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.add_spider_role }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('规格')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="300"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ specInfoMap[data.resource_spec.spider_ip_list.spec_id]?.spec_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容数量')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('扩容数量')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_ip_list.count }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { shallowRef } from 'vue';

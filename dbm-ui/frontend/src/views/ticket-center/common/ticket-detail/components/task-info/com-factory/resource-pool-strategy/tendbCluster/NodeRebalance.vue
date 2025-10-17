@@ -12,21 +12,21 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前容量')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('当前容量')">
+      <template #default="{ row: data }: { row: RowData }">
         <p>{{ t('规格') }}：{{ data.prev_cluster_spec_name || '--' }}</p>
         <p>{{ t('机器组数') }}：{{ data.prev_machine_pair || '--' }}</p>
         <p>{{ t('集群分片数') }}：{{ data.cluster_shard_num || '--' }}</p>
@@ -40,11 +40,11 @@
           <span v-else>--</span>
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标容量')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('目标容量')">
+      <template #default="{ row: data }: { row: RowData }">
         <p>{{ t('规格') }}：{{ data.resource_spec.backend_group.specName || '--' }}</p>
         <p>{{ t('机器组数') }}：{{ data.resource_spec.backend_group.count || '--' }}</p>
         <p>{{ t('集群分片数') }}：{{ data.cluster_shard_num || '--' }}</p>
@@ -58,11 +58,11 @@
           <span v-else>--</span>
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec.backend_group?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.backend_group.label_names"
@@ -76,8 +76,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('数据校验')">
       {{ ticketDetails.details.need_checksum ? t('是') : t('否') }}

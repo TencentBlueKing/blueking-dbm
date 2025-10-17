@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('故障主库实例')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('故障主库实例')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ `${data.switch_tuples[0]?.master?.ip}:${data.switch_tuples[0]?.master?.port}` }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('从库实例')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('从库实例')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ `${data.switch_tuples[0]?.slave?.ip}:${data.switch_tuples[0]?.slave?.port}` }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('所属集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务来源的连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}

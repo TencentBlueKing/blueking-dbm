@@ -26,15 +26,20 @@
       <InfoItem :label="t('服务器选择方式')">
         {{ item.ipSourceDisplay }}
       </InfoItem>
-      <InfoItem :label="t('已选IP')">
-        <BkTable :data="item.hostList">
-          <BkTableColumn
-            field="oldNodeIp"
-            :label="t('被替换的节点IP')" />
-          <BkTableColumn
-            field="newNodeIp"
-            :label="t('新节点IP')" />
-        </BkTable>
+      <InfoItem
+        :label="t('已选IP')"
+        style="flex: 1 0 100%">
+        <PrimaryTable
+          :data="item.hostList"
+          ellipsis
+          row-key="oldNodeIp">
+          <TableColumn
+            col-key="oldNodeIp"
+            :title="t('被替换的节点IP')" />
+          <TableColumn
+            col-key="newNodeIp"
+            :title="t('新节点IP')" />
+        </PrimaryTable>
       </InfoItem>
     </InfoList>
   </div>

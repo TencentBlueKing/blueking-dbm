@@ -12,10 +12,52 @@
 -->
 
 <template>
-  <DbOriginalTable
+  <PrimaryTable
     class="details-reboot__table"
-    :columns="columns"
-    :data="dataList" />
+    :data="dataList">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('集群ID')">
+      <template #default="{ row }">
+        <span>{{ row.cluster_id || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="immute_domain"
+      :ellipsis="false"
+      :title="t('集群名称')">
+      <template #default="{ row }">
+        {{ row.immute_domain }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('集群类型')">
+      <template #default="{ row }">
+        <span>{{ row.cluster_type_name || '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="node_ip"
+      :title="t('节点IP')">
+      <template #default="{ row }">
+        <div v-if="row.node_ip?.length">
+          <p
+            v-for="(ip, index) in row.node_ip"
+            :key="ip"
+            class="pt-2 pb-2">
+            {{ ip }}
+            <i
+              v-if="index === 0"
+              v-bk-tooltips="t('复制IP')"
+              class="db-icon-copy"
+              @click="execCopy(row.node_ip.join('\n'), t('复制成功，共n条', { n: row.node_ip.length }))" />
+          </p>
+        </div>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -39,48 +81,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  /**
-   * 实例重启
-   */
-
-  const columns = [
-    {
-      field: 'cluster_id',
-      label: t('集群ID'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      field: 'immute_domain',
-      label: t('集群名称'),
-      render: ({ data }: { data: any }) => data.immute_domain,
-      showOverflowTooltip: false,
-    },
-    {
-      field: 'cluster_type_name',
-      label: t('集群类型'),
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      field: 'node_ip',
-      label: t('节点IP'),
-      render: ({ cell }: { cell: [] }) =>
-        cell.map((ip, index) => (
-          <p class='pt-2 pb-2'>
-            {ip}
-            {index === 0 ? (
-              <i
-                v-bk-tooltips={t('复制IP')}
-                class='db-icon-copy'
-                onClick={() => execCopy(cell.join('\n'), t('复制成功，共n条', { n: cell.length }))}
-              />
-            ) : (
-              ''
-            )}
-          </p>
-        )),
-    },
-  ];
 
   const dataList = computed(() => {
     const list: any = [];

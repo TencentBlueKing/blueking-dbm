@@ -12,33 +12,33 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
+      :title="t('目标集群')"
       :width="240">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('备份 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('最终 DB')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('最终 DB')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.backup_dbs" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份方式')">
       {{ ticketDetails.details.backup_type === 'full_backup' ? t('全量备份') : t('增量备份') }}

@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标从库实例')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('目标从库实例')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ `${data.slave.ip}:${data.slave.port}` }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份源')">
+    </TableColumn>
+    <TableColumn :title="t('备份源')">
       <template #default>
         {{ backupSourceMap[ticketDetails.details.backup_source] }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
