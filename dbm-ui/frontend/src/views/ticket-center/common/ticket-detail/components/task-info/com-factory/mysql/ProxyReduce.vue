@@ -12,16 +12,16 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标主机')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="origin_proxy_ip.ip">
+    <TableColumn :title="t('目标主机')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ data.origin_proxy_ip.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('同机关联集群')">
+      <template #default="{ row:data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -29,8 +29,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}

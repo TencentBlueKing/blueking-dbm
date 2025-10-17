@@ -17,16 +17,16 @@
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('待重建从库主机')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="old_slave.ip">
+    <BkTableColumn :title="t('待重建从库主机')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
-      <template #default="{ data }: { data: RowData }">
+    <BkTableColumn :title="t('同机关联集群')">
+      <template #default="{ row:data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -35,12 +35,12 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
-      <template #default="{ data }: { data: RowData }">
+    <BkTableColumn :title="t('新从库主机')">
+      <template #default="{ row:data }: { row: RowData }">
         {{ data.new_slave.ip }}
       </template>
     </BkTableColumn>
-  </BkTable>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,16 +12,18 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="from_database"
-      :label="t('同步 DB')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="from_database"
+      :title="t('同步 DB')">
+      <template #default="{ row: data }: { row: RowData }">
         <BkTag
           v-for="dbName in data.sync_dbs"
           :key="dbName">
@@ -29,8 +31,8 @@
         </BkTag>
         <span v-if="data.sync_dbs.length < 1">--</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

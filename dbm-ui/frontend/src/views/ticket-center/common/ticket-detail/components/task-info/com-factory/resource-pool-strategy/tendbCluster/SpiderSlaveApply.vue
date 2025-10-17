@@ -12,32 +12,35 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('规格')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs?.[data.resource_spec.spider_slave_ip_list.spec_id]?.name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('部署台数')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('部署台数')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_slave_ip_list.count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec.spider_slave_ip_list?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.spider_slave_ip_list.label_names"
@@ -51,8 +54,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

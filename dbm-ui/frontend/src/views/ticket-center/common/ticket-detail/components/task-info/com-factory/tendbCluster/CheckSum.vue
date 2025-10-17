@@ -28,28 +28,28 @@
       {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :merge-cells="mergeCells"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="master"
+    :rowspan-and-colspan="rowspanAndColspan">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
+      :title="t('目标集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       fixed="left"
-      :label="t('校验范围')"
+      :title="t('校验范围')"
       :width="100">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.checksum_scope === 'all' ? t('整个集群') : t('部分实例') }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.checksum_scope === 'all' ? t('整个集群') : t('部分实例') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验从库')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验从库')"
       :width="220">
       <template #header>
         <span class="tendbcluster-checksum-ip-header">
@@ -64,76 +64,74 @@
           </PopoverCopy>
         </span>
       </template>
-      <template #default="{ data }: { data: RowData }">
-        <span v-if="data.checksum_scope === 'all'">{{ t('全部') }}</span>
-        <div v-else-if="data.slave">
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="row.checksum_scope === 'all'">{{ t('全部') }}</span>
+        <div v-else-if="row.slave">
           <p
-            v-for="item in data.slave.split(',')"
+            v-for="item in row.slave.split(',')"
             :key="item">
             {{ item }}
           </p>
         </div>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验主库')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验主库')"
       :width="220">
       <template #header>
         <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
           <PopoverCopy class="copy-btn">
-            <div @click="() => handleCopy('master', 'ip')">
+            <div @click="() => handleCopy('slave', 'ip')">
               {{ t('复制IP') }}
             </div>
-            <div @click="() => handleCopy('master', 'instance')">
+            <div @click="() => handleCopy('slave', 'instance')">
               {{ t('复制实例') }}
             </div>
           </PopoverCopy>
         </span>
       </template>
-      <template #default="{ data }: { data: RowData }">
-        <span v-if="data.checksum_scope === 'all'">{{ t('全部') }}</span>
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="row.checksum_scope === 'all'">{{ t('全部') }}</span>
         <span v-else>
-          {{ data.master || '--' }}
+          {{ row.master || '--' }}
         </span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验DB名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验DB名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.db_patterns" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略DB名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('忽略DB名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验表名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('校验表名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.table_patterns" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('忽略表名')"
+    </TableColumn>
+    <TableColumn
+      :title="t('忽略表名')"
       :width="120">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_tables" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
@@ -177,32 +175,31 @@
 
   const tableData = shallowRef<RowData[]>([]);
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
-
-  watch(
-    () => props.ticketDetails.details.infos,
-    (infos) => {
-      // 先构造表格数据
-      const clusterMap = _.groupBy(infos, 'cluster_id');
-      tableData.value = Object.values(clusterMap).flatMap((list) =>
-        list.flatMap((item) =>
-          item.backup_infos.map((row) => ({
-            ...row,
-            checksum_scope: item.checksum_scope,
-            cluster_id: item.cluster_id,
-          })),
-        ),
-      );
-
-      // 再行合并
-      const groupedData = _.groupBy(tableData.value, 'cluster_id');
-      mergeCells.value = Object.values(groupedData).flatMap((list, index) => [
-        { col: 0, colspan: 1, row: index, rowspan: list.length },
-        { col: 1, colspan: 1, row: index, rowspan: list.length },
-      ]);
-    },
-    { immediate: true },
+  // 先构造表格数据
+  const clusterMap = _.groupBy(props.ticketDetails.details.infos, 'cluster_id');
+  tableData.value = Object.values(clusterMap).flatMap((list) =>
+    list.flatMap((item) =>
+      item.backup_infos.map((row) => ({
+        ...row,
+        checksum_scope: item.checksum_scope,
+        cluster_id: item.cluster_id,
+      })),
+    ),
   );
+
+  // 再行合并
+  const groupedData = _.groupBy(tableData.value, 'cluster_id');
+  const spanInfo = Object.values(groupedData).flatMap((list, index) => [{ rowIndex: index, rowspan: list.length }]);
+
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const spanItem = spanInfo.find((item) => (colIndex === 0 || colIndex === 1) && item.rowIndex === rowIndex);
+    if (spanItem) {
+      return {
+        rowspan: spanItem.rowspan,
+      };
+    }
+    return {};
+  };
 
   const handleCopy = (role: 'master' | 'slave', field: 'ip' | 'instance') => {
     const items = tableData.value.map((item) => (item[role] && field === 'ip' ? item[role].split(':')[0] : item[role]));

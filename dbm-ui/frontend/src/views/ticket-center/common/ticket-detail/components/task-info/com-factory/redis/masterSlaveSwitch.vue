@@ -12,36 +12,36 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('主库主机')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.pairs[0].redis_master }}
+  <PrimaryTable :data="ticketDetails.details.infos" row-key="pairs[0].redis_master">
+    <TableColumn
+      :min-width="200"
+      :title="t('主库主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.pairs[0].redis_master }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="300"
+      :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.cluster_ids"
+          v-for="item in row.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('待切换的从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.pairs[0].redis_slave }}
+    </TableColumn>
+    <TableColumn :title="t('待切换的从库主机')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.pairs[0].redis_slave }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('切换模式')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+    </TableColumn>
+    <TableColumn :title="t('切换模式')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('是否强制切换')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}

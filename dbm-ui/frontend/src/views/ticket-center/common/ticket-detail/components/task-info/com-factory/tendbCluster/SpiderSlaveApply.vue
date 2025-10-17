@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('规格')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.specs[data.resource_spec.spider_slave_ip_list.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('部署台数')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('部署台数')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_slave_ip_list.count }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,55 +12,58 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="src_cluster">
+    <TableColumn
+      col-key="immute_domain"
       fixed="left"
-      :label="t('源集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+      :min-width="220"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="db_version"
+    </TableColumn>
+    <TableColumn
+      col-key="db_version"
       :label="t('Redis 版本')" />
-    <BkTableColumn
-      :label="t('当前方案')"
-      :min-width="400">
-      <template #default="{ data }: { data: RowData }">
+    <TableColumn
+      :min-width="400"
+      :title="t('当前方案')">
+      <template #default="{ row }: { row: RowData }">
         <TableGroupContent
-          v-if="data"
-          :columns="getCurrentColunms(data)"
+          v-if="row"
+          :columns="getCurrentColunms(row)"
           :title-width="90" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('新部署方案')"
-      :min-width="400">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="400"
+      :title="t('新部署方案')">
+      <template #default="{ row }: { row: RowData }">
         <TableGroupContent
-          v-if="data"
-          :columns="getTargetColunms(data)"
+          v-if="row"
+          :columns="getTargetColunms(row)"
           :title-width="90" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('切换模式')"
+    </TableColumn>
+    <TableColumn
+      col-key="online_switch_type"
+      :title="t('切换模式')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('校验与修复类型')">
       {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}

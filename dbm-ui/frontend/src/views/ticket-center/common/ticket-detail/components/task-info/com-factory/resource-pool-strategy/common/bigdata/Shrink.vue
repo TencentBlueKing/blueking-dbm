@@ -38,18 +38,21 @@
         v-if="item.isManulSelect"
         :label="t('已选IP')"
         style="flex: 1 0 100%">
-        <BkTable :data="item.hostList">
-          <BkTableColumn
-            field="ip"
-            :label="t('节点 IP')" />
-          <BkTableColumn
-            field="bk_disk"
-            :label="t('磁盘容量(G)')">
-            <template #default="{ data: rowData }: { data: InfoData['hostList'][0] }">
+        <PrimaryTable
+          :data="item.hostList"
+          ellipsis
+          row-key="ip">
+          <TableColumn
+            col-key="ip"
+            :title="t('节点 IP')" />
+          <TableColumn
+            col-key="bk_disk"
+            :title="t('磁盘容量(G)')">
+            <template #default="{ row: rowData }: { row: InfoData['hostList'][0] }">
               {{ hostInfoMap[rowData.ip] }}
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </InfoItem>
     </InfoList>
   </div>

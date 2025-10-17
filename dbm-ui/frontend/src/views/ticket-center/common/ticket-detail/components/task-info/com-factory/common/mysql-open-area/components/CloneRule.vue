@@ -12,9 +12,23 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <PrimaryTable :data="tableData">
+    <TableColumn
+      col-key="source_db"
+      :min-width="150"
+      :title="t('克隆 DB')"
+      :width="200" />
+    <TableColumn
+      col-key="data_tblist"
+      :title="t('克隆表数据')">
+      <template #default="{ row }:{ row: RowData }">
+        <span>{{ row.data_tblist?.length > 0 ? row.data_tblist.join(',') : '--' }}</span>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="target_db_pattern"
+      :title="t('生成的目标 DB 范式')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -34,24 +48,4 @@
   const { t } = useI18n();
 
   const tableData = computed(() => _.sortBy(props.configRules || [], 'source_db'));
-
-  const columns = [
-    {
-      field: 'source_db',
-      label: t('克隆 DB'),
-      minWidth: 150,
-      width: 200,
-    },
-    {
-      field: 'data_tblist',
-      label: t('克隆表数据'),
-      render: ({ data }: { data: RowData }) => (
-        <span>{data.data_tblist.length > 0 ? data.data_tblist.join(',') : '--'}</span>
-      ),
-    },
-    {
-      field: 'target_db_pattern',
-      label: t('生成的目标 DB 范式'),
-    },
-  ];
 </script>
