@@ -205,6 +205,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装从节点")))
 
             sync_data_sub_pipeline_list = []
+            master_instances = []
             for cluster_id in info["cluster_ids"]:
                 cluster_model = Cluster.objects.get(id=cluster_id)
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -223,6 +224,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     "backup_source": self.ticket_data.get("backup_source"),
                     "change_master_force": True,
                 }
+                master_instances.append(master.ip_port)
                 if not self.add_slave_only:
                     cluster["restore_privilege"] = True
                     cluster["privilege_ips"] = [self.data["old_slave_ip"]]
@@ -427,13 +429,20 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 # 切换迁移实例
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
                 # 切换后再次刷新周边
+                # 标志重建机器是否为is_stand_by
+                standardize_instances = instances
+                slaves = cluster_class.storageinstance_set.filter(machine__ip=self.data["old_slave_ip"])
+                for slave in slaves:
+                    if slave.is_stand_by:
+                        standardize_instances = instances + master_instances
+                        break
                 tendb_migrate_pipeline.add_sub_pipeline(
                     sub_flow=standardize_mysql_cluster_subflow(
                         root_id=self.root_id,
                         data=copy.deepcopy(self.data),
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=cluster_class.bk_biz_id,
-                        instances=instances,
+                        instances=standardize_instances,
                         with_actuator=False,
                         with_bk_plugin=False,
                         with_instance_standardize=False,
