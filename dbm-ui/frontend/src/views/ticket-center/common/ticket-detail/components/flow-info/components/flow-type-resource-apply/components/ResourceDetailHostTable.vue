@@ -92,8 +92,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useGlobalBizs } from '@stores';
-
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
   export interface IResouce {
@@ -103,15 +101,12 @@
     bk_mem: number;
     city: string;
     device_class: string;
-    // 历史单据类型为 number; 最新单据类型{  bk_biz_id: number; bk_biz_name: string; }
-    for_biz:
-      | number
-      | {
-          bk_biz_id: number;
-          bk_biz_name: string;
-        };
+    for_biz_info: {
+      bk_biz_id: number;
+      bk_biz_name: string;
+    };
     ip: string;
-    labels: {
+    label_info: {
       id: number;
       name: string;
     }[];
@@ -129,30 +124,16 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-  const biz = useGlobalBizs();
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';
   };
 
   const getResourceHostOwnerData = (data: IResouce) => {
-    const baseData = {
-      labels: data.labels,
-      resource_type: data.resource_type,
-    };
-    // 兼容历史单据数据结构
-    if (typeof data.for_biz === 'number') {
-      return {
-        ...baseData,
-        for_biz: {
-          bk_biz_id: data.for_biz,
-          bk_biz_name: biz.bizIdMap.get(data.for_biz)?.display_name || '--',
-        },
-      };
-    }
     return {
-      ...baseData,
-      for_biz: data.for_biz,
+      for_biz: data.for_biz_info,
+      labels: data.label_info,
+      resource_type: data.resource_type,
     };
   };
 </script>
