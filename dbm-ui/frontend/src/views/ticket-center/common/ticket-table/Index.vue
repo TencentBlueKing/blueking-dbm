@@ -220,8 +220,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="creator"
-          :filter="tableFilter['creator']"
+          col-key="creator__in"
+          :filter="tableFilter['creator__in']"
           :title="t('申请人')"
           width="150" />
         <TableColumn
