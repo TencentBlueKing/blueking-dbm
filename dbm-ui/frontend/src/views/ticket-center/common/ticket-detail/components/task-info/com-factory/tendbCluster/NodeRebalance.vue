@@ -25,41 +25,43 @@
       {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('当前资源规格')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('当前资源规格')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群分片数')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('集群分片数')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.cluster_shard_num }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('部署机器组数')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('部署机器组数')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_machine_pair }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('当前总容量')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('当前总容量')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标总容量')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('目标总容量')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ specInfoMap[data.resource_spec.backend_group.spec_id]?.spec_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

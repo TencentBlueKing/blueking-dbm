@@ -61,37 +61,37 @@
     <InfoItem
       :label="t('域名设置')"
       whole-line>
-      <BkTable
+      <PrimaryTable
         :data="ticketDetails.details.domains"
-        :show-overflow="false">
-        <BkTableColumn
-          field="master"
+        row-key="key">
+        <TableColumn
+          col-key="master"
           fixed="left"
-          :label="t('主访问入口')"
-          :min-width="240" />
-        <BkTableColumn
-          field="deployStructure"
-          :label="t('部署架构')"
-          :min-width="120">
+          :min-width="240"
+          :title="t('主访问入口')" />
+        <TableColumn
+          col-key="deployStructure"
+          :min-width="120"
+          :title="t('部署架构')">
           {{ t('高可用部署') }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="version"
-          :label="t('数据库版本')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="version"
+          :min-width="120"
+          :title="t('数据库版本')">
           {{ ticketDetails.details.db_version }}
-        </BkTableColumn>
-        <BkTableColumn
-          field="charset"
-          :label="t('字符集')"
-          :min-width="120">
+        </TableColumn>
+        <TableColumn
+          col-key="charset"
+          :min-width="120"
+          :title="t('字符集')">
           {{ ticketDetails.details.charset }}
-        </BkTableColumn>
-        <BkTableColumn
+        </TableColumn>
+        <TableColumn
           v-if="ticketDetails.details.nodes?.backend"
-          field="sqlserver_ha"
-          label="Master / Slave IP"
-          :min-width="180">
+          col-key="sqlserver_ha"
+          :min-width="180"
+          title="Master / Slave IP">
           <template #default="{ rowIndex }">
             <div>
               <BkTag
@@ -110,8 +110,8 @@
               {{ ticketDetails.details.nodes.backend[rowIndex * 2 + 1].ip }}
             </div>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>

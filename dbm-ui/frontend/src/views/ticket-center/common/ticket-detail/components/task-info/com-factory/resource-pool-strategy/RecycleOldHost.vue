@@ -25,13 +25,15 @@
       </BkButton>
     </InfoItem>
     <InfoItem :label="t('已下架主机')">
-      <BkTable :data="ticketDetails.details.recycle_hosts">
-        <BkTableColumn
-          field="ip"
+      <PrimaryTable
+        :data="ticketDetails.details.recycle_hosts"
+        row-key="bk_host_id">
+        <TableColumn
+          col-key="ip"
           fixed="left"
-          label="IP"
-          :min-width="150">
-          <template #header>
+          :min-width="150"
+          title="IP">
+          <template #title>
             <div class="ip-header">
               IP
               <DbIcon
@@ -39,60 +41,60 @@
                 @click="copyAllIp" />
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_cloud_name"
-          :label="t('管控区域')"
-          :min-width="120" />
-        <BkTableColumn
-          field="status"
-          :label="t('Agent 状态')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            <HostAgentStatus :data="data.status" />
+        </TableColumn>
+        <TableColumn
+          col-key="bk_cloud_name"
+          :min-width="120"
+          :title="t('管控区域')" />
+        <TableColumn
+          col-key="status"
+          :min-width="120"
+          :title="t('Agent 状态')">
+          <template #default="{ row }: { row: RowData }">
+            <HostAgentStatus :data="row.status" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="city"
-          :label="t('地域')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            {{ data.city || '--' }}
+        </TableColumn>
+        <TableColumn
+          col-key="city"
+          :min-width="120"
+          :title="t('地域')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.city || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="sub_zone"
-          :label="t('园区')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            {{ data.sub_zone || '--' }}
+        </TableColumn>
+        <TableColumn
+          col-key="sub_zone"
+          :min-width="120"
+          :title="t('园区')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.sub_zone || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="rack_id"
-          :label="t('机架')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            {{ data.rack_id || '--' }}
+        </TableColumn>
+        <TableColumn
+          col-key="rack_id"
+          :min-width="120"
+          :title="t('机架')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.rack_id || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_os_name"
-          :label="t('操作系统')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            {{ data.bk_os_name || '--' }}
+        </TableColumn>
+        <TableColumn
+          col-key="bk_os_name"
+          :min-width="120"
+          :title="t('操作系统')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.bk_os_name || '--' }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="device_class"
-          :label="t('机型')"
-          :min-width="120">
-          <template #default="{ data }: { data: RowData }">
-            {{ data.device_class || '--' }}
+        </TableColumn>
+        <TableColumn
+          col-key="device_class"
+          :min-width="120"
+          :title="t('机型')">
+          <template #default="{ row }: { row: RowData }">
+            {{ row.device_class || '--' }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>

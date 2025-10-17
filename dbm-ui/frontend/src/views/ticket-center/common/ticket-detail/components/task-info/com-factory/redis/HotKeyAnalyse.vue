@@ -12,30 +12,29 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :merge-cells="mergeCells"
     show-overflow-tooltip>
-    <BkTableColumn
+    <TableColumn
       field="instance"
       :label="t('目标实例')"
       :min-width="220">
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       :label="t('所属集群')"
       :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       :label="t('架构版本')"
       :min-width="130">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('分析时长')">
       {{ `${ticketDetails.details.analysis_time}s` }}
@@ -46,8 +45,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
-
+  // import type { TableProps } from '@blueking/tdesign-ui';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -69,7 +67,7 @@
 
   const { t } = useI18n();
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+  // const rowspanAndColspan: TableProps['rowspanAndColspan'] = () => {};
 
   const tableData = props.ticketDetails.details.infos.flatMap((infoItem) =>
     infoItem.ins.map((insItem) => ({

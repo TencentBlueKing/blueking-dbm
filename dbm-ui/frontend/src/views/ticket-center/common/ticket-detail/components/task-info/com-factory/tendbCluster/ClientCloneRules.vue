@@ -12,25 +12,25 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     class="mysql-client-clone-render-table"
     :data="ticketDetails.details.clone_data"
-    :show-overflow="false">
-    <BkTableColumn :label="t('源客户端IP')">
-      <template #default="{ data }: { data: RowData }">
-        {{ `${data.bk_cloud_id}:${data.source}` }}
+    ellipsis>
+    <TableColumn :title="t('源客户端IP')">
+      <template #default="{ row }: { row: RowData }">
+        {{ `${row.bk_cloud_id}:${row.source}` }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属模块')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.module }}
+    </TableColumn>
+    <TableColumn :title="t('所属模块')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.module }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新客户端IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新客户端IP')">
+      <template #default="{ row }: { row: RowData }">
         <div class="render-target">
           <template
-            v-for="(item, index) in data.target"
+            v-for="(item, index) in row.target"
             :key="index">
             <p class="pt-2 pb-2">
               {{ item }}
@@ -40,11 +40,11 @@
             class="db-icon-copy"
             type="copy"
             :v-bk-tooltips="t('复制IP')"
-            @click="copyIp(data.target)" />
+            @click="copyIp(row.target)" />
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

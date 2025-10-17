@@ -12,21 +12,21 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('缩容节点类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('缩容节点类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.reduce_spider_role === 'spider_master' ? 'Master' : 'Slave' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('主机选择方式')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('主机选择方式')">
+      <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.spider_reduced_hosts">
           <div
             v-for="item in data.spider_reduced_hosts"
@@ -36,13 +36,13 @@
         </template>
         <span v-else>{{ t('自动匹配') }}</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('缩容数量(台)')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('缩容数量(台)')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.spider_reduced_hosts ? data.spider_reduced_hosts.length : data.spider_reduced_to_count }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('是') : t('否') }}

@@ -12,15 +12,17 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: IRowData }">
+  <PrimaryTable
+    :data="tableData"
+    row-key="id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row:data }: { row: IRowData }">
         {{ ticketDetails.details.clusters[data.id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

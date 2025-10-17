@@ -12,10 +12,26 @@
 -->
 
 <template>
-  <DbOriginalTable
+  <PrimaryTable
     class="details-backup__table"
-    :columns="columns"
-    :data="tableData" />
+    :data="tableData">
+    <TableColumn
+      col-key="immute_domain"
+      ellipsis
+      :label="t('目标集群')" />
+    <TableColumn
+      col-key="cluster_type"
+      ellipsis
+      :label="t('集群类型')" />
+    <TableColumn
+      col-key="current_nodes"
+      ellipsis
+      :label="t('当前Shard的节点数')" />
+    <TableColumn
+      col-key="reduce_shard_nodes"
+      ellipsis
+      :label="t('缩容至（节点数）')" />
+  </PrimaryTable>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
       <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
@@ -56,29 +72,6 @@
   const tableData = ref<RowData[]>([]);
 
   const { clusters, infos } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      field: 'immute_domain',
-      label: t('目标集群'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'cluster_type',
-      label: t('集群类型'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'current_nodes',
-      label: t('当前Shard的节点数'),
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'reduce_shard_nodes',
-      label: t('缩容至（节点数）'),
-      showOverflowTooltip: true,
-    },
-  ];
 
   tableData.value = infos.map((item) => {
     const cluster = clusters[item.cluster_ids[0]];

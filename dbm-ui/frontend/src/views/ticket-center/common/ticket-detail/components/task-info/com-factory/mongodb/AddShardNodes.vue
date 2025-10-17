@@ -12,41 +12,41 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="cluster_ids"
+  <PrimaryTable :data="ticketDetails.details.infos">
+    <TableColumn
+      col-key="cluster_ids"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{data}: {data: RowData}">
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{row:data}: {row: RowData}">
         <div
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_type"
-      :label="t('集群类型')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type"
+      :title="t('集群类型')"
       :width="200">
-      <template #default="{data}: {data: RowData}">
+      <template #default="{row:data}: {row: RowData}">
         {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="current_shard_nodes_num"
-      :label="t('当前Shard的节点数')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="add_shard_nodes_num"
-      :label="t('扩容至（节点数）')"
-      :min-width="120">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn>
+    <TableColumn
+      col-key="current_shard_nodes_num"
+      :title="t('当前Shard的节点数')">
+    </TableColumn>
+    <TableColumn
+      col-key="add_shard_nodes_num"
+      :min-width="120"
+      :title="t('扩容至（节点数）')">
+      <template #default="{row:data}: {row: RowData}">
         {{ data.current_shard_nodes_num + data.add_shard_nodes_num }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}

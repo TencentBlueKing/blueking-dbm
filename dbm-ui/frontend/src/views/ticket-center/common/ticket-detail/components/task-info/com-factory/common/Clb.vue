@@ -12,25 +12,27 @@
 -->
 
 <template>
-  <BkTable :data="[ticketDetails]">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: Props['ticketDetails'] }">
-        {{ data.details.clusters[data.details.cluster_id].immute_domain }}
+  <PrimaryTable
+    :data="[ticketDetails]"
+    row-key="cluster_id">
+    <TableColumn :title="t('集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.details.clusters[row.details.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: Props['ticketDetails'] }">
-        {{ data.details.clusters[data.details.cluster_id].cluster_type_name }}
+    </TableColumn>
+    <TableColumn :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.details.clusters[row.details.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="ticketDetails.details.spider_role"
-      :label="t('角色')">
-      <template #default="{ data }: { data: Props['ticketDetails'] }">
-        {{ RoleDisplayMap[data.details.spider_role!] }}
+      :title="t('角色')">
+      <template #default="{ row }: { row: RowData }">
+        {{ RoleDisplayMap[row.details.spider_role!] }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
@@ -46,6 +48,8 @@
       spider_role?: string;
     }>;
   }
+
+  type RowData = Props['ticketDetails'];
 
   defineProps<Props>();
 

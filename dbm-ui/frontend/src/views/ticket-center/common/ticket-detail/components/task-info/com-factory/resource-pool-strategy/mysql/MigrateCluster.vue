@@ -20,14 +20,14 @@
       {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="id">
+    <TableColumn
       v-if="ticketDetails.details.opera_object === OperaObejctType.CLUSTER"
-      :label="t('目标集群')"
-      :min-width="260">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="260"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -35,19 +35,19 @@
           {{ ticketDetails.details.clusters?.[clusterId]?.immute_domain || '--' }}
         </div>
       </template>
-    </BkTableColumn>
+    </TableColumn>
     <template v-else-if="ticketDetails.details.opera_object === OperaObejctType.MACHINE">
-      <BkTableColumn
-        :label="t('目标Master主机')"
-        :min-width="150">
-        <template #default="{ data }: { data: RowData }">
+      <TableColumn
+        :min-width="150"
+        :title="t('目标Master主机')">
+        <template #default="{ row: data }: { row: RowData }">
           {{ data.old_nodes.old_master?.[0]?.ip || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('同机关联实例')"
-        :min-width="200">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        :min-width="200"
+        :title="t('同机关联实例')">
+        <template #default="{ row: data }: { row: RowData }">
           <template
             v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_master?.[0]?.ip]?.related_instances?.length">
             <p
@@ -58,11 +58,11 @@
           </template>
           <template v-else> -- </template>
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('同机关联集群')"
-        :min-width="260">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        :min-width="260"
+        :title="t('同机关联集群')">
+        <template #default="{ row: data }: { row: RowData }">
           <template
             v-if="ticketDetails.details.machine_infos?.[data.old_nodes.old_master?.[0]?.ip]?.related_clusters?.length">
             <p
@@ -73,20 +73,20 @@
           </template>
           <template v-else> -- </template>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
-      <BkTableColumn
-        :label="t('规格')"
-        :min-width="120">
-        <template #default="{ data }: { data: RowData }">
+      <TableColumn
+        :min-width="120"
+        :title="t('规格')">
+        <template #default="{ row: data }: { row: RowData }">
           {{ ticketDetails.details.specs?.[data.resource_spec.backend_group?.spec_id]?.name || '--' }}
         </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('资源标签')"
-        :min-width="200">
-        <template #default="{ data }: { data: RowData }">
+      </TableColumn>
+      <TableColumn
+        :min-width="200"
+        :title="t('资源标签')">
+        <template #default="{ row: data }: { row: RowData }">
           <template v-if="data.resource_spec.backend_group?.label_names?.length">
             <BkTag
               v-for="item in data.resource_spec.backend_group.label_names"
@@ -100,13 +100,13 @@
             {{ t('通用无标签') }}
           </BkTag>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
-      <BkTableColumn
-        :label="t('新主从主机')"
-        :min-width="150">
-        <template #default="{ data }: { data: RowData }">
+      <TableColumn
+        :min-width="150"
+        :title="t('新主从主机')">
+        <template #default="{ row: data }: { row: RowData }">
           <div>
             <BkTag
               size="small"
@@ -124,9 +124,9 @@
             {{ data.resource_spec.new_slave?.hosts?.[0]?.ip || '--' }}
           </div>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </template>
-  </BkTable>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

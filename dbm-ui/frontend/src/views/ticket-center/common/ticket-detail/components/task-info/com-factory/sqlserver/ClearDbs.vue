@@ -12,45 +12,48 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('集群')"
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
+      :title="t('集群')"
       :width="240">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('清档类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('清档类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ clearModeMap[data.clean_mode] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('指定 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('指定 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_dbs_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_ignore_dbs_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('指定表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('指定表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_tables" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_clean_tables" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('最终 DB')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('最终 DB')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.clean_dbs" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
