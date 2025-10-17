@@ -117,7 +117,7 @@ export default () => {
         },
         showConfirmAndReset: true,
       },
-      creator: {
+      creator__in: {
         component: markRaw(MultipleSelect),
         name: t('申请人'),
         props: {
