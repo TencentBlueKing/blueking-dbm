@@ -128,13 +128,13 @@ func GetTendisplusMaxBGJobs() int {
 
 // GetIncrPushThreadnum 根据系统cpu核数,返回tendisplus incrPushThreadnum
 func GetIncrPushThreadnum() int {
-	var ret int
-	minVal := 2
-	maxVal := 8
-	cpuCoresNum := runtime.NumCPU()
-	ret = cpuCoresNum / 4
-	ret = mustBetweenMinAndMax(ret, minVal, maxVal)
-	return ret
+	//var ret int
+	//minVal := 2
+	//maxVal := 8
+	//cpuCoresNum := runtime.NumCPU()
+	//ret = cpuCoresNum / 4
+	//ret = mustBetweenMinAndMax(ret, minVal, maxVal)
+	return 10
 }
 
 // GetMaxBgCompactions 根据系统cpu核数,返回tendisplus rocks.max_background_compactions
@@ -144,24 +144,24 @@ func GetMaxBgCompactions() int {
 
 // GetMigrateSenderThreadNum 根据系统cpu核数,返回tendisplus migrateSenderThreadnum
 func GetMigrateSenderThreadNum() int {
-	var ret int
-	minVal := 4
-	maxVal := 16
-	cpuCoresNum := runtime.NumCPU()
-	ret = cpuCoresNum / 3
-	ret = mustBetweenMinAndMax(ret, minVal, maxVal)
-	return ret
+	//var ret int
+	//minVal := 4
+	//maxVal := 16
+	//cpuCoresNum := runtime.NumCPU()
+	//ret = cpuCoresNum / 3
+	//ret = mustBetweenMinAndMax(ret, minVal, maxVal)
+	return 5
 }
 
 // GetMigrateReceiverThreadNum 根据系统cpu核数,返回tendisplus migrateReceiveThreadnum
 func GetMigrateReceiverThreadNum() int {
-	var ret int
-	minVal := 4
-	maxVal := 16
-	cpuCoresNum := runtime.NumCPU()
-	ret = cpuCoresNum / 3
-	ret = mustBetweenMinAndMax(ret, minVal, maxVal)
-	return ret
+	//var ret int
+	//minVal := 4
+	//maxVal := 16
+	//cpuCoresNum := runtime.NumCPU()
+	//ret = cpuCoresNum / 3
+	//ret = mustBetweenMinAndMax(ret, minVal, maxVal)
+	return 5
 }
 
 // GetMigrateClearTheadNum 根据系统cpu核数,返回tendisplus migrateClearThreadnum
