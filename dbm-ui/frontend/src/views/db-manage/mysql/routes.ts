@@ -245,7 +245,7 @@ const commonRouters: RouteRecordRaw[] = [
       },
       {
         path: 'openarea-create/:id',
-        name: 'mysqlOpenareaCreate',
+        name: 'MySQLOpenareaCreate',
         meta: {
           navName: t('新建开区'),
         },

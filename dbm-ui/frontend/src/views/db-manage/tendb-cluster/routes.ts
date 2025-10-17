@@ -158,15 +158,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES, t('DB 实例权限克隆'), {
       dbConsole: 'tendbCluster.toolbox.dbInstancePermissionClone',
     }),
-    {
-      path: 'openarea-template',
-      name: 'spiderOpenareaTemplate',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.openareaTemplat',
-        navName: t('开区模版'),
-      },
-      component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
-    },
+    createRouteItem(TicketTypes.TENDBCLUSTER_OPEN_AREA, t('开区模版'), {
+      dbConsole: 'tendbCluster.toolbox.openAreaTemplate',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'), {
       dbConsole: 'tendbCluster.toolbox.masterSlaveClone',
     }),
@@ -230,27 +224,27 @@ const renderRoutes = [
       },
       {
         path: 'openarea-template-create',
-        name: 'spiderOpenareaTemplateCreate',
+        name: 'TendbClusterOpenareaTemplateCreate',
         meta: {
           navName: t('新建开区模板'),
         },
-        component: () => import('@views/db-manage/tendb-cluster/openarea-template-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/TENDBCLUSTER_OPEN_AREA/template-create/Index.vue'),
       },
       {
         path: 'openarea-template-edit/:id',
-        name: 'spiderOpenareaTemplateEdit',
+        name: 'TendbClusterOpenareaTemplateEdit',
         meta: {
           navName: t('编辑开区模板'),
         },
-        component: () => import('@views/db-manage/tendb-cluster/openarea-template-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/TENDBCLUSTER_OPEN_AREA/template-create/Index.vue'),
       },
       {
         path: 'openarea-create/:id',
-        name: 'spiderOpenareaCreate',
+        name: 'TendbClusterOpenareaCreate',
         meta: {
           navName: t('新建开区'),
         },
-        component: () => import('@views/db-manage/tendb-cluster/openarea-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/TENDBCLUSTER_OPEN_AREA/create/Index.vue'),
       },
     ] as RouteRecordRaw[],
   },

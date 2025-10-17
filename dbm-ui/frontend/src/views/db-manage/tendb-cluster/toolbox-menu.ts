@@ -226,7 +226,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.openareaTemplate',
-        id: 'spiderOpenareaTemplate',
+        id: TicketTypes.TENDBCLUSTER_OPEN_AREA,
         name: t('开区模版'),
         parentId: 'spider_openarea',
       },

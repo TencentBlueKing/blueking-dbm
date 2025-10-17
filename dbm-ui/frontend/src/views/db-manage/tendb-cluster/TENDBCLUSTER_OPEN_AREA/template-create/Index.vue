@@ -8,7 +8,7 @@
     <SmartAction :offset-target="getSmartActionOffsetTarget">
       <BkForm
         ref="form"
-        class="mysql-template-create mb-32"
+        class="tendbcluster-template-create mb-32"
         :model="formData">
         <DbCard :title="t('基本信息')">
           <BkFormItem
@@ -98,7 +98,7 @@
   const route = useRoute();
   const handleBeforeClose = useBeforeClose();
 
-  const isEditMode = route.name === 'MySQLOpenareaTemplateEdit';
+  const isEditMode = route.name === 'TendbClusterOpenareaTemplateEdit';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -180,7 +180,7 @@
 
       messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
       window.changeConfirm = false;
-      router.push({ name: TicketTypes.MYSQL_OPEN_AREA });
+      router.push({ name: TicketTypes.TENDBCLUSTER_OPEN_AREA });
     } finally {
       isSubmitting.value = false;
     }
@@ -201,20 +201,20 @@
     if (!result) return;
     window.changeConfirm = false;
     router.push({
-      name: TicketTypes.MYSQL_OPEN_AREA,
+      name: TicketTypes.TENDBCLUSTER_OPEN_AREA,
     });
   };
 
   defineExpose({
     routerBack() {
       router.push({
-        name: TicketTypes.MYSQL_OPEN_AREA,
+        name: TicketTypes.TENDBCLUSTER_OPEN_AREA,
       });
     },
   });
 </script>
 <style lang="less">
-  .mysql-template-create {
+  .tendbcluster-template-create {
     .bk-form-label {
       font-size: 12px;
     }
