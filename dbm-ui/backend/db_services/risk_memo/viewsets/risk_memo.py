@@ -69,7 +69,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
 
         queryset = (
             RiskMemo.objects.all()
-            .annotate(followup_update_at=Coalesce(Subquery(followup_update_at_subquery), None))
+            .annotate(followup_update_at=Coalesce(Subquery(followup_update_at_subquery), "update_at"))
             .order_by("-followup_update_at", "-update_at")
         )
         return queryset
