@@ -16,9 +16,9 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
-    required
     :rules="rules">
-    <template #headAppend>
+    <template #head>
+      <span class="mr-4">{{ t('资源标签') }}</span>
       <BatchEditColumn
         v-model="showBatchEdit"
         :all-option-id="DEFAULT_TAG_ID"
@@ -54,6 +54,7 @@
           </BkTag>
         </template>
       </BatchEditColumn>
+      <span class="custom-required" />
     </template>
     <EditableSelect
       v-model="ids"
