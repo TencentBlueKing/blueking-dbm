@@ -20,6 +20,7 @@
           class="control-icon"
           type="wodedaiban" />
         <span>{{ t('待我处理') }}</span>
+        <span> （{{ todoCount }}）</span>
       </div>
       <div
         class="tab-item tab-item-assist"
@@ -29,6 +30,7 @@
           class="control-icon"
           type="yonghu-2" />
         <span>{{ t('待我协助') }}</span>
+        <span> （{{ assistCount }}）</span>
       </div>
     </div>
   </Teleport>
@@ -72,12 +74,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
+  import { useRiskMemoCount } from '@hooks';
+
   import RiskDetail from './components/detail/Index.vue';
   import RiskList from './components/list/Index.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const { assistCount, todoCount } = useRiskMemoCount();
 
   const riskMemoMainPageRef = ref<HTMLDivElement>();
   const riskListRef = ref<InstanceType<typeof RiskList>>();
@@ -222,7 +227,7 @@
     .tab-item {
       display: flex;
       height: 32px;
-      padding: 0 10px 0 8px;
+      padding: 0 2px 0 8px;
       font-size: 14px;
       color: #4d4f56;
       cursor: pointer;
