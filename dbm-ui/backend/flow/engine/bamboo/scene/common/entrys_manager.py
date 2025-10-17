@@ -146,7 +146,9 @@ def BuildCLBManageSubflow(root_id, ticket_data, op_type: str, param: Dict) -> Op
         dns_kwargs = ClbKwargs(
             clb_op_type=DnsOpType.CLB_DISABLE_RS,
             clb_ip=param["entry"],
+            clb_op_exec_port=param["port"],
         )
+        dns_kwargs.exec_ip = param["del_ips"]
         clb_sub_pipeline.add_act(
             act_name=_("禁用clb"),
             act_component_code=MySQLClbManageComponent.code,
@@ -157,7 +159,9 @@ def BuildCLBManageSubflow(root_id, ticket_data, op_type: str, param: Dict) -> Op
         dns_kwargs = ClbKwargs(
             clb_op_type=DnsOpType.CLB_ENABLE_RS,
             clb_ip=param["entry"],
+            clb_op_exec_port=param["port"],
         )
+        dns_kwargs.exec_ip = param["add_ips"]
         clb_sub_pipeline.add_act(
             act_name=_("启用clb"),
             act_component_code=MySQLClbManageComponent.code,
