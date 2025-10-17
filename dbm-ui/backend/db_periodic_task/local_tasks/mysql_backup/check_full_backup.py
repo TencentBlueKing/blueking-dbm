@@ -100,13 +100,23 @@ def get_backup_failed_detail(cluster_domain: str, start_time: datetime, end_time
 def get_backup_failed_duration(cluster_domain: str, subtype: str, start_time: datetime):
     last_succ = (
         MysqlBackupCheckReport.objects.filter(
-            cluster=cluster_domain, subtype=subtype, status=True, create_at__lt=start_time
+            cluster=cluster_domain, subtype=subtype, state=ReportStateType.NORMAL.value, create_at__lt=start_time
         )
         .order_by("-create_at")
         .first()
     )
     # warnings.warn("DateTimeField %s received a naive datetime (%s)"
+    # 如果没有找到成功记录，有可能是第一次备份，也有可能是一直失败
     if not last_succ:
+        last_failed = (
+            MysqlBackupCheckReport.objects.filter(
+                cluster=cluster_domain, subtype=subtype, state=ReportStateType.ABNORMAL.value, create_at__lt=start_time
+            )
+            .order_by("-create_at")
+            .first()
+        )
+        if not last_failed:
+            return 0
         return 9999
     # 按天数返回失败持续时间
     return (start_time.astimezone(timezone.utc) - last_succ.create_at).days

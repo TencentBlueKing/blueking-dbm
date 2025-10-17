@@ -76,6 +76,10 @@ func remoteTarAndUpload(cmd *cobra.Command, args []string) (err error) {
 	indexFilePath, _ := cmd.Flags().GetString("backup-index-file")
 	remoteEnabled, _ := cmd.Flags().GetBool("with-remote-enabled")
 	cnf.BackupToRemote.EnableRemote = remoteEnabled
+	backupDir, _ := cmd.Flags().GetString("backup-target-dir")
+	if backupDir != "" {
+		cnf.Public.BackupDir = backupDir
+	}
 
 	return tarBackupData(indexFilePath, &cnf)
 }

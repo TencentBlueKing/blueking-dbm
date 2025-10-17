@@ -2,13 +2,14 @@ package common
 
 import (
 	"encoding/json"
+	"time"
 )
 
 type ISyncReportEvent interface {
 	ClusterType() string
 	EventType() string
-	// EventCreateTimeStamp 微妙
-	EventCreateTimeStamp() int64
+	// EventCreateTime 会自动转成 UTC 时间的微秒上报
+	EventCreateTime() time.Time
 	EventBkBizId() int64
 }
 
