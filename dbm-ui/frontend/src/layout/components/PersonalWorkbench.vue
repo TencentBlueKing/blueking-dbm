@@ -52,6 +52,7 @@
         <span>
           {{ t('风险备忘录') }}
         </span>
+        <span class="ticket-count">{{ riskMemoTodoCount }}</span>
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
@@ -104,7 +105,7 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useAlarmEventsCount, useReportCount, useTicketCount } from '@hooks';
+  import { useAlarmEventsCount, useReportCount, useRiskMemoCount, useTicketCount } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -123,6 +124,7 @@
   const { data: ticketCount } = useTicketCount();
   const { manageCount } = useReportCount();
   const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
+  const { todoCount: riskMemoTodoCount } = useRiskMemoCount();
   const userProfileStore = useUserProfile();
 
   const todoCount = computed(() => {

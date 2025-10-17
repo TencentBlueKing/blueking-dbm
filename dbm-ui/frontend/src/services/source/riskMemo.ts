@@ -11,10 +11,11 @@ export const getRiskMemoList = (
     bk_biz_id?: number;
     id?: number;
     is_assist?: boolean;
-    is_special: boolean;
+    is_special?: boolean;
     limit?: number;
     offset?: number;
     platform?: boolean;
+    status?: string;
   },
   payload = {} as IRequestPayload,
 ) => {

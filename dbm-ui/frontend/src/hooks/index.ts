@@ -31,6 +31,7 @@ export * from './useLocation';
 export * from './useModelProvider';
 export * from './useProps';
 export * from './useReportCount';
+export * from './useRiskMemoCount';
 export * from './useSelectorDialogWidth';
 export * from './useSQLTaskNotify';
 export * from './useStickyFooter';
