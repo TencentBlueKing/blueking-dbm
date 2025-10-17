@@ -17,7 +17,7 @@
     :title="t('开区模板：通过开区模板，可以快速创建集群开区')" />
   <div class="header-action mt-16 mb-16">
     <AuthButton
-      action-id="mysql_openarea_config_create"
+      action-id="tendb_openarea_config_create"
       class="w-88"
       theme="primary"
       @click="handleGoCreate">
@@ -36,13 +36,6 @@
     <BkTableColumn
       field="config_name"
       :label="t('模板名称')" />
-    <BkTableColumn
-      field="cluster_type"
-      :label="t('类型')">
-      <template #default="{ data }: { data: OpenareaTemplateModel }">
-        {{ data.cluster_type === 'tendbha' ? t('主从') : t('单节点') }}
-      </template>
-    </BkTableColumn>
     <BkTableColumn
       field="source_cluster.immute_domain"
       :label="t('源集群')" />
@@ -64,7 +57,7 @@
       <template #default="{ data }: { data: OpenareaTemplateModel }">
         <RouterLink
           :to="{
-            name: 'MySQLOpenareaCreate',
+            name: 'TendbClusterOpenareaCreate',
             params: {
               id: data.id,
             },
@@ -75,12 +68,12 @@
           {{ t('开区') }}
         </RouterLink>
         <AuthRouterLink
-          action-id="mysql_openarea_config_update"
+          action-id="tendb_openarea_config_update"
           class="ml-16"
-          :permission="data.permission.mysql_openarea_config_update"
+          :permission="data.permission.tendb_openarea_config_update"
           :resource="data.id"
           :to="{
-            name: 'MySQLOpenareaTemplateEdit',
+            name: 'TendbClusterOpenareaTemplateEdit',
             params: {
               id: data.id,
             },
@@ -91,8 +84,8 @@
           {{ t('编辑') }}
         </AuthRouterLink>
         <AuthTemplate
-          action-id="mysql_openarea_config_destroy"
-          :permission="data.permission.mysql_openarea_config_destroy"
+          action-id="tendb_openarea_config_destroy"
+          :permission="data.permission.tendb_openarea_config_destroy"
           :resource="data.id">
           <DbPopconfirm
             :confirm-handler="() => handleRemove(data)"
@@ -115,7 +108,7 @@
   import { useI18n } from 'vue-i18n';
 
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
-  import { type Mysql } from '@services/model/ticket/ticket';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import { getList, remove } from '@services/source/openarea';
 
   import { useDebouncedRef, useTicketDetail } from '@hooks';
@@ -131,13 +124,13 @@
   const searchKey = useDebouncedRef(route.query.config_name as string);
   const tableRef = ref();
   const baseParams = {
-    cluster_type: [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].join(','),
+    cluster_type: ClusterTypes.TENDBCLUSTER,
   };
 
-  useTicketDetail<Mysql.OpenArea>(TicketTypes.MYSQL_OPEN_AREA, {
+  useTicketDetail<TendbCluster.OpenArea>(TicketTypes.TENDBCLUSTER_OPEN_AREA, {
     onSuccess(ticketDetail) {
       router.push({
-        name: 'MySQLOpenareaCreate',
+        name: 'TendbClusterOpenareaCreate',
         params: {
           id: ticketDetail.details.config_id,
         },
@@ -187,7 +180,7 @@
 
   const handleGoCreate = () => {
     router.push({
-      name: 'MySQLOpenareaTemplateCreate',
+      name: 'TendbClusterOpenareaTemplateCreate',
     });
   };
 
