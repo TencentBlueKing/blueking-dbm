@@ -58,6 +58,10 @@ class RiskMemoListFilter(filters.FilterSet):
             # 主负责的业务（第一个 DBA）
             assists = DBAdministrator.objects.filter(users__0=user).values("bk_biz_id", "db_type", "users")
 
+        if not assists:
+            # 如果 assists 为空，返回空查询集
+            return queryset.none()
+
         for assist in assists:
             qs |= Q(bk_biz_id=assist["bk_biz_id"], db_type=assist["db_type"], creator__in=assist["users"])
         return queryset.filter(qs)
