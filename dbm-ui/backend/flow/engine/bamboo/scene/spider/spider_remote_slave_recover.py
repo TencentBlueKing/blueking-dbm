@@ -199,6 +199,8 @@ class TenDBRemoteSlaveRecoverFlow(object):
             )
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装remote从节点")))
             sync_data_sub_pipeline_list = []
+            master_instances = []
+            slave_instances = []
             for shard_id, node in cluster_info["my_shards"].items():
                 ins_cluster = {
                     "cluster_id": cluster_class.id,
@@ -214,7 +216,8 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     "shard_id": shard_id,
                     "backup_source": self.ticket_data["backup_source"],
                 }
-
+                master_instances.append(node["master"]["instance"])
+                slave_instances.append(node["new_slave"]["instance"])
                 if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
                     filter_ips = [master.machine.ip]
                     slaves = cluster_class.storageinstance_set.filter(
@@ -311,9 +314,6 @@ class TenDBRemoteSlaveRecoverFlow(object):
             )
             switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换SLAVE节点")))
 
-            # 阶段5: 新机器安装周边组件
-            instances = ["{}:{}".format(self.data["target_ip"], port) for port in cluster_info["ports"]]
-
             # 阶段5 卸载
             uninstall_svr_sub_pipeline_list = []
             uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -387,7 +387,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     data=copy.deepcopy(self.data),
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     bk_biz_id=self.data["bk_biz_id"],
-                    instances=instances,
+                    instances=slave_instances,
                     departs=remove_departs(ALLDEPARTS, DeployPeripheralToolsDepart.MySQLDBBackup),
                     with_actuator=False,
                     with_bk_plugin=False,
@@ -408,7 +408,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     data=copy.deepcopy(self.data),
                     bk_cloud_id=cluster_class.bk_cloud_id,
                     bk_biz_id=self.data["bk_biz_id"],
-                    instances=instances,
+                    instances=slave_instances + master_instances,
                     with_actuator=False,
                     with_bk_plugin=False,
                     with_backup_client=False,
