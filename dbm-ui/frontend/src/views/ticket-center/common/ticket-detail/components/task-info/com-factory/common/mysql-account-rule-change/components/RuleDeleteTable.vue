@@ -18,17 +18,19 @@
         {{ t('删除规则') }}
       </InfoItem>
     </InfoList>
-    <BkTable :data="[ticketDetails.details.last_account_rules]">
-      <BkTableColumn
-        field="userName"
-        :label="t('账户名称')" />
-      <BkTableColumn
-        field="access_db"
-        :label="t('访问DB')" />
-      <BkTableColumn
-        field="privilege"
-        :label="t('权限')" />
-    </BkTable>
+    <PrimaryTable
+      :data="[ticketDetails.details.last_account_rules]"
+      row-key="username">
+      <TableColumn
+        col-key="userName"
+        :title="t('账户名称')" />
+      <TableColumn
+        col-key="access_db"
+        :title="t('访问DB')" />
+      <TableColumn
+        col-key="privilege"
+        :title="t('权限')" />
+    </PrimaryTable>
   </div>
 </template>
 

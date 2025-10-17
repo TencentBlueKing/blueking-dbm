@@ -1,12 +1,12 @@
 <template>
-  <BkTable
+  <PrimaryTable
     class="preview-privilege-table"
     :data="tableData"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('访问源')"
-      :min-width="150">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    row-key="user">
+    <TableColumn
+      :min-width="150"
+      :title="t('访问源')">
+      <template #default="{ row: rowData }: { row: IDataRow }">
         <div>
           <p
             v-for="(ip, index) in showAllIp ? rowData.ips : rowData.ips.slice(0, 10)"
@@ -32,11 +32,11 @@
           </BkButton>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('集群域名')"
-      :min-width="250">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TableColumn>
+    <TableColumn
+      :min-width="250"
+      :title="t('集群域名')">
+      <template #default="{ row: rowData }: { row: IDataRow }">
         <div class="cell-cluster">
           <p
             v-for="(item, index) in rowData.clusterDomains"
@@ -50,14 +50,14 @@
           </p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="user"
-      :label="t('账号')" />
-    <BkTableColumn
-      :label="t('访问DB')"
-      :min-width="150">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TableColumn>
+    <TableColumn
+      col-key="user"
+      :title="t('账号')" />
+    <TableColumn
+      :min-width="150"
+      :title="t('访问DB')">
+      <template #default="{ row: rowData }: { row: IDataRow }">
         <div>
           <p
             v-for="item in showAllDb ? rowData.accessDbs : rowData.accessDbs.slice(0, 10)"
@@ -81,11 +81,11 @@
           </BkButton>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('权限')"
-      :min-width="400">
-      <template #default="{ data: rowData }: { data: IDataRow }">
+    </TableColumn>
+    <TableColumn
+      :min-width="400"
+      :title="t('权限')">
+      <template #default="{ row: rowData }: { row: IDataRow }">
         <div
           v-for="(privilege, key) in userDbPrivilegeMap[rowData.user]"
           :key="key">
@@ -110,8 +110,8 @@
           </div>
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

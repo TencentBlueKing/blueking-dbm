@@ -12,23 +12,26 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="tableData"
+    ellipsis
+    row-key="id">
+    <TableColumn :title="t('集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('集群类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('节点IP')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('节点IP')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.node_ip.join(',') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

@@ -29,17 +29,20 @@
       {{ ticketDetails.details.throttle_rate ? ticketDetails.details.throttle_rate + ' byte/s' : '--' }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.instance_list">
-    <BkTableColumn
-      label="Broker"
-      :min-width="200">
+  <PrimaryTable
+    :data="ticketDetails.details.instance_list"
+    ellipsis
+    row-key="ip">
+    <TableColumn
+      :min-width="200"
+      title="Broker">
       <template #default="{ row }">
         <span>{{ row.ip }}:{{ row.port }}</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('主机 Agent 状态')"
-      :min-width="200">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('主机 Agent 状态')">
       <template #default="{ row }">
         <DbStatus
           v-if="instanceInfo?.[`${row.ip}:${row.port}`]?.agent_status === 1"
@@ -53,15 +56,15 @@
         </DbStatus>
         <span v-else>--</span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('部署时间')"
-      :min-width="200">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('部署时间')">
       <template #default="{ row }">
         <span>{{ instanceInfo?.[`${row.ip}:${row.port}`]?.create_at || '--' }}</span>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

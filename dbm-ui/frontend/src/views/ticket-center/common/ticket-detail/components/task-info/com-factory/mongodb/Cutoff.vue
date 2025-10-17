@@ -12,30 +12,29 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :merge-cells="mergeCells"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="ip"
+    ellipsis
+    row-key="ip"
+    :rowspan-and-colspan="rowspanAndColspan">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      :label="t('待替换的主机')" />
-    <BkTableColumn
-      field="role"
-      :label="t('角色类型')" />
-    <BkTableColumn
-      field="cluster"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="spec"
-      :label="t('新机规格')" />
-  </BkTable>
+      :title="t('待替换的主机')" />
+    <TableColumn
+      col-key="role"
+      :title="t('角色类型')" />
+    <TableColumn
+      col-key="cluster"
+      :title="t('所属集群')" />
+    <TableColumn
+      col-key="spec"
+      :title="t('新机规格')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
@@ -56,6 +55,10 @@
 
   const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
 
+  const spanInfo: {
+    rowIndex: number;
+    rowspan: number;
+  }[] = [];
   const { clusters, infos, specs } = props.ticketDetails.details;
   const tableData = infos.reduce(
     (results, item) => {
@@ -71,10 +74,8 @@
           results.push(...list);
         }
       });
-      mergeCells.value.push({
-        col: 2,
-        colspan: 1,
-        row: mergeCells.value.length ? mergeCells.value[mergeCells.value.length - 1].rowspan : 0,
+      spanInfo.push({
+        rowIndex: mergeCells.value.length ? mergeCells.value[mergeCells.value.length - 1].rowspan : 0,
         rowspan: item.mongo_config.length + item.mongodb.length + item.mongos.length,
       });
       return results;
@@ -86,4 +87,14 @@
       spec: string;
     }[],
   );
+
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const spanItem = spanInfo.find((item) => colIndex === 2 && item.rowIndex === rowIndex);
+    if (spanItem) {
+      return {
+        rowspan: spanItem.rowspan,
+      };
+    }
+    return {};
+  };
 </script>

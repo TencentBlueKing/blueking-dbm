@@ -12,9 +12,25 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <PrimaryTable :data="tableData">
+    <!-- 新节点IP -->
+    <TableColumn
+      col-key="newNode"
+      :title="t('新节点IP')">
+      <template #default="{ row }">
+        {{ row.newNode?.ip || '--' }}
+      </template>
+    </TableColumn>
+
+    <!-- 被替换的节点IP -->
+    <TableColumn
+      col-key="oldNode"
+      :title="t('被替换的节点IP')">
+      <template #default="{ row }">
+        {{ row.oldNode?.ip || '--' }}
+      </template>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">
@@ -37,18 +53,4 @@
       oldNode: newNodes[index],
     }));
   });
-  const columns = [
-    {
-      field: 'newNode',
-      label: t('新节点IP'),
-      render: ({ cell }: { cell: Props['ticketDetails']['details']['new_nodes']['influxdb'][number] }) =>
-        cell?.ip || '--',
-    },
-    {
-      field: 'oldNode',
-      label: t('被替换的节点IP'),
-      render: ({ cell }: { cell: Props['ticketDetails']['details']['old_nodes']['influxdb'][number] }) =>
-        cell?.ip || '--',
-    },
-  ];
 </script>

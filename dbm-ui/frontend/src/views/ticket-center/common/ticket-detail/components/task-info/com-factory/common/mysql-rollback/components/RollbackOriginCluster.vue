@@ -12,19 +12,56 @@
 -->
 
 <template>
-  <RenderTableBase
-    :show-db-name="false"
-    :ticket-details="ticketDetails" />
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row:data }: { row: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </TableColumn>
+    <slot />
+    <TableColumn
+      :min-width="150"
+      :title="t('备份源')">
+      <template #default="{ row:data }: { row: RowData }">
+        {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
+      </template>
+    </TableColumn>
+    <TableColumn :title="t('回档类型')">
+      <template #default="{ row:data }: { row: RowData }">
+        <span v-if="data.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(data.rollback_time) }}</span>
+        <span v-else-if="data.backupinfo.backup_time && data.backupinfo.mysql_role">
+          {{ t('备份记录') }} - {{ data.backupinfo?.mysql_role }}
+          {{ utcDisplayTime(data.backupinfo?.backup_time) }}
+        </span>
+        <span v-else>--</span>
+      </template>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import RenderTableBase from './RenderTableBase.vue';
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   defineProps<Props>();
+
+  const { t } = useI18n();
+
+  const backupSourceMap = {
+    local: t('本地备份'),
+    remote: t('远程备份'),
+  };
 </script>

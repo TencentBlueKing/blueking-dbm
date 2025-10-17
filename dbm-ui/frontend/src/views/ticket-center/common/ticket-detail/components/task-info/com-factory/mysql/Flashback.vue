@@ -17,65 +17,64 @@
       {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回回档') : t('库表闪回回档') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('回档时间')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="250"
+      :title="t('回档时间')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ dayjs(data.start_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('截止时间')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="250"
+      :title="t('截止时间')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ dayjs(data.end_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标库')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('目标库')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="isTableFlashback"
-      :label="t('忽略库')">
-      <template #default="{ data }: { data: RowData }">
+      :title="t('忽略库')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.databases_ignore" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('目标表')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('目标表')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="isTableFlashback"
-      :label="t('忽略表')">
-      <template #default="{ data }: { data: RowData }">
+      :title="t('忽略表')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables_ignore" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="isRecordFlashback"
-      :label="t('待闪回记录')"
       :min-width="300"
-      :show-overflow="false">
-      <template #default="{ data }: { data: RowData }">
+      :title="t('待闪回记录')">
+      <template #default="{ row: data }: { row: RowData }">
         <div style="line-height: 26px; white-space: pre">{{ data.rows_filter }}</div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList v-if="isRecordFlashback">
     <InfoItem :label="t('覆盖原始数据')">
       {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}

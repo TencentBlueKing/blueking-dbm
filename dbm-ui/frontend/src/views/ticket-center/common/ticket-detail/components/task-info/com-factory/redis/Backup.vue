@@ -12,33 +12,38 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.rules">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
+  <PrimaryTable
+    :data="ticketDetails.details.rules"
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
       :width="200">
-      <template #default="{ data }: { data: IRowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.cluster_type_name }}
+      <template #default="{ row }: { row: IRowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target"
-      :label="t('备份目标')"
-      :min-width="130" />
-    <BkTableColumn
-      :label="t('备份保存时间')"
-      :min-width="130">
-      <template #default="{ data }: { data: IRowData }">
-        {{ backupTypeMap[data.backup_type] }}
+    </TableColumn>
+    <TableColumn
+      col-key="target"
+      :min-width="130"
+      :title="t('备份目标')" />
+    <TableColumn
+      col-key="backup_type"
+      :min-width="130"
+      :title="t('备份保存时间')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ backupTypeMap[row.backup_type as keyof typeof backupTypeMap] }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">

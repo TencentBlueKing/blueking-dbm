@@ -12,46 +12,46 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('待构造的集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    row-key="bk_cloud_id">
+    <TableColumn
+      :min-width="180"
+      :title="t('待构造的集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+    </TableColumn>
+    <TableColumn :title="t('架构版本')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('待构造的实例')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('待构造的实例')">
+      <template #default="{ row }: { row: RowData }">
         <p
-          v-for="item in data.master_instances"
+          v-for="item in row.master_instances"
           :key="item">
           {{ item }}
         </p>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('规格需求')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs[data.resource_spec.redis.spec_id].name }}
+    </TableColumn>
+    <TableColumn :title="t('规格需求')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.redis.spec_id].name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造主机数量')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.resource_spec.redis.count }}
+    </TableColumn>
+    <TableColumn :title="t('构造主机数量')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.resource_spec.redis.count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造到指定时间')">
-      <template #default="{ data }: { data: RowData }">
-        {{ utcDisplayTime(data.recovery_time_point) }}
+    </TableColumn>
+    <TableColumn :title="t('构造到指定时间')">
+      <template #default="{ row }: { row: RowData }">
+        {{ utcDisplayTime(row.recovery_time_point) }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

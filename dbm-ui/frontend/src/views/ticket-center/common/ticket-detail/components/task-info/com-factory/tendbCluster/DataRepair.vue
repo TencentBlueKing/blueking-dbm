@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('集群域名')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn :title="t('集群域名')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('修复主库')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('修复主库')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.master.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('修复从库')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('修复从库')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.slaves.map((item) => item.ip).join(',') }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('不一致时间范围')">
       {{ `${ticketDetails.details.start_time} - ${ticketDetails.details.end_time}` }}

@@ -34,27 +34,30 @@
       v-if="ticketDetails.details.resource_spec.riak.hosts.length"
       :label="t('已选IP')"
       style="width: 100%">
-      <BkTable :data="ticketDetails.details.resource_spec.riak.hosts">
-        <BkTableColumn
-          field="ip"
-          :label="t('节点 IP')"
+      <PrimaryTable
+        :data="ticketDetails.details.resource_spec.riak.hosts"
+        ellipsis
+        row-key="ip">
+        <TableColumn
+          col-key="ip"
           :min-width="150"
+          :title="t('节点 IP')"
           :width="250" />
-        <BkTableColumn
-          field="agent_status"
-          :label="t('Agent状态')"
+        <TableColumn
+          col-key="agent_status"
           :min-width="150"
+          :title="t('Agent状态')"
           :width="150">
           <template #default="{ row }">
             <RenderHostStatus :data="row.agent_status" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_disk"
-          :label="t('磁盘容量(G)')"
+        </TableColumn>
+        <TableColumn
+          col-key="bk_disk"
           :min-width="150"
+          :title="t('磁盘容量(G)')"
           :width="150" />
-      </BkTable>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>

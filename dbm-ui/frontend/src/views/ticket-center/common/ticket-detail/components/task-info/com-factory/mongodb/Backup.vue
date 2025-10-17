@@ -12,47 +12,49 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('集群')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="id">
+    <TableColumn
+      :min-width="220"
+      :title="t('集群')">
+      <template #default="{ row:data }: { row: RowData }">
         <div
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="drop_type"
-      :label="t('集群类型')"
+    </TableColumn>
+    <TableColumn
+      col-key="drop_type"
+      :title="t('集群类型')"
       :width="150">
-      <template #default="{data}: {data: RowData}">
+      <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('备份DB名')">
+      <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.ns_filter.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略DB名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略DB名')">
+      <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.ns_filter.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('备份表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('备份表名')">
+      <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.ns_filter.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.ns_filter.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份保存时间')">
       {{ fileTagMap[ticketDetails.details.file_tag] }}

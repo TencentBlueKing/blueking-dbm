@@ -12,20 +12,23 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="cluster_id"
-      :label="t('目标从库实例')">
-      <template #default="{ data }: {data: RowData}"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="new_cluster_name"
-      :label="t('所属集群')">
-      <template #default="{ data }: {data: RowData}">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('目标从库实例')">
+      <template #default="{ row: data }: {row: RowData}"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
+    </TableColumn>
+    <TableColumn
+      col-key="new_cluster_name"
+      :title="t('所属集群')">
+      <template #default="{ row: data }: {row: RowData}">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">
