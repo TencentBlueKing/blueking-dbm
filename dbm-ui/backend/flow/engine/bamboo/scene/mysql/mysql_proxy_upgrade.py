@@ -103,7 +103,8 @@ class MySQLProxyLocalUpgradeFlow(object):
                     is_proxy=True,
                     check_client_conn_inst=proxy_ins,
                 )
-            check_db_connect_sub_flow_list.append(sub_build)
+                if sub_build:
+                    check_db_connect_sub_flow_list.append(sub_build)
             if len(check_db_connect_sub_flow_list) > 0:
                 sub_pipeline.add_parallel_sub_pipeline(check_db_connect_sub_flow_list)
             # 提前下发文件
@@ -199,7 +200,7 @@ class MySQLProxyLocalUpgradeFlow(object):
             enable_entry_process = BuildEntrysManageSubflow(
                 root_id=self.root_id,
                 ticket_data=self.data,
-                op_type=DnsOpType.CREATE,
+                op_type=DnsOpType.ENABLE,
                 param={
                     "cluster_id": cluster_id,
                     "port": proxy_ins.port,

@@ -186,7 +186,8 @@ class MySQLStorageLocalUpgradeFlow(object):
                     pkg_id=pkg_id,
                     sub_flow_name=_("MySQL集群[{}]升级检查").format(cluster.name),
                 )
-                check_sub_pipelines.append(check_sub_flow)
+                if check_sub_flow:
+                    check_sub_pipelines.append(check_sub_flow)
             # 并行执行所有集群的检查子流程
             sub_pipeline.add_parallel_sub_pipeline(check_sub_pipelines)
 
