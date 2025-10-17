@@ -560,6 +560,7 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 	remoteCmd, _ := sshClient.Command(remoteDbbackupBin, "tar-upload",
 		"--config", remoteConfigFile,
 		"--backup-index-file", remoteIndexFile,
+		"--backup-target-dir", cnf.BackupToRemote.SaveDir,
 		"--with-remote-enabled")
 	logger.Log.Infof("run command in remote:%s ", remoteCmd.String())
 	var cmdErr bytes.Buffer
