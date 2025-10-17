@@ -87,9 +87,9 @@
 
   import { messageSuccess } from '@utils';
 
-  import ConfigRule from './config-rule/Index.vue';
-  import PermissionRule from './permission-rule/Index.vue';
-  import SourceCluster from './source-cluster/Index.vue';
+  import ConfigRule from './components/config-rule/Index.vue';
+  import PermissionRule from './components/permission-rule/Index.vue';
+  import SourceCluster from './components/source-cluster/Index.vue';
 
   type CreateOpenareaParams = ServiceParameters<typeof createOpenarea>;
 
