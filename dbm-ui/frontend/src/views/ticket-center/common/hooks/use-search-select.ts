@@ -68,7 +68,7 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'input',
       },
       {
-        id: 'creator',
+        id: 'creator__in',
         name: t('申请人'),
         remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
           const requestParams = {};
