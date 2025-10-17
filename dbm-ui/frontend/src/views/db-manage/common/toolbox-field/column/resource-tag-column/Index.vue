@@ -16,11 +16,8 @@
     field="labels"
     :label="t('资源标签')"
     :min-width="200"
+    required
     :rules="rules">
-    <template #head>
-      {{ t('资源标签') }}
-      <span class="custom-required" />
-    </template>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
