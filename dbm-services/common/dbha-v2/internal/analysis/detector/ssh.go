@@ -95,6 +95,10 @@ func (s *Ssh) Run(cmd string) ([]byte, error) {
 
 	respond, err := session.CombinedOutput(cmd)
 	if err != nil {
+		if exitErr, ok := err.(*ssh.ExitError); ok {
+			return nil, gerrors.NewCustom(exitErr.ExitStatus(), err.Error())
+		}
+
 		logger.Error("failed to run the command: %s, host: %s, respond: %s, errmsg: %s", cmd, addr, respond, err)
 		return nil, ErrDetectorRunShellCommand
 	}

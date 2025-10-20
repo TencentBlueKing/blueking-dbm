@@ -159,6 +159,7 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 			monitorEvent.Content.Content = string(resp.Data)
 		}
 
+		monitorEvent.Dimension.DetectorExitCode = resp.ExitCode
 		monitorEvent.Dimension.IP = resp.Meta.IP
 		monitorEvent.Dimension.Port = resp.Meta.Port
 		monitorEvent.Dimension.BkBizID = resp.Meta.BkBizID
@@ -167,7 +168,7 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadat
 		monitorEvent.Dimension.DbEventName = resp.DbEventName
 		monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason
 
-		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("%v", err)
 		}
 	}
@@ -202,7 +203,7 @@ func (w *Workflow) checkEventWithBizID(bizID int, dbEvents []*hamodel.DbEvent,
 	w.switchers[haprobe.DbTypeMysql].Switch(context.Background(), req)
 }
 
-func (w *Workflow) checkMissedProbeWithBizID(bizID int, dbMetrics []*hamodel.DatabaseMetric,
+func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.DatabaseMetric,
 	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
 
 	// Read the DB instance information reported by the probe.
@@ -227,6 +228,7 @@ func (w *Workflow) checkMissedProbeWithBizID(bizID int, dbMetrics []*hamodel.Dat
 		}
 
 		if _, exists := dbMetricKeys[key]; exists {
+			logger.Debug("db instance(%s) has probe", key)
 			continue
 		}
 
@@ -264,7 +266,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 	}()
 
 	// Read all metadata by business ID.
-	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizID, readBatchCount)
+	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizID, readBatchCount, config.Cfg.Workflow.ReadDbMetaOffsetDuration)
 	if retErr != nil {
 		return retErr
 	}
@@ -282,12 +284,12 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 	}
 
 	// Read the status data reported by the probe.
-	dbMetrics, err := w.hadata.ReadDbMetricsWithDbInstances(conds, -60*time.Second)
+	dbMetrics, err := w.hadata.ReadDbMetricsWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
 	if err != nil {
 		// TODO: post notify by bk-monitor
 	}
 
-	dbEvents, err := w.hadata.ReadDbEventWithDbInstances(conds, -10*time.Minute)
+	dbEvents, err := w.hadata.ReadDbEventWithDbInstances(conds, config.Cfg.Workflow.ReadDbEventOffsetDuration)
 	if err != nil {
 		// TODO: post notify by bk-monitor
 	}
@@ -307,7 +309,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		w.checkMissedProbeWithBizID(bizID, dbMetrics, skipInsts, metaInsts)
+		w.checkMissedProbe(dbMetrics, skipInsts, metaInsts)
 	}()
 
 	wg.Add(1)
@@ -324,7 +326,7 @@ func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizID int) (retEr
 }
 
 func (w *Workflow) scanEventWithoutMetadata() {
-	events, err := w.hadata.ReadAllDbEventWithoutMetadata(readBatchCount, -10*time.Minute)
+	events, err := w.hadata.ReadAllDbEventWithoutMetadata(readBatchCount, config.Cfg.Workflow.ReadDbEventOffsetDuration)
 	if err != nil {
 		logger.Warn("failed to read db event without metadata, errmsg: %s", err)
 		return
@@ -345,7 +347,7 @@ func (w *Workflow) scanEventWithoutMetadata() {
 		monitorEvent.Dimension.DbEventName = event.Name
 		monitorEvent.Dimension.DbEventNameReason = event.Reason
 
-		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("%v", err)
 		}
 

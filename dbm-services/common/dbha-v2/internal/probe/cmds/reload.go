@@ -22,25 +22,10 @@
  * SOFTWARE.
  */
 
-package constant
+package cmds
 
-import "time"
+import "github.com/spf13/cobra"
 
-const (
-	Delimiter                         = ";"
-	DefaultClientPingTime             = 5 * time.Second
-	DefaultServerPingTime             = 5 * time.Minute
-	DefaultPingTimeout                = 10 * time.Second
-	DefaultKeepAliveMiniTime          = 5 * time.Minute
-	DefaultMaxReceiveMessageSize      = 1024 * 1024 * 10
-	DefaultMaxSendMessageSize         = 1024 * 1024 * 10
-	DefaultClientReconnectInterval    = 5 * time.Second
-	DefaultClientMaxReconnectAttempts = 10
-	DefaultReceiverBufferSize         = 1024
-	DefaultAdminBufferSize            = 1024
-)
-
-const (
-	DirModePermission  = 0755
-	FileModePermission = 0644
-)
+func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
+	return nil
+}
