@@ -839,3 +839,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-shujujiance:before {
 	content: "\e24e";
 }
+.db-icon-dingshichufa:before {
+	content: "\e250";
+}
+.db-icon-gengxin:before {
+	content: "\e24f";
+}

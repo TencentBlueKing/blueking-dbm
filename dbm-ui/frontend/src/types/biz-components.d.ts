@@ -14,6 +14,7 @@ declare module 'vue' {
     DbPopconfirm: typeof import('@components/db-popconfirm/index.vue').default;
     DbQuickSearch: typeof import('@components/db-quick-search/Index.vue').default;
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
+    DbDateTimePicker: typeof import('@components/db-date-time-picker/Index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
     DbTable: typeof import('@components/db-table/Index.vue').default;
