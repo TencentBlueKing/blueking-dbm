@@ -56,12 +56,13 @@ type ResourceConfig struct {
 
 // Component 组件资源设置
 type Component struct {
-	ComponentName string            `json:"componentName"`
-	Replicas      int32             `json:"replicas"`
-	RequestCPU    resource.Quantity `json:"requestCpu"`
-	RequestMemory resource.Quantity `json:"requestMemory"`
-	StorageNode   string            `json:"storageNode,omitempty"` // 使用omitempty表示该字段是可选的
-	Storage       resource.Quantity `json:"storage,omitempty"`     // 使用omitempty表示该字段是可选的
+	ComponentName string                 `json:"componentName"`
+	Replicas      int32                  `json:"replicas"`
+	RequestCPU    resource.Quantity      `json:"requestCpu"`
+	RequestMemory resource.Quantity      `json:"requestMemory"`
+	StorageNode   string                 `json:"storageNode,omitempty"` // 使用omitempty表示该字段是可选的
+	Storage       resource.Quantity      `json:"storage,omitempty"`     // 使用omitempty表示该字段是可选的
+	Env           map[string]interface{} `json:"env,omitempty"`         // 使用omitempty表示该字段是可选的
 }
 
 // DeploymentEnv 部署环境设置
