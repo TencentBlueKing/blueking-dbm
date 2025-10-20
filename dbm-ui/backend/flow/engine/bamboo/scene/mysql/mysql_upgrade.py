@@ -25,6 +25,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_subflow import (
     get_is_same_tmysql_version,
     mysql_cluster_upgrade_check_subflow,
@@ -38,7 +39,9 @@ from backend.flow.plugins.components.collections.common.add_alarm_shield import 
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
+from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import MySQLUpgradeContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.mysql_version_parse import (
@@ -498,10 +501,6 @@ class MySQLStorageLocalUpgradeFlow(object):
 
     def _add_media_download_stage(self, sub_pipeline, ip_list, pkg_id, bk_cloud_id):
         """添加介质下发阶段"""
-        from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-        from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-        from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
-
         if ip_list:
             sub_pipeline.add_act(
                 act_name=_("下发MySQL升级包到主机"),
@@ -582,8 +581,6 @@ class MySQLStorageLocalUpgradeFlow(object):
 
     def _update_cluster_module_info(self, sub_pipeline, cluster_ids, new_db_module_id, bk_biz_id, cluster_type):
         """更新集群模块信息"""
-        from backend.ticket.builders.common.field import get_version_and_charset
-
         charset, major_version = get_version_and_charset(bk_biz_id, new_db_module_id, cluster_type)
         sub_pipeline.add_act(
             act_name=_("更新集群db模块信息"),
