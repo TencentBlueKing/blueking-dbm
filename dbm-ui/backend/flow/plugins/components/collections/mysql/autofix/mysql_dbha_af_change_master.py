@@ -45,7 +45,7 @@ class MySQLDBHAAFChangeMasterService(BaseService):
 
         change_master_sql = (
             f"change master to "
-            f"master_host={new_master_address.split(':')[0]},"
+            f"master_host='{new_master_address.split(':')[0]}',"
             f"master_port={new_master_address.split(':')[1]},"
             f"master_log_file='{new_master_log_file}',"
             f"master_log_pos={new_master_log_pos}"
