@@ -105,9 +105,8 @@ func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
 
 // StartCluster 启动集群
 func (c *ClusterController) StartCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterStart)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterStart)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
@@ -130,9 +129,8 @@ func (c *ClusterController) StartCluster(ctx *gin.Context) {
 
 // RestartCluster 重启集群
 func (c *ClusterController) RestartCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterReStart)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterReStart)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
@@ -155,9 +153,8 @@ func (c *ClusterController) RestartCluster(ctx *gin.Context) {
 
 // StopCluster 停止集群
 func (c *ClusterController) StopCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterStop)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterStop)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
