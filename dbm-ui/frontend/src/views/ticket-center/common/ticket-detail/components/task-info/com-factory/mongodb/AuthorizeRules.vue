@@ -25,15 +25,15 @@
     <InfoItem
       :label="t('权限明细')"
       style="flex: 1 0 100%">
-      <BkTable
+      <PrimaryTable
         class="mongo-permission-table"
         :data="ruleList"
-        :show-overflow="false">
-        <BkTableColumn
-          field="user"
-          :label="t('账号名称')"
+        row-key="username">
+        <TableColumn
+          col-key="user"
+          :title="t('账号名称')"
           :width="200">
-          <template #default="{ data }: { data: dataItem }">
+          <template #default="{ row:data }: { row: dataItem }">
             <div
               class="mongo-permission-cell"
               @click="() => handleToggleExpand(data)">
@@ -45,12 +45,12 @@
               <div class="user-name">{{ data.username }}</div>
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="access_db"
-          :label="t('访问 DB')"
+        </TableColumn>
+        <TableColumn
+          col-key="access_db"
+          :title="t('访问 DB')"
           :width="300">
-          <template #default="{ data }: { data: dataItem }">
+          <template #default="{ row:data }: { row: dataItem }">
             <div
               v-for="(rule, ruleIndex) in getRenderList(data)"
               :key="ruleIndex"
@@ -58,12 +58,12 @@
               <BkTag>{{ rule.db }}</BkTag>
             </div>
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="privilege"
-          :label="t('权限')"
-          :min-width="300">
-          <template #default="{ data }: { data: dataItem }">
+        </TableColumn>
+        <TableColumn
+          col-key="privilege"
+          :min-width="300"
+          :title="t('权限')">
+          <template #default="{ row:data }: { row: dataItem }">
             <div
               v-for="(rule, ruleIndex) in getRenderList(data)"
               :key="ruleIndex"
@@ -73,8 +73,8 @@
               </TextOverflowLayout>
             </div>
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
   <TargetClusterPreview
@@ -196,13 +196,10 @@
     transition: all 0.5s;
 
     td {
-      .vxe-cell {
-        padding: 0 !important;
-      }
+      padding: 0 !important;
     }
 
     td:first-child {
-      .cell,
       .mongo-permission-cell {
         height: 100% !important;
       }

@@ -12,11 +12,13 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.cluster_info">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.cluster_info"
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('集群')"
-      :min-width="250">
+      :min-width="250"
+      :title="t('集群')">
       <template #header>
         <div class="oracle-exec-script-apply-domain-header">
           {{ t('目标集群') }}
@@ -25,16 +27,16 @@
             @click="copyAllDomain" />
         </div>
       </template>
-      <template #default="{ data }: { data: IRowData }">
+      <template #default="{ row: data }: { row: IRowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('变更 DB')">
-      <template #default="{ data }: { data: IRowData }">
+    </TableColumn>
+    <TableColumn :title="t('变更 DB')">
+      <template #default="{ row: data }: { row: IRowData }">
         <TagBlock :data="data.execute_db" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('SQL 来源')">
       {{ ticketDetails.details.import_mode === 'manual' ? t('手动输入') : t('SQL文件') }}

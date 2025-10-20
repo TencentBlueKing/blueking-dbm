@@ -12,20 +12,20 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
+    row-key="cluster_id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row }: { row: { cluster_id: number } }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.cluster_type_name || '--' }}
+    </TableColumn>
+    <TableColumn :title="t('集群类型')">
+      <template #default="{ row }: { row: { cluster_id: number } }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.cluster_type_name || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('下发配置')">
       {{ ticketDetails.details.with_push_config ? t('是') : t('否') }}

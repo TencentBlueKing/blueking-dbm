@@ -12,66 +12,71 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('源集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="dst_bk_biz_id">
+    <TableColumn
+      col-key="src_cluster"
+      :min-width="180"
+      :title="t('源集群')">
+      <template #default="{ row }: { row: RowData }">
         {{
-          _.isString(data.src_cluster)
-            ? data.src_cluster
-            : ticketDetails.details.clusters[data.src_cluster].immute_domain
+          _.isString(row.src_cluster) ? row.src_cluster : ticketDetails.details.clusters[row.src_cluster].immute_domain
         }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="ticketDetails.details.dts_copy_type === 'user_built_to_dbm'"
-      :label="t('集群类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.src_cluster_type === 'RedisInstance' ? t('主从版') : t('集群版') }}
+      col-key="src_cluster_type"
+      :title="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.src_cluster_type === 'RedisInstance' ? t('主从版') : t('集群版') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-else
-      :label="t('架构版本')"
+      col-key="src_cluster_type"
+      :title="t('架构版本')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster as number].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.src_cluster as number].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="ticketDetails.details.dts_copy_type === 'diff_app_diff_cluster'"
-      :label="t('目标业务')">
-      <template #default="{ data }: { data: RowData }">
-        {{ bizsMap[data.dst_bk_biz_id] }}
+      col-key="src_bk_biz_id"
+      :title="t('目标业务')">
+      <template #default="{ row }: { row: RowData }">
+        {{ bizsMap[row.dst_bk_biz_id] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="180">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="dst_cluster"
+      :min-width="180"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
         {{
-          _.isString(data.dst_cluster)
-            ? data.dst_cluster
-            : ticketDetails.details.clusters[data.dst_cluster].immute_domain
+          _.isString(row.dst_cluster) ? row.dst_cluster : ticketDetails.details.clusters[row.dst_cluster].immute_domain
         }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('包含 Key')"
-      :min-width="240">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_white_regex)" />
+    </TableColumn>
+    <TableColumn
+      col-key="key_white_regex"
+      :min-width="240"
+      :title="t('包含 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
+      col-key="key_black_regex"
       :label="t('排除 Key')"
       :min-width="370">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_black_regex)" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('复制类型')">
       {{ copyTypesMap[ticketDetails.details.dts_copy_type] }}

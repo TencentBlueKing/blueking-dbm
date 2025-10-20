@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="new_master.ip">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -22,9 +24,9 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新主从主机')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('新主从主机')">
+      <template #default="{ row: data }: { row: RowData }">
         <div>
           <BkTag
             size="small"
@@ -42,8 +44,8 @@
           {{ data.new_slave.ip }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

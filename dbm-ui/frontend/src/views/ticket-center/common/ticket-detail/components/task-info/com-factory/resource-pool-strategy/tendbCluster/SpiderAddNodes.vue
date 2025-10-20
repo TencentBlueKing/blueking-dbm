@@ -12,35 +12,37 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="id">
+    <TableColumn
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容节点类型')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('扩容节点类型')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.add_spider_role === 'spider_slave' ? 'Spider Slave' : 'Spider Master' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标规格')"
-      :min-width="120">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
+    </TableColumn>
+    <TableColumn
+      :min-width="120"
+      :title="t('目标规格')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs?.[row.resource_spec.spider_ip_list.spec_id]?.name || '--' }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('扩容数量')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('扩容数量')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.resource_spec.spider_ip_list.count }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('资源标签')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec.spider_ip_list?.label_names?.length">
           <BkTag
             v-for="item in data.resource_spec.spider_ip_list.label_names"
@@ -54,8 +56,8 @@
           {{ t('通用无标签') }}
         </BkTag>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -12,43 +12,45 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
       fixed="left"
-      :label="t('集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="250"
+      :title="t('集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('清档类型')"
+    </TableColumn>
+    <TableColumn
+      :title="t('清档类型')"
       :width="220">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ truncateDataTypes[data.truncate_data_type as keyof typeof truncateDataTypes] }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('指定 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('指定 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('指定表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('指定表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('安全模式')">
       {{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}

@@ -12,22 +12,24 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{row:data}: {row: RowData}">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('集群类型')"
-      :min-width="220">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn>
+    <TableColumn
+      :min-width="220"
+      :title="t('集群类型')">
+      <template #default="{row:data}: {row: RowData}">
         {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份保存时间')">
       {{ fileTagMap[ticketDetails.details.file_tag] }}

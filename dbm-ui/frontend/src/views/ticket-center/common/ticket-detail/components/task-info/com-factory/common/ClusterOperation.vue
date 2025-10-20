@@ -12,18 +12,20 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.id].immute_domain }}
+  <PrimaryTable
+    :data="tableData"
+    row-key="id">
+    <TableColumn :label="t('集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('集群类型')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
+    </TableColumn>
+    <TableColumn :label="t('集群类型')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">

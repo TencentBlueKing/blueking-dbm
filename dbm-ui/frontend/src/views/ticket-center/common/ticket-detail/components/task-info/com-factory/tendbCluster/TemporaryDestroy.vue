@@ -12,13 +12,15 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
+  <PrimaryTable
+    :data="tableData"
+    row-key="id">
+    <TableColumn :title="t('目标集群')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.id].immute_domain }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

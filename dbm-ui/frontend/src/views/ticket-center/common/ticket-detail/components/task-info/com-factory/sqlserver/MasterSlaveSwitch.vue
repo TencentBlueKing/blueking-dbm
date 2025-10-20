@@ -12,21 +12,21 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      field="master.ip"
-      :label="t('目标主库主机')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="slave.ip"
-      :label="t('从库主机')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="slave.ip"
-      :label="t('同机关联的集群')">
-      <template #default="{ data }: { data: RowData }">
+    row-key="id">
+    <TableColumn
+      col-key="master.ip"
+      :title="t('目标主库主机')">
+    </TableColumn>
+    <TableColumn
+      col-key="slave.ip"
+      :title="t('从库主机')">
+    </TableColumn>
+    <TableColumn
+      col-key="slave.ip"
+      :title="t('同机关联的集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -34,8 +34,8 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="ts">

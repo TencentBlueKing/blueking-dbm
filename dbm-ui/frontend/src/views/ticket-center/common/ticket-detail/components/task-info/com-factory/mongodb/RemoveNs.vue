@@ -12,77 +12,77 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="cluster_ids"
+  <PrimaryTable :data="ticketDetails.details.infos">
+    <TableColumn
+      col-key="cluster_ids"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{data}: {data: RowData}">
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{row:data}: {row: RowData}">
         <div
           v-for="item in data.cluster_ids"
           :key="item">
           {{ ticketDetails.details.clusters[item].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="drop_type"
-      :label="t('集群类型')"
+    </TableColumn>
+    <TableColumn
+      col-key="drop_type"
+      :title="t('集群类型')"
       :width="150">
-      <template #default="{data}: {data: RowData}">
+      <template #default="{row:data}: {row: RowData}">
         {{ ticketDetails.details.clusters[data.cluster_ids[0]].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <!-- <BkTableColumn
-      field="drop_type"
-      :label="t('清档类型')"
+    </TableColumn>
+    <!-- <TableColumn
+      col-key="drop_type"
+      :title="t('清档类型')"
       :width="270">
-      <template #default="{data}: {data: RowData}">
+      <template #default="{row:data}: {row: RowData}">
         {{ data.drop_type === 'drop_collection' ? t('直接删除表') : t('将表暂时重命名，用于需要快速恢复的情况') }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="drop_index"
-      :label="t('索引处理')"
+    </TableColumn>
+    <TableColumn
+      col-key="drop_index"
+      :title="t('索引处理')"
       :width="90">
-      <template #default="{data}: {data: RowData}">
+      <template #default="{row:data}: {row: RowData}">
         {{ data.drop_index ? t('删除索引') : t('保留索引') }}
       </template>
-    </BkTableColumn> -->
-    <BkTableColumn
-      field="db_patterns"
-      :label="t('指定 DB 名')"
-      :min-width="120">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn> -->
+    <TableColumn
+      col-key="db_patterns"
+      :min-width="120"
+      :title="t('指定 DB 名')">
+      <template #default="{row:data}: {row: RowData}">
         <TagBlock :data="data.ns_filter.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="ignore_dbs"
-      :label="t('忽略 DB 名')"
-      :min-width="120">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn>
+    <TableColumn
+      col-key="ignore_dbs"
+      :min-width="120"
+      :title="t('忽略 DB 名')">
+      <template #default="{row:data}: {row: RowData}">
         <TagBlock :data="data.ns_filter.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="table_patterns"
-      :label="t('指定表名')"
-      :min-width="120">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn>
+    <TableColumn
+      col-key="table_patterns"
+      :min-width="120"
+      :title="t('指定表名')">
+      <template #default="{row:data}: {row: RowData}">
         <TagBlock :data="data.ns_filter.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="ignore_tables"
-      :label="t('忽略表名')"
-      :min-width="120">
-      <template #default="{data}: {data: RowData}">
+    </TableColumn>
+    <TableColumn
+      col-key="ignore_tables"
+      :min-width="120"
+      :title="t('忽略表名')">
+      <template #default="{row:data}: {row: RowData}">
         <TagBlock :data="data.ns_filter.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <!-- <InfoList>
     <InfoItem :label="t('忽略业务连接')">
       {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
