@@ -25,7 +25,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
-	"k8s-dbs/core/entity"
+	coreentity "k8s-dbs/core/entity"
 	"k8s-dbs/core/provider"
 	"k8s-dbs/core/vo/request"
 	"k8s-dbs/core/vo/response"
@@ -50,7 +50,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	var namespaceEntity entity.K8sNamespaceEntity
+	var namespaceEntity coreentity.K8sNamespaceEntity
 	if err := copier.Copy(&namespaceEntity, &reqVo); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
@@ -83,7 +83,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	var podLogEntity entity.K8sPodLogQueryParams
+	var podLogEntity coreentity.K8sPodLogQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podLogEntity, nil); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
@@ -103,7 +103,7 @@ func (k *K8sController) ListPodLogs(ctx *gin.Context) {
 // GetPodRawLogs 获取 pod 日志原始日志
 func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 	ctx.Set(commconst.APIName, commconst.APIK8sPodRawLog)
-	var podLogQueryEntity entity.K8sPodLogQueryParams
+	var podLogQueryEntity coreentity.K8sPodLogQueryParams
 	targetMap := map[string]reflect.Type{
 		"previous": reflect.TypeOf(true),
 	}
@@ -123,7 +123,7 @@ func (k *K8sController) GetPodRawLogs(ctx *gin.Context) {
 // GetPodDetail 获取实例详情
 func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 	ctx.Set(commconst.APIName, commconst.APIK8sPodDetail)
-	var podDetailParams entity.K8sPodDetailQueryParams
+	var podDetailParams coreentity.K8sPodDetailQueryParams
 	if err := commutil.DecodeParams(ctx, commutil.BuildParams, &podDetailParams, nil); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
@@ -138,19 +138,19 @@ func (k *K8sController) GetPodDetail(ctx *gin.Context) {
 
 // DeletePod 删除实例
 func (k *K8sController) DeletePod(ctx *gin.Context) {
-	ctx.Set(commconst.APIName, commconst.APIK8sPodDelete)
-	var podDeleteParams request.K8sPodDeleteRequest
-	if err := ctx.ShouldBindJSON(&podDeleteParams); err != nil {
+	deleteRequest := &request.K8sPodOperationRequest{}
+	if err := ctx.ShouldBindJSON(&deleteRequest); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError, err))
 		return
 	}
-	var podDeleteEntity entity.K8sPodDelete
-	if err := copier.Copy(&podDeleteEntity, &podDeleteParams); err != nil {
+	k.setAPIRequestContext(ctx, deleteRequest, commconst.APIK8sPodDelete)
+	var podDeleteEntity coreentity.K8sPodDelete
+	if err := copier.Copy(&podDeleteEntity, deleteRequest); err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.CreateK8sNsError, err))
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth:      &podDeleteParams.BKAuth,
+		BkAuth:      &deleteRequest.BKAuth,
 		RequestType: coreconst.DeleteK8sPod,
 	}
 	err := k.k8sProvider.DeletePod(&dbsCtx, &podDeleteEntity)
@@ -166,4 +166,22 @@ func NewK8sController(k8sProvider *provider.K8sProvider) *K8sController {
 	return &K8sController{
 		k8sProvider,
 	}
+}
+
+// setAPIRequestContext 设置 api 请求上下文
+func (k *K8sController) setAPIRequestContext(
+	ctx *gin.Context,
+	request *request.K8sPodOperationRequest,
+	apiName string,
+) {
+	ctx.Set(commconst.APIName, apiName)
+	ctx.Set(commconst.IsClusterAPI, true)
+	clusterRequest := &coreentity.Request{
+		K8sClusterName: request.K8sClusterName,
+		Metadata: coreentity.Metadata{
+			ClusterName: request.ClusterName,
+			Namespace:   request.Namespace,
+		},
+	}
+	ctx.Set(commconst.ClusterAPIRequestEntity, clusterRequest)
 }
