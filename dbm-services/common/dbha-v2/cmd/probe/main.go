@@ -32,7 +32,6 @@ import (
 )
 
 func main() {
-
 	rootCmd := &cobra.Command{
 		Use:          "probe",
 		Short:        "DBHA Probe",
@@ -42,18 +41,11 @@ func main() {
 
 	rootCmd.PersistentFlags().StringVarP(&probe.ConfigFilePath, "config", "c", "./etc/probe.yaml", "")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	rootCmd.AddCommand(probe.VersionCmd)
-
-	probe.StopCmd.Flags().BoolVarP(&probe.ForceStop, "force", "f", false, "Force stop the probe process")
-	probe.StopCmd.Flags().UintVarP(&probe.StopTimeout, "timeout", "t", 5,
-		"Timeout in seconds for stopping the probe process")
+	rootCmd.AddCommand(probe.HealthCmd)
 	rootCmd.AddCommand(probe.StopCmd)
-
-	probe.RestartCmd.Flags().BoolVarP(&probe.ForceStop, "force", "f", false, "Force stop the probe process")
-	probe.RestartCmd.Flags().UintVarP(&probe.StopTimeout, "timeout", "t", 5,
-		"Timeout in seconds for stopping the probe process")
 	rootCmd.AddCommand(probe.RestartCmd)
-
 	rootCmd.AddCommand(probe.ReloadCmd)
 
 	if err := rootCmd.Execute(); err != nil {

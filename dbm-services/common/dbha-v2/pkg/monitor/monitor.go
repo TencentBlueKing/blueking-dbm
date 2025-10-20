@@ -97,6 +97,7 @@ type EventData struct {
 
 		// switch detect info.
 		SwitchInfoDetectClusterType string `json:"cluster_type,omitempty"`
+		DetectorExitCode            int    `json:"detector_exit_code,omitempty"`
 
 		// global switch info.
 		SwitchInfoGlobalUncoveredInsNum  int    `json:"uncovered_ins_num,omitempty"`

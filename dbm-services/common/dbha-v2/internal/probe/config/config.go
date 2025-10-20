@@ -24,9 +24,22 @@
 
 package config
 
-import "time"
+import (
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"time"
+)
 
-var Cfg Configuration
+var Cfg = Configuration{
+	Name:    "probe",
+	Version: "v2.0.0",
+	PidFile: "./pids/probe.pid",
+	Log: LogConfig{
+		Path:      "./logs/probe.log",
+		Level:     logger.InfoLevel.String(),
+		FileCount: 10,
+		FileSize:  100,
+	},
+}
 
 // ReporterConfig reporter's config
 type ReporterConfig struct {
@@ -58,7 +71,7 @@ type Configuration struct {
 	Name       string            `yaml:"name"      mapstructure:"name"`
 	Version    string            `yaml:"version"   mapstructure:"version"`
 	ServiceID  string            `yaml:"serviceID" mapstructure:"serviceID"`
-	PIDFile    string            `yaml:"pidFile"   mapstructure:"pidFile"`
+	PidFile    string            `yaml:"pidFile"   mapstructure:"pidFile"`
 	Reporters  []ReporterConfig  `yaml:"reporter"  mapstructure:"reporter"`
 	Harvesters []HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
 	Log        LogConfig         `yaml:"log"       mapstructure:"log"`
