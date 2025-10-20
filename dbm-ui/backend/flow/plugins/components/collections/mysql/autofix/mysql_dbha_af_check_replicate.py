@@ -42,6 +42,7 @@ class MySQLDBHAAFCheckReplicateService(BaseService):
 
         # 第一轮空跑
         if counter == 7:
+            data.outputs.counter = 6
             return True
 
         if counter > 0:
