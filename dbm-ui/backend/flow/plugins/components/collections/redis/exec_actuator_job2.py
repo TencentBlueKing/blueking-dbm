@@ -25,13 +25,13 @@ from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
-from backend.flow.utils.mongodb.mongodb_script_template import make_script_common_kwargs, mongodb_actuator_template2
+from backend.flow.utils.redis.redis_script_template import make_script_common_kwargs, redis_actuator_template2
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class _ExecBkJobService(BkJobService):
+class _RedisExecJobComponent2Service(BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
     """
@@ -46,7 +46,7 @@ class _ExecBkJobService(BkJobService):
            root_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_name: db-actuator任务必须参数，做录入日志平台的条件
-           payload_func : payload_func 参数，表示获取执行的db-actuator 参数方法名称，对应db-actuator的payload_func类
+           payload_func : 表示获取执行 redis的db-actuator 参数方法名称，对应RedisActPayload类
            exec_ip: 表示执行的ip节点
            get_trans_data_ip_name: 表示从上下文获取到执行ip的变量名，对应单据的获取到上下文dataclass类
            cluster: 操作的集群名称
@@ -102,7 +102,7 @@ class _ExecBkJobService(BkJobService):
 
         # 脚本内容
         jinja_env = Environment()
-        template = jinja_env.from_string(mongodb_actuator_template2)
+        template = jinja_env.from_string(redis_actuator_template2)
         self.log_info("[{}] ready start task with body {} {}".format(node_name, "", template))
 
         body = {
@@ -135,7 +135,7 @@ class _ExecBkJobService(BkJobService):
         return [Service.OutputItem(name="exec_ips", key="exec_ips", type="list")]
 
 
-class ExecJobComponent2(Component):
+class RedisExecJobComponent2(Component):
     name = __name__
-    code = "MongoExecJobComponent2"
-    bound_service = _ExecBkJobService
+    code = "redis_exec_actuator_job2"
+    bound_service = _RedisExecJobComponent2Service
