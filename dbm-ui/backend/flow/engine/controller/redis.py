@@ -48,6 +48,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_ins_shutdown import RedisInsSh
 from backend.flow.engine.bamboo.scene.redis.redis_instance_apply_flow import RedisInstanceApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
+from backend.flow.engine.bamboo.scene.redis.redis_keystat import RedisKeystatFlow
 from backend.flow.engine.bamboo.scene.redis.redis_open_close import RedisClusterOpenCloseFlow, RedisInsOpenCloseFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow import TendisPlusApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
@@ -456,3 +457,10 @@ class RedisController(BaseController):
         """
         flow = FailoverDrillFlow(root_id=self.root_id, data=self.ticket_data)
         flow.failover_drill()
+
+    def redis_keystat(self):
+        """
+        redis 内存分析
+        """
+        flow = RedisKeystatFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
