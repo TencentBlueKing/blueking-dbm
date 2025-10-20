@@ -563,6 +563,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
+    KEYSTAT = EnumField("keystat", _("keystat"))
 
 
 class MongoDBActuatorActionEnum(StrStructuredEnum):
@@ -803,8 +804,6 @@ class DnsOpType(StrStructuredEnum):
     CLB_CHANGE_WEIGHT = EnumField("clb_change_weight", _("clb修改权重"))
     CLB_DISABLE_RS = EnumField("clb_disable_rs", _("clb_disable_rs"))
     CLB_ENABLE_RS = EnumField("clb_enable_rs", _("clb_enable_rs"))
-    DISABLE = EnumField("disable", _("disable"))
-    ENABLE = EnumField("enable", _("enable"))
 
 
 class ManagerOpType(StrStructuredEnum):
