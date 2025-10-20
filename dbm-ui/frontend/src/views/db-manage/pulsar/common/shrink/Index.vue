@@ -112,7 +112,17 @@
       });
   };
 
-  fetchListNode();
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        fetchListNode();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 默认选中的缩容节点
   watch(
