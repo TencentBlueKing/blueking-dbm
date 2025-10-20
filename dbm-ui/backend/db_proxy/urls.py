@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_proxy.views.redis_keystat_report.views import KeyStatReportViewSet
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -37,6 +38,7 @@ routers.register(r"", JobCallBackViewSet, basename="job_callback")
 routers.register(r"", BKRepoProxyPassViewSet, basename="bkrepo")
 routers.register(r"", DtsApiProxyPassViewSet, basename="redis_dts")
 routers.register(r"", HotKeyAnalysisViewSet, basename="redis_hot_key_analysis")
+routers.register(r"", KeyStatReportViewSet, basename="redis_keystat_report")
 routers.register(r"", JobApiProxyPassViewSet, basename="jobapi")
 routers.register(r"", DumperProxyPassViewSet, basename="dumper")
 routers.register(r"", DBPrivProxyPassViewSet, basename="dbpriv")
