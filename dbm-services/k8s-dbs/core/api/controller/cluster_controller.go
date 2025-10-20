@@ -65,9 +65,8 @@ func NewClusterController(
 
 // VerticalScaling 垂直扩缩
 func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterVScaling)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterVScaling)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
