@@ -38,6 +38,7 @@ export type FunctionKeys =
   | DashboardFunctions;
 
 export interface ControllerBaseInfo {
+  children: Record<string, ControllerBaseInfo>;
   is_enabled: boolean;
 }
 
@@ -176,7 +177,12 @@ export default class FunctionController {
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
+  'resourceManage.resourceOperationRecord.flow': ControllerItem<string>;
+  'resourceManage.resourceOperationRecord.replenish': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
+  'resourceManage.resourcePool.replenishList': ControllerItem<string>;
+  'resourceManage.resourcePool.hostList': ControllerItem<string>;
+  'resourceManage.resourcePool.summaryView': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourceTagsManagement': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;

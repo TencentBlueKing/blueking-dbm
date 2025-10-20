@@ -43,11 +43,18 @@
   });
 
   const detailsComp = computed(() => {
-    const resourcePoolDetails = (props.data as TicketModel<{ ip_recycle?: { ip_dest: string }; ip_source?: string }>)
-      .details;
+    const { details: resourcePoolDetails, ticket_type: resourcePoolTicketType } = props.data as TicketModel<{
+      ip_recycle?: { ip_dest: string };
+      ip_source?: string;
+    }>;
 
     const isResourcePool =
-      resourcePoolDetails.ip_recycle?.ip_dest === 'resource' || resourcePoolDetails.ip_source === 'resource_pool';
+      // 资源池回收
+      resourcePoolDetails.ip_recycle?.ip_dest === 'resource' ||
+      // 主机来源于资源池
+      resourcePoolDetails.ip_source === 'resource_pool' ||
+      // 平台资源池单据
+      /^RESOURCE_/.test(resourcePoolTicketType);
 
     const renderResourcePoolModule = _.find(
       Object.values(resourcePoolModule),
