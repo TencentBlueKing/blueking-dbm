@@ -848,6 +848,21 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-yanlianbaogao:before {
 	content: "\e251";
 }
+.db-icon-quanbu-xuanzhong:before {
+	content: "\e256";
+}
 .db-icon-danju:before {
 	content: "\e252";
+}
+.db-icon-tengxun:before {
+	content: "\e254";
+}
+.db-icon-weiruan:before {
+	content: "\e255";
+}
+.db-icon-hongmaozi:before {
+	content: "\e253";
+}
+.db-icon-wubiaoqian:before {
+	content: "\e257";
 }

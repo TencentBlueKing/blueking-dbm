@@ -296,6 +296,7 @@ export enum TicketTypes {
   RECYCLE_OLD_HOST = 'RECYCLE_OLD_HOST', // 已下架主机再利用
   RESOURCE_HCM_REPLENISH = 'RESOURCE_HCM_REPLENISH', // 海磊 - 主机资源补货
   RESOURCE_IMPORT = 'RESOURCE_IMPORT', // 导入资源池
+  RESOURCE_HCM_REPLENISH = 'RESOURCE_HCM_REPLENISH', // 海磊 - 主机资源补货
 }
 
 export type TicketTypesStrings = keyof typeof TicketTypes;
