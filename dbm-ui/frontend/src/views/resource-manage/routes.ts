@@ -47,15 +47,6 @@ export default function getRoutes() {
           },
           component: () => import('@views/resource-manage/pool/global/Index.vue'),
         },
-        checkDbConsole('resourceManage.resourcePool') && {
-          path: 'pool/:page?',
-          name: 'resourcePool',
-          meta: {
-            fullscreen: true,
-            navName: t('DB 资源池'),
-          },
-          component: () => import('@views/resource-manage/pool/global/Index.vue'),
-        },
         checkDbConsole('resourceManage.faultPool') && {
           path: 'fault-pool',
           name: 'faultPool',
@@ -89,9 +80,10 @@ export default function getRoutes() {
           component: () => import('@views/resource-manage/resource-tag/Index.vue'),
         },
         checkDbConsole('resourceManage.resourceOperationRecord') && {
-          path: 'record',
+          path: 'record/:page?',
           name: 'resourcePoolOperationRecord',
           meta: {
+            fullscreen: true,
             navName: t('资源操作记录'),
           },
           component: () => import('@views/resource-manage/record/Index.vue'),

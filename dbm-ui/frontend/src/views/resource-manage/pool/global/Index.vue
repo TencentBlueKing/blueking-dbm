@@ -57,6 +57,7 @@
 
   import ImportHost from '../components/host-list/components/import-host/Index.vue';
   import HostList from '../components/host-list/Index.vue';
+  import ReplenishList from '../components/replenish-list/Index.vue';
   import SummaryView from '../components/summary-view/Index.vue';
 
   const { t } = useI18n();
@@ -74,12 +75,17 @@
       label: t('统计视图'),
       name: 'summary-view',
     },
+    {
+      label: t('待补货列表'),
+      name: 'replenish-list',
+    },
   ];
 
   const activeTab = useDebouncedRef(route.params.page as string);
 
   const renderComponentMap = {
     'host-list': HostList,
+    'replenish-list': ReplenishList,
     'summary-view': SummaryView,
   };
 
