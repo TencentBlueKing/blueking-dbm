@@ -181,9 +181,8 @@ func (c *ClusterController) StopCluster(ctx *gin.Context) {
 
 // UpgradeCluster 升级集群
 func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterUpgrade)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterUpgrade)
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		api.HandleValidationError(ctx, err, request)
 		return
