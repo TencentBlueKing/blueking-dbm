@@ -12,36 +12,36 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
-    <BkTableColumn :label="t('源实例')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.source }}
+  <PrimaryTable :data="ticketDetails.details.clone_data">
+    <TableColumn :title="t('源实例')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.source }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('所属集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.cluster_domain }}
+    </TableColumn>
+    <TableColumn :title="t('所属集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.cluster_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新实例')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target }}
+    </TableColumn>
+    <TableColumn :title="t('新实例')">
+      <template #default="{ row }: { row: RowData }">
+        {{ row.target }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Tendbcluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Tendbcluster.InstanceCloneRules>;
+    ticketDetails: TicketModel<TendbCluster.InstanceCloneRules>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
+  type RowData = Props['ticketDetails']['details']['clone_data'][number];
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,

@@ -12,43 +12,44 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn
-      field="bill_id"
-      :label="t('关联单据')"
-      :min-width="130" />
-    <BkTableColumn
-      field="src_cluster"
-      :label="t('源集群')"
-      :min-width="220" />
-    <BkTableColumn
-      field="src_instances"
-      :label="t('源实例')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        <span v-if="_.isEqual(['all'], data.src_instances)">{{ t('全部') }}</span>
+    ellipsis
+    row-key="src_cluster">
+    <TableColumn
+      col-key="bill_id"
+      :min-width="130"
+      :title="t('关联单据')" />
+    <TableColumn
+      col-key="src_cluster"
+      :min-width="220"
+      :title="t('源集群')" />
+    <TableColumn
+      col-key="src_instances"
+      :min-width="200"
+      :title="t('源实例')">
+      <template #default="{ row }: { row: RowData }">
+        <span v-if="_.isEqual(['all'], row.src_instances)">{{ t('全部') }}</span>
         <TagBlock
           v-else
-          :data="data.src_instances" />
+          :data="row.src_instances" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="dst_cluster"
-      :label="t('目标集群')"
-      :min-width="220" />
-    <BkTableColumn :label="t('包含 Key')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_white_regex)" />
+    </TableColumn>
+    <TableColumn
+      col-key="dst_cluster"
+      :min-width="220"
+      :title="t('目标集群')" />
+    <TableColumn :label="t('包含 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </BkTableColumn>
+    </TableColumn>
     <BkTableColumn :label="t('排除 Key')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_black_regex)" />
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
     </BkTableColumn>
-  </BkTable>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('执行模式:')">
       {{ executeModesMap[ticketDetails.details.execute_mode] }}

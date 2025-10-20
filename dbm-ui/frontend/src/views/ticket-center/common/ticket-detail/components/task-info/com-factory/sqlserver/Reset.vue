@@ -12,20 +12,23 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="cluster_id"
-      :label="t('集群ID')" />
-    <BkTableColumn
-      field="new_cluster_name"
-      :label="t('新集群')" />
-    <BkTableColumn
-      field="new_immutable_domain"
-      :label="t('主域名')" />
-    <BkTableColumn
-      field="new_slave_domain"
-      :label="t('从域名')" />
-  </BkTable>
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('集群ID')" />
+    <TableColumn
+      col-key="new_cluster_name"
+      :title="t('新集群')" />
+    <TableColumn
+      col-key="new_immutable_domain"
+      :title="t('主域名')" />
+    <TableColumn
+      col-key="new_slave_domain"
+      :title="t('从域名')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

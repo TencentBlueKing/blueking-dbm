@@ -12,23 +12,25 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
-    <BkTableColumn
-      field="slaveIp"
-      :label="t('待重建从库主机')" />
-    <BkTableColumn
-      field="hostIp"
-      :label="t('关联主库主机')" />
-    <BkTableColumn
-      field="clusterName"
-      :label="t('所属集群')" />
-    <BkTableColumn
-      field="sepcName"
-      :label="t('规格需求')" />
-    <BkTableColumn
-      field="targetNum"
-      :label="t('新增从库主机数量')" />
-  </BkTable>
+  <PrimaryTable
+    :data="tableData"
+    row-key="slaveIp">
+    <TableColumn
+      col-key="slaveIp"
+      :title="t('待重建从库主机')" />
+    <TableColumn
+      col-key="hostIp"
+      :title="t('关联主库主机')" />
+    <TableColumn
+      col-key="clusterName"
+      :title="t('所属集群')" />
+    <TableColumn
+      col-key="sepcName"
+      :title="t('规格需求')" />
+    <TableColumn
+      col-key="targetNum"
+      :title="t('新增从库主机数量')" />
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

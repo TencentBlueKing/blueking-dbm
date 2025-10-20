@@ -63,21 +63,26 @@
     </InfoItem>
     <InfoItem
       :label="t('域名设置')"
-      whole-line>
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="mainDomain"
-          :label="t('主域名')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterId"
-          :label="t('集群ID')">
-        </BkTableColumn>
-        <BkTableColumn
-          field="clusterName"
-          :label="t('集群名称')">
-        </BkTableColumn>
-      </BkTable>
+      style="flex: 1 0 100%">
+      <PrimaryTable
+        :data="replicaSets"
+        row-key="set_id">
+        <TableColumn
+          col-key="domain"
+          :title="t('主域名')">
+        </TableColumn>
+        <TableColumn
+          col-key="set_id"
+          :title="t('集群ID')">
+        </TableColumn>
+        <TableColumn
+          col-key="name"
+          :title="t('集群名称')">
+          <template #default="{ row }: { row: { name: string } }">
+            {{ row.name || '--' }}
+          </template>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
 </template>
@@ -109,11 +114,6 @@
 
   const { replica_sets: replicaSets, resource_spec: resourceSpec } = props.ticketDetails.details;
   const backendSpec = resourceSpec.mongo_machine_set;
-  const tableData = replicaSets.map((domainItem) => ({
-    clusterId: domainItem.set_id,
-    clusterName: domainItem.name,
-    mainDomain: domainItem.domain,
-  }));
 </script>
 
 <style lang="less" scoped>

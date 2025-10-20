@@ -25,20 +25,21 @@
       {{ ticketDetails.details.runtime_hour }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="tableData"
-    :merge-cells="mergeCells"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="220">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    ellipsis
+    row-key="rowKey"
+    :rowspan-and-colspan="rowspanAndColspan">
+    <TableColumn
+      :min-width="220"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验从库')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('校验从库')">
       <template #header>
         <span class="mysql-checksum-ip-header">
           <span>{{ t('校验从库') }}</span>
@@ -52,17 +53,17 @@
           </PopoverCopy>
         </span>
       </template>
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row }: { row: RowData }">
         <div
-          v-for="(item, index) in data.slaves"
+          v-for="(item, index) in row.slaves"
           :key="index">
           <p class="pt-2 pb-2">{{ item.ip }}:{{ item.port }}</p>
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('校验主库')"
-      :min-width="150">
+    </TableColumn>
+    <TableColumn
+      :min-width="150"
+      :title="t('校验主库')">
       <template #header>
         <span class="mysql-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
@@ -76,34 +77,32 @@
           </PopoverCopy>
         </span>
       </template>
-      <template #default="{ data }: { data: RowData }"> {{ data.master.ip }}:{{ data.master.port }} </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验 DB 名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.db_patterns" />
+      <template #default="{ row }: { row: RowData }"> {{ row.master.ip }}:{{ row.master.port }} </template>
+    </TableColumn>
+    <TableColumn :title="t('校验 DB 名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.db_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB 名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_dbs" />
+    </TableColumn>
+    <TableColumn :title="t('忽略 DB 名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_dbs" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('校验表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.table_patterns" />
+    </TableColumn>
+    <TableColumn :title="t('校验表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.table_patterns" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略表名')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="data.ignore_tables" />
+    </TableColumn>
+    <TableColumn :title="t('忽略表名')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="row.ignore_tables" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
@@ -112,7 +111,7 @@
   import PopoverCopy from '@components/popover-copy/Index.vue';
   import TagBlock from '@components/tag-block/Index.vue';
 
-  import { execCopy, utcDisplayTime } from '@utils';
+  import { execCopy, random, utcDisplayTime } from '@utils';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
@@ -133,41 +132,42 @@
 
   const tableData = shallowRef<RowData[]>([]);
 
-  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+  const spanInfo: {
+    rowIndex: number;
+    rowspan: number;
+  }[] = [];
+  const clusterMap: Record<string, RowData[]> = {};
+  props.ticketDetails.details.infos.forEach((item) => {
+    const clusterItem = Object.assign(item, { rowKey: random() });
+    const clusterId = item.cluster_id;
+    if (!clusterMap[clusterId]) {
+      clusterMap[clusterId] = [clusterItem];
+    } else {
+      clusterMap[clusterId].push(clusterItem);
+    }
+  });
 
-  watch(
-    () => props.ticketDetails.details.infos,
-    () => {
-      const clusterMap: Record<string, RowData[]> = {};
-      props.ticketDetails.details.infos.forEach((item) => {
-        const clusterId = item.cluster_id;
-        if (!clusterMap[clusterId]) {
-          clusterMap[clusterId] = [item];
-        } else {
-          clusterMap[clusterId].push(item);
-        }
-      });
+  Object.values(clusterMap).forEach((list) => {
+    const preRow = spanInfo[spanInfo.length - 1] || {
+      rowIndex: 0,
+      rowspan: 1,
+    };
+    spanInfo.push({
+      rowIndex: preRow.rowIndex + preRow.rowspan - 1,
+      rowspan: list.length,
+    });
+    tableData.value.push(...list);
+  });
 
-      Object.values(clusterMap).forEach((list) => {
-        const preRow = mergeCells.value[mergeCells.value.length - 1] || {
-          col: 0,
-          colspan: 1,
-          row: 0,
-          rowspan: 1,
-        };
-        mergeCells.value.push({
-          col: 0,
-          colspan: 1,
-          row: preRow.row + preRow.rowspan - 1,
-          rowspan: list.length,
-        });
-        tableData.value.push(...list);
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
+    const spanItem = spanInfo.find((item) => colIndex === 0 && item.rowIndex === rowIndex);
+    if (spanItem) {
+      return {
+        rowspan: spanItem.rowspan,
+      };
+    }
+    return {};
+  };
 
   const handleCopySlave = (field: 'ip' | 'instance') => {
     const slaves = tableData.value.reduce<RowData['slaves']>((acc, item) => {

@@ -12,15 +12,17 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.cluster_ids.map((item) => ({ cluster_id: item }))"
-    :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: { cluster_id: number } }">
-        {{ ticketDetails.details.clusters?.[data.cluster_id]?.immute_domain || '--' }}
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: { cluster_id: number } }">
+        {{ ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || '--' }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('重新下发GSE配置')">
       {{ ticketDetails.details.restart_exporter ? t('是') : t('否') }}

@@ -17,51 +17,54 @@
       {{ ticketDetails.details.is_local ? t('原地定点构造') : t('定点构造到其他集群') }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    ellipsis
+    row-key="dst_cluster">
+    <TableColumn
       fixed="left"
-      :label="t('待回档集群')"
+      :title="t('待回档集群')"
       :width="220">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
+    </TableColumn>
+    <TableColumn
       v-if="!ticketDetails.details.is_local"
       fixed="left"
-      :label="t('目标集群')"
+      :title="t('目标集群')"
       :width="220">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('回档类型')"
+    </TableColumn>
+    <TableColumn
+      :title="t('回档类型')"
       :width="300">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row: data }: { row: RowData }">
         <div v-if="data.restore_time">{{ t('回档到指定时间：') }}{{ data.restore_time }}</div>
         <div v-else-if="data.restore_backup_file">
           {{ t('备份记录：') }}{{ data.restore_backup_file.logs[0].role }}
           {{ data.restore_backup_file.logs[0].backup_begin_time }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造 DB')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('构造 DB')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('忽略 DB')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('忽略 DB')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('构造后 DB 名')">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn :title="t('构造后 DB 名')">
+      <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
