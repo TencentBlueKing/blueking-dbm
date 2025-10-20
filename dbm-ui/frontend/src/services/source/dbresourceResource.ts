@@ -272,3 +272,25 @@ export function specCostEstimate(params: {
 }) {
   return http.post<number>(`${path}/spec_cost_estimate/`, params);
 }
+
+/**
+ * 计算资源池水位信息
+ */
+export function calcResourceWaterLevel(params: { cache: boolean }) {
+  return http.post<{
+    update_time: string;
+    flush_time: string;
+    water_level: {
+      spec_id: number;
+      spec_name: string;
+      spec_machine_type: string;
+      db_type: string;
+      os_name: string;
+      city: string;
+      subzone: string;
+      machine_count: number;
+      resource_count: number;
+      machine_refer_count: number;
+    }[];
+  }>(`${path}/calc_resource_water_level/`, params);
+}

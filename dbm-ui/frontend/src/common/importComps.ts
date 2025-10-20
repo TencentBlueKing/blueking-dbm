@@ -29,6 +29,7 @@ import DbIcon from '@components/db-icon';
 import DbPopconfirm from '@components/db-popconfirm/index.vue';
 import DbQuickSearch from '@components/db-quick-search/Index.vue';
 import DbSearchSelect from '@components/db-search-select/index.vue';
+import DbDateTimePicker from '@components/db-date-time-picker/Index.vue';
 import DbSideslider from '@components/db-sideslider/index.vue';
 import DbStatus from '@components/db-status/index.vue';
 import DbTable from '@components/db-table/index.vue';
@@ -82,6 +83,7 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('DbFormItem', DbFormItem);
   app.component('DbIcon', DbIcon);
   app.component('DbPopconfirm', DbPopconfirm);
+  app.component('DbDateTimePicker', DbDateTimePicker);
   app.component('DbSearchSelect', DbSearchSelect);
   app.component('DbSideslider', DbSideslider);
   app.component('DbTextarea', DbTextarea);
