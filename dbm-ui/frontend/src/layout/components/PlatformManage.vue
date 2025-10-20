@@ -18,6 +18,34 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup :name="t('异常中心')">
+      <BkMenuItem key="platformAlarmEvents">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('告警事件') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="inspectionReportGlobal">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('巡检报告') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem key="RiskMemoGlobal">
+        <template #icon>
+          <DbIcon type="file" />
+        </template>
+        {{ t('风险备忘录') }}
+      </BkMenuItem>
+    </BkMenuGroup>
     <BkMenuGroup
       v-db-console="'platformManage.dbaManage'"
       :name="t('DBA 工具箱')">
@@ -52,48 +80,14 @@
         SQLServer
       </BkMenuItem>
     </BkMenuGroup>
-    <BkMenuGroup
+    <!-- <BkMenuGroup
       v-db-console="'platformManage.healthReport'"
       :name="t('巡检')">
-      <BkMenuItem key="inspectionReportGlobal">
-        <template #icon>
-          <DbIcon type="db-config" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('巡检报告') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup
+    </BkMenuGroup> -->
+    <!-- <BkMenuGroup
       v-db-console="'platformManage.AlarmEvents'"
       :name="t('告警')">
-      <BkMenuItem key="platformAlarmEvents">
-        <template #icon>
-          <DbIcon type="db-config" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('告警事件') }}
-        </span>
-      </BkMenuItem>
-    </BkMenuGroup>
-    <BkMenuGroup :name="t('平台观测')">
-      <BkMenuItem key="ServiceStatus">
-        <template #icon>
-          <DbIcon type="ticket" />
-        </template>
-        {{ t('服务状态') }}
-      </BkMenuItem>
-      <BkMenuItem key="RiskMemoGlobal">
-        <template #icon>
-          <DbIcon type="file" />
-        </template>
-        {{ t('风险备忘录') }}
-      </BkMenuItem>
-    </BkMenuGroup>
+    </BkMenuGroup> -->
     <BkMenuGroup
       v-if="dashboardList && dashboardList.length > 0"
       :name="t('运营数据')">
@@ -104,6 +98,14 @@
           <DbIcon type="ticket" />
         </template>
         {{ dashboardItem.name }}
+      </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup :name="t('平台观测')">
+      <BkMenuItem key="ServiceStatus">
+        <template #icon>
+          <DbIcon type="ticket" />
+        </template>
+        {{ t('服务状态') }}
       </BkMenuItem>
     </BkMenuGroup>
   </BkMenu>
