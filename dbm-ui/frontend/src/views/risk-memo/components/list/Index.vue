@@ -47,14 +47,16 @@
           scene="part"
           type="empty">
           <span>{{ isSpecial ? t('暂无要求') : t('暂无风险') }}</span>
-          <span class="ml-4 mr-4">,</span>
-          <BkButton
-            size="small"
-            text
-            theme="primary"
-            @click="handleAddRisk">
-            {{ t('立即新建') }}
-          </BkButton>
+          <template v-if="!isPlatformPage && !isTodoPage">
+            <span class="ml-4 mr-4">,</span>
+            <BkButton
+              size="small"
+              text
+              theme="primary"
+              @click="handleAddRisk">
+              {{ t('立即新建') }}
+            </BkButton>
+          </template>
         </BkException>
       </template>
     </div>
