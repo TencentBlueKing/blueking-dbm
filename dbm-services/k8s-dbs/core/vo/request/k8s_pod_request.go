@@ -30,8 +30,8 @@ type K8sPodDetailRequest struct {
 	commentity.BKAuth `json:",inline"`
 }
 
-// K8sPodDeleteRequest 封装 pod 删除请求结构体
-type K8sPodDeleteRequest struct {
+// K8sPodOperationRequest 封装 pod 删除请求结构体
+type K8sPodOperationRequest struct {
 	K8sClusterName    string `json:"k8sClusterName"`
 	ClusterName       string `json:"clusterName"`
 	Namespace         string `json:"namespace"`
