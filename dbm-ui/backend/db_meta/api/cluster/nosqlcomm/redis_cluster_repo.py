@@ -10,26 +10,25 @@ specific language governing permissions and limitations under the License.
 """
 from abc import abstractmethod
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Dict, List, Union
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
+from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 
 
+@dataclass
 class DbmNode:
-    """dbm node"""
-
-    def __init__(
-        self, ip: str, port: int, role: str, bk_cloud_id: int, mtype: str, version: str = None, domain: str = None
-    ):
-        self.ip: str = ip
-        self.port: int = port
-        self.role: str = role
-        self.bk_cloud_id: int = bk_cloud_id
-        self.machine_type = mtype
-        self.version: str = version
-        self.domain: str = None  # 这是关联bind_entry.first().entry
+    ip: str
+    port: int
+    role: str
+    bk_cloud_id: int
+    machine_type: str
+    version: str = None
+    domain: str = None
+    instance_role: str = None
 
     # s is StorageInstance | ProxyInstance
     @classmethod
@@ -67,18 +66,17 @@ class DbmNode:
         }
 
 
+@dataclass
 class TendisClusterBase:
-    bk_cloud_id: int
-    bk_biz_id: int
-    creator: str
-    name: str
-    app: str
-    immute_domain: str
-    alias: str
-    major_version: str
-    region: str
-    cluster_type: str
     cluster_id: str
+    name: str
+    cluster_type: str
+    major_version: str
+    bk_biz_id: int
+    immute_domain: str
+    bk_cloud_id: int
+    app: str
+    region: str
     tags: List[str] = None
 
     def __init__(
@@ -258,9 +256,30 @@ class DbmClusterRepository:
         return result
 
     @classmethod
-    def build_shard_list_by_instance_list(cls, instance_list: List[StorageInstance]) -> List:
-        """获取shard列表"""
+    def build_shard_list_by_instance_list(
+        cls, instance_list: List[StorageInstance], with_slaves: bool = False, is_replicaset: bool = True
+    ) -> List:
+        """获取shard列表. 此方法适用于Redis/MongoDB
+        instance_list: 主节点列表
+        with_slaves: 是否包含从节点
+        is_replicaset: 是否是replicaset类型, 如果是replicaset类型, 则需要根据seg_range分组
+
+        """
         shard_list = {}
+        # `ejector`,`receiver` 关系
+        # `ejector` 是主节点，`receiver` 是从节点
+        # 一个receiver只能对应一个ejector
+        master_id_list = [ins["id"] for ins in instance_list]
+        instance_map = {ins["id"]: ins for ins in instance_list}
+        relation_map = {}
+        # 获取从节点关系.
+        if with_slaves:
+            relation_map = {
+                row.receiver.id: {"ejector_id": row.ejector.id}
+                for row in StorageInstanceTuple.objects.filter(ejector__in=master_id_list)
+            }
+
+        # 先添加主节点
         for instance in instance_list:
             if instance["seg_range"] is None or instance["seg_range"] == "":
                 continue
@@ -279,6 +298,33 @@ class DbmClusterRepository:
                     }
                 ],
             }
+
+        # 再添加从节点
+        if with_slaves:
+            for instance in instance_list:
+                if instance.id in relation_map:
+                    ejector_id = relation_map[instance.id].ejector_id
+                    master_instance = instance_map.get(ejector_id)
+                    if master_instance is None:
+                        # warning master instance not found
+                        print(f"warning master instance not found: {instance.id}")
+                        continue
+                    shard_name = master_instance["seg_range"]
+                    if shard_name is None or shard_name == "":
+                        # warning master instance seg_range is None
+                        print(f"warning master instance seg_range is None: {instance.id}")
+                        continue
+                    shard_list[shard_name]["members"].append(
+                        {
+                            "ip": instance["ip"],
+                            "port": instance["port"],
+                            "bk_cloud_id": instance["bk_cloud_id"],
+                            "bk_host_id": instance["bk_host_id"],
+                            "machine_type": instance["machine_type"],
+                            "instance_role": instance["instance_role"],
+                        }
+                    )
+
         # 现在每个分片只包含一个主节点. 以后如果有需要，可以把其它节点也加进来。
         # 节点关系表在 db_meta_storageinstancetuple中.
         # 第一个节点是主节点，其它节点是备节点. 主节点和备节点是多1对多关系。

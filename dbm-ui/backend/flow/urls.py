@@ -213,6 +213,7 @@ from backend.flow.views.redis_cluster import (
     RedisSlotsMigrateForHotkeySceneApiView,
     RedisSlotsMigrateScaleSceneApiView,
     SingleProxyShutdownSceneApiView,
+    RedisKeystatApiView,
 )
 from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeysExtractSceneApiView
 from backend.flow.views.redis_scene import (
@@ -343,6 +344,7 @@ urlpatterns = [
     url(r"^scene/redis_cluster_proxys_upgrade$", RedisClusterProxysUpgradeApiView.as_view()),
     url(r"^scene/redis_slots_migrate_for_hotkey$", RedisSlotsMigrateForHotkeySceneApiView.as_view()),
     url(r"^scene/redis_slots_migrate_scale$", RedisSlotsMigrateScaleSceneApiView.as_view()),
+    url(r"^scene/redis_keystat$", RedisKeystatApiView.as_view()),
     # redis api url end
     # dns api
     url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
