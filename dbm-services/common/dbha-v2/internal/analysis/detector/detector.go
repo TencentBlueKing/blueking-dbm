@@ -39,7 +39,7 @@ var (
 )
 
 const (
-	CheckProbeProcessCmd = "cd ~/dbhav2/ && ./probe version"
+	CheckProbeProcessCmd = "cd ~/dbhav2/ && ./probe health -j"
 )
 
 type Response struct {
@@ -48,6 +48,7 @@ type Response struct {
 	DbEventName       haprobe.DbEventName
 	DbEventNameReason haprobe.DbEventNameReason
 	Err               error
+	ExitCode          int
 	Data              []byte
 }
 
@@ -129,4 +130,9 @@ func (d *detectorTask) run(cmd string) {
 
 	d.resp = resp
 	resp.Data, resp.Err = d.sshCli.Run(cmd)
+
+	if err, ok := resp.Err.(*gerrors.Error); ok {
+		resp.ExitCode = err.Code()
+		resp.Data = []byte(err.Error())
+	}
 }

@@ -29,6 +29,10 @@ import "fmt"
 // Code dbha global error code type
 type Code int
 
+func (c Code) Int() int {
+	return int(c)
+}
+
 // Internal Error Code
 const (
 	Unknown Code = iota - 2
@@ -38,7 +42,7 @@ const (
 	Exited
 
 	NotFound
-	NotExists
+	NotExist
 	NetException
 	QueueFull
 	Unimplemented
@@ -65,24 +69,34 @@ const (
 	MysqlFailure
 )
 
-type Error struct {
-	code    Code
-	message string
-}
-
 // New create a internal error.
 func New(c Code, msg string) *Error {
-	return &Error{code: c, message: msg}
+	return NewCustom(c.Int(), msg)
 }
 
 // Newf create a internal error with format.
 func Newf(c Code, format string, args ...interface{}) *Error {
-	msg := fmt.Sprintf(format, args...)
-	return &Error{code: c, message: msg}
+	return NewCustomf(c.Int(), format, args...)
 }
 
 // NewE create a internal error withe the error
 func NewE(c Code, err error) *Error {
+	return NewCustomE(c.Int(), err)
+}
+
+// NewCustom is used to create an error with custom code value.
+func NewCustom(c int, msg string) *Error {
+	return &Error{code: c, message: msg}
+}
+
+// NewCustomf is used to create an error with custom code value.
+func NewCustomf(c int, format string, args ...interface{}) *Error {
+	msg := fmt.Sprintf(format, args...)
+	return &Error{code: c, message: msg}
+}
+
+// NewCustomE is used to create an error with custom code value.
+func NewCustomE(c int, err error) *Error {
 	if err == nil {
 		return nil
 	}
@@ -90,8 +104,17 @@ func NewE(c Code, err error) *Error {
 	return &Error{code: c, message: err.Error()}
 }
 
-func (e *Error) Code() Code {
+type Error struct {
+	code    int
+	message string
+}
+
+func (e *Error) Code() int {
 	return e.code
+}
+
+func (e *Error) CodeIs(c Code) bool {
+	return e.code == c.Int()
 }
 
 func (e *Error) Error() string {

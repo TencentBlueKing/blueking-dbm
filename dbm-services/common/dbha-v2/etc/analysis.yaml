@@ -16,6 +16,9 @@ workflow:
   scanTimeout: 60s
   scanInterval: 3s
   updateDbmCacheInterval: 10s
+  readDbMetaOffsetDuration: -24h
+  readDbMetricOffsetDuration: -60s
+  readDbEventOffsetDuration: -10m
 
   dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
@@ -46,6 +49,7 @@ detector:
 
 monitor:
   dataID: 0
+  timeout: 10s
   accessToken: ""
   bkMonitorBeat: ""
   bkMonitorEndpoint: 127.0.0.1:9090

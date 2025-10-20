@@ -22,67 +22,74 @@
  * SOFTWARE.
  */
 
-package admin
+package cmds
 
 import (
-	"context"
+	"encoding/json"
+	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
-	"dbm-services/common/dbha-v2/internal/analysis/config"
-	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/internal/probe/config"
+	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-func setupGracefulShutdown(svr *Service) {
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+var JsonFormatter bool
 
-	go func() {
-		<-sigC
-		logger.Info("shutdown admin server")
-		svr.Close()
-		os.Exit(0)
-	}()
+func HealthCmdRunE(cmd *cobra.Command, args []string) error {
+	healthInfo := obtainHealthInfo()
+
+	if !JsonFormatter {
+		printRawHealth(healthInfo)
+		return nil
+	}
+
+	data, err := json.Marshal(healthInfo)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(os.Stdout, string(data))
+	return nil
 }
 
-// Run run admin service
-func Run(cmd *cobra.Command, args []string) error {
-	viper.SetConfigName("admin")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
+func printRawHealth(health *process.HealthInfo) {
+	fmt.Fprintln(os.Stdout, "Pid:", health.Pid)
+	fmt.Fprintln(os.Stdout, "ProcName:", health.ProcName)
+	fmt.Fprintln(os.Stdout, "Status:", health.Status)
+	fmt.Fprintln(os.Stdout, "ErrMsg:", health.Err)
+}
 
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
+func obtainHealthInfo() *process.HealthInfo {
+	health := &process.HealthInfo{
+		Pid:    process.InvalidPid,
+		Status: process.StatusStopped,
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
-		return err
+	pid, err := process.ReadPid(config.Cfg.PidFile)
+	if err != nil {
+		health.Err = err
+		return health
 	}
 
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
-		return err
+	health.Pid = pid
+
+	procName, err := process.Name(pid)
+	if err != nil {
+		health.Err = err
 	}
 
-	logCfg := logger.Config{
-		FileName:   config.Cfg.Log.Path,
-		LogLevel:   logger.Level(config.Cfg.Log.Level),
-		MaxSizeMB:  config.Cfg.Log.FileSizeMB,
-		MaxBackups: config.Cfg.Log.FileCount,
+	health.ProcName = procName
+
+	alive, err := process.IsAliveWithProcessName(pid, "probe")
+	if err != nil {
+		health.Err = err
 	}
 
-	log := logger.NewDbmLogger(logCfg)
-	logger.SetLogger(log)
+	if alive {
+		health.Status = process.StatusRunning
+	}
 
-	logger.Debug("admin configuration:%v", config.Cfg)
-
-	ctx := context.Background()
-	svr := &Service{logger: log.OriginLogger()}
-
-	setupGracefulShutdown(svr)
-
-	return svr.Run(ctx)
+	return health
 }
