@@ -136,6 +136,7 @@ INSTALLED_APPS += (
     "backend.db_services.redis.slots_migrate",
     "backend.db_services.redis.redis_modules",
     "backend.db_services.redis.hot_key_analysis",
+    "backend.db_services.redis.redis_keystat_report",
     "backend.db_services.mysql.dumper",
     "backend.dbm_init",
     "backend.db_services.mongodb.password",

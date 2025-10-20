@@ -33,7 +33,7 @@ class GetFileList(object):
         # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
         # 正式环境: REPO_VERSION_FOR_DEV为空 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
         dev_env = str(env.REPO_VERSION_FOR_DEV)
-        repo_version = dev_env if dev_env != "" else MediumEnum.Latest
+        repo_version = dev_env if dev_env != "" and db_type == DBType.MongoDB.value else MediumEnum.Latest
 
         self.actuator_pkg = Package.get_latest_package(
             version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=db_type
