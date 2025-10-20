@@ -200,9 +200,8 @@ func (c *ClusterController) UpgradeCluster(ctx *gin.Context) {
 
 // UpdateCluster 更新集群
 func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterUpdate)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterUpdate)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
@@ -220,9 +219,8 @@ func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
 
 // PartialUpdateCluster 局部更新集群
 func (c *ClusterController) PartialUpdateCluster(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterPartialUpdate)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterPartialUpdate)
 	err := ctx.ShouldBindJSON(request)
 	if err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
