@@ -39,6 +39,7 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
     InstallNodemanPluginServiceComponent,
 )
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
+from backend.flow.plugins.components.collections.common.sa_udns_add import UdnsAddInMachineComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.backup_path_file_trans import (
     SqlserverTransBackupFileFor2P2Component,
@@ -96,6 +97,21 @@ def init_machine_sub_flow(uid: str, bk_biz_id: int, bk_cloud_id: int, root_id: s
                     ips=[host.ip for host in target_hosts],
                     bk_cloud_id=bk_cloud_id,
                     account_name=WINDOW_ADMIN_USER_FOR_CHECK,
+                )
+            ),
+        )
+
+    # 强制添加udns解析
+    if env.UPDATE_WINDOW_UDNS_CONFIG:
+        sub_pipeline.add_act(
+            act_name=_("更新机器的udns配置"),
+            act_component_code=UdnsAddInMachineComponent.code,
+            kwargs=asdict(
+                UdnsAddInMachineComponent.kwargs(
+                    ips=[host.ip for host in target_hosts],
+                    bk_cloud_id=bk_cloud_id,
+                    account_name=WINDOW_ADMIN_USER_FOR_CHECK,
+                    template_id=env.UPDATE_WINDOW_UDNS_CONFIG,
                 )
             ),
         )
