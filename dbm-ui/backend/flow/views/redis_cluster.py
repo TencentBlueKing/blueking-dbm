@@ -802,3 +802,31 @@ class RedisHotkeyAnalysisApiView(FlowTestView):
         root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_hotkey_analysis()
         return Response({"root_id": root_id})
+
+
+class RedisKeystatApiView(FlowTestView):
+    """
+    {
+        "uid": "2022051612120001",
+        "ticket_id": "1111",
+        "bk_biz_id": 2005000194,
+        "bk_cloud_id": 0,
+        "ticket_type": "REDIS_KEYSTAT",
+        "created_by": "xxx",
+        "analysis_time": "20",
+        "infos": [ {
+            "record_id": 1, "cluster_id": "111", "role": "master/slave/redis_master/redis_slave",
+            "check_last_visit": true/false, # 是否检查最近访问时间,如是，则必须为master角色
+            "delimiter": "|#:_-", # 分隔符
+            "ins": [ { "addr":"1.1.1.1:50000", start_bucket: 0, end_bucket: 4299 } ... ]
+        } ... ]
+        # 一个记录包含一个集群的多个实例
+        # 不同的记录的集群id不可能相同
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_keystat()
+        return Response({"root_id": root_id})
