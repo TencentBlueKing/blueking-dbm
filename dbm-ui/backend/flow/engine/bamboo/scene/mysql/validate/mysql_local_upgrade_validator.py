@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import traceback
 
 from django.utils.translation import gettext as _
 
@@ -85,9 +86,14 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
                     error_msgs.append(error_msg)
                     logger.error(error_msg)
                 except Exception as e:
-                    error_msg = _("检查集群 {} 时发生错误: {}").format(cluster_id, str(e))
+                    error_detail = traceback.format_exc()
+                    logger.error(
+                        _("检查集群 {} 时发生异常，异常类型: {}, 异常信息: {}, 堆栈:\n{}").format(
+                            cluster_id, type(e).__name__, str(e), error_detail
+                        )
+                    )
+                    error_msg = _("检查集群 {} 时发生错误: {} ({})").format(cluster_id, type(e).__name__, str(e))
                     error_msgs.append(error_msg)
-                    logger.error(error_msg)
 
         return error_msgs
 
@@ -193,8 +199,7 @@ class MySQLLocalUpgradeValidator(MysqlBaseValidator):
         """
 
         def checker(cluster, cluster_id, context_data=None):
-            # 仅 TenDBHA 集群需要主从一致性检查
-            if cluster.cluster_type != ClusterType.TENDB_HA:
+            if cluster.cluster_type != ClusterType.TenDBHA:
                 logger.info(_("跳过非 TenDBHA 集群 {} 的主从版本检查").format(cluster_id))
                 return []
             return self._check_cluster_master_slave_version(cluster, cluster_id, context_data)
