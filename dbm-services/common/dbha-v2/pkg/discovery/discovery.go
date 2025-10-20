@@ -235,7 +235,7 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 
 	if len(resp.Kvs) == 0 {
 		errmsg := fmt.Sprintf("the key not exists, key:%s", key)
-		return nil, gerrors.New(gerrors.NotExists, errmsg)
+		return nil, gerrors.New(gerrors.NotExist, errmsg)
 	}
 
 	var value []byte

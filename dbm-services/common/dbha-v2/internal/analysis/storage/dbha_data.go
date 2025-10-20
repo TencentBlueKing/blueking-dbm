@@ -57,8 +57,10 @@ func (ha *DbhaData) GetBizIDs() ([]int, error) {
 	return bkBizIDs, nil
 }
 
-func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int) (metaData []*hamodel.DbmMetadata, err error) {
-	lastUpdateTime := time.Now().Local().Add(-24 * time.Hour)
+func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
+	offsetDuration time.Duration) (metaData []*hamodel.DbmMetadata, err error) {
+
+	lastUpdateTime := time.Now().Local().Add(offsetDuration)
 
 	for {
 		var batches []*hamodel.DbmMetadata

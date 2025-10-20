@@ -46,6 +46,10 @@ type Logger interface {
 
 type Level string
 
+func (l Level) String() string {
+	return string(l)
+}
+
 var (
 	DebugLevel Level = "debug"
 	InfoLevel  Level = "info"

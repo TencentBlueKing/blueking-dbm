@@ -26,8 +26,8 @@ package switcher
 
 import (
 	"context"
-	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -62,7 +62,7 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		monitorEvent.Dimension.DbEventName = event.Name
 		monitorEvent.Dimension.DbEventNameReason = event.Reason
 
-		if err := monitor.PostBKMonitor(10*time.Second, monitorEvent); err != nil {
+		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("%v", err)
 		}
 
