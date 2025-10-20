@@ -86,9 +86,8 @@ func (c *ClusterController) VerticalScaling(ctx *gin.Context) {
 
 // HorizontalScaling 水平扩缩
 func (c *ClusterController) HorizontalScaling(ctx *gin.Context) {
-	// 设置 apiName
-	ctx.Set(commconst.APIName, commconst.APIClusterHScaling)
 	request := &coreentity.Request{}
+	c.setAPIRequestContext(ctx, request, commconst.APIClusterHScaling)
 	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
@@ -332,8 +331,7 @@ func (c *ClusterController) CreateCluster(ctx *gin.Context) {
 func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 	request := &coreentity.Request{}
 	c.setAPIRequestContext(ctx, request, commconst.APIClusterDelete)
-	err := ctx.ShouldBindJSON(request)
-	if err != nil {
+	if err := ctx.ShouldBindJSON(request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.ParameterInvalidError, err))
 		return
 	}
@@ -341,8 +339,7 @@ func (c *ClusterController) DeleteCluster(ctx *gin.Context) {
 		BkAuth:      &request.BKAuth,
 		RequestType: coreconst.DeleteCluster,
 	}
-	err = c.clusterProvider.DeleteCluster(dbsCtx, request)
-	if err != nil {
+	if err := c.clusterProvider.DeleteCluster(dbsCtx, request); err != nil {
 		api.ErrorResponse(ctx, dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err))
 		return
 	}
