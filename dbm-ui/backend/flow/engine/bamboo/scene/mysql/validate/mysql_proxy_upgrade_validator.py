@@ -184,38 +184,43 @@ class MySQLProxyUpgradeValidator(MysqlBaseValidator):
             error_msg = _("存在重复的集群ID: {}").format(", ".join(map(str, duplicate_clusters)))
             raise DuplicateClusterIDException(error_msg)
 
-        # 阶段3 检查批次中所有集群使用的机器IP是否一致
-        batch_machine_ips = set()
-        cluster_ip_details = {}
-
+        # 阶段3 检查每个info中集群使用的机器IP是否一致
         for info in self.data["infos"]:
-
             cluster_ids = info.get("cluster_ids", [])
+
+            # 如果只有一个集群或没有集群，跳过检查
+            if len(cluster_ids) <= 1:
+                continue
+
+            # 收集该info中所有集群的proxy IP
+            info_cluster_ips = {}
             for cluster_id in cluster_ids:
                 try:
                     proxies = ProxyInstance.objects.filter(cluster__id=cluster_id)
                     if proxies.exists():
                         cluster_ips = set(proxy.machine.ip for proxy in proxies)
-                        cluster_ip_details[cluster_id] = cluster_ips
+                        info_cluster_ips[cluster_id] = cluster_ips
+                except Exception as e:
+                    error_msg = _("检查集群 {} 的机器IP时发生错误: {}").format(cluster_id, str(e))
+                    raise DBMetaException(message=error_msg)
 
-                        # 如果是第一个集群，记录其IP集合作为基准
+            # 检查该info中所有集群的IP是否一致
+            if len(info_cluster_ips) > 1:
+                first_cluster_id = None
+                first_cluster_ips = None
 
-                        if not batch_machine_ips:
-                            batch_machine_ips = cluster_ips
-                        # 检查当前集群的IP集合是否与基准一致
-                        elif cluster_ips != batch_machine_ips:
-                            # 找到第一个集群ID用于错误提示
-                            first_cluster_id = next(iter(cluster_ip_details.keys()))
-                            first_cluster_ips = cluster_ip_details[first_cluster_id]
-                            error_msg = _("批次中集群使用的机器IP不一致。集群 {} 使用IP: {}，集群 {} 使用IP: {}").format(
+                for cluster_id, cluster_ips in info_cluster_ips.items():
+                    if first_cluster_id is None:
+                        first_cluster_id = cluster_id
+                        first_cluster_ips = cluster_ips
+                    else:
+                        if cluster_ips != first_cluster_ips:
+                            error_msg = _("同一批次中集群使用的机器IP不一致。集群 {} 使用IP: {}，集群 {} 使用IP: {}").format(
                                 first_cluster_id,
                                 ", ".join(sorted(first_cluster_ips)),
                                 cluster_id,
                                 ", ".join(sorted(cluster_ips)),
                             )
                             raise DBMetaException(message=error_msg)
-                except Exception as e:
-                    error_msg = _("检查集群 {} 的机器IP一致性时发生错误: {}").format(cluster_id, str(e))
-                    raise DBMetaException(message=error_msg)
 
         return None
