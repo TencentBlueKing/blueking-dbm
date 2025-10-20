@@ -164,7 +164,7 @@ class TicketBaseValidateSerializerMixin(object):
     def validated_biz(self, attrs):
         if not self.context.get("bk_biz_id"):
             return attrs
-        bk_biz_id = self.context["bk_biz_id"]
+        bk_biz_id = int(self.context["bk_biz_id"])
         cluster_ids = fetch_cluster_ids(attrs)
         if not cluster_ids:
             return attrs
