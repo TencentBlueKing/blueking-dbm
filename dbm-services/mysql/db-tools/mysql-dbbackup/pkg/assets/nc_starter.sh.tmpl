@@ -11,10 +11,13 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH:$
 #xbstream=${dbbackupHome}/bin/xtrabackup_official/xtrabackup_80/xbstream
 
 # check xbstream
-checkXbstream=$(xbstream --help 2>&1 |grep -E 'unknown option|not found')
-if [ -n "$checkXbstream" ]; then
-	echo "check xbstream cmd>> $checkXbstream" >&2
-	exit 1
+xbstreamBin=xbstream
+checkXbstream=$($xbstreamBin -p 4 --help 2>&1 |grep -E 'unknown option|not found')
+if [ -z "$checkXbstream" ]; then
+	xbstreamBin="$xbstreamBin -p 4"
+else
+  echo "check xbstream cmd: $checkXbstream" >&2
+  exit 1
 fi
 
 # check netcat, expect return empty
@@ -35,7 +38,7 @@ cd ${dbbackupHome}/bin > /dev/null
 source ${dbbackupHome}/bin/export.sh
 cd - > /dev/null
 
-nc $ncHost $ncPort -l | xbstream -x -C $targetDir &
+nc $ncHost $ncPort -l | $xbstreamBin -x -C $targetDir &
 sleep 1
 ncCount=$(ps -ef|grep "nc $ncHost $ncPort -l" |grep -v grep |wc -l)
 if [ $ncCount -eq 0 ]; then

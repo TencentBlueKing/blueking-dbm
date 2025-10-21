@@ -44,7 +44,8 @@ func AnalyzeSql(db, oneSql string) (*Response, error) {
 
 	fingerprint = replaceMultiValues.ReplaceAllString(fingerprint, "(?+)")
 	resp := &Response{
-		// QueryString:     oneSql, // do not return original sql
+		QueryString: oneSql, // do not return original sql
+		// remove # Time:
 		QueryLength:     len(oneSql),
 		QueryDigestText: fingerprint,
 		QueryDigestMd5:  strings.ToLower(pq.Id(fingerprint)),
