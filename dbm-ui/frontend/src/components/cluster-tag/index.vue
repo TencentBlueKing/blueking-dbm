@@ -17,6 +17,7 @@
               class="edit-main"
               :permission="checkEditPermission(data)"
               :resource="data.id"
+              role="table-cell-operation"
               text
               theme="primary"
               @click="handleOpenAddTag">
@@ -45,6 +46,7 @@
       class="edit-main"
       :permission="checkEditPermission(data)"
       :resource="data.id"
+      role="table-cell-operation"
       text
       theme="primary"
       @click="handleOpenAddTag">

@@ -11,7 +11,14 @@ import { domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-const clusterAttrs = ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'] as const;
+const clusterAttrs = [
+  'bk_cloud_id',
+  'db_module_id',
+  'major_version',
+  'region',
+  'time_zone',
+  'disaster_tolerance_level',
+] as const;
 
 export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[]) => {
   const { t } = useI18n();
@@ -20,7 +27,6 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
   const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
 
   const getBizClusterAttrs = (attr: (typeof clusterAttrs)[number]) => {
-    console.log('cluster_type', cluster_type);
     return queryBizClusterAttrs({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: clusterAttrs.join(','),
@@ -35,15 +41,17 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
 
   const quickSearchData: QuickSearchProps['data'] = [
     {
+      description: t('支持模糊搜索'),
       id: 'domain',
       name: t('访问入口'),
       type: 'multiple-input',
       validator: (value) => {
-        return domainRegex.test(value) || domainPort.test(value);
+        return !ipPort.test(value) && !ipv4.test(value);
       },
     },
 
     {
+      description: t('支持模糊搜索'),
       id: 'instance',
       name: t('IP 或 IP:Port'),
       type: 'multiple-input',
@@ -90,6 +98,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
       type: 'multiple-cascader',
     },
     {
+      description: t('支持模糊搜索'),
       id: 'name',
       name: t('集群名称'),
       type: 'multiple-input',
@@ -123,6 +132,12 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
       id: 'major_version',
       name: t('版本'),
       remoteMethod: () => getBizClusterAttrs('major_version'),
+      type: 'multiple',
+    },
+    {
+      id: 'disaster_tolerance_level',
+      name: t('容灾要求'),
+      remoteMethod: () => getBizClusterAttrs('disaster_tolerance_level'),
       type: 'multiple',
     },
     {
