@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
@@ -31,7 +31,7 @@ def cluster_master_as_ejector(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("master 为 receiver 与 {} 有同步关系".format(tp.ejector.ip_port)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAMasterAsReceiver,
                         instance=si,
                     )
                 )
@@ -51,7 +51,7 @@ def cluster_slave_as_receiver(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("slave 作为 ejector 与 {} 有同步关系".format(tp.receiver.ip_port)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHASlaveAsEjector,
                         instance=si,
                     )
                 )
@@ -72,7 +72,7 @@ def cluster_replicate_out(c: Cluster) -> List[CheckResponse]:
                     bad.append(
                         CheckResponse(
                             msg=_("与外部集群 {} {} 有同步关系".format(rc.immute_domain, tp.receiver.ip_port)),
-                            check_subtype=MetaCheckSubType.ClusterTopo,
+                            check_subtype=MetaCheckSubType.TenDBHARepWithOtherCluster,
                             instance=si,
                         )
                     )
@@ -83,7 +83,7 @@ def cluster_replicate_out(c: Cluster) -> List[CheckResponse]:
                     bad.append(
                         CheckResponse(
                             msg=_("与外部集群 {} {} 有同步关系".format(rc.immute_domain, tp.receiver.ip_port)),
-                            check_subtype=MetaCheckSubType.ClusterTopo,
+                            check_subtype=MetaCheckSubType.TenDBHARepWithOtherCluster,
                             instance=si,
                         )
                     )

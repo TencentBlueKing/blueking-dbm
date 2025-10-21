@@ -8,10 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
+from datetime import timedelta
 from typing import List
 
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models import MetaCheckReport
 
 
@@ -22,6 +26,8 @@ def checker_wrapper(checker):
         if not check_response:
             return out_reports
 
+        create_18h_ago = datetime.datetime.now() - timedelta(hours=18)
+        create_25h_ago = datetime.datetime.now() - timedelta(hours=25)
         for cr in check_response:
             out_report = MetaCheckReport(
                 subtype=cr.check_subtype,
@@ -38,11 +44,28 @@ def checker_wrapper(checker):
                 ip="",
                 port=0,
                 machine_type="",
+                state=ReportStateType.ABNORMAL.value,
             )
             if cr.instance:
                 out_report.ip = cr.instance.machine.ip
                 out_report.port = cr.instance.port
                 out_report.machine_type = cr.instance.machine_type
+
+            if out_report.cluster_type in [
+                ClusterType.TenDBSingle,
+                ClusterType.TenDBHA,
+                ClusterType.TenDBCluster,
+            ]:
+                last_row = MetaCheckReport.objects.filter(
+                    cluster=out_report.cluster,
+                    ip=out_report.ip,
+                    port=out_report.port,
+                    subtype=out_report.subtype,
+                    create_at__gte=create_25h_ago,
+                    create_at__lte=create_18h_ago,
+                ).order_by("-create_at")
+                if last_row.exists():
+                    out_report.failed_days = last_row.first().failed_days + 1
 
             out_reports.append(out_report)
 

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
@@ -33,7 +33,7 @@ def _cluster_proxy_access_master(
                 bad.append(
                     CheckResponse(
                         msg=_("proxy 关联到 {}: {}".format(si.instance_inner_role, si.ip_port)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAProxyBindWrongBackendRole,
                         instance=pi,
                     )
                 )
