@@ -10,6 +10,7 @@
   </TableColumn>
   <TableColumn
     col-key="disaster_tolerance_level"
+    :filter="columnFilter?.['disaster_tolerance_level']"
     :min-width="160"
     :title="t('容灾要求')">
     <template #default="{ row }: { row: IRowData }">
@@ -62,7 +63,7 @@
   <TableColumn
     col-key="create_at"
     :filter="columnFilter?.['create_at']"
-    sort
+    sorter
     :title="t('部署时间')"
     :width="180">
     <template #default="{ row }: { row: IRowData }">
@@ -101,7 +102,14 @@
   type IRowData = ClusterModel<T>;
 
   const { data: columnFilter } = useClusterColumnFilter({
-    cluster_attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'] as const,
+    cluster_attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+      'disaster_tolerance_level',
+    ] as const,
     cluster_type: props.clusterType,
   });
 </script>

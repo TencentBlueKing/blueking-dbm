@@ -29,6 +29,9 @@
           maxHeight: tableMaxHeight,
           showHeader: true,
           filterRow: null as any,
+          resizable: true,
+          titleEllipsis: true,
+          ellipsis: true
         }"
         @bk-ui-settings-change="handleDisplayColumnsChange"
         @filter-change="handleFilterChanges"
@@ -161,7 +164,6 @@
     rowClickSelectable: false,
     selectable: false,
     selected: () => [],
-    settings: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -181,12 +183,12 @@
     delete baseProps['rowClickSelectable'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['selectable'];
-    // @ts-expect-error 删除不存在的 props
-    delete baseProps['settings'];
     delete baseProps['onChange'];
     delete baseProps['onFilterChange'];
     // @ts-expect-error 删除不存在的 props
     delete baseProps['dataSource'];
+    // @ts-expect-error 删除 TableProps 废弃 props
+    delete baseProps['allowResizeColumnWidth'];
     return baseProps;
   });
 
