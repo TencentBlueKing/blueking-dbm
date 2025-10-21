@@ -709,6 +709,8 @@ func (o *SearchContext) MatchStorage(db *gorm.DB) {
 	if len(o.StorageSpecs) == 0 {
 		return
 	}
+	allSpecMinIsZero := false
+	AndQ := []interface{}{}
 	for _, d := range o.StorageSpecs {
 		if lo.IsEmpty(d.MountPoint) {
 			continue
@@ -718,15 +720,38 @@ func (o *SearchContext) MatchStorage(db *gorm.DB) {
 			mp = strings.ReplaceAll(mp, `\`, ``)
 		}
 		if cmutil.IsNotEmpty(d.DiskType) {
-			db.Where(model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
+			AndQ = append(AndQ, model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
+			// db.Where(model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
 		}
 		logger.Info("storage spec is %v", d)
 		switch {
 		case d.MaxSize > 0:
-			db.Where(model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
+			AndQ = append(AndQ, model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
+			// db.Where(model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
 		case d.MaxSize <= 0 && d.MinSize > 0:
-			db.Where(model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
+			AndQ = append(AndQ, model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
 		}
+		if d.MinSize == 0 {
+			allSpecMinIsZero = true
+		}
+	}
+	// 构建条件占位符
+	var condStr string
+	if len(AndQ) > 0 {
+		conds := make([]string, len(AndQ))
+		for i := range conds {
+			conds[i] = "?"
+		}
+		condStr = strings.Join(conds, " AND ")
+
+		// 如果所有规格的最小值都为0，添加空设备的OR条件
+		if allSpecMinIsZero {
+			condStr = "(" + condStr + ") OR (storage_device = '[]' OR storage_device IS NULL)"
+		}
+		db.Where(condStr, AndQ...)
+	} else if allSpecMinIsZero {
+		// 没有其他条件时，只匹配空设备
+		db.Where("storage_device = '[]' OR storage_device IS NULL")
 	}
 }
 

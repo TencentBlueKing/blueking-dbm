@@ -100,22 +100,50 @@ func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
 // matchStorageSpecs 匹配磁盘
 func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 	if len(c.StorageSpecs) > 0 {
+		// 使用与 MatchStorage 相同的批量处理逻辑
+		allSpecMinIsZero := false
+		AndQ := []interface{}{}
+
 		for _, d := range c.StorageSpecs {
-			if cmutil.IsNotEmpty(d.MountPoint) {
-				mp := path.Clean(d.MountPoint)
-				if cmutil.IsNotEmpty(d.DiskType) {
-					db.Where(model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
-				}
-				logger.Info("storage spec is %v", d)
-				switch {
-				case d.MaxSize > 0:
-					db.Where(model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
-				case d.MaxSize <= 0 && d.MinSize > 0:
-					db.Where(model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
-				}
+			if cmutil.IsEmpty(d.MountPoint) {
+				continue
+			}
+			mp := path.Clean(d.MountPoint)
+			if cmutil.IsNotEmpty(d.DiskType) {
+				AndQ = append(AndQ, model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
+			}
+			logger.Info("storage spec is %v", d)
+			switch {
+			case d.MaxSize > 0:
+				AndQ = append(AndQ, model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
+			case d.MaxSize <= 0 && d.MinSize > 0:
+				AndQ = append(AndQ, model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
+			}
+			if d.MinSize == 0 {
+				allSpecMinIsZero = true
 			}
 		}
+
+		// 构建条件占位符
+		var condStr string
+		if len(AndQ) > 0 {
+			conds := make([]string, len(AndQ))
+			for i := range conds {
+				conds[i] = "?"
+			}
+			condStr = strings.Join(conds, " AND ")
+
+			// 如果所有规格的最小值都为0，添加空设备的OR条件
+			if allSpecMinIsZero {
+				condStr = "(" + condStr + ") OR (storage_device = '[]' OR storage_device IS NULL)"
+			}
+			db.Where(condStr, AndQ...)
+		} else if allSpecMinIsZero {
+			// 没有其他条件时，只匹配空设备
+			db.Where("storage_device = '[]' OR storage_device IS NULL")
+		}
 	} else {
+		// 保持原有的 else 分支逻辑不变（向后兼容旧参数）
 		if cmutil.IsNotEmpty(c.MountPoint) {
 			mp := path.Clean(c.MountPoint)
 			if cmutil.IsNotEmpty(c.DiskType) {
@@ -130,16 +158,16 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 	}
 }
 
-func (c *MachineResourceGetterInputParam) getRealCitys() (realCistys []string, err error) {
+func (c *MachineResourceGetterInputParam) getRealCities() (realCities []string, err error) {
 	for _, logicCity := range c.City {
-		rcitys, err := dbmapi.GetIdcCityByLogicCity(logicCity)
+		real_cities, err := dbmapi.GetIdcCityByLogicCity(logicCity)
 		if err != nil {
 			logger.Error("from %s get real cites failed %s", logicCity, err.Error())
 			return nil, err
 		}
-		realCistys = append(realCistys, rcitys...)
+		realCities = append(realCities, real_cities...)
 	}
-	logger.Info("get real cites %v", realCistys)
+	logger.Info("get real cites %v", realCities)
 	return
 }
 
@@ -189,11 +217,11 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	c.matchSpec(db)
 	c.matchStorageSpecs(db)
 	if len(c.City) > 0 {
-		realCitys, err := c.getRealCitys()
+		realCities, err := c.getRealCities()
 		if err != nil {
 			return err
 		}
-		db.Where(" city in (?) ", realCitys)
+		db.Where(" city in (?) ", realCities)
 	}
 	if len(c.SubZoneIds) > 0 {
 		db.Where(" sub_zone_id in (?) ", c.SubZoneIds)
