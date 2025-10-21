@@ -33,6 +33,9 @@ from backend.ticket.models import Ticket
 
 logger = logging.getLogger("celery")
 
+mysql_dbha_af_schedule_lock = threading.Lock()
+mysql_dbha_af_commiter_lock = threading.Lock()
+
 
 # @register_periodic_task(run_every=crontab(minute="*"))
 def mysql_dbha_af_tracking_tickets():
@@ -49,7 +52,7 @@ def mysql_dbha_af_tracking_tickets():
         aftk.save(update_fields=["status"])
 
 
-@transaction.atomic
+# @transaction.atomic
 # @register_periodic_task(run_every=crontab(minute="*"))
 def mysql_dbha_af_commiter():
     """
@@ -62,28 +65,29 @@ def mysql_dbha_af_commiter():
     (A, (B), (C), D)
     这样奇葩的共享机器, 就有点不好搞怎么发起修复单据了
     """
-    uncommit_tickets = list(MySQLDBHAAutofixTicketStageQueue.objects.filter(status=TicketQueueUncommitStatus))
+    with transaction.atomic():
+        uncommit_tickets = list(MySQLDBHAAutofixTicketStageQueue.objects.filter(status=TicketQueueUncommitStatus))
 
-    # 简单点, 先只考虑只有 p1, p2 的情况
-    p1_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
-    p2_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
-    for ut in uncommit_tickets:
-        if ut.priority == MySQLDBHAAutofixTicketPriority.P1.value:
-            p1_uncommit_tickets.append(ut)
-        elif ut.priority == MySQLDBHAAutofixTicketPriority.P2.value:
-            p2_uncommit_tickets.append(ut)
-        else:
-            raise Exception(ut.priority)
+        # 简单点, 先只考虑只有 p1, p2 的情况
+        p1_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
+        p2_uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue] = []
+        for ut in uncommit_tickets:
+            if ut.priority == MySQLDBHAAutofixTicketPriority.P1.value:
+                p1_uncommit_tickets.append(ut)
+            elif ut.priority == MySQLDBHAAutofixTicketPriority.P2.value:
+                p2_uncommit_tickets.append(ut)
+            else:
+                raise Exception(ut.priority)
 
-    # 找出还有未完成自愈的集群
-    unfinish_cluster_ids = []
-    for pt in uncommit_tickets:
-        t = MySQLDBHAAutofixTicketStageQueue.objects.filter(
-            status__in=[TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
-            cluster_id=pt.cluster_id,
-        )
-        if t.exists():
-            unfinish_cluster_ids.append(pt.cluster_id)
+        # 找出还有未完成自愈的集群
+        unfinish_cluster_ids = []
+        for pt in uncommit_tickets:
+            t = MySQLDBHAAutofixTicketStageQueue.objects.filter(
+                status__in=[TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
+                cluster_id=pt.cluster_id,
+            )
+            if t.exists():
+                unfinish_cluster_ids.append(pt.cluster_id)
 
     # 排除不能只按 cluster_id 排除
     # 得按 queue_uuid 来
@@ -102,11 +106,9 @@ def mysql_dbha_af_commiter():
     p2_uncommit_tickets = [ut for ut in p2_uncommit_tickets if ut.queue_uuid not in priority_exclude_uuid]
 
     # 到这里, p1, p2 应该可以无脑发起单据了
+    # 不要放到事务里面去
     commit_ticket(p1_uncommit_tickets)
     commit_ticket(p2_uncommit_tickets)
-
-
-mysql_dbha_af_lock = threading.Lock()
 
 
 # @register_periodic_task(run_every=crontab(minute="*"))
@@ -129,7 +131,7 @@ def mysql_dbha_af_schedule():
 
     用 uuid4 生成, uuid1 长太像了, 容易搞错
     """
-    if mysql_dbha_af_lock.acquire(blocking=False):
+    if mysql_dbha_af_schedule_lock.acquire(blocking=False):
         try:
             af_uuid = uuid.uuid4().__str__()
             # af_uuid 字段默认是 "", 不要用 is null 查询
@@ -167,6 +169,6 @@ def mysql_dbha_af_schedule():
                 else:
                     pass  # 这里理论上是到达不了的
         finally:
-            mysql_dbha_af_lock.release()
+            mysql_dbha_af_schedule_lock.release()
     else:
         raise  # Todo 居然没跑完, 为啥这么慢
