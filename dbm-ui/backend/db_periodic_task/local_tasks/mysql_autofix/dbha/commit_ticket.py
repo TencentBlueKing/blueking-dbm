@@ -10,27 +10,27 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.db import transaction
-
 from backend.db_monitor.models import MySQLDBHAAutofixTicketStageQueue
+from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.mysql_dbha_autofix import mysql_dbha_af_commiter_lock
 from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import Ticket
 
 
-@transaction.atomic
+# @transaction.atomic
 def commit_ticket(uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue]):
     """
     这里拿到的输入, queue_uuid 可能会有重复的
     每一个 queue_uuid 只要随便拿一行来提单就行
     """
-    commited = []
-    for ut in uncommit_tickets:
-        if ut.queue_uuid in commited:
-            continue
+    with mysql_dbha_af_commiter_lock:
+        commited = []
+        for ut in uncommit_tickets:
+            if ut.queue_uuid in commited:
+                continue
 
-        ticket_param = ut.ticket_param
-        tk = Ticket.create_ticket(**ticket_param)
-        MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid=ut.queue_uuid).update(
-            ticket_id=tk.pk, status=TicketFlowStatus.PENDING
-        )
-        commited.append(ut.queue_uuid)
+            ticket_param = ut.ticket_param
+            tk = Ticket.create_ticket(**ticket_param)
+            MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid=ut.queue_uuid).update(
+                ticket_id=tk.pk, status=TicketFlowStatus.PENDING
+            )
+            commited.append(ut.queue_uuid)
