@@ -39,7 +39,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
     remove_departs,
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -104,7 +103,7 @@ class TendbClusterUpgradeFlow(object):
                         cluster_class.immute_domain, origin_charset, new_charset
                     )
                 )
-            upgrade_version_check(origin_mysql_ver, new_mysql_ver)
+            # upgrade_version_check(origin_mysql_ver, new_mysql_ver)
 
     def upgrade_ro_slaves(self):
         self.__pre_check()

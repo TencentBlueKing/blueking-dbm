@@ -41,7 +41,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name
 from backend.flow.utils.spider.spider_check_constants import BASIC_CHECK_TYPES
 
 
@@ -53,6 +52,7 @@ def build_mysql_upgrade_pipelines(
     root_id: str,
     ticket_data: Dict,
     pkg_id: int,
+    new_mysql_version: str,
     cluster: Cluster,
     is_check_process: bool,
 ) -> List:
@@ -133,6 +133,7 @@ def build_upgrade_mysql_subflow(
     root_id: str,
     ticket_data: Dict,
     pkg_id: int,
+    new_mysql_version: str,
     cluster: Cluster,
     is_check_process: bool,
 ):
@@ -180,7 +181,6 @@ def build_upgrade_mysql_subflow(
             is_same_tmysql_version=is_same_tmysql_version,
         )
     )
-
     # 更新mysql instance version信息
     sub_pipeline.add_act(
         act_name=_("更新mysql instance version meta信息 {}").format(ip),
@@ -188,7 +188,7 @@ def build_upgrade_mysql_subflow(
         kwargs=asdict(
             DBMetaOPKwargs(
                 db_meta_class_func=MySQLDBMeta.update_mysql_instance_version.__name__,
-                cluster={"ip": ip, "version": get_sub_version_by_pkg_name(cluster.major_version)},
+                cluster={"ip": ip, "version": new_mysql_version},
             )
         ),
     )

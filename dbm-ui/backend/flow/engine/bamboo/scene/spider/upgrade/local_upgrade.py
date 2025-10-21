@@ -25,6 +25,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_upgrade_subflow import 
 )
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.utils.mysql.mysql_context_dataclass import TendbClusterStorageUpgradeContext
+from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name
 
 from ..remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
 from .upgrade_components import add_standardize_act, build_mysql_upgrade_pipelines
@@ -143,6 +144,7 @@ class TenDBClusterStorageLocalUpgradeFlow(object):
         add_alarm_shield_act(sub_pipeline, cluster)
 
         is_same_tmysql_version = get_is_same_tmysql_version(cluster_id, new_mysql_pkg.name)
+        new_mysql_version = get_sub_version_by_pkg_name(new_mysql_pkg.name)
         # 阶段4: 升级所有slave节点
         slave_upgrade_pipelines = build_mysql_upgrade_pipelines(
             master_slave_pairs,
@@ -152,6 +154,7 @@ class TenDBClusterStorageLocalUpgradeFlow(object):
             self.root_id,
             self.ticket_data,
             pkg_id,
+            new_mysql_version,
             cluster,
             is_check_process,
         )
@@ -190,6 +193,7 @@ class TenDBClusterStorageLocalUpgradeFlow(object):
             self.root_id,
             self.ticket_data,
             pkg_id,
+            new_mysql_version,
             cluster,
             is_check_process,
         )

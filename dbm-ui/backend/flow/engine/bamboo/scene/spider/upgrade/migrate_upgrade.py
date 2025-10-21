@@ -37,7 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 )
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import adapt_mycnf_for_upgrade
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import upgrade_version_check
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -154,7 +153,7 @@ class TenDBClusterStorageMigrateUpgradeFlow(object):
                 db_module_id=new_db_module_id,
                 cluster_type=cluster_info["cluster_type"],
             )
-            upgrade_version_check(db_version, new_db_version)
+            # upgrade_version_check(db_version, new_db_version)
             shards = len(cluster_info["shards"])
             if self.data["remote_shard_num"] * len(self.data["remote_group"]) != shards:
                 raise TendbGetBackupInfoFailedException(
