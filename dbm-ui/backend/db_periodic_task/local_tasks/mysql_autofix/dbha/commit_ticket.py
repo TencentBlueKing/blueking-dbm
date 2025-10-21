@@ -8,12 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import threading
 from typing import List
 
 from backend.db_monitor.models import MySQLDBHAAutofixTicketStageQueue
-from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.mysql_dbha_autofix import mysql_dbha_af_commiter_lock
 from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import Ticket
+
+mysql_dbha_af_commiter_lock = threading.Lock()
 
 
 # @transaction.atomic

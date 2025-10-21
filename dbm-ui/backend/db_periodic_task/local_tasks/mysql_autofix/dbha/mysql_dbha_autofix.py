@@ -34,7 +34,6 @@ from backend.ticket.models import Ticket
 logger = logging.getLogger("celery")
 
 mysql_dbha_af_schedule_lock = threading.Lock()
-mysql_dbha_af_commiter_lock = threading.Lock()
 
 
 # @register_periodic_task(run_every=crontab(minute="*"))
