@@ -114,9 +114,7 @@
         }
       }
 
-      if (commonList.value.length === 0) {
-        showInternalList.value = true;
-      }
+      showInternalList.value = commonList.value.length === 0;
     }
   });
 
