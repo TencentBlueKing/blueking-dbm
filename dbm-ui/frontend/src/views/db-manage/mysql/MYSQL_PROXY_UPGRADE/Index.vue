@@ -24,6 +24,7 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
+            :callback="() => handleInputFinish(item)"
             role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -216,6 +217,14 @@
     }[];
     is_check_process: boolean;
   }>(TicketTypes.MYSQL_PROXY_UPGRADE);
+
+  const handleInputFinish = (item: RowData) => {
+    if (!item.current_version && item.cluster.proxies.length > 0) {
+      Object.assign(item, {
+        current_version: item.cluster.proxies[0].version,
+      });
+    }
+  };
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
