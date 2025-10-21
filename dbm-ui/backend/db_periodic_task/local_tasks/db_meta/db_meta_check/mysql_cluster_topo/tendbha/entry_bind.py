@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
@@ -36,7 +36,7 @@ def _cluster_master_entry_on_proxy(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("主访问入口 {} 关联 proxy 和集群 proxy 数量不相等".format(cme.entry)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAProxyCountNotMatch,
                     )
                 )
 
@@ -55,7 +55,7 @@ def _cluster_master_entry_on_storage(c: Cluster) -> List[CheckResponse]:
                 bad.append(
                     CheckResponse(
                         msg=_("主访问入口 {} 关联到存储实例".format(cme.entry)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBHAMasterEntryBindStorage,
                         instance=si,
                     )
                 )

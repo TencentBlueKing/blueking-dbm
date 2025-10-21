@@ -27,7 +27,7 @@ def cluster_status(c: Cluster) -> List[CheckResponse]:
         bad.append(
             CheckResponse(
                 msg=_("集群状态异常: {}".format(c.status)),
-                check_subtype=MetaCheckSubType.ClusterTopo,
+                check_subtype=MetaCheckSubType.TenDBHAClusterAbnormal,
             )
         )
 
@@ -42,7 +42,7 @@ def cluster_instance_status(c: Cluster) -> List[CheckResponse]:
             bad.append(
                 CheckResponse(
                     msg=_("实例 {} 状态异常: {}, {}".format(si.ip_port, si.status, si.phase)),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBHAInstanceAbnormal,
                     instance=si,
                 )
             )
@@ -52,7 +52,7 @@ def cluster_instance_status(c: Cluster) -> List[CheckResponse]:
             bad.append(
                 CheckResponse(
                     msg=_("实例 {} 状态异常: {}, {}".format(pi.ip_port, pi.status, pi.phase)),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBHAInstanceAbnormal,
                     instance=pi,
                 )
             )
@@ -72,7 +72,7 @@ def cluster_master_entry_count(c: Cluster) -> List[CheckResponse]:
 
     bad = []
     if cnt <= 0:
-        bad.append(CheckResponse(msg=_("缺少主访问入口"), check_subtype=MetaCheckSubType.ClusterTopo))
+        bad.append(CheckResponse(msg=_("缺少主访问入口"), check_subtype=MetaCheckSubType.TenDBHAMissingMasterEntry))
 
     return bad
 
@@ -89,7 +89,7 @@ def _cluster_proxy_count(c: Cluster) -> List[CheckResponse]:
 
     bad = []
     if cnt < 2:
-        bad.append(CheckResponse(msg=_("正常 proxy 不足 2 个"), check_subtype=MetaCheckSubType.ClusterTopo))
+        bad.append(CheckResponse(msg=_("正常 proxy 不足 2 个"), check_subtype=MetaCheckSubType.TenDBHAShortProxy))
 
     return bad
 
@@ -104,13 +104,13 @@ def cluster_one_master(c: Cluster) -> List[CheckResponse]:
 
     bad = []
     if len(m) <= 0:
-        bad.append(CheckResponse(msg=_("无 master 实例"), check_subtype=MetaCheckSubType.ClusterTopo))
+        bad.append(CheckResponse(msg=_("无 master 实例"), check_subtype=MetaCheckSubType.TenDBHANoMaster))
 
     if len(m) > 1:
         bad.append(
             CheckResponse(
                 msg=_("master 多余 1 个: {}".format(",".join([ele.ip_port for ele in m]))),
-                check_subtype=MetaCheckSubType.ClusterTopo,
+                check_subtype=MetaCheckSubType.TenDBHATooManyMaster,
             )
         )
 
@@ -138,7 +138,7 @@ def cluster_master_status(
 
     bad = []
     if cnt <= 0:
-        bad.append(CheckResponse(msg=_("无正常 master"), check_subtype=MetaCheckSubType.ClusterTopo))
+        bad.append(CheckResponse(msg=_("无正常 master"), check_subtype=MetaCheckSubType.TenDBHAMasterBadStatus))
 
     return bad
 
@@ -157,13 +157,13 @@ def cluster_one_standby_slave(
 
     bad = []
     if len(m) <= 0:
-        bad.append(CheckResponse(msg=_("无 standby slave"), check_subtype=MetaCheckSubType.ClusterTopo))
+        bad.append(CheckResponse(msg=_("无 standby slave"), check_subtype=MetaCheckSubType.TenDBHANoStandbySlave))
 
     if len(m) > 1:
         bad.append(
             CheckResponse(
                 msg=_("standby slave 多余 1 个: {}".format(",".join([ele.ip_port for ele in m]))),
-                check_subtype=MetaCheckSubType.ClusterTopo,
+                check_subtype=MetaCheckSubType.TenDBHATooManyStandbySlave,
             )
         )
 
@@ -183,7 +183,7 @@ def cluster_standby_slave_status(c: Cluster) -> List[CheckResponse]:
             bad.append(
                 CheckResponse(
                     msg=_("standby slave {} 状态异常: {}, {}".format(si.ip_port, si.status, si.phase)),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBHAStandbySlaveBadStatus,
                     instance=si,
                 )
             )

@@ -25,3 +25,6 @@ class MetaCheckReport(BaseReportABS):
     subtype = models.CharField(
         max_length=64, choices=MetaCheckSubType.get_choices(), default="", help_text=_("元数据检查子项")
     )
+
+    class Meta:
+        indexes = [models.Index(fields=["cluster", "ip", "port", "subtype", "create_at"])]

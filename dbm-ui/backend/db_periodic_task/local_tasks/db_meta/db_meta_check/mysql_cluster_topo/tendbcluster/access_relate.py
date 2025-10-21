@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -62,7 +62,7 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
                                 pi.tendbclusterspiderext.spider_role, si.instance_inner_role, si.ip_port
                             )
                         ),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
+                        check_subtype=MetaCheckSubType.TenDBClusterSpiderBindWrongRole,
                         instance=pi,
                     )
                 )
@@ -81,7 +81,7 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
                             len(right), should_remote_master_cnt
                         )
                     ),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBClusterRemoteCountNotMatch,
                     instance=pi,
                 )
             )
@@ -97,7 +97,7 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
                             len(right), should_remote_slave_cnt
                         )
                     ),
-                    check_subtype=MetaCheckSubType.ClusterTopo,
+                    check_subtype=MetaCheckSubType.TenDBClusterRemoteCountNotMatch,
                     instance=pi,
                 )
             )

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
 
 from celery.schedules import crontab
 
@@ -42,8 +43,11 @@ def tendbha_topo_daily_check():
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
 def tendbcluster_topo_daily_check():
+    pattern = r"^.*-tmp[0-9]{8}-[0-9]{7}.*$"
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         r: MetaCheckReport
+        if re.match(pattern=pattern, string=c.immute_domain.lower()):
+            continue
         for r in tendbcluster.health_check(c.id):
             r.save()
 
