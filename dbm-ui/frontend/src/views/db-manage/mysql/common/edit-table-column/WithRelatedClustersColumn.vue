@@ -76,6 +76,10 @@
      */
     allowRepeat?: boolean;
     /**
+     * 编辑完成后的回调
+     */
+    callback?: () => void;
+    /**
      * 选择器tab集群类型，不传默认 TENDBHA
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
@@ -175,6 +179,7 @@
             .map((item) => item.spec_config.id)
             .filter((specId) => Boolean(specId)),
         });
+        props.callback?.();
         queryRelatedClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [currentCluster.id],
