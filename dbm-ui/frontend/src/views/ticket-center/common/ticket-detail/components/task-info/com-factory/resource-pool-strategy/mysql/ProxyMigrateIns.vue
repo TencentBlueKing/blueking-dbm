@@ -32,14 +32,7 @@
       :label="t('关联集群')"
       :min-width="250">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="ticketDetails.details.machine_infos?.[data.old_nodes.proxy?.[0].ip]?.related_clusters?.length">
-          <p
-            v-for="clusterId in ticketDetails.details.machine_infos[data.old_nodes.proxy[0].ip].related_clusters"
-            :key="clusterId">
-            {{ ticketDetails.details.clusters[clusterId]?.immute_domain || '--' }}
-          </p>
-        </template>
-        <template v-else> -- </template>
+        {{ ticketDetails.details.clusters[data.cluster_ids[0]]?.immute_domain || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
