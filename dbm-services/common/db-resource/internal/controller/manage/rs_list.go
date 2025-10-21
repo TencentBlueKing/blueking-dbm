@@ -135,12 +135,12 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 
 			// 如果所有规格的最小值都为0，添加空设备的OR条件
 			if allSpecMinIsZero {
-				condStr = "(" + condStr + ") OR (storage_device = '[]' OR storage_device IS NULL)"
+				condStr = "(" + condStr + ") OR ( storage_device IS NULL OR JSON_LENGTH(storage_device) = 0)"
 			}
 			db.Where(condStr, AndQ...)
 		} else if allSpecMinIsZero {
 			// 没有其他条件时，只匹配空设备
-			db.Where("storage_device = '[]' OR storage_device IS NULL")
+			db.Where("storage_device IS NULL OR JSON_LENGTH(storage_device) = 0")
 		}
 	} else {
 		// 保持原有的 else 分支逻辑不变（向后兼容旧参数）
