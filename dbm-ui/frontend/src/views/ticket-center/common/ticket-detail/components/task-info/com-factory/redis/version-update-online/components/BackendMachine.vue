@@ -12,73 +12,75 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="dataList"
-    :show-overflow="false">
-    <BkTableColumn
-      field="ip"
+    row-key="ip">
+    <TableColumn
+      col-key="ip"
       fixed="left"
-      :label="t('目标主机')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+      :min-width="250"
+      :title="t('目标主机')">
+      <template #default="{ row }: { row : RowData }">
         <div>
-          {{ data.ip }}
+          {{ row.ip }}
         </div>
         <div
-          v-if="data.pair_machine.ip"
+          v-if="row.pair_machine.ip"
           style="color: #979ba5">
-          {{ t('关联 Slave') }}: {{ data.pair_machine.ip }}
+          {{ t('关联 Slave') }}: {{ row.pair_machine.ip }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="instance_role"
-      :label="t('角色类型')"
+    </TableColumn>
+    <TableColumn
+      col-key="instance_role"
+      :title="t('角色类型')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row }: { row : RowData }">
         <div class="role-item">
-          {{ data.instance_role ? data.instance_role.split('_')[1] : '' }}
+          {{ row.instance_role ? row.instance_role.split('_')[1] : '' }}
         </div>
         <div
-          v-if="data.pair_machine.ip"
+          v-if="row.pair_machine.ip"
           class="role-item">
           slave
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('所属集群')"
+    </TableColumn>
+    <TableColumn
+      col-key="related_clusters"
+      :title="t('所属集群')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
+      <template #default="{ row }: { row : RowData }">
         <div
-          v-for="item in data.related_clusters"
+          v-for="item in row.related_clusters"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="current_versions"
+      :min-width="250"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row : RowData }">
         <div
-          v-for="item in data.current_versions"
+          v-for="item in row.current_versions"
           :key="item">
           {{ item }}
         </div>
         <div
-          v-for="item in data.pair_machine.slave_current_versions"
+          v-for="item in row.pair_machine.slave_current_versions"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_version"
-      :label="t('目标版本')"
-      :min-width="250">
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+    <TableColumn
+      col-key="target_version"
+      :min-width="250"
+      :title="t('目标版本')">
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

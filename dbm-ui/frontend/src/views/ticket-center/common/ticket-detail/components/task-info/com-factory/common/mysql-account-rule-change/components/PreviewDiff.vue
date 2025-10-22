@@ -62,7 +62,9 @@
           class-name="cell-bold"
           col-key="privilegeDisplay"
           :title="t('权限类型')" />
-        <TableColumn :title="t('变更前')">
+        <TableColumn
+          col-key="beforePrivilege"
+          :title="t('变更前')">
           <template #default="{ row: data }: { row: PrivilegeRow }">
             <div v-if="data.beforePrivilege">
               <span>{{ data.beforePrivilege }}</span>
@@ -77,6 +79,7 @@
         </TableColumn>
         <TableColumn
           class-name="cell-privilege"
+          col-key="afterPrivilege"
           :title="t('变更后')">
           <template #default="{ row: data }: { row: PrivilegeRow }">
             <div
