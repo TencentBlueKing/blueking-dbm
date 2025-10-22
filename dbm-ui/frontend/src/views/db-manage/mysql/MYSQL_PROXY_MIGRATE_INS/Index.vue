@@ -184,7 +184,7 @@
   const selected = computed(() =>
     formData.tableData.filter((item) => item.originProxy.bk_host_id).map((item) => item.originProxy),
   );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
   // 具备完全相同的集群id列的行数组map
   let sameClusterIdsRowsMap: Record<string, RowData[]> = {};
 
@@ -269,7 +269,7 @@
 
   const handleBatchEdit = (list: SelectorItem[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({
             originProxy: {

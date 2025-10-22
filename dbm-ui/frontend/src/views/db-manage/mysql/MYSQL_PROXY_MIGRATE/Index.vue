@@ -189,7 +189,6 @@
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-          port: number;
           spec: TendbhaModel['proxies'][0]['spec_config'];
         }[];
       };
@@ -198,12 +197,11 @@
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        port: number;
         spec: TendbhaModel['proxies'][number]['spec_config'];
       }[];
       related_instances: {
         cluster_id: number;
-        instance_address: string;
+        instance_address: string[];
       }[];
       resource_spec: {
         target_proxys: {
@@ -222,54 +220,39 @@
     if (!result) {
       return;
     }
-    const clusters: TendbhaModel[] = [];
-    const proxies: Array<{ cluster_id: number } & TendbhaModel['proxies'][number]> = [];
-    formData.tableData.forEach((row) => {
-      row.batchCluster.clusters.forEach((cluster) => {
-        clusters.push(cluster);
-        cluster.proxies.forEach((master) => {
-          proxies.push({
-            ...master,
-            cluster_id: cluster.id,
-          });
-        });
-      });
-    });
     createTicketRun({
       details: {
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: clusters.map((cluster) => cluster.id),
-          old_nodes: {
-            proxy: proxies.map((instance) => ({
+        infos: formData.tableData.map((item) => {
+          const proxies = item.batchCluster.clusters
+            .flatMap((cluster) => cluster.proxies)
+            .map((instance) => ({
               bk_biz_id: instance.bk_biz_id,
               bk_cloud_id: instance.bk_cloud_id,
               bk_host_id: instance.bk_host_id,
               ip: instance.ip,
-              port: instance.port,
               spec: instance.spec_config,
-            })),
-          },
-          origin_proxys: proxies.map((instance) => ({
-            bk_biz_id: instance.bk_biz_id,
-            bk_cloud_id: instance.bk_cloud_id,
-            bk_host_id: instance.bk_host_id,
-            ip: instance.ip,
-            port: instance.port,
-            spec: instance.spec_config,
-          })),
-          related_instances: proxies.map((instance) => ({
-            cluster_id: instance.cluster_id,
-            instance_address: instance.instance,
-          })),
-          resource_spec: {
-            target_proxys: {
-              count: proxies.length,
-              label_names: item.labels.map((item) => item.value),
-              labels: item.labels.map((item) => String(item.id)),
-              spec_id: item.specId,
+            }));
+
+          return {
+            cluster_ids: item.batchCluster.clusters.map((cluster) => cluster.id),
+            old_nodes: {
+              proxy: proxies,
             },
-          },
-        })),
+            origin_proxys: proxies,
+            related_instances: item.batchCluster.clusters.flatMap((cluster) => ({
+              cluster_id: cluster.id,
+              instance_address: cluster.proxies.map((proxy) => `${proxy.ip}:${proxy.port}`),
+            })),
+            resource_spec: {
+              target_proxys: {
+                count: proxies.length,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
+            },
+          };
+        }),
         ip_source: 'resource_pool',
       },
       ...formData.payload,

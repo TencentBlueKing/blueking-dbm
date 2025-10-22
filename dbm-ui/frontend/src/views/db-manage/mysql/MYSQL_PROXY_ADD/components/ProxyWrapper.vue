@@ -56,10 +56,8 @@
             v-model="modelValue.ticketType"
             class="mb-8 ml-8"
             :desc-list="[
-              t(
-                '功能说明：将目标 Proxy 主机替换为新主机(规格与原主机保持一致，不支持变更)，原主机上所有实例自动迁移至新主机',
-              ),
-              t('应用场景：旧主机裁撤、硬件故障处理、主机生命周期结束时使用'),
+              t('功能说明：将目标 Proxy 主机替换为同规格新主机'),
+              t('应用场景：旧主机裁撤、硬件故障处理时使用'),
             ]"
             icon="bk-dbm-icon db-icon-kelong"
             :title="t('替换 Proxy')"

@@ -38,6 +38,7 @@
             :current-spec-id-list="item.originProxy.spec_id_list"
             :machine-type="MachineTypes.MYSQL_PROXY"
             required
+            :rowspan="item.specRowspan"
             :show-tag="false"
             @batch-edit="handleBatchEditColumn" />
           <ResourceTagColumn
@@ -125,6 +126,7 @@
     originProxy: ComponentProps<typeof HostColumnGroup>['modelValue'];
     rowspan: number;
     specId: number;
+    specRowspan: number;
   }
 
   const { t } = useI18n();
@@ -169,6 +171,7 @@
     ),
     rowspan: data.rowspan || 1,
     specId: data.specId || 0,
+    specRowspan: data.specRowspan || 1,
   });
 
   const defaultData = () => ({
@@ -200,7 +203,11 @@
       }
     });
     Object.values(sameClusterIdsRowsMap).forEach((list) => {
-      Object.assign(list[0], { rowspan: list.length });
+      const isSameSpecId = list.every((item) => item.specId === list[0].specId);
+      Object.assign(list[0], {
+        rowspan: list.length,
+        specRowspan: isSameSpecId ? list.length : 1, // 相同规格合并
+      });
     });
   };
 
