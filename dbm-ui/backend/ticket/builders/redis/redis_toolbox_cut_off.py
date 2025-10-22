@@ -188,12 +188,13 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
 
             # 同园区，则slave与master在相同的subzone，跨园区，则排除master的subzone
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-                cluster_zone_list = cluster.zone_list
-                sub_zone_ids = [
-                    subzone_id for subzone_id in cluster_zone_list if subzone_id != redis_master.machine.bk_sub_zone_id
-                ]
+                master_subzone = redis_master.machine.bk_sub_zone_id
+                if not cluster.zone_list:
+                    is_include, sub_zone_ids = False, [master_subzone]
+                else:
+                    is_include, sub_zone_ids = True, list(set(cluster.zone_list) - {master_subzone})
                 resource_spec[group_key]["location_spec"].update(
-                    sub_zone_ids=sub_zone_ids, include_or_exclue=bool(sub_zone_ids)
+                    sub_zone_ids=sub_zone_ids, include_or_exclue=is_include
                 )
             elif cluster.disaster_tolerance_level in [
                 AffinityEnum.SAME_SUBZONE,
