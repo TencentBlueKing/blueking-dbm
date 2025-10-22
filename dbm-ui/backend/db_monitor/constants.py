@@ -70,6 +70,9 @@ TARGET_LEVEL_TO_PRIORITY = {
     TargetLevel.CUSTOM.value: TargetPriority.CUSTOM,
 }
 
+# 自定义分组前缀，监控要求PGK:开头，这里设置为PGK:DBM
+PRIORITY_KEY_PREFIX = "PGK:DBM"
+
 
 class PolicyStatus(str, StructuredEnum):
     """监控策略状态"""
