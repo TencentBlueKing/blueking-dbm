@@ -14,7 +14,7 @@ export interface ProxyConfChange extends ResourcePoolDetailBase {
         spec: TendbhaModel['proxies'][0]['spec_config'];
       }[];
     };
-    origin_proxys: {
+    origin_proxies: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -23,7 +23,7 @@ export interface ProxyConfChange extends ResourcePoolDetailBase {
       spec: TendbhaModel['masters'][number]['spec_config'];
     }[];
     resource_spec: {
-      target_proxys: {
+      target_proxies: {
         count: number; // proxy 数量
         label_names: string[]; // 标签名称列表，单据详情回显用
         labels: string[]; // 标签id列表

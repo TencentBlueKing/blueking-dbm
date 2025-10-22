@@ -240,11 +240,11 @@
           item.old_nodes.proxy?.forEach((proxy) => {
             acc.push(
               createTableRow({
-                labels: (item.resource_spec.target_proxys?.labels || []).map((item) => ({ id: Number(item) })),
+                labels: (item.resource_spec.target_proxies?.labels || []).map((item) => ({ id: Number(item) })),
                 originProxy: {
                   ip: proxy.ip || '',
                 },
-                specId: item.resource_spec.target_proxys?.spec_id,
+                specId: item.resource_spec.target_proxies?.spec_id,
               }),
             );
           });
@@ -266,7 +266,7 @@
           spec: TendbhaModel['masters'][number]['spec_config'];
         }[];
       };
-      origin_proxys: {
+      origin_proxies: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -278,7 +278,7 @@
         instance_address: string;
       }[];
       resource_spec: {
-        target_proxys: {
+        target_proxies: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -357,7 +357,7 @@
                 return acc;
               }, []),
             },
-            origin_proxys: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>(
+            origin_proxies: rows.reduce<Mysql.ResourcePool.ProxySwitch['infos'][0]['old_nodes']['proxy']>(
               (acc, item) => {
                 acc.push({
                   bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -371,7 +371,7 @@
               [],
             ),
             resource_spec: {
-              target_proxys: {
+              target_proxies: {
                 count: rows.length,
                 label_names: rows[0].labels.map((item) => item.value),
                 labels: rows[0].labels.map((item) => String(item.id)),

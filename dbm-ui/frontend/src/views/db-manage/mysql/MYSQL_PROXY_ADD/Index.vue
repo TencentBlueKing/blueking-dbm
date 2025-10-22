@@ -53,6 +53,7 @@
             :cluster-type="DBTypes.MYSQL"
             :current-spec-id-list="item.cluster.spec_id_list"
             :machine-type="MachineTypes.MYSQL_PROXY"
+            only-show-current-spec
             required
             selectable
             @batch-edit="handleBatchEditColumn" />
@@ -218,8 +219,8 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.new_proxys?.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.new_proxys?.spec_id,
+            labels: (item.resource_spec.new_proxies?.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.new_proxies?.spec_id,
           });
         }),
       });
@@ -231,7 +232,7 @@
       cluster_ids: number[];
       current_proxy_num: number;
       resource_spec: {
-        new_proxys: {
+        new_proxies: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -253,7 +254,7 @@
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
           current_proxy_num: item.cluster.proxies!.length,
           resource_spec: {
-            new_proxys: {
+            new_proxies: {
               count: Number(item.count),
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),

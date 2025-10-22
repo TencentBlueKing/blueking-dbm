@@ -43,16 +43,16 @@
       :label="t('目标规格')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxys?.spec_id]?.name || '--' }}
+        {{ ticketDetails.details.specs?.[data.resource_spec.target_proxies?.spec_id]?.name || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('资源标签')"
       :min-width="200">
       <template #default="{ data }: { data: RowData }">
-        <template v-if="data.resource_spec.target_proxys?.label_names?.length">
+        <template v-if="data.resource_spec.target_proxies?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.target_proxys.label_names"
+            v-for="item in data.resource_spec.target_proxies.label_names"
             :key="item">
             {{ item }}
           </BkTag>

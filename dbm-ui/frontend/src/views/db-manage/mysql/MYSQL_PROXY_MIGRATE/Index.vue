@@ -77,6 +77,7 @@
   </ProxyWrapper>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -172,8 +173,8 @@
                   }) as unknown as TendbhaModel,
               ),
             },
-            labels: (item.resource_spec.target_proxys?.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.target_proxys?.spec_id,
+            labels: (item.resource_spec.target_proxies?.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxies?.spec_id,
           });
         }),
       });
@@ -192,7 +193,7 @@
           spec: TendbhaModel['proxies'][0]['spec_config'];
         }[];
       };
-      origin_proxys: {
+      origin_proxies: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -204,7 +205,7 @@
         instance_address: string[];
       }[];
       resource_spec: {
-        target_proxys: {
+        target_proxies: {
           count: number;
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -223,28 +224,31 @@
     createTicketRun({
       details: {
         infos: formData.tableData.map((item) => {
-          const proxies = item.batchCluster.clusters
-            .flatMap((cluster) => cluster.proxies)
-            .map((instance) => ({
-              bk_biz_id: instance.bk_biz_id,
-              bk_cloud_id: instance.bk_cloud_id,
-              bk_host_id: instance.bk_host_id,
-              ip: instance.ip,
-              spec: instance.spec_config,
-            }));
+          const proxies = _.uniqBy(
+            item.batchCluster.clusters
+              .flatMap((cluster) => cluster.proxies)
+              .map((instance) => ({
+                bk_biz_id: instance.bk_biz_id,
+                bk_cloud_id: instance.bk_cloud_id,
+                bk_host_id: instance.bk_host_id,
+                ip: instance.ip,
+                spec: instance.spec_config,
+              })),
+            (item) => item.ip,
+          );
 
           return {
             cluster_ids: item.batchCluster.clusters.map((cluster) => cluster.id),
             old_nodes: {
               proxy: proxies,
             },
-            origin_proxys: proxies,
+            origin_proxies: proxies,
             related_instances: item.batchCluster.clusters.flatMap((cluster) => ({
               cluster_id: cluster.id,
               instance_address: cluster.proxies.map((proxy) => `${proxy.ip}:${proxy.port}`),
             })),
             resource_spec: {
-              target_proxys: {
+              target_proxies: {
                 count: proxies.length,
                 label_names: item.labels.map((item) => item.value),
                 labels: item.labels.map((item) => String(item.id)),

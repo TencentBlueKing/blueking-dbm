@@ -64,7 +64,7 @@
           class="spec-column-option">
           {{ item.spec_name }}
           <BkTag
-            v-if="showTag && currentSpecIdList?.includes(item.spec_id)"
+            v-if="showTag && item.isCurrent"
             class="ml-4"
             size="small"
             theme="success">
@@ -104,6 +104,10 @@
      */
     machineType?: MachineTypes;
     minWidth?: number;
+    /**
+     * 仅显示当前规格
+     */
+    onlyShowCurrentSpec?: boolean;
     required?: boolean;
     rowspan?: number;
     selectable?: boolean;
@@ -120,6 +124,7 @@
     label: '目标规格',
     machineType: undefined,
     minWidth: 200,
+    onlyShowCurrentSpec: false,
     required: false,
     rowspan: 1,
     selectable: false,
@@ -151,12 +156,18 @@
     () => specList.value.find((item) => item.spec_id === modelValue.value)?.spec_name || '',
   );
   const sortedSpecList = computed(() => {
-    const list = specList.value.map((item) =>
+    let list = specList.value.map((item) =>
       Object.assign({}, item, {
         disabled: props.currentSpecIdList?.includes(item.spec_id) && props.disabledCurrentSpec,
         isCurrent: props.currentSpecIdList?.includes(item.spec_id),
       }),
     );
+
+    // 仅显示当前规格
+    if (props.onlyShowCurrentSpec) {
+      list = list.filter((item) => props.currentSpecIdList?.includes(item.spec_id));
+    }
+
     // 当前规格排在前面
     return list.sort((a, b) => {
       if (a.isCurrent === b.isCurrent) return 0;
