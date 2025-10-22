@@ -64,7 +64,7 @@
   }
 
   export interface Emits {
-    (e: 'go-detail', clusterId: number, event: MouseEvent): void;
+    (e: 'go-detail', params: number, event: MouseEvent, detailPanel?: string): void;
     (e: 'refresh'): void;
   }
 
@@ -84,11 +84,37 @@
 
   const { handleCopyAll, handleCopySelected } = useColumnCopy(props);
 
-  const handleToDetails = (id: number, event: MouseEvent) => {
-    emits('go-detail', id, event);
+  const handleToDetails = (id: number, event: MouseEvent, detailPanel?: string) => {
+    emits('go-detail', id, event, detailPanel);
   };
 
   const handleRefresh = () => {
     emits('refresh');
   };
 </script>
+<style lang="less">
+  .cluster-table-master-domain-column {
+    &:hover,
+    .is-hover {
+      [class*='db-icon'] {
+        display: inline !important;
+      }
+
+      .master-domain-alarm-sign {
+        display: flex;
+      }
+    }
+
+    [class*='db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+
+    .master-domain-alarm-sign {
+      display: none;
+    }
+  }
+</style>

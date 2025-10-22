@@ -4,6 +4,8 @@ import { useUrlSearch } from '@hooks';
 
 import { useUserProfile } from '@stores';
 
+import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
+
 const TABLE_VIEW_MODE_SETTING_KEY = 'CLUSTER_TABLE_VIEW_MODE';
 
 export default function (clusterDetailRouteName: string) {
@@ -15,7 +17,7 @@ export default function (clusterDetailRouteName: string) {
   const clusterId = ref(0);
   const isShowDetail = ref(false);
 
-  const goClusterDetail = (id: number, event: MouseEvent) => {
+  const goClusterDetail = (id: number, event: MouseEvent, detailPanel?: string) => {
     if (event.ctrlKey || event.metaKey || userProfileStore.profile[TABLE_VIEW_MODE_SETTING_KEY] === 'jump') {
       const { href } = router.resolve({
         name: clusterDetailRouteName,
@@ -27,13 +29,17 @@ export default function (clusterDetailRouteName: string) {
       return true;
     }
 
+    const query = getSearchParams();
+    if (detailPanel) {
+      query[URL_CLUSTER_DETAIL_MEMO_KEY] = detailPanel;
+    }
     clusterId.value = id;
     isShowDetail.value = true;
     router.replace({
       params: {
         clusterId: id,
       },
-      query: getSearchParams(),
+      query,
     });
   };
 

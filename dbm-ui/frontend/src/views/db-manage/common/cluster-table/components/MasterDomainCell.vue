@@ -41,6 +41,15 @@
           theme="success">
           NEW
         </BkTag>
+        <div
+          v-if="isSubscribed"
+          v-bk-tooltips="t('查看告警订阅内容')"
+          class="master-domain-alarm-sign"
+          @click="(event: MouseEvent) => handleToDetails(data.id, event, 'alarmSubscription')">
+          <DbIcon
+            class="note-icon"
+            type="note" />
+        </div>
         <PopoverCopy @toogle-show="handlePopoverShow">
           <div @click="handleCopy(data.masterDomain)">
             {{ t('复制域名') }}
@@ -58,6 +67,8 @@
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
+
+  import { useAlarmSubscribe } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
@@ -77,7 +88,7 @@
   }
 
   export interface Emits {
-    (e: 'go-detail', params: number, event: MouseEvent): void;
+    (e: 'go-detail', id: number, event: MouseEvent, detailPanel?: string): void;
     (e: 'refresh'): void;
   }
 
@@ -111,11 +122,13 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const { subscribedDomainInfo } = useAlarmSubscribe();
 
   const searchKeyword = ref('');
 
   const isHover = ref(false);
   const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
+  const isSubscribed = computed(() => subscribedDomainInfo.dataSet.has(props.data.master_domain));
 
   watch(
     route,
@@ -136,10 +149,10 @@
     );
   };
 
-  const handleToDetails = (id: number, event: MouseEvent) => {
+  const handleToDetails = (id: number, event: MouseEvent, detailPanel?: string) => {
     event.preventDefault();
     event.stopPropagation();
-    emits('go-detail', id, event);
+    emits('go-detail', id, event, detailPanel);
     return false;
   };
 
@@ -147,3 +160,27 @@
     isHover.value = value;
   };
 </script>
+<style lang="less">
+  .master-domain-alarm-sign {
+    display: flex;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    font-size: 13px;
+    color: #3a84ff;
+    cursor: pointer;
+    background: #f0f5ff;
+    border: 1px solid #a3c5fd;
+    border-radius: 2px;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: #cddffe;
+    }
+
+    .note-icon {
+      margin: 0 !important;
+    }
+  }
+</style>

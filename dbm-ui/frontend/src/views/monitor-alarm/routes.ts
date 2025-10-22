@@ -28,6 +28,15 @@ export default function getRoutes() {
       component: () => import('@views/monitor-alarm/Index.vue'),
       children: [
         {
+          path: 'my-alarm-subscription',
+          name: 'myAlarmSubscription',
+          meta: {
+            fullscreen: true,
+            navName: t('我的告警订阅'),
+          },
+          component: () => import('@views/monitor-alarm/my-alarm-subscription/Index.vue'),
+        },
+        {
           path: 'alarm-events-todo',
           name: 'platformAlarmEventsTodo',
           meta: {
