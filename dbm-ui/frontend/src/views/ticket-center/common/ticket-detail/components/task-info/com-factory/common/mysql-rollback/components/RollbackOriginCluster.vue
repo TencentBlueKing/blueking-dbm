@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row:data }: { row: RowData }">
@@ -24,13 +25,16 @@
     </TableColumn>
     <slot />
     <TableColumn
+      col-key="backup_source"
       :min-width="150"
       :title="t('备份源')">
       <template #default="{ row:data }: { row: RowData }">
         {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('回档类型')">
+    <TableColumn
+      col-key="rollback_time"
+      :title="t('回档类型')">
       <template #default="{ row:data }: { row: RowData }">
         <span v-if="data.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(data.rollback_time) }}</span>
         <span v-else-if="data.backupinfo.backup_time && data.backupinfo.mysql_role">

@@ -33,6 +33,7 @@
     row-key="master"
     :rowspan-and-colspan="rowspanAndColspan">
     <TableColumn
+      col-key="immute_domain"
       fixed="left"
       :title="t('目标集群')"
       :width="200">
@@ -41,6 +42,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="checksum_scope"
       fixed="left"
       :title="t('校验范围')"
       :width="100">
@@ -49,9 +51,10 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="slave"
       :title="t('校验从库')"
       :width="220">
-      <template #header>
+      <template #title>
         <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验从库') }}</span>
           <PopoverCopy class="copy-btn">
@@ -77,9 +80,10 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="master"
       :title="t('校验主库')"
       :width="220">
-      <template #header>
+      <template #title>
         <span class="tendbcluster-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
           <PopoverCopy class="copy-btn">
@@ -100,6 +104,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="db_patterns"
       :title="t('校验DB名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
@@ -107,6 +112,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="ignore_dbs"
       :title="t('忽略DB名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
@@ -114,6 +120,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="table_patterns"
       :title="t('校验表名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">
@@ -121,6 +128,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="ignore_tables"
       :title="t('忽略表名')"
       :width="120">
       <template #default="{ row }: { row: RowData }">

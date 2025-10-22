@@ -17,10 +17,11 @@
       {{ ticketDetails.details.source_type === SourceType.RESOURCE_AUTO ? t('资源池自动匹配') : t('资源池手动选择') }}
     </InfoItem>
   </InfoList>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
     row-key="id">
     <TableColumn
+      col-key="old_nodes"
       :min-width="220"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -28,6 +29,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="cluster_ids"
       :min-width="220"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -41,6 +43,7 @@
     </TableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
       <TableColumn
+        col-key="resource_spec.new_slave.spec_id"
         :min-width="120"
         :title="t('规格')">
         <template #default="{ row: data }: { row: RowData }">
@@ -48,6 +51,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="resource_spec.new_slave.label_names"
         :min-width="200"
         :title="t('资源标签')">
         <template #default="{ row: data }: { row: RowData }">
@@ -68,6 +72,7 @@
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
       <TableColumn
+        col-key="resource_spec.new_slave.hosts"
         :min-width="120"
         :title="t('新从库主机')">
         <template #default="{ row: data }: { row: RowData }">
@@ -75,7 +80,7 @@
         </template>
       </TableColumn>
     </template>
-  </BkTable>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('备份源')">
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}

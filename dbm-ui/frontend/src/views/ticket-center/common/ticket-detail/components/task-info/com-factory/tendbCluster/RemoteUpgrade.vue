@@ -12,43 +12,46 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
+      :min-width="200"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="current_version"
+      :min-width="300"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.current_version.db_version,
-            package: data.current_version.pkg_name,
-            charSet: data.current_version.charset,
-            moduleName: data.current_version.db_module_name,
+            version: row.current_version.db_version,
+            package: row.current_version.pkg_name,
+            charSet: row.current_version.charset,
+            moduleName: row.current_version.db_module_name,
           }" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标版本')"
-      :min-width="300">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="target_version"
+      :min-width="300"
+      :title="t('目标版本')">
+      <template #default="{ row }: { row: RowData }">
         <VersionContent
           :data="{
-            version: data.target_version.db_version,
-            package: data.target_version.pkg_name,
-            charSet: data.target_version.charset,
-            moduleName: data.target_version.db_module_name,
+            version: row.target_version.db_version,
+            package: row.target_version.pkg_name,
+            charSet: row.target_version.charset,
+            moduleName: row.target_version.db_module_name,
           }" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
       {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}

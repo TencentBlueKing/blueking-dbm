@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="250"
       :title="t('集群')">
@@ -24,28 +25,37 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="truncate_data_type"
       :title="t('清档类型')"
       :width="220">
       <template #default="{ row: data }: { row: RowData }">
         {{ truncateDataTypes[data.truncate_data_type as keyof typeof truncateDataTypes] }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('指定 DB 名')">
+    <TableColumn
+      col-key="db_patterns"
+      :title="t('指定 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_patterns" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略 DB 名')">
+    <TableColumn
+      col-key="ignore_dbs"
+      :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_dbs" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('指定表名')">
+    <TableColumn
+      col-key="table_patterns"
+      :title="t('指定表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.table_patterns" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略表名')">
+    <TableColumn
+      col-key="ignore_tables"
+      :title="t('忽略表名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_tables" />
       </template>

@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
+  <PrimaryTable
+    :data="tableData"
+    row-key="clusterName">
     <TableColumn
       col-key="clusterName"
       :title="t('集群')" />

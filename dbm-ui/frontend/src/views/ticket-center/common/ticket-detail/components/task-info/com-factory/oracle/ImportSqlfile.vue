@@ -19,7 +19,7 @@
       fixed="left"
       :min-width="250"
       :title="t('集群')">
-      <template #header>
+      <template #title>
         <div class="oracle-exec-script-apply-domain-header">
           {{ t('目标集群') }}
           <DbIcon

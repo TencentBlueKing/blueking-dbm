@@ -17,6 +17,7 @@
     ellipsis
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="200"
       :title="t('目标分片集群')">
@@ -25,11 +26,13 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="node_type"
       :min-width="150"
       :title="t('缩容节点类型')">
       <template #default> mongos </template>
     </TableColumn>
     <TableColumn
+      col-key="spec"
       :min-width="150"
       :title="t('当前规格')">
       <template #default>
@@ -44,6 +47,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="old_nodes"
       :min-width="150"
       :title="t('缩容的IP')">
       <template #default="{ row }: { row: RowData }">

@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <PrimaryTable :data="tableData">
+  <PrimaryTable
+    :data="tableData"
+    row-key="id">
     <TableColumn
       fixed="left"
       min-width="150"

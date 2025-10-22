@@ -21,6 +21,7 @@
     :data="ticketDetails.details.infos"
     row-key="id">
     <TableColumn
+      col-key="cluster_ids"
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
@@ -35,6 +36,7 @@
     </TableColumn>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_AUTO">
       <TableColumn
+        col-key="spec_id"
         :min-width="120"
         :title="t('规格')">
         <template #default="{ row: data }: { row: RowData }">
@@ -42,6 +44,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="label_names"
         :min-width="200"
         :title="t('资源标签')">
         <template #default="{ row: data }: { row: RowData }">
@@ -62,6 +65,7 @@
     </template>
     <template v-if="ticketDetails.details.source_type === SourceType.RESOURCE_MANUAL">
       <TableColumn
+        col-key="new_proxy_ip"
         :min-width="120"
         :title="t('新Proxy主机')">
         <template #default="{ row: data }: { row: RowData }">

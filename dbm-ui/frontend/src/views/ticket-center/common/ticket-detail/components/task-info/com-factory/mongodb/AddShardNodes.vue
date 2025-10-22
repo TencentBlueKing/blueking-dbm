@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <PrimaryTable :data="ticketDetails.details.infos">
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_ids">
     <TableColumn
       col-key="cluster_ids"
       fixed="left"

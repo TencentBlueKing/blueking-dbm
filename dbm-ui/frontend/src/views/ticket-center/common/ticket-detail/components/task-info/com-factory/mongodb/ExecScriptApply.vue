@@ -27,11 +27,13 @@
     <InfoItem
       :label="t('目标集群')"
       style="flex: 1 0 100%">
-      <BkTable :data="tableData">
-        <BkTableColumn
-          field="immute_domain"
-          :label="t('集群')">
-          <template #header>
+      <PrimaryTable
+        :data="tableData"
+        row-key="id">
+        <TableColumn
+          col-key="immute_domain"
+          :title="t('集群')">
+          <template #title>
             <div class="oracle-exec-script-apply-domain-header">
               {{ t('目标集群') }}
               <DbIcon
@@ -39,18 +41,18 @@
                 @click="copyAllDomain" />
             </div>
           </template>
-          <template #default="{data}: {data: IRowData}">
-            {{ ticketDetails.details.clusters[data.id].immute_domain }}
+          <template #default="{ row }: { row: IRowData }">
+            {{ ticketDetails.details.clusters[row.id].immute_domain }}
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="cluster_type_name"
-          :label="t('类型')">
-          <template #default="{data}: {data: IRowData}">
-            {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
+        </TableColumn>
+        <TableColumn
+          col-key="cluster_type_name"
+          :title="t('类型')">
+          <template #default="{ row }: { row: IRowData }">
+            {{ ticketDetails.details.clusters[row.id].cluster_type_name }}
           </template>
-        </BkTableColumn>
-      </BkTable>
+        </TableColumn>
+      </PrimaryTable>
     </InfoItem>
   </InfoList>
   <BkSideslider

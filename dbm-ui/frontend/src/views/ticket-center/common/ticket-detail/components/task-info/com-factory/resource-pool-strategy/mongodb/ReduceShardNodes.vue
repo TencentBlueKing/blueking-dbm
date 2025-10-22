@@ -17,6 +17,7 @@
     ellipsis
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_ids"
       fixed="left"
       :min-width="200"
       :title="t('目标集群')">
@@ -37,6 +38,7 @@
       :min-width="150"
       :title="t('当前Shard的节点数')" />
     <TableColumn
+      col-key="reduce_shard_nodes"
       :min-width="150"
       :title="t('缩容至（节点数）')">
       <template #default="{ row }: { row: RowData }">

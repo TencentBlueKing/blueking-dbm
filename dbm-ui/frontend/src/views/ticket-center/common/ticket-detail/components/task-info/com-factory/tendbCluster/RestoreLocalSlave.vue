@@ -16,12 +16,14 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="slave_instance"
       fixed="left"
       :min-width="150"
       :title="t('目标从库实例')">
       <template #default="{ row: data }: { row: RowData }"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
     </TableColumn>
     <TableColumn
+      col-key="cluster_id"
       :min-width="200"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">

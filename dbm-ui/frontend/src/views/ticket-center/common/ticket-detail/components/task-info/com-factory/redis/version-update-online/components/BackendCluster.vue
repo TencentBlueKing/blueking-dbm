@@ -14,8 +14,10 @@
 <template>
   <PrimaryTable
     :data="ticketDetails.details.infos"
-    ellipsis>
+    ellipsis
+    row-key="cluster_ids">
     <TableColumn
+      col-key="cluster_ids"
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
@@ -33,6 +35,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="cluster_type_name"
       :title="t('架构版本')"
       :width="200">
       <template #default="{ row }: { row: RowData }">
@@ -40,6 +43,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="current_versions"
       :min-width="250"
       :title="t('当前版本')">
       <template #default="{ row }: { row: RowData }">
@@ -51,7 +55,7 @@
       </template>
     </TableColumn>
     <TableColumn
-      field="target_versions"
+      col-key="target_version"
       :min-width="250"
       :title="t('目标版本')">
       <template #default="{ row }: { row: RowData }">

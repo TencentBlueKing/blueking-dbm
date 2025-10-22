@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="source_cluster">
     <TableColumn
+      col-key="source_cluster"
       fixed="left"
       :min-width="240"
       :title="t('源集群')">
@@ -24,6 +25,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="target_clusters"
       :min-width="240"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
@@ -35,13 +37,14 @@
       </template>
     </TableColumn>
     <TableColumn
-      :min-width="180"
+      col-key="data_schema_grant"
       :title="t('克隆类型')">
       <template #default="{ row }: { row: RowData }">
         {{ row.data_schema_grant === 'schema' ? t('克隆表结构') : t('克隆表结构和数据') }}
       </template>
     </TableColumn>
     <TableColumn
+      col-key="clone_db_list"
       :min-width="180"
       :title="t('克隆DB名')">
       <template #default="{ row }: { row: RowData }">
@@ -54,6 +57,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="ignore_db_list"
       :min-width="180"
       :title="t('忽略DB名')">
       <template #default="{ row }: { row: RowData }">
@@ -66,6 +70,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="db_list"
       :min-width="180"
       :title="t('最终DB名')">
       <template #default="{ row }: { row: RowData }">

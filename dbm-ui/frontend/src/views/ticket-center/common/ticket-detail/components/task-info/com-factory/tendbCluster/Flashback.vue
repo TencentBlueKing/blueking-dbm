@@ -21,6 +21,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="220"
       :title="t('目标集群')">
@@ -29,6 +30,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="start_time"
       :min-width="250"
       :title="t('回档时间')">
       <template #default="{ row: data }: { row: RowData }">
@@ -36,6 +38,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="end_time"
       :min-width="250"
       :title="t('截止时间')">
       <template #default="{ row: data }: { row: RowData }">
@@ -43,6 +46,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="databases"
       :min-width="120"
       :title="t('目标库')">
       <template #default="{ row: data }: { row: RowData }">
@@ -51,6 +55,7 @@
     </TableColumn>
     <TableColumn
       v-if="isTableFlashback"
+      col-key="databases_ignore"
       :title="t('忽略库')">
       <template #default="{ row: data }: { row: RowData }">
         <BkTag
@@ -63,6 +68,7 @@
     </TableColumn>
     <TableColumn
       v-if="isTableFlashback"
+      col-key="databases_ignore"
       :min-width="120"
       :title="t('忽略库')">
       <template #default="{ row: data }: { row: RowData }">
@@ -70,6 +76,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="tables"
       :min-width="120"
       :title="t('目标表')">
       <template #default="{ row: data }: { row: RowData }">
@@ -78,6 +85,7 @@
     </TableColumn>
     <TableColumn
       v-if="isTableFlashback"
+      col-key="tables_ignore"
       :title="t('忽略表')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.tables_ignore" />
@@ -85,6 +93,7 @@
     </TableColumn>
     <TableColumn
       v-if="isRecordFlashback"
+      col-key="rows_filter"
       :min-width="300"
       :title="t('待闪回记录')">
       <template #default="{ row: data }: { row: RowData }">

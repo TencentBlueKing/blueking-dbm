@@ -16,30 +16,38 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       :min-width="220"
       :title="t('集群')">
       <template #default="{ row:data }: { row: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('主机来源')">
+    <TableColumn
+      col-key="host_source"
+      :title="t('主机来源')">
       <template #default>
         {{ t('业务空闲机') }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('回档新主机')">
+    <TableColumn
+      col-key="rollback_host"
+      :title="t('回档新主机')">
       <template #default="{ row:data }: { row: RowData }">
         {{ data.rollback_host.ip }}
       </template>
     </TableColumn>
     <TableColumn
+      col-key="backup_source"
       :min-width="150"
       :title="t('备份源')">
       <template #default="{ row:data }: { row: RowData }">
         {{ backupSourceMap[data.backup_source as keyof typeof backupSourceMap] }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('回档类型')">
+    <TableColumn
+      col-key="rollback_time"
+      :title="t('回档类型')">
       <template #default="{ row:data }: { row: RowData }">
         <span v-if="data.rollback_time">{{ t('回档到指定时间') }} - {{ utcDisplayTime(data.rollback_time) }}</span>
         <span v-else-if="data.backupinfo.backup_time && data.backupinfo.mysql_role">
@@ -49,22 +57,30 @@
         <span v-else>--</span>
       </template>
     </TableColumn>
-    <TableColumn :title="t('回档DB名')">
+    <TableColumn
+      col-key="databases"
+      :title="t('回档DB名')">
       <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.databases" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略DB名')">
+    <TableColumn
+      col-key="databases_ignore"
+      :title="t('忽略DB名')">
       <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.databases_ignore" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('回档表名')">
+    <TableColumn
+      col-key="tables"
+      :title="t('回档表名')">
       <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.tables" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略表名')">
+    <TableColumn
+      col-key="tables_ignore"
+      :title="t('忽略表名')">
       <template #default="{ row:data }: { row: RowData }">
         <TagBlock :data="data.tables_ignore" />
       </template>

@@ -14,13 +14,14 @@
 <template>
   <PrimaryTable
     :data="tableData"
-    show-overflow-tooltip>
+    row-key="instance">
     <TableColumn
-      field="instance"
+      col-key="instance"
       :label="t('目标实例')"
       :min-width="220">
     </TableColumn>
     <TableColumn
+      col-key="immute_domain"
       :label="t('所属集群')"
       :min-width="130">
       <template #default="{ row }: { row: RowData }">
@@ -28,6 +29,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="cluster_type_name"
       :label="t('架构版本')"
       :min-width="130">
       <template #default="{ row }: { row: RowData }">

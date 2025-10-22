@@ -15,7 +15,8 @@
   <BkLoading :loading="isLoading">
     <PrimaryTable
       class="permission-table"
-      :data="tableData">
+      :data="tableData"
+      row-key="user">
       <TableColumn
         col-key="user"
         :ellipsis="false"

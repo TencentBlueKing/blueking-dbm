@@ -12,61 +12,63 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="cluster_id"
+  <PrimaryTable
+    :data="ticketDetails.details.infos"
+    row-key="cluster_id">
+    <TableColumn
+      col-key="cluster_id"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.clusters[data.cluster_id]?.immute_domain }}
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id]?.immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="current_shards_num"
-      :label="t('当前集群分片数')"
+    </TableColumn>
+    <TableColumn
+      col-key="current_shards_num"
+      :title="t('当前集群分片数')"
       :width="120">
-    </BkTableColumn>
-    <BkTableColumn
-      field="add_shards_num"
-      :label="t('新增集群分片数')"
+    </TableColumn>
+    <TableColumn
+      col-key="add_shards_num"
+      :title="t('新增集群分片数')"
       :width="120">
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_type"
-      :label="t('最终集群分片数')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type"
+      :title="t('最终集群分片数')"
       :width="120">
-      <template #default="{data}: {data: RowData}">
-        {{ data.current_shards_num + data.add_shards_num }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.current_shards_num + row.add_shards_num }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="single_host_shard_num"
-      :label="t('单机分片数')"
+    </TableColumn>
+    <TableColumn
+      col-key="single_host_shard_num"
+      :title="t('单机分片数')"
       :width="120">
-    </BkTableColumn>
-    <BkTableColumn
-      field="current_shard_nodes_num"
-      :label="t('每片节点数')"
+    </TableColumn>
+    <TableColumn
+      col-key="current_shard_nodes_num"
+      :title="t('每片节点数')"
       :width="120">
-    </BkTableColumn>
-    <BkTableColumn
-      field="resource_spec.mongodb.spec_id"
-      :label="t('规格')"
-      :min-width="200">
-      <template #default="{data}: {data: RowData}">
-        {{ ticketDetails.details.specs[data.resource_spec.mongodb.spec_id]?.name }}
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec.mongodb.spec_id"
+      :min-width="200"
+      :title="t('规格')">
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.specs[row.resource_spec.mongodb.spec_id]?.name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="resource_spec.mongodb.count"
-      :label="t('新增机器（组）')"
+    </TableColumn>
+    <TableColumn
+      col-key="resource_spec.mongodb.count"
+      :title="t('新增机器（组）')"
       :width="120">
-      <template #default="{data}: {data: RowData}">
-        {{ data.add_shards_num / data.single_host_shard_num }}
+      <template #default="{ row }: { row: RowData }">
+        {{ row.add_shards_num / row.single_host_shard_num }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

@@ -12,53 +12,56 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
+    row-key="cluster_ids">
+    <TableColumn
+      col-key="cluster_ids"
       fixed="left"
-      :label="t('目标集群')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        <template v-if="data.cluster_ids">
+      :min-width="250"
+      :title="t('目标集群')">
+      <template #default="{ row }: { row : RowData }">
+        <template v-if="row.cluster_ids">
           <div
-            v-for="clusterId in data.cluster_ids"
+            v-for="clusterId in row.cluster_ids"
             :key="clusterId">
             {{ ticketDetails.details.clusters[clusterId].immute_domain }}
           </div>
         </template>
         <span v-else>
-          {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+          {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
         </span>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_id"
+      :title="t('架构版本')"
       :width="200">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      <template #default="{ row }: { row : RowData }">
+        {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('当前版本')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="current_versions"
+      :min-width="250"
+      :title="t('当前版本')">
+      <template #default="{ row }: { row : RowData }">
         <div
-          v-for="item in data.current_versions"
+          v-for="item in row.current_versions"
           :key="item">
           {{ item }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="target_versions"
-      :label="t('目标版本')"
-      :min-width="250">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target_version ? data.target_version : data.target_versions[0].version }}
+    </TableColumn>
+    <TableColumn
+      col-key="target_versions"
+      :min-width="250"
+      :title="t('目标版本')">
+      <template #default="{ row }: { row : RowData }">
+        {{ row.target_version ? row.target_version : row.target_versions[0].version }}
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
 </template>
 
 <script setup lang="tsx">

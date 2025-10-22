@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="250"
       :title="t('目标集群')">
@@ -24,6 +25,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="capacity"
       :min-width="200"
       :title="t('当前容量')">
       <template #default="{ row: data }: { row: RowData }">
@@ -42,6 +44,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="futureCapacity"
       :min-width="200"
       :title="t('目标容量')">
       <template #default="{ row: data }: { row: RowData }">
@@ -60,6 +63,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">
