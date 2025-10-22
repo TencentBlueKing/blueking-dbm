@@ -41,6 +41,14 @@ var (
 	ErrDetectorRunShellCommand     = gerrors.Newf(gerrors.Failure, "failed to run shell command")
 )
 
+// SshResponse contains the result of the shell that was running on the remote host.
+type SshResponse struct {
+	Id       string
+	Data     string
+	ExitCode int
+	ErrMsg   string
+}
+
 // Ssh is used to detect a remote host.
 type Ssh struct {
 	port     int
@@ -55,7 +63,8 @@ func (s *Ssh) Id() string {
 }
 
 // Run runs cmd on the remote host and returns it's combined standard output and standard error.
-func (s *Ssh) Run(cmd string) ([]byte, error) {
+func (s *Ssh) Run(cmd string) (*SshResponse, error) {
+
 	conf := &ssh.ClientConfig{
 		Timeout:         s.timeout,
 		User:            s.user,
@@ -93,17 +102,25 @@ func (s *Ssh) Run(cmd string) ([]byte, error) {
 		}
 	}()
 
-	respond, err := session.CombinedOutput(cmd)
+	resp := &SshResponse{Id: s.Id()}
+
+	data, err := session.CombinedOutput(cmd)
+	resp.Data = string(data)
+
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
-			return nil, gerrors.NewCustom(exitErr.ExitStatus(), err.Error())
+			resp.ExitCode = exitErr.ExitStatus()
+			resp.ErrMsg = exitErr.Error()
+			return resp, nil
 		}
 
-		logger.Error("failed to run the command: %s, host: %s, respond: %s, errmsg: %s", cmd, addr, respond, err)
-		return nil, ErrDetectorRunShellCommand
+		resp.ExitCode = gerrors.Failure.Int()
+		resp.ErrMsg = err.Error()
+		return resp, nil
 	}
 
-	return respond, nil
+	logger.Debug("shell command response: %s, cmd: %s", string(data), cmd)
+	return resp, nil
 }
 
 func (s *Ssh) keyboardInteractive() ssh.KeyboardInteractiveChallenge {

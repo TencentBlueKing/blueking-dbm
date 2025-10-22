@@ -26,6 +26,7 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -38,8 +39,10 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
+	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -81,7 +84,6 @@ type Workflow struct {
 	hadata       *storage.DbhaData
 	dbmMetadata  *DbmMetadata
 	discoveryCli *discovery.Client
-	detector     detector.Detector
 	switchers    map[haprobe.DbType]switcher.Switcher
 	quit         chan struct{}
 	wg           sync.WaitGroup
@@ -135,42 +137,75 @@ func (w *Workflow) Close() {
 	w.quit = nil
 }
 
+func (w *Workflow) alarm(procName string, status process.Status,
+	content string, exitCode int, resp *detector.Response) {
+
+	target := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
+	monitorEvent := &monitor.EventData{
+		Name:      haprobe.DbEventNameProbeOffline.String(),
+		Target:    target,
+		Timestamp: uint64(time.Now().UnixMilli()),
+	}
+
+	monitorEvent.Content.Content = content
+
+	monitorEvent.Dimension.DetectorExitCode = exitCode
+	monitorEvent.Dimension.IP = resp.Meta.IP
+	monitorEvent.Dimension.Port = resp.Meta.Port
+	monitorEvent.Dimension.BkBizID = resp.Meta.BkBizID
+	monitorEvent.Dimension.DbClusterType = resp.Meta.ClusterType
+	monitorEvent.Dimension.DbMachineType = resp.Meta.MachineType
+	monitorEvent.Dimension.DetectorProcName = procName
+	monitorEvent.Dimension.DetectorProcStatus = status
+	monitorEvent.Dimension.DbEventName = resp.DbEventName
+	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason
+
+	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
+		logger.Warn("%v", err)
+	}
+}
+
 func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadata) {
+	remoteDetector := detector.Detector{}
+
 	// Trigger to execute the remote detect logic.
-	if err := w.detector.Detect(missedInsts); err != nil {
+	if err := remoteDetector.Detect(missedInsts); err != nil {
 		logger.Warn("failed to detect remote db-insts, errmsg: %s", err)
+		return
 	}
 
 	// Read the detected results.
-	resps := w.detector.WaitResponses()
+	resps := remoteDetector.WaitResponses()
 
 	// Post the alarm event by the bk-monitor.
-	for _, resp := range resps {
-		target := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
-		monitorEvent := &monitor.EventData{
-			Name:      haprobe.DbEventNameProbeOffline.String(),
-			Target:    target,
-			Timestamp: uint64(time.Now().UnixMilli()),
-		}
+	for idx, resp := range resps {
+		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
 
 		if resp.Err != nil {
-			monitorEvent.Content.Content = resp.Err.Error()
-		} else {
-			monitorEvent.Content.Content = string(resp.Data)
+			w.alarm("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
+			continue
 		}
 
-		monitorEvent.Dimension.DetectorExitCode = resp.ExitCode
-		monitorEvent.Dimension.IP = resp.Meta.IP
-		monitorEvent.Dimension.Port = resp.Meta.Port
-		monitorEvent.Dimension.BkBizID = resp.Meta.BkBizID
-		monitorEvent.Dimension.DbClusterType = resp.Meta.ClusterType
-		monitorEvent.Dimension.DbMachineType = resp.Meta.MachineType
-		monitorEvent.Dimension.DbEventName = resp.DbEventName
-		monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason
-
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("%v", err)
+		if resp.SshResp.ExitCode != 0 {
+			content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
+			w.alarm("", "", content, resp.SshResp.ExitCode, resp)
+			continue
 		}
+
+		// Parse the probe health.
+		var health process.HealthInfo
+		err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
+		if err != nil {
+			w.alarm("", "", err.Error(), gerrors.Failure.Int(), resp)
+			continue
+		}
+
+		content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
+		if health.Pid == process.InvalidPid {
+			content = health.ErrMsg
+		}
+
+		w.alarm(health.ProcName, health.Status, content, resp.SshResp.ExitCode, resp)
 	}
 }
 
