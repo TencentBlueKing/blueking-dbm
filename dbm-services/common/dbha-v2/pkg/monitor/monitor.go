@@ -33,6 +33,7 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/process"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
@@ -96,8 +97,10 @@ type EventData struct {
 		SwitchInfoNewMasterPort       int    `json:"new_master_port,omitempty"`
 
 		// switch detect info.
-		SwitchInfoDetectClusterType string `json:"cluster_type,omitempty"`
-		DetectorExitCode            int    `json:"detector_exit_code,omitempty"`
+		SwitchInfoDetectClusterType string         `json:"cluster_type,omitempty"`
+		DetectorExitCode            int            `json:"detector_exit_code,omitempty"`
+		DetectorProcName            string         `json:"detector_proc_name,omitempty"`
+		DetectorProcStatus          process.Status `json:"detector_proc_status,omitempty"`
 
 		// global switch info.
 		SwitchInfoGlobalUncoveredInsNum  int    `json:"uncovered_ins_num,omitempty"`
