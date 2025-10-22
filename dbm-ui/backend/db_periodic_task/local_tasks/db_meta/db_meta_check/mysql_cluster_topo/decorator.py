@@ -12,6 +12,8 @@ import datetime
 from datetime import timedelta
 from typing import List
 
+from django.db.models import Q
+
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
@@ -55,15 +57,22 @@ def checker_wrapper(checker):
                 ClusterType.TenDBSingle,
                 ClusterType.TenDBHA,
                 ClusterType.TenDBCluster,
+                ClusterType.SqlserverHA,
+                ClusterType.SqlserverSingle,
             ]:
-                last_row = MetaCheckReport.objects.filter(
+                query = Q(
                     cluster=out_report.cluster,
-                    ip=out_report.ip,
-                    port=out_report.port,
                     subtype=out_report.subtype,
                     create_at__gte=create_25h_ago,
                     create_at__lte=create_18h_ago,
-                ).order_by("-create_at")
+                )
+                if cr.instance:
+                    query &= Q(ip=out_report.ip, port=out_report.port)
+                else:
+                    # 如果Instance是空，过滤时候做空过滤处理，避免读取数据失败
+                    query &= Q(ip__isnull=True, port=0)
+
+                last_row = MetaCheckReport.objects.filter(query).order_by("-create_at")
                 if last_row.exists():
                     out_report.failed_days = last_row.first().failed_days + 1
 

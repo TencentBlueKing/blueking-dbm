@@ -20,6 +20,7 @@ from backend.components.bklog.handler import BKLogHandler
 from backend.components.mysql_backup.client import SQLServerBackupApi
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_report.enums import ReportStateType
 from backend.db_report.models.sqlserver_check_report import SqlserverFullBackupInfoReport, SqlserverLogBackupInfoReport
 from backend.flow.utils.sqlserver.sqlserver_db_function import get_app_setting_data, get_routine_backup_dbs
 
@@ -75,12 +76,13 @@ class CheckBackupInfo(object):
                 "bk_biz_id": cluster.bk_biz_id,
                 "cluster": cluster.immute_domain,
                 "cluster_type": cluster.cluster_type,
-                "status": True,
+                "state": ReportStateType.NORMAL.value,
                 "msg": "",
+                "failed_days": 0,
             }
             # 如果集群的创建时间大于起始时间，则跳过这次巡检
             if cluster.create_at > self.full_backup_start_time or cluster.create_at > self.log_backup_start_time:
-                common_data["status"] = True
+                common_data["state"] = ReportStateType.NORMAL.value
                 common_data["msg"] = _(
                     "集出创建时间[{}]比检查时间[{}]晚，跳过这次的检查".format(cluster.create_at, self.full_backup_start_time)
                 )
@@ -98,32 +100,40 @@ class CheckBackupInfo(object):
                     instance = cluster.storageinstance_set.get(instance_role=InstanceRole.ORPHAN)
                     data, err = get_app_setting_data(instance=instance, bk_cloud_id=cluster.bk_cloud_id)
                     if err:
-                        common_data["status"] = False
+                        common_data["state"] = ReportStateType.ABNORMAL.value
                         common_data["msg"] = err
-                        SqlserverFullBackupInfoReport.objects.create(**common_data)
-                        SqlserverLogBackupInfoReport.objects.create(**common_data)
+                        full_report = SqlserverFullBackupInfoReport.objects.create(**common_data)
+                        log_report = SqlserverLogBackupInfoReport.objects.create(**common_data)
+                        # 计算持续异常天数
+                        full_report.calc_failed_days()
+                        log_report.calc_failed_days()
                         continue
                     if data["DATA_SCHEMA_GRANT"] != "all":
                         # 目前表示集群不做备份
-                        common_data["status"] = True
+                        common_data["state"] = ReportStateType.NORMAL.value
                         common_data["msg"] = "DATA_SCHEMA_GRANT != all, skip"
+                        common_data["failed_days"] = 0
                         SqlserverFullBackupInfoReport.objects.create(**common_data)
                         SqlserverLogBackupInfoReport.objects.create(**common_data)
                         continue
 
                 if len(get_routine_backup_dbs(cluster_id=cluster.id)) == 0:
-                    common_data["status"] = True
+                    common_data["state"] = ReportStateType.NORMAL.value
                     common_data["msg"] = _("检查到集群没有需要备份的数据库列表")
+                    common_data["failed_days"] = 0
                     SqlserverFullBackupInfoReport.objects.create(**common_data)
                     SqlserverLogBackupInfoReport.objects.create(**common_data)
                     continue
 
             except Exception as err:
                 # 如果校验发现失败了，记录当时的错误，不退出
-                common_data["status"] = False
+                common_data["state"] = ReportStateType.ABNORMAL.value
                 common_data["msg"] = err
-                SqlserverFullBackupInfoReport.objects.create(**common_data)
-                SqlserverLogBackupInfoReport.objects.create(**common_data)
+                full_report = SqlserverFullBackupInfoReport.objects.create(**common_data)
+                log_report = SqlserverLogBackupInfoReport.objects.create(**common_data)
+                # 计算持续异常天数
+                full_report.calc_failed_days()
+                log_report.calc_failed_days()
                 continue
 
             try:
@@ -131,9 +141,11 @@ class CheckBackupInfo(object):
                 self.check_full_backup_info_cluster(cluster)
             except Exception as err:
                 # 如果校验发现失败了，记录当时的错误，不退出
-                common_data["status"] = False
+                common_data["state"] = ReportStateType.ABNORMAL.value
                 common_data["msg"] = err
-                SqlserverFullBackupInfoReport.objects.create(**common_data)
+                full_report = SqlserverFullBackupInfoReport.objects.create(**common_data)
+                # 计算持续异常天数
+                full_report.calc_failed_days()
                 continue
 
             try:
@@ -142,9 +154,11 @@ class CheckBackupInfo(object):
 
             except Exception as err:
                 # 如果校验发现失败了，记录当时的错误，不退出
-                common_data["status"] = False
+                common_data["state"] = ReportStateType.ABNORMAL.value
                 common_data["msg"] = err
-                SqlserverLogBackupInfoReport.objects.create(**common_data)
+                log_report = SqlserverLogBackupInfoReport.objects.create(**common_data)
+                # 计算持续异常天数
+                log_report.calc_failed_days()
                 continue
 
     def check_full_backup_info_cluster(self, cluster: Cluster):
@@ -158,14 +172,16 @@ class CheckBackupInfo(object):
         # 判断每一次的备份任务是否缺失记录
         check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos, "full")
         # 写入到巡检表
-        SqlserverFullBackupInfoReport.objects.create(
+        full_report = SqlserverFullBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
-            status=is_normal,
+            state=ReportStateType.NORMAL.value if is_normal else ReportStateType.ABNORMAL.value,
             msg=check_result,
         )
+        # 计算持续异常天数
+        full_report.calc_failed_days()
         return
 
     def check_log_backup_info_cluster(self, cluster: Cluster):
@@ -179,14 +195,16 @@ class CheckBackupInfo(object):
         # 判断每一次的备份任务是否缺失记录
         check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos, "log")
         # 写入到巡检表
-        SqlserverLogBackupInfoReport.objects.create(
+        log_report = SqlserverLogBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
             bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
-            status=is_normal,
+            state=ReportStateType.NORMAL.value if is_normal else ReportStateType.ABNORMAL.value,
             msg=check_result,
         )
+        # 计算持续异常天数
+        log_report.calc_failed_days()
         return
 
     def check_backup_info_in_bk_log(self, backup_infos: list, tag: str):

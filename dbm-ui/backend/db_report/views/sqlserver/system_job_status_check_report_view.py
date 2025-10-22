@@ -29,7 +29,18 @@ logger = logging.getLogger("root")
 class SysJobStatuCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = SqlserverCheckSysJobStatuReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "instance_host", "instance_port", "msg", "create_at", "dba")
+        fields = (
+            "bk_biz_id",
+            "cluster",
+            "cluster_type",
+            "instance_host",
+            "instance_port",
+            "msg",
+            "create_at",
+            "dba",
+            "failed_days",
+            "state",
+        )
         swagger_schema_fields = {"example": mock_data.SQLSERVER_SYNC_CHECK_DATA}
 
 
@@ -83,6 +94,11 @@ class SysJobStatuCheckReportBaseViewSet(ReportBaseViewSet):
             "name": "failed_days",
             "display_name": _("持续天数"),
             "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "state",
+            "display_name": _("检查状态"),
+            "format": ReportFieldFormat.STATUS.value,
         },
     ]
 
