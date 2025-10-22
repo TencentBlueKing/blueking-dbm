@@ -404,7 +404,8 @@
         ...reqParams,
         bk_biz_id: currentBizId,
         name: formModel.strategyName,
-        parent_id: props.data.id, // 父策略id
+        // parent_id优先取克隆策略的parent_id，如果parent_id为空证明该策略是一条平台策略，就取策略id
+        parent_id: props.data.parent_id ? props.data.parent_id : props.data.id,
       };
       runClonePolicy(params);
       return;
