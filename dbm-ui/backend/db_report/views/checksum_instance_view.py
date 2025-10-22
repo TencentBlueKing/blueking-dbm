@@ -17,9 +17,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.db_report.enums import SWAGGER_TAG
 from backend.db_report.models import ChecksumInstance
-from backend.db_report.report_baseview import ReportBaseViewSet
 
 logger = logging.getLogger("root")
 
@@ -30,14 +30,13 @@ class ChecksumInstanceSerializer(serializers.ModelSerializer):
         fields = ("ip", "port", "master_ip", "master_port", "details", "id")
 
 
-class ChecksumInstanceViewSet(ReportBaseViewSet):
+class ChecksumInstanceViewSet(AuditedModelViewSet):
     queryset = ChecksumInstance.objects.all()
     serializer_class = ChecksumInstanceSerializer
     filter_backends = [DjangoFilterBackend]
     filter_fields = {
         "report_id": ["exact"],
     }
-    report_title = []
     action_permission_map = {("list",): []}
 
     @common_swagger_auto_schema(
