@@ -68,7 +68,7 @@ def list_cities() -> List[LCityModel]:
 def list_common_cities():
     """返回常用城市列表"""
     cities = []
-    common_cities = []
+    common_cities_map = {}
     commit_city_list = SystemSettings.get_setting_value(
         key=SystemSettingsEnum.COMMON_CITIES.value,
         default=[],
@@ -78,9 +78,12 @@ def list_common_cities():
         # 如果是default，则前端展示为无地域
         city_name = _("随机") if city.name == "default" else city.name
         if city_code in commit_city_list:
-            common_cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
+            common_cities_map[city_code] = LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value)
         else:
             cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
+    common_cities = [
+        common_cities_map[city_name] for city_name in commit_city_list if common_cities_map.get(city_name)
+    ]
     return cities, common_cities
 
 
