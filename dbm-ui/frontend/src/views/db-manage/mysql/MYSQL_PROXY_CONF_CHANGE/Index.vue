@@ -211,8 +211,8 @@
             cluster: {
               master_domain: clusters[item.cluster_ids[0]]?.immute_domain || '',
             },
-            labels: (item.resource_spec.target_proxys.labels || []).map((item) => ({ id: Number(item) })),
-            specId: item.resource_spec.target_proxys.spec_id,
+            labels: (item.resource_spec.target_proxies.labels || []).map((item) => ({ id: Number(item) })),
+            specId: item.resource_spec.target_proxies.spec_id,
           });
         }),
       });
@@ -232,7 +232,7 @@
           spec: TendbhaModel['proxies'][0]['spec_config'];
         }[];
       };
-      origin_proxys: {
+      origin_proxies: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -241,7 +241,7 @@
         spec: TendbhaModel['masters'][number]['spec_config'];
       }[];
       resource_spec: {
-        target_proxys: {
+        target_proxies: {
           count: number; // proxy 数量
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
@@ -272,9 +272,9 @@
           old_nodes: {
             proxy: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           },
-          origin_proxys: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
+          origin_proxies: item.cluster.proxies!.map((proxy) => generateProxies(proxy)),
           resource_spec: {
-            target_proxys: {
+            target_proxies: {
               count: item.cluster.proxies!.length,
               label_names: item.labels.map((item) => item.value),
               labels: item.labels.map((item) => String(item.id)),
