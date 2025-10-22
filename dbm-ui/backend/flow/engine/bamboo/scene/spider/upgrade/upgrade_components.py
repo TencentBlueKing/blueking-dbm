@@ -106,7 +106,16 @@ def build_mysql_upgrade_pipelines(
 
         # 创建升级子流程，传递所有端口
         upgrade_pipeline = build_upgrade_mysql_subflow(
-            ip, ports, sub_name, is_same_tmysql_version, root_id, ticket_data, pkg_id, cluster, is_check_process
+            ip,
+            ports,
+            sub_name,
+            is_same_tmysql_version,
+            root_id,
+            ticket_data,
+            pkg_id,
+            new_mysql_version,
+            cluster,
+            is_check_process,
         )
         upgrade_pipelines.append(upgrade_pipeline)
         processed_instances.append(f"{ip}:{','.join(map(str, ports))}")
@@ -148,7 +157,9 @@ def build_upgrade_mysql_subflow(
         root_id: 根ID
         ticket_data: 单据数据
         pkg_id: 包ID
+        new_mysql_version: 新的MySQL版本号
         cluster: 集群对象
+        is_check_process: 是否检查客户端连接
 
     Returns:
         SubBuilder: 升级子流程
