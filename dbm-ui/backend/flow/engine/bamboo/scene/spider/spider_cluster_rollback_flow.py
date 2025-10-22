@@ -349,7 +349,7 @@ class TenDBRollBackDataFlow(object):
                     raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息为空".format(shard_id)))
 
                 shard = target_cluster.tendbclusterstorageset_set.get(shard_id=shard_id)
-                target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
+                target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receivear.id)
                 target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
 
                 shard_backup_info = copy.deepcopy(backup_info["remote_node"][int(shard_id)])
