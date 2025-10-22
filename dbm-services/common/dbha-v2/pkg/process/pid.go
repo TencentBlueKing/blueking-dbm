@@ -37,7 +37,11 @@ import (
 )
 
 const (
-	InvalidPid = -1
+	InvalidPid   = -1
+	NameProbe    = "probe"
+	NameReceiver = "receiver"
+	NameAnalysis = "analysis"
+	NameAdmin    = "admin"
 )
 
 var (

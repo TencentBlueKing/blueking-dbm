@@ -58,18 +58,19 @@ func printRawHealth(health *process.HealthInfo) {
 	fmt.Fprintln(os.Stdout, "Pid:", health.Pid)
 	fmt.Fprintln(os.Stdout, "ProcName:", health.ProcName)
 	fmt.Fprintln(os.Stdout, "Status:", health.Status)
-	fmt.Fprintln(os.Stdout, "ErrMsg:", health.Err)
+	fmt.Fprintln(os.Stdout, "ErrMsg:", health.ErrMsg)
 }
 
 func obtainHealthInfo() *process.HealthInfo {
 	health := &process.HealthInfo{
-		Pid:    process.InvalidPid,
-		Status: process.StatusStopped,
+		Pid:      process.InvalidPid,
+		ProcName: process.NameProbe,
+		Status:   process.StatusStopped,
 	}
 
 	pid, err := process.ReadPid(config.Cfg.PidFile)
 	if err != nil {
-		health.Err = err
+		health.ErrMsg = err.Error()
 		return health
 	}
 
@@ -77,14 +78,14 @@ func obtainHealthInfo() *process.HealthInfo {
 
 	procName, err := process.Name(pid)
 	if err != nil {
-		health.Err = err
+		health.ErrMsg = err.Error()
 	}
 
 	health.ProcName = procName
 
-	alive, err := process.IsAliveWithProcessName(pid, "probe")
+	alive, err := process.IsAliveWithProcessName(pid, process.NameProbe)
 	if err != nil {
-		health.Err = err
+		health.ErrMsg = err.Error()
 	}
 
 	if alive {
