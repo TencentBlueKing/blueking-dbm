@@ -33,11 +33,16 @@
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="item in data.related_instances"
-          :key="item.instance_address">
+          :key="item.cluster_id">
           <p>
             {{ ticketDetails.details.clusters[item.cluster_id].immute_domain }}
           </p>
-          <p style="color: #979ba5">--{{ item.instance_address }}</p>
+          <p
+            v-for="instance in item.instance_address"
+            :key="instance"
+            style="color: #979ba5">
+            --{{ instance }}
+          </p>
         </div>
       </template>
     </BkTableColumn>
