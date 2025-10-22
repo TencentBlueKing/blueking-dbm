@@ -7,10 +7,16 @@
         v-for="(item, index) in abstractList"
         :key="index"
         :title="item.table_name">
-        <BkTable
-          :columns="item.titles"
+        <PrimaryTable
           :data="item.values"
-          header-row-class-name="abstract-table-header-row" />
+          header-row-class-name="abstract-table-header-row"
+          :row-key="item.titles[0].field">
+          <TableColumn
+            v-for="titleItem in item.titles"
+            :key="titleItem.field"
+            :col-key="titleItem.field"
+            :title="titleItem.label" />
+        </PrimaryTable>
       </TableCollapse>
     </div>
   </FlowCollapse>

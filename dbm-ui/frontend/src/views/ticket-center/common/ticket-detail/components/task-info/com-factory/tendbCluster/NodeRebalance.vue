@@ -29,6 +29,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="220"
       :title="t('目标集群')">
@@ -36,27 +37,37 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('当前资源规格')">
+    <TableColumn
+      col-key="prev_cluster_spec_name"
+      :title="t('当前资源规格')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('集群分片数')">
+    <TableColumn
+      col-key="cluster_shard_num"
+      :title="t('集群分片数')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.cluster_shard_num }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('部署机器组数')">
+    <TableColumn
+      col-key="prev_machine_pair"
+      :title="t('部署机器组数')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_machine_pair }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('当前总容量')">
+    <TableColumn
+      col-key="prev_cluster_spec_name"
+      :title="t('当前总容量')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.prev_cluster_spec_name }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('目标总容量')">
+    <TableColumn
+      col-key="spec_id"
+      :title="t('目标总容量')">
       <template #default="{ row: data }: { row: RowData }">
         {{ specInfoMap[data.resource_spec.backend_group.spec_id]?.spec_name }}
       </template>

@@ -39,16 +39,20 @@
       col-key="dst_cluster"
       :min-width="220"
       :title="t('目标集群')" />
-    <TableColumn :label="t('包含 Key')">
+    <TableColumn
+      col-key="key_white_regex"
+      :title="t('包含 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
     </TableColumn>
-    <BkTableColumn :label="t('排除 Key')">
+    <TableColumn
+      col-key="key_black_regex"
+      :title="t('排除 Key')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('执行模式:')">

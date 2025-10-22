@@ -40,6 +40,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="immute_domain"
       :min-width="200"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -47,6 +48,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="reduce_spider_role"
       :min-width="150"
       :title="t('缩容节点类型')">
       <template #default="{ row: data }: { row: RowData }">
@@ -54,6 +56,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="total"
       :min-width="100"
       :title="t('当前数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
@@ -61,6 +64,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="spider_reduced_hosts"
       :min-width="100"
       :title="t('缩容数量(台)')">
       <template #default="{ row: data }: { row: RowData }">
@@ -68,7 +72,7 @@
       </template>
     </TableColumn>
     <TableColumn
-      field="spider_reduced_to_count"
+      col-key="spider_reduced_to_count"
       :min-width="100"
       :title="t('剩余数量(台)')" />
   </PrimaryTable>

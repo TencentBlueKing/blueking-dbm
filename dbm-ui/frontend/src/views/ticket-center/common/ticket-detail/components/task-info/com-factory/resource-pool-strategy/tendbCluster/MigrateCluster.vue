@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="id">
     <TableColumn
+      col-key="ip"
       fixed="left"
       :min-width="120"
       :title="t('目标主库主机')">
@@ -24,6 +25,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="instance"
       :min-width="150"
       :title="t('主库主机关联实例')">
       <template #default="{ row: data }: { row: RowData }">
@@ -39,6 +41,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="old_slave"
       :min-width="120"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -46,6 +49,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="related_instances"
       :min-width="150"
       :title="t('从库主机关联实例')">
       <template #default="{ row: data }: { row: RowData }">
@@ -61,6 +65,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="immute_domain"
       :min-width="200"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -68,6 +73,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="spec_id"
       :min-width="120"
       :title="t('规格')">
       <template #default="{ row: data }: { row: RowData }">
@@ -75,6 +81,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="label_names"
       :min-width="200"
       :title="t('资源标签')">
       <template #default="{ row: data }: { row: RowData }">

@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :title="t('目标集群')"
       :width="200">
@@ -24,6 +25,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="spider_mnt_address"
       :min-width="120"
       :title="t('备份位置')">
       <template #default="{ row: data }: { row: RowData }">
@@ -31,6 +33,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="db_patterns"
       :min-width="120"
       :title="t('备份DB名')">
       <template #default="{ row: data }: { row: RowData }">
@@ -38,6 +41,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="ignore_dbs"
       :min-width="120"
       :title="t('忽略DB名')">
       <template #default="{ row: data }: { row: RowData }">
@@ -45,6 +49,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="table_patterns"
       :min-width="120"
       :title="t('备份表名')">
       <template #default="{ row: data }: { row: RowData }">
@@ -52,6 +57,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="ignore_tables"
       :min-width="120"
       :title="t('忽略表名')">
       <template #default="{ row: data }: { row: RowData }">

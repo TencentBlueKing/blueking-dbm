@@ -12,43 +12,49 @@
 -->
 
 <template>
-  <BkTable
+  <PrimaryTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn
-      field="src_cluster"
+    row-key="src_cluster">
+    <TableColumn
+      col-key="src_cluster"
       fixed="left"
-      :label="t('构造产物访问入口')"
-      :min-width="220">
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('目标集群')"
+      :min-width="220"
+      :title="t('构造产物访问入口')">
+    </TableColumn>
+    <TableColumn
+      col-key="dst_cluster"
+      :title="t('目标集群')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.dst_cluster].immute_domain }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      :label="t('架构版本')"
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_type_name"
+      :title="t('架构版本')"
       :width="150">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].cluster_type_name }}
+      <template #default="{ row }: { row: RowData }">
+        {{ ticketDetails.details.clusters[row.dst_cluster].cluster_type_name }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="recovery_time_point"
-      :label="t('构造到指定时间')" />
-    <BkTableColumn :label="t('包含 Key')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_white_regex)" />
+    </TableColumn>
+    <TableColumn
+      col-key="recovery_time_point"
+      :title="t('构造到指定时间')" />
+    <TableColumn
+      col-key="key_white_regex"
+      :title="t('包含 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_white_regex)" />
       </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('排除 Key')">
-      <template #default="{ data }: { data: RowData }">
-        <TagBlock :data="generateSplitList(data.key_black_regex)" />
+    </TableColumn>
+    <TableColumn
+      col-key="key_black_regex"
+      :title="t('排除 Key')">
+      <template #default="{ row }: { row: RowData }">
+        <TagBlock :data="generateSplitList(row.key_black_regex)" />
       </template>
-    </BkTableColumn>
-  </BkTable>
+    </TableColumn>
+  </PrimaryTable>
   <InfoList>
     <InfoItem :label="t('写入类型')">
       {{ writeTypesMap[ticketDetails.details.write_mode] }}

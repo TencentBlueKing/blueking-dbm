@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="immute_domain"
       fixed="left"
       :min-width="250"
       :title="t('源集群')">
@@ -24,6 +25,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="cluster_type_name"
       :min-width="180"
       :title="t('架构版本')">
       <template #default="{ row }: { row: RowData }">
@@ -36,6 +38,7 @@
       :title="t('Redis版本')">
     </TableColumn>
     <TableColumn
+      col-key="current_capacity"
       :min-width="240"
       :title="t('当前容量')">
       <template #default="{ row }: { row: RowData }">
@@ -45,6 +48,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="target_capacity"
       :min-width="370"
       :title="t('目标容量')">
       <template #default="{ row }: { row: RowData }">
@@ -54,6 +58,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="online_switch_type"
       :min-width="120"
       :title="t('切换模式')">
       <template #default="{ row }: { row: RowData }">

@@ -22,6 +22,7 @@
     ellipsis
     row-key="dst_cluster">
     <TableColumn
+      col-key="src_cluster"
       fixed="left"
       :title="t('待回档集群')"
       :width="220">
@@ -31,6 +32,7 @@
     </TableColumn>
     <TableColumn
       v-if="!ticketDetails.details.is_local"
+      col-key="dst_cluster"
       fixed="left"
       :title="t('目标集群')"
       :width="220">
@@ -39,6 +41,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="restore_time"
       :title="t('回档类型')"
       :width="300">
       <template #default="{ row: data }: { row: RowData }">
@@ -49,17 +52,23 @@
         </div>
       </template>
     </TableColumn>
-    <TableColumn :title="t('构造 DB')">
+    <TableColumn
+      col-key="db_list"
+      :title="t('构造 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略 DB')">
+    <TableColumn
+      col-key="ignore_db_list"
+      :title="t('忽略 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('构造后 DB 名')">
+    <TableColumn
+      col-key="rename_infos"
+      :title="t('构造后 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
