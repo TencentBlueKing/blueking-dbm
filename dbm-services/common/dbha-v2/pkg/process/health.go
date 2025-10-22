@@ -41,7 +41,7 @@ type HealthInfo struct {
 	Pid      int    `json:"pid"`
 	ProcName string `json:"procName"`
 	Status   Status `json:"status"`
-	Err      error  `json:"errmsg"`
+	ErrMsg   string `json:"errmsg"`
 }
 
 func (h HealthInfo) IsAlive() bool {

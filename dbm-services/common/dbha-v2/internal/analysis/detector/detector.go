@@ -29,6 +29,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -48,8 +49,7 @@ type Response struct {
 	DbEventName       haprobe.DbEventName
 	DbEventNameReason haprobe.DbEventNameReason
 	Err               error
-	ExitCode          int
-	Data              []byte
+	SshResp           *SshResponse
 }
 
 // Detector is used to detect whether the host or the probe is alive.
@@ -63,9 +63,7 @@ func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
 		return ErrDetectorNoTarget
 	}
 
-	if d.tasks == nil {
-		d.tasks = make(map[string]*detectorTask)
-	}
+	d.tasks = map[string]*detectorTask{}
 
 	for _, inst := range dbInsts {
 		task := &detectorTask{
@@ -79,7 +77,15 @@ func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
 			},
 		}
 
+		if _, exists := d.tasks[task.id()]; exists {
+			logger.Debug("the task: %s is already in the task queue", task.id())
+			continue
+		}
+
 		d.tasks[task.id()] = task
+
+		logger.Debug("push detector task: %p task-id: %s, resp: %p task-cnt: %d",
+			task, task.id(), task.resp, len(d.tasks))
 
 		d.wg.Add(1)
 		go func(task *detectorTask) {
@@ -95,19 +101,16 @@ func (d *Detector) WaitResponses() []*Response {
 	d.wg.Wait()
 	resps := []*Response{}
 
-	for _, task := range d.tasks {
+	for key, task := range d.tasks {
+		logger.Debug("pop key: %s detector task: %p task-id: %s, resp: %p, task-cnt: %d",
+			key, task, task.id(), task.resp, len(d.tasks))
+
 		resps = append(resps, task.resp)
 	}
 
+	logger.Debug("detector task response cnt: %d, task-cnt: %d", len(resps), len(d.tasks))
+
 	return resps
-}
-
-func (d *Detector) TryRecoverProbe() error {
-	return nil
-}
-
-func (d *Detector) checkProbe() error {
-	return nil
 }
 
 type detectorTask struct {
@@ -128,11 +131,8 @@ func (d *detectorTask) run(cmd string) {
 		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,
 	}
 
+	sshResp, err := d.sshCli.Run(cmd)
+	resp.SshResp = sshResp
+	resp.Err = err
 	d.resp = resp
-	resp.Data, resp.Err = d.sshCli.Run(cmd)
-
-	if err, ok := resp.Err.(*gerrors.Error); ok {
-		resp.ExitCode = err.Code()
-		resp.Data = []byte(err.Error())
-	}
 }
