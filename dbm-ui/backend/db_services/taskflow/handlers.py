@@ -273,20 +273,24 @@ class TaskFlowHandler:
         start_time = datetime2str(history["started_time"])
         end_time = datetime2str(history["finished_time"] + timedelta(days=1))
         # 获取pod采集日志
+        dbm_logs_query = f'("{self.root_id}" AND "{node_id}" AND {version_id}) AND ({detected_pods_query})'
+        logger.info(_("BKLog DBM_LOG 查询DSL: {}").format(dbm_logs_query))
         dbm_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
-            query_string=f"({self.root_id} AND {node_id} AND {version_id}) AND ({detected_pods_query})",
+            query_string=dbm_logs_query,
             start_time=start_time,
             end_time=end_time,
         )
         # 获取dbactuator采集日志
+        dbm_dbactuator_query = f'"{self.root_id}" AND "{node_id}" AND {version_id}'
+        logger.info(_("BKLog DBACTUATOR 查询DSL: {}").format(dbm_dbactuator_query))
         dbm_dbactuator_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
-            query_string=f"{self.root_id} AND {node_id} AND {version_id}",
+            query_string=dbm_dbactuator_query,
             start_time=start_time,
             end_time=end_time,
         )
-
+        logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
         # 格式化日志信息
         logs = []
         sorted_hits = sorted(
@@ -308,6 +312,68 @@ class TaskFlowHandler:
                 )
         if not logs:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
+        return logs
+
+    def get_version_error_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+        """仅获取指定节点版本的错误级别日志
+
+        参考 get_version_logs 的实现，但仅查询 dbactuator 采集的日志，并增加 levelname:error 过滤。
+        """
+        if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
+            return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
+
+        try:
+            node_histories_map = {h["version"]: h for h in self.get_node_histories(node_id)}
+            history = node_histories_map[version_id]
+        except KeyError:
+            return [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))]
+
+        if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
+            return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
+
+        start_time = datetime2str(history["started_time"])
+        end_time = datetime2str(history["finished_time"] + timedelta(days=1))
+
+        # 仅查询 dbactuator 采集日志，并增加 error 级别过滤（兼容大小写）
+        query_string = f' {self.root_id} AND {node_id} AND {version_id} and "levelname: error"  '
+        logger.info(_("BKLog ERROR 查询DSL: {}").format(query_string))
+        dbm_dbactuator_logs = self.bklog_esquery_search(
+            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
+            query_string=query_string,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        logger.info(_("BKLog DBACTUATOR 查询结果: {}").format(dbm_dbactuator_logs))
+        logs: List[Dict] = []
+        sorted_hits = sorted(
+            dbm_dbactuator_logs,
+            key=lambda x: (
+                int(x["_source"]["dtEventTimeStamp"]),
+                int(x["_source"]["gseIndex"]),
+                int(x["_source"]["iterationIndex"]),
+            ),
+        )
+
+        for hit in sorted_hits:
+            log = self._format_log(hit["_source"]["log"], hit["_source"]["serverIp"], hit["_index"])
+            if log:
+                logs.append(
+                    self.generate_log_record(
+                        timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
+                    )
+                )
+
+        if not logs:
+            # 兜底：拉取全部日志并基于level过滤，以兼容清洗差异
+            all_logs = self.get_version_logs(node_id, version_id)
+            error_only = [
+                rec
+                for rec in all_logs
+                if rec.get("levelname") and str(rec["levelname"]).upper() not in (LogLevelName.INFO.value, "DEBUG")
+            ]
+            if not error_only:
+                return [self.generate_log_record(message=_("暂无错误日志"))]
+            return error_only
         return logs
 
     @staticmethod

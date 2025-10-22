@@ -106,6 +106,8 @@ class TaskStatus:
     DEPLOY_SUCCESS = "deploy_success"
     # 演练恢复成功
     RECOVER_SUCCESS = "recover_success"
+    # 演练恢复失败
+    RECOVER_FAILED = "recover_failed"
     # 资源归还成功
     RESOURCE_RETURN_SUCCESS = "resource_return_success"
 
@@ -252,6 +254,25 @@ class MySQLBackupRecoverTask(BaseReportABS):
             "tendbha_count": tendbha_count,
             "total_count": tendbcluster_count + tendbha_count,
         }
+
+    @classmethod
+    def get_recent_3days_failed_cluster_ids(cls):
+        """
+        获取最近3天内失败的演练集群ID列表
+        失败指的是task_status为RECOVER_FAILED状态的任务
+        """
+        try:
+            recent_time = timezone.now() - timedelta(days=3)
+            return list(
+                MySQLBackupRecoverTask.objects.filter(
+                    create_at__gte=recent_time, task_status=TaskStatus.RECOVER_FAILED
+                )
+                .values_list("cluster_id", flat=True)
+                .distinct()
+            )
+        except Exception as e:
+            logger.warning(gettext("获取最近3天失败演练集群ID列表时发生数据库连接错误: {}").format(str(e)))
+            return []
 
 
 class FailoverDrillConfig(AuditedModel):

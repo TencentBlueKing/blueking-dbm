@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import random
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Union
@@ -680,6 +681,8 @@ def _collect_all_clusters(cluster_biz_map, recover_success_map, count, num):
     """收集所有集群 - 最低优先级兜底"""
     ignored_biz_ids = ExerciseIgnoreConfig.get_ignored_biz_ids()
     ignored_cluster_ids = ExerciseIgnoreConfig.get_ignored_cluster_ids()
+    failed_cluster_ids = MySQLBackupRecoverTask.get_recent_3days_failed_cluster_ids()
+    ignored_cluster_ids.extend(failed_cluster_ids)
     exclude_condition = Q()
     if ignored_biz_ids:
         exclude_condition |= Q(bk_biz_id__in=ignored_biz_ids)
@@ -942,7 +945,7 @@ def get_exercise_clusters(num: int) -> list:
 
 def return_resource(params: Dict[str, Any]) -> None:
     """
-    归还资源
+    归还资源，支持多次重试，重试间隔先大后小
     :param params: 归还资源的参数
         params = {
             "resource_type": "mysql",
@@ -959,10 +962,33 @@ def return_resource(params: Dict[str, Any]) -> None:
             "operator": "system",
         }
     """
-    try:
-        resp = DBResourceApi.resource_import(params=params, raw=True)
-        if resp["code"] != 0:
-            logger.error(_("归还资源失败: {}").format(resp.get("message", "")))
-    except Exception as e:
-        logger.exception(_("归还资源时发生异常: {e}"))
-        raise e
+    # 重试配置：重试间隔先大后小（秒）
+    retry_intervals = [4, 3, 2, 1]
+    max_retries = len(retry_intervals) + 1  # 总共尝试 5 次（1次初始 + 4次重试）
+
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                # 重试时等待一段时间
+                wait_time = retry_intervals[attempt - 1]
+                logger.info(_("第 {} 次重试归还资源，等待 {} 秒后执行").format(attempt, wait_time))
+                time.sleep(wait_time)
+
+            resp = DBResourceApi.resource_import(params=params, raw=True)
+            if resp["code"] == 0:
+                logger.info(_("归还资源成功"))
+                return
+            else:
+                error_msg = resp.get("message", "")
+                logger.warning(_("归还资源失败（第 {} 次尝试）: {}").format(attempt + 1, error_msg))
+                last_error = error_msg
+        except Exception as e:
+            logger.warning(_("归还资源时发生异常（第 {} 次尝试）: {}").format(attempt + 1, str(e)))
+            last_error = str(e)
+
+        # 如果是最后一次尝试，抛出异常
+        if attempt == max_retries - 1:
+            error_message = _("归还资源失败，已重试 {} 次，最后错误: {}").format(max_retries, last_error)
+            logger.error(error_message)
+            raise Exception(error_message)
