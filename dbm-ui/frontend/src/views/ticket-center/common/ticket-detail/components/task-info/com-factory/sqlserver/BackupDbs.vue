@@ -16,6 +16,7 @@
     :data="ticketDetails.details.infos"
     row-key="cluster_id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :title="t('目标集群')"
       :width="240">
@@ -23,17 +24,23 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('备份 DB 名')">
+    <TableColumn
+      col-key="db_list"
+      :title="t('备份 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.db_list" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('忽略 DB 名')">
+    <TableColumn
+      col-key="ignore_db_list"
+      :title="t('忽略 DB 名')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.ignore_db_list" />
       </template>
     </TableColumn>
-    <TableColumn :title="t('最终 DB')">
+    <TableColumn
+      col-key="backup_dbs"
+      :title="t('最终 DB')">
       <template #default="{ row: data }: { row: RowData }">
         <TagBlock :data="data.backup_dbs" />
       </template>

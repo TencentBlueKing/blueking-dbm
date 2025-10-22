@@ -15,18 +15,25 @@
   <PrimaryTable
     class="mysql-client-clone-render-table"
     :data="ticketDetails.details.clone_data"
-    ellipsis>
-    <TableColumn :title="t('源客户端IP')">
+    ellipsis
+    row-key="source">
+    <TableColumn
+      col-key="source"
+      :title="t('源客户端IP')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.bk_cloud_id}:${row.source}` }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('所属模块')">
+    <TableColumn
+      col-key="module"
+      :title="t('所属模块')">
       <template #default="{ row }: { row: RowData }">
         {{ row.module }}
       </template>
     </TableColumn>
-    <TableColumn :title="t('新客户端IP')">
+    <TableColumn
+      col-key="target"
+      :title="t('新客户端IP')">
       <template #default="{ row }: { row: RowData }">
         <div class="render-target">
           <template

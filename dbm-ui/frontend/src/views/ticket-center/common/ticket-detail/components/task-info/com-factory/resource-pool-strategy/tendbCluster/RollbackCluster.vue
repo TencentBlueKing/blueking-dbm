@@ -22,6 +22,7 @@
     ellipsis
     row-key="id">
     <TableColumn
+      col-key="cluster_id"
       fixed="left"
       :min-width="180"
       :title="t('待回档集群')">
@@ -31,6 +32,7 @@
     </TableColumn>
     <TableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
+      col-key="target_cluster_id"
       :min-width="180"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -39,6 +41,7 @@
     </TableColumn>
     <TableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
+      col-key="resource_spec.remote_hosts.hosts"
       :min-width="180"
       :title="t('存储层主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -47,6 +50,7 @@
     </TableColumn>
     <TableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
+      col-key="resource_spec.spider_host.hosts"
       :min-width="180"
       :title="t('接入层主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -54,6 +58,7 @@
       </template>
     </TableColumn>
     <TableColumn
+      col-key="rollback_time"
       :min-width="300"
       :title="t('回档类型')">
       <template #default="{ row: data }: { row: RowData }">
@@ -69,6 +74,7 @@
         ['BUILD_INTO_NEW_CLUSTER', 'BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)
       ">
       <TableColumn
+        col-key="databases"
         :min-width="120"
         :title="t('回档DB')">
         <template #default="{ row: data }: { row: RowData }">
@@ -81,6 +87,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="databases_ignore"
         :min-width="120"
         :title="t('忽略 DB')">
         <template #default="{ row: data }: { row: RowData }">
@@ -93,6 +100,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="tables"
         :min-width="120"
         :title="t('回档表名')">
         <template #default="{ row: data }: { row: RowData }">
@@ -105,6 +113,7 @@
         </template>
       </TableColumn>
       <TableColumn
+        col-key="tables_ignore"
         :min-width="120"
         :title="t('忽略表名')">
         <template #default="{ row: data }: { row: RowData }">

@@ -40,7 +40,7 @@
     <TableColumn
       :min-width="150"
       :title="t('校验从库')">
-      <template #header>
+      <template #title>
         <span class="mysql-checksum-ip-header">
           <span>{{ t('校验从库') }}</span>
           <PopoverCopy class="copy-btn">
@@ -64,7 +64,7 @@
     <TableColumn
       :min-width="150"
       :title="t('校验主库')">
-      <template #header>
+      <template #title>
         <span class="mysql-checksum-ip-header">
           <span>{{ t('校验主库') }}</span>
           <PopoverCopy class="copy-btn">

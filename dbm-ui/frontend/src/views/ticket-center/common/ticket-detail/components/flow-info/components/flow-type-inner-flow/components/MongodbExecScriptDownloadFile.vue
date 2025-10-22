@@ -9,25 +9,27 @@
     v-model:is-show="isShow"
     :title="t('查看结果文件')"
     :width="1140">
-    <BkTable
+    <PrimaryTable
       :data="details.ticket_data.rules"
-      :height="460">
-      <BkTableColumn
-        field="path"
-        :label="t('路径')" />
-      <BkTableColumn
-        :label="t('操作')"
+      :height="460"
+      row-key="path">
+      <TableColumn
+        col-key="path"
+        :title="t('路径')" />
+      <TableColumn
+        col-key="operation"
+        :title="t('操作')"
         :width="100">
-        <template #default="{ data: rowData }: { data: Props['details']['ticket_data']['rules'][number] }">
+        <template #default="{ row }: { row: Props['details']['ticket_data']['rules'][number] }">
           <BkButton
             text
             theme="primary"
-            @click="handleDownloadFile(rowData.path)">
+            @click="handleDownloadFile(row.path)">
             {{ t('下载') }}
           </BkButton>
         </template>
-      </BkTableColumn>
-    </BkTable>
+      </TableColumn>
+    </PrimaryTable>
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>

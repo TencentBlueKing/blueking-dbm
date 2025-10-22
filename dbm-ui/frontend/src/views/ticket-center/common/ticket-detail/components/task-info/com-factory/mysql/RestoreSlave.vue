@@ -20,13 +20,17 @@
   <PrimaryTable
     :data="ticketDetails.details.infos"
     row-key="old_slave.ip">
-    <BkTableColumn :title="t('待重建从库主机')">
-      <template #default="{ row:data }: { row: RowData }">
+    <TableColumn
+      col-key="old_slave.ip"
+      :title="t('待重建从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.old_slave.ip }}
       </template>
-    </BkTableColumn>
-    <BkTableColumn :title="t('同机关联集群')">
-      <template #default="{ row:data }: { row: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="cluster_ids"
+      :title="t('同机关联集群')">
+      <template #default="{ row: data }: { row: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
           :key="clusterId"
@@ -34,12 +38,14 @@
           {{ ticketDetails.details.clusters[clusterId].immute_domain }}
         </div>
       </template>
-    </BkTableColumn>
-    <BkTableColumn :title="t('新从库主机')">
-      <template #default="{ row:data }: { row: RowData }">
+    </TableColumn>
+    <TableColumn
+      col-key="new_slave.ip"
+      :title="t('新从库主机')">
+      <template #default="{ row: data }: { row: RowData }">
         {{ data.new_slave.ip }}
       </template>
-    </BkTableColumn>
+    </TableColumn>
   </PrimaryTable>
 </template>
 <script setup lang="ts">

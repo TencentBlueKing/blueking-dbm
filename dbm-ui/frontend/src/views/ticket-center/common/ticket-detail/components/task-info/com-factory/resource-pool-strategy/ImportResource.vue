@@ -25,7 +25,7 @@
           fixed="left"
           :min-width="150"
           title="IP">
-          <template #header>
+          <template #title>
             <div class="ip-header">
               IP
               <DbIcon
