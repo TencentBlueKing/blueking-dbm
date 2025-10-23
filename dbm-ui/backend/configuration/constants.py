@@ -115,7 +115,6 @@ class SystemSettingsEnum(StrStructuredEnum):
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     BF_WHITELIST_BIZS = EnumField("BF_WHITELIST_BIZS", _("BF业务白名单"))
-    EXTERNAL_WHITELIST_CLUSTER_IDS = EnumField("EXTERNAL_WHITELIST_CLUSTER_IDS", _("外部访问集群ID白名单列表"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
@@ -125,6 +124,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     SYSTEM_MSG_TYPE = EnumField("SYSTEM_MSG_TYPE", _("系统消息通知方式"))
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
     EXCLUSIVE_TICKET_MAP = EnumField("EXCLUSIVE_TICKET_MAP", _("单据互斥表(全局)"))
+    # 巡检配置
+    DB_REPORT_EXCLUDE_BIZS = EnumField("DB_REPORT_EXCLUDE_BIZS", _("巡检报告排除业务列表"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))

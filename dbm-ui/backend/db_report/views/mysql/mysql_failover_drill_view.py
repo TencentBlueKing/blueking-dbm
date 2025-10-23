@@ -12,27 +12,21 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase
+from backend.db_meta.enums import ClusterType
+from backend.db_report.models import FailoverDrillReport
 from backend.db_report.register import register_drill_report
-from backend.db_report.views.revover_drill_report_view import RecoverDrillTaskViewSet
+from backend.db_report.views.failover_drill_report_view import FailoverDrillReportViewSet
 
 logger = logging.getLogger("root")
 
 
 @register_drill_report(DBType.MySQL)
-class MySQLBackupRecoverTaskViewSet(RecoverDrillTaskViewSet):
-    """MySQL备份恢复任务视图集"""
-
-    queryset = MySQLBackupRecoverTask.objects.filter(phase=TaskPhase.DONE, cluster_type=ClusterType.TenDBHA).order_by(
-        "-create_at"
-    )
+class MySQLFailoverDrillReportViewSet(FailoverDrillReportViewSet):
+    cluster_types = [ClusterType.TenDBSingle, ClusterType.TenDBHA]
+    queryset = FailoverDrillReport.objects.filter(cluster_type__in=cluster_types)
 
 
 @register_drill_report(DBType.TenDBCluster)
-class TendbClusterBackupRecoverTaskViewSet(RecoverDrillTaskViewSet):
-    """TendbCluster备份恢复演练任务视图集"""
-
-    queryset = MySQLBackupRecoverTask.objects.filter(
-        phase=TaskPhase.DONE, cluster_type=ClusterType.TenDBCluster
-    ).order_by("-create_at")
+class TendbClusterFailoverDrillReportViewSet(FailoverDrillReportViewSet):
+    cluster_types = [ClusterType.TenDBCluster]
+    queryset = FailoverDrillReport.objects.filter(cluster_type__in=cluster_types)

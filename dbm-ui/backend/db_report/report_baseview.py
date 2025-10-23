@@ -24,10 +24,11 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
-from backend.configuration.models import DBAdministrator
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportStateType, ReportType
-from backend.db_report.filters import ReportFilterBackend
-from backend.db_report.register import db_report_maps
+from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend
+from backend.db_report.register import db_report_maps, report_kind_register_map
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
 from backend.iam_app.handlers.drf_perm.db_report import DBReportPermission
 
@@ -57,6 +58,13 @@ class ReportBaseViewSet(AuditedModelViewSet):
     # 鉴权类
     action_permission_map = {("list",): [DBReportPermission()]}
 
+    def filter_queryset(self, queryset):
+        # 先调用父类的过滤逻辑，应用 filter_backends 中配置的过滤器
+        queryset = super().filter_queryset(queryset)
+        # 全局过滤排除掉特定业务
+        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
+        return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
+
     def summary_state_count(self):
         queryset = self.filter_queryset(self.get_queryset())
         # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
@@ -73,6 +81,17 @@ class ReportBaseViewSet(AuditedModelViewSet):
         return response
 
 
+class BaseDrillReportViewSet(ReportBaseViewSet):
+    filter_backends = [DrillReportFilterBackend, OrderingFilter]
+    # 过滤、排序字段下放到字段声明
+    filter_fields = {"bk_biz_id": ["exact"], "state": ["exact", "in"]}
+    ordering_fields = []
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        return response
+
+
 class ReportCommonViewSet(viewsets.SystemViewSet):
     """巡检通用接口视图"""
 
@@ -80,24 +99,22 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取巡检报告总览"),
+        query_serializer=GetReportOverviewSerializer(),
         responses={status.HTTP_200_OK: GetReportOverviewSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=GetReportOverviewSerializer)
     def get_report_overview(self, request, *args, **kwargs):
-        # 获取巡检报告类型与db组件映射
-        report_type__db_map = defaultdict(list)
-        for db_type, report_cls_list in db_report_maps.items():
+        data = self.params_validate(self.get_serializer_class())
+        report_maps = report_kind_register_map[data["kind"]]
+        # 获取报告类型与db组件映射
+        report_types = defaultdict(list)
+        for db_type, report_cls_list in report_maps.items():
             for cls in report_cls_list:
-                report_type__db_map[cls.report_type].append(db_type)
-
-        # 按照ReportType顺序分类
-        db_report_types = defaultdict(list)
-        for report_type in ReportType.get_values():
-            for db_type in report_type__db_map[report_type]:
-                db_report_types[db_type].append(report_type)
-
-        return Response(db_report_types)
+                report_types[db_type].append(cls.report_type)
+            # 排序以固定前端展示顺序
+            report_types[db_type].sort()
+        return Response(report_types)
 
     @common_swagger_auto_schema(
         operation_summary=_("获取巡检报告代办数量"),
